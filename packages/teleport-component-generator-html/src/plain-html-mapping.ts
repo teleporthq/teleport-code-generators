@@ -23,6 +23,19 @@ export const PlainHTMLMapping: Mapping = {
         },
       },
     },
+    'date-time-node': {
+      elementType: 'date-time-primitive',
+      dependency: {
+        type: 'package',
+        version: '1.0.0',
+        path: 'date-time-primitive',
+        meta: {
+          importJustPath: true,
+          importAlias:
+            'https://github.com/teleporthq/date-time-primitive/blob/main/dist/default/lib.umd.js',
+        },
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
       dependency: {

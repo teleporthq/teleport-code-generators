@@ -14,8 +14,8 @@ const uidl = componentUIDLSample as ComponentUIDL
 describe('generateJSXSyntax', () => {
   const params: JSXGenerationParams = {
     dependencies: {},
-    propDefinitions: uidl.propDefinitions,
-    stateDefinitions: uidl.stateDefinitions,
+    propDefinitions: uidl.propDefinitions || {},
+    stateDefinitions: uidl.stateDefinitions || {},
     nodesLookup: {},
   }
 
@@ -24,6 +24,7 @@ describe('generateJSXSyntax', () => {
       prop: 'props',
       state: '',
       local: '',
+      ctx: '',
     },
   }
 

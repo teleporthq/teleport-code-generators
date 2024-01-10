@@ -34,6 +34,75 @@ export const insertLinks = (
       child.content.fallback = insertLinks(child.content.fallback, options, linkInNode, node)
     }
 
+    if (child.type === 'cms-list') {
+      const {
+        nodes: { success, error, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-list-repeater') {
+      const {
+        nodes: { list, empty },
+      } = child.content
+
+      if (list) {
+        insertLinks(list, options, false, node)
+      }
+
+      if (empty) {
+        insertLinks(empty, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-mixed-type') {
+      if (child.content.mappings) {
+        Object.values(child.content.mappings).forEach((mapping) => {
+          insertLinks(mapping, options, false, node)
+        })
+      }
+
+      const {
+        nodes: { fallback, error },
+      } = child.content
+      if (fallback) {
+        insertLinks(fallback, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-item') {
+      const {
+        nodes: { success, error, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
     return child
   })
 
@@ -101,7 +170,12 @@ export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): U
 }
 
 const getLinkElementType = (link: UIDLLinkNode): string => {
-  return link.type === 'navlink' ? 'navlink' : 'link'
+  // for now I'm making all dynamic links local.
+  // Maybe navlinks could have a dynamic reference,
+  // not just a staic on in the future, but for now
+  // (for the CMS demo) the navlink was too robust
+  // to change
+  return link.type === 'navlink' || link.type === 'dynamic' ? 'navlink' : 'link'
 }
 
 const createLinkAttributes = (
@@ -136,12 +210,14 @@ const createLinkAttributes = (
       }
     }
 
+    case 'dynamic':
+      return {
+        transitionTo: link,
+      }
+
     case 'navlink': {
       return {
-        transitionTo: {
-          type: 'static',
-          content: resolveNavlink(link.content.routeName, options),
-        },
+        transitionTo: resolveNavlink(link.content.routeName, options),
       }
     }
 
@@ -169,32 +245,51 @@ const createLinkAttributes = (
   }
 }
 
-const resolveNavlink = (routeName: string, options: GeneratorOptions) => {
+const resolveNavlink = (
+  route: UIDLAttributeValue,
+  options: GeneratorOptions
+): UIDLAttributeValue => {
   if (options.skipNavlinkResolver) {
-    return routeName
+    return route
   }
 
-  if (routeName.startsWith('/')) {
+  const { type, content: routeName } = route
+
+  if (type !== 'static') {
+    return route
+  }
+
+  if (routeName.toString().startsWith('/')) {
     // attribute was explicitly set as a custom navlink
-    return routeName
+    return route
   }
 
   const friendlyURL = StringUtils.camelCaseToDashCase(
-    StringUtils.removeIllegalCharacters(routeName)
+    StringUtils.removeIllegalCharacters(routeName.toString())
   )
 
   const transitionRoute = options.projectRouteDefinition
-    ? options.projectRouteDefinition.values.find((route) => route.value === routeName)
+    ? options.projectRouteDefinition.values.find((routeItem) => routeItem.value === routeName)
     : null
 
   if (!transitionRoute) {
-    return `/${friendlyURL}`
+    return {
+      type: 'static',
+      content: `/${friendlyURL}`,
+    }
   }
 
   if (transitionRoute?.pageOptions?.navLink === '/') {
-    return transitionRoute.pageOptions.navLink
+    return {
+      type: 'static',
+      content: transitionRoute.pageOptions.navLink,
+    }
   }
 
   const { pageOptions } = transitionRoute
-  return pageOptions.navLink ?? `/${friendlyURL}`
+
+  return {
+    type: 'static',
+    content: pageOptions.navLink ?? `/${friendlyURL}`,
+  }
 }

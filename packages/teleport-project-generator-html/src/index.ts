@@ -8,9 +8,7 @@ import { pluginCloneGlobals, ProjectPluginCloneGlobals } from './plugin-clone-gl
 import { pluginHomeReplace } from './plugin-home-replace'
 import { htmlErrorPageMapping } from './error-page-mapping'
 
-const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) => {
-  const { individualEntyFile } = config || { individualEntyFile: true }
-
+const createHTMLProjectGenerator = () => {
   const generator = createProjectGenerator({
     id: 'teleport-project-html',
     components: {
@@ -41,11 +39,6 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
       path: [''],
     },
   })
-
-  generator.addPlugin(pluginHomeReplace)
-  if (individualEntyFile) {
-    generator.addPlugin(pluginCloneGlobals)
-  }
 
   return generator
 }

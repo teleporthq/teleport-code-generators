@@ -1,0 +1,2499 @@
+{
+    "name": "Straight Young Gorilla",
+    "globals": {
+        "settings": {
+            "title": "Straight Young Gorilla",
+            "language": "en"
+        },
+        "assets": [
+            {
+                "type": "style",
+                "attrs": {
+                    "data-tag": {
+                        "type": "static",
+                        "content": "reset-style-sheet"
+                    }
+                },
+                "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6,figure,blockquote,figcaption {  margin: 0;  padding: 0;}button {  background-color: transparent;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}html { scroll-behavior: smooth  }"
+            },
+            {
+                "type": "style",
+                "attrs": {
+                    "data-tag": {
+                        "type": "static",
+                        "content": "default-style-sheet"
+                    }
+                },
+                "content": "\n  html {\n    font-family: Inter;\n    font-size: 16px;\n  }\n\n  body {\n    font-weight: 400;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.15;\n    color: var(--dl-color-gray-black);\n    background-color: var(--dl-color-gray-white);\n    \n  }\n\n  \n\n  "
+            },
+            {
+                "type": "font",
+                "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
+                "attrs": {
+                    "data-tag": {
+                        "type": "static",
+                        "content": "font"
+                    }
+                }
+            }
+        ],
+        "env": {
+            "CMS_URL": "https://cloud.caisy.io/api/v3/e/3bd8eb33-2aaa-4620-87bf-d7ccd04d0245/graphql",
+            "CMS_ACCESS_TOKEN": "teleporthq.secrets.CAISY_ACCESS_TOKEN1"
+        },
+        "meta": [
+            {
+                "name": "viewport",
+                "content": "width=device-width, initial-scale=1.0"
+            },
+            {
+                "charSet": "utf-8"
+            },
+            {
+                "property": "twitter:card",
+                "content": "summary_large_image"
+            }
+        ],
+        "customCode": {
+            "head": "",
+            "body": ""
+        }
+    },
+    "root": {
+        "name": "App",
+        "designLanguage": {
+            "tokens": {
+                "--dl-color-success-300": {
+                    "type": "static",
+                    "content": "#199033"
+                },
+                "--dl-space-space-fourunits": {
+                    "type": "static",
+                    "content": "64px"
+                },
+                "--dl-space-space-unit": {
+                    "type": "static",
+                    "content": "16px"
+                },
+                "--dl-color-danger-500": {
+                    "type": "static",
+                    "content": "#BF2626"
+                },
+                "--dl-color-gray-500": {
+                    "type": "static",
+                    "content": "#595959"
+                },
+                "--dl-radius-radius-radius4": {
+                    "type": "static",
+                    "content": "4px"
+                },
+                "--dl-color-gray-white": {
+                    "type": "static",
+                    "content": "#FFFFFF"
+                },
+                "--dl-size-size-maxwidth": {
+                    "type": "static",
+                    "content": "1400px"
+                },
+                "--dl-space-space-sixunits": {
+                    "type": "static",
+                    "content": "96px"
+                },
+                "--dl-color-success-700": {
+                    "type": "static",
+                    "content": "#4CC366"
+                },
+                "--dl-color-primary-100": {
+                    "type": "static",
+                    "content": "#003EB3"
+                },
+                "--dl-radius-radius-radius2": {
+                    "type": "static",
+                    "content": "2px"
+                },
+                "--dl-space-space-halfunit": {
+                    "type": "static",
+                    "content": "8px"
+                },
+                "--dl-space-space-threeunits": {
+                    "type": "static",
+                    "content": "48px"
+                },
+                "--dl-size-size-small": {
+                    "type": "static",
+                    "content": "48px"
+                },
+                "--dl-color-primary-300": {
+                    "type": "static",
+                    "content": "#0074F0"
+                },
+                "--dl-size-size-xsmall": {
+                    "type": "static",
+                    "content": "16px"
+                },
+                "--dl-color-gray-700": {
+                    "type": "static",
+                    "content": "#999999"
+                },
+                "--dl-space-space-twounits": {
+                    "type": "static",
+                    "content": "32px"
+                },
+                "--dl-radius-radius-radius8": {
+                    "type": "static",
+                    "content": "8px"
+                },
+                "--dl-color-gray-900": {
+                    "type": "static",
+                    "content": "#D9D9D9"
+                },
+                "--dl-size-size-medium": {
+                    "type": "static",
+                    "content": "96px"
+                },
+                "--dl-color-gray-black": {
+                    "type": "static",
+                    "content": "#000000"
+                },
+                "--dl-color-danger-300": {
+                    "type": "static",
+                    "content": "#A22020"
+                },
+                "--dl-color-success-500": {
+                    "type": "static",
+                    "content": "#32A94C"
+                },
+                "--dl-space-space-fiveunits": {
+                    "type": "static",
+                    "content": "80px"
+                },
+                "--dl-color-danger-700": {
+                    "type": "static",
+                    "content": "#E14747"
+                },
+                "--dl-space-space-oneandhalfunits": {
+                    "type": "static",
+                    "content": "24px"
+                },
+                "--dl-size-size-xxlarge": {
+                    "type": "static",
+                    "content": "288px"
+                },
+                "--dl-color-primary-500": {
+                    "type": "static",
+                    "content": "#14A9FF"
+                },
+                "--dl-size-size-large": {
+                    "type": "static",
+                    "content": "144px"
+                },
+                "--dl-radius-radius-round": {
+                    "type": "static",
+                    "content": "50%"
+                },
+                "--dl-color-primary-700": {
+                    "type": "static",
+                    "content": "#85DCFF"
+                },
+                "--dl-size-size-xlarge": {
+                    "type": "static",
+                    "content": "192px"
+                }
+            }
+        },
+        "styleSetDefinitions": {
+            "button": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "color": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "display": {
+                        "type": "static",
+                        "content": "inline-block"
+                    },
+                    "padding": {
+                        "type": "static",
+                        "content": "0.5rem 1rem"
+                    },
+                    "borderColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "borderWidth": {
+                        "type": "static",
+                        "content": "1px"
+                    },
+                    "borderRadius": {
+                        "type": "static",
+                        "content": "4px"
+                    },
+                    "backgroundColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-white"
+                        }
+                    }
+                },
+                "conditions": []
+            },
+            "input": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "color": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "cursor": {
+                        "type": "static",
+                        "content": "auto"
+                    },
+                    "padding": {
+                        "type": "static",
+                        "content": "0.5rem 1rem"
+                    },
+                    "borderColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "borderWidth": {
+                        "type": "static",
+                        "content": "1px"
+                    },
+                    "borderRadius": {
+                        "type": "static",
+                        "content": "4px"
+                    },
+                    "backgroundColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-white"
+                        }
+                    }
+                },
+                "conditions": []
+            },
+            "textarea": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "color": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "cursor": {
+                        "type": "static",
+                        "content": "auto"
+                    },
+                    "padding": {
+                        "type": "static",
+                        "content": "0.5rem"
+                    },
+                    "borderColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-black"
+                        }
+                    },
+                    "borderWidth": {
+                        "type": "static",
+                        "content": "1px"
+                    },
+                    "borderRadius": {
+                        "type": "static",
+                        "content": "4px"
+                    },
+                    "backgroundColor": {
+                        "type": "dynamic",
+                        "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-white"
+                        }
+                    }
+                },
+                "conditions": []
+            },
+            "list": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "width": {
+                        "type": "static",
+                        "content": "100%"
+                    },
+                    "margin": {
+                        "type": "static",
+                        "content": "1em 0px 1em 0px"
+                    },
+                    "display": {
+                        "type": "static",
+                        "content": "block"
+                    },
+                    "padding": {
+                        "type": "static",
+                        "content": "0px 0px 0px 1.5rem"
+                    },
+                    "listStyleType": {
+                        "type": "static",
+                        "content": "none"
+                    },
+                    "listStylePosition": {
+                        "type": "static",
+                        "content": "outside"
+                    }
+                },
+                "conditions": []
+            },
+            "list-item": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "display": {
+                        "type": "static",
+                        "content": "list-item"
+                    }
+                },
+                "conditions": []
+            },
+            "teleport-show": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "display": {
+                        "type": "static",
+                        "content": "flex !important"
+                    },
+                    "transform": {
+                        "type": "static",
+                        "content": "none !important"
+                    }
+                },
+                "conditions": []
+            },
+            "Content": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "fontSize": {
+                        "type": "static",
+                        "content": "16px"
+                    },
+                    "fontFamily": {
+                        "type": "static",
+                        "content": "Inter"
+                    },
+                    "fontWeight": {
+                        "type": "static",
+                        "content": "400"
+                    },
+                    "lineHeight": {
+                        "type": "static",
+                        "content": "1.15"
+                    },
+                    "textTransform": {
+                        "type": "static",
+                        "content": "none"
+                    },
+                    "textDecoration": {
+                        "type": "static",
+                        "content": "none"
+                    }
+                }
+            },
+            "Heading": {
+                "type": "reusable-project-style-map",
+                "content": {
+                    "fontSize": {
+                        "type": "static",
+                        "content": "32px"
+                    },
+                    "fontFamily": {
+                        "type": "static",
+                        "content": "Inter"
+                    },
+                    "fontWeight": {
+                        "type": "static",
+                        "content": "700"
+                    },
+                    "lineHeight": {
+                        "type": "static",
+                        "content": "1.15"
+                    },
+                    "textTransform": {
+                        "type": "static",
+                        "content": "none"
+                    },
+                    "textDecoration": {
+                        "type": "static",
+                        "content": "none"
+                    }
+                }
+            }
+        },
+        "stateDefinitions": {
+            "route": {
+                "type": "string",
+                "defaultValue": "Home",
+                "values": [
+                    {
+                        "value": "Home",
+                        "seo": {
+                            "title": "Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "stateDefinitions": {},
+                            "propDefinitions": {}
+                        }
+                    },
+                    {
+                        "value": "blog-post/BlogPost",
+                        "seo": {
+                            "title": "BlogPost - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "BlogPost - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "BlogPostEntities": {
+                                    "id": "311bab78-fb08-4e82-b1f0-e8b451898a33",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": true,
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "BlogPostEntities",
+                                    "valuePath": [],
+                                    "itemValuePath": [
+                                        "data"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntitiesWithPagination",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query MyQuery($first: Int, $after: String){allBlogPost(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}tags cover{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}genre title assets{...on Asset{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}author{_meta{createdAt updatedAt id}name}authors{__typename...on Author{_meta{createdAt updatedAt id}name}...on BlogPost{_meta{createdAt updatedAt id}tags genre title content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}}}"
+                                        },
+                                        "page": {
+                                            "type": "static",
+                                            "content": "1"
+                                        },
+                                        "perPage": {
+                                            "type": "static",
+                                            "content": 100
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "value": "blog-post/page/BlogPost",
+                        "seo": {
+                            "title": "BlogPost - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "BlogPost - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "BlogPostEntities": {
+                                    "id": "311bab78-fb08-4e82-b1f0-e8b451898a33",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": false,
+                            "pagination": {
+                                "attribute": "page",
+                                "pageSize": 10,
+                                "totalCountPath": {
+                                    "type": "body",
+                                    "path": [
+                                        "meta",
+                                        "pagination",
+                                        "total"
+                                    ]
+                                }
+                            },
+                            "dynamicRouteAttribute": "page",
+                            "initialPathsData": {
+                                "exposeAs": {
+                                    "name": "page",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": [
+                                        "id"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntities",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "{allBlogPost{edges{node{id}}}}"
+                                        }
+                                    }
+                                }
+                            },
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "BlogPostEntities",
+                                    "valuePath": [],
+                                    "itemValuePath": [
+                                        "data"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntitiesWithPagination",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query MyQuery($first: Int, $after: String){allBlogPost(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}tags cover{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}genre title assets{...on Asset{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}author{_meta{createdAt updatedAt id}name}authors{__typename...on Author{_meta{createdAt updatedAt id}name}...on BlogPost{_meta{createdAt updatedAt id}tags genre title content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}}}"
+                                        },
+                                        "page": {
+                                            "type": "expr",
+                                            "content": "(context.params.page)"
+                                        },
+                                        "perPage": {
+                                            "type": "static",
+                                            "content": 100
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "value": "author/Author",
+                        "seo": {
+                            "title": "Author - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "Author - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "AuthorEntities": {
+                                    "id": "c57fd174-4e5f-4e15-83c5-acad7c16f4ec",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": true,
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "AuthorEntities",
+                                    "valuePath": [],
+                                    "itemValuePath": [
+                                        "data"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntitiesWithPagination",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name}}}}"
+                                        },
+                                        "page": {
+                                            "type": "static",
+                                            "content": "1"
+                                        },
+                                        "perPage": {
+                                            "type": "static",
+                                            "content": 10
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "value": "author/page/Author",
+                        "seo": {
+                            "title": "Author - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "Author - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "AuthorEntities": {
+                                    "id": "c57fd174-4e5f-4e15-83c5-acad7c16f4ec",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": false,
+                            "pagination": {
+                                "attribute": "page",
+                                "pageSize": 10,
+                                "totalCountPath": {
+                                    "type": "body",
+                                    "path": [
+                                        "meta",
+                                        "pagination",
+                                        "total"
+                                    ]
+                                }
+                            },
+                            "dynamicRouteAttribute": "page",
+                            "initialPathsData": {
+                                "exposeAs": {
+                                    "name": "page",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": [
+                                        "id"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntities",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "{allAuthor{edges{node{id}}}}"
+                                        }
+                                    }
+                                }
+                            },
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "AuthorEntities",
+                                    "valuePath": [],
+                                    "itemValuePath": [
+                                        "data"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntitiesWithPagination",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name}}}}"
+                                        },
+                                        "page": {
+                                            "type": "expr",
+                                            "content": "(context.params.page)"
+                                        },
+                                        "perPage": {
+                                            "type": "static",
+                                            "content": 10
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "value": "/blog-post/BlogPost1",
+                        "seo": {
+                            "title": "BlogPost1 - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "BlogPost1 - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "BlogPostEntity": {
+                                    "id": "1f949181-3e72-4fee-9b05-3fc5fac3fa29",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": false,
+                            "navLink": "/blog-post",
+                            "dynamicRouteAttribute": "id",
+                            "initialPathsData": {
+                                "exposeAs": {
+                                    "name": "id",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": [
+                                        "id"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntities",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "{allBlogPost{edges{node{id}}}}"
+                                        }
+                                    }
+                                }
+                            },
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "BlogPostEntity",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": []
+                                },
+                                "resource": {
+                                    "name": "getEntityByAttribute",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query BlogPost($value:ID!){BlogPost(id:$value){_meta{createdAt updatedAt id}tags cover{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}genre title assets{...on Asset{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}author{_meta{createdAt updatedAt id}name}authors{__typename...on Author{_meta{createdAt updatedAt id}name}...on BlogPost{_meta{createdAt updatedAt id}tags genre title content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}"
+                                        },
+                                        "attribute": {
+                                            "type": "static",
+                                            "content": "id"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "value": "/author/Author1",
+                        "seo": {
+                            "title": "Author1 - Straight Young Gorilla",
+                            "metaTags": [
+                                {
+                                    "property": "og:title",
+                                    "content": "Author1 - Straight Young Gorilla"
+                                }
+                            ]
+                        },
+                        "pageOptions": {
+                            "propDefinitions": {
+                                "AuthorEntity": {
+                                    "id": "e6b9394a-47e9-4bee-bf83-89fadf3aeb0f",
+                                    "defaultValue": [],
+                                    "type": "array"
+                                }
+                            },
+                            "stateDefinitions": {},
+                            "isIndex": false,
+                            "navLink": "/author",
+                            "dynamicRouteAttribute": "id",
+                            "initialPathsData": {
+                                "exposeAs": {
+                                    "name": "id",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": [
+                                        "id"
+                                    ]
+                                },
+                                "resource": {
+                                    "name": "getEntities",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "{allAuthor{edges{node{id}}}}"
+                                        }
+                                    }
+                                }
+                            },
+                            "initialPropsData": {
+                                "exposeAs": {
+                                    "name": "AuthorEntity",
+                                    "valuePath": [
+                                        "data"
+                                    ],
+                                    "itemValuePath": []
+                                },
+                                "resource": {
+                                    "name": "getEntityByAttribute",
+                                    "dependency": {
+                                        "type": "package",
+                                        "version": "latest",
+                                        "path": "@teleporthq/cms-mappers",
+                                        "meta": {
+                                            "namedImport": true,
+                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                        }
+                                    },
+                                    "params": {
+                                        "projectId": {
+                                            "type": "static",
+                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                        },
+                                        "query": {
+                                            "type": "static",
+                                            "content": "query Author($value:ID!){Author(id:$value){_meta{createdAt updatedAt id}name}}"
+                                        },
+                                        "attribute": {
+                                            "type": "static",
+                                            "content": "id"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "propDefinitions": {
+            "BlogPostEntities": {
+                "id": "311bab78-fb08-4e82-b1f0-e8b451898a33",
+                "defaultValue": [],
+                "type": "array"
+            },
+            "AuthorEntities": {
+                "id": "c57fd174-4e5f-4e15-83c5-acad7c16f4ec",
+                "defaultValue": [],
+                "type": "array"
+            },
+            "BlogPostEntity": {
+                "id": "1f949181-3e72-4fee-9b05-3fc5fac3fa29",
+                "defaultValue": [],
+                "type": "array"
+            },
+            "AuthorEntity": {
+                "id": "e6b9394a-47e9-4bee-bf83-89fadf3aeb0f",
+                "defaultValue": [],
+                "type": "array"
+            }
+        },
+        "node": {
+            "type": "element",
+            "content": {
+                "elementType": "Router",
+                "children": [
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "element",
+                                            "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                    "flex": {
+                                                        "type": "static",
+                                                        "content": "0 0 auto"
+                                                    },
+                                                    "width": {
+                                                        "type": "static",
+                                                        "content": "333px"
+                                                    },
+                                                    "border": {
+                                                        "type": "static",
+                                                        "content": "2px dashed rgba(120, 120, 120, 0.4)"
+                                                    },
+                                                    "height": {
+                                                        "type": "static",
+                                                        "content": "183px"
+                                                    },
+                                                    "display": {
+                                                        "type": "static",
+                                                        "content": "flex"
+                                                    },
+                                                    "alignItems": {
+                                                        "type": "static",
+                                                        "content": "flex-start"
+                                                    },
+                                                    "flexDirection": {
+                                                        "type": "static",
+                                                        "content": "column"
+                                                    }
+                                                },
+                                                "children": []
+                                            }
+                                        },
+                                        {
+                                            "type": "cms-list",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "context_707xt",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "cms-list-repeater",
+                                                                    "content": {
+                                                                        "elementType": "cms-list-repeater",
+                                                                        "nodes": {
+                                                                            "list": {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "fragment",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "text",
+                                                                                                "semanticType": "h1",
+                                                                                                "referencedStyles": {},
+                                                                                                "abilities": {},
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "type": "expr",
+                                                                                                        "content": "context_707xt?.name"
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "renderPropIdentifier": "context_707xt"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": [],
+                                                "resource": {
+                                                    "name": "getEntitiesWithPagination",
+                                                    "dependency": {
+                                                        "type": "package",
+                                                        "version": "latest",
+                                                        "path": "@teleporthq/cms-mappers",
+                                                        "meta": {
+                                                            "namedImport": true,
+                                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                                        }
+                                                    },
+                                                    "params": {
+                                                        "projectId": {
+                                                            "type": "static",
+                                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                                        },
+                                                        "query": {
+                                                            "type": "static",
+                                                            "content": "query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name}}}}"
+                                                        },
+                                                        "page": {
+                                                            "type": "static",
+                                                            "content": "1"
+                                                        },
+                                                        "perPage": {
+                                                            "type": "static",
+                                                            "content": 2
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "cms-item",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "context_v4r9yk",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "text",
+                                                                        "semanticType": "h1",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {
+                                                                            "link": {
+                                                                                "type": "navlink",
+                                                                                "content": {
+                                                                                    "routeName": {
+                                                                                        "type": "expr",
+                                                                                        "content": "`/blog-post/${context_v4r9yk?.id}`"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "style": {
+                                                                            "textDecoration": {
+                                                                                "type": "static",
+                                                                                "content": "none"
+                                                                            }
+                                                                        },
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "expr",
+                                                                                "content": "context_v4r9yk?.title"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "container",
+                                                                        "semanticType": "div",
+                                                                        "referencedStyles": {},
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "caisy-richtext-node",
+                                                                                    "referencedStyles": {},
+                                                                                    "attrs": {
+                                                                                        "node": {
+                                                                                            "type": "expr",
+                                                                                            "content": "context_v4r9yk?.content"
+                                                                                        },
+                                                                                        "overwrites": {
+                                                                                            "type": "expr",
+                                                                                            "content": "({documentLink: CaisyDocumentLink})"
+                                                                                        }
+                                                                                    },
+                                                                                    "children": [],
+                                                                                    "style": {}
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "image",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {},
+                                                                        "attrs": {
+                                                                            "alt": {
+                                                                                "type": "static",
+                                                                                "content": "image"
+                                                                            },
+                                                                            "src": {
+                                                                                "type": "expr",
+                                                                                "content": "context_v4r9yk?.cover?.url"
+                                                                            }
+                                                                        },
+                                                                        "style": {
+                                                                            "width": {
+                                                                                "type": "static",
+                                                                                "content": "200px"
+                                                                            },
+                                                                            "objectFit": {
+                                                                                "type": "static",
+                                                                                "content": "cover"
+                                                                            }
+                                                                        },
+                                                                        "children": []
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": [],
+                                                "resource": {
+                                                    "name": "getEntityByAttribute",
+                                                    "dependency": {
+                                                        "type": "package",
+                                                        "version": "latest",
+                                                        "path": "@teleporthq/cms-mappers",
+                                                        "meta": {
+                                                            "namedImport": true,
+                                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                                        }
+                                                    },
+                                                    "params": {
+                                                        "projectId": {
+                                                            "type": "static",
+                                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                                        },
+                                                        "query": {
+                                                            "type": "static",
+                                                            "content": "\"query BlogPost($value:ID!){BlogPost(id:$value){_meta{createdAt updatedAt id}tags cover{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}genre title assets{...on Asset{_meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}author{_meta{createdAt updatedAt id}name}authors{__typename...on Author{_meta{createdAt updatedAt id}name}...on BlogPost{_meta{createdAt updatedAt id}tags genre title content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}content{json connections{__typename ...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}\""
+                                                        },
+                                                        "attribute": {
+                                                            "type": "static",
+                                                            "content": "id"
+                                                        },
+                                                        "id": {
+                                                            "type": "static",
+                                                            "content": "6a0076f9-89da-4793-8119-cb731c1656bb"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "Home",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {
+                                "CaisyDocumentLink": {
+                                    "type": "package",
+                                    "path": "@teleporthq/react-components",
+                                    "version": "latest",
+                                    "meta": {
+                                        "namedImport": true,
+                                        "importAlias": "@teleporthq/react-components"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-list",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "BlogPostEntities"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "BlogPostEntities",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "cms-list-repeater",
+                                                                    "content": {
+                                                                        "elementType": "cms-list-repeater",
+                                                                        "nodes": {
+                                                                            "list": {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "fragment",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "container",
+                                                                                                "semanticType": "div",
+                                                                                                "referencedStyles": {},
+                                                                                                "abilities": {},
+                                                                                                "style": {
+                                                                                                    "gap": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "12px"
+                                                                                                    },
+                                                                                                    "width": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "100%"
+                                                                                                    },
+                                                                                                    "display": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "flex"
+                                                                                                    },
+                                                                                                    "alignItems": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "center"
+                                                                                                    },
+                                                                                                    "flexDirection": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "column"
+                                                                                                    }
+                                                                                                },
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "h1",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.title"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.title"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.authors?.[0]?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "image",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "attrs": {
+                                                                                                                "alt": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "image"
+                                                                                                                },
+                                                                                                                "src": {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.cover?.url"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "style": {
+                                                                                                                "width": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "200px"
+                                                                                                                },
+                                                                                                                "objectFit": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "cover"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "children": []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "renderPropIdentifier": "BlogPostEntities"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "blog-post/BlogPost",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {}
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-list",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "BlogPostEntities"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "BlogPostEntities",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "cms-list-repeater",
+                                                                    "content": {
+                                                                        "elementType": "cms-list-repeater",
+                                                                        "nodes": {
+                                                                            "list": {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "fragment",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "container",
+                                                                                                "semanticType": "div",
+                                                                                                "referencedStyles": {},
+                                                                                                "abilities": {},
+                                                                                                "style": {
+                                                                                                    "gap": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "12px"
+                                                                                                    },
+                                                                                                    "width": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "100%"
+                                                                                                    },
+                                                                                                    "display": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "flex"
+                                                                                                    },
+                                                                                                    "alignItems": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "center"
+                                                                                                    },
+                                                                                                    "flexDirection": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "column"
+                                                                                                    }
+                                                                                                },
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "h1",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.title"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.title"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.authors?.[0]?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "image",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "attrs": {
+                                                                                                                "alt": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "image"
+                                                                                                                },
+                                                                                                                "src": {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "BlogPostEntities?.cover?.url"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "style": {
+                                                                                                                "width": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "200px"
+                                                                                                                },
+                                                                                                                "objectFit": {
+                                                                                                                    "type": "static",
+                                                                                                                    "content": "cover"
+                                                                                                                }
+                                                                                                            },
+                                                                                                            "children": []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "renderPropIdentifier": "BlogPostEntities"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "blog-post/page/BlogPost",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {}
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-list",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "AuthorEntities"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "AuthorEntities",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "cms-list-repeater",
+                                                                    "content": {
+                                                                        "elementType": "cms-list-repeater",
+                                                                        "nodes": {
+                                                                            "list": {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "fragment",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "container",
+                                                                                                "semanticType": "div",
+                                                                                                "referencedStyles": {},
+                                                                                                "abilities": {},
+                                                                                                "style": {
+                                                                                                    "gap": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "12px"
+                                                                                                    },
+                                                                                                    "width": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "100%"
+                                                                                                    },
+                                                                                                    "display": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "flex"
+                                                                                                    },
+                                                                                                    "alignItems": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "center"
+                                                                                                    },
+                                                                                                    "flexDirection": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "column"
+                                                                                                    }
+                                                                                                },
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "h1",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.id"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "renderPropIdentifier": "AuthorEntities"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "author/Author",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {}
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-list",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "AuthorEntities"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "AuthorEntities",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "cms-list-repeater",
+                                                                    "content": {
+                                                                        "elementType": "cms-list-repeater",
+                                                                        "nodes": {
+                                                                            "list": {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "fragment",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "container",
+                                                                                                "semanticType": "div",
+                                                                                                "referencedStyles": {},
+                                                                                                "abilities": {},
+                                                                                                "style": {
+                                                                                                    "gap": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "12px"
+                                                                                                    },
+                                                                                                    "width": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "100%"
+                                                                                                    },
+                                                                                                    "display": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "flex"
+                                                                                                    },
+                                                                                                    "alignItems": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "center"
+                                                                                                    },
+                                                                                                    "flexDirection": {
+                                                                                                        "type": "static",
+                                                                                                        "content": "column"
+                                                                                                    }
+                                                                                                },
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "h1",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.name"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "type": "element",
+                                                                                                        "content": {
+                                                                                                            "elementType": "text",
+                                                                                                            "semanticType": "span",
+                                                                                                            "referencedStyles": {},
+                                                                                                            "abilities": {},
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "type": "expr",
+                                                                                                                    "content": "AuthorEntities?.id"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "renderPropIdentifier": "AuthorEntities"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "author/page/Author",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {}
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-item",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "BlogPostEntity"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "BlogPostEntity",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "container",
+                                                                        "semanticType": "div",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {},
+                                                                        "style": {
+                                                                            "gap": {
+                                                                                "type": "static",
+                                                                                "content": "12px"
+                                                                            },
+                                                                            "width": {
+                                                                                "type": "static",
+                                                                                "content": "100%"
+                                                                            },
+                                                                            "display": {
+                                                                                "type": "static",
+                                                                                "content": "flex"
+                                                                            },
+                                                                            "flexDirection": {
+                                                                                "type": "static",
+                                                                                "content": "column"
+                                                                            }
+                                                                        },
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "text",
+                                                                                    "semanticType": "h1",
+                                                                                    "referencedStyles": {},
+                                                                                    "abilities": {},
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "expr",
+                                                                                            "content": "BlogPostEntity?.title"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "text",
+                                                                                    "semanticType": "span",
+                                                                                    "referencedStyles": {},
+                                                                                    "abilities": {},
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "expr",
+                                                                                            "content": "BlogPostEntity?.readingCount"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "text",
+                                                                                    "semanticType": "span",
+                                                                                    "referencedStyles": {},
+                                                                                    "abilities": {},
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "expr",
+                                                                                            "content": "BlogPostEntity?.themeColor"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "container",
+                                                                                    "semanticType": "div",
+                                                                                    "referencedStyles": {},
+                                                                                    "style": {
+                                                                                        "width": {
+                                                                                            "type": "static",
+                                                                                            "content": "100%"
+                                                                                        },
+                                                                                        "alignSelf": {
+                                                                                            "type": "static",
+                                                                                            "content": "stretch"
+                                                                                        }
+                                                                                    },
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "element",
+                                                                                            "content": {
+                                                                                                "elementType": "caisy-richtext-node",
+                                                                                                "referencedStyles": {},
+                                                                                                "attrs": {
+                                                                                                    "node": {
+                                                                                                        "type": "expr",
+                                                                                                        "content": "BlogPostEntity?.content"
+                                                                                                    },
+                                                                                                    "overwrites": {
+                                                                                                        "type": "expr",
+                                                                                                        "content": "({documentLink: CaisyDocumentLink})"
+                                                                                                    }
+                                                                                                },
+                                                                                                "style": {},
+                                                                                                "children": []
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "/blog-post/BlogPost1",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {
+                                "CaisyDocumentLink": {
+                                    "type": "package",
+                                    "path": "@teleporthq/react-components",
+                                    "version": "latest",
+                                    "meta": {
+                                        "namedImport": true,
+                                        "importAlias": "@teleporthq/react-components"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "conditional",
+                        "content": {
+                            "node": {
+                                "type": "element",
+                                "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                        "width": {
+                                            "type": "static",
+                                            "content": "100%"
+                                        },
+                                        "display": {
+                                            "type": "static",
+                                            "content": "flex"
+                                        },
+                                        "overflow": {
+                                            "type": "static",
+                                            "content": "auto"
+                                        },
+                                        "minHeight": {
+                                            "type": "static",
+                                            "content": "100vh"
+                                        },
+                                        "alignItems": {
+                                            "type": "static",
+                                            "content": "center"
+                                        },
+                                        "flexDirection": {
+                                            "type": "static",
+                                            "content": "column"
+                                        }
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "cms-item",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "initialData": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                        "referenceType": "prop",
+                                                        "id": "AuthorEntity"
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "AuthorEntity",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "container",
+                                                                        "semanticType": "div",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {},
+                                                                        "style": {
+                                                                            "gap": {
+                                                                                "type": "static",
+                                                                                "content": "12px"
+                                                                            },
+                                                                            "width": {
+                                                                                "type": "static",
+                                                                                "content": "100%"
+                                                                            },
+                                                                            "display": {
+                                                                                "type": "static",
+                                                                                "content": "flex"
+                                                                            },
+                                                                            "flexDirection": {
+                                                                                "type": "static",
+                                                                                "content": "column"
+                                                                            }
+                                                                        },
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "text",
+                                                                                    "semanticType": "h1",
+                                                                                    "referencedStyles": {},
+                                                                                    "abilities": {},
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "expr",
+                                                                                            "content": "AuthorEntity?.name"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "text",
+                                                                                    "semanticType": "span",
+                                                                                    "referencedStyles": {},
+                                                                                    "abilities": {},
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "type": "expr",
+                                                                                            "content": "AuthorEntity?.id"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": []
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "value": "/author/Author1",
+                            "reference": {
+                                "type": "dynamic",
+                                "content": {
+                                    "referenceType": "state",
+                                    "id": "route"
+                                }
+                            },
+                            "importDefinitions": {}
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "components": {},
+    "resources": {
+        "items": {},
+        "resourceMappers": {}
+    }
+}

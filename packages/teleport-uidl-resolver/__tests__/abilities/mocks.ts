@@ -18,7 +18,10 @@ export const urlMockedDefinition = (openInNewTab: boolean = false): UIDLURLLinkN
 export const navlinkMockedDefinition = (): UIDLNavLinkNode => ({
   type: 'navlink',
   content: {
-    routeName: 'home',
+    routeName: {
+      type: 'static',
+      content: 'home',
+    },
   },
 })
 

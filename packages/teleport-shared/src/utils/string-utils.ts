@@ -4,6 +4,7 @@ export const dashCaseToCamelCase = (str: string): string =>
   str.replace(/[-_]+(.)?/g, (_, chr) => (chr ? chr.toUpperCase() : ''))
 
 export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1)
+export const camelize = (str: string): string => str[0].toLowerCase() + str.slice(1)
 
 export const dashCaseToUpperCamelCase = (str: string) => capitalize(dashCaseToCamelCase(str))
 
@@ -34,6 +35,10 @@ export const slugify = (str: string): string => {
     .replace(/-+$/, '') // Trim - from end of text
     .replace(/&/g, '-and-') // Replace & with 'and'
 }
+
+export const createStateOrPropStoringValue = (value: string) => camelize(dashCaseToCamelCase(value))
+export const createStateStoringFunction = (value: string) =>
+  `set${capitalize(dashCaseToUpperCamelCase(value))}`
 
 export const addSpacesToEachLine = (spaces: string, str: string) => {
   // indent the first line

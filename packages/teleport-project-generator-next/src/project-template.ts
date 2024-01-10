@@ -1,4 +1,6 @@
-export default {
+import { FileType, GeneratedFolder } from '@teleporthq/teleport-types'
+
+const projectTemplate: GeneratedFolder = {
   name: 'teleport-project-next',
   files: [
     {
@@ -18,7 +20,7 @@ export default {
   "author": "TeleportHQ",
   "license": "MIT",
   "dependencies": {
-    "next": "^12.1.0",
+    "next": "^12.1.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
@@ -26,8 +28,10 @@ export default {
       "node": ">=18.x"
   }
 }`,
-      fileType: 'json',
+      fileType: FileType.JSON,
     },
   ],
   subFolders: [],
 }
+
+export default projectTemplate

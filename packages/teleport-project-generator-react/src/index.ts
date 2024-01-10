@@ -18,6 +18,7 @@ const createReactProjectGenerator = () => {
     style: ReactStyleVariation.CSS,
     components: {
       generator: createReactComponentGenerator,
+      plugins: [],
       mappings: [ReactProjectMapping],
       path: ['src', 'components'],
     },
@@ -59,6 +60,9 @@ const createReactProjectGenerator = () => {
     static: {
       prefix: '',
       path: ['public'],
+    },
+    resources: {
+      path: ['resources'],
     },
   })
 

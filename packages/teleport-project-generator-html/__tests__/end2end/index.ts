@@ -1,13 +1,16 @@
 import uidlSample from '../../../../examples/uidl-samples/project.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import projectWithSlot from '../../../../examples/test-samples/project-with-slot.json'
-import { createHTMLProjectGenerator } from '../../src'
+import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
 import HTMLTemplate from '../../src/project-template'
 import { FileType } from '@teleporthq/teleport-types'
 
 describe('Html Project Generator', () => {
   it('runs without crasing', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
+
     generator.setAssets({
       mappings: {
         'kitten.png': '',
@@ -30,7 +33,9 @@ describe('Html Project Generator', () => {
   })
 
   it('run withut crashing and appends entry things into single index.html', async () => {
-    const singularGenerator = createHTMLProjectGenerator({ individualEntyFile: false })
+    const singularGenerator = createHTMLProjectGenerator()
+    singularGenerator.addPlugin(pluginHomeReplace)
+
     singularGenerator.setAssets({
       mappings: {
         'kitten.png': '',
@@ -64,6 +69,9 @@ describe('Html Project Generator', () => {
 describe('Unwinds the slot inside the component when used in page', () => {
   it('runs without crashing', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
+
     generator.setAssets({
       mappings: {},
       identifier: 'playground_assets',

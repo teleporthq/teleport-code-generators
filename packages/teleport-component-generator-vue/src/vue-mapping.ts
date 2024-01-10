@@ -13,6 +13,17 @@ export const VueMapping: Mapping = {
         },
       },
     },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-vue-player',
     },

@@ -23,6 +23,17 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
     'html-node': {
       elementType: 'Script',
       dependency: {
@@ -45,6 +56,54 @@ export const NextProjectMapping: Mapping = {
           needsWindowObject: true,
         },
       },
+    },
+    'cms-list-repeater': {
+      elementType: 'Repeater',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-item': {
+      elementType: 'DataProvider',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-list': {
+      elementType: 'DataProvider',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-mixed-type': {
+      elementType: 'CMSMixedType',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    fragment: {
+      elementType: ' ',
+      semanticType: '',
     },
   },
 }

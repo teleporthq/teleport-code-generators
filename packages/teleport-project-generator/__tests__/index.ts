@@ -56,6 +56,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           mapping: {},
+          projectResources: {},
           skipValidation: true,
         })
       )
@@ -121,6 +122,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
+          projectResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -140,6 +142,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
+          projectResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -192,12 +195,14 @@ describe('Generic Project Generator', () => {
             fontsFolder: 'test/static/fonts',
             localFonts: [],
           },
+          projectResources: {},
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
       )
+
       expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {

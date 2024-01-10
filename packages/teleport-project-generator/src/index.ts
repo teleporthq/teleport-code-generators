@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -15,6 +15,7 @@ import {
   GeneratorFactoryParams,
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
+  FileType,
   UIDLLocalFontAsset,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
@@ -26,7 +27,6 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
-  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -37,10 +37,16 @@ import {
   createEntryFile,
   createComponentModule,
   createPageModule,
+  createEnvFiles,
+  createGitIgnoreFile,
 } from './file-handlers'
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 import { join } from 'path'
+import { resourceGenerator } from './resource'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -159,7 +165,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
-
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
     if (valid && projectUIDL) {
@@ -169,6 +174,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
+    const projectResources = {}
+
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
@@ -182,6 +189,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
+        projectResources,
         rootFolder,
       })
 
@@ -209,8 +217,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       if (this.strategy.router?.generator) {
         this.routerGenerator = bootstrapGenerator(this.strategy.router, this.strategy.style)
       }
-    } catch (e) {
-      throw new TeleportError(`Error in Generating Project after runBefore - ${e}`)
+    } catch (error) {
+      console.trace(error)
+      throw new TeleportError(`Error in Generating Project after runBefore`)
     }
 
     const { components = {} } = uidl
@@ -251,12 +260,17 @@ export class ProjectGenerator implements ProjectGeneratorType {
       designLanguage: uidl.root?.designLanguage,
       mapping,
       skipValidation: true,
+      ...(uidl?.resources &&
+        this.strategy?.resources?.path && {
+          ...uidl.resources,
+          path: this.strategy.resources.path,
+        }),
       ...(this.strategy.projectStyleSheet?.generator &&
         this.strategy.projectStyleSheet?.path && {
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet?.fileName,
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               this.strategy.pages.path,
               this.strategy.pages.options?.createFolderForEachComponent
                 ? ['..', ...this.strategy.projectStyleSheet.path]
@@ -289,6 +303,45 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
+    const resources = Object.values(uidl?.resources?.items || {})
+    if (this.strategy?.resources && resources.length > 0) {
+      const resourceCompGenerator = createComponentGenerator()
+      resourceCompGenerator.addPostProcessor(prettierJS)
+
+      for (const resource of resources) {
+        const { chunks, dependencies } = resourceGenerator(
+          resource,
+          uidl.resources?.resourceMappers || {}
+        )
+        const { chunks: importChunks } = await importStatementsPlugin({
+          uidl: uidl.root,
+          dependencies,
+          chunks: [],
+          options: {},
+        })
+        const files = resourceCompGenerator.linkCodeChunks(
+          { [FileType.JS]: [...importChunks, ...chunks] },
+          StringUtils.camelCaseToDashCase(resource.name)
+        )
+
+        collectedDependencies = {
+          ...collectedDependencies,
+          ...Object.keys(dependencies).reduce((acc: Record<string, string>, item: string) => {
+            const dep = dependencies[item]
+            if (dep.type === 'package') {
+              acc[dep.path] = dep.version
+            }
+            return acc
+          }, {}),
+        }
+
+        inMemoryFilesMap.set(`resource-${resource.name}`, {
+          files,
+          path: this.strategy.resources.path,
+        })
+      }
+    }
+
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
       if (!this.strategy?.pages?.generator) {
@@ -296,6 +349,26 @@ export class ProjectGenerator implements ProjectGeneratorType {
           `Pages Generator is missing from the strategy - ${JSON.stringify(this.strategy.pages)}`
         )
       }
+
+      const pageOptions = options
+      // Pages might be generated inside subfolders in the main pages folder
+      const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+      const path = this.strategy.pages.path.concat(relativePath)
+
+      Object.assign(pageOptions, {
+        projectResources,
+        ...(uidl.resources &&
+          this.strategy?.resources?.path && {
+            resources: {
+              items: uidl?.resources?.items,
+              cache: uidl?.resources.cache,
+              path: GenericUtils.generateLocalDependenciesPrefix(
+                path,
+                this.strategy.resources.path
+              ),
+            },
+          }),
+      })
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -311,12 +384,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
         })
       }
 
-      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, options)
-      // Pages might be generated inside subfolders in the main pages folder
-      const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
-      const path = this.strategy.pages.path.concat(relativePath)
+      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
 
-      inMemoryFilesMap.set(pageUIDL.name, {
+      inMemoryFilesMap.set(`page-${pageUIDL.name}`, {
         path,
         files,
       })
@@ -360,6 +430,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
+      Object.assign(options, { projectResources })
+
       if (!this.strategy?.components?.generator) {
         throw new TeleportError(
           `Component Generator is missing from the strategy - ${JSON.stringify(
@@ -370,7 +442,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPathForComponents = generateLocalDependenciesPrefix(
+        const globalStyleSheetPathForComponents = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.components.path,
           this.strategy.projectStyleSheet.path
         )
@@ -407,7 +479,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
       const path = this.strategy.components.path.concat(relativePath)
 
-      inMemoryFilesMap.set(componentName, {
+      inMemoryFilesMap.set(`component-${componentName}.`, {
         path,
         files,
       })
@@ -436,7 +508,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         )
         collectedDependencies = result.dependencies
 
-        inMemoryFilesMap.set(fileName, {
+        inMemoryFilesMap.set(`component-${fileName}`, {
           path: this.strategy.framework.replace.path,
           files: [result.file],
         })
@@ -458,7 +530,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
           fileName,
           fileType,
           globalStyles: {
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               framework.config.path,
               this.strategy.projectStyleSheet.path
             ),
@@ -500,6 +572,22 @@ export class ProjectGenerator implements ProjectGeneratorType {
       inMemoryFilesMap.set(manifestFile.name, {
         path: this.strategy.static.path,
         files: [manifestFile],
+      })
+    }
+
+    if (uidl.globals.env) {
+      const envFiles = createEnvFiles(uidl.globals.env)
+      envFiles.forEach((file) => {
+        inMemoryFilesMap.set(file.name, {
+          path: [],
+          files: [file],
+        })
+      })
+
+      const gitIgnoreFile = createGitIgnoreFile()
+      inMemoryFilesMap.set(gitIgnoreFile.name, {
+        path: [],
+        files: [gitIgnoreFile],
       })
     }
 
@@ -564,6 +652,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
       inMemoryFilesMap = runAfterResult.files
     } catch (e) {
+      console.trace(e)
       throw new TeleportError(`Error in generating project after runAfter - ${e}`)
     }
 

@@ -70,7 +70,9 @@ export default class Validator {
 
     if (errors.length > 0) {
       throw new ComponentValidationError(
-        `UIDL Component Content Validation Error. Please check the following: \n${errors}`
+        `UIDL Component Content Validation Error. Please check the following: \n ${errors.join(
+          '\n'
+        )}`
       )
     }
 

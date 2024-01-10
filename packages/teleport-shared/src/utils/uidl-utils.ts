@@ -20,9 +20,11 @@ import {
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
   UIDLRootComponent,
+  UIDLResourceItem,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
+import { StringUtils } from '..'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
@@ -47,6 +49,7 @@ export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   uidl.outputOptions = uidl.outputOptions || {}
   const defaultComponentName = 'AppComponent'
   const friendlyName = removeIllegalCharacters(uidl.name) || defaultComponentName
+
   if (!uidl.outputOptions.fileName) {
     uidl.outputOptions.fileName = camelCaseToDashCase(friendlyName)
   }
@@ -128,7 +131,11 @@ export const prefixAssetsPath = (
     return originalString
   }
 
-  if (!originalString.startsWith('/')) {
+  if (typeof originalString !== 'string') {
+    return originalString
+  }
+
+  if (!originalString?.startsWith('/')) {
     return originalString
   }
 
@@ -222,6 +229,47 @@ export const traverseNodes = (
       }
       break
 
+    case 'cms-list':
+      traverseNodes(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-list-repeater':
+      traverseNodes(node.content.nodes.list, fn)
+      if (node.content.nodes.empty) {
+        traverseNodes(node.content.nodes.empty, fn)
+      }
+      break
+
+    case 'cms-item':
+      traverseNodes(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseNodes(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseNodes(node.content.mappings[key], fn)
+      })
+      break
+
     case 'repeat':
       traverseNodes(node.content.node, fn, node)
       traverseNodes(node.content.dataSource, fn, node)
@@ -242,13 +290,97 @@ export const traverseNodes = (
     case 'comp-style':
     case 'dynamic':
     case 'import':
+    case 'expr':
     case 'raw':
     case 'inject':
       break
 
     default:
       throw new Error(
-        `traverseNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseNodes was given an unsupported node type: ${JSON.stringify(node, null, 2)}`
+      )
+  }
+}
+
+export const traverseResources = (
+  node: UIDLNode,
+  fn: (node: UIDLResourceItem, parentNode: UIDLNode) => void
+) => {
+  switch (node.type) {
+    case 'element':
+      const { children } = node.content
+
+      if (children) {
+        children.forEach((child) => {
+          traverseResources(child, fn)
+        })
+      }
+      break
+
+    case 'cms-list':
+      traverseResources(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-list-repeater':
+      traverseResources(node.content.nodes.list, fn)
+      if (node.content.nodes.empty) {
+        traverseResources(node.content.nodes.empty, fn)
+      }
+      break
+
+    case 'cms-item':
+      traverseResources(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseResources(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseResources(node.content.mappings[key], fn)
+      })
+      break
+
+    case 'repeat':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'conditional':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseResources(node.content.fallback, fn)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+    case 'import':
+    case 'raw':
+      break
+
+    default:
+      throw new Error(
+        `traverseResources was given an unsupported node type: ${JSON.stringify(node, null, 2)}`
       )
   }
 }
@@ -276,6 +408,48 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       }
       break
 
+    case 'cms-list':
+      traverseElements(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-list-repeater':
+      traverseElements(node.content.nodes.list, fn)
+      if (node.content.nodes.empty) {
+        traverseElements(node.content.nodes.empty, fn)
+      }
+
+      break
+
+    case 'cms-item':
+      traverseElements(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseElements(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseElements(node.content.mappings[key], fn)
+      })
+      break
+
     case 'repeat':
       traverseElements(node.content.node, fn)
       break
@@ -294,11 +468,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
     case 'dynamic':
     case 'inject':
     case 'raw':
+    case 'expr':
       break
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseElements was given an unsupported node type : ${node.type}, ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -312,6 +491,48 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
         })
       }
 
+      break
+
+    case 'cms-list':
+      traverseRepeats(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-list-repeater':
+      traverseRepeats(node.content.nodes.list, fn)
+      if (node.content.nodes.empty) {
+        traverseRepeats(node.content.nodes.empty, fn)
+      }
+
+      break
+
+    case 'cms-item':
+      traverseRepeats(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseRepeats(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseRepeats(node.content.mappings[key], fn)
+      })
       break
 
     case 'repeat':
@@ -333,12 +554,17 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
     case 'static':
     case 'dynamic':
     case 'raw':
+    case 'expr':
     case 'inject':
       break
 
     default:
       throw new Error(
-        `traverseRepeats was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseRepeats was given an unsupported node type: ${node.type} - ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -468,7 +694,7 @@ export const transformStringAssignmentToJson = (
       type: 'dynamic',
       content: {
         referenceType,
-        id: path,
+        id: StringUtils.createStateOrPropStoringValue(path),
       },
     }
   }
@@ -495,11 +721,25 @@ export const transformStylesAssignmentsToJson = (
 
     if (!Array.isArray(styleContentAtKey) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type } = styleContentAtKey as Record<string, unknown>
+      const { type, content } = styleContentAtKey as UIDLStaticValue | UIDLDynamicReference
 
-      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = styleContentAtKey as UIDLStyleValue
+      if (type === 'static') {
+        acc[key] = styleContentAtKey as UIDLStaticValue
         return acc
+      }
+
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          }
+        } else {
+          acc[key] = styleContentAtKey as UIDLDynamicReference
+        }
       }
 
       return acc
@@ -517,17 +757,27 @@ export const transformStylesAssignmentsToJson = (
   return newStyleObject
 }
 
+/*
+  All the props passed to the components are transformed to a unique case
+  to minimize the collision of using cameCalse in one place and dashCase in
+  another place. So, all the attrs that are being passed to the local compoenents
+  need to be transformed since these are basically props.
+*/
+
 export const transformAttributesAssignmentsToJson = (
-  attributesObject: Record<string, unknown>
+  attributesObject: Record<string, unknown>,
+  isLocalComponent = false
 ): Record<string, UIDLAttributeValue> => {
-  const newStyleObject: Record<string, UIDLAttributeValue> = {}
+  const newAttrObject: Record<string, UIDLAttributeValue> = {}
 
   Object.keys(attributesObject).reduce((acc, key) => {
     const attributeContent = attributesObject[key]
     const entityType = typeof attributeContent
 
     if (['string', 'number'].indexOf(entityType) !== -1) {
-      acc[key] = transformStringAssignmentToJson(
+      const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+
+      acc[propKey] = transformStringAssignmentToJson(
         attributeContent as string | number
       ) as UIDLAttributeValue
       return acc
@@ -535,9 +785,36 @@ export const transformAttributesAssignmentsToJson = (
 
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
-        acc[key] = attributeContent as UIDLAttributeValue
+      const { type } = attributeContent as UIDLAttributeValue
+      if (['static', 'import', 'raw', 'expr'].indexOf(type as string) !== -1) {
+        const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+        acc[propKey] = attributeContent as UIDLAttributeValue
+        return acc
+      }
+
+      if (type === 'comp-style') {
+        acc[key] = {
+          type: 'comp-style',
+          content: StringUtils.createStateOrPropStoringValue(
+            (attributeContent as UIDLComponentStyleReference).content
+          ),
+        }
+        return acc
+      }
+
+      const { content } = attributeContent as UIDLDynamicReference
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          }
+        } else {
+          acc[key] = attributeContent as UIDLAttributeValue
+        }
         return acc
       }
 
@@ -549,17 +826,9 @@ export const transformAttributesAssignmentsToJson = (
         )}`
       )
     }
+  }, newAttrObject)
 
-    throw new Error(
-      `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
-        attributeContent,
-        null,
-        2
-      )}`
-    )
-  }, newStyleObject)
-
-  return newStyleObject
+  return newAttrObject
 }
 
 export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
@@ -599,6 +868,47 @@ export const removeChildNodes = (
       removeChildNodes(node.content.node, criteria)
       break
 
+    case 'cms-list':
+      removeChildNodes(node.content.nodes.success, criteria)
+      if (node.content.nodes.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
+      }
+      break
+
+    case 'cms-list-repeater':
+      removeChildNodes(node.content.nodes.list, criteria)
+      if (node.content.nodes.empty) {
+        removeChildNodes(node.content.nodes.empty, criteria)
+      }
+
+      break
+    case 'cms-item':
+      removeChildNodes(node.content.nodes.success, criteria)
+      if (node.content.nodes.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
+      }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        removeChildNodes(node.content.nodes.fallback, criteria)
+      }
+
+      if (node.content.nodes?.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        removeChildNodes(node.content.mappings[key], criteria)
+      })
+      break
+
     case 'conditional':
       removeChildNodes(node.content.node, criteria)
       break
@@ -612,6 +922,7 @@ export const removeChildNodes = (
     case 'static':
     case 'dynamic':
     case 'raw':
+    case 'expr':
     case 'inject':
       break
 

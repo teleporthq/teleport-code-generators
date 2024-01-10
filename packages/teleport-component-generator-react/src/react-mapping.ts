@@ -13,6 +13,33 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    'contentful-richtext-node': {
+      elementType: 'RichText',
+      dependency: {
+        type: 'package',
+        path: '@madebyconnor/rich-text-to-jsx',
+        version: '2.2.1',
+      },
+    },
+    'caisy-richtext-node': {
+      elementType: 'RichTextRenderer',
+      dependency: {
+        type: 'package',
+        path: '@caisy/rich-text-react-renderer',
+        version: '0.7.3',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'markdown-node': {
+      elementType: 'ReactMarkdown',
+      dependency: {
+        type: 'package',
+        path: 'react-markdown',
+        version: '8.0.7',
+      },
+    },
     'html-node': {
       elementType: 'Script',
       dependency: {
@@ -21,6 +48,17 @@ export const ReactMapping: Mapping = {
         version: '0.1.13',
         meta: {
           importAlias: 'dangerous-html/react',
+        },
+      },
+    },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
         },
       },
     },

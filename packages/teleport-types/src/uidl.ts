@@ -15,11 +15,78 @@ export interface UIDLRouteDefinitions {
   defaultValue: string
   values: UIDLStateValueDetails[]
 }
+
+export interface ContextUIDLItem {
+  name: string
+  fileName?: string
+}
+
+export interface UIDLENVValue {
+  type: 'env'
+  content: string
+}
+
+export interface UIDLPropValue {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop'
+    id: string
+  }
+}
+
+export interface UIDLStateValue {
+  type: 'dynamic'
+  content: {
+    referenceType: 'state'
+    id: string
+  }
+}
+
+export interface UIDLResourceItem {
+  name: string
+  headers?: Record<string, UIDLStaticValue | UIDLENVValue>
+  path: {
+    baseUrl: UIDLStaticValue | UIDLENVValue
+    route: UIDLStaticValue
+  }
+  method?: 'GET' | 'POST'
+  body?: Record<string, UIDLStaticValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue>
+  mappers?: string[]
+  response?: {
+    type: 'headers' | 'text' | 'json' | 'none'
+  }
+}
+
+/**
+ * Common headers like Authorization and etc can be moved here.
+ * Instead of re-repeating them in every call.
+ * Eg: `Content-Type`
+ */
+
+export interface UIDLResourceMapper {
+  params: string[]
+  dependency: UIDLDependency
+}
+
+export interface UIDLResources {
+  resourceMappers?: Record<string, UIDLResourceMapper>
+  items?: Record<string, UIDLResourceItem>
+  cache?: {
+    revalidate?: number
+    webhook?: {
+      name: string
+      dependency: UIDLDependency
+    }
+  }
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  resources?: UIDLResources
 }
 
 export interface UIDLGlobalProjectValues {
@@ -31,6 +98,7 @@ export interface UIDLGlobalProjectValues {
     head?: string
     body?: string
   }
+  env?: Record<string, string>
   meta: Array<Record<string, string>>
   assets: UIDLGlobalAsset[]
   manifest?: WebManifest
@@ -119,6 +187,56 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
+
+export interface UIDLInitialPropsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+    itemValuePath?: string[]
+  }
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+  /*
+    We allow the configuration of cache strategy globally for the whole project under
+    uidl.resources.cache
+    But in the case of using a using a webhook. The cache for routes like
+    /blog-post/page/pageNumber can't be handled. Since the page number of the
+    entity changed can't be known in advance.
+
+    This allows to set custom cache revalidation for those pages which overrides the cache that
+    is configured globally at uidl.resources.cache.revalidate
+  */
+  cache?: {
+    revalidate: number
+  }
+}
+
+export interface UIDLInitialPathsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+    itemValuePath?: string[]
+  }
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+}
+
 export interface UIDLComponentOutputOptions {
   componentClassName?: string // needs to be a valid class name
   fileName?: string // needs to be a valid file name
@@ -126,20 +244,24 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  pagination?: PagePaginationOptions
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
 }
 
 export interface UIDLComponentSEO {
-  title?: string
+  title?: string | UIDLStaticValue | UIDLDynamicReference
   metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
 }
 
-export type UIDLMetaTag = Record<string, string>
+export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicReference>
 
 export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  id?: string
   meta?: {
     target: 'style'
   }
@@ -156,21 +278,42 @@ export interface UIDLStateValueDetails {
   seo?: UIDLComponentSEO
 }
 
+export interface PagePaginationOptions {
+  attribute: string
+  pageSize: number
+  // We're using this property in order to get the total count of items for
+  // a given entity. In order to get the total count, we might need to fetch at least
+  // one item and get the actual count from the meta that is sent together with
+  // the response
+  totalCountPath: { type: 'headers' | 'body'; path: Array<string | number> }
+}
+
 export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
   fileName?: string
   fallback?: boolean
+  pagination?: PagePaginationOptions
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
+  propDefinitions?: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
+    refPath?: string[]
     id: string
   }
+}
+
+export interface UIDLExpressionValue {
+  type: 'expr'
+  content: string
 }
 
 export interface UIDLStaticValue {
@@ -193,8 +336,112 @@ export interface UIDLSlotNode {
   type: 'slot'
   content: {
     name?: string
-    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
+    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue
   }
+}
+
+export interface UIDLCMSListNode {
+  type: 'cms-list'
+  content: UIDLCMSListNodeContent
+}
+
+export interface UIDLCMSItemNode {
+  type: 'cms-item'
+  content: UIDLCMSItemNodeContent
+}
+
+export interface UIDLCMSMixedTypeNode {
+  type: 'cms-mixed-type'
+  content: {
+    elementType: string
+    name: string
+    key: string
+    dependency?: UIDLDependency
+    attrs: Record<string, UIDLAttributeValue>
+    renderPropIdentifier: string
+    nodes: {
+      fallback?: UIDLElementNode
+      error?: UIDLElementNode
+    }
+    mappings?: Record<string, UIDLElementNode>
+  }
+}
+
+export interface UIDLCMSListRepeaterNode {
+  type: 'cms-list-repeater'
+  content: UIDLCMSListRepeaterNodeContent
+}
+
+/*
+  A cms-list node can fetch data from the remote resouce
+  or it can refer to a `prop` value for page list.
+  It can have either remote resource or prop but not both.
+*/
+
+export type UIDLResourceLink = UIDLLocalResource | UIDLExternalResource
+
+export interface UIDLLocalResource {
+  id: string
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
+}
+
+export interface UIDLExternalResource {
+  name: string
+  dependency: UIDLExternalDependency
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
+}
+
+export interface UIDLCMSListNodeContent {
+  elementType: string
+  name?: string
+  key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
+  router?: UIDLDependency
+  nodes: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  renderPropIdentifier: string
+  valuePath?: string[]
+  paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
+  itemValuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
+}
+
+export interface UIDLCMSItemNodeContent {
+  elementType: string
+  name: string
+  key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
+  renderPropIdentifier: string
+  router?: UIDLDependency
+  dependency?: UIDLDependency
+  nodes: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  valuePath?: string[]
+  itemValuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
+  entityKeyProperty?: string
+}
+
+export interface UIDLCMSListRepeaterNodeContent {
+  elementType: string
+  name: string
+  key: string // internal usage
+  dependency?: UIDLDependency
+  nodes: {
+    list: UIDLElementNode
+    empty?: UIDLElementNode
+  }
+  renderPropIdentifier: string
+  source?: string
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -225,6 +472,7 @@ export interface UIDLConditionalNode {
   content: {
     node: UIDLNode
     reference: UIDLDynamicReference
+    importDefinitions?: Record<string, UIDLExternalDependency>
     value?: string | number | boolean
     condition?: UIDLConditionalExpression
   }
@@ -240,6 +488,11 @@ export interface UIDLConditionalExpression {
 
 export interface UIDLElementNode {
   type: 'element'
+  content: UIDLElement
+}
+
+export interface UIDLDateTimeNode {
+  type: 'date-time-node'
   content: UIDLElement
 }
 
@@ -263,6 +516,7 @@ export interface UIDLElement {
 }
 
 export type UIDLNode =
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
@@ -272,6 +526,11 @@ export type UIDLNode =
   | UIDLConditionalNode
   | UIDLSlotNode
   | UIDLImportReference
+  | UIDLCMSListNode
+  | UIDLCMSItemNode
+  | UIDLDateTimeNode
+  | UIDLCMSListRepeaterNode
+  | UIDLCMSMixedTypeNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
@@ -279,6 +538,7 @@ export interface UIDLComponentStyleReference {
 }
 
 export type UIDLAttributeValue =
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLImportReference
@@ -306,6 +566,11 @@ export interface UIDLURLLinkNode {
   }
 }
 
+// for now only links will have this express
+// type for dynamic content, but in the future
+// all dynamic content will be handled this way
+export type UIDLDynamicLinkNode = UIDLDynamicReference
+
 export interface UIDLSectionLinkNode {
   type: 'section'
   content: { section: string }
@@ -313,8 +578,11 @@ export interface UIDLSectionLinkNode {
 
 export interface UIDLNavLinkNode {
   type: 'navlink'
-  content: { routeName: string }
+  content: {
+    routeName: UIDLAttributeValue
+  }
 }
+
 export interface UIDLMailLinkNode {
   type: 'mail'
   content: {
@@ -334,6 +602,7 @@ export type UIDLLinkNode =
   | UIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
+  | UIDLDynamicLinkNode
 
 export interface UIDLPropCallEvent {
   type: 'propCall'
@@ -475,6 +744,21 @@ export interface UIDLStyleSetDefinition {
     | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
+  /**
+   * A string representing the style set's root name
+   * e.g. for .container button > span, container would be the className
+   *
+   * For the sake of backwards compatibility, this is an optional parameter. It can be made
+   * mandatory in the future, but all existing UIDL will need updating.
+   */
+  className?: string
+  /**
+   * Optional string containing all the subselectors of this style set.
+   * e.g. for .container button > span, ' button > span' will be the subselector.
+   *
+   * Attention! Subselectors do not have a starting space by default.
+   */
+  subselectors?: string
 }
 
 export type UIDLStyleSheetContent = UIDLStaticValue | UIDLStyleSetTokenReference

@@ -124,7 +124,9 @@ const createStateChangeStatement = (
   switch (options.stateHandling) {
     case 'hooks':
       return t.expressionStatement(
-        t.callExpression(t.identifier(`set${StringUtils.capitalize(stateKey)}`), [newStateValue])
+        t.callExpression(t.identifier(StringUtils.createStateStoringFunction(stateKey)), [
+          newStateValue,
+        ])
       )
     case 'function':
       return t.expressionStatement(
@@ -145,15 +147,22 @@ export const createDynamicValueExpression = (
   options: JSXGenerationOptions,
   t = types
 ) => {
-  const refType = identifier.content.referenceType as 'prop' | 'state' | 'local'
-  const prefix = options.dynamicReferencePrefixMap[refType] || ''
+  const identifierContent = identifier.content
+  const { referenceType, id } = identifierContent
+
+  if (referenceType === 'attr' || referenceType === 'children' || referenceType === 'token') {
+    throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)
+  }
+
+  const prefix =
+    options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
   return prefix === ''
-    ? t.identifier(identifier.content.id)
-    : t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
+    ? t.identifier(id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(id))
 }
 
-// Prepares an identifier (from props or state) to be used as a conditional rendering identifier
-// Assumes the type from the corresponding props/state definitions
+// Prepares an identifier (from props or state or an expr) to be used as a conditional rendering identifier
+// Assumes the type from the corresponding props/state definitions if not expr. Expressions are expected to have a boolean return here
 export const createConditionIdentifier = (
   dynamicReference: UIDLDynamicReference,
   params: JSXGenerationParams,
@@ -176,6 +185,11 @@ export const createConditionIdentifier = (
         key: id,
         type: params.stateDefinitions[referenceRoot].type,
         prefix: options.dynamicReferencePrefixMap.state,
+      }
+    case 'expr':
+      return {
+        key: id,
+        type: 'boolean',
       }
     default:
       throw new Error(

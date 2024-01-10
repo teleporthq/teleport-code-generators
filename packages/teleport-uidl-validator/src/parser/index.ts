@@ -1,5 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
-
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLDynamicReference,
   ComponentUIDL,
@@ -17,7 +16,17 @@ import {
   VUIDLGlobalAsset,
   UIDLGlobalAsset,
   UIDLRootComponent,
-  VUIDLElement,
+  VUIDLLinkNode,
+  UIDLPropDefinition,
+  UIDLStateDefinition,
+  UIDLElementNodeInlineReferencedStyle,
+  UIDLURLLinkNode,
+  UIDLCMSItemNode,
+  UIDLCMSListRepeaterNode,
+  UIDLCMSListNode,
+  UIDLDependency,
+  UIDLEventHandlerStatement,
+  UIDLCMSMixedTypeNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -30,10 +39,30 @@ export const parseComponentJSON = (
 ): ComponentUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
-  if (safeInput?.styleSetDefinitions) {
-    const { styleSetDefinitions } = safeInput
+  if (safeInput?.propDefinitions) {
+    safeInput.propDefinitions = Object.keys(safeInput.propDefinitions).reduce(
+      (acc: Record<string, UIDLPropDefinition>, prop) => {
+        const propName = StringUtils.createStateOrPropStoringValue(prop)
+        acc[propName] = (safeInput.propDefinitions as Record<string, UIDLPropDefinition>)[prop]
+        return acc
+      },
+      {}
+    )
+  }
 
-    Object.values(styleSetDefinitions).forEach((styleRef) => {
+  if (safeInput?.stateDefinitions) {
+    safeInput.stateDefinitions = Object.keys(safeInput.stateDefinitions).reduce(
+      (acc: Record<string, UIDLStateDefinition>, state) => {
+        const stateName = StringUtils.createStateOrPropStoringValue(state)
+        acc[stateName] = (safeInput.stateDefinitions as Record<string, UIDLStateDefinition>)[state]
+        return acc
+      },
+      {}
+    )
+  }
+
+  if (safeInput?.styleSetDefinitions) {
+    Object.values(safeInput?.styleSetDefinitions).forEach((styleRef) => {
       const { conditions = [] } = styleRef
       styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
       if (conditions.length > 0) {
@@ -60,7 +89,7 @@ export const parseComponentJSON = (
   }
 
   // other parsers for other sections of the component here
-  result.node = parseComponentNode(node) as UIDLElementNode
+  result.node = parseComponentNode(node, result) as UIDLElementNode
 
   return result
 }
@@ -117,20 +146,127 @@ export const parseProjectJSON = (
   return result
 }
 
-const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
+const parseComponentNode = (node: Record<string, unknown>, component: ComponentUIDL): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
+    case 'cms-item':
+    case 'cms-list': {
+      const {
+        initialData,
+        nodes: { success, error, loading },
+        resource,
+      } = (node as unknown as UIDLCMSItemNode).content
+
+      if (initialData) {
+        initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
+      }
+
+      // TODO all this casting is really ugly, maybe we'll be able to do something about it
+      if (success) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.success =
+          parseComponentNode(
+            success as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      if (error) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.error =
+          parseComponentNode(
+            error as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      if (loading) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.loading =
+          parseComponentNode(
+            loading as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      if (resource?.params) {
+        Object.values(resource?.params || {}).forEach((param) => {
+          if (
+            param.type === 'dynamic' &&
+            (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+          ) {
+            param.content.id = StringUtils.createStateOrPropStoringValue(param.content.id)
+          }
+        })
+      }
+
+      return node as unknown as UIDLCMSListNode | UIDLCMSItemNode
+    }
+    case 'cms-list-repeater': {
+      const {
+        nodes: { list, empty },
+      } = (node as unknown as UIDLCMSListRepeaterNode).content
+
+      if (list) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.list = parseComponentNode(
+          list as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (empty) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.empty = parseComponentNode(
+          empty as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      return node as unknown as UIDLCMSListRepeaterNode
+    }
+    case 'cms-mixed-type': {
+      const {
+        nodes: { fallback, error },
+        dependency,
+        attrs,
+        mappings,
+      } = (node as unknown as UIDLCMSMixedTypeNode).content
+
+      if (attrs) {
+        ;(node.content as UIDLCMSMixedTypeNode['content']).attrs =
+          UIDLUtils.transformAttributesAssignmentsToJson(
+            attrs as Record<string, unknown>,
+            dependency && (dependency as UIDLDependency)?.type === 'local'
+          )
+      }
+
+      if (fallback) {
+        ;(node as unknown as UIDLCMSMixedTypeNode).content.nodes.fallback = parseComponentNode(
+          fallback as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (error) {
+        ;(node as unknown as UIDLCMSMixedTypeNode).content.nodes.error = parseComponentNode(
+          error as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      Object.keys(mappings).forEach((mapping) => {
+        ;(node.content as unknown as UIDLCMSMixedTypeNode['content']).mappings[mapping] =
+          parseComponentNode(
+            mappings[mapping] as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      })
+
+      return node as unknown as UIDLCMSMixedTypeNode
+    }
     case 'element':
       const elementContent = node.content as Record<string, unknown>
-
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {
-          const { content } = styleRef
-
-          switch (content.mapType) {
+          switch (styleRef.content.mapType) {
             case 'inlined': {
-              content.styles = UIDLUtils.transformStylesAssignmentsToJson(
-                content.styles as Record<string, string>
-              )
+              const { content } = styleRef as UIDLElementNodeInlineReferencedStyle
+              content.styles = UIDLUtils.transformStylesAssignmentsToJson(content.styles)
               break
             }
 
@@ -144,16 +280,37 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
                   content: styleRef.content.content,
                 }
               }
+
               break
             }
 
             default: {
               throw new ParserError(
-                `Un-expected mapType passed in referencedStyles - ${content.mapType}`
+                `Un-expected mapType passed in referencedStyles - ${styleRef.content.mapType}`
               )
             }
           }
         })
+      }
+
+      if (elementContent.events) {
+        Object.values(elementContent.events).forEach(
+          (eventHandler: UIDLEventHandlerStatement[]) => {
+            eventHandler.forEach((eventStatement) => {
+              if (eventStatement.type === 'stateChange') {
+                eventStatement.modifies = StringUtils.createStateOrPropStoringValue(
+                  eventStatement.modifies
+                )
+              }
+
+              if (eventStatement.type === 'propCall') {
+                eventStatement.calls = StringUtils.createStateOrPropStoringValue(
+                  eventStatement.calls
+                )
+              }
+            })
+          }
+        )
       }
 
       if (elementContent.style) {
@@ -164,17 +321,35 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
       if (elementContent.attrs) {
         elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-          elementContent.attrs as Record<string, unknown>
+          elementContent.attrs as Record<string, unknown>,
+          'dependency' in elementContent &&
+            (elementContent.dependency as UIDLDependency)?.type === 'local'
         )
       }
 
-      if (
-        elementContent?.abilities &&
-        'link' in (elementContent.abilities as unknown as VUIDLElement['abilities'])
-      ) {
-        const { content, type } = (elementContent.abilities as VUIDLElement['abilities'])?.link
+      if (elementContent?.abilities?.hasOwnProperty('link')) {
+        const { content, type } = (elementContent.abilities as { link: VUIDLLinkNode }).link
+
+        if (type === 'navlink' && typeof content.routeName === 'string') {
+          const route: UIDLStaticValue = {
+            type: 'static',
+            content: content.routeName,
+          }
+          content.routeName = route
+        }
+
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
+        }
+
+        if (type === 'url' && (content as UIDLURLLinkNode['content']).url.type === 'dynamic') {
+          ;(content as UIDLURLLinkNode['content']).url.content = {
+            referenceType: ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference)
+              .content.referenceType,
+            id: StringUtils.createStateOrPropStoringValue(
+              ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content.id
+            ),
+          }
         }
       }
 
@@ -183,7 +358,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
           if (typeof child === 'string') {
             return UIDLUtils.transformStringAssignmentToJson(child)
           } else {
-            return parseComponentNode(child)
+            return parseComponentNode(child, component)
           }
         }, [])
       }
@@ -195,7 +370,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const { reference } = conditionalNode.content
 
       conditionalNode.content.node = parseComponentNode(
-        conditionalNode.content.node as unknown as Record<string, unknown>
+        conditionalNode.content.node as unknown as Record<string, unknown>,
+        component
       )
 
       if (typeof reference === 'string') {
@@ -211,7 +387,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const { dataSource } = repeatNode.content
 
       repeatNode.content.node = parseComponentNode(
-        repeatNode.content.node as unknown as Record<string, unknown>
+        repeatNode.content.node as unknown as Record<string, unknown>,
+        component
       ) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
@@ -225,15 +402,22 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
       if (slotNode.content.fallback) {
         slotNode.content.fallback = parseComponentNode(
-          slotNode.content.fallback as unknown as Record<string, unknown>
+          slotNode.content.fallback as unknown as Record<string, unknown>,
+          component
         ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
       }
 
       return slotNode
 
     case 'dynamic':
+      const dyamicNode = node as unknown as UIDLDynamicReference
+      if (['state', 'prop'].includes(dyamicNode.content.referenceType)) {
+        dyamicNode.content.id = StringUtils.createStateOrPropStoringValue(dyamicNode.content.id)
+      }
+      return dyamicNode
     case 'static':
     case 'raw':
+    case 'expr':
     case 'inject':
       return node as unknown as UIDLNode
 

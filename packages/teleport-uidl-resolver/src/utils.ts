@@ -13,6 +13,7 @@ import {
   UIDLStyleSetTokenReference,
   UIDLStaticValue,
   UIDLDynamicReference,
+  UIDLConditionalNode,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -55,7 +56,7 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = UIDLUtils.prefixAssetsPath(tag[key], options.assets)
+      tag[key] = UIDLUtils.prefixAssetsPath(tag[key] as string, options.assets)
     })
   })
 }
@@ -80,7 +81,41 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
     if (node.type === 'repeat') {
       resolveRepeat(node.content, parentNode)
     }
+
+    if (node.type === 'conditional') {
+      resolveConditional(node, options)
+    }
+
+    if (node.type === 'cms-list-repeater' || node.type === 'cms-list' || node.type === 'cms-item') {
+      const {
+        mapping: { elements: elementsMapping },
+      } = options
+      const element: UIDLElement = node.content
+      const mappedElement = elementsMapping[element.elementType] || {
+        elementType: element.semanticType ?? element.elementType,
+      }
+
+      node.content.elementType = mappedElement.elementType
+      node.content.name = node.content?.name || node.type
+
+      if (element.dependency || mappedElement.dependency) {
+        node.content.dependency = resolveDependency(
+          mappedElement,
+          element.dependency,
+          options.localDependenciesPrefix
+        )
+      }
+    }
   })
+}
+
+export const resolveConditional = (condNode: UIDLConditionalNode, options: GeneratorOptions) => {
+  if (condNode.content?.node) {
+    const { type, content } = condNode.content.node
+    if (type === 'element') {
+      resolveElement(content, options)
+    }
+  }
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -260,6 +295,25 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
 export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
+  UIDLUtils.traverseNodes(node, (child) => {
+    if (
+      child.type !== 'cms-item' &&
+      child.type !== 'cms-list' &&
+      child.type !== 'cms-list-repeater'
+    ) {
+      return
+    }
+
+    const nodeOcurrence = lookup[child.content.name.toLowerCase()]
+    if (nodeOcurrence.count === 1) {
+      child.content.key = child.content.name
+    } else {
+      const currentKey = nodeOcurrence.nextKey
+      child.content.key = generateKey(child.content.name, currentKey)
+      nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
+    }
+  })
+
   UIDLUtils.traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
@@ -313,6 +367,37 @@ export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
   })
 }
 
+export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
+  UIDLUtils.traverseNodes(node, (child) => {
+    if (
+      child.type !== 'cms-item' &&
+      child.type !== 'cms-list' &&
+      child.type !== 'cms-list-repeater'
+    ) {
+      return
+    }
+    const nodeName = child.content.name.toLowerCase()
+    nodeAndElementLookup(nodeName, lookup)
+  })
+}
+
+const nodeAndElementLookup = (elementName: string, lookup: ElementsLookup) => {
+  if (!lookup[elementName]) {
+    lookup[elementName] = {
+      count: 0,
+      nextKey: '0',
+    }
+  }
+
+  lookup[elementName].count++
+  const newCount = lookup[elementName].count
+  if (newCount > 9 && isPowerOfTen(newCount)) {
+    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+    // nextKey will start either from: '0', '00', '000', etc.
+    lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+  }
+}
+
 const isPowerOfTen = (value: number) => {
   while (value > 9 && value % 10 === 0) {
     value /= 10
@@ -324,7 +409,11 @@ const isPowerOfTen = (value: number) => {
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
-  UIDLUtils.traverseRepeats(node, (repeat) => {
+  UIDLUtils.traverseRepeats(node, (repeat: UIDLRepeatContent) => {
+    if (!repeat.dataSource?.type) {
+      return
+    }
+
     if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
       repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
@@ -468,7 +557,6 @@ const resolveAttributes = (
 ) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
   const resolvedAttrs: Record<string, UIDLAttributeValue> = {}
-
   // This will gather all the attributes from the UIDL which are mapped using the elements-mapping
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
@@ -553,21 +641,17 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
     uidl.outputOptions.componentClassName = `App${uidl.outputOptions.componentClassName}`
   }
 
-  if (uidl.propDefinitions) {
-    Object.keys(uidl.propDefinitions).forEach((prop) => {
-      if (illegalPropNames.includes(prop)) {
-        throw new Error(`Illegal prop key '${prop}'`)
-      }
-    })
-  }
+  Object.keys(uidl.propDefinitions || {}).forEach((prop) => {
+    if (illegalPropNames.includes(prop)) {
+      throw new Error(`Illegal prop key '${prop}'`)
+    }
+  })
 
-  if (uidl.stateDefinitions) {
-    Object.keys(uidl.stateDefinitions).forEach((state) => {
-      if (illegalPropNames.includes(state)) {
-        throw new Error(`Illegal state key '${state}'`)
-      }
-    })
-  }
+  Object.keys(uidl.stateDefinitions || {}).forEach((state) => {
+    if (illegalPropNames.includes(state)) {
+      throw new Error(`Illegal state key '${state}'`)
+    }
+  })
 }
 
 export const checkForDefaultPropsContainingAssets = (

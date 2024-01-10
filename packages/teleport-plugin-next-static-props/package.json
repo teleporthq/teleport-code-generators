@@ -1,0 +1,32 @@
+{
+  "name": "@teleporthq/teleport-plugin-next-static-props",
+  "version": "0.32.0",
+  "description": "A plugin for adding getStaticProps inside a nextjs page",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-plugin-common": "^0.32.0",
+    "@teleporthq/teleport-types": "^0.32.0"
+  },
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
+}

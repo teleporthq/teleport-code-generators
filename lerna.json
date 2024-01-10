@@ -2,13 +2,14 @@
   "packages": [
     "packages/*"
   ],
-  "version": "0.31.6",
+  "version": "0.32.0",
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
     "version": {
       "allowBranch": [
         "development",
+        "feat/better-fetch",
         "hotfix/*"
       ],
       "message": "chore(release): 'publish %s'"

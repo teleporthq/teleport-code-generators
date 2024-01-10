@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -33,9 +33,8 @@ const createPageUIDL = (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy
 ): ComponentUIDL => {
-  const { value, node } = routeNode.content
+  const { value, node, importDefinitions: rootNodeImportDefinitions } = routeNode.content
   const pageName = value.toString()
-
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
@@ -49,7 +48,8 @@ const createPageUIDL = (
   const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
   pageDefinition.pageOptions = pageOptions
 
-  const { fileName, componentName, navLink } = pageOptions
+  const { fileName, componentName, pagination, initialPropsData, initialPathsData, navLink } =
+    pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -64,7 +64,8 @@ const createPageUIDL = (
   const outputOptions = createFolderForEachComponent
     ? {
         componentName,
-        fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
+        fileName:
+          (customComponentFileName && customComponentFileName(fileName, pageOptions)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
           (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
@@ -72,7 +73,8 @@ const createPageUIDL = (
       }
     : {
         componentName,
-        fileName: (customComponentFileName && customComponentFileName(fileName)) || fileName,
+        fileName:
+          (customComponentFileName && customComponentFileName(fileName, pageOptions)) || fileName,
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || fileName,
         templateFileName: (customTemplateFileName && customTemplateFileName(fileName)) || fileName,
         folderPath: [...navLink.split('/').slice(1, -1)],
@@ -94,7 +96,14 @@ const createPageUIDL = (
   const pageUIDL: ComponentUIDL = {
     name: componentName,
     node: pageContent,
-    outputOptions,
+    outputOptions: {
+      ...outputOptions,
+      initialPropsData,
+      initialPathsData,
+      pagination,
+    },
+    propDefinitions: pageOptions.propDefinitions,
+    stateDefinitions: pageOptions.stateDefinitions,
     seo,
   }
 
@@ -120,6 +129,11 @@ const createPageUIDL = (
       },
       {}
     )
+  }
+
+  pageUIDL.importDefinitions = {
+    ...pageUIDL.importDefinitions,
+    ...rootNodeImportDefinitions,
   }
 
   if (isHomePage && !strategy.pages?.options?.useFileNameForNavigation) {
@@ -154,7 +168,12 @@ export const extractPageOptions = (
 
   // If no meta object is defined, the stateName is used
   const defaultPageName = 'AppPage'
-  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) || defaultPageName // remove space, leading numbers, etc.
+
+  const splittedRouteName = routeName.split('/')
+  const fileName =
+    useFileNameForNavigation && splittedRouteName.length > 1 ? splittedRouteName.pop() : routeName
+
+  const friendlyStateName = StringUtils.removeIllegalCharacters(fileName) || defaultPageName // remove space, leading numbers, etc.
   const friendlyComponentName = StringUtils.dashCaseToUpperCamelCase(friendlyStateName) // component name in UpperCamelCase
   const friendlyFileName = StringUtils.camelCaseToDashCase(friendlyStateName) // file name in dash-case
 
@@ -162,6 +181,15 @@ export const extractPageOptions = (
     // default values extracted from state name
     fileName: basename(friendlyFileName),
     componentName: friendlyComponentName,
+    ...(pageDefinition?.pageOptions?.pagination && {
+      pagination: pageDefinition.pageOptions.pagination,
+    }),
+    ...(pageDefinition?.pageOptions?.initialPropsData && {
+      initialPropsData: pageDefinition?.pageOptions?.initialPropsData,
+    }),
+    ...(pageDefinition?.pageOptions?.initialPathsData && {
+      initialPathsData: pageDefinition?.pageOptions?.initialPathsData,
+    }),
     navLink: pageDefinition?.pageOptions?.fallback
       ? '**'
       : '/' + (isHomePage ? '' : basename(friendlyFileName)),
@@ -184,8 +212,12 @@ export const extractPageOptions = (
   // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
   // Also, the defaultPage has to be index, overriding any other value set
   if (useFileNameForNavigation) {
-    const fileName = pageOptions.navLink.replace('/', '')
-    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : basename(fileName)
+    const navFileName = pageOptions.navLink.replace('/', '')
+    pageOptions.fileName = pageOptions?.fallback
+      ? '404'
+      : isHomePage
+      ? 'index'
+      : basename(navFileName)
   }
 
   return { pageOptions, isHomePage }
@@ -211,6 +243,7 @@ export const prepareComponentOutputOptions = (
     const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
     const friendlyComponentName =
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
+
     const folderPath = UIDLUtils.getComponentFolderPath(component)
 
     const { customComponentFileName, customStyleFileName, customTemplateFileName } =
@@ -281,6 +314,11 @@ const deduplicatePageOptionValues = (options: UIDLPageOptions, otherOptions: UID
   }
 
   let fileNameSuffix = 0
+  /*
+    With the nested routes change, the navLink also define the location in which the file is going to exist.
+    So, we should take that too into consideration and then chagne the file name accordingly.
+    Check Line:80 from the same file.
+  */
   while (
     otherOptions.some(
       (opt) =>
@@ -396,42 +434,11 @@ const setLocalDependencyPath = (
   const toPath = toBasePath.concat(componentPath)
 
   const importFileName = UIDLUtils.getComponentFileName(component)
-  const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
+  const importPath = GenericUtils.generateLocalDependenciesPrefix(fromPath, toPath)
+
   element.dependency.path = `${importPath}${importFileName}`
   element.elementType = 'component'
   element.semanticType = componentClassName
-}
-
-export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
-  /*
-    Remove common path elements from the beginning of the
-    components and pages full path (if any)
-
-    For example, having:
-    - fromPath = ['src', 'components']
-    - toPath = ['src', 'pages']
-
-    If we want to have an import statement that goes from the pages folder to the
-    components folder, we only need to go back one step, so we are removing
-    the first element from both the paths ('src') and build the dependencyPrefix accordingly
-  */
-  const [firstPath, secondPath] = removeCommonStartingPointsFromPaths([fromPath, toPath])
-
-  // We have to go back as many folders as there are defined in the pages path
-  let dependencyPrefix = '../'.repeat(firstPath.length)
-
-  // if 'fromPath' is parent for 'toPath', the path starts from './'
-  if (firstPath.length === 0) {
-    secondPath.unshift('.')
-  }
-
-  dependencyPrefix += secondPath
-    .map((folder) => {
-      return `${folder}/`
-    })
-    .join('')
-
-  return dependencyPrefix
 }
 
 export const fileFileAndReplaceContent = (
@@ -471,43 +478,6 @@ export const generateExternalCSSImports = async (uidl: ComponentUIDL) => {
   })
 
   return generator.linkCodeChunks({ imports: chunks }, 'imports')
-}
-
-const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
-  const pathsClone: string[][] = JSON.parse(JSON.stringify(paths))
-
-  const shortestPathLength = Math.min(
-    ...pathsClone.map((path) => {
-      return path.length
-    })
-  )
-
-  let elementIndex = 0
-  let elementsFromIndexAreEqual = true
-
-  while (elementIndex < shortestPathLength && elementsFromIndexAreEqual) {
-    const firstPathElementsFromIndex = pathsClone.map((path: string[]) => {
-      return path[0]
-    })
-
-    if (elementsFromArrayAreEqual(firstPathElementsFromIndex)) {
-      // If the first elements from every path are equal, remove it
-      pathsClone.forEach((path) => {
-        path.shift()
-      })
-    } else {
-      elementsFromIndexAreEqual = false
-    }
-    elementIndex += 1
-  }
-
-  return pathsClone
-}
-
-const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
-  return arrayOfElements.every((element: string) => {
-    return element === arrayOfElements[0]
-  })
 }
 
 export const injectFilesToPath = (

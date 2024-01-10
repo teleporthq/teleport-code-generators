@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   GeneratedFile,
@@ -16,9 +16,9 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
+import { DEFAULT_GITIGNORE, DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
-import { bootstrapGenerator, generateLocalDependenciesPrefix } from './utils'
+import { bootstrapGenerator } from './utils'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 export const createPage = async (
@@ -44,7 +44,7 @@ export const createComponentModule = async (
 ) => {
   const { root } = uidl
   const { path } = strategy.components
-  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+  const componentLocalDependenciesPrefix = GenericUtils.generateLocalDependenciesPrefix(
     path,
     strategy.components.path
   )
@@ -83,7 +83,7 @@ export const createRouterFile = async (
 ) => {
   const { projectStyleSheet, router } = strategy
   const { path: routerFilePath, fileName } = router
-  const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+  const routerLocalDependenciesPrefix = GenericUtils.generateLocalDependenciesPrefix(
     routerFilePath,
     strategy.pages.path
   )
@@ -101,7 +101,10 @@ export const createRouterFile = async (
       projectStyleSet: {
         styleSetDefinitions: root?.styleSetDefinitions,
         fileName: projectStyleSheet.fileName,
-        path: generateLocalDependenciesPrefix(routerFilePath, strategy.projectStyleSheet.path),
+        path: GenericUtils.generateLocalDependenciesPrefix(
+          routerFilePath,
+          strategy.projectStyleSheet.path
+        ),
         importFile: projectStyleSheet?.importFile || false,
       },
     }
@@ -351,6 +354,37 @@ const createHTMLEntryFileChunks = (
   }
 
   return chunks
+}
+
+export const createEnvFiles = (env: Record<string, string>) => {
+  const envFileContent = Object.keys(env)
+    .map((key) => `${key}=${env[key]}`)
+    .join('\n')
+
+  const envFileExampleContent = Object.keys(env)
+    .map((key) => `${key}=`)
+    .join('\n')
+
+  return [
+    {
+      name: '.env',
+      fileType: '',
+      content: envFileContent,
+    },
+    {
+      name: '.env.example',
+      fileType: '',
+      content: envFileExampleContent,
+    },
+  ]
+}
+
+export const createGitIgnoreFile = () => {
+  return {
+    name: '.gitignore',
+    fileType: '',
+    content: DEFAULT_GITIGNORE,
+  }
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values

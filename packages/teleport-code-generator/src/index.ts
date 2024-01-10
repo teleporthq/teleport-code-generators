@@ -68,6 +68,7 @@ import {
   PlainHTMLMapping,
 } from '@teleporthq/teleport-component-generator-html'
 import { isNodeProcess } from './utils'
+import { ProjectPluginInlineFetch } from '@teleporthq/teleport-project-plugin-inline-fetch'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -152,6 +153,10 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.NUXT) {
     projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
+  }
+
+  if (projectType === ProjectType.NEXT) {
+    projectGeneratorFactory.addPlugin(new ProjectPluginInlineFetch({ framework: projectType }))
   }
 
   if (plugins?.length > 0) {

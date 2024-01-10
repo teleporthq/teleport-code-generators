@@ -1,6 +1,6 @@
 {
     "name": "@teleporthq/teleport-project-plugin-external-embed",
-    "version": "0.31.3",
+    "version": "0.32.0",
     "description": "A plugin for extracting the html embeds into seperate files",
     "author": "teleportHQ",
     "license": "MIT",
@@ -24,7 +24,7 @@
         "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
     },
     "dependencies": {
-        "@teleporthq/teleport-shared": "^0.31.3",
-        "@teleporthq/teleport-types": "^0.31.0"
+        "@teleporthq/teleport-shared": "^0.32.0",
+        "@teleporthq/teleport-types": "^0.32.0"
     }
 }

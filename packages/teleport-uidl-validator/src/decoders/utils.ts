@@ -13,6 +13,7 @@ import {
   oneOf,
   intersection,
   withDefault,
+  anyJson,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -27,7 +28,6 @@ import {
   UIDLStyleValue,
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
-  UIDLNavLinkNode,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
   UIDLRawValue,
@@ -71,8 +71,27 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
+  PagePaginationOptions,
+  VCMSItemUIDLElementNode,
+  VCMSListUIDLElementNode,
+  UIDLInitialPathsData,
+  UIDLInitialPropsData,
+  UIDLExpressionValue,
+  UIDLDynamicLinkNode,
+  UIDLENVValue,
+  UIDLPropValue,
+  UIDLResourceItem,
+  VUIDLNavLinkNode,
+  VUIDLDateTimeNode,
+  UIDLStateValue,
+  UIDLResourceLink,
+  UIDLLocalResource,
+  UIDLExternalResource,
+  VCMSListRepeaterElementNode,
+  UIDLResourceMapper,
   UIDLInjectValue,
   VUIDLStateValueDetails,
+  VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
@@ -86,15 +105,22 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token')
+  constant('token'),
+  constant('expr')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: referenceTypeDecoder,
+    refPath: optional(array(string())),
     id: string(),
   }),
+})
+
+export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
+  type: constant('expr'),
+  content: string(),
 })
 
 export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
@@ -105,6 +131,96 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
 export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   type: constant('raw'),
   content: string(),
+})
+
+export const envValueDecoder: Decoder<UIDLENVValue> = object({
+  type: constant('env'),
+  content: string(),
+})
+
+export const dyamicFunctionParam: Decoder<UIDLPropValue> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('prop'),
+    id: string(),
+  }),
+})
+
+export const dyamicFunctionStateParam: Decoder<UIDLStateValue> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('state'),
+    id: string(),
+  }),
+})
+
+export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
+  name: string(),
+  headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
+  path: object({
+    baseUrl: union(staticValueDecoder, envValueDecoder),
+    route: staticValueDecoder,
+  }),
+  method: withDefault('GET', union(constant('GET'), constant('POST'))),
+  body: optional(dict(staticValueDecoder)),
+  mappers: withDefault([], array(string())),
+  params: optional(
+    dict(
+      union(
+        staticValueDecoder,
+        dyamicFunctionParam,
+        dyamicFunctionStateParam,
+        expressionValueDecoder
+      )
+    )
+  ),
+  response: optional(
+    object({
+      type: withDefault(
+        'json',
+        union(constant('json'), constant('headers'), constant('text'), constant('none'))
+      ),
+    })
+  ),
+})
+
+export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
+  }),
+  resource: union(
+    object({
+      id: string(),
+      params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
+    }),
+    object({
+      name: string(),
+      dependency: lazy(() => externaldependencyDecoder),
+      params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
+    })
+  ),
+  cache: optional(object({ revalidate: number() })),
+})
+
+export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
+  }),
+  resource: union(
+    object({
+      id: string(),
+      params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
+    }),
+    object({
+      name: string(),
+      dependency: lazy(() => externaldependencyDecoder),
+      params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
+    })
+  ),
 })
 
 export const injectValueDecoder: Decoder<UIDLInjectValue> = object({
@@ -167,6 +283,8 @@ export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object
   ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
+  className: optional(string()),
+  subselectors: optional(string()),
 })
 
 // TODO: Implement decoder for () => void
@@ -177,13 +295,6 @@ export const stateOrPropDefinitionDecoder = union(
   array(union(string(), number(), object())),
   object()
 )
-
-export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
-  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
-  fallback: optional(boolean()),
-})
 
 export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
   lazy(() => inlineScriptAssetDecoder),
@@ -262,14 +373,14 @@ export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
 })
 
 export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
-  title: optional(string()),
-  metaTags: optional(array(dict(string()))),
+  title: optional(union(string(), staticValueDecoder, dynamicValueDecoder)),
+  metaTags: optional(array(dict(union(string(), staticValueDecoder, dynamicValueDecoder)))),
   assets: optional(array(globalAssetsDecoder)),
 })
 
 export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
-  pageOptions: optional(pageOptionsDecoder),
+  pageOptions: optional(lazy(() => pageOptionsDecoder)),
   seo: optional(componentSeoDecoder),
 })
 
@@ -285,6 +396,16 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
+  id: optional(string()),
+})
+
+export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
+  attribute: string(),
+  pageSize: number(),
+  totalCountPath: object({
+    type: union(constant('headers'), constant('body')),
+    path: array(union(string(), number())),
+  }),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
@@ -298,6 +419,18 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('children')
   ),
   defaultValue: stateOrPropDefinitionDecoder,
+})
+
+export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
+  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
+  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
+  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  fallback: optional(boolean()),
+  pagination: optional(pageOptionsPaginationDecoder),
+  initialPropsData: optional(initialPropsDecoder),
+  initialPathsData: optional(initialPathsDecoder),
+  propDefinitions: optional(dict(propDefinitionsDecoder)),
+  stateDefinitions: optional(dict(stateDefinitionsDecoder)),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
@@ -339,6 +472,7 @@ export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({
       namedImport: optional(boolean()),
       originalName: optional(string()),
       importJustPath: optional(boolean()),
+      importAlias: optional(string()),
     })
   ),
 })
@@ -347,6 +481,11 @@ export const dependencyDecoder: Decoder<UIDLDependency> = union(
   localDependencyDecoder,
   externaldependencyDecoder
 )
+
+export const resourceMapperDecoder: Decoder<UIDLResourceMapper> = object({
+  params: array(string()),
+  dependency: dependencyDecoder,
+})
 
 export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   type: constant('import'),
@@ -358,6 +497,7 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
+  lazy(() => expressionValueDecoder),
   importReferenceDecoder,
   rawValueDecoder,
   lazy(() => uidlComponentStyleReference)
@@ -400,15 +540,24 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   }),
 })
 
+export const dynamicLinkDecoder: Decoder<UIDLDynamicLinkNode> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: referenceTypeDecoder,
+    path: optional(array(string())),
+    id: string(),
+  }),
+})
+
 export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
   content: dict(string()),
 })
 
-export const navLinkNodeDecoder: Decoder<UIDLNavLinkNode> = object({
+export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
   type: constant('navlink'),
   content: object({
-    routeName: string(),
+    routeName: union(attributeValueDecoder, string()),
   }),
 })
 
@@ -433,7 +582,8 @@ export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   sectionLinkNodeDecoder,
   navLinkNodeDecoder,
   uidlMailLinkNodeDecoder,
-  phoneLinkNodeDecoder
+  phoneLinkNodeDecoder,
+  dynamicLinkDecoder
 )
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
@@ -516,10 +666,10 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),
   attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
-  events: optional(dict(array(eventHandlerStatementDecoder))),
+  events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
-      link: optional(uidlLinkNodeDecoder),
+      link: optional(anyJson()),
     })
   ),
   children: optional(array(lazy(() => uidlNodeDecoder))),
@@ -574,6 +724,7 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
   content: object({
     node: lazy(() => uidlNodeDecoder),
     reference: dynamicValueDecoder,
+    importDefinitions: optional(dict(externaldependencyDecoder)),
     value: union(string(), number(), boolean()),
     condition: optional(
       object({
@@ -591,10 +742,128 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   content: elementDecoder,
 })
 
+export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
+  type: constant('date-time-node'),
+  content: elementDecoder,
+})
+
+export const uidlLocalResourcerDecpder: Decoder<UIDLLocalResource> = object({
+  id: string(),
+  params: optional(
+    dict(
+      union(
+        staticValueDecoder,
+        dyamicFunctionParam,
+        expressionValueDecoder,
+        lazy(() => dyamicFunctionStateParam)
+      )
+    )
+  ),
+})
+
+export const uidlExternalResourceDecoder: Decoder<UIDLExternalResource> = object({
+  name: string(),
+  dependency: lazy(() => externaldependencyDecoder),
+  params: optional(
+    dict(
+      union(
+        staticValueDecoder,
+        dyamicFunctionParam,
+        expressionValueDecoder,
+        lazy(() => dyamicFunctionStateParam)
+      )
+    )
+  ),
+})
+
+export const uidlResourceLinkDecoder: Decoder<UIDLResourceLink> = union(
+  uidlLocalResourcerDecpder,
+  uidlExternalResourceDecoder
+)
+
+export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
+  type: constant('cms-item'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-item', string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    router: optional(lazy(() => dependencyDecoder)),
+    dependency: optional(lazy(() => dependencyDecoder)),
+    renderPropIdentifier: string(),
+    valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(lazy(() => dyamicFunctionParam)),
+    entityKeyProperty: optional(string()),
+  }),
+})
+
+export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
+  type: constant('cms-list'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-list', string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+      empty: optional(lazy(() => elementNodeDecoder)),
+    }),
+    router: optional(lazy(() => dependencyDecoder)),
+    dependency: optional(lazy(() => dependencyDecoder)),
+    renderPropIdentifier: string(),
+    itemValuePath: optional(array(string())),
+    valuePath: optional(array(string())),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(lazy(() => dyamicFunctionParam)),
+  }),
+})
+
+export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = object({
+  type: constant('cms-list-repeater'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-list-repeater', string()),
+    nodes: object({
+      list: lazy(() => elementNodeDecoder),
+      empty: optional(lazy(() => elementNodeDecoder)),
+    }),
+    dependency: optional(lazy(() => dependencyDecoder)),
+    source: optional(string()),
+    renderPropIdentifier: string(),
+  }),
+})
+
+export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
+  type: constant('cms-mixed-type'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-mixed-type', string()),
+    attrs: withDefault(
+      {},
+      lazy(() => dict(union(attributeValueDecoder, string(), number())))
+    ),
+    renderPropIdentifier: string(),
+    nodes: object({
+      fallback: optional(lazy(() => elementNodeDecoder)),
+      error: optional(lazy(() => elementNodeDecoder)),
+    }),
+    dependency: optional(lazy(() => dependencyDecoder)),
+    mappings: withDefault({}, dict(lazy(() => elementNodeDecoder))),
+  }),
+})
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
-  union(dynamicValueDecoder, staticValueDecoder),
-  union(rawValueDecoder, elementNodeDecoder),
-  union(repeatNodeDecoder, conditionalNodeDecoder),
-  union(slotNodeDecoder, injectValueDecoder),
-  string()
+  elementNodeDecoder,
+  dynamicValueDecoder,
+  rawValueDecoder,
+  conditionalNodeDecoder,
+  union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
+  union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
 )

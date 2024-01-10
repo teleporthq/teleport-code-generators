@@ -1,0 +1,33 @@
+{
+  "name": "@teleporthq/teleport-project-plugin-api-routes",
+  "version": "0.32.0",
+  "description": "A plugin for configuring teleportHQ projects using contexts",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@teleporthq/teleport-plugin-common": "^0.32.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.0",
+    "@teleporthq/teleport-shared": "^0.32.0",
+    "@teleporthq/teleport-types": "^0.32.0"
+  }
+}

@@ -1,5 +1,5 @@
 import { createDOMInjectionNode } from './utils'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
   JSXGenerationOptions,
@@ -20,7 +20,6 @@ import {
   DEFAULT_EXPORT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
   REACT_LIBRARY_DEPENDENCY,
-  USE_STATE_DEPENDENCY,
 } from './constants'
 
 interface ReactPluginConfig {
@@ -37,13 +36,14 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
   } = config || {}
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, dependencies } = structure
+    const { uidl, dependencies, options } = structure
+    const { projectResources } = options
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
 
     if (Object.keys(stateDefinitions).length > 0) {
-      dependencies.useState = USE_STATE_DEPENDENCY
+      dependencies.useState = Constants.USE_STATE_DEPENDENCY
     }
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
@@ -56,6 +56,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       stateDefinitions,
       nodesLookup,
       dependencies,
+      projectResources,
       windowImports,
     }
 
@@ -81,8 +82,22 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       windowImports
     )
 
+    if (dependencies?.useRouter) {
+      const routerAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('router'),
+          types.callExpression(types.identifier('useRouter'), [])
+        ),
+      ])
+      const componentBody = (
+        (pureComponent.declarations[0] as types.VariableDeclarator)
+          .init as types.ArrowFunctionExpression
+      ).body as types.BlockStatement
+      componentBody.body.unshift(routerAST)
+    }
+
     if (Object.keys(windowImports).length) {
-      dependencies.useEffect = USE_STATE_DEPENDENCY
+      dependencies.useEffect = Constants.USE_STATE_DEPENDENCY
     }
 
     structure.chunks.push({

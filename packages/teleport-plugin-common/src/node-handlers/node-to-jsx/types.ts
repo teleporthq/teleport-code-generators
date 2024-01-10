@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 
-import { UIDLPropDefinition, UIDLDependency, UIDLStateDefinition } from '@teleporthq/teleport-types'
+import {
+  UIDLPropDefinition,
+  UIDLDependency,
+  UIDLStateDefinition,
+  ProjectResource,
+} from '@teleporthq/teleport-types'
 
 export interface JSXGenerationParams {
   propDefinitions: Record<string, UIDLPropDefinition>
@@ -8,6 +13,7 @@ export interface JSXGenerationParams {
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, UIDLDependency>
   windowImports: Record<string, types.ExpressionStatement>
+  projectResources?: Record<string, ProjectResource>
 }
 
 export interface JSXGenerationOptions {

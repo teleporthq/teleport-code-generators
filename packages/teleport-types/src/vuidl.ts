@@ -35,15 +35,101 @@ import {
   UIDLCanonicalAsset,
   UIDLIconAsset,
   UIDLRootComponent,
+  UIDLCMSItemNode,
+  UIDLCMSListNode,
+  UIDLCMSListRepeaterNode,
+  UIDLDynamicLinkNode,
+  UIDLPropValue,
+  UIDLExpressionValue,
+  UIDLDateTimeNode,
+  UIDLLocalResource,
+  UIDLExternalResource,
   UIDLInjectValue,
   UIDLStateValueDetails,
   UIDLRouteDefinitions,
   UIDLStateDefinition,
+  UIDLCMSMixedTypeNode,
+  UIDLDependency,
   UIDLLocalFontAsset,
 } from './uidl'
 import { Modify } from './helper'
 
 export interface VUIDLElementNode extends Modify<UIDLElementNode, { content: VUIDLElement }> {}
+
+export interface VUIDLDateTimeNode extends Modify<UIDLDateTimeNode, { content: VUIDLElement }> {}
+
+export interface VCMSItemUIDLElementNode
+  extends Modify<
+    UIDLCMSItemNode,
+    {
+      content: {
+        name?: string
+        nodes: {
+          success: VUIDLElementNode
+          error?: VUIDLElementNode
+          loading?: VUIDLElementNode
+        }
+        valuePath?: string[]
+        itemValuePath?: string[]
+        resource?: UIDLLocalResource | UIDLExternalResource
+        initialData?: UIDLPropValue
+      }
+    }
+  > {}
+
+export interface VCMSListRepeaterElementNode
+  extends Modify<
+    UIDLCMSListRepeaterNode,
+    {
+      content: {
+        nodes: {
+          list: VUIDLElementNode
+          empty?: VUIDLElementNode
+        }
+      }
+    }
+  > {}
+
+export interface VCMSListUIDLElementNode
+  extends Modify<
+    UIDLCMSListNode,
+    {
+      content: {
+        elementType: string
+        name?: string
+        dependency?: UIDLDependency
+        nodes: {
+          key?: string
+          success: VUIDLElementNode
+          error?: VUIDLElementNode
+          loading?: VUIDLElementNode
+        }
+        valuePath?: string[]
+        itemValuePath?: string[]
+        resource?: UIDLLocalResource | UIDLExternalResource
+        initialData?: UIDLPropValue
+      }
+    }
+  > {}
+
+export interface VUIDLCMSMixedTypeNode
+  extends Modify<
+    UIDLCMSMixedTypeNode,
+    {
+      content: {
+        elementType: string
+        name: string
+        nodes: {
+          fallback?: VUIDLElementNode
+          error?: VUIDLElementNode
+        }
+        renderPropIdentifier: string
+        dependency?: UIDLDependency
+        attrs: VUIDLElement['attrs']
+        mappings: Record<string, VUIDLElementNode>
+      }
+    }
+  > {}
 
 export type VUIDLConditionalNode = Modify<
   UIDLConditionalNode,
@@ -72,19 +158,31 @@ export type VUIDLNode =
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
+  | VUIDLDateTimeNode
   | VUIDLElementNode
   | VUIDLRepeatNode
   | VUIDLConditionalNode
   | VUIDLSlotNode
+  | VCMSItemUIDLElementNode
+  | VCMSListUIDLElementNode
+  | VCMSListRepeaterElementNode
+  | VUIDLCMSMixedTypeNode
+  | UIDLExpressionValue
   | UIDLInjectValue
   | string
 
 export type VUIDLElement = Modify<
   UIDLElement,
   {
+    elementType: string
+    semanticType?: string
+    selfClosing?: boolean
+    ignore?: boolean
     abilities?: {
       link?: VUIDLLinkNode
     }
+    events: UIDLElement['events']
+    dependency?: UIDLDependency
     children?: VUIDLNode[]
     style?: Record<string, UIDLAttributeValue | string | number>
     attrs?: Record<string, UIDLAttributeValue | string | number>
@@ -196,6 +294,17 @@ export type VUIDLURLLinkNode = Modify<
   }
 >
 
+export type VUIDLNavLinkNode = Modify<
+  UIDLNavLinkNode,
+  {
+    content: {
+      routeName: string | UIDLAttributeValue
+    }
+  }
+>
+
+export type VUIDLDynamicLinkNode = UIDLDynamicLinkNode
+
 export type VUIDLStyleSetMediaCondition = Modify<
   UIDLStyleSetMediaCondition,
   {
@@ -215,9 +324,10 @@ export type VUIDLStyleSetConditions = VUIDLStyleSetMediaCondition | VUIDLStyleSe
 export type VUIDLLinkNode =
   | VUIDLURLLinkNode
   | VUIDLSectionLinkNode
-  | UIDLNavLinkNode
+  | VUIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
+  | VUIDLDynamicLinkNode
 
 export type VUIDLGlobalAsset =
   | UIDLScriptAsset

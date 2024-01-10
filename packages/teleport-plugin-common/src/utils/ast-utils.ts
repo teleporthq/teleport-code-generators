@@ -1,7 +1,21 @@
 import * as types from '@babel/types'
+import { parse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { UIDLStateDefinition, UIDLPropDefinition, UIDLRawValue } from '@teleporthq/teleport-types'
+import {
+  UIDLStateDefinition,
+  UIDLPropDefinition,
+  UIDLRawValue,
+  UIDLStaticValue,
+  UIDLResourceItem,
+  UIDLENVValue,
+  UIDLPropValue,
+  UIDLExpressionValue,
+  UIDLStateValue,
+} from '@teleporthq/teleport-types'
+import babelPresetReact from '@babel/preset-react'
+import { ASTUtils } from '..'
+
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -98,6 +112,50 @@ export const addDynamicAttributeToJSXTag = (
   )
 }
 
+/**
+ * Make code expressions happen in AST
+ * Replace variables that are found in AST with
+ * the corresponding value from the contexts for now
+ * and in the future with other sources.
+ */
+export const addDynamicExpressionAttributeToJSXTag = (
+  jsxASTNode: types.JSXElement,
+  dynamicRef: UIDLExpressionValue,
+  attrKey: string,
+  t = types
+) => {
+  const dynamicContent = dynamicRef.content
+  if (dynamicRef.type !== 'expr') {
+    throw new Error(`This method only works with dynamic nodes that have code expressions`)
+  }
+
+  const code = dynamicContent
+  const options = {
+    sourceType: 'module' as const,
+  }
+
+  const ast = parse(code, options)
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
+
+  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+    throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
+  }
+
+  jsxASTNode.openingElement.attributes.push(
+    t.jsxAttribute(
+      t.jsxIdentifier(attrKey),
+      t.jsxExpressionContainer(theStatementOnlyWihtoutTheProgram.expression)
+    )
+  )
+}
+
 /*
   Use, when we need to add a mix of dynamic and static values to
   the same attribute at the same time.
@@ -137,22 +195,23 @@ export const addMultipleDynamicAttributesToJSXTag = (
   )
 }
 
-export const stringAsTemplateLiteral = (str: string, t = types) => {
-  const formmattedString = `
-${str}
-  `
-  return t.templateLiteral(
-    [
-      t.templateElement(
-        {
-          raw: formmattedString,
-          cooked: formmattedString,
-        },
-        true
-      ),
-    ],
-    []
-  )
+export const stringAsTemplateLiteral = (str: string): types.TemplateLiteral => {
+  const ast = parse('<style jsx>{`' + str + '`}</style>', {
+    presets: [babelPresetReact],
+    sourceType: 'module',
+  })
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0] as types.ExpressionStatement
+  const container = (theStatementOnlyWihtoutTheProgram.expression as types.JSXElement)
+    .children[0] as types.JSXExpressionContainer
+
+  return container.expression as types.TemplateLiteral
 }
 
 export const addAttributeToJSXTag = (
@@ -472,7 +531,7 @@ export const createStateHookAST = (
     t.variableDeclarator(
       t.arrayPattern([
         t.identifier(stateKey),
-        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
+        t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
@@ -496,3 +555,488 @@ export const generateDynamicWindowImport = (
 
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
+
+export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
+  const fetchUrl = computeFetchUrl(resource)
+  const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
+  const headersASTs = resource?.headers ? generateRESTHeadersAST(resource.headers) : []
+
+  const queryParams = generateURLParamsAST(resource?.params)
+  const fetchUrlQuasis = fetchUrl.quasis
+  const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
+
+  if (queryParams?.expressions.length > 0) {
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw + '?'
+
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked + '?'
+
+    queryParamsQuasis.pop()
+  }
+
+  const paramsDeclerations: Array<types.ObjectProperty | types.SpreadElement> = Object.keys(
+    resource?.params || {}
+  ).reduce((acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
+    const prop = resource.params[item]
+    if (prop.type === 'static') {
+      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
+    }
+
+    if (prop.type === 'expr') {
+      acc.push(
+        types.objectProperty(
+          types.stringLiteral(item),
+          ASTUtils.getExpressionFromUIDLExpressionNode(prop)
+        )
+      )
+    }
+
+    if (prop.type === 'dynamic') {
+      acc.push(
+        types.spreadElement(
+          types.logicalExpression(
+            '&&',
+            types.memberExpression(
+              types.identifier('params'),
+              types.stringLiteral(prop.content.id),
+              true,
+              false
+            ),
+            types.objectExpression([
+              types.objectProperty(
+                types.stringLiteral(item),
+                types.memberExpression(
+                  types.identifier('params'),
+                  types.stringLiteral(prop.content.id),
+                  true,
+                  false
+                )
+              ),
+            ])
+          )
+        )
+      )
+    }
+
+    return acc
+  }, [])
+
+  const paramsAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('urlParams'),
+      types.objectExpression(paramsDeclerations)
+    ),
+  ])
+
+  const url = queryParams?.quasis
+    ? types.templateLiteral(
+        [...fetchUrlQuasis, ...queryParamsQuasis],
+        [...fetchUrl.expressions.concat(queryParams.expressions)]
+      )
+    : fetchUrl
+
+  const method = types.objectProperty(
+    types.identifier('method'),
+    types.stringLiteral(resource.method)
+  )
+
+  let allHeaders: types.ObjectProperty[] = []
+
+  if (authHeaderAST) {
+    allHeaders.push(authHeaderAST)
+  }
+
+  if (headersASTs.length) {
+    allHeaders = allHeaders.concat(headersASTs)
+  }
+
+  const headers = types.objectProperty(
+    types.identifier('headers'),
+    types.objectExpression(allHeaders)
+  )
+
+  const fetchAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('data'),
+      types.awaitExpression(
+        types.callExpression(types.identifier('fetch'), [
+          url,
+          types.objectExpression([method, headers]),
+        ])
+      )
+    ),
+  ])
+
+  const responseType = resource?.response?.type ?? 'json'
+  let responseJSONAST
+
+  /**
+   * Responce types can be of json, text and we might be reading just headers
+   * So, with the response type of the resource. We are returning either
+   * - data.json()
+   * - data.text()
+   * - data.headers
+   * back to the caller, from the fetch response.
+   */
+
+  switch (responseType) {
+    case 'json':
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('json'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+
+    case 'text': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('text'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+    }
+
+    case 'headers': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.memberExpression(types.identifier('data'), types.identifier('headers'))
+        ),
+      ])
+      break
+    }
+
+    case 'none': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('response'), types.identifier('data')),
+      ])
+      break
+    }
+
+    default: {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('response'), types.identifier('data')),
+      ])
+    }
+  }
+
+  return [paramsAST, fetchAST, responseJSONAST]
+}
+
+const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
+  return Object.keys(headers)
+    .filter((header) => header !== 'authToken')
+    .map((header) => {
+      const headerResolved = resolveResourceValue(headers[header])
+      const value =
+        headers[header].type === 'static'
+          ? types.stringLiteral(String(headerResolved))
+          : types.identifier(String(headerResolved))
+      return types.objectProperty(types.stringLiteral(header), value)
+    })
+}
+
+export const generateMemberExpressionASTFromBase = (
+  base: types.OptionalMemberExpression | types.MemberExpression | types.Identifier,
+  path: string[]
+): types.OptionalMemberExpression => {
+  if (path.length === 1) {
+    return types.optionalMemberExpression(base, types.identifier(path[0]), false, true)
+  }
+
+  const pathClone = [...path]
+  pathClone.pop()
+
+  return types.optionalMemberExpression(
+    generateMemberExpressionASTFromBase(base, pathClone),
+    types.identifier(path[path.length - 1]),
+    false,
+    true
+  )
+}
+
+export const generateMemberExpressionASTFromPath = (
+  path: Array<string | number>
+): types.OptionalMemberExpression | types.Identifier => {
+  const pathClone = [...path]
+  if (path.length === 1) {
+    return types.identifier(path[0].toString())
+  }
+
+  pathClone.pop()
+
+  const currentPath = path[path.length - 1]
+  if (typeof currentPath === 'number') {
+    return types.optionalMemberExpression(
+      generateMemberExpressionASTFromPath(pathClone),
+      types.numericLiteral(currentPath),
+      false,
+      true
+    )
+  }
+
+  const containsSpecial = currentPath.indexOf('.') !== -1 || currentPath.indexOf('-') !== -1
+
+  return types.optionalMemberExpression(
+    generateMemberExpressionASTFromPath(pathClone),
+    containsSpecial ? types.stringLiteral(currentPath) : types.identifier(currentPath),
+    containsSpecial,
+    true
+  )
+}
+
+export const generateURLParamsAST = (
+  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue | UIDLExpressionValue>
+): types.TemplateLiteral | null => {
+  if (!urlParams) {
+    return null
+  }
+
+  const queryString: Record<string, types.Expression> = {}
+  Object.keys(urlParams).forEach((key) => {
+    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key)
+  })
+
+  return types.templateLiteral(
+    [
+      types.templateElement({ raw: '', cooked: '' }, false),
+      types.templateElement({ raw: '', cooked: '' }, true),
+    ],
+    [types.newExpression(types.identifier('URLSearchParams'), [types.identifier('urlParams')])]
+  )
+}
+
+const resolveDynamicValuesFromUrlParams = (
+  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue,
+  query: Record<string, types.Expression>,
+  prefix: string = null
+) => {
+  if (field.type === 'dynamic' || field.type === 'static') {
+    query[prefix] = resolveUrlParamsValue(field)
+  }
+}
+
+const resolveUrlParamsValue = (urlParam: UIDLStaticValue | UIDLPropValue | UIDLStateValue) => {
+  if (urlParam.type === 'static') {
+    return types.stringLiteral(`${urlParam.content}`)
+  }
+
+  if (urlParam.content.referenceType !== 'prop' && urlParam.content.referenceType !== 'state') {
+    throw new Error('Only prop and state references are supported for url params')
+  }
+
+  const paramPath = [
+    ...(urlParam.content.referenceType === 'prop' ? ['params'] : ['']),
+    urlParam.content.id,
+  ]
+
+  const templateLiteralElements = paramPath
+    .map((_, index) => {
+      const isTail = index === paramPath.length - 1
+      return types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        isTail
+      )
+    })
+    .filter((el) => el)
+
+  return types.templateLiteral(templateLiteralElements, [
+    generateMemberExpressionASTFromPath(paramPath),
+  ])
+}
+
+const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => {
+  const authToken = resolveResourceValue(headers.authToken)
+  if (!authToken) {
+    return null
+  }
+
+  const authTokenType = headers.authToken?.type
+
+  return types.objectProperty(
+    types.identifier('Authorization'),
+    types.templateLiteral(
+      [
+        types.templateElement(
+          {
+            cooked: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+            raw: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+          },
+          false
+        ),
+        ...(authTokenType === 'static'
+          ? []
+          : [
+              types.templateElement(
+                {
+                  cooked: '',
+                  raw: '',
+                },
+                true
+              ),
+            ]),
+      ],
+      [...(authTokenType === 'static' ? [] : [types.identifier(String(authToken))])]
+    ),
+    false,
+    false
+  )
+}
+
+const computeFetchUrl = (resource: UIDLResourceItem) => {
+  const { path } = resource
+  const fetchBaseUrl = resolveResourceValue(path.baseUrl)
+  const resourceRoute = resolveResourceValue(path.route)
+
+  const baseUrlType = path.baseUrl?.type
+  const routeType = path.route?.type
+
+  if (baseUrlType === 'static' && routeType === 'static') {
+    const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
+    return types.templateLiteral(
+      [types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true)],
+      []
+    )
+  }
+
+  if (!routeType) {
+    return baseUrlType === 'static'
+      ? types.templateLiteral(
+          [types.templateElement({ cooked: `${fetchBaseUrl}`, raw: `${fetchBaseUrl}` }, true)],
+          []
+        )
+      : types.templateLiteral(
+          [
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              false
+            ),
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              true
+            ),
+          ],
+          [types.identifier(String(fetchBaseUrl))]
+        )
+  }
+
+  return types.templateLiteral(
+    [
+      types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        false
+      ),
+      types.templateElement(
+        {
+          cooked: routeType === 'static' ? `/${resourceRoute}` : '/',
+          raw: routeType === 'static' ? `/${resourceRoute}` : '/',
+        },
+        false
+      ),
+      ...(routeType === 'static'
+        ? []
+        : [
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              false
+            ),
+          ]),
+    ],
+    [
+      types.identifier(String(fetchBaseUrl)),
+      ...(routeType === 'static' ? [] : [types.identifier(String(resourceRoute))]),
+    ]
+  )
+}
+
+const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
+  if (!value) {
+    return ''
+  }
+
+  if (value.type === 'static') {
+    return value.content
+  }
+
+  return `process.env.${value.content}`
+}
+
+export const resolveObjectValue = (
+  prop: UIDLStaticValue | UIDLExpressionValue
+):
+  | types.Identifier
+  | types.StringLiteral
+  | types.NumericLiteral
+  | types.BooleanLiteral
+  | types.ObjectExpression
+  | types.Expression => {
+  if (prop.type === 'static') {
+    const value =
+      typeof prop.content === 'string'
+        ? types.stringLiteral(prop.content)
+        : typeof prop.content === 'boolean'
+        ? types.booleanLiteral(prop.content)
+        : typeof prop.content === 'number'
+        ? types.numericLiteral(prop.content)
+        : typeof prop.content === 'object'
+        ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
+        : types.identifier(String(prop.content))
+
+    return value
+  }
+
+  if (prop.type === 'expr') {
+    return getExpressionFromUIDLExpressionNode(prop)
+  }
+}
+
+export const getExpressionFromUIDLExpressionNode = (
+  node: UIDLExpressionValue
+): types.Expression => {
+  const ast = parse(node.content, {
+    sourceType: 'module' as const,
+  })
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
+
+  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+    throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
+  }
+
+  return theStatementOnlyWihtoutTheProgram.expression
+}

@@ -57,7 +57,7 @@ export const createFontDecleration = (styleObject: Record<string, string | numbe
 
 export const createCSSClassWithMediaQuery = (
   mediaOffset: string,
-  styleObject: Record<string, string | number>
+  styleObject: Record<string, string | number | Record<string, string | number>>
 ) => {
   return jss
     .createRule(`@media(${mediaOffset})`, styleObject, {
@@ -93,7 +93,10 @@ export const createDynamicStyleExpression = (
 }
 
 export const generateMediaStyle = (
-  styleMap: Record<string, Array<{ [x: string]: Record<string, string | number> }>>
+  styleMap: Record<
+    string,
+    Array<{ [x: string]: Record<string, string | number | Record<string, string | number>> }>
+  >
 ) => {
   const styles: string[] = []
   Object.keys(styleMap)
@@ -119,13 +122,17 @@ export const generateMediaStyle = (
 export const generateStylesFromStyleSetDefinitions = (
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>,
   cssMap: string[],
-  mediaStylesMap: Record<string, Array<{ [x: string]: Record<string, string | number> }>>,
+  mediaStylesMap: Record<
+    string,
+    Array<{ [x: string]: Record<string, string | number | Record<string, string | number>> }>
+  >,
   className: (val: string) => string
 ) => {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [], type } = style
-    const name = className(styleId)
+    const name = className(style.className || styleId)
+    const subselectors = style.subselectors
 
     const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
     const collectedStyles = {
@@ -133,10 +140,14 @@ export const generateStylesFromStyleSetDefinitions = (
       ...getCSSVariablesContentFromTokenStyles(tokenStyles),
     } as Record<string, string | number>
 
+    // & is required by jss, otherwise the final result will be empty
+    const cls = subselectors
+      ? createCSSClassWithSelector(name, `&${subselectors}`, collectedStyles)
+      : createCSSClass(name, collectedStyles)
     if (type === 'reusable-component-style-map') {
-      cssMap.unshift(createCSSClass(name, collectedStyles))
+      cssMap.unshift(cls)
     } else {
-      cssMap.push(createCSSClass(name, collectedStyles))
+      cssMap.push(cls)
     }
 
     if (conditions.length === 0) {
@@ -154,11 +165,19 @@ export const generateStylesFromStyleSetDefinitions = (
       if (styleRef.type === 'element-state') {
         if (type === 'reusable-component-style-map') {
           cssMap.unshift(
-            createCSSClassWithSelector(name, `&:${styleRef.meta.state}`, collecedMediaStyles)
+            createCSSClassWithSelector(
+              name,
+              `&${subselectors || ''}:${styleRef.meta.state}`,
+              collecedMediaStyles
+            )
           )
         } else {
           cssMap.push(
-            createCSSClassWithSelector(name, `&:${styleRef.meta.state}`, collecedMediaStyles)
+            createCSSClassWithSelector(
+              name,
+              `&${subselectors || ''}:${styleRef.meta.state}`,
+              collecedMediaStyles
+            )
           )
         }
       }
@@ -169,10 +188,14 @@ export const generateStylesFromStyleSetDefinitions = (
           mediaStylesMap[String(maxWidth)] = []
         }
 
+        const mediaStyleMap = subselectors
+          ? { [`&${subselectors}`]: collecedMediaStyles }
+          : collecedMediaStyles
+
         if (type === 'reusable-component-style-map') {
-          mediaStylesMap[String(maxWidth)].unshift({ [name]: collecedMediaStyles })
+          mediaStylesMap[String(maxWidth)].unshift({ [name]: mediaStyleMap })
         } else {
-          mediaStylesMap[String(maxWidth)].push({ [name]: collecedMediaStyles })
+          mediaStylesMap[String(maxWidth)].push({ [name]: mediaStyleMap })
         }
       }
     })

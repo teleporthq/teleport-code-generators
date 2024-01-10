@@ -61,6 +61,7 @@ export default class Resolver {
 
     const nodesLookup = {}
     utils.createNodesLookup(uidl.node, nodesLookup)
+    utils.createCMSNodesLookup(uidl.node, nodesLookup)
     utils.generateUniqueKeys(uidl.node, nodesLookup)
 
     utils.ensureDataSourceUniqueness(uidl.node)

@@ -19,8 +19,7 @@
       "error",
       "debug",
       "time",
-      "timeEnd",
-      "trace"
+      "timeEnd"
     ],
     "prefer-for-of": false,
     "no-debugger": true,
