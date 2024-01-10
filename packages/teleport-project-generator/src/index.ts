@@ -16,6 +16,7 @@ import {
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
   UIDLLocalFontAsset,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -298,7 +299,13 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-          externals: components,
+          externals: Object.values(components).reduce(
+            (acc: Record<string, ComponentUIDL>, component) => {
+              acc[component.outputOptions.componentClassName] = component
+              return acc
+            },
+            {}
+          ),
           skipValidation: true,
           assets: options.assets,
         })
