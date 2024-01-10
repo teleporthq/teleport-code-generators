@@ -270,7 +270,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet?.fileName,
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               this.strategy.pages.path,
               this.strategy.pages.options?.createFolderForEachComponent
                 ? ['..', ...this.strategy.projectStyleSheet.path]
