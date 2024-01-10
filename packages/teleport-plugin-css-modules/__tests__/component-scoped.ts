@@ -89,7 +89,7 @@ describe('Component Scoped Styles', () => {
       jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
 
     expect(jsxExpressions.quasis.length).toBe(4)
-    expect(jsxExpressions.expressions[0]?.property.name).toBe("'md-8'")
+    expect(jsxExpressions.expressions[0]?.value).toBe('md-8')
     expect(jsxExpressions.expressions[1].property.name).toBe("'primary-navbar'")
     expect(jsxExpressions.expressions[2].property.object.name).toBe('props.')
     expect(jsxExpressions.expressions[2].property.property.name).toBe('variant')

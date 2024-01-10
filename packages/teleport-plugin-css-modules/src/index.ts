@@ -107,7 +107,9 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles, dependency, attrs = {} } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
-      const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
+      const classNamesToAppend: Set<
+        types.MemberExpression | types.Identifier | types.StringLiteral
+      > = new Set()
 
       if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
@@ -150,7 +152,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
-          /* If dynamic styles are on nested-styles they are unfortunately lost, 
+          /* If dynamic styles are on nested-styles they are unfortunately lost,
             since inline style does not support that */
           if (Object.keys(inlineStyles).length > 0) {
             ASTUtils.addAttributeToJSXTag(jsxTag, 'style', inlineStyles)
@@ -194,13 +196,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.add(
-                  types.memberExpression(
-                    types.identifier(styleObjectImportName),
-                    types.identifier(`'${getClassName(String(classContent.content))}'`),
-                    true
-                  )
-                )
+                classNamesToAppend.add(types.stringLiteral(String(classContent.content)))
                 return
               }
 
@@ -223,8 +219,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 if (!defaultPropValue) {
                   return
                 }
-                /* 
-                  Changing the default value of the prop. 
+                /*
+                  Changing the default value of the prop.
                    When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
                 propDefinitions[classContent.content.id].defaultValue = getClassName(
                   String(defaultPropValue)

@@ -17,6 +17,7 @@ import {
   ProjectGenerator as ProjectGeneratorType,
   FileType,
   UIDLLocalFontAsset,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -269,9 +270,12 @@ export class ProjectGenerator implements ProjectGeneratorType {
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet?.fileName,
-            path: this.strategy.pages.options?.createFolderForEachComponent
-              ? join('..', ...this.strategy.projectStyleSheet.path)
-              : join(...this.strategy.projectStyleSheet?.path),
+            path: generateLocalDependenciesPrefix(
+              this.strategy.pages.path,
+              this.strategy.pages.options?.createFolderForEachComponent
+                ? ['..', ...this.strategy.projectStyleSheet.path]
+                : this.strategy.projectStyleSheet?.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
         }),
@@ -368,7 +372,13 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-          externals: components,
+          externals: Object.values(components).reduce(
+            (acc: Record<string, ComponentUIDL>, component) => {
+              acc[component.outputOptions.componentClassName] = component
+              return acc
+            },
+            {}
+          ),
           skipValidation: true,
           assets: options.assets,
         })
