@@ -380,6 +380,15 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         ) as UIDLDynamicReference
       }
 
+      if (reference.type === 'dynamic') {
+        conditionalNode.content.reference.content = {
+          referenceType: reference.content.referenceType,
+          id: StringUtils.createStateOrPropStoringValue(
+            conditionalNode.content.reference.content.id
+          ),
+        }
+      }
+
       return conditionalNode
 
     case 'repeat':
