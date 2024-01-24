@@ -6,9 +6,11 @@ import componentResultJSON from './component-with-proper-values.json'
 import componentStyleSetsInputJSON from './component-with-reusalble-styles.json'
 // @ts-ignore
 import componentWithReferencedStylesJSON from './componennt-with-referenced-styles.json'
+// @ts-ignore
+import componentWithStateReferences from './compoenent-with-state-reference.json'
 
 import { parseComponentJSON, parseProjectJSON } from '../../src/parser'
-import { ComponentUIDL } from '@teleporthq/teleport-types'
+import { ComponentUIDL, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
 describe('parseComponentJSON', () => {
   it('transforms primitive component values', () => {
@@ -112,5 +114,15 @@ describe('RefernecedStyles for ComponentUIDL', () => {
 
     const result = parseComponentJSON(uidl as unknown as Record<string, unknown>)
     expect(result).toEqual(result)
+  })
+
+  it('Parses reference on a conditional node and changes the state/prop references', () => {
+    const result = parseComponentJSON(
+      componentWithStateReferences as unknown as Record<string, string>
+    )
+    const conditionalNode = result.node.content.children?.[0]
+
+    expect(result.stateDefinitions?.isVisible).toBeDefined()
+    expect((conditionalNode as UIDLConditionalNode)?.content.reference.content.id).toBe('isVisible')
   })
 })

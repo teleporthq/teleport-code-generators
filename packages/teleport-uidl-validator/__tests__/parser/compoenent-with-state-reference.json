@@ -1,0 +1,110 @@
+{
+  "stateDefinitions": {
+    "isVisible_": {
+      "defaultValue": true,
+      "type": "boolean"
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "semanticType": "div",
+      "referencedStyles": {},
+      "abilities": {},
+      "style": {
+        "width": {
+          "type": "static",
+          "content": "100%"
+        },
+        "height": {
+          "type": "static",
+          "content": "400px"
+        },
+        "display": {
+          "type": "static",
+          "content": "flex"
+        },
+        "position": {
+          "type": "static",
+          "content": "relative"
+        },
+        "alignItems": {
+          "type": "static",
+          "content": "center"
+        },
+        "flexDirection": {
+          "type": "static",
+          "content": "row"
+        },
+        "justifyContent": {
+          "type": "static",
+          "content": "center"
+        },
+        "gap": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-space-space-halfunit",
+            "fallback": ""
+          }
+        }
+      },
+      "children": [
+        {
+          "type": "conditional",
+          "content": {
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "imagesrc1",
+                      "fallback": ""
+                    }
+                  },
+                  "alt": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "imagealt1",
+                      "fallback": ""
+                    }
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "200px"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            },
+            "reference": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "state",
+                "id": "isVisible_"
+              },
+              "pos": ""
+            },
+            "value": false
+          }
+        }
+      ]
+    }
+  },
+  "name": "Component",
+  "styleSetDefinitions": {}
+}
