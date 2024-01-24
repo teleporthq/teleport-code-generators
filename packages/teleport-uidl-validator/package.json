@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-validator",
-  "version": "0.32.0",
+  "version": "0.32.2",
   "description": "A module that offers validation and parsing for non-standard UIDL structures",
   "author": "teleportHQ",
   "license": "MIT",
