@@ -50,7 +50,7 @@ export interface UIDLResourceItem {
     route: UIDLStaticValue
   }
   method?: 'GET' | 'POST'
-  body?: Record<string, UIDLStaticValue>
+  body?: Record<string, UIDLStaticValue | UIDLExpressionValue>
   params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue>
   mappers?: string[]
   response?: {
