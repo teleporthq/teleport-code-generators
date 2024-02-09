@@ -558,9 +558,7 @@ export const wrapObjectPropertiesWithExpression = (properties: types.ObjectPrope
 
 export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
-  const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
   const headersASTs = resource?.headers ? generateRESTHeadersAST(resource.headers) : []
-
   const queryParams = generateURLParamsAST(resource?.params)
   const fetchUrlQuasis = fetchUrl.quasis
   const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
@@ -643,18 +641,13 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
 
   let allHeaders: types.ObjectProperty[] = []
 
-  if (authHeaderAST) {
-    allHeaders.push(authHeaderAST)
+  if (resource?.headers?.authToken) {
+    allHeaders.push(computeAuthorizationHeaderAST(resource?.headers))
   }
 
   if (headersASTs.length) {
     allHeaders = allHeaders.concat(headersASTs)
   }
-
-  const headers = types.objectProperty(
-    types.identifier('headers'),
-    types.objectExpression(allHeaders)
-  )
 
   const fetchAST = types.variableDeclaration('const', [
     types.variableDeclarator(
@@ -662,7 +655,17 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
       types.awaitExpression(
         types.callExpression(types.identifier('fetch'), [
           url,
-          types.objectExpression([method, headers]),
+          types.objectExpression([
+            method,
+            ...(allHeaders.length > 0
+              ? [
+                  types.objectProperty(
+                    types.identifier('headers'),
+                    types.objectExpression(allHeaders)
+                  ),
+                ]
+              : []),
+          ]),
         ])
       )
     ),
@@ -734,7 +737,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     }
   }
 
-  return [paramsAST, fetchAST, responseJSONAST]
+  return [...(paramsDeclerations.length > 0 ? [paramsAST] : []), fetchAST, responseJSONAST]
 }
 
 const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
@@ -900,7 +903,7 @@ const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => 
   )
 }
 
-const computeFetchUrl = (resource: UIDLResourceItem) => {
+export const computeFetchUrl = (resource: UIDLResourceItem) => {
   const { path } = resource
   const fetchBaseUrl = resolveResourceValue(path.baseUrl)
   const resourceRoute = resolveResourceValue(path.route)
