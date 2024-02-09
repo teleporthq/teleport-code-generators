@@ -14,7 +14,6 @@ import {
   UIDLStateValue,
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
-import { ASTUtils } from '..'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -558,9 +557,7 @@ export const wrapObjectPropertiesWithExpression = (properties: types.ObjectPrope
 
 export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
-  const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
   const headersASTs = resource?.headers ? generateRESTHeadersAST(resource.headers) : []
-
   const queryParams = generateURLParamsAST(resource?.params)
   const fetchUrlQuasis = fetchUrl.quasis
   const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
@@ -575,60 +572,8 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     queryParamsQuasis.pop()
   }
 
-  const paramsDeclerations: Array<types.ObjectProperty | types.SpreadElement> = Object.keys(
-    resource?.params || {}
-  ).reduce((acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
-    const prop = resource.params[item]
-    if (prop.type === 'static') {
-      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
-    }
-
-    if (prop.type === 'expr') {
-      acc.push(
-        types.objectProperty(
-          types.stringLiteral(item),
-          ASTUtils.getExpressionFromUIDLExpressionNode(prop)
-        )
-      )
-    }
-
-    if (prop.type === 'dynamic') {
-      acc.push(
-        types.spreadElement(
-          types.logicalExpression(
-            '&&',
-            types.memberExpression(
-              types.identifier('params'),
-              types.stringLiteral(prop.content.id),
-              true,
-              false
-            ),
-            types.objectExpression([
-              types.objectProperty(
-                types.stringLiteral(item),
-                types.memberExpression(
-                  types.identifier('params'),
-                  types.stringLiteral(prop.content.id),
-                  true,
-                  false
-                )
-              ),
-            ])
-          )
-        )
-      )
-    }
-
-    return acc
-  }, [])
-
-  const paramsAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('urlParams'),
-      types.objectExpression(paramsDeclerations)
-    ),
-  ])
-
+  const urlParamsDecleration = generateParamsAST(resource?.params)
+  const bodyParamsDecleration = generateParamsAST(resource?.body)
   const url = queryParams?.quasis
     ? types.templateLiteral(
         [...fetchUrlQuasis, ...queryParamsQuasis],
@@ -643,18 +588,13 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
 
   let allHeaders: types.ObjectProperty[] = []
 
-  if (authHeaderAST) {
-    allHeaders.push(authHeaderAST)
+  if (resource?.headers?.authToken) {
+    allHeaders.push(computeAuthorizationHeaderAST(resource?.headers))
   }
 
   if (headersASTs.length) {
     allHeaders = allHeaders.concat(headersASTs)
   }
-
-  const headers = types.objectProperty(
-    types.identifier('headers'),
-    types.objectExpression(allHeaders)
-  )
 
   const fetchAST = types.variableDeclaration('const', [
     types.variableDeclarator(
@@ -662,7 +602,31 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
       types.awaitExpression(
         types.callExpression(types.identifier('fetch'), [
           url,
-          types.objectExpression([method, headers]),
+          types.objectExpression([
+            method,
+            ...(allHeaders.length > 0
+              ? [
+                  types.objectProperty(
+                    types.identifier('headers'),
+                    types.objectExpression(allHeaders)
+                  ),
+                ]
+              : []),
+            ...(bodyParamsDecleration.length > 0 && resource?.method === 'POST'
+              ? [
+                  types.objectProperty(
+                    types.identifier('body'),
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('JSON'),
+                        types.identifier('stringify')
+                      ),
+                      [types.identifier('bodyParams')]
+                    )
+                  ),
+                ]
+              : []),
+          ]),
         ])
       )
     ),
@@ -734,7 +698,79 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     }
   }
 
-  return [paramsAST, fetchAST, responseJSONAST]
+  return [
+    ...(urlParamsDecleration.length > 0
+      ? [
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('urlParams'),
+              types.objectExpression(urlParamsDecleration)
+            ),
+          ]),
+        ]
+      : []),
+    ...(bodyParamsDecleration.length > 0
+      ? [
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('bodyParams'),
+              types.objectExpression(bodyParamsDecleration)
+            ),
+          ]),
+        ]
+      : []),
+    fetchAST,
+    responseJSONAST,
+  ]
+}
+
+const generateParamsAST = (
+  props: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue>
+): Array<types.ObjectProperty | types.SpreadElement> => {
+  return Object.keys(props || {}).reduce(
+    (acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
+      const prop = props[item]
+      if (prop.type === 'static') {
+        acc.push(types.objectProperty(types.stringLiteral(item), resolveObjectValue(prop)))
+      }
+
+      if (prop.type === 'expr') {
+        acc.push(
+          types.objectProperty(types.stringLiteral(item), getExpressionFromUIDLExpressionNode(prop))
+        )
+      }
+
+      if (prop.type === 'dynamic') {
+        acc.push(
+          types.spreadElement(
+            types.logicalExpression(
+              '&&',
+              types.memberExpression(
+                types.identifier('params'),
+                types.stringLiteral(prop.content.id),
+                true,
+                false
+              ),
+              types.objectExpression([
+                types.objectProperty(
+                  types.stringLiteral(item),
+                  types.memberExpression(
+                    types.identifier('params'),
+                    types.stringLiteral(prop.content.id),
+                    true,
+                    false
+                  )
+                ),
+              ])
+            )
+          )
+        )
+      }
+
+      return acc
+    },
+    []
+  )
 }
 
 const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
@@ -900,7 +936,7 @@ const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => 
   )
 }
 
-const computeFetchUrl = (resource: UIDLResourceItem) => {
+export const computeFetchUrl = (resource: UIDLResourceItem) => {
   const { path } = resource
   const fetchBaseUrl = resolveResourceValue(path.baseUrl)
   const resourceRoute = resolveResourceValue(path.route)

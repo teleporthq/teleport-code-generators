@@ -162,7 +162,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
     route: staticValueDecoder,
   }),
   method: withDefault('GET', union(constant('GET'), constant('POST'))),
-  body: optional(dict(staticValueDecoder)),
+  body: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
   mappers: withDefault([], array(string())),
   params: optional(
     dict(
