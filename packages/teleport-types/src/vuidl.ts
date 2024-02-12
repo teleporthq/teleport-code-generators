@@ -69,7 +69,7 @@ export interface VCMSItemUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
         }
-        valuePath?: string[]
+        valuePath: string[]
         itemValuePath?: string[]
         resource?: UIDLLocalResource | UIDLExternalResource
         initialData?: UIDLPropValue
@@ -104,7 +104,7 @@ export interface VCMSListUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
         }
-        valuePath?: string[]
+        valuePath: string[]
         itemValuePath?: string[]
         resource?: UIDLLocalResource | UIDLExternalResource
         initialData?: UIDLPropValue
