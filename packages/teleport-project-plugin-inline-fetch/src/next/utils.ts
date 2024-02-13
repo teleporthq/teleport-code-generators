@@ -326,16 +326,13 @@ const computeResponseObjectForExtractedResources = (
   return Object.keys(extractedResourceDeclerations).map((key) => {
     const extractedResource = extractedResources[key]
 
-    let responseMemberAST: types.Identifier | types.OptionalMemberExpression
-    if (extractedResource.valuePath?.length >= 0) {
-      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-        key,
-        ...(extractedResource.valuePath || []),
-      ])
-    }
+    const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+      key,
+      ...(extractedResource.valuePath || []),
+    ])
 
     if (!responseMemberAST) {
-      throw new Error(`Both itemValuePath and valuePath are missing.
+      throw new Error(`valuePath is missing.
 Please check the UIDL \n ${JSON.stringify(extractedResource, null, 2)}`)
     }
 
@@ -355,7 +352,7 @@ const computeUseEffectAST = (params: {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const { key, itemValuePath = [], valuePath = [] } = node.content
+  const { key, valuePath = [] } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
   let resourcePath: types.StringLiteral | types.TemplateLiteral = types.stringLiteral(
     `/api/${fileName}`
@@ -429,7 +426,7 @@ const computeUseEffectAST = (params: {
 
   const resourceAST = types.arrowFunctionExpression(
     [types.identifier('params')],
-    valuePath.length || itemValuePath.length >= 0
+    valuePath.length >= 0
       ? types.callExpression(types.memberExpression(fetchAST, types.identifier('then'), false), [
           types.arrowFunctionExpression([types.identifier('data')], responseExpression),
         ])

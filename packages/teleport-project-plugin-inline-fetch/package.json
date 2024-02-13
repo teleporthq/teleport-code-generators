@@ -19,10 +19,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "scripts": {
-    "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
-  },
   "dependencies": {
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-plugin-common": "^0.32.3",

@@ -1,31 +1,16 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import {
-  UIDLInitialPropsData,
-  PagePaginationOptions,
-  UIDLResources,
-} from '@teleporthq/teleport-types'
+import { UIDLInitialPropsData, UIDLResources } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const generateInitialPropsAST = (
   initialPropsData: UIDLInitialPropsData,
-  isDetailsPage = false,
   resourceImportName: string,
-  globalCache: UIDLResources['cache'],
-  pagination?: PagePaginationOptions
+  globalCache: UIDLResources['cache']
 ) => {
   const functionContentAST = types.blockStatement([
     types.tryStatement(
-      types.blockStatement([
-        ...computePropsAST(
-          initialPropsData,
-          isDetailsPage,
-          resourceImportName,
-          globalCache,
-          pagination
-        ),
-      ]),
-      // catch clause
+      types.blockStatement([...computePropsAST(initialPropsData, resourceImportName, globalCache)]),
       types.catchClause(
         types.identifier('error'),
         types.blockStatement([
@@ -57,10 +42,8 @@ export const generateInitialPropsAST = (
 
 const computePropsAST = (
   initialPropsData: UIDLInitialPropsData,
-  isDetailsPage = false,
   resourceImportName: string,
-  globalCache: UIDLResources['cache'],
-  pagination?: PagePaginationOptions
+  globalCache: UIDLResources['cache']
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(
     initialPropsData.resource?.params || {}
@@ -121,29 +104,13 @@ const computePropsAST = (
     ),
   ])
 
-  let responseMemberAST: types.Identifier | types.OptionalMemberExpression
-
-  if (initialPropsData.exposeAs?.valuePath?.length >= 0) {
-    responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-      'response',
-      ...(initialPropsData.exposeAs.valuePath || []),
-    ])
-  }
-
-  if (initialPropsData.exposeAs?.itemValuePath?.length) {
-    responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-      'response',
-      ...(initialPropsData.exposeAs.itemValuePath || []),
-    ])
-  }
-
-  const dataWeNeedAccessorAST =
-    isDetailsPage && !pagination
-      ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
-      : responseMemberAST
+  const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+    'response',
+    ...(initialPropsData.exposeAs.valuePath || []),
+  ])
 
   const notFoundAST = types.ifStatement(
-    types.unaryExpression('!', dataWeNeedAccessorAST),
+    types.unaryExpression('!', responseMemberAST),
     types.blockStatement([
       types.returnStatement(
         types.objectExpression([
@@ -163,7 +130,7 @@ const computePropsAST = (
               types.identifier(
                 StringUtils.createStateOrPropStoringValue(initialPropsData.exposeAs.name)
               ),
-              dataWeNeedAccessorAST,
+              responseMemberAST,
               false,
               false
             ),

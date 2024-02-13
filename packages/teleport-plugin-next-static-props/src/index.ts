@@ -58,17 +58,10 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resourceImportName = resource.name
     }
 
-    /*
-      itemValuePath exists only for details pages.
-    */
-    const isDetailsPage = 'itemValuePath' in uidl.outputOptions?.initialPropsData?.exposeAs
-
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsData,
-      isDetailsPage,
       resourceImportName,
-      resources.cache,
-      uidl.outputOptions.pagination
+      resources.cache
     )
 
     chunks.push({

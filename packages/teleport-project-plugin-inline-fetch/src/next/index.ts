@@ -58,35 +58,6 @@ class ProjectPluginInlineFetch {
       }
 
       UIDLUtils.traverseNodes(page.content.node, (nodeWithCMSResource) => {
-        if (nodeWithCMSResource.type !== 'cms-item' && nodeWithCMSResource.type !== 'cms-list') {
-          return
-        }
-
-        /*
-          If a node already has a initialData on it. We don't need to do anything.
-          Because the node has already connected with getStaticProps in the page.
-        */
-        if ('initialData' in nodeWithCMSResource.content) {
-          return
-        }
-
-        /*
-          Should we fine-tune the expression check here ?
-          And move the expressions which don't have prop or state references ?
-
-          Because, an expression like this can still work inside getStaticProps
-          - skip: (context.params.page - 1) * 4
-
-          For now, we are omitting all expressions and dynamic values.
-        */
-        const isResrouceContainsAnyDynamicValues = Object.values(
-          nodeWithCMSResource.content.resource?.params || {}
-        ).some((param) => param.type === 'expr' || param.type === 'dynamic')
-
-        if (isResrouceContainsAnyDynamicValues) {
-          return
-        }
-
         const propKey = StringUtils.createStateOrPropStoringValue(
           nodeWithCMSResource.content.renderPropIdentifier + 'Prop'
         )

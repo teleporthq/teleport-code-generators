@@ -406,37 +406,6 @@ export interface UIDLCMSListNodeContent {
   renderPropIdentifier: string
   valuePath: string[]
   paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
-  /*
-    itemValuepath refers to the individual item inside the list.
-    Eg:
-    export async function getStaticPaths() {
-      try {
-        const response = await getEntities({
-          projectId: '3bd8eb33-2aaa-4620-87bf-d7ccd04d0245',
-          query: '{allAuthor{edges{node{id}}}}',
-        })
-        return {
-          paths: (response?.data || []).map((item) => {
-            return {
-              params: {
-                id: (item?.id).toString(),
-              },
-            }
-          }),
-          fallback: 'blocking',
-        }
-      } catch (error) {
-        return {
-          paths: [],
-          fallback: 'blocking',
-        }
-      }
-    }
-
-    valuePath: refers to the response?.data
-    itemValuePath: refers to (item?.id).toString()
-  */
-  itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
 }
@@ -455,7 +424,6 @@ export interface UIDLCMSItemNodeContent {
     loading?: UIDLElementNode
   }
   valuePath: string[]
-  itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
   entityKeyProperty?: string

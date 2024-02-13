@@ -904,6 +904,136 @@
                             "namedImport": true
                           }
                         },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BlogPostEntities"
+                          }
+                        },
+                        "renderPropIdentifier": "BlogPostEntities",
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "children": [
+                                {
+                                  "type": "cms-list-repeater",
+                                  "content": {
+                                    "elementType": "cms-list-repeater",
+                                    "nodes": {
+                                      "list": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "fragment",
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
+                                                  "width": {
+                                                    "type": "static",
+                                                    "content": "100%"
+                                                  },
+                                                  "display": {
+                                                    "type": "static",
+                                                    "content": "flex"
+                                                  },
+                                                  "alignItems": {
+                                                    "type": "static",
+                                                    "content": "center"
+                                                  },
+                                                  "flexDirection": {
+                                                    "type": "static",
+                                                    "content": "column"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "h1",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "BlogPostEntities?.title"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "BlogPostEntities?.title"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "BlogPostEntities?.category"
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "renderPropIdentifier": "BlogPostEntities"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [
+                          "data"
+                        ]
+                      }
+                    },
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "elementType": "DataProvider",
+                        "dependency": {
+                          "type": "package",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        },
                         "renderPropIdentifier": "context_bwrypq",
                         "nodes": {
                           "success": {
@@ -1197,7 +1327,7 @@
                             }
                           }
                         },
-                        "itemValuePath": [
+                        "valuePath": [
                           "data"
                         ],
                         "resource": {
