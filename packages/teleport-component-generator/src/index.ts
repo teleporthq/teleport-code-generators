@@ -26,7 +26,9 @@ const createComponentGenerator = ({
 
   const generateComponent = async (
     input: Record<string, unknown>,
-    options: GeneratorOptions = {}
+    options: GeneratorOptions = {
+      extractedResources: {},
+    }
   ): Promise<CompiledComponent> => {
     let cleanedUIDL = input
     if (!options.skipValidation) {

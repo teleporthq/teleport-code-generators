@@ -473,7 +473,9 @@ export const generateExternalCSSImports = async (uidl: ComponentUIDL) => {
   const { chunks } = await importStatementsPlugin({
     uidl: null,
     dependencies: styleImports,
-    options: {},
+    options: {
+      extractedResources: {},
+    },
     chunks: [],
   })
 

@@ -174,8 +174,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
-    const projectResources = {}
-
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
@@ -189,7 +187,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
-        projectResources,
         rootFolder,
       })
 
@@ -259,11 +256,15 @@ export class ProjectGenerator implements ProjectGeneratorType {
       projectRouteDefinition: uidl.root.stateDefinitions.route,
       designLanguage: uidl.root?.designLanguage,
       mapping,
+      extractedResources: {},
       skipValidation: true,
-      ...(uidl?.resources &&
+      ...(uidl.resources &&
         this.strategy?.resources?.path && {
-          ...uidl.resources,
-          path: this.strategy.resources.path,
+          resources: {
+            items: uidl?.resources?.items,
+            cache: uidl?.resources.cache,
+            path: this.strategy.resources.path,
+          },
         }),
       ...(this.strategy.projectStyleSheet?.generator &&
         this.strategy.projectStyleSheet?.path && {
@@ -317,7 +318,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
           uidl: uidl.root,
           dependencies,
           chunks: [],
-          options: {},
+          options: {
+            extractedResources: {},
+          },
         })
         const files = resourceCompGenerator.linkCodeChunks(
           { [FileType.JS]: [...importChunks, ...chunks] },
@@ -355,21 +358,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
 
-      Object.assign(pageOptions, {
-        projectResources,
-        ...(uidl.resources &&
-          this.strategy?.resources?.path && {
-            resources: {
-              items: uidl?.resources?.items,
-              cache: uidl?.resources.cache,
-              path: GenericUtils.generateLocalDependenciesPrefix(
-                path,
-                this.strategy.resources.path
-              ),
-            },
-          }),
-      })
-
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: Object.values(components).reduce(
@@ -385,6 +373,22 @@ export class ProjectGenerator implements ProjectGeneratorType {
       }
 
       const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
+
+      /*
+        Generating files from the extracted resources that needs a proxy end-point to access them.
+      */
+      Object.values(pageOptions.extractedResources).forEach((extractedResource) => {
+        inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
+          path: extractedResource.path,
+          files: [
+            {
+              name: extractedResource.fileName,
+              fileType: extractedResource.fileType,
+              content: extractedResource.content,
+            },
+          ],
+        })
+      })
 
       inMemoryFilesMap.set(`page-${pageUIDL.name}`, {
         path,
@@ -430,8 +434,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
-      Object.assign(options, { projectResources })
-
       if (!this.strategy?.components?.generator) {
         throw new TeleportError(
           `Component Generator is missing from the strategy - ${JSON.stringify(
@@ -474,6 +476,22 @@ export class ProjectGenerator implements ProjectGeneratorType {
         this.componentGenerator,
         componentOptions
       )
+
+      /*
+        Generating files from the extracted resources that needs a proxy end-point to access them.
+      */
+      Object.values(componentOptions.extractedResources).forEach((extractedResource) => {
+        inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
+          path: extractedResource.path,
+          files: [
+            {
+              name: extractedResource.fileName,
+              fileType: extractedResource.fileType,
+              content: extractedResource.content,
+            },
+          ],
+        })
+      })
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)

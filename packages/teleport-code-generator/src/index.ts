@@ -194,7 +194,9 @@ export const generateComponent: GenerateComponentFunction = async (
   {
     componentType = ComponentType.REACT,
     styleVariation = ReactStyleVariation.CSSModules,
-    componentGeneratorOptions = {},
+    componentGeneratorOptions = {
+      extractedResources: {},
+    },
     plugins = [],
   }: {
     componentType?: ComponentType

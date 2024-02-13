@@ -56,7 +56,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           mapping: {},
-          projectResources: {},
+          extractedResources: {},
           skipValidation: true,
         })
       )
@@ -122,7 +122,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
-          projectResources: {},
+          extractedResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -142,7 +142,7 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
-          projectResources: {},
+          extractedResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -195,7 +195,7 @@ describe('Generic Project Generator', () => {
             fontsFolder: 'test/static/fonts',
             localFonts: [],
           },
-          projectResources: {},
+          extractedResources: {},
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},

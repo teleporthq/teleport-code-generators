@@ -53,6 +53,7 @@ export const createComponentModule = async (
     localDependenciesPrefix: componentLocalDependenciesPrefix,
     strategy,
     moduleComponents: uidl.components,
+    extractedResources: {},
   }
 
   root.outputOptions = root.outputOptions || {}
@@ -93,6 +94,7 @@ export const createRouterFile = async (
     strategy,
     isRootComponent: true,
     designLanguage: root?.designLanguage,
+    extractedResources: {},
   }
 
   if (projectStyleSheet) {

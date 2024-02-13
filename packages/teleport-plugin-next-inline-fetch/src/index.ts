@@ -9,7 +9,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { computeUseEffectAST } from './utils'
-import { join } from 'path'
+import { join, relative } from 'path'
 
 /*
   When defining a cms-item or cms-list in the UIDL, the user can specify a resource associated with the node.
@@ -76,6 +76,13 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           )
         )
 
+        jsxNode.openingElement.attributes.push(
+          types.jsxAttribute(
+            types.jsxIdentifier('persistDataDuringLoading'),
+            types.jsxExpressionContainer(types.booleanLiteral(true))
+          )
+        )
+
         let resourceName: string
         if ('id' in node.content.resource) {
           const usedResource = resources.items[node.content.resource.id]
@@ -86,7 +93,10 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           )
           dependencies[resourceName] = {
             type: 'local',
-            path: join(resources.path, StringUtils.camelCaseToDashCase(usedResource.name)),
+            path: relative(
+              join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
+              join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
+            ),
           }
         }
 
@@ -204,7 +214,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
             .declaration as types.FunctionDeclaration
           const functionBody = functionDecleration.body.body
           const tryBlock = functionBody.find(
-            (node) => node.type === 'TryStatement'
+            (subNode) => subNode.type === 'TryStatement'
           ) as types.TryStatement
 
           if (!tryBlock) {
@@ -214,7 +224,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           tryBlock.block.body.unshift(extractedResource, notFoundAST)
 
           const returnStatement: types.ReturnStatement = tryBlock.block.body.find(
-            (node) => node.type === 'ReturnStatement'
+            (subNode) => subNode.type === 'ReturnStatement'
           ) as types.ReturnStatement
 
           if (!returnStatement) {
@@ -242,6 +252,8 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
         let resourceFileName: string
         let resourceImportVariable: string
         let importPath: string
+        let isNamedImport: boolean = false
+        let funcParams = ''
 
         if ('id' in node.content.resource) {
           const usedResource = resources.items[node.content.resource.id]
@@ -251,11 +263,22 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
             )
           }
 
+          if (usedResource.params?.length) {
+            funcParams = 'req.query'
+          }
+
+          if (usedResource.body?.length) {
+            funcParams = 'req.body'
+          }
+
           resourceImportVariable = StringUtils.dashCaseToCamelCase(
             StringUtils.camelize(`${usedResource.name}-resource`)
           )
           const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-          importPath = join(options.resources.path, importName)
+          importPath = relative(
+            ['pages', 'api'].join('/'),
+            [...resources.path, importName].join('/')
+          )
 
           resourceFileName = StringUtils.camelCaseToDashCase(
             `${resourceImportVariable}-${importName}`
@@ -264,7 +287,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           computeUseEffectAST({
             fileName: resourceFileName,
             resourceType: usedResource.method,
-            node: node,
+            node,
             componentChunk,
             params: node.content.resource.params,
           })
@@ -275,12 +298,16 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           resourceImportVariable = dependency.meta?.originalName || name
           importPath = dependency?.meta?.importAlias || dependency.path
           resourceFileName = StringUtils.camelCaseToDashCase(node.content.resource.name)
+          isNamedImport = dependency?.meta?.namedImport || false
+
           /*
             When we are calling external functions to make a request call for us.
             The `fetch` that happens behind the scenes are basically encapsulated.
             So, we can't derieve if the resource call is actually a GET / POST.
             So, we can mark these as POST by default since we are taking data from the component.
           */
+
+          funcParams = 'req.body'
           computeUseEffectAST({
             fileName: resourceFileName,
             resourceType: 'POST',
@@ -290,11 +317,25 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           })
         }
 
-        console.log({ importPath })
+        options.extractedResources[resourceFileName] = {
+          fileName: resourceFileName,
+          fileType: FileType.JS,
+          path: ['pages', 'api'],
+          content: `import ${
+            isNamedImport ? '{ ' + resourceImportVariable + ' }' : resourceImportVariable
+          } from '${importPath}'
+export default async function handler(req, res) {
+  try {
+    const response = await ${resourceImportVariable}(${funcParams})
+    return res.status(200).json(response)
+  } catch (error) {
+    return res.status(500).send('Something went wrong')
+  }
+}
+          `,
+        }
       }
     })
-
-    console.log(structure)
 
     return structure
   }
