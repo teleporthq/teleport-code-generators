@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { mkdirSync, rmdirSync } from 'fs'
 import chalk from 'chalk'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -32,8 +31,8 @@ const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
       try {
-        // rmdirSync('dist', { recursive: true })
-        // mkdirSync('dist')
+        rmdirSync('dist', { recursive: true })
+        mkdirSync('dist')
       } catch /* tslint:disable no-empty */ {}
     }
 
@@ -53,57 +52,57 @@ const run = async () => {
       return 'teleport-project-contentful-cms'
     })
 
-    // await log(async () => {
-    //   result = await packProject(wordpressUIDL as ProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-wordpress-cms',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return 'teleport-project-wordpress-cms'
-    // })
+    await log(async () => {
+      result = await packProject(wordpressUIDL as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-wordpress-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return 'teleport-project-wordpress-cms'
+    })
 
-    // await log(async () => {
-    //   result = await packProject(strapiUIDL as ProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-strapi-cms',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return 'teleport-project-strapi-cms'
-    // })
+    await log(async () => {
+      result = await packProject(strapiUIDL as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-strapi-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return 'teleport-project-strapi-cms'
+    })
 
-    // await log(async () => {
-    //   result = await packProject(caisyUIDL as ProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-caisy-cms',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return 'teleport-project-caisy-cms'
-    // })
+    await log(async () => {
+      result = await packProject(caisyUIDL as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-caisy-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return 'teleport-project-caisy-cms'
+    })
 
-    // await log(async () => {
-    //   result = await packProject(flotiqUIDL as ProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-flotiq-cms',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return 'teleport-project-flotiq-cms'
-    // })
+    await log(async () => {
+      result = await packProject(flotiqUIDL as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-flotiq-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return 'teleport-project-flotiq-cms'
+    })
   } catch (e) {
     console.info(e)
   }
