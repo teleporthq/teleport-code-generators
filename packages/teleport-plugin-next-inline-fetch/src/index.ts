@@ -25,7 +25,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
     const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
 
-    if (resources.items === undefined || resources.path === undefined) {
+    if (resources?.items === undefined || resources?.path === undefined) {
       return structure
     }
 
