@@ -1,8 +1,8 @@
 {
-  "name": "Joyful Worthwhile Elk",
+  "name": "Flotiq",
   "globals": {
     "settings": {
-      "title": "Joyful Worthwhile Elk",
+      "title": "Flotiq",
       "language": "en"
     },
     "assets": [
@@ -27,6 +27,10 @@
         "content": "\n  html {\n    font-family: Inter;\n    font-size: 16px;\n  }\n\n  body {\n    font-weight: 400;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.15;\n    color: var(--dl-color-gray-black);\n    background-color: var(--dl-color-gray-white);\n    \n  }\n\n  \n\n  "
       },
       {
+        "type": "style",
+        "path": "https://unpkg.com/animate.css@4.1.1/animate.css"
+      },
+      {
         "type": "font",
         "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
         "attrs": {
@@ -35,8 +39,16 @@
             "content": "font"
           }
         }
+      },
+      {
+        "type": "style",
+        "path": "https://unpkg.com/@teleporthq/teleport-custom-scripts/dist/style.css"
       }
     ],
+    "env": {
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN": ""
+    },
     "meta": [
       {
         "name": "viewport",
@@ -59,141 +71,141 @@
     "name": "App",
     "designLanguage": {
       "tokens": {
-        "--dl-color-primary-100": {
-          "type": "static",
-          "content": "#003EB3"
-        },
-        "--dl-color-primary-300": {
-          "type": "static",
-          "content": "#0074F0"
-        },
-        "--dl-color-primary-500": {
-          "type": "static",
-          "content": "#14A9FF"
-        },
         "--dl-color-primary-700": {
           "type": "static",
           "content": "#85DCFF"
-        },
-        "--dl-color-gray-black": {
-          "type": "static",
-          "content": "#000000"
-        },
-        "--dl-color-gray-500": {
-          "type": "static",
-          "content": "#595959"
         },
         "--dl-color-gray-700": {
           "type": "static",
           "content": "#999999"
         },
-        "--dl-color-gray-900": {
-          "type": "static",
-          "content": "#D9D9D9"
-        },
-        "--dl-color-gray-white": {
-          "type": "static",
-          "content": "#FFFFFF"
-        },
-        "--dl-color-success-300": {
-          "type": "static",
-          "content": "#199033"
-        },
-        "--dl-color-success-500": {
-          "type": "static",
-          "content": "#32A94C"
-        },
-        "--dl-color-success-700": {
-          "type": "static",
-          "content": "#4CC366"
-        },
-        "--dl-color-danger-300": {
-          "type": "static",
-          "content": "#A22020"
-        },
         "--dl-color-danger-500": {
           "type": "static",
           "content": "#BF2626"
-        },
-        "--dl-color-danger-700": {
-          "type": "static",
-          "content": "#E14747"
-        },
-        "--dl-size-size-xsmall": {
-          "type": "static",
-          "content": "16px"
-        },
-        "--dl-size-size-small": {
-          "type": "static",
-          "content": "48px"
-        },
-        "--dl-size-size-medium": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-size-size-large": {
-          "type": "static",
-          "content": "144px"
         },
         "--dl-size-size-xlarge": {
           "type": "static",
           "content": "192px"
         },
-        "--dl-size-size-xxlarge": {
-          "type": "static",
-          "content": "288px"
-        },
-        "--dl-size-size-maxwidth": {
-          "type": "static",
-          "content": "1400px"
-        },
-        "--dl-space-space-halfunit": {
-          "type": "static",
-          "content": "8px"
-        },
         "--dl-space-space-unit": {
           "type": "static",
           "content": "16px"
-        },
-        "--dl-space-space-oneandhalfunits": {
-          "type": "static",
-          "content": "24px"
-        },
-        "--dl-space-space-twounits": {
-          "type": "static",
-          "content": "32px"
-        },
-        "--dl-space-space-threeunits": {
-          "type": "static",
-          "content": "48px"
-        },
-        "--dl-space-space-fourunits": {
-          "type": "static",
-          "content": "64px"
-        },
-        "--dl-space-space-fiveunits": {
-          "type": "static",
-          "content": "80px"
-        },
-        "--dl-space-space-sixunits": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-radius-radius-radius2": {
-          "type": "static",
-          "content": "2px"
         },
         "--dl-radius-radius-radius4": {
           "type": "static",
           "content": "4px"
         },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
         "--dl-radius-radius-radius8": {
           "type": "static",
           "content": "8px"
         },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-size-size-xxlarge": {
+          "type": "static",
+          "content": "288px"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-space-space-sixunits": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-size-size-maxwidth": {
+          "type": "static",
+          "content": "1400px"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-space-space-fourunits": {
+          "type": "static",
+          "content": "64px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
         "--dl-radius-radius-round": {
           "type": "static",
           "content": "50%"
+        },
+        "--dl-size-size-medium": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-space-space-twounits": {
+          "type": "static",
+          "content": "32px"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-color-danger-300": {
+          "type": "static",
+          "content": "#A22020"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
         }
       }
     },
@@ -201,42 +213,45 @@
       "button": {
         "type": "reusable-project-style-map",
         "content": {
-          "display": {
-            "type": "static",
-            "content": "inline-block"
-          },
-          "backgroundColor": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "token",
-              "id": "--dl-color-gray-white"
-            }
-          },
           "color": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-black"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
           },
-          "borderRadius": {
+          "display": {
             "type": "static",
-            "content": "4px"
+            "content": "inline-block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
           },
           "borderColor": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-black"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
           },
           "borderWidth": {
             "type": "static",
             "content": "1px"
           },
-          "padding": {
+          "borderRadius": {
             "type": "static",
-            "content": "0.5rem 1rem"
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white",
+              "fallback": ""
+            }
           }
         },
         "conditions": []
@@ -244,25 +259,28 @@
       "input": {
         "type": "reusable-project-style-map",
         "content": {
-          "backgroundColor": {
+          "color": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-white"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
           },
           "borderColor": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-black"
-            }
-          },
-          "color": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "token",
-              "id": "--dl-color-gray-black"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
           },
           "borderWidth": {
@@ -273,13 +291,13 @@
             "type": "static",
             "content": "4px"
           },
-          "padding": {
-            "type": "static",
-            "content": "0.5rem 1rem"
-          },
-          "cursor": {
-            "type": "static",
-            "content": "auto"
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white",
+              "fallback": ""
+            }
           }
         },
         "conditions": []
@@ -287,25 +305,28 @@
       "textarea": {
         "type": "reusable-project-style-map",
         "content": {
-          "backgroundColor": {
+          "color": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-white"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem"
           },
           "borderColor": {
             "type": "dynamic",
             "content": {
               "referenceType": "token",
-              "id": "--dl-color-gray-black"
-            }
-          },
-          "color": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "token",
-              "id": "--dl-color-gray-black"
+              "id": "--dl-color-gray-black",
+              "fallback": ""
             }
           },
           "borderWidth": {
@@ -316,13 +337,13 @@
             "type": "static",
             "content": "4px"
           },
-          "padding": {
-            "type": "static",
-            "content": "0.5rem"
-          },
-          "cursor": {
-            "type": "static",
-            "content": "auto"
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white",
+              "fallback": ""
+            }
           }
         },
         "conditions": []
@@ -330,9 +351,21 @@
       "list": {
         "type": "reusable-project-style-map",
         "content": {
+          "width": {
+            "type": "static",
+            "content": "100%"
+          },
+          "margin": {
+            "type": "static",
+            "content": "1em 0px 1em 0px"
+          },
           "display": {
             "type": "static",
             "content": "block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0px 0px 0px 1.5rem"
           },
           "listStyleType": {
             "type": "static",
@@ -341,18 +374,6 @@
           "listStylePosition": {
             "type": "static",
             "content": "outside"
-          },
-          "margin": {
-            "type": "static",
-            "content": "1em 0px 1em 0px"
-          },
-          "padding": {
-            "type": "static",
-            "content": "0px 0px 0px 1.5rem"
-          },
-          "width": {
-            "type": "static",
-            "content": "100%"
           }
         },
         "conditions": []
@@ -384,6 +405,10 @@
       "Content": {
         "type": "reusable-project-style-map",
         "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
           "fontFamily": {
             "type": "static",
             "content": "Inter"
@@ -391,10 +416,6 @@
           "fontWeight": {
             "type": "static",
             "content": "400"
-          },
-          "fontSize": {
-            "type": "static",
-            "content": "16px"
           },
           "lineHeight": {
             "type": "static",
@@ -413,6 +434,10 @@
       "Heading": {
         "type": "reusable-project-style-map",
         "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "32px"
+          },
           "fontFamily": {
             "type": "static",
             "content": "Inter"
@@ -420,10 +445,6 @@
           "fontWeight": {
             "type": "static",
             "content": "700"
-          },
-          "fontSize": {
-            "type": "static",
-            "content": "32px"
           },
           "lineHeight": {
             "type": "static",
@@ -448,11 +469,11 @@
           {
             "value": "Home",
             "seo": {
-              "title": "Joyful Worthwhile Elk",
+              "title": "Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Joyful Worthwhile Elk"
+                  "content": "Flotiq"
                 }
               ]
             },
@@ -462,20 +483,212 @@
             }
           },
           {
-            "value": "author/Author",
+            "value": "blog/Blog",
             "seo": {
-              "title": "Author - Joyful Worthwhile Elk",
+              "title": "Blog - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Author - Joyful Worthwhile Elk"
+                  "content": "Blog - Flotiq"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BlogEntities": {
+                  "id": "TQ_i__oB75VV5",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "navLink": "/blog/index",
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BlogEntities",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ__IIZxRsGXr",
+                  "params": {}
+                }
+              }
+            }
+          },
+          {
+            "value": "blog/page/Blog",
+            "seo": {
+              "title": "Blog - Flotiq",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Blog - Flotiq"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BlogEntities": {
+                  "id": "TQ_i__oB75VV5",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "dynamicRouteAttribute": "page",
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": {
+                  "type": "body",
+                  "path": []
+                }
+              },
+              "navLink": "/blog/page/[page]",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_9_vvM5wfr0",
+                  "params": {}
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BlogEntities",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_sPKKe910pu",
+                  "params": {
+                    "page": {
+                      "type": "expr",
+                      "content": "parseInt(context.params.page)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "blog_post/Blogpost",
+            "seo": {
+              "title": "Blogpost - Flotiq",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Blogpost - Flotiq"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Blog_postEntities": {
+                  "id": "TQ_3lg4xap0RG",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "navLink": "/blog_post/index",
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "Blog_postEntities",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_TsFVdKrVOg",
+                  "params": {}
+                }
+              }
+            }
+          },
+          {
+            "value": "blog_post/page/Blogpost",
+            "seo": {
+              "title": "Blogpost - Flotiq",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Blogpost - Flotiq"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Blog_postEntities": {
+                  "id": "TQ_3lg4xap0RG",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "dynamicRouteAttribute": "page",
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": {
+                  "type": "body",
+                  "path": []
+                }
+              },
+              "navLink": "/blog_post/page/[page]",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_0VsB3HpwQA",
+                  "params": {}
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "Blog_postEntities",
+                  "valuePath": [
+                    "data"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_cWpJGmdUJw",
+                  "params": {
+                    "page": {
+                      "type": "expr",
+                      "content": "parseInt(context.params.page)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "author/Author",
+            "seo": {
+              "title": "Author - Flotiq",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Author - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "255b4e37-577e-44f8-9162-72a2a5d7ea2a",
+                  "id": "TQ_2PkV8IFX9k",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -487,11 +700,10 @@
                   "name": "AuthorEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "7550f297-393b-4858-b51c-dd939069f884",
+                  "id": "TQ_Q4gZNGmBHl",
                   "params": {}
                 }
               }
@@ -500,24 +712,24 @@
           {
             "value": "author/page/Author",
             "seo": {
-              "title": "Author - Joyful Worthwhile Elk",
+              "title": "Author - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Author - Joyful Worthwhile Elk"
+                  "content": "Author - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "255b4e37-577e-44f8-9162-72a2a5d7ea2a",
+                  "id": "TQ_2PkV8IFX9k",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
-              "navLink": "/author/page/[page]",
+              "dynamicRouteAttribute": "page",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -526,17 +738,16 @@
                   "path": []
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/author/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "3c98ee9a-e86d-48bf-8a48-e8ae920adacf",
+                  "id": "TQ_BKQSJAz0CS",
                   "params": {}
                 }
               },
@@ -545,113 +756,14 @@
                   "name": "AuthorEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "a51429e4-0f51-4747-8fca-c23add3f3831",
+                  "id": "TQ_1BGTL1McMp",
                   "params": {
                     "page": {
                       "type": "expr",
-                      "content": "(context.params.page - 1) * 10"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          {
-            "value": "blog_post/Blogpost",
-            "seo": {
-              "title": "Blogpost - Joyful Worthwhile Elk",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Blogpost - Joyful Worthwhile Elk"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Blog_postEntities": {
-                  "id": "a2e75ae4-f106-4085-95a0-cb87d95c947c",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "navLink": "/blog-post/index",
-              "stateDefinitions": {},
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "Blog_postEntities",
-                  "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "07273c01-ebeb-4f36-9a4d-5f3d3be019a3",
-                  "params": {}
-                }
-              }
-            }
-          },
-          {
-            "value": "blog_post/page/Blogpost",
-            "seo": {
-              "title": "Blogpost - Joyful Worthwhile Elk",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Blogpost - Joyful Worthwhile Elk"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Blog_postEntities": {
-                  "id": "a2e75ae4-f106-4085-95a0-cb87d95c947c",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": {
-                  "type": "body",
-                  "path": []
-                }
-              },
-              "navLink": "/blog-post/page/[page]",
-              "initialPathsData": {
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "b9cd852c-3057-42c0-a5aa-5645834cb572",
-                  "params": {}
-                }
-              },
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "Blog_postEntities",
-                  "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "94dda27d-87b5-405f-a38c-2a45cc55d39d",
-                  "params": {
-                    "page": {
-                      "type": "expr",
-                      "content": "(context.params.page - 1) * 10"
+                      "content": "parseInt(context.params.page)"
                     }
                   }
                 }
@@ -661,18 +773,18 @@
           {
             "value": "book/Book",
             "seo": {
-              "title": "Book - Joyful Worthwhile Elk",
+              "title": "Book - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Book - Joyful Worthwhile Elk"
+                  "content": "Book - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "53c7964a-f87e-4f16-9e71-1db8591962c4",
+                  "id": "TQ_blhNQDSxDS",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -684,11 +796,10 @@
                   "name": "BookEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "1bf28d81-95c2-43b8-bdba-c7e06f4e79da",
+                  "id": "TQ_Foa4a-F__v",
                   "params": {}
                 }
               }
@@ -697,27 +808,27 @@
           {
             "value": "book/page/Book",
             "seo": {
-              "title": "Book - Joyful Worthwhile Elk",
+              "title": "Book - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Book - Joyful Worthwhile Elk"
+                  "content": "Book - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "53c7964a-f87e-4f16-9e71-1db8591962c4",
+                  "id": "TQ_blhNQDSxDS",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "dynamicRouteAttribute": "page",
               "pagination": {
                 "attribute": "page",
-                "pageSize": 10,
+                "pageSize": 3,
                 "totalCountPath": {
                   "type": "body",
                   "path": []
@@ -729,11 +840,10 @@
                   "name": "page",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "05077c45-c452-4fab-aa13-dcf10c8de4e6",
+                  "id": "TQ_vk9_FCBcVL",
                   "params": {}
                 }
               },
@@ -742,15 +852,14 @@
                   "name": "BookEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": []
+                  ]
                 },
                 "resource": {
-                  "id": "6d696e0a-0533-4cf7-aeb2-98bb4ece2991",
+                  "id": "TQ_ASuuzJtu6O",
                   "params": {
                     "page": {
                       "type": "expr",
-                      "content": "(context.params.page - 1) * 10"
+                      "content": "parseInt(context.params.page)"
                     }
                   }
                 }
@@ -758,26 +867,79 @@
             }
           },
           {
-            "value": "/author/Author1",
+            "value": "/blog_post/Blogpost1",
             "seo": {
-              "title": "Author1 - Joyful Worthwhile Elk",
+              "title": "Blogpost1 - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Author1 - Joyful Worthwhile Elk"
+                  "content": "Blogpost1 - Flotiq"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Blog_postEntity": {
+                  "id": "TQ_CFd1ybYKtY",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "dynamicRouteAttribute": "id",
+              "navLink": "/blog_post/[id]",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "id",
+                  "valuePath": [
+                    "data"
+                  ],
+                  "itemValuePath": [
+                    "id"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_Rb_vNjV_hK",
+                  "params": {}
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "Blog_postEntity",
+                  "valuePath": [
+                    "data",
+                    "data",
+                    "[0]"
+                  ]
+                },
+                "resource": {
+                  "id": "TQ_exGeeg_Vk7",
+                  "params": {}
+                }
+              }
+            }
+          },
+          {
+            "value": "/author/Author1",
+            "seo": {
+              "title": "Author1 - Flotiq",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Author1 - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "7201c6c5-f729-4ae1-b3bd-ebf5137b419b",
+                  "id": "TQ_pjxn2YByXa",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "dynamicRouteAttribute": "id",
               "navLink": "/author/[id]",
               "initialPathsData": {
                 "exposeAs": {
@@ -790,7 +952,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "785cbe39-50ff-4f8a-a0c1-457cabf76efc",
+                  "id": "TQ_dZIo_rdJTf",
                   "params": {}
                 }
               },
@@ -798,39 +960,40 @@
                 "exposeAs": {
                   "name": "AuthorEntity",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
+                    "data",
+                    "data",
+                    "[0]"
+                  ]
                 },
                 "resource": {
-                  "id": "e3d03d9a-9b71-43d2-a9e4-58442b981946",
+                  "id": "TQ_0OZA_TtuBh",
                   "params": {}
                 }
               }
             }
           },
           {
-            "value": "/blog_post/Blogpost1",
+            "value": "/blog/Blog1",
             "seo": {
-              "title": "Blogpost1 - Joyful Worthwhile Elk",
+              "title": "Blog1 - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Blogpost1 - Joyful Worthwhile Elk"
+                  "content": "Blog1 - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
-                "Blog_postEntity": {
-                  "id": "62998cf8-e31b-479f-831d-8754e98a6f98",
+                "BlogEntity": {
+                  "id": "TQ_4u7Acwu4Y3",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
-              "navLink": "/blog-post/[id]",
+              "dynamicRouteAttribute": "id",
+              "navLink": "/blog/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -842,20 +1005,21 @@
                   ]
                 },
                 "resource": {
-                  "id": "82128c18-a107-418e-b2c9-a4b0207c7909",
+                  "id": "TQ_sTfDyQ2348",
                   "params": {}
                 }
               },
               "initialPropsData": {
                 "exposeAs": {
-                  "name": "Blog_postEntity",
+                  "name": "BlogEntity",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
+                    "data",
+                    "data",
+                    "[0]"
+                  ]
                 },
                 "resource": {
-                  "id": "f00f4904-e00c-4408-937b-45af3033c33d",
+                  "id": "TQ_rNrNH9W32R",
                   "params": {}
                 }
               }
@@ -864,24 +1028,24 @@
           {
             "value": "/book/Book1",
             "seo": {
-              "title": "Book1 - Joyful Worthwhile Elk",
+              "title": "Book1 - Flotiq",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Book1 - Joyful Worthwhile Elk"
+                  "content": "Book1 - Flotiq"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "505e3f99-a3c4-45fc-ac36-a1bc32a45319",
+                  "id": "TQ_-fxpR99obk",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "dynamicRouteAttribute": "id",
               "navLink": "/book/[id]",
               "initialPathsData": {
                 "exposeAs": {
@@ -894,7 +1058,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "bc04ecbe-d500-4045-b95e-dceb4e2be223",
+                  "id": "TQ_xCOKcLE8eL",
                   "params": {}
                 }
               },
@@ -902,12 +1066,13 @@
                 "exposeAs": {
                   "name": "BookEntity",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": []
+                    "data",
+                    "data",
+                    "[0]"
+                  ]
                 },
                 "resource": {
-                  "id": "6c14f8a7-554a-4d01-9cd5-80ed84812466",
+                  "id": "TQ_5STf7FODvK",
                   "params": {}
                 }
               }
@@ -926,33 +1091,43 @@
       }
     },
     "propDefinitions": {
-      "AuthorEntities": {
-        "id": "255b4e37-577e-44f8-9162-72a2a5d7ea2a",
+      "BlogEntities": {
+        "id": "TQ_i__oB75VV5",
         "defaultValue": [],
         "type": "array"
       },
       "Blog_postEntities": {
-        "id": "a2e75ae4-f106-4085-95a0-cb87d95c947c",
+        "id": "TQ_3lg4xap0RG",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorEntities": {
+        "id": "TQ_2PkV8IFX9k",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntities": {
-        "id": "53c7964a-f87e-4f16-9e71-1db8591962c4",
-        "defaultValue": [],
-        "type": "array"
-      },
-      "AuthorEntity": {
-        "id": "7201c6c5-f729-4ae1-b3bd-ebf5137b419b",
+        "id": "TQ_blhNQDSxDS",
         "defaultValue": [],
         "type": "array"
       },
       "Blog_postEntity": {
-        "id": "62998cf8-e31b-479f-831d-8754e98a6f98",
+        "id": "TQ_CFd1ybYKtY",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorEntity": {
+        "id": "TQ_pjxn2YByXa",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "BlogEntity": {
+        "id": "TQ_4u7Acwu4Y3",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntity": {
-        "id": "505e3f99-a3c4-45fc-ac36-a1bc32a45319",
+        "id": "TQ_-fxpR99obk",
         "defaultValue": [],
         "type": "array"
       }
@@ -1178,29 +1353,29 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
                     },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
                     "justifyContent": {
                       "type": "static",
-                      "content": "center"
+                      "content": "flex-start"
                     }
                   },
                   "children": [
@@ -1216,7 +1391,7 @@
                             "namedImport": true
                           }
                         },
-                        "renderPropIdentifier": "context_30dnx",
+                        "renderPropIdentifier": "context_jgs97l",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1239,29 +1414,266 @@
                                                 "elementType": "text",
                                                 "semanticType": "h1",
                                                 "referencedStyles": {},
-                                                "abilities": {},
-                                                "style": {
-                                                  "marginTop": {
-                                                    "type": "dynamic",
+                                                "abilities": {
+                                                  "link": {
+                                                    "type": "navlink",
                                                     "content": {
-                                                      "referenceType": "token",
-                                                      "id": "--dl-space-space-unit"
+                                                      "routeName": "book"
                                                     }
+                                                  }
+                                                },
+                                                "style": {
+                                                  "textDecoration": {
+                                                    "type": "static",
+                                                    "content": "none"
                                                   }
                                                 },
                                                 "children": [
                                                   {
                                                     "type": "expr",
-                                                    "content": "context_30dnx?.name"
+                                                    "content": "context_jgs97l?.title"
                                                   }
                                                 ]
+                                              }
+                                            },
+                                            {
+                                              "type": "cms-list-repeater",
+                                              "content": {
+                                                "elementType": "cms-list-repeater",
+                                                "nodes": {
+                                                  "list": {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "fragment",
+                                                      "children": [
+                                                        {
+                                                          "type": "cms-item",
+                                                          "content": {
+                                                            "elementType": "DataProvider",
+                                                            "dependency": {
+                                                              "type": "package",
+                                                              "path": "@teleporthq/react-components",
+                                                              "version": "latest",
+                                                              "meta": {
+                                                                "namedImport": true
+                                                              }
+                                                            },
+                                                            "renderPropIdentifier": "context_jqh9hs",
+                                                            "nodes": {
+                                                              "success": {
+                                                                "type": "element",
+                                                                "content": {
+                                                                  "elementType": "fragment",
+                                                                  "children": [
+                                                                    {
+                                                                      "type": "element",
+                                                                      "content": {
+                                                                        "elementType": "text",
+                                                                        "semanticType": "span",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {
+                                                                          "link": {
+                                                                            "type": "navlink",
+                                                                            "content": {
+                                                                              "routeName": "author"
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        "style": {
+                                                                          "textDecoration": {
+                                                                            "type": "static",
+                                                                            "content": "none"
+                                                                          }
+                                                                        },
+                                                                        "children": [
+                                                                          {
+                                                                            "type": "expr",
+                                                                            "content": "context_jqh9hs?.name"
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              }
+                                                            },
+                                                            "valuePath": [
+                                                              "data",
+                                                              "[0]"
+                                                            ],
+                                                            "resource": {
+                                                              "id": "TQ_y9MOE-8Vh7",
+                                                              "params": {
+                                                                "filters": {
+                                                                  "type": "expr",
+                                                                  "content": "JSON.stringify({\n          ['id']: { type: 'equals', filter: `${context_4s2a2s?.id}` },\n        })"
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                },
+                                                "source": "context_jgs97l?.authors || []",
+                                                "renderPropIdentifier": "context_4s2a2s"
                                               }
                                             }
                                           ]
                                         }
                                       }
                                     },
-                                    "renderPropIdentifier": "context_30dnx"
+                                    "renderPropIdentifier": "context_jgs97l"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "cms-pagination-node",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Previous",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`?${new URLSearchParams({...router.query, ['cPage-e2pzs']: parseInt(router.query['cPage-e2pzs']) - 1 || 1})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Previous"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_52rmmGJJFb",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "params?.meta?.pagination.hasPrevPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      },
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Next",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`?${new URLSearchParams({...router.query, ['cPage-e2pzs']: parseInt(router.query['cPage-e2pzs']) + 1 || 2})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Next"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_qlhYJi7JlM",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "params?.meta?.pagination.hasNextPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      }
+                                    ]
                                   }
                                 }
                               ]
@@ -1269,80 +1681,22 @@
                           }
                         },
                         "valuePath": [],
-                        "resource": {
-                          "id": "ba424577-03ce-4035-8fc8-33331d3c9636",
-                          "params": {}
-                        }
-                      }
-                    },
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "elementType": "DataProvider",
-                        "dependency": {
-                          "type": "package",
-                          "path": "@teleporthq/react-components",
+                        "router": {
+                          "type": "library",
+                          "path": "next/router",
                           "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
                         },
-                        "renderPropIdentifier": "context_5u6uvg",
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "children": [
-                                {
-                                  "type": "cms-list-repeater",
-                                  "content": {
-                                    "elementType": "cms-list-repeater",
-                                    "nodes": {
-                                      "list": {
-                                        "type": "element",
-                                        "content": {
-                                          "elementType": "fragment",
-                                          "children": [
-                                            {
-                                              "type": "element",
-                                              "content": {
-                                                "elementType": "text",
-                                                "semanticType": "h1",
-                                                "referencedStyles": {},
-                                                "abilities": {},
-                                                "style": {
-                                                  "marginTop": {
-                                                    "type": "dynamic",
-                                                    "content": {
-                                                      "referenceType": "token",
-                                                      "id": "--dl-space-space-twounits"
-                                                    }
-                                                  }
-                                                },
-                                                "children": [
-                                                  {
-                                                    "type": "expr",
-                                                    "content": "context_5u6uvg?.title"
-                                                  }
-                                                ]
-                                              }
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    },
-                                    "renderPropIdentifier": "context_5u6uvg"
-                                  }
-                                }
-                              ]
+                        "resource": {
+                          "id": "TQ_ydN8jzZ7_J",
+                          "params": {
+                            "page": {
+                              "type": "expr",
+                              "content": "(parseInt(router.query?.['cPage-e2pzs'] ?? 1))"
                             }
                           }
-                        },
-                        "valuePath": [],
-                        "resource": {
-                          "id": "00249d9a-3c71-4470-b964-8042d71ad013",
-                          "params": {}
                         }
                       }
                     }
@@ -1375,25 +1729,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -1413,10 +1767,10 @@
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
-                            "id": "AuthorEntities"
+                            "id": "BlogEntities"
                           }
                         },
-                        "renderPropIdentifier": "AuthorEntities",
+                        "renderPropIdentifier": "BlogEntities",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1441,6 +1795,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -1449,17 +1807,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -1473,7 +1827,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.name"
+                                                          "content": "BlogEntities?.title"
                                                         }
                                                       ]
                                                     }
@@ -1488,7 +1842,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.name"
+                                                          "content": "BlogEntities?.title"
                                                         }
                                                       ]
                                                     }
@@ -1503,7 +1857,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.id"
+                                                          "content": "BlogEntities?.textarea"
                                                         }
                                                       ]
                                                     }
@@ -1515,7 +1869,7 @@
                                         }
                                       }
                                     },
-                                    "renderPropIdentifier": "AuthorEntities"
+                                    "renderPropIdentifier": "BlogEntities"
                                   }
                                 }
                               ]
@@ -1528,7 +1882,7 @@
                   ]
                 }
               },
-              "value": "author/Author",
+              "value": "blog/Blog",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1554,25 +1908,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -1592,10 +1946,10 @@
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
-                            "id": "AuthorEntities"
+                            "id": "BlogEntities"
                           }
                         },
-                        "renderPropIdentifier": "AuthorEntities",
+                        "renderPropIdentifier": "BlogEntities",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1620,6 +1974,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -1628,17 +1986,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -1652,7 +2006,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.name"
+                                                          "content": "BlogEntities?.title"
                                                         }
                                                       ]
                                                     }
@@ -1667,7 +2021,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.name"
+                                                          "content": "BlogEntities?.title"
                                                         }
                                                       ]
                                                     }
@@ -1682,7 +2036,7 @@
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.id"
+                                                          "content": "BlogEntities?.textarea"
                                                         }
                                                       ]
                                                     }
@@ -1694,7 +2048,7 @@
                                         }
                                       }
                                     },
-                                    "renderPropIdentifier": "AuthorEntities"
+                                    "renderPropIdentifier": "BlogEntities"
                                   }
                                 }
                               ]
@@ -1707,7 +2061,7 @@
                   ]
                 }
               },
-              "value": "author/page/Author",
+              "value": "blog/page/Blog",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1733,25 +2087,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -1799,6 +2153,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -1807,17 +2165,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -1912,25 +2266,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -1978,6 +2332,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -1986,17 +2344,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -2091,25 +2445,415 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "elementType": "DataProvider",
+                        "dependency": {
+                          "type": "package",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "renderPropIdentifier": "AuthorEntities",
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "children": [
+                                {
+                                  "type": "cms-list-repeater",
+                                  "content": {
+                                    "elementType": "cms-list-repeater",
+                                    "nodes": {
+                                      "list": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "fragment",
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
+                                                  "width": {
+                                                    "type": "static",
+                                                    "content": "100%"
+                                                  },
+                                                  "display": {
+                                                    "type": "static",
+                                                    "content": "flex"
+                                                  },
+                                                  "alignItems": {
+                                                    "type": "static",
+                                                    "content": "center"
+                                                  },
+                                                  "flexDirection": {
+                                                    "type": "static",
+                                                    "content": "column"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "h1",
+                                                      "referencedStyles": {},
+                                                      "abilities": {
+                                                        "link": {
+                                                          "type": "navlink",
+                                                          "content": {
+                                                            "routeName": {
+                                                              "type": "expr",
+                                                              "content": "`/author/${AuthorEntities?.id}`"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "style": {
+                                                        "textDecoration": {
+                                                          "type": "static",
+                                                          "content": "none"
+                                                        }
+                                                      },
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.name"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.name"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.id"
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "renderPropIdentifier": "AuthorEntities"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": []
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "author/Author",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              },
+              "importDefinitions": {}
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "elementType": "DataProvider",
+                        "dependency": {
+                          "type": "package",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "renderPropIdentifier": "AuthorEntities",
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "children": [
+                                {
+                                  "type": "cms-list-repeater",
+                                  "content": {
+                                    "elementType": "cms-list-repeater",
+                                    "nodes": {
+                                      "list": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "fragment",
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
+                                                  "width": {
+                                                    "type": "static",
+                                                    "content": "100%"
+                                                  },
+                                                  "display": {
+                                                    "type": "static",
+                                                    "content": "flex"
+                                                  },
+                                                  "alignItems": {
+                                                    "type": "static",
+                                                    "content": "center"
+                                                  },
+                                                  "flexDirection": {
+                                                    "type": "static",
+                                                    "content": "column"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "h1",
+                                                      "referencedStyles": {},
+                                                      "abilities": {
+                                                        "link": {
+                                                          "type": "navlink",
+                                                          "content": {
+                                                            "routeName": {
+                                                              "type": "expr",
+                                                              "content": "`/author/${AuthorEntities?.id}`"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "style": {
+                                                        "textDecoration": {
+                                                          "type": "static",
+                                                          "content": "none"
+                                                        }
+                                                      },
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.name"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.name"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "text",
+                                                      "semanticType": "span",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "children": [
+                                                        {
+                                                          "type": "expr",
+                                                          "content": "AuthorEntities?.id"
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "renderPropIdentifier": "AuthorEntities"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": []
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "author/page/Author",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              },
+              "importDefinitions": {}
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -2157,6 +2901,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -2165,17 +2913,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -2185,7 +2929,23 @@
                                                       "elementType": "text",
                                                       "semanticType": "h1",
                                                       "referencedStyles": {},
-                                                      "abilities": {},
+                                                      "abilities": {
+                                                        "link": {
+                                                          "type": "navlink",
+                                                          "content": {
+                                                            "routeName": {
+                                                              "type": "expr",
+                                                              "content": "`/book/${BookEntities?.id}`"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "style": {
+                                                        "textDecoration": {
+                                                          "type": "static",
+                                                          "content": "none"
+                                                        }
+                                                      },
                                                       "children": [
                                                         {
                                                           "type": "expr",
@@ -2233,12 +2993,169 @@
                                     },
                                     "renderPropIdentifier": "BookEntities"
                                   }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "cms-pagination-node",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Previous",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`/book/page/${props?.pagination?.page ? parseInt(props?.pagination?.page) - 1 : 1}?${new URLSearchParams({...(router?.query || {})})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Previous"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_WzJfU9KwYW",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "props?.pagination.hasPrevPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      },
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Next",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`/book/page/${props?.pagination?.page ? parseInt(props?.pagination?.page) + 1 : 2}?${new URLSearchParams({...(router?.query || {})})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Next"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_AOUWeicpRc",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "props?.pagination.hasNextPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      }
+                                    ]
+                                  }
                                 }
                               ]
                             }
                           }
                         },
-                        "valuePath": []
+                        "valuePath": [],
+                        "router": {
+                          "type": "library",
+                          "path": "next/router",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        }
                       }
                     }
                   ]
@@ -2270,25 +3187,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -2336,6 +3253,10 @@
                                                 "referencedStyles": {},
                                                 "abilities": {},
                                                 "style": {
+                                                  "gap": {
+                                                    "type": "static",
+                                                    "content": "12px"
+                                                  },
                                                   "width": {
                                                     "type": "static",
                                                     "content": "100%"
@@ -2344,17 +3265,13 @@
                                                     "type": "static",
                                                     "content": "flex"
                                                   },
-                                                  "gap": {
+                                                  "alignItems": {
                                                     "type": "static",
-                                                    "content": "12px"
+                                                    "content": "center"
                                                   },
                                                   "flexDirection": {
                                                     "type": "static",
                                                     "content": "column"
-                                                  },
-                                                  "alignItems": {
-                                                    "type": "static",
-                                                    "content": "center"
                                                   }
                                                 },
                                                 "children": [
@@ -2364,7 +3281,23 @@
                                                       "elementType": "text",
                                                       "semanticType": "h1",
                                                       "referencedStyles": {},
-                                                      "abilities": {},
+                                                      "abilities": {
+                                                        "link": {
+                                                          "type": "navlink",
+                                                          "content": {
+                                                            "routeName": {
+                                                              "type": "expr",
+                                                              "content": "`/book/${BookEntities?.id}`"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "style": {
+                                                        "textDecoration": {
+                                                          "type": "static",
+                                                          "content": "none"
+                                                        }
+                                                      },
                                                       "children": [
                                                         {
                                                           "type": "expr",
@@ -2412,12 +3345,169 @@
                                     },
                                     "renderPropIdentifier": "BookEntities"
                                   }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "cms-pagination-node",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Previous",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`/book/page/${props?.pagination?.page ? parseInt(props?.pagination?.page) - 1 : 1}?${new URLSearchParams({...(router?.query || {})})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Previous"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_WzJfU9KwYW",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "props?.pagination.hasPrevPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      },
+                                      {
+                                        "type": "conditional",
+                                        "content": {
+                                          "node": {
+                                            "type": "element",
+                                            "content": {
+                                              "elementType": "cms-navigation-button",
+                                              "semanticType": "div",
+                                              "name": "Next",
+                                              "referencedStyles": {
+                                                "TQ_c3tkzwHY6C": {
+                                                  "id": "TQ_c3tkzwHY6C",
+                                                  "type": "style-map",
+                                                  "content": {
+                                                    "mapType": "project-referenced",
+                                                    "referenceId": "button"
+                                                  }
+                                                }
+                                              },
+                                              "abilities": {
+                                                "link": {
+                                                  "type": "navlink",
+                                                  "content": {
+                                                    "routeName": {
+                                                      "type": "expr",
+                                                      "content": "`/book/page/${props?.pagination?.page ? parseInt(props?.pagination?.page) + 1 : 2}?${new URLSearchParams({...(router?.query || {})})}`"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "style": {
+                                                "display": {
+                                                  "type": "static",
+                                                  "content": "flex"
+                                                }
+                                              },
+                                              "children": [
+                                                {
+                                                  "type": "element",
+                                                  "content": {
+                                                    "elementType": "text",
+                                                    "referencedStyles": {},
+                                                    "abilities": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "static",
+                                                        "content": "Next"
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "reference": {
+                                            "id": "TQ_AOUWeicpRc",
+                                            "pos": "",
+                                            "type": "dynamic",
+                                            "content": {
+                                              "id": "props?.pagination.hasNextPage",
+                                              "referenceType": "expr"
+                                            }
+                                          },
+                                          "value": true
+                                        }
+                                      }
+                                    ]
+                                  }
                                 }
                               ]
                             }
                           }
                         },
-                        "valuePath": []
+                        "valuePath": [],
+                        "router": {
+                          "type": "library",
+                          "path": "next/router",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        }
                       }
                     }
                   ]
@@ -2449,171 +3539,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-item",
-                      "content": {
-                        "elementType": "DataProvider",
-                        "dependency": {
-                          "type": "package",
-                          "path": "@teleporthq/react-components",
-                          "version": "latest",
-                          "meta": {
-                            "namedImport": true
-                          }
-                        },
-                        "initialData": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "AuthorEntity"
-                          }
-                        },
-                        "entityKeyProperty": "id",
-                        "renderPropIdentifier": "AuthorEntity",
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "semanticType": "div",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "style": {
-                                      "width": {
-                                        "type": "static",
-                                        "content": "100%"
-                                      },
-                                      "display": {
-                                        "type": "static",
-                                        "content": "flex"
-                                      },
-                                      "flexDirection": {
-                                        "type": "static",
-                                        "content": "column"
-                                      },
-                                      "gap": {
-                                        "type": "static",
-                                        "content": "12px"
-                                      }
-                                    },
-                                    "children": [
-                                      {
-                                        "type": "element",
-                                        "content": {
-                                          "elementType": "text",
-                                          "semanticType": "h1",
-                                          "referencedStyles": {},
-                                          "abilities": {},
-                                          "children": [
-                                            {
-                                              "type": "expr",
-                                              "content": "AuthorEntity?.name"
-                                            }
-                                          ]
-                                        }
-                                      },
-                                      {
-                                        "type": "element",
-                                        "content": {
-                                          "elementType": "text",
-                                          "semanticType": "span",
-                                          "referencedStyles": {},
-                                          "abilities": {},
-                                          "children": [
-                                            {
-                                              "type": "expr",
-                                              "content": "AuthorEntity?.id"
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "itemValuePath": [
-                          "data"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "/author/Author1",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              },
-              "importDefinitions": {}
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
                     "minHeight": {
                       "type": "static",
                       "content": "100vh"
                     },
-                    "overflow": {
+                    "alignItems": {
                       "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
+                      "content": "center"
                     },
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
                     }
                   },
                   "children": [
@@ -2652,6 +3596,10 @@
                                     "referencedStyles": {},
                                     "abilities": {},
                                     "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
                                       "width": {
                                         "type": "static",
                                         "content": "100%"
@@ -2663,10 +3611,6 @@
                                       "flexDirection": {
                                         "type": "static",
                                         "content": "column"
-                                      },
-                                      "gap": {
-                                        "type": "static",
-                                        "content": "12px"
                                       }
                                     },
                                     "children": [
@@ -2707,8 +3651,9 @@
                             }
                           }
                         },
-                        "itemValuePath": [
-                          "data"
+                        "valuePath": [
+                          "data",
+                          "[0]"
                         ]
                       }
                     }
@@ -2741,25 +3686,404 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "elementType": "DataProvider",
+                        "dependency": {
+                          "type": "package",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntity"
+                          }
+                        },
+                        "entityKeyProperty": "id",
+                        "renderPropIdentifier": "AuthorEntity",
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "expr",
+                                              "content": "AuthorEntity?.name"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "expr",
+                                              "content": "AuthorEntity?.id"
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [
+                          "data",
+                          "[0]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "/author/Author1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              },
+              "importDefinitions": {}
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "elementType": "DataProvider",
+                        "dependency": {
+                          "type": "package",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
+                          "meta": {
+                            "namedImport": true
+                          }
+                        },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BlogEntity"
+                          }
+                        },
+                        "entityKeyProperty": "id",
+                        "renderPropIdentifier": "BlogEntity",
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "expr",
+                                              "content": "BlogEntity?.title"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "expr",
+                                              "content": "BlogEntity?.textarea"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "expr",
+                                              "content": "BlogEntity?.id"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "semanticType": "div",
+                                          "referencedStyles": {},
+                                          "style": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            },
+                                            "alignSelf": {
+                                              "type": "static",
+                                              "content": "stretch"
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "markdown-node",
+                                                "referencedStyles": {},
+                                                "attrs": {},
+                                                "style": {},
+                                                "children": [
+                                                  {
+                                                    "type": "expr",
+                                                    "content": "BlogEntity?.content"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "semanticType": "div",
+                                          "referencedStyles": {},
+                                          "style": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            },
+                                            "alignSelf": {
+                                              "type": "static",
+                                              "content": "stretch"
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "markdown-node",
+                                                "referencedStyles": {},
+                                                "attrs": {},
+                                                "style": {},
+                                                "children": [
+                                                  {
+                                                    "type": "expr",
+                                                    "content": "BlogEntity?.content_markdown"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [
+                          "data",
+                          "[0]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "/blog/Blog1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              },
+              "importDefinitions": {}
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -2798,6 +4122,10 @@
                                     "referencedStyles": {},
                                     "abilities": {},
                                     "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
                                       "width": {
                                         "type": "static",
                                         "content": "100%"
@@ -2809,10 +4137,6 @@
                                       "flexDirection": {
                                         "type": "static",
                                         "content": "column"
-                                      },
-                                      "gap": {
-                                        "type": "static",
-                                        "content": "12px"
                                       }
                                     },
                                     "children": [
@@ -2903,8 +4227,9 @@
                             }
                           }
                         },
-                        "itemValuePath": [
-                          "data"
+                        "valuePath": [
+                          "data",
+                          "[0]"
                         ]
                       }
                     }
@@ -2929,8 +4254,8 @@
   "components": {},
   "resources": {
     "items": {
-      "ba424577-03ce-4035-8fc8-33331d3c9636": {
-        "id": "ba424577-03ce-4035-8fc8-33331d3c9636",
+      "TQ_ydN8jzZ7_J": {
+        "id": "TQ_ydN8jzZ7_J",
         "name": "Home",
         "mappers": [
           "normalize"
@@ -2942,7 +4267,7 @@
           },
           "route": {
             "type": "static",
-            "content": "api/v1/content/Author"
+            "content": "api/v1/content/Book"
           }
         },
         "headers": {
@@ -2958,17 +4283,159 @@
           },
           "limit": {
             "type": "static",
-            "content": 100
+            "content": 5
           },
+          "page": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "page"
+            }
+          }
+        }
+      },
+      "TQ_y9MOE-8Vh7": {
+        "id": "TQ_y9MOE-8Vh7",
+        "name": "Author",
+        "mappers": [
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Author"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "hydrate": {
+            "type": "static",
+            "content": "2"
+          },
+          "filters": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "filters"
+            }
+          }
+        }
+      },
+      "TQ__IIZxRsGXr": {
+        "id": "TQ__IIZxRsGXr",
+        "name": "Blog-page-initial-props-TQ__I",
+        "mappers": [
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "limit": {
+            "type": "static",
+            "content": 10
+          },
+          "page": {
+            "type": "static",
+            "content": 0
+          },
+          "hydrate": {
+            "type": "static",
+            "content": "2"
+          }
+        }
+      },
+      "TQ_9_vvM5wfr0": {
+        "id": "TQ_9_vvM5wfr0",
+        "name": "Blog-page-initial-paths-TQ_9_",
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
           "page": {
             "type": "static",
             "content": 1
           }
         }
       },
-      "00249d9a-3c71-4470-b964-8042d71ad013": {
-        "id": "00249d9a-3c71-4470-b964-8042d71ad013",
-        "name": "Home1",
+      "TQ_sPKKe910pu": {
+        "id": "TQ_sPKKe910pu",
+        "name": "Blog-page-initial-props-TQ_sP",
+        "mappers": [
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "limit": {
+            "type": "static",
+            "content": 10
+          },
+          "page": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "page"
+            }
+          },
+          "hydrate": {
+            "type": "static",
+            "content": "2"
+          }
+        }
+      },
+      "TQ_TsFVdKrVOg": {
+        "id": "TQ_TsFVdKrVOg",
+        "name": "Blog_post-page-initial-props-TQ_Ts",
         "mappers": [
           "normalize"
         ],
@@ -2989,23 +4456,89 @@
           }
         },
         "params": {
+          "limit": {
+            "type": "static",
+            "content": 10
+          },
+          "page": {
+            "type": "static",
+            "content": 0
+          },
           "hydrate": {
             "type": "static",
             "content": "2"
+          }
+        }
+      },
+      "TQ_0VsB3HpwQA": {
+        "id": "TQ_0VsB3HpwQA",
+        "name": "Blog_post-page-initial-paths-TQ_0V",
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
           },
-          "limit": {
+          "route": {
             "type": "static",
-            "content": 100
-          },
+            "content": "api/v1/content/Blog_post"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
           "page": {
             "type": "static",
             "content": 1
           }
         }
       },
-      "7550f297-393b-4858-b51c-dd939069f884": {
-        "id": "7550f297-393b-4858-b51c-dd939069f884",
-        "name": "Author-page-initial-props-7550f",
+      "TQ_cWpJGmdUJw": {
+        "id": "TQ_cWpJGmdUJw",
+        "name": "Blog_post-page-initial-props-TQ_cW",
+        "mappers": [
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog_post"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "limit": {
+            "type": "static",
+            "content": 10
+          },
+          "page": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "page"
+            }
+          },
+          "hydrate": {
+            "type": "static",
+            "content": "2"
+          }
+        }
+      },
+      "TQ_Q4gZNGmBHl": {
+        "id": "TQ_Q4gZNGmBHl",
+        "name": "Author-page-initial-props-TQ_Q4",
         "mappers": [
           "normalize"
         ],
@@ -3040,9 +4573,9 @@
           }
         }
       },
-      "3c98ee9a-e86d-48bf-8a48-e8ae920adacf": {
-        "id": "3c98ee9a-e86d-48bf-8a48-e8ae920adacf",
-        "name": "Author-page-initial-paths-3c98e",
+      "TQ_BKQSJAz0CS": {
+        "id": "TQ_BKQSJAz0CS",
+        "name": "Author-page-initial-paths-TQ_BK",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3066,9 +4599,9 @@
           }
         }
       },
-      "a51429e4-0f51-4747-8fca-c23add3f3831": {
-        "id": "a51429e4-0f51-4747-8fca-c23add3f3831",
-        "name": "Author-page-initial-props-a5142",
+      "TQ_1BGTL1McMp": {
+        "id": "TQ_1BGTL1McMp",
+        "name": "Author-page-initial-props-TQ_1B",
         "mappers": [
           "normalize"
         ],
@@ -3097,7 +4630,7 @@
             "type": "dynamic",
             "content": {
               "referenceType": "prop",
-              "id": "start"
+              "id": "page"
             }
           },
           "hydrate": {
@@ -3106,9 +4639,9 @@
           }
         }
       },
-      "07273c01-ebeb-4f36-9a4d-5f3d3be019a3": {
-        "id": "07273c01-ebeb-4f36-9a4d-5f3d3be019a3",
-        "name": "Blog_post-page-initial-props-07273",
+      "TQ_Foa4a-F__v": {
+        "id": "TQ_Foa4a-F__v",
+        "name": "Book-page-initial-props-TQ_Fo",
         "mappers": [
           "normalize"
         ],
@@ -3119,7 +4652,7 @@
           },
           "route": {
             "type": "static",
-            "content": "api/v1/content/Blog_post"
+            "content": "api/v1/content/Book"
           }
         },
         "headers": {
@@ -3131,7 +4664,7 @@
         "params": {
           "limit": {
             "type": "static",
-            "content": 10
+            "content": 3
           },
           "page": {
             "type": "static",
@@ -3143,112 +4676,9 @@
           }
         }
       },
-      "b9cd852c-3057-42c0-a5aa-5645834cb572": {
-        "id": "b9cd852c-3057-42c0-a5aa-5645834cb572",
-        "name": "Blog_post-page-initial-paths-b9cd8",
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "api/v1/content/Blog_post"
-          }
-        },
-        "headers": {
-          "X-AUTH-TOKEN": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "page": {
-            "type": "static",
-            "content": 1
-          }
-        }
-      },
-      "94dda27d-87b5-405f-a38c-2a45cc55d39d": {
-        "id": "94dda27d-87b5-405f-a38c-2a45cc55d39d",
-        "name": "Blog_post-page-initial-props-94dda",
-        "mappers": [
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "api/v1/content/Blog_post"
-          }
-        },
-        "headers": {
-          "X-AUTH-TOKEN": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "limit": {
-            "type": "static",
-            "content": 10
-          },
-          "page": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "start"
-            }
-          },
-          "hydrate": {
-            "type": "static",
-            "content": "2"
-          }
-        }
-      },
-      "1bf28d81-95c2-43b8-bdba-c7e06f4e79da": {
-        "id": "1bf28d81-95c2-43b8-bdba-c7e06f4e79da",
-        "name": "Book-page-initial-props-1bf28",
-        "mappers": [
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "api/v1/content/Book"
-          }
-        },
-        "headers": {
-          "X-AUTH-TOKEN": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "limit": {
-            "type": "static",
-            "content": 10
-          },
-          "page": {
-            "type": "static",
-            "content": 0
-          },
-          "hydrate": {
-            "type": "static",
-            "content": "2"
-          }
-        }
-      },
-      "05077c45-c452-4fab-aa13-dcf10c8de4e6": {
-        "id": "05077c45-c452-4fab-aa13-dcf10c8de4e6",
-        "name": "Book-page-initial-paths-05077",
+      "TQ_vk9_FCBcVL": {
+        "id": "TQ_vk9_FCBcVL",
+        "name": "Book-page-initial-paths-TQ_vk",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3272,9 +4702,9 @@
           }
         }
       },
-      "6d696e0a-0533-4cf7-aeb2-98bb4ece2991": {
-        "id": "6d696e0a-0533-4cf7-aeb2-98bb4ece2991",
-        "name": "Book-page-initial-props-6d696",
+      "TQ_ASuuzJtu6O": {
+        "id": "TQ_ASuuzJtu6O",
+        "name": "Book-page-initial-props-TQ_AS",
         "mappers": [
           "normalize"
         ],
@@ -3297,13 +4727,13 @@
         "params": {
           "limit": {
             "type": "static",
-            "content": 10
+            "content": 3
           },
           "page": {
             "type": "dynamic",
             "content": {
               "referenceType": "prop",
-              "id": "start"
+              "id": "page"
             }
           },
           "hydrate": {
@@ -3312,9 +4742,68 @@
           }
         }
       },
-      "785cbe39-50ff-4f8a-a0c1-457cabf76efc": {
-        "id": "785cbe39-50ff-4f8a-a0c1-457cabf76efc",
-        "name": "Author-page-initial-paths-785cb",
+      "TQ_Rb_vNjV_hK": {
+        "id": "TQ_Rb_vNjV_hK",
+        "name": "Blog_post-page-initial-paths-TQ_Rb",
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog_post"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "filters": {
+            "type": "expr",
+            "content": "JSON.stringify({\n          ['id']: { type: 'equals', filter: params['id'] },\n        })"
+          }
+        }
+      },
+      "TQ_exGeeg_Vk7": {
+        "id": "TQ_exGeeg_Vk7",
+        "name": "Blog_post-page-initial-props-TQ_ex",
+        "mappers": [
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "api/v1/content/Blog_post"
+          }
+        },
+        "headers": {
+          "X-AUTH-TOKEN": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "hydrate": {
+            "type": "static",
+            "content": "2"
+          },
+          "filters": {
+            "type": "expr",
+            "content": "JSON.stringify({\n          ['id']: { type: 'equals', filter: params['id'] },\n        })"
+          }
+        }
+      },
+      "TQ_dZIo_rdJTf": {
+        "id": "TQ_dZIo_rdJTf",
+        "name": "Author-page-initial-paths-TQ_dZ",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3338,9 +4827,9 @@
           }
         }
       },
-      "e3d03d9a-9b71-43d2-a9e4-58442b981946": {
-        "id": "e3d03d9a-9b71-43d2-a9e4-58442b981946",
-        "name": "Author-page-initial-props-e3d03",
+      "TQ_0OZA_TtuBh": {
+        "id": "TQ_0OZA_TtuBh",
+        "name": "Author-page-initial-props-TQ_0O",
         "mappers": [
           "normalize"
         ],
@@ -3371,9 +4860,9 @@
           }
         }
       },
-      "82128c18-a107-418e-b2c9-a4b0207c7909": {
-        "id": "82128c18-a107-418e-b2c9-a4b0207c7909",
-        "name": "Blog_post-page-initial-paths-82128",
+      "TQ_sTfDyQ2348": {
+        "id": "TQ_sTfDyQ2348",
+        "name": "Blog-page-initial-paths-TQ_sT",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3381,7 +4870,7 @@
           },
           "route": {
             "type": "static",
-            "content": "api/v1/content/Blog_post"
+            "content": "api/v1/content/Blog"
           }
         },
         "headers": {
@@ -3397,9 +4886,9 @@
           }
         }
       },
-      "f00f4904-e00c-4408-937b-45af3033c33d": {
-        "id": "f00f4904-e00c-4408-937b-45af3033c33d",
-        "name": "Blog_post-page-initial-props-f00f4",
+      "TQ_rNrNH9W32R": {
+        "id": "TQ_rNrNH9W32R",
+        "name": "Blog-page-initial-props-TQ_rN",
         "mappers": [
           "normalize"
         ],
@@ -3410,7 +4899,7 @@
           },
           "route": {
             "type": "static",
-            "content": "api/v1/content/Blog_post"
+            "content": "api/v1/content/Blog"
           }
         },
         "headers": {
@@ -3430,9 +4919,9 @@
           }
         }
       },
-      "bc04ecbe-d500-4045-b95e-dceb4e2be223": {
-        "id": "bc04ecbe-d500-4045-b95e-dceb4e2be223",
-        "name": "Book-page-initial-paths-bc04e",
+      "TQ_xCOKcLE8eL": {
+        "id": "TQ_xCOKcLE8eL",
+        "name": "Book-page-initial-paths-TQ_xC",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3456,9 +4945,9 @@
           }
         }
       },
-      "6c14f8a7-554a-4d01-9cd5-80ed84812466": {
-        "id": "6c14f8a7-554a-4d01-9cd5-80ed84812466",
-        "name": "Book-page-initial-props-6c14f",
+      "TQ_5STf7FODvK": {
+        "id": "TQ_5STf7FODvK",
+        "name": "Book-page-initial-props-TQ_5S",
         "mappers": [
           "normalize"
         ],
@@ -3497,7 +4986,7 @@
         ],
         "dependency": {
           "type": "package",
-          "version": "github:teleporthq/teleport-cms-mappers#feat/flotiq-mapper",
+          "version": "latest",
           "path": "@teleporthq/cms-mappers",
           "meta": {
             "namedImport": true,
