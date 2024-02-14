@@ -37,6 +37,10 @@
         }
       }
     ],
+    "env": {
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN":""
+    },
     "meta": [
       {
         "name": "viewport",

@@ -37,6 +37,10 @@
         }
       }
     ],
+    "env": {
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN":""
+    },
     "meta": [
       {
         "name": "viewport",
@@ -487,9 +491,6 @@
                   "name": "BlogPostEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": [
-                    "data"
                   ]
                 },
                 "resource": {
@@ -557,9 +558,6 @@
                   "name": "BlogPostEntities",
                   "valuePath": [
                     "data"
-                  ],
-                  "itemValuePath": [
-                    "data"
                   ]
                 },
                 "resource": {
@@ -624,10 +622,7 @@
                 "exposeAs": {
                   "name": "BlogPostEntity",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": [
-                    "data"
+                    "data", "[0]"
                   ]
                 },
                 "resource": {
@@ -688,10 +683,7 @@
                 "exposeAs": {
                   "name": "AuthorEntity",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": [
-                    "data"
+                    "data", "[0]"
                   ]
                 },
                 "resource": {
@@ -725,9 +717,6 @@
                 "exposeAs": {
                   "name": "AuthorEntities",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": [
                     "data"
                   ]
                 },
@@ -796,9 +785,6 @@
                 "exposeAs": {
                   "name": "AuthorEntities",
                   "valuePath": [
-                    "data"
-                  ],
-                  "itemValuePath": [
                     "data"
                   ]
                 },
@@ -1113,8 +1099,8 @@
                                                           }
                                                         }
                                                       },
-                                                      "itemValuePath": [
-                                                        "data"
+                                                      "valuePath": [
+                                                        "data", "[0]"
                                                       ],
                                                       "resource": {
                                                         "id": "fa9e43b2-971f-4857-b714-00f37fd72030",
@@ -1449,8 +1435,8 @@
                             }
                           }
                         },
-                        "itemValuePath": [
-                          "data"
+                        "valuePath": [
+                          "data", "[0]"
                         ],
                         "resource": {
                           "id": "32e5f41d-46e7-4f3c-86b2-282b8e979362",
@@ -1701,8 +1687,8 @@
                             }
                           }
                         },
-                        "itemValuePath": [
-                          "data"
+                        "valuePath": [
+                          "data", "[0]"
                         ],
                         "resource": {
                           "id": "32e5f41d-46e7-4f3c-86b2-282b8e979362",
@@ -1964,8 +1950,8 @@
                             }
                           }
                         },
-                        "itemValuePath": [
-                          "data"
+                        "valuePath": [
+                          "data", "[0]"
                         ]
                       }
                     }
@@ -2124,7 +2110,7 @@
                             }
                           }
                         },
-                        "itemValuePath": [
+                        "valuePath": [
                           "data"
                         ]
                       }
@@ -2265,13 +2251,12 @@
                                                     "type": "element",
                                                     "content": {
                                                       "elementType": "text",
-                                                      "semanticType": "span",
                                                       "referencedStyles": {},
                                                       "abilities": {},
                                                       "children": [
                                                         {
                                                           "type": "expr",
-                                                          "content": "AuthorEntities?.name"
+                                                          "content": "AuthorEntities?.id"
                                                         }
                                                       ]
                                                     }

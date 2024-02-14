@@ -263,12 +263,11 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
             )
           }
 
-          if (usedResource.params?.length) {
+          if (
+            Object.keys(node.content.resource.params).length > 0 &&
+            Object.keys(usedResource.params).length > 0
+          ) {
             funcParams = 'req.query'
-          }
-
-          if (usedResource.body?.length) {
-            funcParams = 'req.body'
           }
 
           resourceImportVariable = StringUtils.dashCaseToCamelCase(

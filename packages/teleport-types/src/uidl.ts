@@ -191,8 +191,7 @@ export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
-    valuePath?: string[]
-    itemValuePath?: string[]
+    valuePath: string[]
   }
   resource:
     | {

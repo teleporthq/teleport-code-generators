@@ -187,8 +187,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
 export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
-    valuePath: optional(array(string())),
-    itemValuePath: optional(array(string())),
+    valuePath: withDefault([], array(string())),
   }),
   resource: union(
     object({
