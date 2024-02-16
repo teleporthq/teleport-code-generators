@@ -2074,6 +2074,17 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
+"@teleporthq/teleport-project-plugin-api-routes@^0.32.3":
+  version "0.32.3"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-project-plugin-api-routes/-/teleport-project-plugin-api-routes-0.32.3.tgz#37e1d795645b19afec0c60c0f87b034c79838ab8"
+  integrity sha512-ZicwcQ9uDEEgpm7MCloDm50STwm7uJJxwQB7QvnQo+WV0/oSLq7tDxS1XHuMbxglpbsDQn1yUe5oahIHiatW9Q==
+  dependencies:
+    "@babel/generator" "^7.5.5"
+    "@teleporthq/teleport-plugin-common" "^0.32.3"
+    "@teleporthq/teleport-postprocessor-prettier-js" "^0.32.3"
+    "@teleporthq/teleport-shared" "^0.32.3"
+    "@teleporthq/teleport-types" "^0.32.3"
+
 "@tootallnate/once@1":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
