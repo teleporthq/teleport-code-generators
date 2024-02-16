@@ -7,6 +7,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPropsAST } from './utils'
+import { join, relative } from 'path'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
@@ -45,11 +46,13 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resourceImportName = StringUtils.dashCaseToCamelCase(
         StringUtils.camelCaseToDashCase(usedResource.name + 'Resource')
       )
-      const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
 
       dependencies[resourceImportName] = {
-        path: importPath,
         type: 'local',
+        path: relative(
+          join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
+          join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
+        ),
       }
     }
 
@@ -58,17 +61,10 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resourceImportName = resource.name
     }
 
-    /*
-      itemValuePath exists only for details pages.
-    */
-    const isDetailsPage = 'itemValuePath' in uidl.outputOptions?.initialPropsData?.exposeAs
-
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsData,
-      isDetailsPage,
       resourceImportName,
-      resources.cache,
-      uidl.outputOptions.pagination
+      resources.cache
     )
 
     chunks.push({

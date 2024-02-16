@@ -326,32 +326,17 @@ const computeResponseObjectForExtractedResources = (
   return Object.keys(extractedResourceDeclerations).map((key) => {
     const extractedResource = extractedResources[key]
 
-    let responseMemberAST: types.Identifier | types.OptionalMemberExpression
-
-    if (extractedResource?.itemValuePath?.length) {
-      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-        key,
-        ...(extractedResource.itemValuePath || []),
-      ])
-    }
-
-    if (extractedResource?.valuePath?.length >= 0) {
-      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-        key,
-        ...(extractedResource.valuePath || []),
-      ])
-    }
+    const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+      key,
+      ...(extractedResource.valuePath || []),
+    ])
 
     if (!responseMemberAST) {
-      throw new Error(`Both itemValuePath and valuePath are missing.
+      throw new Error(`valuePath is missing.
 Please check the UIDL \n ${JSON.stringify(extractedResource, null, 2)}`)
     }
 
-    const dataWeNeedAccessorAST = extractedResource?.itemValuePath?.length
-      ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
-      : responseMemberAST
-
-    return types.objectProperty(types.identifier(key), dataWeNeedAccessorAST, false, false)
+    return types.objectProperty(types.identifier(key), responseMemberAST, false, false)
   })
 }
 
@@ -367,7 +352,7 @@ const computeUseEffectAST = (params: {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const { key, itemValuePath = [], valuePath = [] } = node.content
+  const { key, valuePath = [] } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
   let resourcePath: types.StringLiteral | types.TemplateLiteral = types.stringLiteral(
     `/api/${fileName}`
@@ -434,30 +419,14 @@ const computeUseEffectAST = (params: {
     ]
   )
 
-  let responseExpression: types.OptionalMemberExpression
-
-  if (node.type === 'cms-item') {
-    responseExpression = types.optionalMemberExpression(
-      ASTUtils.generateMemberExpressionASTFromPath([
-        'data',
-        ...itemValuePath,
-      ]) as types.OptionalMemberExpression,
-      types.numericLiteral(0),
-      true,
-      true
-    )
-  }
-
-  if (node.type === 'cms-list') {
-    responseExpression = ASTUtils.generateMemberExpressionASTFromPath([
-      'data',
-      ...valuePath,
-    ]) as types.OptionalMemberExpression
-  }
+  const responseExpression = ASTUtils.generateMemberExpressionASTFromPath([
+    'data',
+    ...valuePath,
+  ]) as types.OptionalMemberExpression
 
   const resourceAST = types.arrowFunctionExpression(
     [types.identifier('params')],
-    valuePath.length || itemValuePath.length >= 0
+    valuePath.length >= 0
       ? types.callExpression(types.memberExpression(fetchAST, types.identifier('then'), false), [
           types.arrowFunctionExpression([types.identifier('data')], responseExpression),
         ])

@@ -74,7 +74,6 @@ export interface ProjectPluginStructure {
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
-  projectResources?: Record<string, ProjectResource>
   strategy: ProjectStrategy
   rootFolder: GeneratedFolder
 }
@@ -111,11 +110,6 @@ export interface ComponentGenerator {
   addPostProcessor: (fn: PostProcessor) => void
 }
 
-export interface ProjectResource {
-  fileName: string
-  path: string
-}
-
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assets?: {
@@ -138,13 +132,19 @@ export interface GeneratorOptions {
     path: string
     importFile?: boolean
   }
-  projectResources?: Record<string, ProjectResource>
+  extractedResources: Record<
+    string,
+    {
+      fileName: string
+      fileType: FileType
+      path: string[]
+      content: string
+    }
+  >
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }
-  resources?: { items: UIDLResources['items']; cache: UIDLResources['cache'] } & {
-    path: ProjectStrategy['resources']['path']
-  }
+  resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

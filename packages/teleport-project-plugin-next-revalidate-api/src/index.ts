@@ -54,6 +54,7 @@ export class ProjectPluginRevalidateAPI implements ProjectPlugin {
         {
           skipValidation: true,
           skipNavlinkResolver: true,
+          extractedResources: {},
         }
       )
 

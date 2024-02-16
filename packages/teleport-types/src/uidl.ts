@@ -191,8 +191,7 @@ export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
-    valuePath?: string[]
-    itemValuePath?: string[]
+    valuePath: string[]
   }
   resource:
     | {
@@ -404,9 +403,8 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
   }
   renderPropIdentifier: string
-  valuePath?: string[]
+  valuePath: string[]
   paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
-  itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
 }
@@ -424,8 +422,7 @@ export interface UIDLCMSItemNodeContent {
     error?: UIDLElementNode
     loading?: UIDLElementNode
   }
-  valuePath?: string[]
-  itemValuePath?: string[]
+  valuePath: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
   entityKeyProperty?: string

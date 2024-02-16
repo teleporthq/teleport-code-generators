@@ -187,8 +187,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
 export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
-    valuePath: optional(array(string())),
-    itemValuePath: optional(array(string())),
+    valuePath: withDefault([], array(string())),
   }),
   resource: union(
     object({
@@ -795,7 +794,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     router: optional(lazy(() => dependencyDecoder)),
     dependency: optional(lazy(() => dependencyDecoder)),
     renderPropIdentifier: string(),
-    valuePath: optional(array(string())),
+    valuePath: withDefault([], array(string())),
     itemValuePath: optional(array(string())),
     resource: optional(uidlResourceLinkDecoder),
     initialData: optional(lazy(() => dyamicFunctionParam)),
@@ -819,7 +818,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     dependency: optional(lazy(() => dependencyDecoder)),
     renderPropIdentifier: string(),
     itemValuePath: optional(array(string())),
-    valuePath: optional(array(string())),
+    valuePath: withDefault([], array(string())),
     resource: optional(uidlResourceLinkDecoder),
     initialData: optional(lazy(() => dyamicFunctionParam)),
   }),

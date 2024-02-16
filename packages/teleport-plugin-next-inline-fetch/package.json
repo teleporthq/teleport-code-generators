@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-plugin-api-routes",
+  "name": "@teleporthq/teleport-plugin-next-inline-fetch",
   "version": "0.32.3",
-  "description": "A plugin for configuring teleportHQ projects using contexts",
+  "description": "A plugin for managing inlined data-fetching for cms-item and cms-list nodes.",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -24,10 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@babel/generator": "^7.5.5",
+    "@babel/types": "^7.5.5",
     "@teleporthq/teleport-plugin-common": "^0.32.3",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.3",
-    "@teleporthq/teleport-shared": "^0.32.3",
     "@teleporthq/teleport-types": "^0.32.3"
   }
 }

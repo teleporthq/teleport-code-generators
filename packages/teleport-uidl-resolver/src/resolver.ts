@@ -31,7 +31,7 @@ export default class Resolver {
     this.mapping = utils.mergeMappings(this.mapping, mapping)
   }
 
-  public resolveUIDL(input: ComponentUIDL, options: GeneratorOptions = {}) {
+  public resolveUIDL(input: ComponentUIDL, options: GeneratorOptions = { extractedResources: {} }) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
     const newOptions = {
       ...options,
@@ -72,7 +72,10 @@ export default class Resolver {
     return uidl
   }
 
-  public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
+  public resolveElement(
+    element: UIDLElement,
+    options: GeneratorOptions = { extractedResources: {} }
+  ) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
 
     const newOptions = {

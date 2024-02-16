@@ -37,6 +37,10 @@
         }
       }
     ],
+    "env": {
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN":""
+    },
     "meta": [
       {
         "name": "viewport",
@@ -498,10 +502,7 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "PostEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
-                    "data"
-                  ]
+                  "valuePath": ["data"]
                 },
                 "resource": {
                   "id": "5eefb342-b801-4911-98c8-70e5a369c086",
@@ -547,9 +548,8 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BookEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
-                    "data"
+                  "valuePath": [
+                    "data", "[0]"
                   ]
                 },
                 "resource": {
@@ -682,8 +682,7 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "PageEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
+                  "valuePath": [
                     "data"
                   ]
                 },
@@ -731,10 +730,7 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "Wp_navigationEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
-                    "data"
-                  ]
+                  "valuePath": ["data"]
                 },
                 "resource": {
                   "id": "832ccadf-8904-4907-a50f-3458447daaf1",
@@ -1210,8 +1206,7 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "Wp_template_partEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
+                  "valuePath": [
                     "data"
                   ]
                 },
@@ -1259,8 +1254,7 @@
               "initialPropsData": {
                 "exposeAs": {
                   "name": "Wp_blockEntity",
-                  "valuePath": [],
-                  "itemValuePath": [
+                  "valuePath": [
                     "data"
                   ]
                 },
