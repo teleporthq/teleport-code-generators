@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-nuxt",
-  "version": "0.32.3",
+  "version": "0.32.4",
   "description": "Project generator for a standard Nuxt.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,15 +24,15 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.32.3",
-    "@teleporthq/teleport-component-generator-vue": "^0.32.3",
-    "@teleporthq/teleport-plugin-css": "^0.32.3",
-    "@teleporthq/teleport-plugin-vue-head-config": "^0.32.3",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.3",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.3",
-    "@teleporthq/teleport-project-generator": "^0.32.3",
-    "@teleporthq/teleport-shared": "^0.32.3",
-    "@teleporthq/teleport-types": "^0.32.3"
+    "@teleporthq/teleport-component-generator": "^0.32.4",
+    "@teleporthq/teleport-component-generator-vue": "^0.32.4",
+    "@teleporthq/teleport-plugin-css": "^0.32.4",
+    "@teleporthq/teleport-plugin-vue-head-config": "^0.32.4",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.4",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.4",
+    "@teleporthq/teleport-project-generator": "^0.32.4",
+    "@teleporthq/teleport-shared": "^0.32.4",
+    "@teleporthq/teleport-types": "^0.32.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

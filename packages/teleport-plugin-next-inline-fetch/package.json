@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-inline-fetch",
-  "version": "0.32.3",
+  "version": "0.32.4",
   "description": "A plugin for managing inlined data-fetching for cms-item and cms-list nodes.",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.32.3",
-    "@teleporthq/teleport-types": "^0.32.3"
+    "@teleporthq/teleport-plugin-common": "^0.32.4",
+    "@teleporthq/teleport-types": "^0.32.4"
   }
 }
