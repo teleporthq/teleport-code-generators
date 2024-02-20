@@ -28,16 +28,23 @@ import { parseProjectJSON } from '../../src/parser'
 
 const uidl = component(
   'Repeat Component',
-  elementNode('container', {}, [
-    repeatNode(
-      elementNode('div', {}, [dynamicNode('local', 'item')]),
-      dynamicNode('prop', 'items'),
-      {
-        useIndex: true,
-      }
-    ),
-  ]),
-  { items: definition('array', ['hello', 'world']) },
+  elementNode(
+    'container',
+    { fields: { type: 'dynamic', content: { referenceType: 'prop', id: 'fields["bg Image"]' } } },
+    [
+      repeatNode(
+        elementNode('div', {}, [dynamicNode('local', 'item')]),
+        dynamicNode('prop', 'items'),
+        {
+          useIndex: true,
+        }
+      ),
+    ]
+  ),
+  {
+    items: definition('array', ['hello', 'world']),
+    fields: definition('object', { 'bg Image': 'test' }),
+  },
   { items: definition('array', ['hello', 'world']) }
 )
 

@@ -160,7 +160,12 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
         ) {
           if (styleRef.content.content.content.referenceType === 'prop') {
             const referencedProp = styleRef.content.content.content.id
-            if (!dynamicPathExistsInDefinitions(referencedProp, propKeys)) {
+            if (
+              !dynamicPathExistsInDefinitions(
+                referencedProp,
+                input.propDefinitions as ComponentUIDL['propDefinitions']
+              )
+            ) {
               const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions ${input.name}`
               errors.push(errorMsg)
               return
@@ -190,7 +195,12 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
-      if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
+      if (
+        !dynamicPathExistsInDefinitions(
+          node.content.id,
+          input.propDefinitions as ComponentUIDL['propDefinitions']
+        )
+      ) {
         const errorMsg = `\n "${node.content.id}" is used but not defined in ${
           input.name
         } component. Please add it in propDefinitions.
@@ -205,7 +215,12 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
-      if (!dynamicPathExistsInDefinitions(node.content.id, stateKeys)) {
+      if (
+        !dynamicPathExistsInDefinitions(
+          node.content.id,
+          input.stateDefinitions as ComponentUIDL['stateDefinitions']
+        )
+      ) {
         console.warn(
           `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
         )
@@ -218,7 +233,12 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
     }
 
     if (node.type === 'import') {
-      if (!dynamicPathExistsInDefinitions(node.content.id, importKeys)) {
+      if (
+        !dynamicPathExistsInDefinitions(
+          node.content.id,
+          input.importDefinitions as ComponentUIDL['importDefinitions']
+        )
+      ) {
         const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in importDefinitions`
         errors.push(errorMsg)
       }
@@ -251,16 +271,40 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
   return errors
 }
 
-const dynamicPathExistsInDefinitions = (path: string, defKeys: string[]) => {
-  if (!path.includes('.')) {
-    // prop/state is a scalar value, not a dot notation
-    return defKeys.includes(path)
-  }
+const dynamicPathExistsInDefinitions = (
+  path: string,
+  definitions: Record<string, unknown> = {}
+) => {
+  try {
+    if (!path) {
+      return false
+    }
 
-  // TODO: Expand validation logic to check if the path exists on the prop/state definition
-  // ex: if prop reference is `user.name`, we should check that prop type is object and has a valid field name
-  const rootIdentifier = path.split('.')[0]
-  return defKeys.includes(rootIdentifier)
+    // Splits the path considering the dot and bracket notation
+    const pathKeys = path.split(/\.|\[\s*['"]?(.+?)['"]?\s*\]/).filter(Boolean)
+    const parentKey = definitions[pathKeys[0]] as Record<string, unknown>
+
+    if (parentKey?.type !== 'object' || pathKeys.length === 1) {
+      return !!parentKey
+    }
+
+    // Checks if the path exists on the prop/state definition
+    // ex: if prop reference is `user.name`, we should check that prop has a valid field name
+    const remainingKeys = pathKeys.slice(1)
+    let currentObj = (parentKey?.defaultValue || {}) as Record<string, unknown>
+
+    for (const key of remainingKeys) {
+      if (!(key in currentObj)) {
+        return false
+      }
+
+      currentObj = currentObj[key] as Record<string, unknown>
+    }
+
+    return true
+  } catch (err) {
+    return false
+  }
 }
 
 // A projectUIDL must contain "route" key

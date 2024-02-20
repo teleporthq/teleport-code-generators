@@ -265,6 +265,14 @@
         "items": {
           "type": "array",
           "defaultValue": []
+        },
+        "hero": {
+          "type": "object",
+          "defaultValue": {
+            "bg Image": {
+              "src": "test"
+            }
+          }
         }
       },
       "stateDefinitions": {
@@ -287,6 +295,13 @@
               "content": {
                 "referenceType": "prop",
                 "id": "title"
+              }
+            },
+            "bgImage": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "hero['bg Image'].src"
               }
             }
           },
