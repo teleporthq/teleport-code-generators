@@ -163,7 +163,8 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
             if (
               !dynamicPathExistsInDefinitions(
                 referencedProp,
-                input.propDefinitions as ComponentUIDL['propDefinitions']
+                input.propDefinitions as ComponentUIDL['propDefinitions'],
+                'prop'
               )
             ) {
               const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions ${input.name}`
@@ -198,7 +199,8 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       if (
         !dynamicPathExistsInDefinitions(
           node.content.id,
-          input.propDefinitions as ComponentUIDL['propDefinitions']
+          input.propDefinitions as ComponentUIDL['propDefinitions'],
+          'prop'
         )
       ) {
         const errorMsg = `\n "${node.content.id}" is used but not defined in ${
@@ -218,7 +220,8 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
       if (
         !dynamicPathExistsInDefinitions(
           node.content.id,
-          input.stateDefinitions as ComponentUIDL['stateDefinitions']
+          input.stateDefinitions as ComponentUIDL['stateDefinitions'],
+          'state'
         )
       ) {
         console.warn(
@@ -236,7 +239,8 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
       if (
         !dynamicPathExistsInDefinitions(
           node.content.id,
-          input.importDefinitions as ComponentUIDL['importDefinitions']
+          input.importDefinitions as ComponentUIDL['importDefinitions'],
+          'import'
         )
       ) {
         const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in importDefinitions`
@@ -273,38 +277,38 @@ Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, n
 
 const dynamicPathExistsInDefinitions = (
   path: string,
-  definitions: Record<string, unknown> = {}
+  definitions: Record<string, unknown> = {},
+  type: 'prop' | 'state' | 'import'
 ) => {
-  try {
-    if (!path) {
+  if (!path) {
+    return false
+  }
+
+  // Extract the keys from the path string considering both dot and bracket notation
+  const pathKeys = path.split(/\.|\[\s*['"]?(.+?)['"]?\s*\]/).filter(Boolean)
+
+  // Get definition values of prop/state/import definitions
+  let obj = Object.keys(definitions).reduce((acc, key) => {
+    acc[key] =
+      type === 'import'
+        ? definitions[key]
+        : (definitions[key] as Record<string, unknown>).defaultValue
+
+    return acc
+  }, {} as Record<string, unknown>)
+
+  for (const key of pathKeys) {
+    // Check if the key exists in the current object
+    // NOTE: using 'key in obj' instead of 'obj[key]' is important to avoid returning 'false' when path exists, but value is empty string/undefined/null
+    if (!(key in obj)) {
       return false
     }
 
-    // Splits the path considering the dot and bracket notation
-    const pathKeys = path.split(/\.|\[\s*['"]?(.+?)['"]?\s*\]/).filter(Boolean)
-    const parentKey = definitions[pathKeys[0]] as Record<string, unknown>
-
-    if (parentKey?.type !== 'object' || pathKeys.length === 1) {
-      return !!parentKey
-    }
-
-    // Checks if the path exists on the prop/state definition
-    // ex: if prop reference is `user.name`, we should check that prop has a valid field name
-    const remainingKeys = pathKeys.slice(1)
-    let currentObj = (parentKey?.defaultValue || {}) as Record<string, unknown>
-
-    for (const key of remainingKeys) {
-      if (!(key in currentObj)) {
-        return false
-      }
-
-      currentObj = currentObj[key] as Record<string, unknown>
-    }
-
-    return true
-  } catch (err) {
-    return false
+    // Move to the next nested object
+    obj = obj[key] as Record<string, unknown>
   }
+
+  return true
 }
 
 // A projectUIDL must contain "route" key
