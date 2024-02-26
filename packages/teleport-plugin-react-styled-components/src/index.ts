@@ -273,6 +273,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           propsReferred,
           componentStyleReferences,
           projectStyleReferences,
+          dependency: element.dependency,
         }),
       }
       chunks.push(code)

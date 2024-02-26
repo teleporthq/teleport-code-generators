@@ -4,6 +4,7 @@ import {
   UIDLStyleValue,
   UIDLStyleSetDefinition,
   PluginStyledComponent,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 import { componentVariantPropPrefix } from './constants'
 
@@ -14,6 +15,7 @@ export const generateStyledComponent = (params: {
   propsReferred: Set<string>
   componentStyleReferences: Set<string>
   projectStyleReferences: Set<string>
+  dependency?: UIDLDependency
 }) => {
   const {
     name,
@@ -22,6 +24,7 @@ export const generateStyledComponent = (params: {
     propsReferred,
     componentStyleReferences,
     projectStyleReferences,
+    dependency,
   } = params
   let styleExpressions: types.ObjectExpression | types.ArrowFunctionExpression = styles
   const expressionArguments: Array<
@@ -57,7 +60,11 @@ export const generateStyledComponent = (params: {
     types.variableDeclarator(
       types.identifier(name),
       types.callExpression(
-        types.callExpression(types.identifier('styled'), [types.stringLiteral(elementType)]),
+        types.callExpression(types.identifier('styled'), [
+          dependency === undefined
+            ? types.stringLiteral(elementType)
+            : types.identifier(elementType),
+        ]),
         expressionArguments.length > 0 ? expressionArguments : [types.objectExpression([])]
       )
     ),

@@ -11,17 +11,19 @@ const NODE_MAPPER: Record<
   SUPPORTED_PROJECT_TYPES,
   Promise<(content: unknown, options: unknown) => string>
 > = {
-  html: import('hast-util-to-html').then((mod) => mod.toHtml),
-  jsx: import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
   'teleport-project-html': import('hast-util-to-html').then((mod) => mod.toHtml),
+  'teleport-project-angular': import('hast-util-to-html').then((mod) => mod.toHtml),
+  'teleport-project-vue': import('hast-util-to-html').then((mod) => mod.toHtml),
+  'teleport-project-nuxt': import('hast-util-to-html').then((mod) => mod.toHtml),
   'teleport-project-react': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
   'teleport-project-next': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
 }
 
 const COMPONENT_CHUNK_NAMES: Record<SUPPORTED_PROJECT_TYPES, string> = {
-  html: 'html-chunk',
-  jsx: 'jsx-component',
   'teleport-project-html': 'html-chunk',
+  'teleport-project-angular': 'template-chunk',
+  'teleport-project-vue': 'template-chunk',
+  'teleport-project-nuxt': 'template-chunk',
   'teleport-project-next': 'jsx-component',
   'teleport-project-react': 'jsx-component',
 }
@@ -56,7 +58,12 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
         })
         const content = hastToJsxOrHtml(hastNodes, { wrapper: 'fragment' })
 
-        if (projectType === 'teleport-project-html' || projectType === 'html') {
+        if (
+          projectType === 'teleport-project-html' ||
+          projectType === 'teleport-project-angular' ||
+          projectType === 'teleport-project-vue' ||
+          projectType === 'teleport-project-nuxt'
+        ) {
           const node = compontnChunk.meta.nodesLookup[key] as HastNode
           if (!node) {
             return
