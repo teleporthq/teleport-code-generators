@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-styled-components",
-  "version": "0.32.4",
+  "version": "0.32.5",
   "description": "A plugin for injecting the styles through styled-components inside React components",
   "author": "teleportHQ",
   "license": "MIT",
