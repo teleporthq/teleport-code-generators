@@ -106,6 +106,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
               StringUtils.removeIllegalCharacters(node.content.resource.name)
             )
           )
+          dependencies[node.content.resource.name] = node.content.resource.dependency
         }
 
         const extractedResource = types.variableDeclaration('const', [
