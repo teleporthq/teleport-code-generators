@@ -8,7 +8,17 @@
     "items": {
       "type": "array",
       "defaultValue": []
+    },
+    "fields": {
+      "type": "object",
+      "defaultValue": {
+        "custom name": {
+          "bgImage": [{"src": "some url"}]
+        },
+        "alt": "some text"
+      }
     }
+ 
   },
   "stateDefinitions": {
     "isVisible": {
@@ -48,6 +58,13 @@
                 "content": {
                   "referenceType": "prop",
                   "id": "header"
+                }
+              },
+              {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "fields['custom name']['bgImage'][0].src"
                 }
               },
               {
