@@ -399,6 +399,7 @@ export interface VercelDeployResponse {
   url: string
   alias: string[]
   readyState?: string
+  passwordProtection?: string
 }
 
 export interface VercelDeleteProject {
