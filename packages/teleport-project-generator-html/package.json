@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-html",
-  "version": "0.32.4",
+  "version": "0.32.7",
   "description": "Project generator for generate plain html files",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,11 +24,11 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.32.4",
-    "@teleporthq/teleport-component-generator-html": "^0.32.4",
-    "@teleporthq/teleport-plugin-css": "^0.32.4",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.4",
-    "@teleporthq/teleport-project-generator": "^0.32.4",
+    "@teleporthq/teleport-component-generator": "^0.32.7",
+    "@teleporthq/teleport-component-generator-html": "^0.32.7",
+    "@teleporthq/teleport-plugin-css": "^0.32.7",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.7",
+    "@teleporthq/teleport-project-generator": "^0.32.7",
     "cheerio": "^1.0.0-rc.12",
     "path-browserify": "^1.0.1"
   }
