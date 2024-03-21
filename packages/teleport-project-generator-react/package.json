@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-react",
-  "version": "0.32.7",
+  "version": "0.32.8",
   "description": "Project generator using React and React-Router, on top of a standard create-react-app structure",
   "author": "teleportHQ",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "@teleporthq/teleport-plugin-import-statements": "^0.32.7",
     "@teleporthq/teleport-plugin-jsx-head-config": "^0.32.7",
     "@teleporthq/teleport-plugin-react-app-routing": "^0.32.7",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.7",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.32.8",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.7",
     "@teleporthq/teleport-project-generator": "^0.32.7",
     "@teleporthq/teleport-types": "^0.32.7",
