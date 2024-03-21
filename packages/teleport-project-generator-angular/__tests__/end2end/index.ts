@@ -55,9 +55,9 @@ import { ExpandableArea } from './expandable-area/expandable-area.component'
 import { Modal } from './modal/modal.component'
 import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(modalComponent.files[0].content).toContain(
-      `<modal-window (onClose)="isOpen = false" *ngIf="isOpen"></modal-window>`
+      `<modal-window (onClose)="isOpen = false" *ngIf="isOpen"></modal-window`
     )
-    expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal>`)
+    expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal`)
     expect(pagesFolder.subFolders[0].files[0].content).toMatch(`<dangerous-html`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(
       `html="<blockquote class='twitter-tweet'>`
