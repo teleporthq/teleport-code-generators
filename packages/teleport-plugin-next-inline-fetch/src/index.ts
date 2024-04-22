@@ -147,22 +147,11 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
           propKey,
           ...(node.content.valuePath || []),
         ])
-        const notFoundAST = types.ifStatement(
-          types.unaryExpression('!', responseMemberAST),
-          types.blockStatement([
-            types.returnStatement(
-              types.objectExpression([
-                types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
-              ])
-            ),
-          ])
-        )
 
         if (getStaticPropsChunk === undefined) {
           const tryBlock = types.tryStatement(
             types.blockStatement([
               extractedResource,
-              notFoundAST,
               types.returnStatement(
                 types.objectExpression([
                   types.objectProperty(
@@ -185,7 +174,8 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
               types.blockStatement([
                 types.returnStatement(
                   types.objectExpression([
-                    types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+                    types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                    types.objectProperty(types.identifier('revalidate'), types.numericLiteral(60)),
                   ])
                 ),
               ])
@@ -222,7 +212,7 @@ export const createNextInlineFetchPlugin: ComponentPluginFactory<{}> = () => {
             throw new Error(`Try block not found for getStaticProps`)
           }
 
-          tryBlock.block.body.unshift(extractedResource, notFoundAST)
+          tryBlock.block.body.unshift(extractedResource)
 
           const returnStatement: types.ReturnStatement = tryBlock.block.body.find(
             (subNode) => subNode.type === 'ReturnStatement'
