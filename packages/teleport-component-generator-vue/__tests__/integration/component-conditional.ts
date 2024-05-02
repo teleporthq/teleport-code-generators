@@ -34,7 +34,7 @@ describe('Component with conditional node type', () => {
     const result = await vueGenerator.generateComponent(uidl)
     const code = result.files[0].content
 
-    expect(code).toContain('<span v-if="isVisible">Now you see me!</span')
+    expect(code).toContain('<span v-if="isVisible">Now you see me!</span>')
   })
   it('renders code with !condition if value on state is false', async () => {
     const result = await vueGenerator.generateComponent(uidl)

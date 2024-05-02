@@ -105,9 +105,9 @@ describe('Meta tags from globals', () => {
     const pages = files.filter((file) => file.fileType === 'html')
 
     pages.forEach((page) => {
-      expect(page.content).toContain('charset="utf-8" />')
-      expect(page.content).toContain('name="viewport"')
-      expect(page.content).toContain('property="twitter:card"')
+      expect(page.content).toContain('<meta charset="utf-8"')
+      expect(page.content).toContain('<meta name="viewport"')
+      expect(page.content).toContain('<meta property="twitter:card"')
     })
   })
 })

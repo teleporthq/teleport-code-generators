@@ -3,14 +3,14 @@ import processor from '../src'
 describe('prettier html', () => {
   it('formats only the html chunk', () => {
     const inputChunks = {
-      html: `<div><span >Format me!</span>
+      html: `<div><span >Format me!</span> 
   </div>`,
       js: `import React from "react"; import {Link} from "react-router"`,
     }
 
     const result = processor(inputChunks)
 
-    expect(result.html).toBe('<div><span>Format me!</span> </div>\n')
+    expect(result.html).toBe('<div><span>Format me!</span></div>\n')
     expect(result.js).toBe(inputChunks.js)
   })
 
