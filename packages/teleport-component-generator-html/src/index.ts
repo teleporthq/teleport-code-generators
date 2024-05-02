@@ -1,7 +1,7 @@
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { createHTMLBasePlugin } from '@teleporthq/teleport-plugin-html-base-component'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements-html'
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
 import {
   HTMLComponentGeneratorInstance,
   HTMLComponentGenerator,
@@ -19,12 +19,17 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   mappings = [],
   plugins = [],
   postprocessors = [],
+  strictHtmlWhitespaceSensitivity = false,
 }: GeneratorFactoryParams = {}): HTMLComponentGenerator => {
   const generator = createComponentGenerator()
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => resolver.addMapping(mapping))
+
+  const prettierHTML = createPrettierHTMLPostProcessor({
+    strictHtmlWhitespaceSensitivity,
+  })
 
   Object.defineProperty(generator, 'addExternalComponents', {
     value: (params: {

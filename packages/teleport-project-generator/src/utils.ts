@@ -564,7 +564,14 @@ export const bootstrapGenerator = (
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
   },
-  style?: StyleVariation
+  style?: StyleVariation,
+  strictHtmlWhitespaceSensitivity?: boolean
 ): ComponentGenerator => {
-  return generator({ plugins, postprocessors, mappings, ...(style && { variation: style }) })
+  return generator({
+    plugins,
+    postprocessors,
+    mappings,
+    ...(style && { variation: style }),
+    strictHtmlWhitespaceSensitivity,
+  })
 }

@@ -4,19 +4,22 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
 } from '@teleporthq/teleport-types'
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
 import { load } from 'cheerio'
 import { relative, join } from 'path'
 
 interface ProjectPluginCloneGlobalsProps {
   excludeGlobalsFromComponents?: boolean
+  strictHtmlWhitespaceSensitivity?: boolean
 }
 
 class ProjectPluginCloneGlobals implements ProjectPlugin {
   private excludeGlobalsFromComponents: boolean
+  private strictHtmlWhitespaceSensitivity: boolean
 
   constructor(config: ProjectPluginCloneGlobalsProps = {}) {
     this.excludeGlobalsFromComponents = config.excludeGlobalsFromComponents || false
+    this.strictHtmlWhitespaceSensitivity = config.strictHtmlWhitespaceSensitivity || false
   }
 
   async runBefore(structure: ProjectPluginStructure) {
@@ -30,6 +33,9 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
       return structure
     }
 
+    const prettierHTML = createPrettierHTMLPostProcessor({
+      strictHtmlWhitespaceSensitivity: this.strictHtmlWhitespaceSensitivity,
+    })
     const parsedEntry = (await import('cheerio').then((mod) => mod.load))(entryFile.content)
     /* Script tags that are attached to the body, example teleport-custom-scripts from studio */
     const scriptTagsFromRootHead = parsedEntry('head').find('script').toString()

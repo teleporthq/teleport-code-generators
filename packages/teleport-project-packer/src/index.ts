@@ -17,6 +17,7 @@ export interface PackerFactoryParams {
   template?: GeneratedFolder
   remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
+  strictHtmlWhitespaceSensitivity?: boolean
 }
 
 export type PackerFactory = (params?: PackerFactoryParams) => {
@@ -86,7 +87,12 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     })
     const assetsPath = packGenerator.getAssetsPath()
 
-    const outputFolder = await packGenerator.generateProject(definedProjectUIDL, templateFolder)
+    const outputFolder = await packGenerator.generateProject(
+      definedProjectUIDL,
+      templateFolder,
+      {},
+      packParams?.strictHtmlWhitespaceSensitivity || false
+    )
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 

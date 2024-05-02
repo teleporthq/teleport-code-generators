@@ -8,17 +8,20 @@ import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/tele
 interface PostProcessorFactoryOptions {
   fileType?: string
   formatOptions?: PrettierFormatOptions
+  strictHtmlWhitespaceSensitivity?: boolean
 }
 
 export const createPrettierHTMLPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
   const fileType = options.fileType || FileType.HTML
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
+  const htmlWhitespaceSensitivity =
+    options?.strictHtmlWhitespaceSensitivity === true ? 'strict' : 'ignore'
 
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,
-        htmlWhitespaceSensitivity: 'ignore',
+        htmlWhitespaceSensitivity,
         plugins: [parserHTML],
         parser: 'html',
       })

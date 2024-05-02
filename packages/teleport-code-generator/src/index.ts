@@ -120,6 +120,7 @@ export const packProject: PackProjectFunction = async (
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
     excludeGlobalsFromHTMLComponents = false,
+    strictHtmlWhitespaceSensitivity = true,
   }
 ) => {
   const packer = createProjectPacker()
@@ -145,6 +146,7 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(
       new ProjectPluginCloneGlobals({
         excludeGlobalsFromComponents: excludeGlobalsFromHTMLComponents,
+        strictHtmlWhitespaceSensitivity,
       })
     )
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
@@ -186,7 +188,7 @@ export const packProject: PackProjectFunction = async (
     packer.setPublisher(projectPublisher)
   }
 
-  return packer.pack(projectUIDL)
+  return packer.pack(projectUIDL, { strictHtmlWhitespaceSensitivity })
 }
 
 export const generateComponent: GenerateComponentFunction = async (
