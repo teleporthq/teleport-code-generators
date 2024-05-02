@@ -156,7 +156,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
   public async generateProject(
     input: Record<string, unknown>,
     template: GeneratedFolder = DEFAULT_TEMPLATE,
-    mapping: Mapping = {}
+    mapping: Mapping = {},
+    strictHtmlWhitespaceSensitivity: boolean = false
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
@@ -197,22 +198,35 @@ export class ProjectGenerator implements ProjectGeneratorType {
       inMemoryFilesMap = runBeforeResult.files
 
       if (this.strategy.components?.generator) {
-        this.componentGenerator = bootstrapGenerator(this.strategy.components, this.strategy.style)
+        this.componentGenerator = bootstrapGenerator(
+          this.strategy.components,
+          this.strategy.style,
+          strictHtmlWhitespaceSensitivity
+        )
       }
 
       if (this.strategy.pages?.generator) {
-        this.pageGenerator = bootstrapGenerator(this.strategy.pages, this.strategy.style)
+        this.pageGenerator = bootstrapGenerator(
+          this.strategy.pages,
+          this.strategy.style,
+          strictHtmlWhitespaceSensitivity
+        )
       }
 
       if (this.strategy.projectStyleSheet?.generator) {
         this.styleSheetGenerator = bootstrapGenerator(
           this.strategy.projectStyleSheet,
-          this.strategy.style
+          this.strategy.style,
+          strictHtmlWhitespaceSensitivity
         )
       }
 
       if (this.strategy.router?.generator) {
-        this.routerGenerator = bootstrapGenerator(this.strategy.router, this.strategy.style)
+        this.routerGenerator = bootstrapGenerator(
+          this.strategy.router,
+          this.strategy.style,
+          strictHtmlWhitespaceSensitivity
+        )
       }
     } catch (error) {
       console.trace(error)

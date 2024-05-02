@@ -179,7 +179,8 @@ export interface ProjectGenerator {
   generateProject: (
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
-    mapping?: Mapping
+    mapping?: Mapping,
+    strictHtmlWhitespaceSensitivity?: boolean
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string[]
@@ -194,6 +195,7 @@ export interface GeneratorFactoryParams {
   plugins?: ComponentPlugin[]
   postprocessors?: PostProcessor[]
   variation?: StyleVariation
+  strictHtmlWhitespaceSensitivity?: boolean
 }
 
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
@@ -482,6 +484,7 @@ export interface PackerOptions {
   plugins?: ProjectPlugin[]
   assetsFolder?: string[]
   excludeGlobalsFromHTMLComponents?: boolean
+  strictHtmlWhitespaceSensitivity?: boolean
 }
 
 export interface GenerateOptions {
