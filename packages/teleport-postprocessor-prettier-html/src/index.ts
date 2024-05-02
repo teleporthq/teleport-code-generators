@@ -18,7 +18,7 @@ export const createPrettierHTMLPostProcessor = (options: PostProcessorFactoryOpt
     if (codeChunks[fileType]) {
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,
-        htmlWhitespaceSensitivity: 'strict',
+        htmlWhitespaceSensitivity: 'ignore',
         plugins: [parserHTML],
         parser: 'html',
       })
