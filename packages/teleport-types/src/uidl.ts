@@ -320,6 +320,11 @@ export interface UIDLStaticValue {
   content: string | number | boolean | unknown[] // unknown[] for data sources
 }
 
+export interface UIDLNamedSlot {
+  type: 'named-slot'
+  content: UIDLElementNode
+}
+
 export interface UIDLRawValue {
   type: 'raw'
   content: string
@@ -453,7 +458,13 @@ export interface UIDLRepeatNode {
 
 export interface UIDLRepeatContent {
   node: UIDLElementNode
-  dataSource: UIDLAttributeValue
+  dataSource:
+    | UIDLExpressionValue
+    | UIDLDynamicReference
+    | UIDLStaticValue
+    | UIDLImportReference
+    | UIDLComponentStyleReference
+    | UIDLRawValue
   meta?: UIDLRepeatMeta
 }
 
@@ -541,6 +552,7 @@ export type UIDLAttributeValue =
   | UIDLImportReference
   | UIDLComponentStyleReference
   | UIDLRawValue
+  | UIDLNamedSlot
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
@@ -558,7 +570,13 @@ export interface UIDLImportReference {
 export interface UIDLURLLinkNode {
   type: 'url'
   content: {
-    url: UIDLAttributeValue
+    url:
+      | UIDLExpressionValue
+      | UIDLDynamicReference
+      | UIDLStaticValue
+      | UIDLImportReference
+      | UIDLComponentStyleReference
+      | UIDLRawValue
     newTab: boolean
   }
 }
@@ -576,7 +594,13 @@ export interface UIDLSectionLinkNode {
 export interface UIDLNavLinkNode {
   type: 'navlink'
   content: {
-    routeName: UIDLAttributeValue
+    routeName:
+      | UIDLExpressionValue
+      | UIDLDynamicReference
+      | UIDLStaticValue
+      | UIDLImportReference
+      | UIDLComponentStyleReference
+      | UIDLRawValue
   }
 }
 

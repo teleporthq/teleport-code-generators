@@ -282,7 +282,11 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
     const parentElement = parentNode.type === 'element' ? parentNode.content : null
 
     if (parentElement && parentElement.attrs) {
-      repeatContent.dataSource = parentElement.attrs[nodeDataSourceAttr]
+      const attr = parentElement.attrs?.[nodeDataSourceAttr]
+      if (attr.type === 'named-slot') {
+        throw new Error(`Named slots are not supported in the repeat node: ${nodeDataSourceAttr}`)
+      }
+      repeatContent.dataSource = attr
       // remove original attribute so it is not added as a static/dynamic value on the node
       delete parentElement.attrs[nodeDataSourceAttr]
     }

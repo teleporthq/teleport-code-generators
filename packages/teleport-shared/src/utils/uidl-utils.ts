@@ -22,6 +22,7 @@ import {
   UIDLRootComponent,
   UIDLResourceItem,
   GeneratorOptions,
+  UIDLNamedSlot,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
 import { StringUtils } from '..'
@@ -202,7 +203,12 @@ export const traverseNodes = (
       const { attrs, children, style, abilities, referencedStyles } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
-          traverseNodes(attrs[attrKey], fn, node)
+          const attr = attrs[attrKey]
+          if (attr.type === 'named-slot') {
+            traverseNodes(attr.content, fn, node)
+          } else {
+            traverseNodes(attr, fn, node)
+          }
         })
       }
 
@@ -388,9 +394,10 @@ export const traverseResources = (
 const traverseStyleObject = (style: UIDLStyleDefinitions) => {
   Object.keys(style).forEach((styleKey) => {
     const styleValue = style[styleKey]
-    // TODO: cross-check the support for the strings as content for styles
     if (styleValue.type !== 'static' && styleValue.type !== 'dynamic') {
-      throw new Error(`We support only 'static' and 'dynamic' content for styles`)
+      throw new Error(`We support only 'static' and 'dynamic' content for styles \n
+        Received \n
+        ${JSON.stringify(styleValue, null, 2)}`)
     }
   })
 }
@@ -766,7 +773,8 @@ export const transformStylesAssignmentsToJson = (
 
 export const transformAttributesAssignmentsToJson = (
   attributesObject: Record<string, unknown>,
-  isLocalComponent = false
+  isLocalComponent = false,
+  elementNodeParser?: (element: Record<string, unknown>) => UIDLElementNode
 ): Record<string, UIDLAttributeValue> => {
   const newAttrObject: Record<string, UIDLAttributeValue> = {}
 
@@ -784,47 +792,66 @@ export const transformAttributesAssignmentsToJson = (
     }
 
     if (!Array.isArray(attributeContent) && entityType === 'object') {
-      // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as UIDLAttributeValue
-      if (['static', 'import', 'raw', 'expr'].indexOf(type as string) !== -1) {
-        const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
-        acc[propKey] = attributeContent as UIDLAttributeValue
-        return acc
-      }
 
-      if (type === 'comp-style') {
-        acc[key] = {
-          type: 'comp-style',
-          content: StringUtils.createStateOrPropStoringValue(
-            (attributeContent as UIDLComponentStyleReference).content
-          ),
+      switch (type) {
+        case 'import':
+        case 'static':
+        case 'raw':
+        case 'expr': {
+          const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+          acc[propKey] = attributeContent as UIDLAttributeValue
+          return acc
         }
-        return acc
-      }
 
-      const { content } = attributeContent as UIDLDynamicReference
-      if (type === 'dynamic') {
-        if (['state', 'prop'].includes(content?.referenceType)) {
+        case 'comp-style': {
           acc[key] = {
-            type,
-            content: {
-              ...content,
-              id: StringUtils.createStateOrPropStoringValue(content.id),
-            },
+            type: 'comp-style',
+            content: StringUtils.createStateOrPropStoringValue(
+              (attributeContent as UIDLComponentStyleReference).content
+            ),
           }
-        } else {
-          acc[key] = attributeContent as UIDLAttributeValue
+          return acc
         }
-        return acc
-      }
 
-      throw new Error(
-        `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
-          attributeContent,
-          null,
-          2
-        )}`
-      )
+        case 'dynamic': {
+          const { content } = attributeContent as UIDLDynamicReference
+          if (['state', 'prop'].includes(content?.referenceType)) {
+            acc[key] = {
+              type,
+              content: {
+                ...content,
+                id: StringUtils.createStateOrPropStoringValue(content.id),
+              },
+            }
+          } else {
+            acc[key] = attributeContent as UIDLAttributeValue
+          }
+          return acc
+        }
+        case 'named-slot': {
+          if (elementNodeParser !== undefined) {
+            acc[key] = {
+              type: 'named-slot',
+              content: elementNodeParser(
+                (attributeContent as UIDLNamedSlot).content as unknown as Record<string, unknown>
+              ),
+            }
+          }
+
+          return acc
+        }
+
+        default: {
+          throw new Error(
+            `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+              attributeContent,
+              null,
+              2
+            )}`
+          )
+        }
+      }
     }
   }, newAttrObject)
 

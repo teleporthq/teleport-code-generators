@@ -26,7 +26,6 @@ import {
   UIDLDependency,
   UIDLStyleDefinitions,
   UIDLStyleValue,
-  UIDLAttributeValue,
   UIDLEventHandlerStatement,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
@@ -93,6 +92,8 @@ import {
   VUIDLStateValueDetails,
   VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
+  VUIDLNamedSlot,
+  VUIDLAttributeValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -391,7 +392,8 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('array'),
     constant('func'),
     constant('object'),
-    constant('children')
+    constant('children'),
+    constant('named-slot')
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
@@ -493,13 +495,19 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   }),
 })
 
-export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
+export const namedSlotDecoder: Decoder<VUIDLNamedSlot> = object({
+  type: constant('named-slot'),
+  content: lazy(() => elementNodeDecoder),
+})
+
+export const attributeValueDecoder: Decoder<VUIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
   lazy(() => expressionValueDecoder),
   importReferenceDecoder,
   rawValueDecoder,
-  lazy(() => uidlComponentStyleReference)
+  lazy(() => uidlComponentStyleReference),
+  lazy(() => namedSlotDecoder)
 )
 
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
@@ -534,7 +542,15 @@ export const stateChangeEventDecoder: Decoder<UIDLStateModifierEvent> = object({
 export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   type: constant('url'),
   content: object({
-    url: union(attributeValueDecoder, string()),
+    url: union(
+      dynamicValueDecoder,
+      staticValueDecoder,
+      lazy(() => expressionValueDecoder),
+      importReferenceDecoder,
+      rawValueDecoder,
+      lazy(() => uidlComponentStyleReference),
+      string()
+    ),
     newTab: withDefault(false, boolean()),
   }),
 })
@@ -556,7 +572,15 @@ export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
 export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
   type: constant('navlink'),
   content: object({
-    routeName: union(attributeValueDecoder, string()),
+    routeName: union(
+      dynamicValueDecoder,
+      staticValueDecoder,
+      lazy(() => expressionValueDecoder),
+      importReferenceDecoder,
+      rawValueDecoder,
+      lazy(() => uidlComponentStyleReference),
+      string()
+    ),
   }),
 })
 
@@ -632,7 +656,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
   content: object({
     mapType: constant('inlined'),
     conditions: array(styleConditionsDecoder),
-    styles: optional(dict(union(attributeValueDecoder, string(), number()))),
+    styles: union(styleDefinitionsDecoder, dict(union(string(), number()))),
   }),
 })
 
@@ -663,7 +687,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   name: optional(isValidElementName() as unknown as Decoder<string>),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
-  style: optional(dict(union(attributeValueDecoder, string(), number()))),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
   attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
   events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
@@ -706,7 +730,16 @@ export const repeatNodeDecoder: Decoder<VUIDLRepeatNode> = object({
   type: constant('repeat'),
   content: object({
     node: lazy(() => elementNodeDecoder),
-    dataSource: optional(attributeValueDecoder),
+    dataSource: optional(
+      union(
+        dynamicValueDecoder,
+        staticValueDecoder,
+        lazy(() => expressionValueDecoder),
+        importReferenceDecoder,
+        rawValueDecoder,
+        lazy(() => uidlComponentStyleReference)
+      )
+    ),
     meta: optional(
       object({
         useIndex: optional(boolean()),

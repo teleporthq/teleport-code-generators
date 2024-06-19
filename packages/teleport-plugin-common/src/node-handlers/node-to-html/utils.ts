@@ -58,6 +58,12 @@ export const handleAttribute = (
         hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.toString())
       }
       break
+
+    case 'named-slot': {
+      // Implementing named slots
+      break
+    }
+
     default:
       throw new Error(
         `generateElementNode could not generate code for attribute of type ${JSON.stringify(

@@ -146,7 +146,10 @@ export const parseProjectJSON = (
   return result
 }
 
-const parseComponentNode = (node: Record<string, unknown>, component: ComponentUIDL): UIDLNode => {
+export const parseComponentNode = (
+  node: Record<string, unknown>,
+  component: ComponentUIDL
+): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list': {
@@ -323,7 +326,14 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
           elementContent.attrs as Record<string, unknown>,
           'dependency' in elementContent &&
-            (elementContent.dependency as UIDLDependency)?.type === 'local'
+            (elementContent.dependency as UIDLDependency)?.type === 'local',
+          (elementNode) => {
+            const element = parseComponentNode(elementNode, component)
+            if (element.type !== 'element') {
+              throw new Error(`Named slot can only accept UIDLElementNode as children`)
+            }
+            return element
+          }
         )
       }
 

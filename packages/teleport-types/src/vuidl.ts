@@ -51,8 +51,10 @@ import {
   UIDLCMSMixedTypeNode,
   UIDLDependency,
   UIDLLocalFontAsset,
+  UIDLNamedSlot,
+  UIDLStyleValue,
 } from './uidl'
-import { Modify } from './helper'
+import { Modify, ModifyUnionNumber } from './helper'
 
 export interface VUIDLElementNode extends Modify<UIDLElementNode, { content: VUIDLElement }> {}
 
@@ -146,7 +148,7 @@ export type VUIDLRepeatNode = Modify<
   {
     content: {
       node: VUIDLElementNode
-      dataSource?: UIDLAttributeValue
+      dataSource?: UIDLRepeatNode['content']['dataSource']
       meta?: UIDLRepeatMeta
     }
   }
@@ -182,8 +184,8 @@ export type VUIDLElement = Modify<
     events: UIDLElement['events']
     dependency?: UIDLDependency
     children?: VUIDLNode[]
-    style?: Record<string, UIDLAttributeValue | string | number>
-    attrs?: Record<string, UIDLAttributeValue | string | number>
+    style?: Record<string, UIDLStyleValue | string | number>
+    attrs?: Record<string, VUIDLAttributeValue | string | number>
     referencedStyles: Record<
       string,
       | UIDLElementNodeProjectReferencedStyle
@@ -199,7 +201,7 @@ export type VUIDLElementNodeInlineReferencedStyle = Modify<
     content: {
       mapType: 'inlined'
       conditions: UIDLStyleConditions[]
-      styles: Record<string, UIDLAttributeValue | string | number>
+      styles: Record<string, UIDLStyleValue | string | number>
     }
   }
 >
@@ -286,7 +288,7 @@ export type VUIDLURLLinkNode = Modify<
   UIDLURLLinkNode,
   {
     content: {
-      url: UIDLAttributeValue | string
+      url: UIDLURLLinkNode['content']['url'] | string
       newTab: boolean
     }
   }
@@ -296,7 +298,7 @@ export type VUIDLNavLinkNode = Modify<
   UIDLNavLinkNode,
   {
     content: {
-      routeName: string | UIDLAttributeValue
+      routeName: string | UIDLNavLinkNode['content']['routeName']
     }
   }
 >
@@ -369,4 +371,12 @@ export type VUIDLStateValueDetails = Modify<
   {
     seo?: VUIDLComponentSEO
   }
+>
+
+export type VUIDLNamedSlot = Modify<UIDLNamedSlot, { content: VUIDLElementNode }>
+
+export type VUIDLAttributeValue = ModifyUnionNumber<
+  UIDLAttributeValue,
+  UIDLNamedSlot,
+  VUIDLNamedSlot
 >
