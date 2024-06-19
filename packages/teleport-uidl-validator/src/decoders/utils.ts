@@ -656,7 +656,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
   content: object({
     mapType: constant('inlined'),
     conditions: array(styleConditionsDecoder),
-    styles: union(styleDefinitionsDecoder, dict(union(string(), number()))),
+    styles: optional(dict(union(styleValueDecoder, string(), number()))),
   }),
 })
 

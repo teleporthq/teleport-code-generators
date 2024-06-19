@@ -112,6 +112,12 @@ const createVuePropsDefinition = (
       case 'func':
         mappedType = Function
         break
+
+      case 'named-slot':
+        // @todo: Implement named slots for vue component props
+        mappedType = String
+        break
+
       default:
         // don't handle anything else
         throw new Error(

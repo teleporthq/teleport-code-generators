@@ -59,10 +59,9 @@ export const handleAttribute = (
       }
       break
 
-    case 'named-slot': {
-      // Implementing named slots
+    case 'named-slot':
+      // @todo: Implement named slots for template syntaxes
       break
-    }
 
     default:
       throw new Error(

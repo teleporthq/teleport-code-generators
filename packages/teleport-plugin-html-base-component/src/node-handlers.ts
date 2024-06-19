@@ -473,6 +473,7 @@ const handleAttributes = (
           )
 
           HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
+          break
         }
 
         if (typeof content === 'boolean') {
