@@ -26,6 +26,7 @@ import {
   UIDLDependency,
   UIDLStyleDefinitions,
   UIDLStyleValue,
+  VUIDLAttributeValue,
   UIDLEventHandlerStatement,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
@@ -92,13 +93,13 @@ import {
   VUIDLStateValueDetails,
   VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
-  VUIDLNamedSlot,
-  VUIDLAttributeValue,
 } from '@teleporthq/teleport-types'
-import { CustomCombinators } from './custom-combinators'
-
-const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
-  CustomCombinators
+import {
+  isValidElementName,
+  isValidNavLink,
+  isValidFileName,
+  isValidComponentName,
+} from './custom-combinators'
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -393,7 +394,7 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('func'),
     constant('object'),
     constant('children'),
-    constant('named-slot')
+    constant('element')
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
@@ -423,9 +424,9 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
-  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  componentName: optional(string().andThen(isValidComponentName)),
+  navLink: optional(string().andThen(isValidNavLink)),
+  fileName: optional(string().andThen(isValidFileName)),
   fallback: optional(boolean()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
@@ -435,12 +436,12 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
-  componentClassName: optional(isValidComponentName() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
-  styleFileName: optional(isValidFileName() as unknown as Decoder<string>),
-  templateFileName: optional(isValidFileName() as unknown as Decoder<string>),
-  moduleName: optional(isValidFileName() as unknown as Decoder<string>),
-  folderPath: optional(array(isValidFileName() as unknown as Decoder<string>)),
+  componentClassName: optional(string().andThen(isValidComponentName)),
+  fileName: optional(string().andThen(isValidFileName)),
+  styleFileName: optional(string().andThen(isValidFileName)),
+  templateFileName: optional(string().andThen(isValidFileName)),
+  moduleName: optional(string().andThen(isValidFileName)),
+  folderPath: optional(array(string().andThen(isValidFileName))),
 })
 
 export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
@@ -495,11 +496,6 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   }),
 })
 
-export const namedSlotDecoder: Decoder<VUIDLNamedSlot> = object({
-  type: constant('named-slot'),
-  content: lazy(() => elementNodeDecoder),
-})
-
 export const attributeValueDecoder: Decoder<VUIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
@@ -507,7 +503,7 @@ export const attributeValueDecoder: Decoder<VUIDLAttributeValue> = union(
   importReferenceDecoder,
   rawValueDecoder,
   lazy(() => uidlComponentStyleReference),
-  lazy(() => namedSlotDecoder)
+  lazy(() => elementNodeDecoder)
 )
 
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
@@ -543,12 +539,12 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   type: constant('url'),
   content: object({
     url: union(
+      expressionValueDecoder,
       dynamicValueDecoder,
       staticValueDecoder,
-      lazy(() => expressionValueDecoder),
       importReferenceDecoder,
+      uidlComponentStyleReference,
       rawValueDecoder,
-      lazy(() => uidlComponentStyleReference),
       string()
     ),
     newTab: withDefault(false, boolean()),
@@ -573,12 +569,12 @@ export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
   type: constant('navlink'),
   content: object({
     routeName: union(
+      expressionValueDecoder,
       dynamicValueDecoder,
       staticValueDecoder,
-      lazy(() => expressionValueDecoder),
       importReferenceDecoder,
+      uidlComponentStyleReference,
       rawValueDecoder,
-      lazy(() => uidlComponentStyleReference),
       string()
     ),
   }),
@@ -684,7 +680,7 @@ export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
-  name: optional(isValidElementName() as unknown as Decoder<string>),
+  name: withDefault('element', string().andThen(isValidElementName)),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(styleValueDecoder, string(), number()))),
@@ -732,12 +728,12 @@ export const repeatNodeDecoder: Decoder<VUIDLRepeatNode> = object({
     node: lazy(() => elementNodeDecoder),
     dataSource: optional(
       union(
+        expressionValueDecoder,
         dynamicValueDecoder,
         staticValueDecoder,
-        lazy(() => expressionValueDecoder),
         importReferenceDecoder,
-        rawValueDecoder,
-        lazy(() => uidlComponentStyleReference)
+        uidlComponentStyleReference,
+        rawValueDecoder
       )
     ),
     meta: optional(

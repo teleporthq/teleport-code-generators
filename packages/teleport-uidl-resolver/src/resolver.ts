@@ -1,6 +1,12 @@
 import * as utils from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
+import {
+  ComponentUIDL,
+  UIDLElement,
+  Mapping,
+  GeneratorOptions,
+  ElementsLookup,
+} from '@teleporthq/teleport-types'
 import { resolveAbilities } from './resolvers/abilities'
 import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
@@ -31,7 +37,11 @@ export default class Resolver {
     this.mapping = utils.mergeMappings(this.mapping, mapping)
   }
 
-  public resolveUIDL(input: ComponentUIDL, options: GeneratorOptions = { extractedResources: {} }) {
+  public resolveUIDL(
+    input: ComponentUIDL,
+    options: GeneratorOptions = { extractedResources: {} },
+    nodesLookup: ElementsLookup = {}
+  ) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
     const newOptions = {
       ...options,
@@ -59,7 +69,6 @@ export default class Resolver {
 
     utils.removeIgnoredNodes(uidl.node)
 
-    const nodesLookup = {}
     utils.createNodesLookup(uidl.node, nodesLookup)
     utils.createCMSNodesLookup(uidl.node, nodesLookup)
     utils.generateUniqueKeys(uidl.node, nodesLookup)

@@ -76,7 +76,35 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       return HASTBuilders.createHTMLNode(node.type)
 
     case 'element':
-      return generatElementNode(
+      const elementNode = await generateElementNode(
+        node,
+        templatesLookUp,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure
+      )
+      return elementNode
+
+    case 'dynamic':
+      const propForInstance =
+        node.content.referenceType === 'prop' && propDefinitions[node.content.id]
+
+      /*
+        When the dynamic value is a prop and the prop is of type 'element'
+        We don't need to generate the content here, since slots are a dynamic way to inject content
+        and it is not supported in HTML code generation.
+
+        But when we are parsing the component with the attr that user is trying to pass as props.
+        We can use the prop value as defaultValue and generate the code for it.
+
+        Right now, we can't use any dynamic values inside a named slot in html-generators.
+      */
+      if (propForInstance?.type === 'element' && !propForInstance.defaultValue) {
+        return HASTBuilders.createComment('Named slots are not supported in html components')
+      }
+
+      const dynamicNode = await generateDynamicNode(
         node,
         templatesLookUp,
         propDefinitions,
@@ -85,15 +113,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         structure
       )
 
-    case 'dynamic':
-      return generateDynamicNode(
-        node,
-        templatesLookUp,
-        propDefinitions,
-        stateDefinitions,
-        subComponentOptions,
-        structure
-      )
+      return dynamicNode
 
     default:
       throw new HTMLComponentGeneratorError(
@@ -106,7 +126,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   }
 }
 
-const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
+const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
   node,
   templatesLookUp,
   propDefinitions,
@@ -137,6 +157,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       node,
       propDefinitions,
       stateDefinitions,
+      templatesLookUp,
       subComponentOptions,
       structure
     )
@@ -180,17 +201,15 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     handleStyles(node, style, propDefinitions, stateDefinitions)
   }
 
-  if (Object.keys(attrs).length > 0) {
-    handleAttributes(
-      elementType,
-      elementNode,
-      attrs,
-      propDefinitions,
-      stateDefinitions,
-      structure.options.projectRouteDefinition,
-      structure.outputOptions
-    )
-  }
+  handleAttributes(
+    elementType,
+    elementNode,
+    attrs,
+    propDefinitions,
+    stateDefinitions,
+    structure.options.projectRouteDefinition,
+    structure.outputOptions
+  )
 
   return elementNode
 }
@@ -199,6 +218,7 @@ const generateComponentContent = async (
   node: UIDLElementNode,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
+  templateLookup: Record<string, unknown>,
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
@@ -216,7 +236,6 @@ const generateComponentContent = async (
   // "Component" will not exist when generating a component because the resolver checks for illegal class names
   const compName = elementType === 'Component' ? 'AppComponent' : elementType
   const comp = UIDLUtils.cloneObject(externals[compName] || {}) as ComponentUIDL
-  const lookUpTemplates: Record<string, unknown> = {}
   let compHasSlots: boolean = false
 
   if (!comp || !comp?.node) {
@@ -290,7 +309,7 @@ const generateComponentContent = async (
   )
 
   const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
-  lookUpTemplates[key] = elementNode
+  templateLookup[key] = elementNode
 
   const compTag = (await generateHtmlSynatx(
     {
@@ -306,7 +325,7 @@ const generateComponentContent = async (
         },
       },
     },
-    lookUpTemplates,
+    templateLookup,
     propsForInstance,
     statesForInstance,
     subComponentOptions,
@@ -336,7 +355,7 @@ const generateComponentContent = async (
         linkAfter: [],
         content: compTag,
         meta: {
-          nodesLookup: lookUpTemplates,
+          nodesLookup: templateLookup,
         },
       },
     ],
@@ -388,14 +407,14 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> =
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
 
-  if (
-    usedReferenceValue.type === 'named-slot' &&
-    typeof usedReferenceValue.defaultValue === 'object' &&
-    'type' in usedReferenceValue.defaultValue &&
-    usedReferenceValue.defaultValue.type === 'element'
-  ) {
-    const slotNode = await generateHtmlSynatx(
-      usedReferenceValue.defaultValue as UIDLElementNode,
+  if (usedReferenceValue.type === 'element') {
+    const namedSlotNode = {
+      type: 'element',
+      content: usedReferenceValue.defaultValue,
+    } as UIDLElementNode
+
+    const slotNode = await generateElementNode(
+      namedSlotNode,
       templateLookup,
       propDefinitions,
       stateDefinitions,
@@ -441,7 +460,7 @@ const handleAttributes = (
   routeDefinitions: UIDLRouteDefinitions,
   outputOptions: UIDLComponentOutputOptions
 ) => {
-  Object.keys(attrs).forEach((attrKey) => {
+  for (const attrKey of Object.keys(attrs)) {
     const attrValue = attrs[attrKey]
     const { type, content } = attrValue
 
@@ -528,7 +547,7 @@ const handleAttributes = (
         break
       }
 
-      case 'named-slot': {
+      case 'element': {
         // named-slots can only be sent for components. And in html, we don't have components
         // We handle it in propsForInstance and ignore it here
         break
@@ -540,13 +559,13 @@ const handleAttributes = (
         )
       }
     }
-  })
+  }
 }
 
 const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
-): UIDLPropDefinition => {
+): UIDLPropDefinition | undefined => {
   const usedReferenceValue = definitions[key.includes('.') ? key.split('.')[0] : key]
 
   if (!usedReferenceValue) {
@@ -555,9 +574,9 @@ const getValueFromReference = (
     )
   }
 
-  if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
+  if (['string', 'number', 'object', 'element'].includes(usedReferenceValue?.type) === false) {
     throw new HTMLComponentGeneratorError(
-      `Default value is missing from dynamic reference - ${JSON.stringify(
+      `Attribute is using dynamic value, but received of type ${JSON.stringify(
         usedReferenceValue,
         null,
         2
@@ -565,9 +584,9 @@ const getValueFromReference = (
     )
   }
 
-  if (['string', 'number', 'object', 'named-slot'].includes(usedReferenceValue?.type) === false) {
+  if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
     throw new HTMLComponentGeneratorError(
-      `Attribute is using dynamic value, but received of type ${JSON.stringify(
+      `Default value is missing from dynamic reference - ${JSON.stringify(
         usedReferenceValue,
         null,
         2

@@ -12,7 +12,7 @@ import {
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { Parser } from '@teleporthq/teleport-uidl-validator'
-import { Resolver } from '@teleporthq/teleport-uidl-resolver'
+import { Resolver, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
 import { PlainHTMLMapping } from './plain-html-mapping'
 
 const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
@@ -22,10 +22,10 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   strictHtmlWhitespaceSensitivity = false,
 }: GeneratorFactoryParams = {}): HTMLComponentGenerator => {
   const generator = createComponentGenerator()
-  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => resolver.addMapping(mapping))
+  const nodesLookup = {}
 
   const prettierHTML = createPrettierHTMLPostProcessor({
     strictHtmlWhitespaceSensitivity,
@@ -37,16 +37,22 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       skipValidation?: boolean
       assets?: GeneratorOptions['assets']
     }) => {
-      const { externals = {}, skipValidation = false, assets = {} } = params
+      const { externals = {}, assets = {} } = params
       addExternals(
         Object.keys(externals).reduce((acc: Record<string, ComponentUIDL>, ext) => {
-          const componentUIDL = skipValidation
-            ? externals[ext]
-            : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
-          const resolvedUIDL = resolver.resolveUIDL(componentUIDL, {
-            assets,
-            extractedResources: {},
-          })
+          const componentUIDL = Parser.parseComponentJSON(
+            externals[ext] as unknown as Record<string, unknown>
+          )
+          createNodesLookup(componentUIDL.node, nodesLookup)
+
+          const resolvedUIDL = resolver.resolveUIDL(
+            componentUIDL,
+            {
+              assets,
+              extractedResources: {},
+            },
+            nodesLookup
+          )
           acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc
         }, {}),
@@ -54,6 +60,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       )
     },
   })
+
+  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin({ nodesLookup })
 
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(

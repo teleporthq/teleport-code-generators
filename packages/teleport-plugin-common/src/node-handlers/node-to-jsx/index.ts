@@ -158,12 +158,14 @@ const addAttributesToJSXTag = (
       case 'expr':
         addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
         break
-      case 'named-slot':
+
+      case 'element':
         addAttributeToJSXTag(
           elementTag,
           attrKey,
-          generateElementNode(attributeValue.content, params, options)
+          generateElementNode(attributeValue, params, options)
         )
+
         break
       default:
         throw new Error(

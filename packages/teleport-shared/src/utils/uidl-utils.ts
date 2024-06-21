@@ -22,7 +22,6 @@ import {
   UIDLRootComponent,
   UIDLResourceItem,
   GeneratorOptions,
-  UIDLNamedSlot,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
 import { StringUtils } from '..'
@@ -203,12 +202,7 @@ export const traverseNodes = (
       const { attrs, children, style, abilities, referencedStyles } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
-          const attr = attrs[attrKey]
-          if (attr.type === 'named-slot') {
-            traverseNodes(attr.content, fn, node)
-          } else {
-            traverseNodes(attr, fn, node)
-          }
+          traverseNodes(attrs[attrKey], fn, node)
         })
       }
 
@@ -408,6 +402,15 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
     case 'element':
       fn(node.content)
 
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       if (node.content.children) {
         node.content.children.forEach((child) => {
           traverseElements(child, fn)
@@ -423,6 +426,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       if (node.content.nodes.loading) {
         traverseElements(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-list-repeater':
@@ -441,6 +454,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       if (node.content.nodes.loading) {
         traverseElements(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-mixed-type':
@@ -455,6 +478,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseElements(node.content.mappings[key], fn)
       })
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'repeat':
@@ -492,6 +525,15 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
   switch (node.type) {
     case 'element':
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       if (node.content.children) {
         node.content.children.forEach((child) => {
           traverseRepeats(child, fn)
@@ -508,6 +550,16 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-list-repeater':
@@ -520,11 +572,22 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     case 'cms-item':
       traverseRepeats(node.content.nodes.success, fn)
+
       if (node.content.nodes.error) {
         traverseRepeats(node.content.nodes.error, fn)
       }
+
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
+      }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
       }
       break
 
@@ -540,6 +603,16 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseRepeats(node.content.mappings[key], fn)
       })
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'repeat':
@@ -581,6 +654,7 @@ interface SplitResponse {
   dynamicStyles: UIDLStyleDefinitions
   tokenStyles: UIDLStyleDefinitions
 }
+
 export const splitDynamicAndStaticStyles = (
   style: UIDLStyleDefinitions | Record<string, UIDLStyleSheetContent>
 ): SplitResponse => {
@@ -773,8 +847,7 @@ export const transformStylesAssignmentsToJson = (
 
 export const transformAttributesAssignmentsToJson = (
   attributesObject: Record<string, unknown>,
-  isLocalComponent = false,
-  elementNodeParser?: (element: Record<string, unknown>) => UIDLElementNode
+  isLocalComponent = false
 ): Record<string, UIDLAttributeValue> => {
   const newAttrObject: Record<string, UIDLAttributeValue> = {}
 
@@ -829,18 +902,10 @@ export const transformAttributesAssignmentsToJson = (
           }
           return acc
         }
-        case 'named-slot': {
-          if (elementNodeParser !== undefined) {
-            acc[key] = {
-              type: 'named-slot',
-              content: elementNodeParser(
-                (attributeContent as UIDLNamedSlot).content as unknown as Record<string, unknown>
-              ),
-            }
-          }
 
+        case 'element':
+          acc[key] = attributeContent as UIDLAttributeValue
           return acc
-        }
 
         default: {
           throw new Error(

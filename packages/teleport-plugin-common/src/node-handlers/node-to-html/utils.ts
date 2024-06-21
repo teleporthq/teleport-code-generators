@@ -59,7 +59,7 @@ export const handleAttribute = (
       }
       break
 
-    case 'named-slot':
+    case 'element':
       // @todo: Implement named slots for template syntaxes
       break
 

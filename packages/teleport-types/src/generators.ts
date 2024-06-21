@@ -552,3 +552,5 @@ export type GenerateComponentFunction = (
   componentUIDL: ComponentUIDL,
   options: GenerateOptions
 ) => Promise<CompiledComponent>
+
+export type ElementsLookup = Record<string, { count: number; nextKey: string }>

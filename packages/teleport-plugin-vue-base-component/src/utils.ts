@@ -113,7 +113,7 @@ const createVuePropsDefinition = (
         mappedType = Function
         break
 
-      case 'named-slot':
+      case 'element':
         // @todo: Implement named slots for vue component props
         mappedType = String
         break

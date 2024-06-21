@@ -146,10 +146,7 @@ export const parseProjectJSON = (
   return result
 }
 
-export const parseComponentNode = (
-  node: Record<string, unknown>,
-  component: ComponentUIDL
-): UIDLNode => {
+const parseComponentNode = (node: Record<string, unknown>, component: ComponentUIDL): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list': {
@@ -231,9 +228,17 @@ export const parseComponentNode = (
       } = (node as unknown as UIDLCMSMixedTypeNode).content
 
       if (attrs) {
+        const nodeAttrs = attrs as Record<string, unknown>
+        for (const attrKey of Object.keys(nodeAttrs)) {
+          const attrValue = nodeAttrs[attrKey] as Record<string, unknown>
+          if ('type' in attrValue && attrValue.type === 'element') {
+            nodeAttrs[attrKey] = parseComponentNode(attrValue, component)
+          }
+        }
+
         ;(node.content as UIDLCMSMixedTypeNode['content']).attrs =
           UIDLUtils.transformAttributesAssignmentsToJson(
-            attrs as Record<string, unknown>,
+            nodeAttrs,
             dependency && (dependency as UIDLDependency)?.type === 'local'
           )
       }
@@ -323,17 +328,18 @@ export const parseComponentNode = (
       }
 
       if (elementContent.attrs) {
-        elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-          elementContent.attrs as Record<string, unknown>,
-          'dependency' in elementContent &&
-            (elementContent.dependency as UIDLDependency)?.type === 'local',
-          (elementNode) => {
-            const element = parseComponentNode(elementNode, component)
-            if (element.type !== 'element') {
-              throw new Error(`Named slot can only accept UIDLElementNode as children`)
-            }
-            return element
+        const attrs = elementContent.attrs as Record<string, unknown>
+        for (const attrKey of Object.keys(attrs)) {
+          const attrValue = attrs[attrKey] as Record<string, unknown>
+          if ('type' in attrValue && attrValue.type === 'element') {
+            attrs[attrKey] = parseComponentNode(attrValue, component)
           }
+        }
+
+        elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+          attrs,
+          'dependency' in elementContent &&
+            (elementContent.dependency as UIDLDependency)?.type === 'local'
         )
       }
 

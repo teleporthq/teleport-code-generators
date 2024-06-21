@@ -51,7 +51,6 @@ import {
   UIDLCMSMixedTypeNode,
   UIDLDependency,
   UIDLLocalFontAsset,
-  UIDLNamedSlot,
   UIDLStyleValue,
 } from './uidl'
 import { Modify, ModifyUnionNumber } from './helper'
@@ -125,7 +124,7 @@ export interface VUIDLCMSMixedTypeNode
         }
         renderPropIdentifier: string
         dependency?: UIDLDependency
-        attrs: VUIDLElement['attrs']
+        attrs: Record<string, VUIDLAttributeValue | string | number>
         mappings: Record<string, VUIDLElementNode>
       }
     }
@@ -373,10 +372,8 @@ export type VUIDLStateValueDetails = Modify<
   }
 >
 
-export type VUIDLNamedSlot = Modify<UIDLNamedSlot, { content: VUIDLElementNode }>
-
 export type VUIDLAttributeValue = ModifyUnionNumber<
   UIDLAttributeValue,
-  UIDLNamedSlot,
-  VUIDLNamedSlot
+  UIDLElementNode,
+  VUIDLElementNode
 >

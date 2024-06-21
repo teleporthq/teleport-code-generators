@@ -320,11 +320,6 @@ export interface UIDLStaticValue {
   content: string | number | boolean | unknown[] // unknown[] for data sources
 }
 
-export interface UIDLNamedSlot {
-  type: 'named-slot'
-  content: UIDLElementNode
-}
-
 export interface UIDLRawValue {
   type: 'raw'
   content: string
@@ -552,7 +547,7 @@ export type UIDLAttributeValue =
   | UIDLImportReference
   | UIDLComponentStyleReference
   | UIDLRawValue
-  | UIDLNamedSlot
+  | UIDLElementNode
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
