@@ -12,6 +12,8 @@ describe('generateHTMLTemplateSyntax', () => {
     dataObject: {},
     methodsObject: {},
     templateLookup: {},
+    propDefinitions: {},
+    stateDefinitions: {},
   }
 
   describe('uidl node', () => {

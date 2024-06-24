@@ -328,19 +328,25 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       }
 
       if (elementContent.attrs) {
-        const attrs = elementContent.attrs as Record<string, unknown>
-        for (const attrKey of Object.keys(attrs)) {
-          const attrValue = attrs[attrKey] as Record<string, unknown>
-          if ('type' in attrValue && attrValue.type === 'element') {
-            attrs[attrKey] = parseComponentNode(attrValue, component)
-          }
-        }
-
-        elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-          attrs,
+        const attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+          elementContent.attrs as Record<string, unknown>,
           'dependency' in elementContent &&
             (elementContent.dependency as UIDLDependency)?.type === 'local'
         )
+
+        for (const attrKey of Object.keys(attrs)) {
+          const attrValue = attrs[attrKey]
+
+          if (attrValue.type === 'element') {
+            const parsedNamedSlot = parseComponentNode(
+              attrValue as unknown as Record<string, unknown>,
+              component
+            )
+            attrs[attrKey] = parsedNamedSlot as UIDLElementNode
+          }
+        }
+
+        elementContent.attrs = attrs
       }
 
       if (elementContent?.abilities?.hasOwnProperty('link')) {

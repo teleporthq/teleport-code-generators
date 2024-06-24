@@ -553,6 +553,9 @@ const handleAttributes = (
         break
       }
 
+      case 'import':
+        break
+
       default: {
         throw new HTMLComponentGeneratorError(
           `Received ${JSON.stringify(attrValue, null, 2)} \n in handleAttributes for html`

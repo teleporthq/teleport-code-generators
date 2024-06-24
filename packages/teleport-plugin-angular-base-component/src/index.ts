@@ -74,6 +74,8 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
         dependencies,
         dataObject,
         methodsObject,
+        stateDefinitions,
+        propDefinitions,
       },
       {
         interpolation: (value) => `{{ ${value} }}`,
@@ -91,6 +93,8 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'ignore',
         domHTMLInjection: `[innerHTML]`,
+        slotBinding: 'slot',
+        slotTagName: 'div',
       }
     )
 

@@ -114,12 +114,10 @@ const createVuePropsDefinition = (
         break
 
       case 'element':
-        // @todo: Implement named slots for vue component props
         mappedType = String
         break
 
       default:
-        // don't handle anything else
         throw new Error(
           `createVuePropsDefinition encountered a unknown PropDefinition, ${JSON.stringify(
             uidlPropDefinitions[name]

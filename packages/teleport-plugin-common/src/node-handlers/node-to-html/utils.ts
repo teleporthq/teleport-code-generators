@@ -9,6 +9,8 @@ import {
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
+import { createHTMLNode } from '../../builders/hast-builders'
+import generateElementNode from '../node-to-html'
 
 export const handleAttribute = (
   htmlNode: HastNode,
@@ -60,7 +62,20 @@ export const handleAttribute = (
       break
 
     case 'element':
-      // @todo: Implement named slots for template syntaxes
+      const templateNode = createHTMLNode(templateSyntax.slotTagName)
+      const templateContent = generateElementNode(attrValue, params, templateSyntax)
+
+      if (templateSyntax.slotBinding === 'v-slot') {
+        hastUtils.addBooleanAttributeToNode(
+          templateNode,
+          `${templateSyntax.slotBinding}:${attrKey}`
+        )
+      } else {
+        hastUtils.addAttributeToNode(templateNode, templateSyntax.slotBinding, attrKey)
+      }
+
+      hastUtils.addChildNode(templateNode, templateContent)
+      hastUtils.addChildNode(htmlNode, templateNode)
       break
 
     default:

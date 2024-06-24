@@ -1,5 +1,5 @@
 import * as hastUtils from '../../utils/hast-utils'
-import { createHTMLNode } from '../../builders/hast-builders'
+import { createComment, createHTMLNode } from '../../builders/hast-builders'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLRepeatNode,
@@ -8,6 +8,8 @@ import {
   UIDLNode,
   UIDLElementNode,
   HastNode,
+  HastText,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
 import { NodeToHTML } from './types'
@@ -86,7 +88,11 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
 
 export default generateElementNode
 
-const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
+const generateNode: NodeToHTML<UIDLNode, HastNode | HastText | string> = (
+  node,
+  params,
+  templateSyntax
+) => {
   switch (node.type) {
     case 'inject':
       if (node?.dependency) {
@@ -102,7 +108,7 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, tem
       return StringUtils.encode(node.content.toString())
 
     case 'dynamic':
-      return templateSyntax.interpolation(node.content.id)
+      return generateDynamicNode(node, params, templateSyntax)
 
     case 'element':
       return generateElementNode(node, params, templateSyntax)
@@ -125,6 +131,30 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, tem
         )}`
       )
   }
+}
+
+const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText | string> = (
+  node,
+  params,
+  templateSyntax
+) => {
+  const usedPropType = params.propDefinitions[node.content.id]
+  if (usedPropType && usedPropType.type === 'element') {
+    let slotNode = createHTMLNode('slot')
+    const commentNode = createComment(`Content for slot "${node.content.id}" comes here`)
+
+    if (templateSyntax.slotBinding === 'v-slot') {
+      hastUtils.addAttributeToNode(slotNode, 'name', node.content.id)
+    } else {
+      slotNode = createHTMLNode('ng-content')
+      hastUtils.addAttributeToNode(slotNode, 'select', `[slot=${node.content.id}]`)
+    }
+
+    hastUtils.addChildNode(slotNode, commentNode)
+    return slotNode
+  }
+
+  return templateSyntax.interpolation(node.content.id)
 }
 
 const generateRawHTMLNode: NodeToHTML<UIDLNode, HastNode> = (node, params, templateSyntax) => {
@@ -159,12 +189,20 @@ const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, 
   return repeatContentTag
 }
 
-const generateConditionalNode: NodeToHTML<UIDLConditionalNode, HastNode> = (
+const generateConditionalNode: NodeToHTML<UIDLConditionalNode, HastNode | HastText> = (
   node,
   params,
   templateSyntax
 ) => {
   let conditionalTag = generateNode(node.content.node, params, templateSyntax)
+
+  // We can add attributes only to tags, so in case of a text node we wrap it with a 'span'
+  if (typeof conditionalTag === 'object' && !('properties' in conditionalTag)) {
+    const wrappingSpan = createHTMLNode('span')
+    hastUtils.addTextNode(wrappingSpan, conditionalTag.value)
+    conditionalTag = wrappingSpan
+  }
+
   // conditional attribute needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
@@ -178,7 +216,11 @@ const generateConditionalNode: NodeToHTML<UIDLConditionalNode, HastNode> = (
   return conditionalTag
 }
 
-const generateSlotNode: NodeToHTML<UIDLSlotNode, HastNode> = (node, params, templateSyntax) => {
+const generateSlotNode: NodeToHTML<UIDLSlotNode, HastNode | HastText> = (
+  node,
+  params,
+  templateSyntax
+) => {
   const slotNode = createHTMLNode('slot')
 
   if (node.content.name) {

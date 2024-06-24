@@ -17,6 +17,7 @@ describe('generateJSXSyntax', () => {
     propDefinitions: uidl.propDefinitions || {},
     stateDefinitions: uidl.stateDefinitions || {},
     nodesLookup: {},
+    windowImports: {},
   }
 
   const options: JSXGenerationOptions = {
@@ -24,7 +25,6 @@ describe('generateJSXSyntax', () => {
       prop: 'props',
       state: '',
       local: '',
-      ctx: '',
     },
   }
 

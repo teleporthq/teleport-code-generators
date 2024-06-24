@@ -110,6 +110,14 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         })
       }
 
+      if (
+        Object.keys(style).length === 0 &&
+        Object.keys(referencedStyles).length === 0 &&
+        Object.keys(componentStyleSet).length === 0
+      ) {
+        return
+      }
+
       const root = templateLookup[key]
       if (!root) {
         throw new PluginCSS(

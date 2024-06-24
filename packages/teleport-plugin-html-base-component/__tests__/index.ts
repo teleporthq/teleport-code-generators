@@ -8,9 +8,11 @@ import {
 import { component, dynamicNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createHTMLBasePlugin } from '../src'
 
-const getMockComponentStructure: ComponentStructure = () => ({
+const getMockComponentStructure = (): ComponentStructure => ({
   chunks: [],
-  options: {},
+  options: {
+    extractedResources: {},
+  },
   uidl: component('Test', elementNode('container')),
   dependencies: {},
 })
@@ -23,7 +25,7 @@ describe('plugin-html-base-component', () => {
 
     expect(chunks.length).toBe(1)
     expect(htmlChunk).toBeDefined()
-    expect(htmlChunk.name).toBe('html-chunk')
+    expect(htmlChunk?.name).toBe('html-chunk')
   })
 
   it('adds attributes to the HAST node', async () => {

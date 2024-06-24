@@ -1,4 +1,4 @@
-import { HastNode } from '@teleporthq/teleport-types'
+import { HastNode, HastText } from '@teleporthq/teleport-types'
 import { createTextNode } from '../builders/hast-builders'
 
 export const addBooleanAttributeToNode = (node: HastNode, key: string, value: boolean = true) => {
@@ -16,7 +16,7 @@ export const addClassToNode = (node: HastNode, className: string) => {
   node.properties.class = className
 }
 
-export const addChildNode = (node: HastNode, child: HastNode) => {
+export const addChildNode = (node: HastNode, child: HastNode | HastText) => {
   node.children.push(child)
 }
 

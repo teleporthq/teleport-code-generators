@@ -573,7 +573,7 @@
                                                   },
                                                   "autoplay": {
                                                       "type": "static",
-                                                      "content": "true"
+                                                      "content": true
                                                   }
                                               }
                                           }
@@ -607,20 +607,34 @@
                                                     "content": {
                                                       "elementType": "container",
                                                       "style": {
+                                                        "fontSize": "24px",
                                                         "padding": "20px",
-                                                        "backgroundColor": "blue"
+                                                        "backgroundColor": {
+                                                          "type": "dynamic",
+                                                          "content": {
+                                                            "referenceType": "token",
+                                                            "id": "--dl-color-success-700"
+                                                          }
+                                                        }
                                                       },
                                                       "children": [
-                                                        "This is amazing, Because this is a named-slot",
+                                                        "This is amazing, because this is a named-slot",
                                                         {
                                                           "type": "element",
                                                           "content": {
                                                             "elementType": "container",
                                                             "style": {
                                                               "padding": "20px",
-                                                              "backgroundColor": "red"
+                                                              "backgroundColor": {
+                                                                "type": "dynamic",
+                                                                "content": {
+                                                                  "referenceType": "token",
+                                                                  "id": "--dl-color-danger-700"
+                                                                }
+                                                              },
+                                                              "marginTop": "20px"
                                                             },
-                                                            "children": ["Lorem ipsum dolor sit amet, consectetur adipiscing elit"]
+                                                            "children": ["And can be nested any number of levels"]
                                                           }
                                                         }
                                                       ]
@@ -6947,7 +6961,7 @@
                                   {
                                       "type": "element",
                                       "content": {
-                                          "elementType": "text",
+                                          "elementType": "container",
                                           "referencedStyles": {
                                               "78d44ec5-87ca-4329-b211-c840c24bd2ce": {
                                                   "type": "style-map",
@@ -6988,8 +7002,7 @@
                                                       "id": "namedSlot"
                                                   }
                                               }
-                                          ],
-                                          "semanticType": "h1"
+                                          ]
                                       }
                                   },
                                   {

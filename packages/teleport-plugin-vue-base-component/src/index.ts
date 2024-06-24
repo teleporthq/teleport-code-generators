@@ -30,6 +30,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
 
   const vueComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
+    const { propDefinitions = {}, stateDefinitions = {} } = uidl
     const templateLookup: { [key: string]: unknown } = {}
     const dataObject: Record<string, unknown> = {}
     const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
@@ -41,6 +42,8 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
         dependencies,
         dataObject,
         methodsObject,
+        propDefinitions,
+        stateDefinitions,
       },
       {
         interpolation: (value) => `{{ ${value} }}`,
@@ -56,6 +59,8 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'import',
         domHTMLInjection: `v-html`,
+        slotBinding: `v-slot`,
+        slotTagName: 'template',
       }
     )
 
@@ -70,7 +75,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
       linkAfter: [],
     })
 
-    const stateObject = uidl.stateDefinitions ? extractStateObject(uidl.stateDefinitions) : {}
+    const stateObject = extractStateObject(stateDefinitions)
 
     const jsContent = generateVueComponentJS(
       uidl,

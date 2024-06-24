@@ -73,6 +73,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         })
       }
 
+      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
+        return
+      }
+
       const root = jsxNodesLookup[key]
 
       // Generating the string templates for the dynamic styles
@@ -171,14 +175,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         }
       })
 
-      if (classNamesToAppend.size > 0) {
-        ASTUtils.addClassStringOnJSXTag(
-          root as types.JSXElement,
-          Array.from(classNamesToAppend).join(' '),
-          'className',
-          Array.from(dynamicVariantsToAppend)
-        )
-      }
+      ASTUtils.addClassStringOnJSXTag(
+        root as types.JSXElement,
+        Array.from(classNamesToAppend).join(' '),
+        'className',
+        Array.from(dynamicVariantsToAppend)
+      )
     })
 
     /* Generating component scoped styles */

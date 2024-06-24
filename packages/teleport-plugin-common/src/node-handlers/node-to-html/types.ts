@@ -2,6 +2,8 @@ import {
   UIDLDependency,
   UIDLEventHandlerStatement,
   UIDLElementNode,
+  UIDLPropDefinition,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 
 export interface HTMLTemplateGenerationParams {
@@ -11,6 +13,8 @@ export interface HTMLTemplateGenerationParams {
   // tslint:disable-next-line no-any
   dataObject: Record<string, any>
   methodsObject: Record<string, UIDLEventHandlerStatement[]>
+  propDefinitions: Record<string, UIDLPropDefinition>
+  stateDefinitions: Record<string, UIDLStateDefinition>
 }
 
 export interface HTMLTemplateSyntax {
@@ -25,6 +29,8 @@ export interface HTMLTemplateSyntax {
   customElementTagName?: (value: string) => string
   dependencyHandling?: 'import' | 'ignore'
   domHTMLInjection?: string
+  slotBinding?: string
+  slotTagName?: string
 }
 
 export type NodeToHTML<NodeType, ReturnType> = (

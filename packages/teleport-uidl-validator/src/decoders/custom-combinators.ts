@@ -41,8 +41,8 @@ export const isValidFileName = (name: string): Decoder<string> => {
 }
 
 export const isValidElementName = (name: string): Decoder<string> => {
-  const fileNameRegex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
-  if (name && typeof name === 'string' && fileNameRegex.test(name)) {
+  const elementNameRefex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
+  if (name && typeof name === 'string' && elementNameRefex.test(name)) {
     return succeed(name)
   }
 

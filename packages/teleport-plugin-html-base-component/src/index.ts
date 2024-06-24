@@ -26,7 +26,11 @@ interface HtmlPlugin {
 type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>) => HtmlPlugin
 
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
-  const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = false } = config || {}
+  const {
+    componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
+    wrapComponent = false,
+    nodesLookup = {},
+  } = config || {}
   let externals: Record<string, ComponentUIDL> = {}
   let plugins: ComponentPlugin[] = []
 
@@ -45,14 +49,13 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
     const { uidl, chunks = [], dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {}, outputOptions } = uidl
 
-    const templatesLookUp: Record<string, unknown> = { ...(config.nodesLookup || {}) }
     const compBase = wrapComponent
       ? HASTBuilders.createHTMLNode('body')
       : HASTBuilders.createHTMLNode('div')
 
     const bodyContent = await generateHtmlSynatx(
       uidl.node,
-      templatesLookUp,
+      nodesLookup,
       propDefinitions,
       stateDefinitions,
       {
@@ -80,7 +83,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       content: compBase,
       linkAfter: [],
       meta: {
-        nodesLookup: templatesLookUp,
+        nodesLookup,
       },
     })
 
