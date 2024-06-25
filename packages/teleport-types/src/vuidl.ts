@@ -46,7 +46,6 @@ import {
   UIDLExternalResource,
   UIDLInjectValue,
   UIDLStateValueDetails,
-  UIDLRouteDefinitions,
   UIDLStateDefinition,
   UIDLCMSMixedTypeNode,
   UIDLDependency,
@@ -181,7 +180,7 @@ export type VUIDLElement = Modify<
     }
     events: UIDLElement['events']
     dependency?: UIDLDependency
-    children?: VUIDLNode[]
+    children: VUIDLNode[]
     style?: Record<string, UIDLAttributeValue | string | number>
     attrs?: Record<string, UIDLAttributeValue | string | number>
     referencedStyles: Record<
@@ -230,14 +229,13 @@ export type VRootComponentUIDL = Modify<
     seo?: VUIDLComponentSEO
     styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
     node: VUIDLElementNode
-    stateDefinitions: {
-      route: Modify<
-        UIDLRouteDefinitions,
-        {
-          values: VUIDLStateValueDetails[]
-        }
-      >
-      [x: string]: UIDLStateDefinition
+    stateDefinitions?: {
+      route: {
+        type: string
+        defaultValue: string
+        values: VUIDLStateValueDetails[]
+      }
+      [x: string]: UIDLStateDefinition & { values?: VUIDLStateValueDetails[] }
     }
     designLanguage: {
       tokens: VUIDLDesignTokens

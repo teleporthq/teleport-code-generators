@@ -49,7 +49,7 @@ export const rootComponentUIDLDecoder: Decoder<VRootComponentUIDL> = object({
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   peerDefinitions: optional(dict(peerDependencyDecoder)),
-  styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
+  styleSetDefinitions: withDefault({}, dict(styleSetDefinitionDecoder)),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),
   designLanguage: optional(
