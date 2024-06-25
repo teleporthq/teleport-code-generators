@@ -91,6 +91,29 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(appModule?.content).toContain(`path: '**'`)
   })
 
+  it('creates named slots to passs template to components', async () => {
+    const { subFolders } = await generator.generateProject(fallbackPageSample, template)
+    const srcFolder = subFolders.find((folder) => folder.name === 'src')
+    const appFolder = srcFolder?.subFolders.find((folder) => folder.name === 'app')
+    const pagesFolder = appFolder?.subFolders.find((folder) => folder.name === 'pages')
+    const componentsFolder = appFolder?.subFolders.find((folder) => folder.name === 'components')
+
+    const homeFolder = pagesFolder?.subFolders.find((folder) => folder.name === 'home')
+    const homePage = homeFolder?.files.find(
+      (file) => file.name === 'home.component' && file.fileType === FileType.HTML
+    )
+
+    const heroFolder = componentsFolder?.subFolders.find((folder) => folder.name === 'hero')
+    const heroComponent = heroFolder?.files.find(
+      (file) => file.name === 'hero.component' && file.fileType === FileType.HTML
+    )
+
+    expect(homePage).toBeDefined()
+    expect(heroComponent).toBeDefined()
+    expect(homePage?.content).toContain(`<div slot="namedSlot">`)
+    expect(heroComponent?.content).toContain(`<ng-content select="[slot=namedSlot]">`)
+  })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 

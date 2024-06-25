@@ -97,6 +97,17 @@ describe('React Next Project Generator', () => {
     expect(fallbackPage).toBeDefined()
   })
 
+  it('creates a next project and generates the named-slot for passing components', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders.find((folder) => folder.name === 'pages')
+    const components = subFolders.find((folder) => folder.name === 'components')
+    const indexPage = pages?.files.find((file) => file.name === 'index')
+    const heroComponent = components?.files.find((file) => file.name === 'hero')
+
+    expect(indexPage).toMatchSnapshot()
+    expect(heroComponent).toMatchSnapshot()
+  })
+
   it('preserves the pages with same name if they are defined in different routes', async () => {
     const { subFolders } = await generator.generateProject(uidlSampleWithMultiplePagesWithSameName)
     const pagesFolder = getFolderFromSubFolders('pages', subFolders)
