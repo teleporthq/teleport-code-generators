@@ -8,11 +8,12 @@ import {
   ComponentUIDL,
   GeneratorFactoryParams,
   GeneratorOptions,
+  ElementsLookup,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { Parser } from '@teleporthq/teleport-uidl-validator'
-import { Resolver, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
+import { createNodesLookup, Resolver } from '@teleporthq/teleport-uidl-resolver'
 import { PlainHTMLMapping } from './plain-html-mapping'
 
 const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
@@ -25,7 +26,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => resolver.addMapping(mapping))
-  const nodesLookup = {}
+  const nodesLookup: ElementsLookup = {}
 
   const prettierHTML = createPrettierHTMLPostProcessor({
     strictHtmlWhitespaceSensitivity,
@@ -34,35 +35,30 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   Object.defineProperty(generator, 'addExternalComponents', {
     value: (params: {
       externals: Record<string, ComponentUIDL>
-      skipValidation?: boolean
       assets?: GeneratorOptions['assets']
     }) => {
       const { externals = {}, assets = {} } = params
-      addExternals(
-        Object.keys(externals).reduce((acc: Record<string, ComponentUIDL>, ext) => {
-          const componentUIDL = Parser.parseComponentJSON(
-            externals[ext] as unknown as Record<string, unknown>
-          )
-          createNodesLookup(componentUIDL.node, nodesLookup)
+      const componentUIDLs: Record<string, ComponentUIDL> = {}
 
-          const resolvedUIDL = resolver.resolveUIDL(
-            componentUIDL,
-            {
-              assets,
-              extractedResources: {},
-            },
-            nodesLookup
-          )
-          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
-          return acc
-        }, {}),
-        plugins
-      )
+      for (const uidlKey of Object.keys(externals)) {
+        // Parsig the UIDL, so they are converting into proper ComponentUIDL
+        const componentUIDL = Parser.parseComponentJSON(
+          externals[uidlKey] as unknown as Record<string, unknown>
+        )
+
+        createNodesLookup(componentUIDL.node, nodesLookup)
+        const resolvedUIDL = resolver.resolveUIDL(componentUIDL, { assets }, nodesLookup)
+
+        componentUIDLs[
+          StringUtils.dashCaseToUpperCamelCase(resolvedUIDL.outputOptions.componentClassName)
+        ] = resolvedUIDL
+      }
+
+      addExternals(componentUIDLs, plugins)
     },
   })
 
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin({ nodesLookup })
-
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(
     createCSSPlugin({

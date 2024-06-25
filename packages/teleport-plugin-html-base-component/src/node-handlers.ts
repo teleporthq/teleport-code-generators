@@ -496,7 +496,7 @@ const handleAttributes = (
         }
 
         if (typeof content === 'boolean') {
-          HASTUtils.addBooleanAttributeToNode(htmlNode, attrKey)
+          htmlNode.properties[attrKey] = content === true ? 'true' : 'false'
         } else if (typeof content === 'string' || typeof attrValue.content === 'number') {
           let value = StringUtils.encode(String(attrValue.content))
 

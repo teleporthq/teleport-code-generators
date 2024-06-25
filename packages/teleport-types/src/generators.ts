@@ -132,7 +132,7 @@ export interface GeneratorOptions {
     path: string
     importFile?: boolean
   }
-  extractedResources: Record<
+  extractedResources?: Record<
     string,
     {
       fileName: string
@@ -203,7 +203,6 @@ export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => Co
 export interface HTMLComponentGenerator extends ComponentGenerator {
   addExternalComponents: (params: {
     externals: Record<string, ComponentUIDL>
-    skipValidation?: boolean
     assets?: GeneratorOptions['assets']
   }) => void
 }

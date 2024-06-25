@@ -14,8 +14,8 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface HtmlPluginConfig {
   componentChunkName: string
+  nodesLookup: ElementsLookup
   wrapComponent?: boolean
-  nodesLookup?: ElementsLookup
 }
 
 interface HtmlPlugin {
@@ -49,13 +49,14 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
     const { uidl, chunks = [], dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {}, outputOptions } = uidl
 
+    const templatesLookUp: Record<string, unknown> = { ...nodesLookup }
     const compBase = wrapComponent
       ? HASTBuilders.createHTMLNode('body')
       : HASTBuilders.createHTMLNode('div')
 
     const bodyContent = await generateHtmlSynatx(
       uidl.node,
-      nodesLookup,
+      templatesLookUp,
       propDefinitions,
       stateDefinitions,
       {
@@ -83,7 +84,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       content: compBase,
       linkAfter: [],
       meta: {
-        nodesLookup,
+        nodesLookup: templatesLookUp,
       },
     })
 
