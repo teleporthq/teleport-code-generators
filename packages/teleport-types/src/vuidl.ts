@@ -46,7 +46,6 @@ import {
   UIDLExternalResource,
   UIDLInjectValue,
   UIDLStateValueDetails,
-  UIDLRouteDefinitions,
   UIDLStateDefinition,
   UIDLCMSMixedTypeNode,
   UIDLDependency,
@@ -231,14 +230,13 @@ export type VRootComponentUIDL = Modify<
     seo?: VUIDLComponentSEO
     styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
     node: VUIDLElementNode
-    stateDefinitions: {
-      route: Modify<
-        UIDLRouteDefinitions,
-        {
-          values: VUIDLStateValueDetails[]
-        }
-      >
-      [x: string]: UIDLStateDefinition
+    stateDefinitions?: {
+      route: {
+        type: string
+        defaultValue: string
+        values: VUIDLStateValueDetails[]
+      }
+      [x: string]: UIDLStateDefinition & { values?: VUIDLStateValueDetails[] }
     }
     designLanguage: {
       tokens: VUIDLDesignTokens

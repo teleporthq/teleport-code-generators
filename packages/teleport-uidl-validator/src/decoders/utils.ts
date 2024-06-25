@@ -691,7 +691,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
       link: optional(anyJson()),
     })
   ),
-  children: optional(array(lazy(() => uidlNodeDecoder))),
+  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
   referencedStyles: optional(
     dict(
       union(
