@@ -17,7 +17,6 @@ import {
   ProjectGenerator as ProjectGeneratorType,
   FileType,
   UIDLLocalFontAsset,
-  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -374,14 +373,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-          externals: Object.values(components).reduce(
-            (acc: Record<string, ComponentUIDL>, component) => {
-              acc[component.outputOptions.componentClassName] = component
-              return acc
-            },
-            {}
-          ),
-          skipValidation: true,
+          externals: components,
           assets: options.assets,
         })
       }
@@ -479,7 +471,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
-          skipValidation: true,
           assets: options.assets,
         })
       }

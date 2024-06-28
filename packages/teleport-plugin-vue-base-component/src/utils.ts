@@ -112,8 +112,12 @@ const createVuePropsDefinition = (
       case 'func':
         mappedType = Function
         break
+
+      case 'element':
+        mappedType = String
+        break
+
       default:
-        // don't handle anything else
         throw new Error(
           `createVuePropsDefinition encountered a unknown PropDefinition, ${JSON.stringify(
             uidlPropDefinitions[name]

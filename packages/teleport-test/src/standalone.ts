@@ -13,12 +13,10 @@ import { performance } from 'perf_hooks'
 import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css-modules'
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
-import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
-const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
@@ -79,6 +77,7 @@ const run = async () => {
       result = await packProject(projectUIDL as unknown as ProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.HTML,
+        strictHtmlWhitespaceSensitivity: false,
       })
       console.info(ProjectType.HTML, '-', result.payload)
       return ProjectType.HTML
@@ -191,7 +190,7 @@ const run = async () => {
 
     /* Styled Components */
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
         plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],

@@ -226,6 +226,8 @@ export const addAttributeToJSXTag = (
       nameOfAttribute,
       attrValue === true ? undefined : t.jsxExpressionContainer(t.booleanLiteral(attrValue))
     )
+  } else if (t.isNode(attrValue) && t.isJSXElement(attrValue)) {
+    attributeDefinition = t.jsxAttribute(nameOfAttribute, t.jsxExpressionContainer(attrValue))
   } else {
     attributeDefinition = t.jsxAttribute(
       nameOfAttribute,

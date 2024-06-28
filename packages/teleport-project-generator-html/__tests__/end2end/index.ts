@@ -59,6 +59,22 @@ describe('Html Project Generator', () => {
     expect(aboutCSS?.content).toContain('public/playground_assets/kitten.png')
   })
 
+  it('creates a next project and generates the named-slot for passing components', async () => {
+    const generator = createHTMLProjectGenerator()
+    const { subFolders, files } = await generator.generateProject(uidlSample)
+    const components = subFolders.find((folder) => folder.name === 'components')
+    const heroComponent = components?.files.find(
+      (file) => file.name === 'hero' && file.fileType === FileType.HTML
+    )
+    const indexFile = files.find((file) => file.name === 'index' && file.fileType === FileType.HTML)
+
+    expect(heroComponent).toBeDefined()
+    expect(heroComponent?.content).toContain(
+      '<!--Named slots are not supported in html components-->'
+    )
+    expect(indexFile?.content).toContain(`This is amazing, because this is a named-slot`)
+  })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const generator = createHTMLProjectGenerator()
     const result = generator.generateProject(invalidUidlSample, HTMLTemplate)
@@ -85,10 +101,10 @@ describe('Unwinds the slot inside the component when used in page', () => {
     )
 
     expect(indexFile).toBeDefined()
-    expect(indexFile?.content).toContain(`app-component-image1`)
-    expect(indexFile?.content).toContain(`app-component-image2`)
+    expect(indexFile?.content).toContain(`app-component-element8`)
+    expect(indexFile?.content).toContain(`home-element2`)
     expect(cssFile).toBeDefined()
-    expect(cssFile?.content).toContain(`.app-component-image2`)
-    expect(cssFile?.content).toContain(`.app-component-image1`)
+    expect(cssFile?.content).toContain(`.home-element2`)
+    expect(cssFile?.content).toContain(`.app-component-element8`)
   })
 })

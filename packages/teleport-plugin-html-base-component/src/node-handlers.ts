@@ -76,7 +76,35 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       return HASTBuilders.createHTMLNode(node.type)
 
     case 'element':
-      return generatElementNode(
+      const elementNode = await generateElementNode(
+        node,
+        templatesLookUp,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure
+      )
+      return elementNode
+
+    case 'dynamic':
+      const propForInstance =
+        node.content.referenceType === 'prop' && propDefinitions[node.content.id]
+
+      /*
+        When the dynamic value is a prop and the prop is of type 'element'
+        We don't need to generate the content here, since slots are a dynamic way to inject content
+        and it is not supported in HTML code generation.
+
+        But when we are parsing the component with the attr that user is trying to pass as props.
+        We can use the prop value as defaultValue and generate the code for it.
+
+        Right now, we can't use any dynamic values inside a named slot in html-generators.
+      */
+      if (propForInstance?.type === 'element' && !propForInstance.defaultValue) {
+        return HASTBuilders.createComment('Named slots are not supported in html components')
+      }
+
+      const dynamicNode = await generateDynamicNode(
         node,
         templatesLookUp,
         propDefinitions,
@@ -85,15 +113,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         structure
       )
 
-    case 'dynamic':
-      return generateDynamicNode(
-        node,
-        templatesLookUp,
-        propDefinitions,
-        stateDefinitions,
-        subComponentOptions,
-        structure
-      )
+      return dynamicNode
 
     default:
       throw new HTMLComponentGeneratorError(
@@ -106,7 +126,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   }
 }
 
-const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
+const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
   node,
   templatesLookUp,
   propDefinitions,
@@ -137,6 +157,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       node,
       propDefinitions,
       stateDefinitions,
+      templatesLookUp,
       subComponentOptions,
       structure
     )
@@ -180,17 +201,15 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     handleStyles(node, style, propDefinitions, stateDefinitions)
   }
 
-  if (Object.keys(attrs).length > 0) {
-    handleAttributes(
-      elementType,
-      elementNode,
-      attrs,
-      propDefinitions,
-      stateDefinitions,
-      structure.options.projectRouteDefinition,
-      structure.outputOptions
-    )
-  }
+  handleAttributes(
+    elementType,
+    elementNode,
+    attrs,
+    propDefinitions,
+    stateDefinitions,
+    structure.options.projectRouteDefinition,
+    structure.outputOptions
+  )
 
   return elementNode
 }
@@ -199,6 +218,7 @@ const generateComponentContent = async (
   node: UIDLElementNode,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
+  templateLookup: Record<string, unknown>,
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
@@ -216,7 +236,6 @@ const generateComponentContent = async (
   // "Component" will not exist when generating a component because the resolver checks for illegal class names
   const compName = elementType === 'Component' ? 'AppComponent' : elementType
   const comp = UIDLUtils.cloneObject(externals[compName] || {}) as ComponentUIDL
-  const lookUpTemplates: Record<string, unknown> = {}
   let compHasSlots: boolean = false
 
   if (!comp || !comp?.node) {
@@ -256,7 +275,6 @@ const generateComponentContent = async (
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
-
   const propsForInstance = Object.keys(combinedProps).reduce(
     (acc: Record<string, UIDLPropDefinition>, propKey) => {
       if (attrs[propKey]) {
@@ -291,7 +309,7 @@ const generateComponentContent = async (
   )
 
   const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
-  lookUpTemplates[key] = elementNode
+  templateLookup[key] = elementNode
 
   const compTag = (await generateHtmlSynatx(
     {
@@ -307,7 +325,7 @@ const generateComponentContent = async (
         },
       },
     },
-    lookUpTemplates,
+    templateLookup,
     propsForInstance,
     statesForInstance,
     subComponentOptions,
@@ -337,7 +355,7 @@ const generateComponentContent = async (
         linkAfter: [],
         content: compTag,
         meta: {
-          nodesLookup: lookUpTemplates,
+          nodesLookup: templateLookup,
         },
       },
     ],
@@ -375,19 +393,40 @@ const generateComponentContent = async (
   return compTag
 }
 
-const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
+const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> = async (
   node,
-  _,
+  templateLookup,
   propDefinitions,
-  stateDefinitions
-) => {
+  stateDefinitions,
+  subComponentOptions,
+  structure
+): Promise<HastNode> => {
   const spanTag = HASTBuilders.createHTMLNode('span')
-  const usedReferenceValue =
-    node.content.referenceType === 'prop'
-      ? getValueFromReference(node.content.id, propDefinitions)
-      : getValueFromReference(node.content.id, stateDefinitions)
+  const usedReferenceValue = getValueFromReference(
+    node.content.id,
+    node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
+  )
 
-  HASTUtils.addTextNode(spanTag, String(usedReferenceValue))
+  if (usedReferenceValue.type === 'element') {
+    const namedSlotNode = {
+      type: 'element',
+      content: usedReferenceValue.defaultValue,
+    } as UIDLElementNode
+
+    const slotNode = await generateElementNode(
+      namedSlotNode,
+      templateLookup,
+      propDefinitions,
+      stateDefinitions,
+      subComponentOptions,
+      structure
+    )
+
+    spanTag.children.push(slotNode)
+    return spanTag
+  }
+
+  HASTUtils.addTextNode(spanTag, String(usedReferenceValue.defaultValue))
   return spanTag
 }
 
@@ -400,10 +439,12 @@ const handleStyles = (
   Object.keys(styles).forEach((styleKey) => {
     let style: string | UIDLStyleValue = styles[styleKey]
     if (style.type === 'dynamic' && style.content?.referenceType !== 'token') {
-      if (style.content.referenceType === 'prop') {
-        style = getValueFromReference(style.content.id, propDefinitions)
-      } else if (style.content.referenceType === 'state') {
-        style = getValueFromReference(style.content.id, stateDefinitions)
+      const referencedValue = getValueFromReference(
+        style.content.id,
+        style.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
+      )
+      if (referencedValue.type === 'string' || referencedValue.type === 'number') {
+        style = String(referencedValue.defaultValue)
       }
       node.content.style[styleKey] = typeof style === 'string' ? staticNode(style) : style
     }
@@ -419,104 +460,130 @@ const handleAttributes = (
   routeDefinitions: UIDLRouteDefinitions,
   outputOptions: UIDLComponentOutputOptions
 ) => {
-  Object.keys(attrs).forEach((attrKey) => {
+  for (const attrKey of Object.keys(attrs)) {
     const attrValue = attrs[attrKey]
+    const { type, content } = attrValue
 
-    if (
-      attrKey === 'href' &&
-      attrValue.type === 'static' &&
-      typeof attrValue.content === 'string' &&
-      attrValue.content.startsWith('/')
-    ) {
-      let targetLink
+    switch (type) {
+      case 'static': {
+        if (attrKey === 'href' && typeof content === 'string' && content.startsWith('/')) {
+          let targetLink
 
-      const targetRoute = (routeDefinitions?.values || []).find(
-        (route) => route.pageOptions.navLink === attrValue.content
-      )
+          const targetRoute = (routeDefinitions?.values || []).find(
+            (route) => route.pageOptions.navLink === content
+          )
 
-      if (targetRoute) {
-        targetLink = targetRoute.pageOptions.navLink
+          if (targetRoute) {
+            targetLink = targetRoute.pageOptions.navLink
+          }
+
+          if (!targetRoute && content === '/home') {
+            targetLink = '/'
+          }
+
+          if (!targetLink && !targetRoute) {
+            targetLink = content
+          }
+
+          const currentPageRoute = join(...(outputOptions?.folderPath || []), './')
+          const localPrefix = relative(
+            `/${currentPageRoute}`,
+            `/${targetLink === '/' ? 'index' : targetLink}`
+          )
+
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
+          break
+        }
+
+        if (typeof content === 'boolean') {
+          htmlNode.properties[attrKey] = content === true ? 'true' : 'false'
+        } else if (typeof content === 'string' || typeof attrValue.content === 'number') {
+          let value = StringUtils.encode(String(attrValue.content))
+
+          /*
+            elementType of image is always mapped to img.
+            For reference, check `html-mapping` file.
+          */
+          if (elementType === 'img' && attrKey === 'src' && !isValidURL(value)) {
+            /*
+              By default we just prefix all the asset paths with just the
+              assetPrefix that is configured in the project. But for `html` generators
+              we need to prefix that with the current file location.
+
+              Because, all the other frameworks have a build setup. which serves all the
+              assets from the `public` folder. But in the case of `html` here is how it works
+
+              We load a file from `index.html` the request for the image goes from
+              '...url.../public/...image...'
+              If it's a nested url, then the request goes from
+              '...url/nested/public/...image..'
+
+              But the nested folder is available only on the root. With this
+              The url changes prefixes to
+
+              ../public/playground_assets/..image.. etc depending on the dept the file is in.
+            */
+            value = join(relative(join(...outputOptions.folderPath), './'), value)
+          }
+
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, value)
+        }
+
+        break
       }
 
-      if (!targetRoute && attrValue.content === '/home') {
-        targetLink = '/'
+      case 'dynamic': {
+        const value = getValueFromReference(
+          content.id,
+          content.referenceType === 'prop' ? propDefinitions : stateDefinitions
+        )
+
+        HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value.defaultValue))
+        break
       }
 
-      if (!targetLink && !targetRoute) {
-        targetLink = attrValue.content
+      case 'raw': {
+        HASTUtils.addAttributeToNode(htmlNode, attrKey, content)
+        break
       }
 
-      const currentPageRoute = join(...(outputOptions?.folderPath || []), './')
-      const localPrefix = relative(
-        `/${currentPageRoute}`,
-        `/${targetLink === '/' ? 'index' : targetLink}`
-      )
-
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
-      return
-    }
-
-    if (attrValue.type === 'dynamic') {
-      const value =
-        attrValue.content.referenceType === 'prop'
-          ? getValueFromReference(attrValue.content.id, propDefinitions)
-          : getValueFromReference(attrValue.content.id, stateDefinitions)
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value))
-      return
-    }
-
-    if (attrValue.type === 'raw') {
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content)
-      return
-    }
-
-    if (typeof attrValue.content === 'boolean') {
-      HASTUtils.addBooleanAttributeToNode(htmlNode, attrKey)
-      return
-    } else if (typeof attrValue.content === 'string' || typeof attrValue.content === 'number') {
-      let value = StringUtils.encode(String(attrValue.content))
-
-      /*
-        elementType of image is always mapped to img.
-        For reference, check `html-mapping` file.
-      */
-      if (elementType === 'img' && attrKey === 'src' && !isValidURL(value)) {
-        /*
-          By default we just prefix all the asset paths with just the
-          assetPrefix that is configured in the project. But for `html` generators
-          we need to prefix that with the current file location.
-
-          Because, all the other frameworks have a build setup. which serves all the
-          assets from the `public` folder. But in the case of `html` here is how it works
-
-          We load a file from `index.html` the request for the image goes from
-          '...url.../public/...image...'
-          If it's a nested url, then the request goes from
-          '...url/nested/public/...image..'
-
-          But the nested folder is available only on the root. With this
-          The url changes prefixes to
-
-          ../public/playground_assets/..image.. etc depending on the dept the file is in.
-        */
-        value = join(relative(join(...outputOptions.folderPath), './'), value)
+      case 'element': {
+        // named-slots can only be sent for components. And in html, we don't have components
+        // We handle it in propsForInstance and ignore it here
+        break
       }
 
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, value)
-      return
+      case 'import':
+        break
+
+      default: {
+        throw new HTMLComponentGeneratorError(
+          `Received ${JSON.stringify(attrValue, null, 2)} \n in handleAttributes for html`
+        )
+      }
     }
-  })
+  }
 }
 
 const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
-): string => {
+): UIDLPropDefinition | undefined => {
   const usedReferenceValue = definitions[key.includes('.') ? key.split('.')[0] : key]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(
       `Definition for ${key} is missing from ${JSON.stringify(definitions, null, 2)}`
+    )
+  }
+
+  if (['string', 'number', 'object', 'element'].includes(usedReferenceValue?.type) === false) {
+    throw new HTMLComponentGeneratorError(
+      `Attribute is using dynamic value, but received of type ${JSON.stringify(
+        usedReferenceValue,
+        null,
+        2
+      )}`
     )
   }
 
@@ -530,15 +597,5 @@ const getValueFromReference = (
     )
   }
 
-  if (!['string', 'number', 'object'].includes(usedReferenceValue?.type)) {
-    throw new HTMLComponentGeneratorError(
-      `Attribute is using dynamic value, but received of type ${JSON.stringify(
-        usedReferenceValue,
-        null,
-        2
-      )}`
-    )
-  }
-
-  return String(usedReferenceValue.defaultValue)
+  return usedReferenceValue
 }

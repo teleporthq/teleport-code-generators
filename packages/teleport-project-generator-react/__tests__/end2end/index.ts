@@ -120,7 +120,7 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
     expect(viewsFolder.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
-    expect(viewsFolder.files[0].content).toContain(`<div className="home-container2">`)
+    expect(viewsFolder.files[0].content).toContain(`<div className="home-container1">`)
     expect(viewsFolder.files[0].content).toContain(`<Script`)
     expect(viewsFolder.files[0].content).toContain("html={`<blockquote class='twitter-tweet'")
     /* Imports that are just need to be inserted are added to router file by default */
@@ -130,26 +130,40 @@ describe('React Project Generator', () => {
   it('runs without crashing and using only tokens', async () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
     const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
-    const styleSheet = srcFolder.files.find(
+    const styleSheet = srcFolder?.files.find(
       (file) => file.name === 'style' && file.fileType === FileType.CSS
     )
-    const index = srcFolder.files.find(
+    const index = srcFolder?.files.find(
       (file) => file.name === 'index' && file.fileType === FileType.JS
     )
 
     expect(styleSheet).toBeDefined()
-    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+    expect(styleSheet?.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
-    expect(index.content).toContain(`import './style.css'`)
+    expect(index?.content).toContain(`import './style.css'`)
   })
 
   it('creates a default route if a page is marked as fallback', async () => {
     const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
-    const pages = subFolders.find((folder) => folder.name === 'src')
-    const routesPage = pages?.files.find((file) => file.name === 'index')
+    const srcFolder = subFolders.find((folder) => folder.name === 'src')
+    const routesPage = srcFolder?.files.find((file) => file.name === 'index')
 
     expect(routesPage).toBeDefined()
     expect(routesPage?.content).toContain(`<Route component={Fallback} path=\"**\" />`)
+  })
+
+  it('creates a named-slot for the parent to pass jsx to child components', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const srcFolder = subFolders.find((folder) => folder.name === 'src')
+    const viewsFolder = srcFolder?.subFolders.find((folder) => folder.name === 'views')
+    const componentsFolder = srcFolder?.subFolders.find((folder) => folder.name === 'components')
+
+    const homePage = viewsFolder?.files.find((file) => file.name === 'home')
+    const heroComponent = componentsFolder?.files.find((file) => file.name === 'hero')
+
+    expect(homePage).toBeDefined()
+    expect(homePage?.content).toContain(`This is amazing, because this is a named-slot`)
+    expect(heroComponent?.content).toContain(`{props.namedSlot}`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

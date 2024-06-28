@@ -4,6 +4,7 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import template from './template-definition.json'
 import { createVueProjectGenerator } from '../../src'
+import { FileType } from '@teleporthq/teleport-types'
 
 describe('Vue Project Generator', () => {
   const generator = createVueProjectGenerator()
@@ -76,6 +77,22 @@ describe('Vue Project Generator', () => {
 
     expect(routesPage).toBeDefined()
     expect(routesPage?.content).toContain(`path: '**'`)
+  })
+
+  it('creates a named slot for passing templates', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const srcFolder = subFolders.find((folder) => folder.name === 'src')
+    const viewsFolder = srcFolder?.subFolders.find((folder) => folder.name === 'views')
+    const componentsFolder = srcFolder?.subFolders.find((folder) => folder.name === 'components')
+    const homeFile = viewsFolder?.files.find(
+      (file) => file.name === 'home' && file.fileType === FileType.VUE
+    )
+    const heroFile = componentsFolder?.files.find(
+      (file) => file.name === 'hero' && file.fileType === FileType.VUE
+    )
+
+    expect(homeFile?.content).toContain(`<template v-slot:namedSlot>`)
+    expect(heroFile?.content).toContain(`<slot name="namedSlot">`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

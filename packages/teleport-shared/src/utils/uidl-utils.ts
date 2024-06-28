@@ -388,9 +388,10 @@ export const traverseResources = (
 const traverseStyleObject = (style: UIDLStyleDefinitions) => {
   Object.keys(style).forEach((styleKey) => {
     const styleValue = style[styleKey]
-    // TODO: cross-check the support for the strings as content for styles
     if (styleValue.type !== 'static' && styleValue.type !== 'dynamic') {
-      throw new Error(`We support only 'static' and 'dynamic' content for styles`)
+      throw new Error(`We support only 'static' and 'dynamic' content for styles \n
+        Received \n
+        ${JSON.stringify(styleValue, null, 2)}`)
     }
   })
 }
@@ -400,6 +401,15 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
   switch (node.type) {
     case 'element':
       fn(node.content)
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
 
       if (node.content.children) {
         node.content.children.forEach((child) => {
@@ -416,6 +426,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       if (node.content.nodes.loading) {
         traverseElements(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-list-repeater':
@@ -434,6 +454,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       if (node.content.nodes.loading) {
         traverseElements(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-mixed-type':
@@ -448,6 +478,16 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseElements(node.content.mappings[key], fn)
       })
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'repeat':
@@ -485,6 +525,15 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
   switch (node.type) {
     case 'element':
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       if (node.content.children) {
         node.content.children.forEach((child) => {
           traverseRepeats(child, fn)
@@ -501,6 +550,16 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
       }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'cms-list-repeater':
@@ -513,11 +572,22 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     case 'cms-item':
       traverseRepeats(node.content.nodes.success, fn)
+
       if (node.content.nodes.error) {
         traverseRepeats(node.content.nodes.error, fn)
       }
+
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
+      }
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
       }
       break
 
@@ -533,6 +603,16 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseRepeats(node.content.mappings[key], fn)
       })
+
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseRepeats(attrValue, fn)
+          }
+        }
+      }
+
       break
 
     case 'repeat':
@@ -574,6 +654,7 @@ interface SplitResponse {
   dynamicStyles: UIDLStyleDefinitions
   tokenStyles: UIDLStyleDefinitions
 }
+
 export const splitDynamicAndStaticStyles = (
   style: UIDLStyleDefinitions | Record<string, UIDLStyleSheetContent>
 ): SplitResponse => {
@@ -784,47 +865,58 @@ export const transformAttributesAssignmentsToJson = (
     }
 
     if (!Array.isArray(attributeContent) && entityType === 'object') {
-      // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as UIDLAttributeValue
-      if (['static', 'import', 'raw', 'expr'].indexOf(type as string) !== -1) {
-        const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
-        acc[propKey] = attributeContent as UIDLAttributeValue
-        return acc
-      }
 
-      if (type === 'comp-style') {
-        acc[key] = {
-          type: 'comp-style',
-          content: StringUtils.createStateOrPropStoringValue(
-            (attributeContent as UIDLComponentStyleReference).content
-          ),
+      switch (type) {
+        case 'import':
+        case 'static':
+        case 'raw':
+        case 'expr': {
+          const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+          acc[propKey] = attributeContent as UIDLAttributeValue
+          return acc
         }
-        return acc
-      }
 
-      const { content } = attributeContent as UIDLDynamicReference
-      if (type === 'dynamic') {
-        if (['state', 'prop'].includes(content?.referenceType)) {
+        case 'comp-style': {
           acc[key] = {
-            type,
-            content: {
-              ...content,
-              id: StringUtils.createStateOrPropStoringValue(content.id),
-            },
+            type: 'comp-style',
+            content: StringUtils.createStateOrPropStoringValue(
+              (attributeContent as UIDLComponentStyleReference).content
+            ),
           }
-        } else {
-          acc[key] = attributeContent as UIDLAttributeValue
+          return acc
         }
-        return acc
-      }
 
-      throw new Error(
-        `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
-          attributeContent,
-          null,
-          2
-        )}`
-      )
+        case 'dynamic': {
+          const { content } = attributeContent as UIDLDynamicReference
+          if (['state', 'prop'].includes(content?.referenceType)) {
+            acc[key] = {
+              type,
+              content: {
+                ...content,
+                id: StringUtils.createStateOrPropStoringValue(content.id),
+              },
+            }
+          } else {
+            acc[key] = attributeContent as UIDLAttributeValue
+          }
+          return acc
+        }
+
+        case 'element':
+          acc[key] = attributeContent as UIDLAttributeValue
+          return acc
+
+        default: {
+          throw new Error(
+            `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+              attributeContent,
+              null,
+              2
+            )}`
+          )
+        }
+      }
     }
   }, newAttrObject)
 

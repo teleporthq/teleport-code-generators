@@ -15,7 +15,7 @@ import {
   UIDLElement,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { JSXASTReturnType, JSXGenerationOptions, NodeToJSX } from './types'
+import { JSXASTReturnType, JSXGenerationOptions, JSXGenerationParams, NodeToJSX } from './types'
 
 import {
   addEventHandlerToTag,
@@ -86,7 +86,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const elementTag = selfClosing ? createSelfClosingJSXTag(elementName) : createJSXTag(elementName)
 
   if (attrs) {
-    addAttributesToJSXTag(attrs, elementTag, options)
+    addAttributesToJSXTag(attrs, elementTag, options, params)
   }
 
   if (events) {
@@ -119,7 +119,8 @@ export default generateElementNode
 const addAttributesToJSXTag = (
   attrs: UIDLElement['attrs'],
   elementTag: types.JSXElement,
-  options: JSXGenerationOptions
+  options: JSXGenerationOptions,
+  params: JSXGenerationParams
 ) => {
   Object.keys(attrs).forEach((attrKey) => {
     const attributeValue = attrs[attrKey]
@@ -156,6 +157,15 @@ const addAttributesToJSXTag = (
         break
       case 'expr':
         addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
+        break
+
+      case 'element':
+        addAttributeToJSXTag(
+          elementTag,
+          attrKey,
+          generateElementNode(attributeValue, params, options)
+        )
+
         break
       default:
         throw new Error(
@@ -254,7 +264,7 @@ const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement
   const mappingsObject: types.ObjectProperty[] = []
 
   if (attrs) {
-    addAttributesToJSXTag(attrs, cmsMixedNode, options)
+    addAttributesToJSXTag(attrs, cmsMixedNode, options, params)
   }
 
   if (dependency) {

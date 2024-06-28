@@ -145,7 +145,7 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<Container {...props}')
+      expect(jsFile.content).toContain('<Element {...props}')
       expect(jsFile.content).toContain('height: props.config.height')
     })
 

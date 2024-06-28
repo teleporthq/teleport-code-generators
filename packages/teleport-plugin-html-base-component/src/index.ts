@@ -5,6 +5,7 @@ import {
   HastNode,
   ComponentDefaultPluginParams,
   ComponentUIDL,
+  ElementsLookup,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
@@ -13,6 +14,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface HtmlPluginConfig {
   componentChunkName: string
+  nodesLookup: ElementsLookup
   wrapComponent?: boolean
 }
 
@@ -24,7 +26,11 @@ interface HtmlPlugin {
 type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>) => HtmlPlugin
 
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
-  const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = false } = config || {}
+  const {
+    componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
+    wrapComponent = false,
+    nodesLookup = {},
+  } = config || {}
   let externals: Record<string, ComponentUIDL> = {}
   let plugins: ComponentPlugin[] = []
 
@@ -43,7 +49,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
     const { uidl, chunks = [], dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {}, outputOptions } = uidl
 
-    const templatesLookUp: Record<string, unknown> = {}
+    const templatesLookUp: Record<string, unknown> = { ...nodesLookup }
     const compBase = wrapComponent
       ? HASTBuilders.createHTMLNode('body')
       : HASTBuilders.createHTMLNode('div')
@@ -68,6 +74,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       },
       { chunks, dependencies, options, outputOptions }
     )
+
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)
 
     chunks.push({

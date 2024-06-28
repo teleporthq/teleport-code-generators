@@ -36,7 +36,7 @@
           },
           {
               "type": "script",
-              "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
+              "path": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
           }
       ],
       "meta": [
@@ -573,7 +573,7 @@
                                                   },
                                                   "autoplay": {
                                                       "type": "static",
-                                                      "content": "true"
+                                                      "content": true
                                                   }
                                               }
                                           }
@@ -601,20 +601,47 @@
                                               "referencedStyles": {},
                                               "abilities": {},
                                               "children": [],
-                                              "semanticType": "Hero"
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
-                                              "elementType": "component",
-                                              "dependency": {
-                                                  "type": "local"
+                                              "attrs": {
+                                                  "namedSlot": {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "container",
+                                                      "style": {
+                                                        "fontSize": "24px",
+                                                        "padding": "20px",
+                                                        "backgroundColor": {
+                                                          "type": "dynamic",
+                                                          "content": {
+                                                            "referenceType": "token",
+                                                            "id": "--dl-color-success-700"
+                                                          }
+                                                        }
+                                                      },
+                                                      "children": [
+                                                        "This is amazing, because this is a named-slot",
+                                                        {
+                                                          "type": "element",
+                                                          "content": {
+                                                            "elementType": "container",
+                                                            "style": {
+                                                              "padding": "20px",
+                                                              "backgroundColor": {
+                                                                "type": "dynamic",
+                                                                "content": {
+                                                                  "referenceType": "token",
+                                                                  "id": "--dl-color-danger-700"
+                                                                }
+                                                              },
+                                                              "marginTop": "20px"
+                                                            },
+                                                            "children": ["And can be nested any number of levels"]
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
                                               },
-                                              "referencedStyles": {},
-                                              "abilities": {},
-                                              "children": [],
-                                              "semanticType": "Features"
+                                              "semanticType": "Hero"
                                           }
                                       },
                                       {
@@ -6693,10 +6720,9 @@
                   "defaultValue": "image",
                   "type": "string"
               },
-              "heading": {
+              "namedSlot": {
                   "id": "9e1857ce-9f52-4dcd-9000-ddaab6af0a53",
-                  "defaultValue": "Magnificent things are very simple",
-                  "type": "string"
+                  "type": "element"
               },
               "button": {
                   "id": "f4abacea-00b2-4c0b-8ccf-c23d0f0c7700",
@@ -6935,7 +6961,7 @@
                                   {
                                       "type": "element",
                                       "content": {
-                                          "elementType": "text",
+                                          "elementType": "container",
                                           "referencedStyles": {
                                               "78d44ec5-87ca-4329-b211-c840c24bd2ce": {
                                                   "type": "style-map",
@@ -6973,11 +6999,10 @@
                                                   "type": "dynamic",
                                                   "content": {
                                                       "referenceType": "prop",
-                                                      "id": "heading"
+                                                      "id": "namedSlot"
                                                   }
                                               }
-                                          ],
-                                          "semanticType": "h1"
+                                          ]
                                       }
                                   },
                                   {
@@ -9485,580 +9510,6 @@
               }
           },
           "name": "Footer",
-          "styleSetDefinitions": {}
-      },
-      "Features": {
-          "propDefinitions": {
-              "image_src": {
-                  "id": "7e747fc8-782e-4142-8bab-b2b81aeda5a7",
-                  "defaultValue": "https://images.unsplash.com/photo-1471086569966-db3eebc25a59?ixid=Mnw5MTMyMXwwfDF8c2VhcmNofDIzfHxtaW5pbWFsaXNtfGVufDB8fHx8MTYyNjQ0NTY1Nw&ixlib=rb-1.2.1&h=1000",
-                  "type": "string"
-              },
-              "image_alt": {
-                  "id": "f7b922dc-255c-4f10-9d92-371482332b1b",
-                  "defaultValue": "image",
-                  "type": "string"
-              }
-          },
-          "node": {
-              "type": "element",
-              "content": {
-                  "elementType": "container",
-                  "name": "Features",
-                  "referencedStyles": {
-                      "ad9612bd-ec75-480c-8417-19671e52fff1": {
-                          "type": "style-map",
-                          "content": {
-                              "conditions": [
-                                  {
-                                      "conditionType": "screen-size",
-                                      "maxWidth": 991
-                                  }
-                              ],
-                              "mapType": "inlined",
-                              "styles": {
-                                  "alignItems": {
-                                      "type": "static",
-                                      "content": "center"
-                                  }
-                              }
-                          }
-                      },
-                      "ba704fca-79aa-4493-a423-6ac23ede10e2": {
-                          "type": "style-map",
-                          "content": {
-                              "conditions": [
-                                  {
-                                      "conditionType": "screen-size",
-                                      "maxWidth": 479
-                                  }
-                              ],
-                              "mapType": "inlined",
-                              "styles": {
-                                  "paddingTop": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  },
-                                  "paddingLeft": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-unit"
-                                      }
-                                  },
-                                  "paddingRight": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-unit"
-                                      }
-                                  },
-                                  "paddingBottom": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  }
-                              }
-                          }
-                      },
-                      "5083ce47-bf77-4008-b0da-d836a78852ef": {
-                          "type": "style-map",
-                          "content": {
-                              "conditions": [
-                                  {
-                                      "conditionType": "screen-size",
-                                      "maxWidth": 767
-                                  }
-                              ],
-                              "mapType": "inlined",
-                              "styles": {
-                                  "paddingLeft": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  },
-                                  "paddingRight": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  }
-                              }
-                          }
-                      }
-                  },
-                  "abilities": {},
-                  "style": {
-                      "width": {
-                          "type": "static",
-                          "content": "100%"
-                      },
-                      "display": {
-                          "type": "static",
-                          "content": "flex"
-                      },
-                      "padding": {
-                          "type": "dynamic",
-                          "content": {
-                              "referenceType": "token",
-                              "id": "--dl-space-space-threeunits"
-                          }
-                      },
-                      "maxWidth": {
-                          "type": "dynamic",
-                          "content": {
-                              "referenceType": "token",
-                              "id": "--dl-size-size-maxwidth"
-                          }
-                      },
-                      "flexDirection": {
-                          "type": "static",
-                          "content": "column"
-                      }
-                  },
-                  "children": [
-                      {
-                          "type": "element",
-                          "content": {
-                              "elementType": "text",
-                              "referencedStyles": {
-                                  "603e1818-4003-4784-b288-fee57e7d0f5e": {
-                                      "type": "style-map",
-                                      "content": {
-                                          "conditions": [
-                                              {
-                                                  "conditionType": "screen-size",
-                                                  "maxWidth": 767
-                                              }
-                                          ],
-                                          "mapType": "inlined",
-                                          "styles": {
-                                              "textAlign": {
-                                                  "type": "static",
-                                                  "content": "center"
-                                              }
-                                          }
-                                      }
-                                  }
-                              },
-                              "abilities": {},
-                              "style": {
-                                  "fontSize": {
-                                      "type": "static",
-                                      "content": "3rem"
-                                  },
-                                  "marginBottom": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  }
-                              },
-                              "children": [
-                                  {
-                                      "type": "element",
-                                      "content": {
-                                          "elementType": "text",
-                                          "referencedStyles": {},
-                                          "abilities": {},
-                                          "children": [
-                                              {
-                                                  "type": "static",
-                                                  "content": "Discover our"
-                                              }
-                                          ],
-                                          "semanticType": "span"
-                                      }
-                                  },
-                                  {
-                                      "type": "element",
-                                      "content": {
-                                          "elementType": "text",
-                                          "referencedStyles": {},
-                                          "abilities": {},
-                                          "children": [],
-                                          "semanticType": "br"
-                                      }
-                                  },
-                                  {
-                                      "type": "element",
-                                      "content": {
-                                          "elementType": "text",
-                                          "referencedStyles": {},
-                                          "abilities": {},
-                                          "children": [
-                                              {
-                                                  "type": "static",
-                                                  "content": "unique features"
-                                              }
-                                          ],
-                                          "semanticType": "span"
-                                      }
-                                  }
-                              ],
-                              "semanticType": "h1"
-                          }
-                      },
-                      {
-                          "type": "element",
-                          "content": {
-                              "elementType": "container",
-                              "name": "Separator",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "style": {
-                                  "width": {
-                                      "type": "static",
-                                      "content": "100px"
-                                  },
-                                  "height": {
-                                      "type": "static",
-                                      "content": "2px"
-                                  },
-                                  "backgroundColor": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-color-gray-500"
-                                      }
-                                  }
-                              },
-                              "children": [],
-                              "semanticType": "div"
-                          }
-                      },
-                      {
-                          "type": "element",
-                          "content": {
-                              "elementType": "container",
-                              "referencedStyles": {
-                                  "cd040f33-67a8-4194-a378-740a0f93b777": {
-                                      "type": "style-map",
-                                      "content": {
-                                          "conditions": [
-                                              {
-                                                  "conditionType": "screen-size",
-                                                  "maxWidth": 767
-                                              }
-                                          ],
-                                          "mapType": "inlined",
-                                          "styles": {
-                                              "flexDirection": {
-                                                  "type": "static",
-                                                  "content": "column"
-                                              }
-                                          }
-                                      }
-                                  },
-                                  "5a18df2a-e0ec-4d76-b136-d24f02d33bb1": {
-                                      "type": "style-map",
-                                      "content": {
-                                          "conditions": [
-                                              {
-                                                  "conditionType": "screen-size",
-                                                  "maxWidth": 991
-                                              }
-                                          ],
-                                          "mapType": "inlined",
-                                          "styles": {
-                                              "flexDirection": {
-                                                  "type": "static",
-                                                  "content": "column"
-                                              }
-                                          }
-                                      }
-                                  }
-                              },
-                              "abilities": {},
-                              "style": {
-                                  "flex": {
-                                      "type": "static",
-                                      "content": "0 0 auto"
-                                  },
-                                  "width": {
-                                      "type": "static",
-                                      "content": "100%"
-                                  },
-                                  "display": {
-                                      "type": "static",
-                                      "content": "flex"
-                                  },
-                                  "marginTop": {
-                                      "type": "dynamic",
-                                      "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-twounits"
-                                      }
-                                  },
-                                  "alignItems": {
-                                      "type": "static",
-                                      "content": "center"
-                                  },
-                                  "flexDirection": {
-                                      "type": "static",
-                                      "content": "row-reverse"
-                                  },
-                                  "justifyContent": {
-                                      "type": "static",
-                                      "content": "space-between"
-                                  }
-                              },
-                              "children": [
-                                  {
-                                      "type": "element",
-                                      "content": {
-                                          "elementType": "container",
-                                          "referencedStyles": {
-                                              "c3acd586-d5a6-4e65-bfe1-203641c5e037": {
-                                                  "type": "style-map",
-                                                  "content": {
-                                                      "conditions": [
-                                                          {
-                                                              "conditionType": "screen-size",
-                                                              "maxWidth": 479
-                                                          }
-                                                      ],
-                                                      "mapType": "inlined",
-                                                      "styles": {
-                                                          "gridTemplateColumns": {
-                                                              "type": "static",
-                                                              "content": "1fr"
-                                                          }
-                                                      }
-                                                  }
-                                              }
-                                          },
-                                          "abilities": {},
-                                          "style": {
-                                              "display": {
-                                                  "type": "static",
-                                                  "content": "grid"
-                                              },
-                                              "gridTemplateColumns": {
-                                                  "type": "static",
-                                                  "content": "1fr 1fr"
-                                              }
-                                          },
-                                          "children": [
-                                              {
-                                                  "type": "element",
-                                                  "content": {
-                                                      "elementType": "component",
-                                                      "dependency": {
-                                                          "type": "local"
-                                                      },
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "attrs": {
-                                                          "rootClassName": {
-                                                              "type": "comp-style",
-                                                              "content": "rootClassName1"
-                                                          }
-                                                      },
-                                                      "children": [],
-                                                      "semanticType": "FeatureCard4"
-                                                  }
-                                              },
-                                              {
-                                                  "type": "element",
-                                                  "content": {
-                                                      "elementType": "component",
-                                                      "dependency": {
-                                                          "type": "local"
-                                                      },
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "attrs": {
-                                                          "rootClassName": {
-                                                              "type": "comp-style",
-                                                              "content": "root-class-name-4"
-                                                          }
-                                                      },
-                                                      "children": [],
-                                                      "semanticType": "FeatureCard4"
-                                                  }
-                                              },
-                                              {
-                                                  "type": "element",
-                                                  "content": {
-                                                      "elementType": "component",
-                                                      "dependency": {
-                                                          "type": "local"
-                                                      },
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "attrs": {
-                                                          "rootClassName": {
-                                                              "type": "comp-style",
-                                                              "content": "rootClassName3"
-                                                          }
-                                                      },
-                                                      "children": [],
-                                                      "semanticType": "FeatureCard4"
-                                                  }
-                                              },
-                                              {
-                                                  "type": "element",
-                                                  "content": {
-                                                      "elementType": "component",
-                                                      "dependency": {
-                                                          "type": "local"
-                                                      },
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "attrs": {
-                                                          "rootClassName": {
-                                                              "type": "comp-style",
-                                                              "content": "rootClassName2"
-                                                          }
-                                                      },
-                                                      "children": [],
-                                                      "semanticType": "FeatureCard4"
-                                                  }
-                                              }
-                                          ],
-                                          "semanticType": "div"
-                                      }
-                                  },
-                                  {
-                                      "type": "element",
-                                      "content": {
-                                          "elementType": "image",
-                                          "referencedStyles": {
-                                              "87b49545-ec8d-49c9-a881-9c5a6267e092": {
-                                                  "type": "style-map",
-                                                  "content": {
-                                                      "conditions": [
-                                                          {
-                                                              "conditionType": "screen-size",
-                                                              "maxWidth": 991
-                                                          }
-                                                      ],
-                                                      "mapType": "inlined",
-                                                      "styles": {
-                                                          "width": {
-                                                              "type": "static",
-                                                              "content": "300px"
-                                                          },
-                                                          "height": {
-                                                              "type": "static",
-                                                              "content": "300px"
-                                                          },
-                                                          "marginTop": {
-                                                              "type": "dynamic",
-                                                              "content": {
-                                                                  "referenceType": "token",
-                                                                  "id": "--dl-space-space-twounits"
-                                                              }
-                                                          },
-                                                          "marginLeft": {
-                                                              "type": "static",
-                                                              "content": "0px"
-                                                          }
-                                                      }
-                                                  }
-                                              },
-                                              "18452aa5-5c13-452c-bbe8-07c2cf98f395": {
-                                                  "type": "style-map",
-                                                  "content": {
-                                                      "conditions": [
-                                                          {
-                                                              "conditionType": "screen-size",
-                                                              "maxWidth": 479
-                                                          }
-                                                      ],
-                                                      "mapType": "inlined",
-                                                      "styles": {
-                                                          "width": {
-                                                              "type": "static",
-                                                              "content": "250px"
-                                                          },
-                                                          "height": {
-                                                              "type": "static",
-                                                              "content": "250px"
-                                                          }
-                                                      }
-                                                  }
-                                              }
-                                          },
-                                          "abilities": {},
-                                          "attrs": {
-                                              "alt": {
-                                                  "type": "dynamic",
-                                                  "content": {
-                                                      "referenceType": "prop",
-                                                      "id": "image_alt"
-                                                  }
-                                              },
-                                              "src": {
-                                                  "type": "dynamic",
-                                                  "content": {
-                                                      "referenceType": "prop",
-                                                      "id": "image_src"
-                                                  }
-                                              }
-                                          },
-                                          "style": {
-                                              "width": {
-                                                  "type": "static",
-                                                  "content": "450px"
-                                              },
-                                              "height": {
-                                                  "type": "static",
-                                                  "content": "450px"
-                                              },
-                                              "objectFit": {
-                                                  "type": "static",
-                                                  "content": "cover"
-                                              },
-                                              "flexShrink": {
-                                                  "type": "static",
-                                                  "content": "0"
-                                              },
-                                              "marginLeft": {
-                                                  "type": "static",
-                                                  "content": "0px"
-                                              },
-                                              "borderRadius": {
-                                                  "type": "dynamic",
-                                                  "content": {
-                                                      "referenceType": "token",
-                                                      "id": "--dl-radius-radius-round"
-                                                  }
-                                              },
-                                              "objectPosition": {
-                                                  "type": "static",
-                                                  "content": "left"
-                                              },
-                                              "marginRight": {
-                                                  "type": "dynamic",
-                                                  "content": {
-                                                      "referenceType": "token",
-                                                      "id": "--dl-space-space-fourunits"
-                                                  }
-                                              }
-                                          },
-                                          "children": []
-                                      }
-                                  }
-                              ],
-                              "semanticType": "div"
-                          }
-                      }
-                  ],
-                  "semanticType": "div"
-              }
-          },
-          "name": "Features",
           "styleSetDefinitions": {}
       },
       "GalleryCard3": {

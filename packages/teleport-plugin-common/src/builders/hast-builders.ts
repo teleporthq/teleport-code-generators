@@ -18,3 +18,10 @@ export const createTextNode = (content: string): HastText => {
     value: content,
   }
 }
+
+export const createComment = (content: string): HastText => {
+  return {
+    type: 'comment',
+    value: content,
+  }
+}

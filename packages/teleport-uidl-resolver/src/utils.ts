@@ -14,12 +14,11 @@ import {
   UIDLStaticValue,
   UIDLDynamicReference,
   UIDLConditionalNode,
+  ElementsLookup,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
-
-type ElementsLookup = Record<string, { count: number; nextKey: string }>
 
 export const mergeMappings = (
   oldMapping: Mapping,
@@ -282,7 +281,11 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
     const parentElement = parentNode.type === 'element' ? parentNode.content : null
 
     if (parentElement && parentElement.attrs) {
-      repeatContent.dataSource = parentElement.attrs[nodeDataSourceAttr]
+      const dataSourceValue = parentElement.attrs[nodeDataSourceAttr]
+      if (dataSourceValue.type === 'element') {
+        throw new Error(`Dynamic data source for repeat cannot be an element`)
+      }
+      repeatContent.dataSource = dataSourceValue
       // remove original attribute so it is not added as a static/dynamic value on the node
       delete parentElement.attrs[nodeDataSourceAttr]
     }

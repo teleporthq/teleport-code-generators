@@ -1,0 +1,287 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[
+  `React Next Project Generator creates a next project and generates the named-slot for passing components 1`
+] = `
+Object {
+  "content": "import React, { useEffect } from 'react'
+import Head from 'next/head'
+
+import Header from '../components/header'
+import Hero from '../components/hero'
+import Footer from '../components/footer'
+
+const Home = (props) => {
+  useEffect(() => import('@lottiefiles/lottie-player'), [])
+  return (
+    <>
+      <div className=\\"home-element\\">
+        <Head>
+          <title>New Project3</title>
+          <meta property=\\"og:title\\" content=\\"New Project3\\" />
+        </Head>
+        <lottie-player
+          src=\\"https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json\\"
+          autoplay
+          className=\\"home-element1\\"
+        ></lottie-player>
+        <Header></Header>
+        <Hero
+          namedSlot={
+            <div className=\\"home-element4\\">
+              This is amazing, because this is a named-slot
+              <div className=\\"home-element5\\">
+                And can be nested any number of levels
+              </div>
+            </div>
+          }
+        ></Hero>
+        <Footer></Footer>
+      </div>
+      <style jsx>
+        {\`
+          .home-element {
+            width: 100%;
+            display: flex;
+            overflow: auto;
+            min-height: 100vh;
+            align-items: center;
+            flex-direction: column;
+            justify-content: flex-start;
+          }
+          .home-element1 {
+            width: 200px;
+            height: 200px;
+          }
+          .home-element4 {
+            padding: 20px;
+            font-size: 24px;
+            background-color: var(--dl-color-success-700);
+          }
+          .home-element5 {
+            padding: 20px;
+            margin-top: 20px;
+            background-color: var(--dl-color-danger-700);
+          }
+          @media (max-width: 479px) {
+            .home-element {
+              color: blue;
+            }
+          }
+        \`}
+      </style>
+    </>
+  )
+}
+
+export default Home
+",
+  "fileType": "js",
+  "name": "index",
+}
+`
+
+exports[
+  `React Next Project Generator creates a next project and generates the named-slot for passing components 2`
+] = `
+Object {
+  "content": "import React from 'react'
+
+import PropTypes from 'prop-types'
+
+const Hero = (props) => {
+  return (
+    <>
+      <div className=\\"hero-hero\\">
+        <div className=\\"hero-element\\">
+          <div className=\\"hero-element01\\">{props.namedSlot}</div>
+          <span className=\\"hero-element02\\">
+            <span>
+              <span>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non
+                volutpat turpis.
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: ' ',
+                  }}
+                />
+              </span>
+              <span>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: ' ',
+                  }}
+                />
+              </span>
+            </span>
+            <span>
+              <span>
+                Mauris luctus rutrum mi ut rhoncus. Integer in dignissim tortor.
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: ' ',
+                  }}
+                />
+              </span>
+              <span>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: ' ',
+                  }}
+                />
+              </span>
+            </span>
+          </span>
+          <div className=\\"hero-btn-group\\">
+            <button className=\\"hero-element09 button primary-button\\">
+              {props.button}
+            </button>
+            <button className=\\"hero-element10 button secondary-button\\">
+              {props.button1}
+            </button>
+          </div>
+        </div>
+        <img
+          alt={props.imageAlt}
+          src={props.imageSrc}
+          className=\\"hero-element11\\"
+        />
+      </div>
+      <style jsx>
+        {\`
+          .hero-hero {
+            width: 100%;
+            display: flex;
+            padding: var(--dl-space-space-threeunits);
+            max-width: var(--dl-size-size-maxwidth);
+            min-height: 80vh;
+            align-items: center;
+            flex-direction: row;
+            justify-content: space-between;
+          }
+          .hero-element {
+            display: flex;
+            margin-right: var(--dl-space-space-threeunits);
+            padding-right: var(--dl-space-space-threeunits);
+            flex-direction: column;
+          }
+          .hero-element01 {
+            font-size: 3rem;
+            max-width: 450px;
+            font-family: Super Funky;
+          }
+          .hero-element02 {
+            margin-top: var(--dl-space-space-twounits);
+            margin-bottom: var(--dl-space-space-twounits);
+          }
+          .hero-btn-group {
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+          }
+          .hero-element09 {
+            transition: 0.3s;
+            padding-top: var(--dl-space-space-unit);
+            padding-left: var(--dl-space-space-twounits);
+            padding-right: var(--dl-space-space-twounits);
+            padding-bottom: var(--dl-space-space-unit);
+          }
+          .hero-element09:hover {
+            color: var(--dl-color-gray-black);
+            background-color: var(--dl-color-gray-white);
+          }
+          .hero-element10 {
+            transition: 0.3s;
+            margin-left: var(--dl-space-space-unit);
+            padding-top: var(--dl-space-space-unit);
+            padding-left: var(--dl-space-space-twounits);
+            padding-right: var(--dl-space-space-twounits);
+            padding-bottom: var(--dl-space-space-unit);
+          }
+          .hero-element10:hover {
+            color: var(--dl-color-gray-white);
+            border-color: var(--dl-color-gray-black);
+            background-color: var(--dl-color-gray-black);
+          }
+          .hero-element11 {
+            width: 400px;
+            object-fit: cover;
+          }
+          @media (max-width: 991px) {
+            .hero-hero {
+              flex-direction: column;
+            }
+            .hero-element {
+              align-items: center;
+              margin-right: 0px;
+              margin-bottom: var(--dl-space-space-twounits);
+              padding-right: 0px;
+            }
+            .hero-element01 {
+              text-align: center;
+            }
+            .hero-element02 {
+              text-align: center;
+              padding-left: var(--dl-space-space-threeunits);
+              padding-right: var(--dl-space-space-threeunits);
+            }
+          }
+          @media (max-width: 767px) {
+            .hero-hero {
+              padding-left: var(--dl-space-space-twounits);
+              padding-right: var(--dl-space-space-twounits);
+            }
+            .hero-element02 {
+              padding-left: var(--dl-space-space-unit);
+              padding-right: var(--dl-space-space-unit);
+            }
+            .hero-element11 {
+              width: 80%;
+            }
+          }
+          @media (max-width: 479px) {
+            .hero-hero {
+              padding-top: var(--dl-space-space-twounits);
+              padding-left: var(--dl-space-space-unit);
+              padding-right: var(--dl-space-space-unit);
+              padding-bottom: var(--dl-space-space-twounits);
+            }
+            .hero-element {
+              margin-bottom: var(--dl-space-space-unit);
+            }
+            .hero-btn-group {
+              flex-direction: column;
+            }
+            .hero-element10 {
+              margin-top: var(--dl-space-space-unit);
+              margin-left: 0px;
+            }
+          }
+        \`}
+      </style>
+    </>
+  )
+}
+
+Hero.defaultProps = {
+  imageSrc:
+    'https://images.unsplash.com/photo-1525498128493-380d1990a112?ixid=Mnw5MTMyMXwwfDF8c2VhcmNofDI0fHxtaW5pbWFsaXNtJTIwZ3JlZW58ZW58MHx8fHwxNjI1ODQxMDcw&ixlib=rb-1.2.1&h=1200',
+  imageAlt: 'image',
+  button: 'Get Started',
+  button1: 'Learn More',
+}
+
+Hero.propTypes = {
+  imageSrc: PropTypes.string,
+  imageAlt: PropTypes.string,
+  namedSlot: PropTypes.element,
+  button: PropTypes.string,
+  button1: PropTypes.string,
+}
+
+export default Hero
+",
+  "fileType": "js",
+  "name": "hero",
+}
+`

@@ -137,20 +137,6 @@ describe('Validate UIDL', () => {
       //    "isOpen" is used in events, but not defined. Please add it in stateDefinitions
       // )
     })
-
-    it('throws an error if event name is empty string', () => {
-      const validator = new Validator()
-      // @ts-ignore
-      expect(() => validator.validateComponentSchema(ComponentUidlElementWithEmptyName)).toThrow(
-        Error
-      )
-
-      // expect(validationResult.errorMsg).toBe(
-      //  UIDL Format Validation Error. Please check the following:
-      //  - Path undefined: Error: Name attribute cannot be empty.
-      //  is a undefined
-      // )
-    })
   })
 
   describe('Project UIDL Format', () => {

@@ -113,10 +113,12 @@
         ]
       }
     },
+    "styleSetDefinitions": {},
     "node": {
       "type": "element",
       "content": {
         "elementType": "Router",
+        "name": "element",
         "events": {},
         "children": [
           {
@@ -127,6 +129,7 @@
                 "content": {
                   "events": {},
                   "elementType": "container",
+                  "name": "element",
                   "children": [
                     {
                       "type": "static",
@@ -152,6 +155,7 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "name": "element",
                   "events": {},
                   "children": [
                     {
@@ -177,6 +181,7 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "name": "element",
                   "events": {},
                   "children": [
                     {

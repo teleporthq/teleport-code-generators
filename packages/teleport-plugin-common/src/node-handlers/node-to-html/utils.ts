@@ -9,6 +9,8 @@ import {
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
+import { createHTMLNode } from '../../builders/hast-builders'
+import generateElementNode from '../node-to-html'
 
 export const handleAttribute = (
   htmlNode: HastNode,
@@ -58,6 +60,24 @@ export const handleAttribute = (
         hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.toString())
       }
       break
+
+    case 'element':
+      const templateNode = createHTMLNode(templateSyntax.slotTagName)
+      const templateContent = generateElementNode(attrValue, params, templateSyntax)
+
+      if (templateSyntax.slotBinding === 'v-slot') {
+        hastUtils.addBooleanAttributeToNode(
+          templateNode,
+          `${templateSyntax.slotBinding}:${attrKey}`
+        )
+      } else {
+        hastUtils.addAttributeToNode(templateNode, templateSyntax.slotBinding, attrKey)
+      }
+
+      hastUtils.addChildNode(templateNode, templateContent)
+      hastUtils.addChildNode(htmlNode, templateNode)
+      break
+
     default:
       throw new Error(
         `generateElementNode could not generate code for attribute of type ${JSON.stringify(

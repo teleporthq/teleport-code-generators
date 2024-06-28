@@ -1,11 +1,9 @@
-import { HastNode } from '@teleporthq/teleport-types'
+import { HastNode, HastText } from '@teleporthq/teleport-types'
 import { createTextNode } from '../builders/hast-builders'
 
 export const addBooleanAttributeToNode = (node: HastNode, key: string, value: boolean = true) => {
   node.properties[key] = value === true ? '' : false
-  /* adding empty string as @starptech/prettyhtml-hast-to-html which we are currently
-  using for generating HTML supports boolean way of adding attributes only for HTML
-  attributes but not for Vue*/
+  // Adding boolean attributes is currently onyl supported for template generators
 }
 
 export const addAttributeToNode = (node: HastNode, key: string, value: string) => {
@@ -16,7 +14,7 @@ export const addClassToNode = (node: HastNode, className: string) => {
   node.properties.class = className
 }
 
-export const addChildNode = (node: HastNode, child: HastNode) => {
+export const addChildNode = (node: HastNode, child: HastNode | HastText) => {
   node.children.push(child)
 }
 

@@ -1,68 +1,50 @@
-/* tslint:disable member-ordering */
-import { Result, DecoderError } from '@mojotech/json-type-validation'
+import { succeed, fail, Decoder } from '@mojotech/json-type-validation'
 
 /* These are some custom combinators that comes in handy for us,
 instead of parsing and cross-checking regex again. The combinators,
 can used inside a existing Decoder, since we did not implement any run()
 runWithException() etc */
 
-type DecodeResult<A> = Result.Result<A, Partial<DecoderError>>
-export class CustomCombinators<A> {
-  // @ts-ignore
-  private constructor(private decode: (json: string) => DecodeResult<A>) {}
-
-  static isValidComponentName(): CustomCombinators<string> {
-    return new CustomCombinators<string>((json: string) => {
-      const componentNameRegex = new RegExp('^[A-Z]+[a-zA-Z0-9]*$')
-      if (json && typeof json === 'string' && componentNameRegex.test(json)) {
-        return Result.ok(json)
-      } else if (json.length === 0) {
-        throw new Error(`Component Name cannot be empty`)
-      }
-      throw new Error(`Invalid Component name, got ${json}`)
-    })
+export const isValidComponentName = (name: string): Decoder<string> => {
+  const componentNameRegex = new RegExp('^[A-Z]+[a-zA-Z0-9]*$')
+  if (name && typeof name === 'string' && componentNameRegex.test(name)) {
+    return succeed(name)
   }
 
-  static isValidNavLink(): CustomCombinators<string> {
-    return new CustomCombinators<string>((link: string) => {
-      if (!link || typeof link !== 'string') {
-        throw new Error(`Invalid navLink attribute, received ${link}`)
-      }
+  return fail(`Invalid Component name, got ${name}`)
+}
 
-      if (link === '**') {
-        return Result.ok(link)
-      }
-
-      const navLinkRegex = new RegExp('/(?:[a-zA-Z0-9-_]+|/[[a-zA-Z]+]|[/[a-zA-Z]+])*')
-      if (navLinkRegex.test(link)) {
-        return Result.ok(link)
-      }
-
-      throw new Error(`Invalid navLink attribute, received ${link}`)
-    })
+export const isValidNavLink = (link: string): Decoder<string> => {
+  if (!link || typeof link !== 'string') {
+    throw new Error(`Invalid navLink attribute, received ${link}`)
   }
 
-  static isValidFileName(): CustomCombinators<string> {
-    return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^[[a-zA-Z0-9-_.]+]*$')
-      if (json && typeof json === 'string' && fileNameRegex.test(json)) {
-        return Result.ok(json)
-      } else if (json.length === 0) {
-        throw new Error(`File Name cannot be empty`)
-      }
-      throw new Error(`Invalid File name, received ${json}`)
-    })
+  if (link === '**') {
+    return succeed(link)
   }
 
-  static isValidElementName(): CustomCombinators<string> {
-    return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
-      if (json && typeof json === 'string' && fileNameRegex.test(json)) {
-        return Result.ok(json)
-      } else if (json.length === 0) {
-        throw new Error(`Name attribute cannot be empty`)
-      }
-      throw new Error(`Invalid name attribute, received ${json}`)
-    })
+  const navLinkRegex = new RegExp('/(?:[a-zA-Z0-9-_]+|/[[a-zA-Z]+]|[/[a-zA-Z]+])*')
+  if (navLinkRegex.test(link)) {
+    return succeed(link)
   }
+
+  return fail(`Invalid navLink attribute, received ${link}`)
+}
+
+export const isValidFileName = (name: string): Decoder<string> => {
+  const fileNameRegex = new RegExp('^[[a-zA-Z0-9-_.]+]*$')
+  if (name && typeof name === 'string' && fileNameRegex.test(name)) {
+    return succeed(name)
+  }
+
+  return fail(`Invalid File name, received ${name}`)
+}
+
+export const isValidElementName = (name: string): Decoder<string> => {
+  const elementNameRefex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
+  if (name && typeof name === 'string' && elementNameRefex.test(name)) {
+    return succeed(name)
+  }
+
+  return fail(`Invalid name attribute, received ${name}`)
 }

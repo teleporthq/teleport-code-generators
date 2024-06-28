@@ -26,7 +26,7 @@ import {
   UIDLDependency,
   UIDLStyleDefinitions,
   UIDLStyleValue,
-  UIDLAttributeValue,
+  VUIDLAttributeValue,
   UIDLEventHandlerStatement,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
@@ -94,10 +94,12 @@ import {
   VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
 } from '@teleporthq/teleport-types'
-import { CustomCombinators } from './custom-combinators'
-
-const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
-  CustomCombinators
+import {
+  isValidElementName,
+  isValidNavLink,
+  isValidFileName,
+  isValidComponentName,
+} from './custom-combinators'
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -391,7 +393,8 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('array'),
     constant('func'),
     constant('object'),
-    constant('children')
+    constant('children'),
+    constant('element')
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
@@ -421,9 +424,9 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
-  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  componentName: optional(string().andThen(isValidComponentName)),
+  navLink: optional(string().andThen(isValidNavLink)),
+  fileName: optional(string().andThen(isValidFileName)),
   fallback: optional(boolean()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
@@ -433,12 +436,12 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
-  componentClassName: optional(isValidComponentName() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
-  styleFileName: optional(isValidFileName() as unknown as Decoder<string>),
-  templateFileName: optional(isValidFileName() as unknown as Decoder<string>),
-  moduleName: optional(isValidFileName() as unknown as Decoder<string>),
-  folderPath: optional(array(isValidFileName() as unknown as Decoder<string>)),
+  componentClassName: optional(string().andThen(isValidComponentName)),
+  fileName: optional(string().andThen(isValidFileName)),
+  styleFileName: optional(string().andThen(isValidFileName)),
+  templateFileName: optional(string().andThen(isValidFileName)),
+  moduleName: optional(string().andThen(isValidFileName)),
+  folderPath: optional(array(string().andThen(isValidFileName))),
 })
 
 export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
@@ -493,13 +496,14 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   }),
 })
 
-export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
+export const attributeValueDecoder: Decoder<VUIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
   lazy(() => expressionValueDecoder),
   importReferenceDecoder,
   rawValueDecoder,
-  lazy(() => uidlComponentStyleReference)
+  lazy(() => uidlComponentStyleReference),
+  lazy(() => elementNodeDecoder)
 )
 
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
@@ -534,7 +538,15 @@ export const stateChangeEventDecoder: Decoder<UIDLStateModifierEvent> = object({
 export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   type: constant('url'),
   content: object({
-    url: union(attributeValueDecoder, string()),
+    url: union(
+      expressionValueDecoder,
+      dynamicValueDecoder,
+      staticValueDecoder,
+      importReferenceDecoder,
+      uidlComponentStyleReference,
+      rawValueDecoder,
+      string()
+    ),
     newTab: withDefault(false, boolean()),
   }),
 })
@@ -556,7 +568,15 @@ export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
 export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
   type: constant('navlink'),
   content: object({
-    routeName: union(attributeValueDecoder, string()),
+    routeName: union(
+      expressionValueDecoder,
+      dynamicValueDecoder,
+      staticValueDecoder,
+      importReferenceDecoder,
+      uidlComponentStyleReference,
+      rawValueDecoder,
+      string()
+    ),
   }),
 })
 
@@ -632,7 +652,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
   content: object({
     mapType: constant('inlined'),
     conditions: array(styleConditionsDecoder),
-    styles: optional(dict(union(attributeValueDecoder, string(), number()))),
+    styles: optional(dict(union(styleValueDecoder, string(), number()))),
   }),
 })
 
@@ -660,10 +680,10 @@ export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
-  name: optional(isValidElementName() as unknown as Decoder<string>),
+  name: withDefault('element', string().andThen(isValidElementName)),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
-  style: optional(dict(union(attributeValueDecoder, string(), number()))),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
   attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
   events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
@@ -706,7 +726,16 @@ export const repeatNodeDecoder: Decoder<VUIDLRepeatNode> = object({
   type: constant('repeat'),
   content: object({
     node: lazy(() => elementNodeDecoder),
-    dataSource: optional(attributeValueDecoder),
+    dataSource: optional(
+      union(
+        expressionValueDecoder,
+        dynamicValueDecoder,
+        staticValueDecoder,
+        importReferenceDecoder,
+        uidlComponentStyleReference,
+        rawValueDecoder
+      )
+    ),
     meta: optional(
       object({
         useIndex: optional(boolean()),

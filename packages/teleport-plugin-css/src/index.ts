@@ -120,7 +120,13 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
       const root = templateLookup[key]
       if (!root) {
-        throw new PluginCSS(`Node - ${key} is missing from the template chunk`)
+        throw new PluginCSS(
+          `Element \n ${JSON.stringify(
+            element,
+            null,
+            2
+          )} \n with key ${key} is missing from the template chunk`
+        )
       }
 
       const className = getClassName(forceScoping, uidl.name, elementClassName)

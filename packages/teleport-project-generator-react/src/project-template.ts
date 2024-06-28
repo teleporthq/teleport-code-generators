@@ -11,7 +11,7 @@ const projectTemplate: GeneratedFolder = {
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@craco/craco": "^7.0.0-alpha.0",
+    "@craco/craco": "^7.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-router-dom": "^5.2.0"
@@ -23,7 +23,7 @@ const projectTemplate: GeneratedFolder = {
     "eject": "craco eject"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.x"
   },
   "browserslist": {
     "production": [
