@@ -1,5 +1,5 @@
 import { injectFilesToPath, extractPageOptions, prepareComponentOutputOptions } from '../src/utils'
-import { UIDLStateDefinition } from '@teleporthq/teleport-types'
+import { UIDLRouteDefinitions, UIDLStateDefinition } from '@teleporthq/teleport-types'
 import { emptyFolder, folderWithFiles, createStrategyWithCommonGenerator } from './mocks'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { GenericUtils } from '@teleporthq/teleport-shared'
@@ -140,7 +140,7 @@ describe('injectFilesToPath', () => {
 })
 
 describe('extractPageOptions', () => {
-  const routeDefinitions: UIDLStateDefinition = {
+  const routeDefinitions: UIDLRouteDefinitions = {
     type: 'string',
     defaultValue: 'home',
     values: [

@@ -40,14 +40,13 @@ export const parseComponentJSON = (
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
   if (safeInput?.propDefinitions) {
-    safeInput.propDefinitions = Object.keys(safeInput.propDefinitions).reduce(
-      (acc: Record<string, UIDLPropDefinition>, prop) => {
-        const propName = StringUtils.createStateOrPropStoringValue(prop)
-        acc[propName] = (safeInput.propDefinitions as Record<string, UIDLPropDefinition>)[prop]
-        return acc
-      },
-      {}
-    )
+    const acc: Record<string, UIDLPropDefinition> = {}
+    for (const prop of Object.keys(safeInput.propDefinitions)) {
+      const propValue = (safeInput.propDefinitions as Record<string, UIDLPropDefinition>)[prop]
+      const propName = StringUtils.createStateOrPropStoringValue(prop)
+      acc[propName] = propValue
+    }
+    safeInput.propDefinitions = acc
   }
 
   if (safeInput?.stateDefinitions) {
@@ -86,6 +85,16 @@ export const parseComponentJSON = (
   const node = safeInput.node as Record<string, unknown>
   const result: ComponentUIDL = {
     ...(safeInput as unknown as ComponentUIDL),
+  }
+
+  for (const propKey of Object.keys(result.propDefinitions || {})) {
+    const prop = result.propDefinitions[propKey]
+    if (prop.type === 'element' && prop.defaultValue) {
+      result.propDefinitions[propKey].defaultValue = parseComponentNode(
+        prop.defaultValue as unknown as Record<string, unknown>,
+        result
+      )
+    }
   }
 
   // other parsers for other sections of the component here

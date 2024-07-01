@@ -141,7 +141,8 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
   const usedPropType = params.propDefinitions[node.content.id]
   if (usedPropType && usedPropType.type === 'element') {
     let slotNode = createHTMLNode('slot')
-    const commentNode = createComment(`Content for slot "${node.content.id}" comes here`)
+    const commentNode = createComment(`Default content for ${node.content.id} slot`)
+    hastUtils.addChildNode(slotNode, commentNode)
 
     if (templateSyntax.slotBinding === 'v-slot') {
       hastUtils.addAttributeToNode(slotNode, 'name', node.content.id)
@@ -150,7 +151,15 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
       hastUtils.addAttributeToNode(slotNode, 'select', `[slot=${node.content.id}]`)
     }
 
-    hastUtils.addChildNode(slotNode, commentNode)
+    if (usedPropType.defaultValue) {
+      const defaultSlotContent = generateNode(
+        usedPropType.defaultValue as UIDLElementNode,
+        params,
+        templateSyntax
+      ) as HastNode
+      hastUtils.addChildNode(slotNode, defaultSlotContent)
+    }
+
     return slotNode
   }
 

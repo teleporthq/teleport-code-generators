@@ -22,6 +22,8 @@ import {
   FileType,
   PluginReactJSS,
   UIDLElementNodeInlineReferencedStyle,
+  UIDLElementNode,
+  UIDLElement,
 } from '@teleporthq/teleport-types'
 import {
   generateStylesFromStyleObj,
@@ -71,7 +73,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     let isProjectReferenced: boolean = false
     const propsUsed: string[] = []
 
-    UIDLUtils.traverseElements(node, (element) => {
+    const generateStylesForElementNode = (element: UIDLElement) => {
       const { style, key, referencedStyles, dependency, attrs = {} } = element
       if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
@@ -247,7 +249,17 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         classAttributeName,
         Array.from(classNamesToAppend)
       )
-    })
+    }
+
+    UIDLUtils.traverseElements(node, generateStylesForElementNode)
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'element' && prop.defaultValue) {
+        UIDLUtils.traverseElements(
+          prop.defaultValue as UIDLElementNode,
+          generateStylesForElementNode
+        )
+      }
+    }
 
     generateProjectStyleSheet({
       styleSetDefinitions: componentStyleSheet,

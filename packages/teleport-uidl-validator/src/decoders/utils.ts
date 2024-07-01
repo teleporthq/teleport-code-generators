@@ -19,7 +19,6 @@ import {
   UIDLStaticValue,
   ReferenceType,
   UIDLDynamicReference,
-  UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
@@ -93,6 +92,7 @@ import {
   VUIDLStateValueDetails,
   VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
+  VUIDLPropDefinitions,
 } from '@teleporthq/teleport-types'
 import {
   isValidElementName,
@@ -288,8 +288,7 @@ export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object
   subselectors: optional(string()),
 })
 
-// TODO: Implement decoder for () => void
-export const stateOrPropDefinitionDecoder = union(
+export const stateDefinitionsDefaultValueDecoder = union(
   string(),
   number(),
   boolean(),
@@ -385,7 +384,7 @@ export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object(
   seo: optional(componentSeoDecoder),
 })
 
-export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
+export const propDefinitionsDecoder: Decoder<VUIDLPropDefinitions> = object({
   type: union(
     constant('string'),
     constant('boolean'),
@@ -396,7 +395,12 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('children'),
     constant('element')
   ),
-  defaultValue: optional(stateOrPropDefinitionDecoder),
+  defaultValue: optional(
+    union(
+      stateDefinitionsDefaultValueDecoder,
+      lazy(() => elementNodeDecoder)
+    )
+  ),
   isRequired: optional(boolean()),
   id: optional(string()),
 })
@@ -420,7 +424,7 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('object'),
     constant('children')
   ),
-  defaultValue: stateOrPropDefinitionDecoder,
+  defaultValue: stateDefinitionsDefaultValueDecoder,
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
@@ -680,7 +684,7 @@ export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
-  name: withDefault('element', string().andThen(isValidElementName)),
+  name: optional(string().andThen(isValidElementName)),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(styleValueDecoder, string(), number()))),
@@ -702,7 +706,6 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
     )
   ),
   selfClosing: optional(boolean()),
-  ignore: optional(boolean()),
 })
 
 export const slotNodeDecoder: Decoder<VUIDLSlotNode> = object({

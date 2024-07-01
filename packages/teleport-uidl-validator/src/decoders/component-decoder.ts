@@ -26,7 +26,7 @@ export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
   name: withDefault('MyComponent', string()),
   node: elementNodeDecoder,
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
-  propDefinitions: optional(dict(propDefinitionsDecoder)),
+  propDefinitions: withDefault({}, dict(propDefinitionsDecoder)),
   styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   outputOptions: optional(outputOptionsDecoder),
@@ -46,7 +46,7 @@ export const rootComponentUIDLDecoder: Decoder<VRootComponentUIDL> = object({
       }),
     })
   ),
-  propDefinitions: optional(dict(propDefinitionsDecoder)),
+  propDefinitions: withDefault({}, dict(propDefinitionsDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   peerDefinitions: optional(dict(peerDependencyDecoder)),
   styleSetDefinitions: withDefault({}, dict(styleSetDefinitionDecoder)),

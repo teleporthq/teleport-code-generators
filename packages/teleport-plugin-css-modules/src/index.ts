@@ -27,6 +27,8 @@ import {
   UIDLStyleMediaQueryScreenSizeCondition,
   PluginCssModules,
   HastNode,
+  UIDLElement,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { generateStyledFromStyleContent } from './utils'
@@ -104,7 +106,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       (componentChunk.meta.nodesLookup as Record<string, HastNode | types.JSXElement>) || {}
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
-    UIDLUtils.traverseElements(node, (element) => {
+    const generateStylesForElementNode = (element: UIDLElement) => {
       const { style, key, referencedStyles, dependency, attrs = {} } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
       const classNamesToAppend: Set<
@@ -275,7 +277,17 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         classAttributeName,
         Array.from(classNamesToAppend)
       )
-    })
+    }
+
+    UIDLUtils.traverseElements(node, generateStylesForElementNode)
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'element' && prop.defaultValue) {
+        UIDLUtils.traverseElements(
+          prop.defaultValue as UIDLElementNode,
+          generateStylesForElementNode
+        )
+      }
+    }
 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {

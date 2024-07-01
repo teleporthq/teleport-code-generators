@@ -4,6 +4,10 @@ export const createHTMLNode = (
   tagName: string,
   children: Array<HastNode | HastText> = []
 ): HastNode => {
+  if (tagName === undefined) {
+    console.trace({ tagName, children })
+  }
+
   return {
     type: 'element',
     tagName,

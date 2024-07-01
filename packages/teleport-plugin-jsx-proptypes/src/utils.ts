@@ -24,6 +24,12 @@ export const buildDefaultPropsAst = (
         return acc
       }
 
+      if (type === 'element') {
+        acc.values[key] = new ParsedASTNode(types.identifier('undefined'))
+        acc.count++
+        return acc
+      }
+
       if (typeof defaultValue !== 'undefined') {
         acc.values[key] = defaultValue
         acc.count++

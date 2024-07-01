@@ -13,7 +13,7 @@ import {
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { Parser } from '@teleporthq/teleport-uidl-validator'
-import { createNodesLookup, Resolver } from '@teleporthq/teleport-uidl-resolver'
+import { Resolver } from '@teleporthq/teleport-uidl-resolver'
 import { PlainHTMLMapping } from './plain-html-mapping'
 
 const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
@@ -41,14 +41,12 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       const componentUIDLs: Record<string, ComponentUIDL> = {}
 
       for (const uidlKey of Object.keys(externals)) {
-        // Parsig the UIDL, so they are converting into proper ComponentUIDL
+        // Parsig the VUIDL or unknown JSON, and converting it into proper ComponentUIDL
         const componentUIDL = Parser.parseComponentJSON(
           externals[uidlKey] as unknown as Record<string, unknown>
         )
 
-        createNodesLookup(componentUIDL.node, nodesLookup)
         const resolvedUIDL = resolver.resolveUIDL(componentUIDL, { assets }, nodesLookup)
-
         componentUIDLs[
           StringUtils.dashCaseToUpperCamelCase(resolvedUIDL.outputOptions.componentClassName)
         ] = resolvedUIDL

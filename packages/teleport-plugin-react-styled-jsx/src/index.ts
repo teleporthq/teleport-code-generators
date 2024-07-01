@@ -5,6 +5,8 @@ import {
   ComponentPlugin,
   UIDLStyleValue,
   PluginStyledJSX,
+  UIDLElement,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 import * as types from '@babel/types'
@@ -13,6 +15,21 @@ interface StyledJSXConfig {
   componentChunkName: string
   forceScoping: boolean
 }
+
+const transformStyle = (style: Record<string, UIDLStyleValue>, propsPrefix: string) =>
+  UIDLUtils.transformDynamicStyles(style, (styleValue) => {
+    switch (styleValue.content.referenceType) {
+      case 'token':
+        return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
+      case 'prop':
+        return `\$\{${propsPrefix}.${styleValue.content.id}\}`
+      default:
+        throw new PluginStyledJSX(
+          `Error running transformDynamicStyles in reactStyledJSXChunkPlugin.\n
+          Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+        )
+    }
+  })
 
 export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
   const { componentChunkName = 'jsx-component', forceScoping = false } = config || {}
@@ -34,22 +51,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     > = {}
     const classMap: string[] = []
 
-    const transformStyle = (style: Record<string, UIDLStyleValue>) =>
-      UIDLUtils.transformDynamicStyles(style, (styleValue) => {
-        switch (styleValue.content.referenceType) {
-          case 'token':
-            return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
-          case 'prop':
-            return `\$\{${propsPrefix}.${styleValue.content.id}\}`
-          default:
-            throw new PluginStyledJSX(
-              `Error running transformDynamicStyles in reactStyledJSXChunkPlugin.\n
-              Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
-            )
-        }
-      })
-
-    UIDLUtils.traverseElements(node, (element) => {
+    const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
       const {
@@ -60,6 +62,11 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         dependency,
         elementType,
       } = element
+
+      if (key === undefined) {
+        throw new Error(`Key is missing for element \n ${JSON.stringify(element, null, 2)}`)
+      }
+
       const elementClassName = StringUtils.camelCaseToDashCase(key)
       const className = getClassName(forceScoping, uidl.name, elementClassName)
 
@@ -81,7 +88,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
       // Generating the string templates for the dynamic styles
       if (Object.keys(style).length > 0) {
-        const styleRules = transformStyle(style)
+        const styleRules = transformStyle(style, propsPrefix)
         classMap.push(StyleBuilders.createCSSClass(className, styleRules))
         classNamesToAppend.add(className)
       }
@@ -95,9 +102,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               if (!mediaStylesMap[String(maxWidth)]) {
                 mediaStylesMap[String(maxWidth)] = []
               }
-
               mediaStylesMap[String(maxWidth)].push({
-                [className]: transformStyle(styleRef.content.styles),
+                [className]: transformStyle(styleRef.content.styles, propsPrefix),
               })
             }
 
@@ -106,7 +112,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                 StyleBuilders.createCSSClassWithSelector(
                   className,
                   `&:${condition.content}`,
-                  transformStyle(styleRef.content.styles)
+                  transformStyle(styleRef.content.styles, propsPrefix)
                 )
               )
             }
@@ -181,7 +187,17 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         'className',
         Array.from(dynamicVariantsToAppend)
       )
-    })
+    }
+
+    UIDLUtils.traverseElements(node, generateStylesForElementNode)
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'element' && prop.defaultValue) {
+        UIDLUtils.traverseElements(
+          prop.defaultValue as UIDLElementNode,
+          generateStylesForElementNode
+        )
+      }
+    }
 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {

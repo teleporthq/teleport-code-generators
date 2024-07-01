@@ -12,6 +12,8 @@ import {
   UIDLElementNodeReferenceStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
   PluginCSS,
+  UIDLElement,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 
@@ -86,7 +88,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
 
-    UIDLUtils.traverseElements(node, (element) => {
+    const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<string> = new Set()
       const {
@@ -306,7 +308,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
           })
         )
       }
-    })
+    }
+
+    UIDLUtils.traverseElements(node, generateStylesForElementNode)
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'element' && prop.defaultValue) {
+        UIDLUtils.traverseElements(
+          prop.defaultValue as UIDLElementNode,
+          generateStylesForElementNode
+        )
+      }
+    }
 
     if (Object.keys(componentStyleSet).length > 0) {
       StyleBuilders.generateStylesFromStyleSetDefinitions(

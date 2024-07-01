@@ -200,7 +200,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
       return [StringUtils.encode(node.content.toString())]
 
     case 'dynamic':
-      return [createDynamicValueExpression(node, options, undefined)]
+      return [createDynamicValueExpression(node, options, params)]
 
     case 'cms-item':
     case 'cms-list':
@@ -507,7 +507,7 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
     addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
   })
 
-  const source = getRepeatSourceIdentifier(dataSource, options)
+  const source = getRepeatSourceIdentifier(dataSource, options, params)
 
   const arrowFunctionArguments = [types.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -606,7 +606,7 @@ const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContaine
     },
   }
 
-  const childrenExpression = createDynamicValueExpression(childrenProp, options)
+  const childrenExpression = createDynamicValueExpression(childrenProp, options, params)
 
   if (node.content.fallback) {
     const fallbackContents = generateNode(node.content.fallback, params, options)

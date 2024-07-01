@@ -51,6 +51,7 @@ import {
   UIDLDependency,
   UIDLLocalFontAsset,
   UIDLStyleValue,
+  UIDLPropDefinition,
 } from './uidl'
 import { Modify, ModifyUnionNumber } from './helper'
 
@@ -374,4 +375,11 @@ export type VUIDLAttributeValue = ModifyUnionNumber<
   UIDLAttributeValue,
   UIDLElementNode,
   VUIDLElementNode
+>
+
+export type VUIDLPropDefinitions = Modify<
+  UIDLPropDefinition,
+  {
+    defaultValue?: string | number | boolean | unknown[] | object | (() => void) | VUIDLElementNode
+  }
 >

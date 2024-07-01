@@ -1,4 +1,3 @@
-import { createDOMInjectionNode } from './utils'
 import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
@@ -67,7 +66,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       dependencyHandling: 'import',
       stateHandling: 'hooks',
       slotHandling: 'props',
-      domHTMLInjection: (content: string) => createDOMInjectionNode(content),
+      domHTMLInjection: (content: string) => ASTBuilders.createDOMInjectionNode(content),
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

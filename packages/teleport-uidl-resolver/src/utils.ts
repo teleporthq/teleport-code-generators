@@ -60,17 +60,6 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
   })
 }
 
-export const removeIgnoredNodes = (uidlNode: UIDLNode) => {
-  // For now this is only used by react-native that adds some ignore flags in the mapping for certain elements.
-  UIDLUtils.removeChildNodes(uidlNode, (node) => {
-    if (node.type === 'element' && node.content.ignore) {
-      return true // elements mapped with ignore will be removed
-    }
-
-    return false
-  })
-}
-
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
   UIDLUtils.traverseNodes(uidlNode, (node, parentNode) => {
     if (node.type === 'element') {
@@ -136,10 +125,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Mapping the type from the semantic type of the mapping
   // Semantic type has precedence as it is dictated by the user
   originalElement.elementType = originalElement.semanticType || mappedElement.elementType
-
-  if (mappedElement.ignore) {
-    originalElement.ignore = mappedElement.ignore
-  }
 
   if (mappedElement.selfClosing) {
     originalElement.selfClosing = mappedElement.selfClosing
@@ -292,12 +277,30 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
   }
 }
 
+const generateKeysForElement = (element: UIDLElement, lookup: ElementsLookup) => {
+  // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
+  // NextKey will be appended to the node name to ensure uniqueness inside the component
+  // Element name is stored as a lower case string in the lookup, considering camel case
+  const nodeOcurrence = lookup[StringUtils.camelCaseToDashCase(element.name)]
+
+  if (nodeOcurrence.count === 1) {
+    // If the name ocurrence is unique we use it as it is
+    element.key = element.name
+  } else {
+    const currentKey = nodeOcurrence.nextKey
+    element.key = generateKey(element.name, currentKey)
+    nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
+  }
+}
+
 // Generates an unique key for each node in the UIDL.
 // By default it uses the component `name` and in case there are multiple nodes with the same name
 // it uses an incremental key which is padded with 0, so it can generate things like:
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
-export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
+export const generateUniqueKeys = (uidl: ComponentUIDL, lookup: ElementsLookup) => {
+  const { node, propDefinitions = {} } = uidl
+
   UIDLUtils.traverseNodes(node, (child) => {
     if (
       child.type !== 'cms-item' &&
@@ -317,21 +320,14 @@ export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
     }
   })
 
-  UIDLUtils.traverseElements(node, (element) => {
-    // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
-    // NextKey will be appended to the node name to ensure uniqueness inside the component
-    // Element name is stored as a lower case string in the lookup, considering camel case
-    const nodeOcurrence = lookup[StringUtils.camelCaseToDashCase(element.name)]
+  UIDLUtils.traverseElements(node, (element) => generateKeysForElement(element, lookup))
 
-    if (nodeOcurrence.count === 1) {
-      // If the name ocurrence is unique we use it as it is
-      element.key = element.name
-    } else {
-      const currentKey = nodeOcurrence.nextKey
-      element.key = generateKey(element.name, currentKey)
-      nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
+  for (const prop of Object.values(propDefinitions)) {
+    if (prop.type === 'element' && prop.defaultValue) {
+      const slotNode = prop.defaultValue as UIDLElementNode
+      UIDLUtils.traverseElements(slotNode, (element) => generateKeysForElement(element, lookup))
     }
-  })
+  }
 }
 
 const generateKey = (name: string, key: string): string => {
@@ -349,25 +345,36 @@ const generateNextIncrementalKey = (currentKey: string): string => {
   return returnValue
 }
 
-export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
-  UIDLUtils.traverseElements(node, (element) => {
-    // Element name is stored as a lower case string in the lookup, considering camel case
-    const elementName = StringUtils.camelCaseToDashCase(element.name)
-    if (!lookup[elementName]) {
-      lookup[elementName] = {
-        count: 0,
-        nextKey: '0',
-      }
+const createNodesLookupForElement = (element: UIDLElement, lookup: ElementsLookup) => {
+  // Element name is stored as a lower case string in the lookup, considering camel case
+  const elementName = StringUtils.camelCaseToDashCase(element.name)
+  if (!lookup[elementName]) {
+    lookup[elementName] = {
+      count: 0,
+      nextKey: '0',
     }
+  }
 
-    lookup[elementName].count++
-    const newCount = lookup[elementName].count
-    if (newCount > 9 && isPowerOfTen(newCount)) {
-      // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
-      // nextKey will start either from: '0', '00', '000', etc.
-      lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+  lookup[elementName].count++
+  const newCount = lookup[elementName].count
+  if (newCount > 9 && isPowerOfTen(newCount)) {
+    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+    // nextKey will start either from: '0', '00', '000', etc.
+    lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+  }
+}
+
+export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) => {
+  const { node, propDefinitions = {} } = uidl
+  UIDLUtils.traverseElements(node, (element) => createNodesLookupForElement(element, lookup))
+
+  for (const prop of Object.values(propDefinitions)) {
+    if (prop.type === 'element' && prop.defaultValue) {
+      UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
+        createNodesLookupForElement(element, lookup)
+      )
     }
-  })
+  }
 }
 
 export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
@@ -659,32 +666,38 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
 
 export const checkForDefaultPropsContainingAssets = (
   uidl: ComponentUIDL,
-  assets: GeneratorOptions['assets']
+  options: GeneratorOptions
 ) => {
-  if (uidl.propDefinitions) {
-    Object.keys(uidl.propDefinitions).forEach((prop) => {
-      const propDefaultValue = uidl.propDefinitions[prop].defaultValue
-      if (typeof propDefaultValue === 'string' && assets) {
-        uidl.propDefinitions[prop].defaultValue = UIDLUtils.prefixAssetsPath(
-          propDefaultValue,
-          assets
-        )
-      }
-    })
+  if (options.assets === undefined) {
+    return
+  }
+
+  for (const propKey of Object.keys(uidl.propDefinitions || {})) {
+    const prop = uidl.propDefinitions[propKey]
+    if (prop.defaultValue && prop.type === 'element' && typeof prop.defaultValue === 'object') {
+      resolveElement((prop.defaultValue as UIDLElementNode).content, options)
+    }
+
+    if (prop.defaultValue && prop.type === 'string' && typeof prop.defaultValue === 'string') {
+      uidl.propDefinitions[propKey].defaultValue = UIDLUtils.prefixAssetsPath(
+        prop.defaultValue,
+        options.assets
+      )
+    }
   }
 }
 
 export const checkForDefaultStateValueContainingAssets = (
   uidl: ComponentUIDL,
-  assets: GeneratorOptions['assets']
+  options: GeneratorOptions
 ) => {
   if (uidl.stateDefinitions) {
     Object.keys(uidl.stateDefinitions).forEach((state) => {
       const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
-      if (typeof stateDefaultValue === 'string' && assets) {
+      if (typeof stateDefaultValue === 'string' && options.assets) {
         uidl.stateDefinitions[state].defaultValue = UIDLUtils.prefixAssetsPath(
           stateDefaultValue,
-          assets
+          options.assets
         )
       }
     })
