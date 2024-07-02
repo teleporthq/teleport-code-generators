@@ -36,7 +36,7 @@ import {
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
-import { ASTBuilders, ASTUtils } from '../..'
+import { ASTBuilders, ASTUtils, createJSXSyntax } from '../..'
 
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
@@ -200,7 +200,33 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
       return [StringUtils.encode(node.content.toString())]
 
     case 'dynamic':
-      return [createDynamicValueExpression(node, options, params)]
+      // If the dynamic node is a prop and has a default value,
+      // we should use it with a logical expression. And the most used case is for named-slots.
+      if (
+        node.type === 'dynamic' &&
+        params.propDefinitions[node.content.id]?.type === 'element' &&
+        params.propDefinitions[node.content.id]?.defaultValue
+      ) {
+        const prefix =
+          options.dynamicReferencePrefixMap[
+            node.content.referenceType as 'prop' | 'state' | 'local'
+          ] || ''
+
+        return [
+          types.logicalExpression(
+            '??',
+            prefix === ''
+              ? types.identifier(node.content.id)
+              : types.memberExpression(types.identifier(prefix), types.identifier(node.content.id)),
+            createJSXSyntax(
+              params.propDefinitions[node.content.id].defaultValue as UIDLElementNode,
+              params,
+              options
+            )
+          ),
+        ]
+      }
+      return [createDynamicValueExpression(node, options)]
 
     case 'cms-item':
     case 'cms-list':
@@ -507,7 +533,7 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
     addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
   })
 
-  const source = getRepeatSourceIdentifier(dataSource, options, params)
+  const source = getRepeatSourceIdentifier(dataSource, options)
 
   const arrowFunctionArguments = [types.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -606,7 +632,7 @@ const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContaine
     },
   }
 
-  const childrenExpression = createDynamicValueExpression(childrenProp, options, params)
+  const childrenExpression = createDynamicValueExpression(childrenProp, options)
 
   if (node.content.fallback) {
     const fallbackContents = generateNode(node.content.fallback, params, options)

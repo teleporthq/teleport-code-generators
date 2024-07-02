@@ -141,26 +141,54 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
   const usedPropType = params.propDefinitions[node.content.id]
   if (usedPropType && usedPropType.type === 'element') {
     let slotNode = createHTMLNode('slot')
-    const commentNode = createComment(`Default content for ${node.content.id} slot`)
+    const commentNode = createComment(`Default content for ${node.content.id}`)
     hastUtils.addChildNode(slotNode, commentNode)
 
+    // Named slot handling for VueJS
     if (templateSyntax.slotBinding === 'v-slot') {
       hastUtils.addAttributeToNode(slotNode, 'name', node.content.id)
+      if (usedPropType.defaultValue) {
+        const defaultSlotContent = generateNode(
+          usedPropType.defaultValue as UIDLElementNode,
+          params,
+          templateSyntax
+        ) as HastNode
+        hastUtils.addChildNode(slotNode, defaultSlotContent)
+      }
+
+      return slotNode
     } else {
-      slotNode = createHTMLNode('ng-content')
-      hastUtils.addAttributeToNode(slotNode, 'select', `[slot=${node.content.id}]`)
-    }
+      const slotWrapper = createHTMLNode('ng-container')
+      slotNode = createHTMLNode('ng-container')
 
-    if (usedPropType.defaultValue) {
-      const defaultSlotContent = generateNode(
-        usedPropType.defaultValue as UIDLElementNode,
-        params,
-        templateSyntax
-      ) as HastNode
-      hastUtils.addChildNode(slotNode, defaultSlotContent)
-    }
+      if (usedPropType.defaultValue) {
+        const defaultSlotTemplateName = StringUtils.dashCaseToCamelCase(
+          `default-${node.content.id}`
+        )
 
-    return slotNode
+        hastUtils.addAttributeToNode(
+          slotNode,
+          '*ngTemplateOutlet',
+          `${node.content.id} ? ${node.content.id} : ${defaultSlotTemplateName}`
+        )
+
+        const templateNode = createHTMLNode('ng-template')
+        hastUtils.addBooleanAttributeToNode(templateNode, `#${defaultSlotTemplateName}`)
+
+        const defaultSlotContent = generateNode(
+          usedPropType.defaultValue as UIDLElementNode,
+          params,
+          templateSyntax
+        ) as HastNode
+        hastUtils.addChildNode(templateNode, defaultSlotContent)
+        hastUtils.addChildNode(slotWrapper, templateNode)
+      } else {
+        hastUtils.addAttributeToNode(slotNode, '*ngTemplateOutlet', node.content.id)
+      }
+
+      hastUtils.addChildNode(slotWrapper, slotNode)
+      return slotWrapper
+    }
   }
 
   return templateSyntax.interpolation(node.content.id)

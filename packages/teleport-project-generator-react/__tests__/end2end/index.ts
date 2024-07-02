@@ -163,7 +163,8 @@ describe('React Project Generator', () => {
 
     expect(homePage).toBeDefined()
     expect(homePage?.content).toContain(`This is amazing, because this is a named-slot`)
-    expect(heroComponent?.content).toContain(`{props.namedSlot}`)
+    expect(heroComponent?.content).toContain(`{props.namedSlot ??`)
+    expect(heroComponent?.content).toContain(`This is a default value for named-slot`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -51,15 +51,19 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
       dependencies.Meta = ANGULAR_PLATFORM_BROWSER
     }
 
-    const props = Object.values(propDefinitions)
-    if (props.length > 0) {
-      const functionalProps = props.filter((prop) => prop.type === 'func')
-      if (functionalProps.length > 0) {
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'func' && dependencies.Output === undefined) {
         dependencies.Output = ANGULAR_CORE_DEPENDENCY
         dependencies.EventEmitter = ANGULAR_CORE_DEPENDENCY
       }
-      if (props.length - functionalProps.length > 0) {
+
+      if (dependencies.Input === undefined) {
         dependencies.Input = ANGULAR_CORE_DEPENDENCY
+      }
+
+      if (prop.type === 'element' && dependencies.ContentChild === undefined) {
+        dependencies.ContentChild = ANGULAR_CORE_DEPENDENCY
+        dependencies.TemplateRef = ANGULAR_CORE_DEPENDENCY
       }
     }
 
@@ -93,8 +97,8 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'ignore',
         domHTMLInjection: `[innerHTML]`,
-        slotBinding: 'slot',
-        slotTagName: 'div',
+        slotBinding: '#',
+        slotTagName: 'ng-template',
       }
     )
 

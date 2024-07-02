@@ -11,7 +11,6 @@ import {
   UIDLConditionalExpression,
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
-  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -22,7 +21,6 @@ import {
   JSXGenerationParams,
   JSXGenerationOptions,
 } from './types'
-import { createJSXSyntax } from '../..'
 
 // Adds all the event handlers and all the instructions for each event handler
 // in case there is more than one specified in the UIDL
@@ -147,7 +145,6 @@ const createStateChangeStatement = (
 export const createDynamicValueExpression = (
   identifier: UIDLDynamicReference,
   options: JSXGenerationOptions,
-  params: JSXGenerationParams,
   t = types
 ) => {
   const identifierContent = identifier.content
@@ -159,21 +156,6 @@ export const createDynamicValueExpression = (
 
   const prefix =
     options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
-
-  const { propDefinitions = {} } = params
-  const usedPropDefinition = propDefinitions[id]
-
-  if (usedPropDefinition === undefined) {
-    throw new Error(`The prop ${id} is not defined in the propDefinitions`)
-  }
-
-  if (usedPropDefinition.type === 'element' && usedPropDefinition.defaultValue) {
-    return t.logicalExpression(
-      '??',
-      prefix === '' ? t.identifier(id) : t.memberExpression(t.identifier(prefix), t.identifier(id)),
-      createJSXSyntax(usedPropDefinition.defaultValue as UIDLElementNode, params, options)
-    )
-  }
 
   return prefix === ''
     ? t.identifier(id)
@@ -328,14 +310,13 @@ const convertToUnaryOperator = (operation: string): UnaryOperation => {
 
 export const getRepeatSourceIdentifier = (
   dataSource: UIDLAttributeValue,
-  options: JSXGenerationOptions,
-  params: JSXGenerationParams
+  options: JSXGenerationOptions
 ) => {
   switch (dataSource.type) {
     case 'static':
       return convertValueToLiteral(dataSource.content)
     case 'dynamic': {
-      return createDynamicValueExpression(dataSource, options, params)
+      return createDynamicValueExpression(dataSource, options)
     }
     default:
       throw new Error(`Invalid type for dataSource: ${dataSource}`)

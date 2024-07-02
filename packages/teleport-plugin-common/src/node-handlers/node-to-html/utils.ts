@@ -71,7 +71,7 @@ export const handleAttribute = (
           `${templateSyntax.slotBinding}:${attrKey}`
         )
       } else {
-        hastUtils.addAttributeToNode(templateNode, templateSyntax.slotBinding, attrKey)
+        hastUtils.addBooleanAttributeToNode(templateNode, `${templateSyntax.slotBinding}${attrKey}`)
       }
 
       hastUtils.addChildNode(templateNode, templateContent)

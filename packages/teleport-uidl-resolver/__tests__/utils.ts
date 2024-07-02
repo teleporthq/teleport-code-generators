@@ -40,7 +40,7 @@ describe('generateUniqueKeys', () => {
       },
     }
 
-    generateUniqueKeys(simpleNode, lookup)
+    generateUniqueKeys(component('component', simpleNode), lookup)
 
     expect(simpleNode.content.name).toBe('container')
     expect(simpleNode.content.key).toBe('container')
@@ -56,7 +56,7 @@ describe('generateUniqueKeys', () => {
       },
     }
 
-    generateUniqueKeys(node, lookup)
+    generateUniqueKeys(component('component', node), lookup)
 
     expect(node.content.name).toBe('container')
     expect(node.content.key).toBe('container')
@@ -74,7 +74,7 @@ describe('createNodesLookup', () => {
     ])
 
     const lookup: Record<string, { count: number; nextKey: string }> = {}
-    createNodesLookup(node, lookup)
+    createNodesLookup(component('component', node), lookup)
 
     expect(lookup.container.count).toBe(2)
     expect(lookup.container.nextKey).toBe('0')
@@ -85,7 +85,7 @@ describe('createNodesLookup', () => {
   it('counts duplicate nodes considering camel case names as well', async () => {
     const node = elementNode('About-Me', {}, [elementNode('aboutMe')])
     const lookup: Record<string, { count: number; nextKey: string }> = {}
-    createNodesLookup(node, lookup)
+    createNodesLookup(component('component', node), lookup)
 
     expect(lookup['about-me'].count).toBe(2)
     expect(lookup['about-me'].nextKey).toBe('0')
@@ -100,7 +100,7 @@ describe('createNodesLookup', () => {
         nextKey: '0',
       },
     }
-    createNodesLookup(node, lookup)
+    createNodesLookup(component('component', node), lookup)
 
     expect(lookup.container.count).toBe(10)
     expect(lookup.container.nextKey).toBe('00')
@@ -393,7 +393,7 @@ describe('checkForDefaultPropsContainingAssets', () => {
   }
 
   it('find and fix defaultProp containing an asset', () => {
-    checkForDefaultPropsContainingAssets(comp, assets)
+    checkForDefaultPropsContainingAssets(comp, { assets })
     expect(comp.propDefinitions).toBeDefined()
     if (comp.propDefinitions) {
       expect(comp.propDefinitions.myImage).toBeDefined()
@@ -432,7 +432,7 @@ describe('checkForDefaultStateValueContainingAssets', () => {
   }
 
   it('find and fix defaultProp containing an asset', () => {
-    checkForDefaultStateValueContainingAssets(comp, assets)
+    checkForDefaultStateValueContainingAssets(comp, { assets })
     expect(comp.stateDefinitions).toBeDefined()
     if (comp.stateDefinitions) {
       expect(comp.stateDefinitions.imageState).toBeDefined()

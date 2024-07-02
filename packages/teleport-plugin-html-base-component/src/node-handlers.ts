@@ -394,7 +394,7 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> =
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
 
-  if (usedReferenceValue.type === 'element') {
+  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue) {
     const slotNode = await generateElementNode(
       usedReferenceValue.defaultValue as UIDLElementNode,
       templateLookup,
@@ -405,6 +405,13 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> =
     )
 
     return slotNode as HastNode
+  }
+
+  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue === undefined) {
+    const spanTagWrapper = HASTBuilders.createHTMLNode('span')
+    const commentNode = HASTBuilders.createComment(`Content for slot ${node.content.id}`)
+    HASTUtils.addChildNode(spanTagWrapper, commentNode)
+    return spanTagWrapper
   }
 
   const spanTag = HASTBuilders.createHTMLNode('span')
@@ -564,7 +571,10 @@ const getValueFromReference = (
     )
   }
 
-  if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
+  if (
+    usedReferenceValue.type !== 'element' &&
+    usedReferenceValue.hasOwnProperty('defaultValue') === false
+  ) {
     throw new HTMLComponentGeneratorError(
       `Default value is missing from dynamic reference - ${JSON.stringify(
         usedReferenceValue,
