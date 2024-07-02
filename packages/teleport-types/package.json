@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-types",
-  "version": "0.32.10",
+  "version": "0.33.0",
   "description": "The collection of reusable types across the entire teleport ecosystem",
   "author": "teleportHQ",
   "license": "MIT",

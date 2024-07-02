@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-styled-components",
-  "version": "0.32.10",
+  "version": "0.33.0",
   "description": "A plugin for configuring teleportHQ projects to use styled-components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,11 +24,11 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.32.10",
-    "@teleporthq/teleport-plugin-react-app-routing": "^0.32.10",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.32.10",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.10",
-    "@teleporthq/teleport-types": "^0.32.10",
+    "@teleporthq/teleport-plugin-import-statements": "^0.33.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.33.0",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.33.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.33.0",
+    "@teleporthq/teleport-types": "^0.33.0",
     "magic-string": "^0.25.4"
   }
 }
