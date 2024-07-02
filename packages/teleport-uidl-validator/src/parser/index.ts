@@ -89,6 +89,16 @@ export const parseComponentJSON = (
 
   for (const propKey of Object.keys(result.propDefinitions || {})) {
     const prop = result.propDefinitions[propKey]
+    if (
+      prop.type === 'element' &&
+      prop.defaultValue !== undefined &&
+      typeof prop.defaultValue !== 'object'
+    ) {
+      throw new ParserError(
+        `The defaultValue for prop ${propKey} in component ${result.name} is not an object. It should be a UIDLElementNode.`
+      )
+    }
+
     if (prop.type === 'element' && prop.defaultValue) {
       result.propDefinitions[propKey].defaultValue = parseComponentNode(
         prop.defaultValue as unknown as Record<string, unknown>,
@@ -439,7 +449,6 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
     case 'slot':
       const slotNode = node as unknown as UIDLSlotNode
-
       if (slotNode.content.fallback) {
         slotNode.content.fallback = parseComponentNode(
           slotNode.content.fallback as unknown as Record<string, unknown>,
