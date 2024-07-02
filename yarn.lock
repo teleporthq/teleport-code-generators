@@ -1370,27 +1370,27 @@
     spawndamnit "^2.0.0"
     validate-npm-package-name "^3.0.0"
 
-"@manypkg/find-root@^2.2.0":
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/@manypkg/find-root/-/find-root-2.2.1.tgz#a7cffffdb06407967daa31f89952ebef108b27cf"
-  integrity sha512-34NlypD5mmTY65cFAK7QPgY5Tzt0qXR4ZRXdg97xAlkiLuwXUPBEXy5Hsqzd+7S2acsLxUz6Cs50rlDZQr4xUA==
+"@manypkg/find-root@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@manypkg/find-root/-/find-root-2.2.2.tgz#608a3ced3d4cb3fb5efaf06bbcf28fba6838f5df"
+  integrity sha512-guhclSR8MCzjRHrFdhDBppjqofGbcv5St5PM4DITT9s0mEsxFbsAusp+L5UCsed+Pd6qTi73Sr7EdQS23nmBHA==
   dependencies:
-    "@manypkg/tools" "^1.1.0"
+    "@manypkg/tools" "^1.1.1"
     find-up "^4.1.0"
     fs-extra "^8.1.0"
 
 "@manypkg/get-packages@^2.0.0":
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/@manypkg/get-packages/-/get-packages-2.2.1.tgz#622f97aa39d7d89c1ba1c4f8aef5f64de9cdd8ba"
-  integrity sha512-TrJd86paBkKEx6InhObcUhuoJNcATlbO6+s1dQdLd4+Y1SLDKJUAMhU46kTZ1SOFbegTuhDbIF3j+Jy564BERA==
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@manypkg/get-packages/-/get-packages-2.2.2.tgz#6eb16fc1ccf8c903aff5cde4e535c7574e965b0d"
+  integrity sha512-3+Zd8kLZmsyJFmWTBtY0MAuCErI7yKB2cjMBlujvSVKZ2R/BMXi0kjCXu2dtRlSq/ML86t1FkumT0yreQ3n8OQ==
   dependencies:
-    "@manypkg/find-root" "^2.2.0"
-    "@manypkg/tools" "^1.1.0"
+    "@manypkg/find-root" "^2.2.2"
+    "@manypkg/tools" "^1.1.1"
 
-"@manypkg/tools@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@manypkg/tools/-/tools-1.1.0.tgz#730b4c0df78be7f0ce232a417f3c26023884a55c"
-  integrity sha512-SkAyKAByB9l93Slyg8AUHGuM2kjvWioUTCckT/03J09jYnfEzMO/wSXmEhnKGYs6qx9De8TH4yJCl0Y9lRgnyQ==
+"@manypkg/tools@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@manypkg/tools/-/tools-1.1.1.tgz#5d2e847057f3cf9cf33aa0f2bef6750e746dba86"
+  integrity sha512-lpqC/HVb/fWljyphkEdifkr7vSfxHURnwLwKbJma7KvAkX2dl6xTsKLxwt4EpfxxuHhX7gaFOCCcs9Gqj//lEA==
   dependencies:
     fs-extra "^8.1.0"
     globby "^11.0.0"
@@ -2078,6 +2078,28 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
+"@teleporthq/teleport-plugin-common@^0.32.3":
+  version "0.32.10"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-plugin-common/-/teleport-plugin-common-0.32.10.tgz#285ca4e2303b9e6efb132b75921264121f449001"
+  integrity sha512-bRWmKov9kdI6U95ny/FVGPO56qrHMTN6C3aa6iZ/E5RvvdJa498x16PhzyRAoBbaHbBpQRPbwtAaB6NEc2g5HA==
+  dependencies:
+    "@babel/core" "^7.5.5"
+    "@babel/preset-react" "^7.22.5"
+    "@babel/types" "^7.5.5"
+    "@teleporthq/teleport-shared" "^0.32.10"
+    "@teleporthq/teleport-types" "^0.32.10"
+    jss "^10.0.0"
+    jss-preset-default "^10.0.0"
+
+"@teleporthq/teleport-postprocessor-prettier-js@^0.32.3":
+  version "0.32.10"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-postprocessor-prettier-js/-/teleport-postprocessor-prettier-js-0.32.10.tgz#e6c73d6bc89a1db586316081cee1070adbe639c9"
+  integrity sha512-xOwVjG3mOuBrvaedjtwHVBQ7ewbFy/pN8XFpq1beZZqP8SfZ4qUwxDyAJV26/sx7XSZLQoz22FalrMVim4FlgA==
+  dependencies:
+    "@teleporthq/teleport-shared" "^0.32.10"
+    "@teleporthq/teleport-types" "^0.32.10"
+    prettier "^2.3.1"
+
 "@teleporthq/teleport-project-plugin-api-routes@^0.32.3":
   version "0.32.3"
   resolved "https://registry.yarnpkg.com/@teleporthq/teleport-project-plugin-api-routes/-/teleport-project-plugin-api-routes-0.32.3.tgz#37e1d795645b19afec0c60c0f87b034c79838ab8"
@@ -2088,6 +2110,21 @@
     "@teleporthq/teleport-postprocessor-prettier-js" "^0.32.3"
     "@teleporthq/teleport-shared" "^0.32.3"
     "@teleporthq/teleport-types" "^0.32.3"
+
+"@teleporthq/teleport-shared@^0.32.10", "@teleporthq/teleport-shared@^0.32.3":
+  version "0.32.10"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-shared/-/teleport-shared-0.32.10.tgz#5876948ced9ccd993aef6f5d6503ac32ed9c10bf"
+  integrity sha512-5A+DVtN4LSZQi0fXk0gMs1Y8+AkEQr0/r5GuQRfGX/jwLR1zZ/esAJreO/SQBvMCOg/79Epu2aS7tOpxhRrmPA==
+  dependencies:
+    "@babel/types" "^7.5.5"
+    "@teleporthq/teleport-types" "^0.32.10"
+    jss "^10.0.0"
+    jss-preset-default "^10.0.0"
+
+"@teleporthq/teleport-types@^0.32.10", "@teleporthq/teleport-types@^0.32.3":
+  version "0.32.10"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-types/-/teleport-types-0.32.10.tgz#ed74a832406bef12cdb459d0f1f49af9723995c5"
+  integrity sha512-hAtlrcOgQIhDPvwHdRa0hQ/FNWEMY9d5dDzNZ0i0nMm19yNBNVkmxT0RIOcv1HmbM0Lmyq/BCYJSTIgrKM0jqQ==
 
 "@tootallnate/once@1":
   version "1.1.2"
@@ -2291,9 +2328,9 @@
     form-data "^4.0.0"
 
 "@types/node@*":
-  version "20.14.8"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.14.8.tgz#45c26a2a5de26c3534a9504530ddb3b27ce031ac"
-  integrity sha512-DO+2/jZinXfROG7j7WKFn/3C6nFwxy2lLpgLjEXJz+0XKphZlTLJ14mo8Vfg8X5BWN6XjyESXq+LcYdT7tR3bA==
+  version "20.14.9"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.14.9.tgz#12e8e765ab27f8c421a1820c99f5f313a933b420"
+  integrity sha512-06OCtnTXtWOZBJlRApleWndH4JsRVs1pDCc8dLSQp+7PpUpX3ePdHyeNSFTeSe7FtKyQkrlPvHwJOW3SLd8Oyg==
   dependencies:
     undici-types "~5.26.4"
 
@@ -2927,9 +2964,9 @@ aws-lambda@^1.0.7:
     watchpack "^2.0.0-beta.10"
 
 aws-sdk@^2.814.0:
-  version "2.1647.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1647.0.tgz#a6eb81aacdb6d02ccc12ae5b41f969fb402de8c3"
-  integrity sha512-BKFucC3IKfl40FGRCwJPeJ0cWZEa/Wd9r5HKuNg7h4eAN97G1aBjprDt4hvCHzwwNAVP4r0gBoxKeJ1f3HQWeg==
+  version "2.1652.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1652.0.tgz#aadf5473df0e36fb4d35627ee681230a4cbf68eb"
+  integrity sha512-TDe0dKwxfIUvhW/6ex+tqnsvduXDnP/ZZCysrlz67oixVoqrucjtN1A0ALVyQdwQX2ZAMNV80BGhBSkQXqYVBg==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
@@ -3518,9 +3555,9 @@ camelcase@^6.0.0:
   integrity sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==
 
 caniuse-lite@^1.0.30001629:
-  version "1.0.30001636"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001636.tgz#b15f52d2bdb95fad32c2f53c0b68032b85188a78"
-  integrity sha512-bMg2vmr8XBsbL6Lr0UHXy/21m84FTxDLWn2FSqMd5PrlbMxwJlQnC2YWYxVgp66PZE+BBNF2jYQUBKCo1FDeZg==
+  version "1.0.30001639"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001639.tgz#972b3a6adeacdd8f46af5fc7f771e9639f6c1521"
+  integrity sha512-eFHflNTBIlFwP2AIKaYuBQN/apnUoKNhBdza8ZnW/h2di4LCZ4xFqYlxUxo+LQ76KFI1PGcC1QDxMbxTZpSCAg==
 
 capture-exit@^2.0.0:
   version "2.0.0"
@@ -4792,9 +4829,9 @@ ejs@^3.1.7:
     jake "^10.8.5"
 
 electron-to-chromium@^1.4.796:
-  version "1.4.811"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.811.tgz#031c8b101e7d0a7cde1dfdb0623dbdb5e19655cd"
-  integrity sha512-CDyzcJ5XW78SHzsIOdn27z8J4ist8eaFLhdto2hSMSJQgsiwvbv2fbizcKUICryw1Wii1TI/FEkvzvJsR3awrA==
+  version "1.4.816"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.816.tgz#3624649d1e7fde5cdbadf59d31a524245d8ee85f"
+  integrity sha512-EKH5X5oqC6hLmiS7/vYtZHZFTNdhsYG5NVPRN6Yn0kQHNBlT59+xSM8HBy66P5fxWpKgZbPqb+diC64ng295Jw==
 
 elliptic@^6.5.3, elliptic@^6.5.5:
   version "6.5.5"
@@ -9181,9 +9218,9 @@ parse-conflict-json@^2.0.1:
     just-diff-apply "^5.2.0"
 
 parse-github-url@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/parse-github-url/-/parse-github-url-1.0.2.tgz#242d3b65cbcdda14bb50439e3242acf6971db395"
-  integrity sha512-kgBf6avCbO3Cn6+RnzRGLkUsv4ZVqv/VfAYkRsyBcgkshNvVBkRn1FEZcW0Jb+npXQWm2vHPnnOqFteZxRRGNw==
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/parse-github-url/-/parse-github-url-1.0.3.tgz#2ab55642c8685b63fbe2a196f5abe4ae9bd68abc"
+  integrity sha512-tfalY5/4SqGaV/GIGzWyHnFjlpTPTNpENR9Ea2lLldSJ8EWXMsvacWucqY3m3I4YPtas15IxTLQVQ5NSYXPrww==
 
 parse-json@^4.0.0:
   version "4.0.0"
@@ -9660,9 +9697,9 @@ qs@6.11.0:
     side-channel "^1.0.4"
 
 qs@^6.11.2:
-  version "6.12.1"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.12.1.tgz#39422111ca7cbdb70425541cba20c7d7b216599a"
-  integrity sha512-zWmv4RSuB9r2mYQw3zxQuHWeU+42aKi1wWig/j4ele4ygELZ7PEO6MM7rim9oAQH2A5MWfsAVf/jPvTPgCbvUQ==
+  version "6.12.2"
+  resolved "https://registry.yarnpkg.com/qs/-/qs-6.12.2.tgz#5443b587f3bf73ac68968de491e5b25bafe04478"
+  integrity sha512-x+NLUpx9SYrcwXtX7ob1gnkSems4i/mGZX5SlYxwIau6RrUSODO89TR/XDGGpn5RPWSYIB+aSfuSlV5+CmbTBg==
   dependencies:
     side-channel "^1.0.6"
 
