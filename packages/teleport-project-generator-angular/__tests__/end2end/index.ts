@@ -110,8 +110,10 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
 
     expect(homePage).toBeDefined()
     expect(heroComponent).toBeDefined()
-    expect(homePage?.content).toContain(`<div slot="namedSlot">`)
-    expect(heroComponent?.content).toContain(`<ng-content select="[slot=namedSlot]">`)
+    expect(homePage?.content).toContain(`<ng-template #namedSlot>`)
+    expect(heroComponent?.content).toContain(
+      `*ngTemplateOutlet=\"namedSlot ? namedSlot : defaultNamedSlot\"`
+    )
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

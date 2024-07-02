@@ -87,23 +87,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       return elementNode
 
     case 'dynamic':
-      const propForInstance =
-        node.content.referenceType === 'prop' && propDefinitions[node.content.id]
-
-      /*
-        When the dynamic value is a prop and the prop is of type 'element'
-        We don't need to generate the content here, since slots are a dynamic way to inject content
-        and it is not supported in HTML code generation.
-
-        But when we are parsing the component with the attr that user is trying to pass as props.
-        We can use the prop value as defaultValue and generate the code for it.
-
-        Right now, we can't use any dynamic values inside a named slot in html-generators.
-      */
-      if (propForInstance?.type === 'element' && !propForInstance.defaultValue) {
-        return HASTBuilders.createComment('Named slots are not supported in html components')
-      }
-
       const dynamicNode = await generateDynamicNode(
         node,
         templatesLookUp,
@@ -275,21 +258,26 @@ const generateComponentContent = async (
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
-  const propsForInstance = Object.keys(combinedProps).reduce(
-    (acc: Record<string, UIDLPropDefinition>, propKey) => {
-      if (attrs[propKey]) {
-        acc[propKey] = {
-          ...combinedProps[propKey],
-          defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
-        }
-      } else {
-        acc[propKey] = combinedProps[propKey]
+  const propsForInstance: Record<string, UIDLPropDefinition> = {}
+  for (const propKey of Object.keys(combinedProps)) {
+    // If the attribute is a named-slot, then we can directly pass the value instead of just the content
+    if (attrs[propKey]?.type === 'element') {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attrs[propKey],
       }
+      continue
+    }
 
-      return acc
-    },
-    {}
-  )
+    if (attrs[propKey]) {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+      }
+    } else {
+      propsForInstance[propKey] = combinedProps[propKey]
+    }
+  }
 
   const combinedStates = { ...stateDefinitions, ...(comp?.stateDefinitions || {}) }
   const statesForInstance = Object.keys(combinedStates).reduce(
@@ -401,20 +389,14 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> =
   subComponentOptions,
   structure
 ): Promise<HastNode> => {
-  const spanTag = HASTBuilders.createHTMLNode('span')
   const usedReferenceValue = getValueFromReference(
     node.content.id,
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
 
-  if (usedReferenceValue.type === 'element') {
-    const namedSlotNode = {
-      type: 'element',
-      content: usedReferenceValue.defaultValue,
-    } as UIDLElementNode
-
+  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue) {
     const slotNode = await generateElementNode(
-      namedSlotNode,
+      usedReferenceValue.defaultValue as UIDLElementNode,
       templateLookup,
       propDefinitions,
       stateDefinitions,
@@ -422,10 +404,17 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> =
       structure
     )
 
-    spanTag.children.push(slotNode)
-    return spanTag
+    return slotNode as HastNode
   }
 
+  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue === undefined) {
+    const spanTagWrapper = HASTBuilders.createHTMLNode('span')
+    const commentNode = HASTBuilders.createComment(`Content for slot ${node.content.id}`)
+    HASTUtils.addChildNode(spanTagWrapper, commentNode)
+    return spanTagWrapper
+  }
+
+  const spanTag = HASTBuilders.createHTMLNode('span')
   HASTUtils.addTextNode(spanTag, String(usedReferenceValue.defaultValue))
   return spanTag
 }
@@ -547,12 +536,7 @@ const handleAttributes = (
         break
       }
 
-      case 'element': {
-        // named-slots can only be sent for components. And in html, we don't have components
-        // We handle it in propsForInstance and ignore it here
-        break
-      }
-
+      case 'element':
       case 'import':
         break
 
@@ -587,7 +571,10 @@ const getValueFromReference = (
     )
   }
 
-  if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
+  if (
+    usedReferenceValue.type !== 'element' &&
+    usedReferenceValue.hasOwnProperty('defaultValue') === false
+  ) {
     throw new HTMLComponentGeneratorError(
       `Default value is missing from dynamic reference - ${JSON.stringify(
         usedReferenceValue,

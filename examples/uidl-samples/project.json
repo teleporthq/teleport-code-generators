@@ -6721,8 +6721,19 @@
                   "type": "string"
               },
               "namedSlot": {
+                  "type": "element",
                   "id": "9e1857ce-9f52-4dcd-9000-ddaab6af0a53",
-                  "type": "element"
+                  "defaultValue": {
+                    "type": "element",
+                    "content": {
+                      "elementType": "container",
+                      "style": {
+                        "padding": "20px",
+                        "backgroundColor": "#f0f0f0"
+                      },
+                      "children": ["This is a default value for named-slot"]
+                    }
+                  }
               },
               "button": {
                   "id": "f4abacea-00b2-4c0b-8ccf-c23d0f0c7700",

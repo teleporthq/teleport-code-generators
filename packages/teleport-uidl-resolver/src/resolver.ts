@@ -55,9 +55,8 @@ export default class Resolver {
 
     utils.checkForIllegalNames(uidl, mapping)
 
-    utils.checkForDefaultPropsContainingAssets(uidl, options.assets)
-
-    utils.checkForDefaultStateValueContainingAssets(uidl, options.assets)
+    utils.checkForDefaultPropsContainingAssets(uidl, newOptions)
+    utils.checkForDefaultStateValueContainingAssets(uidl, newOptions)
 
     resolveAbilities(uidl, newOptions)
 
@@ -67,11 +66,9 @@ export default class Resolver {
     // TODO: Rename into apply mappings
     utils.resolveNode(uidl.node, newOptions)
 
-    utils.removeIgnoredNodes(uidl.node)
-
-    utils.createNodesLookup(uidl.node, nodesLookup)
+    utils.createNodesLookup(uidl, nodesLookup)
     utils.createCMSNodesLookup(uidl.node, nodesLookup)
-    utils.generateUniqueKeys(uidl.node, nodesLookup)
+    utils.generateUniqueKeys(uidl, nodesLookup)
 
     utils.ensureDataSourceUniqueness(uidl.node)
 

@@ -49,8 +49,8 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('display: active')
-      expect(jsFile.content).toContain('height: props.config.height')
+      expect(jsFile?.content).toContain('display: active')
+      expect(jsFile?.content).toContain('height: props.config.height')
     })
 
     it('CSSModules should refer state in styles when state is mapped', async () => {
@@ -63,9 +63,9 @@ describe('React Styles in Component', () => {
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
-      expect(jsFile.content).toContain('display: active')
-      expect(jsFile.content).toContain('height: props.config.height')
-      expect(cssFile.content).toContain('align-self: center;')
+      expect(jsFile?.content).toContain('display: active')
+      expect(jsFile?.content).toContain('height: props.config.height')
+      expect(cssFile?.content).toContain('align-self: center;')
     })
 
     it('Basic CSS should refer state in styles when state is mapped', async () => {
@@ -78,9 +78,9 @@ describe('React Styles in Component', () => {
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
-      expect(jsFile.content).toContain('display: active')
-      expect(jsFile.content).toContain('height: props.config.height')
-      expect(cssFile.content).toContain('align-self: center;')
+      expect(jsFile?.content).toContain('display: active')
+      expect(jsFile?.content).toContain('height: props.config.height')
+      expect(cssFile?.content).toContain('align-self: center;')
     })
 
     it('JSS should through error when state is refered', async () => {
@@ -106,8 +106,8 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('props.direction')
-      expect(jsFile.content).toContain(`alignSelf: 'center'`)
+      expect(jsFile?.content).toContain('props.direction')
+      expect(jsFile?.content).toContain(`alignSelf: 'center'`)
     })
 
     it('should support object props in styledjsx', async () => {
@@ -118,7 +118,7 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile?.content).toContain(`align-self: center`)
     })
 
     it('should throw error when a state is being refered in generated StyledJSX ', async () => {
@@ -145,8 +145,8 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<Element {...props}')
-      expect(jsFile.content).toContain('height: props.config.height')
+      expect(jsFile?.content).toContain('<Container {...props}')
+      expect(jsFile?.content).toContain('height: props.config.height')
     })
 
     it('should inject props only once for styled components', async () => {
@@ -156,7 +156,7 @@ describe('React Styles in Component', () => {
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
 
       const jsFile = findFileByType(result.files, FileType.JS)
-      expect(jsFile.content).toContain('<Container {...props}')
+      expect(jsFile?.content).toContain('<Container {...props}')
     })
 
     it('should throw error when a state is being refered in generated StyledComponents ', async () => {
@@ -184,9 +184,9 @@ describe('React Styles in Component', () => {
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
-      expect(jsFile.content).toContain('import React')
-      expect(jsFile.content).toContain('flexDirection: props.direction')
-      expect(cssFile.content).toContain(`align-self: center`)
+      expect(jsFile?.content).toContain('import React')
+      expect(jsFile?.content).toContain('flexDirection: props.direction')
+      expect(cssFile?.content).toContain(`align-self: center`)
     })
   })
 })

@@ -65,6 +65,7 @@ describe('Generic Project Generator', () => {
       const routerUIDL = {
         ...uidl.root,
         styleSetDefinitions: {},
+        propDefinitions: {},
         outputOptions: {
           fileName: 'index',
         },
@@ -152,6 +153,7 @@ describe('Generic Project Generator', () => {
       const routerUIDL = {
         ...uidl.root,
         styleSetDefinitions: {},
+        propDefinitions: {},
         outputOptions: {
           fileName: strategy.router.fileName,
         },
@@ -210,6 +212,7 @@ describe('Generic Project Generator', () => {
       const routerUIDL = {
         ...uidl.root,
         styleSetDefinitions: {},
+        propDefinitions: {},
         outputOptions: {
           fileName: 'index',
         },

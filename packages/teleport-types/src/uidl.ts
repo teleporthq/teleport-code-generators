@@ -258,7 +258,7 @@ export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicR
 
 export interface UIDLPropDefinition {
   type: string
-  defaultValue?: string | number | boolean | unknown[] | object | (() => void)
+  defaultValue?: string | number | boolean | unknown[] | object | (() => void) | UIDLElementNode
   isRequired?: boolean
   id?: string
   meta?: {
@@ -515,7 +515,6 @@ export interface UIDLElement {
   referencedStyles?: UIDLReferencedStyles
   children?: UIDLNode[]
   selfClosing?: boolean
-  ignore?: boolean
 }
 
 export type UIDLNode =

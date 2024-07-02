@@ -15,7 +15,7 @@ const Home = (props) => {
   useEffect(() => import('@lottiefiles/lottie-player'), [])
   return (
     <>
-      <div className=\\"home-element\\">
+      <div className=\\"home-container\\">
         <Head>
           <title>New Project3</title>
           <meta property=\\"og:title\\" content=\\"New Project3\\" />
@@ -23,14 +23,14 @@ const Home = (props) => {
         <lottie-player
           src=\\"https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json\\"
           autoplay
-          className=\\"home-element1\\"
+          className=\\"home-lottie-node\\"
         ></lottie-player>
         <Header></Header>
         <Hero
           namedSlot={
-            <div className=\\"home-element4\\">
+            <div className=\\"home-container1\\">
               This is amazing, because this is a named-slot
-              <div className=\\"home-element5\\">
+              <div className=\\"home-container2\\">
                 And can be nested any number of levels
               </div>
             </div>
@@ -40,7 +40,7 @@ const Home = (props) => {
       </div>
       <style jsx>
         {\`
-          .home-element {
+          .home-container {
             width: 100%;
             display: flex;
             overflow: auto;
@@ -49,22 +49,22 @@ const Home = (props) => {
             flex-direction: column;
             justify-content: flex-start;
           }
-          .home-element1 {
+          .home-lottie-node {
             width: 200px;
             height: 200px;
           }
-          .home-element4 {
+          .home-container1 {
             padding: 20px;
             font-size: 24px;
             background-color: var(--dl-color-success-700);
           }
-          .home-element5 {
+          .home-container2 {
             padding: 20px;
             margin-top: 20px;
             background-color: var(--dl-color-danger-700);
           }
           @media (max-width: 479px) {
-            .home-element {
+            .home-container {
               color: blue;
             }
           }
@@ -93,9 +93,15 @@ const Hero = (props) => {
   return (
     <>
       <div className=\\"hero-hero\\">
-        <div className=\\"hero-element\\">
-          <div className=\\"hero-element01\\">{props.namedSlot}</div>
-          <span className=\\"hero-element02\\">
+        <div className=\\"hero-container\\">
+          <div className=\\"hero-container1\\">
+            {props.namedSlot ?? (
+              <div className=\\"hero-container2\\">
+                This is a default value for named-slot
+              </div>
+            )}
+          </div>
+          <span className=\\"hero-text\\">
             <span>
               <span>
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non
@@ -133,19 +139,15 @@ const Hero = (props) => {
             </span>
           </span>
           <div className=\\"hero-btn-group\\">
-            <button className=\\"hero-element09 button primary-button\\">
+            <button className=\\"hero-button button primary-button\\">
               {props.button}
             </button>
-            <button className=\\"hero-element10 button secondary-button\\">
+            <button className=\\"hero-button1 button secondary-button\\">
               {props.button1}
             </button>
           </div>
         </div>
-        <img
-          alt={props.imageAlt}
-          src={props.imageSrc}
-          className=\\"hero-element11\\"
-        />
+        <img alt={props.imageAlt} src={props.imageSrc} className=\\"hero-image\\" />
       </div>
       <style jsx>
         {\`
@@ -159,18 +161,18 @@ const Hero = (props) => {
             flex-direction: row;
             justify-content: space-between;
           }
-          .hero-element {
+          .hero-container {
             display: flex;
             margin-right: var(--dl-space-space-threeunits);
             padding-right: var(--dl-space-space-threeunits);
             flex-direction: column;
           }
-          .hero-element01 {
+          .hero-container1 {
             font-size: 3rem;
             max-width: 450px;
             font-family: Super Funky;
           }
-          .hero-element02 {
+          .hero-text {
             margin-top: var(--dl-space-space-twounits);
             margin-bottom: var(--dl-space-space-twounits);
           }
@@ -179,18 +181,18 @@ const Hero = (props) => {
             align-items: center;
             flex-direction: row;
           }
-          .hero-element09 {
+          .hero-button {
             transition: 0.3s;
             padding-top: var(--dl-space-space-unit);
             padding-left: var(--dl-space-space-twounits);
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-element09:hover {
+          .hero-button:hover {
             color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-white);
           }
-          .hero-element10 {
+          .hero-button1 {
             transition: 0.3s;
             margin-left: var(--dl-space-space-unit);
             padding-top: var(--dl-space-space-unit);
@@ -198,29 +200,33 @@ const Hero = (props) => {
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-element10:hover {
+          .hero-button1:hover {
             color: var(--dl-color-gray-white);
             border-color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-black);
           }
-          .hero-element11 {
+          .hero-image {
             width: 400px;
             object-fit: cover;
+          }
+          .hero-container2 {
+            padding: 20px;
+            background-color: #f0f0f0;
           }
           @media (max-width: 991px) {
             .hero-hero {
               flex-direction: column;
             }
-            .hero-element {
+            .hero-container {
               align-items: center;
               margin-right: 0px;
               margin-bottom: var(--dl-space-space-twounits);
               padding-right: 0px;
             }
-            .hero-element01 {
+            .hero-container1 {
               text-align: center;
             }
-            .hero-element02 {
+            .hero-text {
               text-align: center;
               padding-left: var(--dl-space-space-threeunits);
               padding-right: var(--dl-space-space-threeunits);
@@ -231,11 +237,11 @@ const Hero = (props) => {
               padding-left: var(--dl-space-space-twounits);
               padding-right: var(--dl-space-space-twounits);
             }
-            .hero-element02 {
+            .hero-text {
               padding-left: var(--dl-space-space-unit);
               padding-right: var(--dl-space-space-unit);
             }
-            .hero-element11 {
+            .hero-image {
               width: 80%;
             }
           }
@@ -246,13 +252,13 @@ const Hero = (props) => {
               padding-right: var(--dl-space-space-unit);
               padding-bottom: var(--dl-space-space-twounits);
             }
-            .hero-element {
+            .hero-container {
               margin-bottom: var(--dl-space-space-unit);
             }
             .hero-btn-group {
               flex-direction: column;
             }
-            .hero-element10 {
+            .hero-button1 {
               margin-top: var(--dl-space-space-unit);
               margin-left: 0px;
             }
@@ -267,6 +273,7 @@ Hero.defaultProps = {
   imageSrc:
     'https://images.unsplash.com/photo-1525498128493-380d1990a112?ixid=Mnw5MTMyMXwwfDF8c2VhcmNofDI0fHxtaW5pbWFsaXNtJTIwZ3JlZW58ZW58MHx8fHwxNjI1ODQxMDcw&ixlib=rb-1.2.1&h=1200',
   imageAlt: 'image',
+  namedSlot: undefined,
   button: 'Get Started',
   button1: 'Learn More',
 }

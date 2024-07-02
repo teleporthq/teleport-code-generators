@@ -5,6 +5,8 @@ import {
   ChunkType,
   FileType,
   PluginStyledComponent,
+  UIDLElement,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
@@ -69,7 +71,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       dependencies.variant = VARIANT_DEPENDENCY
     }
 
-    UIDLUtils.traverseElements(node, (element) => {
+    const generateStylesForElementNode = (element: UIDLElement) => {
       const { key, elementType, referencedStyles, dependency, style, attrs = {} } = element
       const propsReferred: Set<string> = new Set()
       const componentStyleReferences: Set<string> = new Set()
@@ -277,7 +279,17 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         }),
       }
       chunks.push(code)
-    })
+    }
+
+    UIDLUtils.traverseElements(node, generateStylesForElementNode)
+    for (const prop of Object.values(propDefinitions)) {
+      if (prop.type === 'element' && prop.defaultValue) {
+        UIDLUtils.traverseElements(
+          prop.defaultValue as UIDLElementNode,
+          generateStylesForElementNode
+        )
+      }
+    }
 
     if (Object.keys(cssMap).length === 0) {
       return structure

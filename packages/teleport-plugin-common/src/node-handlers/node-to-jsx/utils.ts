@@ -156,6 +156,7 @@ export const createDynamicValueExpression = (
 
   const prefix =
     options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
+
   return prefix === ''
     ? t.identifier(id)
     : t.memberExpression(t.identifier(prefix), t.identifier(id))

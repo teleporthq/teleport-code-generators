@@ -44,6 +44,20 @@ export const generateExportAST = (
       )
     }
 
+    if (definition.type === 'element') {
+      return t.classProperty(
+        t.identifier(propKey),
+        null,
+        t.tsTypeAnnotation(
+          t.tsTypeReference(
+            t.identifier('TemplateRef'),
+            t.tsTypeParameterInstantiation([t.tsAnyKeyword()])
+          )
+        ),
+        [t.decorator(t.callExpression(t.identifier('ContentChild'), [t.stringLiteral(propKey)]))]
+      )
+    }
+
     return t.classProperty(
       t.identifier(propKey),
       ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),

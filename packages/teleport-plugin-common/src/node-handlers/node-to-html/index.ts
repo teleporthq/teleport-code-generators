@@ -141,17 +141,54 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
   const usedPropType = params.propDefinitions[node.content.id]
   if (usedPropType && usedPropType.type === 'element') {
     let slotNode = createHTMLNode('slot')
-    const commentNode = createComment(`Content for slot "${node.content.id}" comes here`)
+    const commentNode = createComment(`Default content for ${node.content.id}`)
+    hastUtils.addChildNode(slotNode, commentNode)
 
+    // Named slot handling for VueJS
     if (templateSyntax.slotBinding === 'v-slot') {
       hastUtils.addAttributeToNode(slotNode, 'name', node.content.id)
-    } else {
-      slotNode = createHTMLNode('ng-content')
-      hastUtils.addAttributeToNode(slotNode, 'select', `[slot=${node.content.id}]`)
-    }
+      if (usedPropType.defaultValue) {
+        const defaultSlotContent = generateNode(
+          usedPropType.defaultValue as UIDLElementNode,
+          params,
+          templateSyntax
+        ) as HastNode
+        hastUtils.addChildNode(slotNode, defaultSlotContent)
+      }
 
-    hastUtils.addChildNode(slotNode, commentNode)
-    return slotNode
+      return slotNode
+    } else {
+      const slotWrapper = createHTMLNode('ng-container')
+      slotNode = createHTMLNode('ng-container')
+
+      if (usedPropType.defaultValue) {
+        const defaultSlotTemplateName = StringUtils.dashCaseToCamelCase(
+          `default-${node.content.id}`
+        )
+
+        hastUtils.addAttributeToNode(
+          slotNode,
+          '*ngTemplateOutlet',
+          `${node.content.id} ? ${node.content.id} : ${defaultSlotTemplateName}`
+        )
+
+        const templateNode = createHTMLNode('ng-template')
+        hastUtils.addBooleanAttributeToNode(templateNode, `#${defaultSlotTemplateName}`)
+
+        const defaultSlotContent = generateNode(
+          usedPropType.defaultValue as UIDLElementNode,
+          params,
+          templateSyntax
+        ) as HastNode
+        hastUtils.addChildNode(templateNode, defaultSlotContent)
+        hastUtils.addChildNode(slotWrapper, templateNode)
+      } else {
+        hastUtils.addAttributeToNode(slotNode, '*ngTemplateOutlet', node.content.id)
+      }
+
+      hastUtils.addChildNode(slotWrapper, slotNode)
+      return slotWrapper
+    }
   }
 
   return templateSyntax.interpolation(node.content.id)
