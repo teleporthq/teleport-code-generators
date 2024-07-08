@@ -674,10 +674,6 @@ export const checkForDefaultPropsContainingAssets = (
 
   for (const propKey of Object.keys(uidl.propDefinitions || {})) {
     const prop = uidl.propDefinitions[propKey]
-    if (prop.defaultValue && prop.type === 'element' && typeof prop.defaultValue === 'object') {
-      resolveElement((prop.defaultValue as UIDLElementNode).content, options)
-    }
-
     if (prop.defaultValue && prop.type === 'string' && typeof prop.defaultValue === 'string') {
       uidl.propDefinitions[propKey].defaultValue = UIDLUtils.prefixAssetsPath(
         prop.defaultValue,
@@ -701,5 +697,18 @@ export const checkForDefaultStateValueContainingAssets = (
         )
       }
     })
+  }
+}
+
+export const resolveNodeInPropDefinitions = (uidl: ComponentUIDL, options: GeneratorOptions) => {
+  if (!uidl.propDefinitions) {
+    return
+  }
+
+  for (const propKey of Object.keys(uidl.propDefinitions)) {
+    const prop = uidl.propDefinitions[propKey]
+    if (prop.type === 'element' && typeof prop.defaultValue === 'object') {
+      resolveNode(prop.defaultValue as UIDLElementNode, options)
+    }
   }
 }
