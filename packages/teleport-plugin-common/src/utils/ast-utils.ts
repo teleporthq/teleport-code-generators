@@ -24,12 +24,18 @@ export const addClassStringOnJSXTag = (
   classAttributeName?: string,
   dynamicValues: Array<types.MemberExpression | types.Identifier> = []
 ) => {
-  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
+  if (classString === '' && dynamicValues.length === 0) {
+    return
+  }
 
+  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
   if (dynamicValues.length === 0) {
     if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
       const classArray = classAttribute.value.value.split(' ')
-      classArray.push(classString)
+      if (classString) {
+        classArray.push(classString)
+      }
+      classArray.filter((item) => item)
       classAttribute.value.value = classArray.join(' ').trim()
     } else {
       throw new Error(
