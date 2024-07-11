@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-inline-fetch",
-  "version": "0.33.0",
+  "version": "0.33.2",
   "description": "A plugin for adding getStaticPaths inside a nextjs page",
   "author": "teleportHQ",
   "license": "MIT",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.33.0",
+    "@teleporthq/teleport-plugin-common": "^0.33.2",
     "@teleporthq/teleport-shared": "^0.33.0",
     "@teleporthq/teleport-types": "^0.33.0"
   },
