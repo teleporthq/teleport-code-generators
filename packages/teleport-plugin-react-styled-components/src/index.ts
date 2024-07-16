@@ -87,6 +87,16 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       }
 
       const root = jsxNodesLookup[key]
+      if (root === undefined) {
+        throw new PluginStyledComponent(
+          `Element \n ${JSON.stringify(
+            element,
+            null,
+            2
+          )} \n with key ${key} is missing from the template chunk`
+        )
+      }
+
       let className = StringUtils.dashCaseToUpperCamelCase(key)
 
       if (style) {

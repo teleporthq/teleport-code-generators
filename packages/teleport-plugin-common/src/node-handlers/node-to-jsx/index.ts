@@ -36,7 +36,7 @@ import {
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
-import { ASTBuilders, ASTUtils, createJSXSyntax } from '../..'
+import { ASTBuilders, ASTUtils } from '../..'
 
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
@@ -202,15 +202,20 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'dynamic':
       // If the dynamic node is a prop and has a default value,
       // we should use it with a logical expression. And the most used case is for named-slots.
-      if (
-        node.type === 'dynamic' &&
-        params.propDefinitions[node.content.id]?.type === 'element' &&
-        params.propDefinitions[node.content.id]?.defaultValue
-      ) {
+      const prop = params.propDefinitions[node.content.id]
+      if (prop?.type === 'element' && prop.defaultValue) {
         const prefix =
           options.dynamicReferencePrefixMap[
             node.content.referenceType as 'prop' | 'state' | 'local'
           ] || ''
+
+        const propDefault = prop.defaultValue as UIDLElementNode
+        const jsxNode = params.nodesLookup[propDefault.content.key]
+
+        if (jsxNode === undefined) {
+          throw Error(`Prop ${node.content.id} is of type element \n
+            The JSXNode of the prop-${node.content.id} is missing from the nodesLookup`)
+        }
 
         return [
           types.logicalExpression(
@@ -218,14 +223,11 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
             prefix === ''
               ? types.identifier(node.content.id)
               : types.memberExpression(types.identifier(prefix), types.identifier(node.content.id)),
-            createJSXSyntax(
-              params.propDefinitions[node.content.id].defaultValue as UIDLElementNode,
-              params,
-              options
-            )
+            jsxNode as types.JSXElement
           ),
         ]
       }
+
       return [createDynamicValueExpression(node, options)]
 
     case 'cms-item':
