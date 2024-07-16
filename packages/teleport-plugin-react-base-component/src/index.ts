@@ -11,6 +11,7 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 
@@ -67,6 +68,17 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       stateHandling: 'hooks',
       slotHandling: 'props',
       domHTMLInjection: (content: string) => ASTBuilders.createDOMInjectionNode(content),
+    }
+
+    /*
+      We need to generate jsx structure of every node that is defined in the UIDL.
+      If we use these nodes in the later stage of the code-generation depends on the usage of these nodes.
+    */
+    for (const propKey of Object.keys(propDefinitions)) {
+      const prop = propDefinitions[propKey]
+      if (prop.type === 'element' && typeof prop.defaultValue === 'object') {
+        createJSXSyntax(prop.defaultValue as UIDLElementNode, jsxParams, jsxOptions)
+      }
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
