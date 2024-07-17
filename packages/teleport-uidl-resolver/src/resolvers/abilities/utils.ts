@@ -12,11 +12,9 @@ export const insertLinks = (
   linkInParent: boolean = false,
   parentNode?: UIDLElementNode
 ): UIDLElementNode => {
-  // TODO_NOW
-  const { abilities, children, elementType, semanticType } = node.content
+  const { abilities, children, elementType, semanticType, attrs = {} } = node.content
   const linkInNode = linkInParent || !!abilities?.link
 
-  // TODO: think of a way to reuse the traversal that modifies the tree
   node.content.children = children?.map((child) => {
     if (child.type === 'element') {
       return insertLinks(child, options, linkInNode, node)
@@ -105,6 +103,14 @@ export const insertLinks = (
 
     return child
   })
+
+  for (const attrKey of Object.keys(attrs)) {
+    const attr = attrs[attrKey]
+
+    if (attr.type === 'element') {
+      node.content.attrs[attrKey] = insertLinks(attr as UIDLElementNode, options, false, node)
+    }
+  }
 
   if (abilities?.link) {
     if (linkInParent) {
