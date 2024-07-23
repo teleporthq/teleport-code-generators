@@ -114,8 +114,7 @@ const createVuePropsDefinition = (
         break
 
       case 'element':
-        mappedType = String
-        break
+        return acc
 
       default:
         throw new Error(
