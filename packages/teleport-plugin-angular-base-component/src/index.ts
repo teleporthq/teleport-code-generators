@@ -7,7 +7,12 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTBuilders, createHTMLTemplateSyntax } from '@teleporthq/teleport-plugin-common'
+import {
+  ASTBuilders,
+  createHTMLTemplateSyntax,
+  HTMLTemplateGenerationParams,
+  HTMLTemplateSyntax,
+} from '@teleporthq/teleport-plugin-common'
 
 import { generateExportAST } from './utils'
 
@@ -70,36 +75,58 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
     const templateLookup: { [key: string]: unknown } = {}
     const dataObject: Record<string, unknown> = {}
     const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
+    const templateParams: HTMLTemplateGenerationParams = {
+      templateLookup,
+      dependencies,
+      dataObject,
+      methodsObject,
+      stateDefinitions,
+      propDefinitions,
+    }
+
+    const templateSyntaxOptions: HTMLTemplateSyntax = {
+      interpolation: (value) => `{{ ${value} }}`,
+      eventBinding: (value) => `(${value})`,
+      eventHandlersBindingMode: (value) => `${value}()`,
+      valueBinding: (value, node?: UIDLElementNode) =>
+        node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
+      eventEmmitter: (value) => `this.$emit('${value}')`,
+      conditionalAttr: '*ngIf',
+      repeatAttr: '*ngFor',
+      repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
+        const index = useIndex ? `; index as index` : ''
+        return `let ${iteratorName} of ${iteratedCollection}${index}`
+      },
+      customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
+      dependencyHandling: 'ignore',
+      domHTMLInjection: `[innerHTML]`,
+      slotBinding: '#',
+      slotTagName: 'ng-template',
+    }
+
+    /*
+      We need to generate jsx structure of every node that is defined in the UIDL.
+      If we use these nodes in the later stage of the code-generation depends on the usage of these nodes.
+    */
+    for (const propKey of Object.keys(propDefinitions)) {
+      const prop = propDefinitions[propKey]
+      if (
+        prop.type === 'element' &&
+        prop.defaultValue !== undefined &&
+        typeof prop.defaultValue === 'object'
+      ) {
+        createHTMLTemplateSyntax(
+          prop.defaultValue as UIDLElementNode,
+          templateParams,
+          templateSyntaxOptions
+        )
+      }
+    }
 
     const templateContent = createHTMLTemplateSyntax(
       uidl.node,
-      {
-        templateLookup,
-        dependencies,
-        dataObject,
-        methodsObject,
-        stateDefinitions,
-        propDefinitions,
-      },
-      {
-        interpolation: (value) => `{{ ${value} }}`,
-        eventBinding: (value) => `(${value})`,
-        eventHandlersBindingMode: (value) => `${value}()`,
-        valueBinding: (value, node?: UIDLElementNode) =>
-          node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
-        eventEmmitter: (value) => `this.$emit('${value}')`,
-        conditionalAttr: '*ngIf',
-        repeatAttr: '*ngFor',
-        repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
-          const index = useIndex ? `; index as index` : ''
-          return `let ${iteratorName} of ${iteratedCollection}${index}`
-        },
-        customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
-        dependencyHandling: 'ignore',
-        domHTMLInjection: `[innerHTML]`,
-        slotBinding: '#',
-        slotTagName: 'ng-template',
-      }
+      templateParams,
+      templateSyntaxOptions
     )
 
     chunks.push({

@@ -126,6 +126,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Semantic type has precedence as it is dictated by the user
   originalElement.elementType = originalElement.semanticType || mappedElement.elementType
 
+  if (mappedElement.style) {
+    originalElement.style = deepmerge(mappedElement.style, originalElement.style || {})
+  }
+
   if (mappedElement.selfClosing) {
     originalElement.selfClosing = mappedElement.selfClosing
   }

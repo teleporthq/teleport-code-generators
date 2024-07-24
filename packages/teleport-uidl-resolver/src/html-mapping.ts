@@ -199,6 +199,16 @@ export const HTMLMapping: Mapping = {
     separator: {
       elementType: 'hr',
     },
+    fragment: {
+      elementType: 'div',
+      name: 'custom-fragment',
+      style: {
+        display: {
+          type: 'static',
+          content: 'contents',
+        },
+      },
+    },
   },
   events: {},
   attributes: {},

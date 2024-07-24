@@ -8,7 +8,6 @@ import {
   ComponentUIDL,
   GeneratorFactoryParams,
   GeneratorOptions,
-  ElementsLookup,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -26,7 +25,6 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => resolver.addMapping(mapping))
-  const nodesLookup: ElementsLookup = {}
 
   const prettierHTML = createPrettierHTMLPostProcessor({
     strictHtmlWhitespaceSensitivity,
@@ -46,7 +44,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
           externals[uidlKey] as unknown as Record<string, unknown>
         )
 
-        const resolvedUIDL = resolver.resolveUIDL(componentUIDL, { assets }, nodesLookup)
+        const resolvedUIDL = resolver.resolveUIDL(componentUIDL, { assets })
         componentUIDLs[
           StringUtils.dashCaseToUpperCamelCase(resolvedUIDL.outputOptions.componentClassName)
         ] = resolvedUIDL
@@ -56,7 +54,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
     },
   })
 
-  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin({ nodesLookup })
+  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(
     createCSSPlugin({

@@ -2,6 +2,18 @@ import { Mapping } from '@teleporthq/teleport-types'
 
 export const ReactMapping: Mapping = {
   elements: {
+    fragment: {
+      elementType: 'Fragment',
+      semanticType: 'Fragment',
+      dependency: {
+        type: 'library',
+        path: 'react',
+        version: '^17.0.2',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
     group: {
       elementType: 'Fragment',
       dependency: {

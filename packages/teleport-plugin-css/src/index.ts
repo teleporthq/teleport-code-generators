@@ -127,7 +127,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
             element,
             null,
             2
-          )} \n with key ${key} is missing from the template chunk`
+          )} \n with key ${key} is missing from the template chunk of component ${uidl.name}`
         )
       }
 
