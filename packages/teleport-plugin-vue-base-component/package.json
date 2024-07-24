@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-vue-base-component",
-  "version": "0.33.3",
+  "version": "0.33.5",
   "description": "A plugin for handling the skeleton/baseline for a Vue component",
   "author": "teleportHQ",
   "license": "MIT",
