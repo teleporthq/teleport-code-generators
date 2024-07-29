@@ -27,6 +27,16 @@ export const VueMapping: Mapping = {
     'lottie-node': {
       elementType: 'lottie-vue-player',
     },
+    fragment: {
+      elementType: 'div',
+      name: 'custom-fragment',
+      style: {
+        display: {
+          type: 'static',
+          content: 'contents',
+        },
+      },
+    },
   },
   events: {},
   attributes: {},
