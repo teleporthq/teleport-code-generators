@@ -221,7 +221,7 @@ const createLinkAttributes = (
         return {
           url: {
             type: 'expr',
-            content: `#${link.content.section.content}`,
+            content: '`#${' + link.content.section.content + '}`',
           },
         }
       }

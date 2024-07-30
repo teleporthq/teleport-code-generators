@@ -553,6 +553,7 @@ const handleAttributes = (
 
       case 'element':
       case 'import':
+      case 'expr':
         break
 
       default: {

@@ -5324,42 +5324,6 @@
                   },
                   "children": [
                     {
-                      "type": "element",
-                      "content": {
-                        "elementType": "container",
-                        "abilities": {
-                          "link": {
-                            "type": "section",
-                            "content": {
-                              "section": {
-                                "type": "static",
-                                "content": "scroll-to-section-id"
-                              }
-                            }
-                          }
-                        },
-                        "children": ["This is a link tag"]
-                      }
-                    },
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "container",
-                        "abilities": {
-                          "link": {
-                            "type": "section",
-                            "content": {
-                              "section": {
-                                "type": "expr",
-                                "content": "${renderProp.sectionId}"
-                              }
-                            }
-                          }
-                        },
-                        "children": ["This is a link tag"]
-                      }
-                    },
-                    {
                         "type": "element",
                         "content": {
                             "elementType": "html-node",

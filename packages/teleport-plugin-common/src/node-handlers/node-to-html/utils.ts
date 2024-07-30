@@ -78,6 +78,10 @@ export const handleAttribute = (
       hastUtils.addChildNode(htmlNode, templateNode)
       break
 
+    // @todo: expression nodes are not supported in vueJS. They are used for cms integrations.
+    case 'expr':
+      break
+
     default:
       throw new Error(
         `generateElementNode could not generate code for attribute of type ${JSON.stringify(
