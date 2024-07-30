@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-codesandbox",
-  "version": "0.33.0",
+  "version": "0.33.6",
   "description": "Send your generated project to codesandbox",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-publisher-zip": "^0.33.0",
-    "@teleporthq/teleport-types": "^0.33.0",
+    "@teleporthq/teleport-publisher-zip": "^0.33.6",
+    "@teleporthq/teleport-types": "^0.33.6",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
