@@ -582,7 +582,7 @@ export type UIDLDynamicLinkNode = UIDLDynamicReference
 
 export interface UIDLSectionLinkNode {
   type: 'section'
-  content: { section: string }
+  content: { section: UIDLStaticValue | UIDLExpressionValue }
 }
 
 export interface UIDLNavLinkNode {
