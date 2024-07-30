@@ -303,7 +303,7 @@ const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement
     const element = generateElementNode(mappings[key], params, options)
     mappingsObject.push(
       types.objectProperty(
-        types.identifier(key),
+        types.identifier(`"${key}"`),
         types.arrowFunctionExpression([types.identifier(renderPropIdentifier)], element)
       )
     )
