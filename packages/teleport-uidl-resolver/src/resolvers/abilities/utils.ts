@@ -208,12 +208,25 @@ const createLinkAttributes = (
     }
 
     case 'section': {
-      return {
-        url: {
-          type: 'static',
-          content: `#${link.content.section}`,
-        },
+      if (link.content.section.type === 'static') {
+        return {
+          url: {
+            type: 'static',
+            content: `#${link.content.section.content}`,
+          },
+        }
       }
+
+      if (link.content.section.type === 'expr') {
+        return {
+          url: {
+            type: 'expr',
+            content: '`#${' + link.content.section.content + '}`',
+          },
+        }
+      }
+
+      return
     }
 
     case 'dynamic':

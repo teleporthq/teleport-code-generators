@@ -566,7 +566,9 @@ export const dynamicLinkDecoder: Decoder<UIDLDynamicLinkNode> = object({
 
 export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
-  content: dict(string()),
+  content: object({
+    section: union(string(), staticValueDecoder, expressionValueDecoder),
+  }),
 })
 
 export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({

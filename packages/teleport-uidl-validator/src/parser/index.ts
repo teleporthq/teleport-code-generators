@@ -392,6 +392,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             ),
           }
         }
+
+        if (type === 'section' && typeof content.section === 'string') {
+          content.section = {
+            type: 'static',
+            content: content.section,
+          }
+        }
       }
 
       if (Array.isArray(elementContent.children)) {

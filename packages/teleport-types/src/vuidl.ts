@@ -278,7 +278,9 @@ export type VUIDLSlotNode = Modify<
 export type VUIDLSectionLinkNode = Modify<
   UIDLSectionLinkNode,
   {
-    content: Record<string, string>
+    content: {
+      section: string | UIDLStaticValue | UIDLExpressionValue
+    }
   }
 >
 
