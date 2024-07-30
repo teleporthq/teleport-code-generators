@@ -15,6 +15,7 @@ import {
   UIDLDynamicReference,
   UIDLConditionalNode,
   ElementsLookup,
+  UIDLPropDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -60,8 +61,40 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
   })
 }
 
-export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
+export const resolveNode = (
+  uidlNode: UIDLNode,
+  options: GeneratorOptions & { propDefinitions: Record<string, UIDLPropDefinition> }
+) => {
   UIDLUtils.traverseNodes(uidlNode, (node, parentNode) => {
+    // When a prop is of type element, we need to replace the parent node with a fragment
+    // This is because, the defaultValue for the prop is alaready sending the elementType of the same.
+    // This will make sure, we are not nesting the same tags.
+    if (
+      node.type === 'dynamic' &&
+      node.content.referenceType === 'prop' &&
+      options.mapping.elements?.fragment !== undefined &&
+      parentNode.type === 'element'
+    ) {
+      const prop = options.propDefinitions[node.content.id]
+      if (prop?.type !== 'element' || (prop?.defaultValue as UIDLElementNode)?.type !== 'element') {
+        return
+      }
+
+      const fragmentMapping = options.mapping.elements.fragment
+      const propElement = prop.defaultValue as UIDLElementNode
+      // We change the parent node to a fragment only if the defaultValue is also a fragment.
+      // This is to make sure we are not changing the parent node to a fragment when it is not needed.
+      // Like `named-slot`. Named slot's defaultValue is also an element.
+      if (propElement.type === 'element' && propElement.content.elementType !== 'fragment') {
+        return
+      }
+
+      parentNode.content = {
+        ...parentNode.content,
+        ...fragmentMapping,
+      }
+    }
+
     if (node.type === 'element') {
       resolveElement(node.content, options)
     }
@@ -712,7 +745,10 @@ export const resolveNodeInPropDefinitions = (uidl: ComponentUIDL, options: Gener
   for (const propKey of Object.keys(uidl.propDefinitions)) {
     const prop = uidl.propDefinitions[propKey]
     if (prop.type === 'element' && typeof prop.defaultValue === 'object') {
-      resolveNode(prop.defaultValue as UIDLElementNode, options)
+      resolveNode(prop.defaultValue as UIDLElementNode, {
+        ...options,
+        propDefinitions: uidl.propDefinitions,
+      })
     }
   }
 }

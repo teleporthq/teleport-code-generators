@@ -63,7 +63,10 @@ export default class Resolver {
     resolveReferencedStyle(uidl, newOptions)
     resolveHtmlNode(uidl, newOptions)
     // TODO: Rename into apply mappings
-    utils.resolveNode(uidl.node, newOptions)
+    utils.resolveNode(uidl.node, {
+      ...newOptions,
+      propDefinitions: uidl.propDefinitions,
+    })
     utils.resolveNodeInPropDefinitions(uidl, newOptions)
 
     utils.createNodesLookup(uidl, nodesLookup)

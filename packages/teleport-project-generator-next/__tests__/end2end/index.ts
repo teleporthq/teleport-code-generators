@@ -102,7 +102,9 @@ describe('React Next Project Generator', () => {
     const pages = subFolders.find((folder) => folder.name === 'pages')
     const components = subFolders.find((folder) => folder.name === 'components')
     const indexPage = pages?.files.find((file) => file.name === 'index')
-    const heroComponent = components?.files.find((file) => file.name === 'hero')
+    const heroComponent = components?.files.find(
+      (file) => file.name === 'hero' && file.fileType === FileType.JS
+    )
 
     expect(indexPage).toMatchSnapshot()
     expect(heroComponent).toMatchSnapshot()

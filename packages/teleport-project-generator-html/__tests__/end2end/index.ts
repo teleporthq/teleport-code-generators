@@ -59,7 +59,7 @@ describe('Html Project Generator', () => {
     expect(aboutCSS?.content).toContain('public/playground_assets/kitten.png')
   })
 
-  it('creates a next project and generates the named-slot for passing components', async () => {
+  it('creates a html project and generates the named-slot for passing components', async () => {
     const generator = createHTMLProjectGenerator()
     const { subFolders, files } = await generator.generateProject(uidlSample)
     const components = subFolders.find((folder) => folder.name === 'components')
