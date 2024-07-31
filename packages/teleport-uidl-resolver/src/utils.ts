@@ -286,7 +286,6 @@ const generateKeysForElement = (element: UIDLElement, lookup: ElementsLookup) =>
   // NextKey will be appended to the node name to ensure uniqueness inside the component
   // Element name is stored as a lower case string in the lookup, considering camel case
   const nodeOcurrence = lookup[StringUtils.camelCaseToDashCase(element.name)]
-
   if (nodeOcurrence.count === 1) {
     // If the name ocurrence is unique we use it as it is
     element.key = element.name
@@ -314,7 +313,7 @@ export const generateUniqueKeys = (uidl: ComponentUIDL, lookup: ElementsLookup) 
       return
     }
 
-    const nodeOcurrence = lookup[child.content.name.toLowerCase()]
+    const nodeOcurrence = lookup[child.content.name]
     if (nodeOcurrence.count === 1) {
       child.content.key = child.content.name
     } else {
@@ -354,9 +353,10 @@ const createNodesLookupForElement = (element: UIDLElement, lookup: ElementsLooku
   const elementName = StringUtils.camelCaseToDashCase(element.name)
   if (!lookup[elementName]) {
     lookup[elementName] = {
-      count: 0,
-      nextKey: '0',
+      count: 1,
+      nextKey: '1',
     }
+    return
   }
 
   lookup[elementName].count++
@@ -364,7 +364,7 @@ const createNodesLookupForElement = (element: UIDLElement, lookup: ElementsLooku
   if (newCount > 9 && isPowerOfTen(newCount)) {
     // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
     // nextKey will start either from: '0', '00', '000', etc.
-    lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+    lookup[elementName].nextKey = lookup[elementName].nextKey + '0'
   }
 }
 
@@ -390,7 +390,7 @@ export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => 
     ) {
       return
     }
-    const nodeName = child.content.name.toLowerCase()
+    const nodeName = child.content.name
     nodeAndElementLookup(nodeName, lookup)
   })
 }
