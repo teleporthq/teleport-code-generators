@@ -73,54 +73,54 @@ const run = async () => {
     let result
 
     /* Plain Html Generator */
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.HTML,
-        strictHtmlWhitespaceSensitivity: false,
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return ProjectType.HTML
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.HTML,
+    //     strictHtmlWhitespaceSensitivity: false,
+    //   })
+    //   console.info(ProjectType.HTML, '-', result.payload)
+    //   return ProjectType.HTML
+    // })
 
-    /* Plain Html Generator with embed parser */
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.HTML,
-        plugins: [new ProjectPluginParseEmbed()],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-html-embeds`,
-        },
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return `${ProjectType.HTML} - Parse Embeds`
-    })
+    // /* Plain Html Generator with embed parser */
+    // await log(async () => {
+    //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.HTML,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: `teleport-project-html-embeds`,
+    //     },
+    //   })
+    //   console.info(ProjectType.HTML, '-', result.payload)
+    //   return `${ProjectType.HTML} - Parse Embeds`
+    // })
 
     /* Styled JSX */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.NEXT,
-        plugins: [new ProjectPluginParseEmbed()],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-next-embeds`,
-        },
-      })
-      console.info(ProjectType.NEXT, '-', result.payload)
-      return `${ProjectType.NEXT} - Parse Embeds`
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.NEXT,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: `teleport-project-next-embeds`,
+    //     },
+    //   })
+    //   console.info(ProjectType.NEXT, '-', result.payload)
+    //   return `${ProjectType.NEXT} - Parse Embeds`
+    // })
 
-    /* Frameworks using Css-Modules */
+    // /* Frameworks using Css-Modules */
     await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         plugins: [
           new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
-          new ProjectPluginParseEmbed(),
+          // new ProjectPluginParseEmbed(),
         ],
         publishOptions: {
           ...packerOptions.publishOptions,
@@ -131,76 +131,76 @@ const run = async () => {
       return `Next - CSSModules`
     })
 
-    /* Frameworks use CSS */
+    // /* Frameworks use CSS */
 
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.REACT,
-        plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.REACT, '-', result.payload)
-      return ProjectType.REACT
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.REACT,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //   })
+    //   console.info(ProjectType.REACT, '-', result.payload)
+    //   return ProjectType.REACT
+    // })
 
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.NUXT,
-        plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.NUXT, '-', result.payload)
-      return ProjectType.NUXT
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.NUXT,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //   })
+    //   console.info(ProjectType.NUXT, '-', result.payload)
+    //   return ProjectType.NUXT
+    // })
 
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.VUE,
-        plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.VUE, '-', result.payload)
-      return ProjectType.VUE
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.VUE,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //   })
+    //   console.info(ProjectType.VUE, '-', result.payload)
+    //   return ProjectType.VUE
+    // })
 
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.ANGULAR,
-        plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.ANGULAR, '-', result.payload)
-      return ProjectType.ANGULAR
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.ANGULAR,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //   })
+    //   console.info(ProjectType.ANGULAR, '-', result.payload)
+    //   return ProjectType.ANGULAR
+    // })
 
-    /* React JSS */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.NEXT,
-        plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-next-react-jss',
-        },
-      })
-      console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
-      return `NEXT - React-JSS`
-    })
+    // /* React JSS */
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.NEXT,
+    //     plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: 'teleport-project-next-react-jss',
+    //     },
+    //   })
+    //   console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
+    //   return `NEXT - React-JSS`
+    // })
 
-    /* Styled Components */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.REACT,
-        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-react-styled-components`,
-        },
-      })
-      return `React - StyledComponents`
-    })
+    // /* Styled Components */
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.REACT,
+    //     plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: `teleport-project-react-styled-components`,
+    //     },
+    //   })
+    //   return `React - StyledComponents`
+    // })
   } catch (e) {
     console.info(e)
   }

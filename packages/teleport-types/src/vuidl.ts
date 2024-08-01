@@ -135,7 +135,7 @@ export type VUIDLConditionalNode = Modify<
   {
     content: {
       node: VUIDLNode
-      reference: UIDLDynamicReference
+      reference: UIDLDynamicReference | UIDLExpressionValue
       value?: string | number | boolean
       condition?: UIDLConditionalExpression
     }

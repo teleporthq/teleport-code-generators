@@ -38,6 +38,7 @@ export default class Validator {
     try {
       const cleanedUIDL = utils.validateNulls(input)
       const uidl = rootComponentUIDLDecoder.runWithException(cleanedUIDL)
+
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])

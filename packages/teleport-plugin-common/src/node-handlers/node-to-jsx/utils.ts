@@ -11,6 +11,7 @@ import {
   UIDLConditionalExpression,
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -165,10 +166,17 @@ export const createDynamicValueExpression = (
 // Prepares an identifier (from props or state or an expr) to be used as a conditional rendering identifier
 // Assumes the type from the corresponding props/state definitions if not expr. Expressions are expected to have a boolean return here
 export const createConditionIdentifier = (
-  dynamicReference: UIDLDynamicReference,
+  dynamicReference: UIDLDynamicReference | UIDLExpressionValue,
   params: JSXGenerationParams,
   options: JSXGenerationOptions
 ): ConditionalIdentifier => {
+  if (dynamicReference.type === 'expr') {
+    return {
+      key: dynamicReference.content,
+      type: 'boolean',
+    }
+  }
+
   const { id, referenceType } = dynamicReference.content
 
   // in case the id is a member expression: eg: fields.name
@@ -186,11 +194,6 @@ export const createConditionIdentifier = (
         key: id,
         type: params.stateDefinitions[referenceRoot].type,
         prefix: options.dynamicReferencePrefixMap.state,
-      }
-    case 'expr':
-      return {
-        key: id,
-        type: 'boolean',
       }
     default:
       throw new Error(

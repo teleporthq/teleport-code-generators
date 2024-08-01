@@ -107,8 +107,7 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token'),
-  constant('expr')
+  constant('token')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -756,7 +755,7 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
   type: constant('conditional'),
   content: object({
     node: lazy(() => uidlNodeDecoder),
-    reference: dynamicValueDecoder,
+    reference: union(dynamicValueDecoder, expressionValueDecoder),
     importDefinitions: optional(dict(externaldependencyDecoder)),
     value: union(string(), number(), boolean()),
     condition: optional(
@@ -893,10 +892,7 @@ export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
 })
 
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
-  elementNodeDecoder,
-  dynamicValueDecoder,
-  rawValueDecoder,
-  conditionalNodeDecoder,
+  union(elementNodeDecoder, dynamicValueDecoder, rawValueDecoder, conditionalNodeDecoder),
   union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
   union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
 )
