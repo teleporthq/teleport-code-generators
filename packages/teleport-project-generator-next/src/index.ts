@@ -13,7 +13,6 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
-import { createStaticPropslogsPlugin } from './static-props-debugger'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -29,7 +28,6 @@ const createNextProjectGenerator = () => {
   const getStaticPropsPlugin = createStaticPropsPlugin()
   const getStaticPathsPlugin = createStaticPathsPlugin()
   const nextInlineFetchPlugin = createNextInlineFetchPlugin()
-  const staticPropsLogsPlugin = createStaticPropslogsPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
@@ -49,7 +47,6 @@ const createNextProjectGenerator = () => {
         getStaticPropsPlugin,
         getStaticPathsPlugin,
         nextInlineFetchPlugin,
-        staticPropsLogsPlugin,
       ],
       mappings: [NextProjectMapping],
       options: {
