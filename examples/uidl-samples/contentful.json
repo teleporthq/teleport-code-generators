@@ -1365,18 +1365,28 @@
                                                                   "elementType": "fragment",
                                                                   "children": [
                                                                     {
-                                                                      "type": "element",
+                                                                      "type": "conditional",
                                                                       "content": {
-                                                                        "elementType": "text",
-                                                                        "semanticType": "span",
-                                                                        "referencedStyles": {},
-                                                                        "abilities": {},
-                                                                        "children": [
-                                                                          {
-                                                                            "type": "expr",
-                                                                            "content": "context_ln7pqog?.name"
+                                                                        "reference": {
+                                                                          "type": "expr",
+                                                                          "content": "context_ln7pqog?.name"
+                                                                        },
+                                                                        "value": true,
+                                                                        "node": {
+                                                                          "type": "element",
+                                                                          "content": {
+                                                                            "elementType": "text",
+                                                                            "semanticType": "span",
+                                                                            "referencedStyles": {},
+                                                                            "abilities": {},
+                                                                            "children": [
+                                                                              {
+                                                                                "type": "expr",
+                                                                                "content": "context_ln7pqog?.name"
+                                                                              }
+                                                                            ]
                                                                           }
-                                                                        ]
+                                                                        }
                                                                       }
                                                                     }
                                                                   ]

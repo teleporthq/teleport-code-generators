@@ -70,10 +70,6 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
       resolveRepeat(node.content, parentNode)
     }
 
-    if (node.type === 'conditional') {
-      resolveConditional(node, options)
-    }
-
     if (node.type === 'cms-list-repeater' || node.type === 'cms-list' || node.type === 'cms-item') {
       const {
         mapping: { elements: elementsMapping },
