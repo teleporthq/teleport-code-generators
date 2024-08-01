@@ -15,7 +15,7 @@ const Home = (props) => {
   useEffect(() => import('@lottiefiles/lottie-player'), [])
   return (
     <>
-      <div className=\\"home-container\\">
+      <div className=\\"home-container1\\">
         <Head>
           <title>New Project3</title>
           <meta property=\\"og:title\\" content=\\"New Project3\\" />
@@ -28,9 +28,9 @@ const Home = (props) => {
         <Header></Header>
         <Hero
           namedSlot={
-            <div className=\\"home-container1\\">
+            <div className=\\"home-container2\\">
               This is amazing, because this is a named-slot
-              <div className=\\"home-container2\\">
+              <div className=\\"home-container3\\">
                 And can be nested any number of levels
               </div>
             </div>
@@ -40,7 +40,7 @@ const Home = (props) => {
       </div>
       <style jsx>
         {\`
-          .home-container {
+          .home-container1 {
             width: 100%;
             display: flex;
             overflow: auto;
@@ -53,18 +53,18 @@ const Home = (props) => {
             width: 200px;
             height: 200px;
           }
-          .home-container1 {
+          .home-container2 {
             padding: 20px;
             font-size: 24px;
             background-color: var(--dl-color-success-700);
           }
-          .home-container2 {
+          .home-container3 {
             padding: 20px;
             margin-top: 20px;
             background-color: var(--dl-color-danger-700);
           }
           @media (max-width: 479px) {
-            .home-container {
+            .home-container1 {
               color: blue;
             }
           }
@@ -93,15 +93,15 @@ const Hero = (props) => {
   return (
     <>
       <div className=\\"hero-hero\\">
-        <div className=\\"hero-container\\">
-          <div className=\\"hero-container1\\">
+        <div className=\\"hero-container1\\">
+          <div className=\\"hero-container2\\">
             {props.namedSlot ?? (
-              <div className=\\"hero-container2\\">
+              <div className=\\"hero-container3\\">
                 This is a default value for named-slot
               </div>
             )}
           </div>
-          <span className=\\"hero-text\\">
+          <span className=\\"hero-text1\\">
             <span>
               <span>
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non
@@ -139,10 +139,10 @@ const Hero = (props) => {
             </span>
           </span>
           <div className=\\"hero-btn-group\\">
-            <button className=\\"hero-button button primary-button\\">
+            <button className=\\"hero-button1 button primary-button\\">
               {props.button}
             </button>
-            <button className=\\"hero-button1 button secondary-button\\">
+            <button className=\\"hero-button2 button secondary-button\\">
               {props.button1}
             </button>
           </div>
@@ -161,18 +161,18 @@ const Hero = (props) => {
             flex-direction: row;
             justify-content: space-between;
           }
-          .hero-container {
+          .hero-container1 {
             display: flex;
             margin-right: var(--dl-space-space-threeunits);
             padding-right: var(--dl-space-space-threeunits);
             flex-direction: column;
           }
-          .hero-container1 {
+          .hero-container2 {
             font-size: 3rem;
             max-width: 450px;
             font-family: Super Funky;
           }
-          .hero-text {
+          .hero-text1 {
             margin-top: var(--dl-space-space-twounits);
             margin-bottom: var(--dl-space-space-twounits);
           }
@@ -181,18 +181,18 @@ const Hero = (props) => {
             align-items: center;
             flex-direction: row;
           }
-          .hero-button {
+          .hero-button1 {
             transition: 0.3s;
             padding-top: var(--dl-space-space-unit);
             padding-left: var(--dl-space-space-twounits);
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-button:hover {
+          .hero-button1:hover {
             color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-white);
           }
-          .hero-button1 {
+          .hero-button2 {
             transition: 0.3s;
             margin-left: var(--dl-space-space-unit);
             padding-top: var(--dl-space-space-unit);
@@ -200,7 +200,7 @@ const Hero = (props) => {
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-button1:hover {
+          .hero-button2:hover {
             color: var(--dl-color-gray-white);
             border-color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-black);
@@ -209,7 +209,7 @@ const Hero = (props) => {
             width: 400px;
             object-fit: cover;
           }
-          .hero-container2 {
+          .hero-container3 {
             padding: 20px;
             background-color: #f0f0f0;
           }
@@ -217,16 +217,16 @@ const Hero = (props) => {
             .hero-hero {
               flex-direction: column;
             }
-            .hero-container {
+            .hero-container1 {
               align-items: center;
               margin-right: 0px;
               margin-bottom: var(--dl-space-space-twounits);
               padding-right: 0px;
             }
-            .hero-container1 {
+            .hero-container2 {
               text-align: center;
             }
-            .hero-text {
+            .hero-text1 {
               text-align: center;
               padding-left: var(--dl-space-space-threeunits);
               padding-right: var(--dl-space-space-threeunits);
@@ -237,7 +237,7 @@ const Hero = (props) => {
               padding-left: var(--dl-space-space-twounits);
               padding-right: var(--dl-space-space-twounits);
             }
-            .hero-text {
+            .hero-text1 {
               padding-left: var(--dl-space-space-unit);
               padding-right: var(--dl-space-space-unit);
             }
@@ -252,13 +252,13 @@ const Hero = (props) => {
               padding-right: var(--dl-space-space-unit);
               padding-bottom: var(--dl-space-space-twounits);
             }
-            .hero-container {
+            .hero-container1 {
               margin-bottom: var(--dl-space-space-unit);
             }
             .hero-btn-group {
               flex-direction: column;
             }
-            .hero-button1 {
+            .hero-button2 {
               margin-top: var(--dl-space-space-unit);
               margin-left: 0px;
             }
