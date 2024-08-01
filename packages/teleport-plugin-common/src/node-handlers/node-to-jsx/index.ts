@@ -557,14 +557,14 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   options
 ) => {
   const { reference, value } = node.content
-  const conditionIdentifier = createConditionIdentifier(reference, params, options)
-
   const subTrees = generateNode(node.content.node, params, options)
 
   const condition: UIDLConditionalExpression =
     value !== undefined && value !== null
       ? { conditions: [{ operand: value, operation: '===' }] }
       : node.content.condition
+
+  const conditionIdentifier = createConditionIdentifier(reference, params, options)
 
   return subTrees.map((subTree) =>
     createConditionalJSXExpression(subTree, condition, conditionIdentifier)

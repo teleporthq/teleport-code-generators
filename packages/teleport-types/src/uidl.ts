@@ -299,7 +299,7 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -474,7 +474,7 @@ export interface UIDLConditionalNode {
   type: 'conditional'
   content: {
     node: UIDLNode
-    reference: UIDLDynamicReference
+    reference: UIDLDynamicReference | UIDLExpressionValue
     importDefinitions?: Record<string, UIDLExternalDependency>
     value?: string | number | boolean
     condition?: UIDLConditionalExpression

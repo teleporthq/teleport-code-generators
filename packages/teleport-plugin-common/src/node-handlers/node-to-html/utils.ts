@@ -136,13 +136,20 @@ export const createConditionalStatement = (node: UIDLConditionalNode): string =>
   const { node: childNode, reference, value, condition } = node.content
 
   const expression = standardizeUIDLConditionalExpression(value, condition)
-  const statement = createConditional(reference.content.id, expression)
+  if (reference.type === 'dynamic') {
+    const statement = createConditional(reference.content.id, expression)
 
-  if (childNode.type === 'conditional') {
-    return `${statement} && ${createConditionalStatement(childNode)}`
+    if (childNode.type === 'conditional') {
+      return `${statement} && ${createConditionalStatement(childNode)}`
+    }
+
+    return statement
   }
 
-  return statement
+  // expression nodes are not supported in html based templates.
+  if (reference.type === 'expr') {
+    return ''
+  }
 }
 
 const standardizeUIDLConditionalExpression = (

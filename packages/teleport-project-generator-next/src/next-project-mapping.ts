@@ -101,9 +101,5 @@ export const NextProjectMapping: Mapping = {
         },
       },
     },
-    fragment: {
-      elementType: ' ',
-      semanticType: '',
-    },
   },
 }

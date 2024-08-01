@@ -20,7 +20,7 @@
   },
   "scripts": {
     "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
-    "standalone": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
+    "standalone": "cross-env TS_NODE_FILES=true ts-node --transpile-only --project tsconfig.json ./src/standalone.ts",
     "cms": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/cms.ts",
     "comp": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/component.ts",
     "bundle": "webpack --config webpack.config.js"
