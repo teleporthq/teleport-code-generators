@@ -77,9 +77,9 @@ describe('createNodesLookup', () => {
     createNodesLookup(component('component', node), lookup)
 
     expect(lookup.container.count).toBe(2)
-    expect(lookup.container.nextKey).toBe('0')
+    expect(lookup.container.nextKey).toBe('1')
     expect(lookup.text.count).toBe(3)
-    expect(lookup.container.nextKey).toBe('0')
+    expect(lookup.container.nextKey).toBe('1')
   })
 
   it('counts duplicate nodes considering camel case names as well', async () => {
@@ -88,7 +88,7 @@ describe('createNodesLookup', () => {
     createNodesLookup(component('component', node), lookup)
 
     expect(lookup['about-me'].count).toBe(2)
-    expect(lookup['about-me'].nextKey).toBe('0')
+    expect(lookup['about-me'].nextKey).toBe('1')
   })
 
   it('adds zero padding when counting keys', async () => {

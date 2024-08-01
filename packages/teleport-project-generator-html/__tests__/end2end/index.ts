@@ -98,10 +98,10 @@ describe('Unwinds the slot inside the component when used in page', () => {
     )
 
     expect(indexFile).toBeDefined()
-    expect(indexFile?.content).toContain(`app-component-image1`)
     expect(indexFile?.content).toContain(`app-component-image2`)
+    expect(indexFile?.content).toContain(`app-component-image3`)
     expect(cssFile).toBeDefined()
-    expect(cssFile?.content).toContain(`.app-component-image1`)
     expect(cssFile?.content).toContain(`.app-component-image2`)
+    expect(cssFile?.content).toContain(`.app-component-image3`)
   })
 })
