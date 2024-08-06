@@ -195,6 +195,13 @@ export const createConditionIdentifier = (
         type: params.stateDefinitions[referenceRoot].type,
         prefix: options.dynamicReferencePrefixMap.state,
       }
+
+    case 'expr':
+      return {
+        key: id,
+        type: 'boolean',
+      }
+
     default:
       throw new Error(
         `createConditionIdentifier encountered an invalid reference type: ${JSON.stringify(

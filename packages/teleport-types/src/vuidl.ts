@@ -52,6 +52,7 @@ import {
   UIDLLocalFontAsset,
   UIDLStyleValue,
   UIDLPropDefinition,
+  UIDLExternalDependency,
 } from './uidl'
 import { Modify, ModifyUnionNumber } from './helper'
 
@@ -137,6 +138,7 @@ export type VUIDLConditionalNode = Modify<
       node: VUIDLNode
       reference: UIDLDynamicReference | UIDLExpressionValue
       value?: string | number | boolean
+      importDefinitions?: Record<string, UIDLExternalDependency>
       condition?: UIDLConditionalExpression
     }
   }
