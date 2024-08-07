@@ -299,7 +299,7 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'

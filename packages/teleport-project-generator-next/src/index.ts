@@ -7,7 +7,10 @@ import { createReactComponentGenerator } from '@teleporthq/teleport-component-ge
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import { createStaticPropsPlugin } from '@teleporthq/teleport-plugin-next-static-props'
 import { createStaticPathsPlugin } from '@teleporthq/teleport-plugin-next-static-paths'
-import { createNextInlineFetchPlugin } from '@teleporthq/teleport-plugin-next-inline-fetch'
+import {
+  createNextPagesInlineFetchPlugin,
+  createNextComponentInlineFetchPlugin,
+} from '@teleporthq/teleport-plugin-next-inline-fetch'
 import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
@@ -27,14 +30,13 @@ const createNextProjectGenerator = () => {
 
   const getStaticPropsPlugin = createStaticPropsPlugin()
   const getStaticPathsPlugin = createStaticPathsPlugin()
-  const nextInlineFetchPlugin = createNextInlineFetchPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin, nextInlineFetchPlugin, nextInlineFetchPlugin],
+      plugins: [nextImagePlugin, createNextComponentInlineFetchPlugin()],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
@@ -46,7 +48,7 @@ const createNextProjectGenerator = () => {
         headConfigPlugin,
         getStaticPropsPlugin,
         getStaticPathsPlugin,
-        nextInlineFetchPlugin,
+        createNextPagesInlineFetchPlugin(),
       ],
       mappings: [NextProjectMapping],
       options: {
