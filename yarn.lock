@@ -2111,6 +2111,16 @@
     "@teleporthq/teleport-shared" "^0.32.3"
     "@teleporthq/teleport-types" "^0.32.3"
 
+"@teleporthq/teleport-project-plugin-inline-fetch@^0.34.0":
+  version "0.34.0"
+  resolved "https://registry.yarnpkg.com/@teleporthq/teleport-project-plugin-inline-fetch/-/teleport-project-plugin-inline-fetch-0.34.0.tgz#54afc06c2405024cb00e8a5fb49fb21362aafe56"
+  integrity sha512-se9qO8zubO5Aqo5GtVZXXZDQZlWnX8PEKGQ9Mc/BMJFtUYPZUOsDpVGckCyefyn5DtW4r7ryC9OBFRzvROmnXQ==
+  dependencies:
+    "@babel/types" "^7.5.5"
+    "@teleporthq/teleport-plugin-common" "^0.34.0"
+    "@teleporthq/teleport-shared" "^0.34.0"
+    "@teleporthq/teleport-types" "^0.34.0"
+
 "@teleporthq/teleport-shared@^0.32.10", "@teleporthq/teleport-shared@^0.32.3":
   version "0.32.10"
   resolved "https://registry.yarnpkg.com/@teleporthq/teleport-shared/-/teleport-shared-0.32.10.tgz#5876948ced9ccd993aef6f5d6503ac32ed9c10bf"

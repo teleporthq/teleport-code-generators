@@ -346,6 +346,7 @@ const generateComponentContent = async (
   const initialStructure: ComponentStructure = {
     uidl: {
       ...componentClone,
+      node: componentInstanceToGenerate,
       propDefinitions: propsForInstance,
       stateDefinitions: statesForInstance,
     },
