@@ -34,8 +34,6 @@
     "@teleporthq/teleport-project-generator-react": "^0.35.0",
     "@teleporthq/teleport-project-generator-vue": "^0.35.0",
     "@teleporthq/teleport-project-packer": "^0.35.0",
-    "@teleporthq/teleport-project-plugin-api-routes": "^0.32.3",
-    "@teleporthq/teleport-project-plugin-inline-fetch": "^0.34.0",
     "@teleporthq/teleport-publisher-codesandbox": "^0.35.0",
     "@teleporthq/teleport-publisher-disk": "^0.35.0",
     "@teleporthq/teleport-publisher-github": "^0.35.0",
