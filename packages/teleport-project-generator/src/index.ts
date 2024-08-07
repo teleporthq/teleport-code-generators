@@ -372,9 +372,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const path = this.strategy.pages.path.concat(relativePath)
 
       if ('addExternalComponents' in this.pageGenerator) {
-        ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+        this.pageGenerator.addExternalComponents({
           externals: components,
-          assets: options.assets,
+          options,
         })
       }
 
@@ -471,7 +471,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
-          assets: options.assets,
+          options: componentOptions,
         })
       }
 

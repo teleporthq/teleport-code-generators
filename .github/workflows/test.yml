@@ -21,9 +21,9 @@ jobs:
     - run: yarn run upload:coverage
       env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    - name: Building cms projects
+    - name: Building Projects
       working-directory: packages/teleport-test
-      run: yarn cms
+      run: yarn standalone
     - name: Building Wordpress Project
       env:
           CMS_URL: ${{ secrets.WORDPRESS_URL }}

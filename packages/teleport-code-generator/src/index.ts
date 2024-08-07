@@ -213,7 +213,10 @@ export const generateComponent: GenerateComponentFunction = async (
 
   if (componentType === ComponentType.HTML) {
     const { moduleComponents } = componentGeneratorOptions
-    ;(generator as HTMLComponentGenerator).addExternalComponents({ externals: moduleComponents })
+    ;(generator as HTMLComponentGenerator).addExternalComponents({
+      externals: moduleComponents,
+      options: {},
+    })
   }
 
   return generator.generateComponent(componentUIDL, componentGeneratorOptions)

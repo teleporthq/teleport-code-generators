@@ -1,4 +1,4 @@
-import { readFileSync, rmdirSync, mkdirSync } from 'fs'
+import { readFileSync, mkdirSync, accessSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -7,14 +7,19 @@ import {
   PackerOptions,
   ProjectType,
   PublisherType,
-  ReactStyleVariation,
+  ProjectPlugin,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
 import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css-modules'
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
-import projectJSON from '../../../examples/uidl-samples/project.json'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
+import projectJSON from '../../../examples/uidl-samples/project.json'
+import contentfulUIDL from '../../../examples/uidl-samples/contentful.json'
+import strapiUIDL from '../../../examples/uidl-samples/strapi.json'
+import wordpressUIDL from '../../../examples/uidl-samples/wordpress.json'
+import caisyUIDL from '../../../examples/uidl-samples/caisy.json'
+import flotiqUIDL from '../../../examples/uidl-samples/flotiq.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -63,144 +68,123 @@ const log = async (cb: () => Promise<string>) => {
   console.info(chalk.greenBright(`${framework} -  ${time.toFixed(2)}`))
 }
 
+const project = (params: {
+  projectType: ProjectType
+  projectSlug: string
+  plugins?: ProjectPlugin[]
+  options?: PackerOptions
+  uidl?: Record<string, unknown>
+}) =>
+  log(async () => {
+    const { projectType, projectSlug, plugins = [], options = packerOptions, uidl } = params
+    await packProject((uidl ?? projectUIDL) as ProjectUIDL, {
+      ...options,
+      projectType,
+      plugins,
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug,
+      },
+    })
+
+    return projectSlug
+  })
+
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmdirSync('dist', { recursive: true })
-      mkdirSync('dist')
+      try {
+        accessSync('dist')
+      } catch {
+        mkdirSync('dist')
+      }
     }
 
-    let result
-
-    /* Plain Html Generator */
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
+    await Promise.all([
+      project({
         projectType: ProjectType.HTML,
-        strictHtmlWhitespaceSensitivity: false,
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return ProjectType.HTML
-    })
-
-    /* Plain Html Generator with embed parser */
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
+        projectSlug: 'teleport-project-html',
+        plugins: [new ProjectPluginParseEmbed()],
+        options: {
+          ...packerOptions,
+          strictHtmlWhitespaceSensitivity: false,
+        },
+      }),
+      project({
         projectType: ProjectType.HTML,
+        projectSlug: `teleport-project-html-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-html-embeds`,
-        },
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return `${ProjectType.HTML} - Parse Embeds`
-    })
-
-    /* Styled JSX */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
+      project({
         projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-next-embeds`,
-        },
-      })
-      console.info(ProjectType.NEXT, '-', result.payload)
-      return `${ProjectType.NEXT} - Parse Embeds`
-    })
-
-    /* Frameworks using Css-Modules */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-embeds-with-css-modules`,
         plugins: [
           new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
           new ProjectPluginParseEmbed(),
         ],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-next-css-modules',
-        },
-      })
-      console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
-      return `Next - CSSModules`
-    })
-
-    /* Frameworks use CSS */
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.REACT,
+        projectSlug: 'teleport-project-react',
         plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.REACT, '-', result.payload)
-      return ProjectType.REACT
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.NUXT,
+        projectSlug: `teleport-project-nuxt-with-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.NUXT, '-', result.payload)
-      return ProjectType.NUXT
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.VUE,
+        projectSlug: `teleport-project-vue-with-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.VUE, '-', result.payload)
-      return ProjectType.VUE
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.ANGULAR,
+        projectSlug: `teleport-project-angular-with-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.ANGULAR, '-', result.payload)
-      return ProjectType.ANGULAR
-    })
-
-    /* React JSS */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-with-reactjss`,
         plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-next-react-jss',
-        },
-      })
-      console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
-      return `NEXT - React-JSS`
-    })
-
-    /* Styled Components */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
+      }),
+      project({
         projectType: ProjectType.REACT,
+        projectSlug: `teleport-project-react-with-styled-components`,
         plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-react-styled-components`,
-        },
-      })
-      return `React - StyledComponents`
-    })
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-contentful-cms',
+        uidl: contentfulUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-wordpress-cms',
+        uidl: wordpressUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-strapi-cms',
+        uidl: strapiUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-caisy-cms',
+        uidl: caisyUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-flotiq-cms',
+        uidl: flotiqUIDL,
+      }),
+    ])
   } catch (e) {
     console.info(e)
   }

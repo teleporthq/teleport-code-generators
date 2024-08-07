@@ -203,7 +203,7 @@ export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => Co
 export interface HTMLComponentGenerator extends ComponentGenerator {
   addExternalComponents: (params: {
     externals: Record<string, ComponentUIDL>
-    assets?: GeneratorOptions['assets']
+    options: GeneratorOptions
   }) => void
 }
 export type HTMLComponentGeneratorInstance = (

@@ -31,11 +31,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   })
 
   Object.defineProperty(generator, 'addExternalComponents', {
-    value: (params: {
-      externals: Record<string, ComponentUIDL>
-      assets?: GeneratorOptions['assets']
-    }) => {
-      const { externals = {}, assets = {} } = params
+    value: (params: { externals: Record<string, ComponentUIDL>; options: GeneratorOptions }) => {
+      const { externals = {}, options } = params
       const componentUIDLs: Record<string, ComponentUIDL> = {}
 
       for (const uidlKey of Object.keys(externals)) {
@@ -44,7 +41,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
           externals[uidlKey] as unknown as Record<string, unknown>
         )
 
-        const resolvedUIDL = resolver.resolveUIDL(componentUIDL, { assets })
+        const resolvedUIDL = resolver.resolveUIDL(componentUIDL, options)
         componentUIDLs[
           StringUtils.dashCaseToUpperCamelCase(resolvedUIDL.outputOptions.componentClassName)
         ] = resolvedUIDL
