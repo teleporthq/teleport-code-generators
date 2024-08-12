@@ -235,6 +235,7 @@ const generateComponentContent = async (
 
   const componentClone = UIDLUtils.cloneObject(component) as ComponentUIDL
   let compHasSlots: boolean = false
+  const templateLookup: Record<string, HastNode | HastText> = {}
 
   if (children.length) {
     compHasSlots = true
@@ -327,7 +328,7 @@ const generateComponentContent = async (
 
   const compTag = await generateHtmlSyntax(
     componentInstanceToGenerate,
-    nodesLookup,
+    templateLookup,
     propsForInstance,
     statesForInstance,
     subComponentOptions,
@@ -358,7 +359,7 @@ const generateComponentContent = async (
         linkAfter: [],
         content: compTag,
         meta: {
-          nodesLookup,
+          nodesLookup: templateLookup,
         },
       },
     ],
