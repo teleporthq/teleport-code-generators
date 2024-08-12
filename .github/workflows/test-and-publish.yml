@@ -1,4 +1,4 @@
-name: CI for PR
+name: CI for PR and Publish
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
       - '**'
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v2
       with:
         node-version: "20.x"
+
     - run: yarn
     - run: yarn run lint
     - run: yarn run build
@@ -63,3 +64,22 @@ jobs:
       run: |
         yarn
         yarn build
+
+    - name: Authenticate with Registry
+      if: github.ref == 'refs/heads/development'
+      run: |
+        yarn logout
+        echo "@teleporthq:registry=https://registry.npmjs.org/" > .npmrc
+        echo "registry=https://registry.npmjs.org/" >> .npmrc
+        echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
+        npm whoami
+      env:
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      working-directory: .
+
+    - name: Publish to npm
+      if: github.ref == 'refs/heads/development'
+      run: yarn run publish --yes
+      env:
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      working-directory: .
