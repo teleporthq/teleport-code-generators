@@ -27,8 +27,8 @@ describe('Passes the rootClass which using the component', () => {
     )
 
     expect(mainFile).toBeDefined()
-    expect(mainFile?.content).toContain(`place-card-root-class-name`)
-    expect(styleFile?.content).toContain(`place-card-root-class-name`)
+    expect(mainFile?.content).toContain(`root-class-name`)
+    expect(styleFile?.content).toContain(`root-class-name`)
   })
 })
 
@@ -54,22 +54,22 @@ describe('Image Resolution', () => {
     expect(mainCSS).toBeDefined()
     expect(indexFile?.content).toContain(`href="public/playground_assets/kitten.png"`)
     expect(indexFile?.content).toContain(`src="public/playground_assets/kitten.png"`)
-    expect(mainCSS?.content).toContain(`.comp-with-image-prop-comp-with-image-bg-in-css {
+    expect(mainCSS?.content).toContain(`.comp-with-image-propcomp-with-image-bg-in-css {
   width: 100%;
   height: 200px;
   background-image: url("public/playground_assets/kitten.png");
 }`)
     expect(mainCSS?.content).toContain(`@media(max-width: 991px) {
-  .comp-with-image-prop-div {
+  .comp-with-image-propdiv {
     width: 100%;
     height: 200px;
     background-image: url("public/playground_assets/kitten.png");
   }
 }`)
-    expect(mainCSS?.content).toContain(`.comp-with-image-prop-bg-image-c {
+    expect(mainCSS?.content).toContain(`.bg-image-c {
   background-image: url("public/playground_assets/kitten.png");
 }`)
-    expect(mainCSS?.content).toContain(`.home-div {
+    expect(mainCSS?.content).toContain(`.homediv {
   width: 100%;
   height: 200px;
   background-image: url("public/playground_assets/kitten.png");

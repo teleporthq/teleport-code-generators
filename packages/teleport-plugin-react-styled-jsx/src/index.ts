@@ -54,29 +54,20 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
-      const {
-        style = {},
-        key,
-        referencedStyles = {},
-        attrs = {},
-        dependency,
-        elementType,
-      } = element
+      const { style = {}, key, referencedStyles = {}, attrs = {}, dependency } = element
 
       if (key === undefined) {
         throw new Error(`Key is missing for element \n ${JSON.stringify(element, null, 2)}`)
       }
 
-      const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const className = getClassName(forceScoping, uidl.name, elementClassName)
+      const className = StringUtils.camelCaseToDashCase(key)
 
       if (forceScoping && dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
           key,
           jsxNodesLookup,
           attrs,
-          getClassName: (str: string) =>
-            getClassName(forceScoping, StringUtils.camelCaseToDashCase(elementType), str),
+          getClassName: (str: string) => StringUtils.camelCaseToDashCase(str),
         })
       }
 
@@ -143,11 +134,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                 return
               }
 
-              propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
-                forceScoping,
-                uidl.name,
-                String(defaultPropValue)
-              )
+              propDefinitions[styleRef.content.content.content.id].defaultValue =
+                StringUtils.camelCaseToDashCase(String(defaultPropValue))
             }
 
             if (
@@ -155,7 +143,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               styleRef.content.content.content.referenceType === 'comp'
             ) {
               classNamesToAppend.add(
-                getClassName(forceScoping, uidl.name, styleRef.content.content.content.id)
+                StringUtils.camelCaseToDashCase(styleRef.content.content.content.id)
               )
             }
 
@@ -205,7 +193,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         componentStyleSheet,
         classMap,
         mediaStylesMap,
-        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
+        (styleName: string) => StringUtils.camelCaseToDashCase(styleName)
       )
     }
 
@@ -250,11 +238,3 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 }
 
 export default createReactStyledJSXPlugin()
-
-const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
-  return scoping
-    ? StringUtils.camelCaseToDashCase(
-        `${uidlName === 'Component' ? 'AppComponent' : uidlName}-${nodeStyleName}`
-      )
-    : StringUtils.camelCaseToDashCase(nodeStyleName)
-}

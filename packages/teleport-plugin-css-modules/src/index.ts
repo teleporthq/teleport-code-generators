@@ -118,7 +118,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           attrs,
           key,
           jsxNodesLookup: astNodesLookup,
-          getClassName: (styleName: string) => StringUtils.camelCaseToDashCase(styleName),
+          getClassName,
         })
       }
 

@@ -15,7 +15,7 @@ const Home = (props) => {
   useEffect(() => import('@lottiefiles/lottie-player'), [])
   return (
     <>
-      <div className=\\"home-container1\\">
+      <div className=\\"homecontainer1\\">
         <Head>
           <title>New Project3</title>
           <meta property=\\"og:title\\" content=\\"New Project3\\" />
@@ -23,14 +23,14 @@ const Home = (props) => {
         <lottie-player
           src=\\"https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json\\"
           autoplay
-          className=\\"home-lottie-node\\"
+          className=\\"homelottie-node\\"
         ></lottie-player>
         <Header></Header>
         <Hero
           namedSlot={
-            <div className=\\"home-container2\\">
+            <div className=\\"homecontainer2\\">
               This is amazing, because this is a named-slot
-              <div className=\\"home-container3\\">
+              <div className=\\"homecontainer3\\">
                 And can be nested any number of levels
               </div>
             </div>
@@ -40,7 +40,7 @@ const Home = (props) => {
       </div>
       <style jsx>
         {\`
-          .home-container1 {
+          .homecontainer1 {
             width: 100%;
             display: flex;
             overflow: auto;
@@ -49,22 +49,22 @@ const Home = (props) => {
             flex-direction: column;
             justify-content: flex-start;
           }
-          .home-lottie-node {
+          .homelottie-node {
             width: 200px;
             height: 200px;
           }
-          .home-container2 {
+          .homecontainer2 {
             padding: 20px;
             font-size: 24px;
             background-color: var(--dl-color-success-700);
           }
-          .home-container3 {
+          .homecontainer3 {
             padding: 20px;
             margin-top: 20px;
             background-color: var(--dl-color-danger-700);
           }
           @media (max-width: 479px) {
-            .home-container1 {
+            .homecontainer1 {
               color: blue;
             }
           }
@@ -93,15 +93,15 @@ const Hero = (props) => {
   return (
     <>
       <div className=\\"hero-hero\\">
-        <div className=\\"hero-container1\\">
-          <div className=\\"hero-container2\\">
+        <div className=\\"herocontainer1\\">
+          <div className=\\"herocontainer2\\">
             {props.namedSlot ?? (
-              <div className=\\"hero-container3\\">
+              <div className=\\"herocontainer3\\">
                 This is a default value for named-slot
               </div>
             )}
           </div>
-          <span className=\\"hero-text1\\">
+          <span className=\\"herotext1\\">
             <span>
               <span>
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non
@@ -139,15 +139,15 @@ const Hero = (props) => {
             </span>
           </span>
           <div className=\\"hero-btn-group\\">
-            <button className=\\"hero-button1 button primary-button\\">
+            <button className=\\"herobutton1 button primary-button\\">
               {props.button}
             </button>
-            <button className=\\"hero-button2 button secondary-button\\">
+            <button className=\\"herobutton2 button secondary-button\\">
               {props.button1}
             </button>
           </div>
         </div>
-        <img alt={props.imageAlt} src={props.imageSrc} className=\\"hero-image\\" />
+        <img alt={props.imageAlt} src={props.imageSrc} className=\\"heroimage\\" />
       </div>
       <style jsx>
         {\`
@@ -161,18 +161,18 @@ const Hero = (props) => {
             flex-direction: row;
             justify-content: space-between;
           }
-          .hero-container1 {
+          .herocontainer1 {
             display: flex;
             margin-right: var(--dl-space-space-threeunits);
             padding-right: var(--dl-space-space-threeunits);
             flex-direction: column;
           }
-          .hero-container2 {
+          .herocontainer2 {
             font-size: 3rem;
             max-width: 450px;
             font-family: Super Funky;
           }
-          .hero-text1 {
+          .herotext1 {
             margin-top: var(--dl-space-space-twounits);
             margin-bottom: var(--dl-space-space-twounits);
           }
@@ -181,18 +181,18 @@ const Hero = (props) => {
             align-items: center;
             flex-direction: row;
           }
-          .hero-button1 {
+          .herobutton1 {
             transition: 0.3s;
             padding-top: var(--dl-space-space-unit);
             padding-left: var(--dl-space-space-twounits);
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-button1:hover {
+          .herobutton1:hover {
             color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-white);
           }
-          .hero-button2 {
+          .herobutton2 {
             transition: 0.3s;
             margin-left: var(--dl-space-space-unit);
             padding-top: var(--dl-space-space-unit);
@@ -200,16 +200,16 @@ const Hero = (props) => {
             padding-right: var(--dl-space-space-twounits);
             padding-bottom: var(--dl-space-space-unit);
           }
-          .hero-button2:hover {
+          .herobutton2:hover {
             color: var(--dl-color-gray-white);
             border-color: var(--dl-color-gray-black);
             background-color: var(--dl-color-gray-black);
           }
-          .hero-image {
+          .heroimage {
             width: 400px;
             object-fit: cover;
           }
-          .hero-container3 {
+          .herocontainer3 {
             padding: 20px;
             background-color: #f0f0f0;
           }
@@ -217,16 +217,16 @@ const Hero = (props) => {
             .hero-hero {
               flex-direction: column;
             }
-            .hero-container1 {
+            .herocontainer1 {
               align-items: center;
               margin-right: 0px;
               margin-bottom: var(--dl-space-space-twounits);
               padding-right: 0px;
             }
-            .hero-container2 {
+            .herocontainer2 {
               text-align: center;
             }
-            .hero-text1 {
+            .herotext1 {
               text-align: center;
               padding-left: var(--dl-space-space-threeunits);
               padding-right: var(--dl-space-space-threeunits);
@@ -237,11 +237,11 @@ const Hero = (props) => {
               padding-left: var(--dl-space-space-twounits);
               padding-right: var(--dl-space-space-twounits);
             }
-            .hero-text1 {
+            .herotext1 {
               padding-left: var(--dl-space-space-unit);
               padding-right: var(--dl-space-space-unit);
             }
-            .hero-image {
+            .heroimage {
               width: 80%;
             }
           }
@@ -252,13 +252,13 @@ const Hero = (props) => {
               padding-right: var(--dl-space-space-unit);
               padding-bottom: var(--dl-space-space-twounits);
             }
-            .hero-container1 {
+            .herocontainer1 {
               margin-bottom: var(--dl-space-space-unit);
             }
             .hero-btn-group {
               flex-direction: column;
             }
-            .hero-button2 {
+            .herobutton2 {
               margin-top: var(--dl-space-space-unit);
               margin-left: 0px;
             }

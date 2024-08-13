@@ -34,7 +34,7 @@ describe('generateUniqueKeys', () => {
     const simpleNode = elementNode('container')
 
     const lookup = {
-      container: {
+      'component-container': {
         count: 1,
         nextKey: '0',
       },
@@ -43,14 +43,14 @@ describe('generateUniqueKeys', () => {
     generateUniqueKeys(component('component', simpleNode), lookup)
 
     expect(simpleNode.content.name).toBe('container')
-    expect(simpleNode.content.key).toBe('container')
+    expect(simpleNode.content.key).toBe('component-container')
   })
 
   it('adds name and generate unique key', async () => {
     const node = elementNode('container', {}, [elementNode('container')])
 
     const lookup = {
-      container: {
+      'component-container': {
         count: 2,
         nextKey: '0',
       },
@@ -59,11 +59,11 @@ describe('generateUniqueKeys', () => {
     generateUniqueKeys(component('component', node), lookup)
 
     expect(node.content.name).toBe('container')
-    expect(node.content.key).toBe('container')
+    expect(node.content.key).toBe('component-container')
 
-    const childNode = node.content.children[0].content as UIDLElement
+    const childNode = node.content.children?.[0].content as UIDLElement
     expect(childNode.name).toBe('container')
-    expect(childNode.key).toBe('container1')
+    expect(childNode.key).toBe('component-container1')
   })
 })
 
@@ -76,10 +76,10 @@ describe('createNodesLookup', () => {
     const lookup: Record<string, { count: number; nextKey: string }> = {}
     createNodesLookup(component('component', node), lookup)
 
-    expect(lookup.container.count).toBe(2)
-    expect(lookup.container.nextKey).toBe('1')
-    expect(lookup.text.count).toBe(3)
-    expect(lookup.container.nextKey).toBe('1')
+    expect(lookup['component-container'].count).toBe(2)
+    expect(lookup['component-container'].nextKey).toBe('1')
+    expect(lookup['component-text'].count).toBe(3)
+    expect(lookup['component-container'].nextKey).toBe('1')
   })
 
   it('counts duplicate nodes considering camel case names as well', async () => {
@@ -87,23 +87,23 @@ describe('createNodesLookup', () => {
     const lookup: Record<string, { count: number; nextKey: string }> = {}
     createNodesLookup(component('component', node), lookup)
 
-    expect(lookup['about-me'].count).toBe(2)
-    expect(lookup['about-me'].nextKey).toBe('1')
+    expect(lookup['component-about-me'].count).toBe(2)
+    expect(lookup['component-about-me'].nextKey).toBe('1')
   })
 
   it('adds zero padding when counting keys', async () => {
     const node = elementNode('container')
 
     const lookup: Record<string, { count: number; nextKey: string }> = {
-      container: {
+      'component-container': {
         count: 9,
         nextKey: '0',
       },
     }
     createNodesLookup(component('component', node), lookup)
 
-    expect(lookup.container.count).toBe(10)
-    expect(lookup.container.nextKey).toBe('00')
+    expect(lookup['component-container'].count).toBe(10)
+    expect(lookup['component-container'].nextKey).toBe('00')
   })
 })
 

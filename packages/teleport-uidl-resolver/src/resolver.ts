@@ -62,12 +62,11 @@ export default class Resolver {
 
     resolveReferencedStyle(uidl, newOptions)
     resolveHtmlNode(uidl, newOptions)
-    // TODO: Rename into apply mappings
+
     utils.resolveNode(uidl.node, newOptions)
     utils.resolveNodeInPropDefinitions(uidl, newOptions)
 
     utils.createNodesLookup(uidl, nodesLookup)
-    utils.createCMSNodesLookup(uidl.node, nodesLookup)
     utils.generateUniqueKeys(uidl, nodesLookup)
 
     utils.ensureDataSourceUniqueness(uidl.node)

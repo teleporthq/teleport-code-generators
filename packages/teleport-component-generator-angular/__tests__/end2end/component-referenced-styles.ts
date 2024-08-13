@@ -40,11 +40,11 @@ describe('Generates media, pseudo and normal styles', () => {
     const htmlFile = findFileByType(files, FileType.HTML)
 
     expect(files.length).toBe(3)
-    expect(cssFile.content).toContain(`width: 100px`)
-    expect(cssFile.content).toContain(`@media(max-width: 991px)`)
-    expect(cssFile.content).toContain(`display: none`)
-    expect(htmlFile.content).toContain(`class="my-component-container"`)
-    expect(tsFile.content).toContain(`my-component.css`)
+    expect(cssFile?.content).toContain(`width: 100px`)
+    expect(cssFile?.content).toContain(`@media(max-width: 991px)`)
+    expect(cssFile?.content).toContain(`display: none`)
+    expect(htmlFile?.content).toContain(`class="my-componentcontainer"`)
+    expect(tsFile?.content).toContain(`my-component.css`)
   })
 })
 
@@ -75,11 +75,11 @@ describe('Add referenced styles even when direct styles are not present on node'
     const htmlFile = findFileByType(files, FileType.HTML)
 
     expect(files.length).toBe(3)
-    expect(cssFile.content).not.toContain(`width: 100px`)
-    expect(cssFile.content).toContain(`@media(max-width: 991px)`)
-    expect(cssFile.content).toContain(`display: none`)
-    expect(htmlFile.content).toContain(`class="my-component-container"`)
-    expect(tsFile.content).toContain(`my-component.css`)
+    expect(cssFile?.content).not.toContain(`width: 100px`)
+    expect(cssFile?.content).toContain(`@media(max-width: 991px)`)
+    expect(cssFile?.content).toContain(`display: none`)
+    expect(htmlFile?.content).toContain(`class="my-componentcontainer"`)
+    expect(tsFile?.content).toContain(`my-component.css`)
   })
 })
 
@@ -93,10 +93,7 @@ describe('Throws Error when a node is using project-styles but not present in UI
       },
     },
   }
-  const uidl = component(
-    'MyComponent',
-    elementNode('container', null, [], null, null, null, styles)
-  )
+  const uidl = component('MyComponent', elementNode('container', {}, [], null, null, null, styles))
 
   it('CSS', async () => {
     const generator = createAngularComponentGenerator()
@@ -116,7 +113,7 @@ describe('Referes from project style and adds it to the node, without any styles
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [staticNode('Hello')], null, null, null, styles)
+    elementNode('container', {}, [staticNode('Hello')], null, null, null, styles)
   )
   const options: GeneratorOptions = {
     projectStyleSet: {
@@ -142,8 +139,8 @@ describe('Referes from project style and adds it to the node, without any styles
 
     expect(files.length).toBe(2)
     expect(cssFile).not.toBeDefined()
-    expect(htmlFile.content).toContain(`class="primaryButton"`)
-    expect(tsFile.content).not.toContain(`my-component.css`)
-    expect(tsFile.content).not.toContain(`import '../style.css`)
+    expect(htmlFile?.content).toContain(`class="primaryButton"`)
+    expect(tsFile?.content).not.toContain(`my-component.css`)
+    expect(tsFile?.content).not.toContain(`import '../style.css`)
   })
 })

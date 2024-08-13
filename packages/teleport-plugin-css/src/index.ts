@@ -99,7 +99,6 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         attrs = {},
         elementType,
       } = element
-      const elementClassName = StringUtils.camelCaseToDashCase(key)
 
       if (forceScoping && dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
@@ -107,8 +106,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
           key,
           jsxNodesLookup: templateLookup,
           templateStyle,
-          getClassName: (styleName: string) =>
-            getClassName(forceScoping, StringUtils.camelCaseToDashCase(elementType), styleName),
+          getClassName: StringUtils.camelCaseToDashCase,
         })
       }
 
@@ -131,7 +129,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         )
       }
 
-      const className = getClassName(forceScoping, uidl.name, elementClassName)
+      const className = StringUtils.camelCaseToDashCase(key)
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)
@@ -216,11 +214,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               if (defaultPropValue) {
                 /* Changing the default value of the prop.
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
-                propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
-                  forceScoping,
-                  uidl.name,
-                  String(defaultPropValue)
-                )
+                propDefinitions[styleRef.content.content.content.id].defaultValue =
+                  StringUtils.camelCaseToDashCase(String(defaultPropValue))
               }
 
               if (staticPropReferences) {
@@ -228,9 +223,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   return
                 }
                 if (staticPropReferences) {
-                  classNamesToAppend.add(
-                    getClassName(forceScoping, uidl.name, String(defaultPropValue))
-                  )
+                  classNamesToAppend.add(StringUtils.camelCaseToDashCase(String(defaultPropValue)))
                 }
               } else {
                 dynamicVariantsToAppend.add(styleRef.content.content.content.id)
@@ -247,7 +240,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 )
               }
               classNamesToAppend.add(
-                getClassName(forceScoping, uidl.name, String(styleRef.content.content.content.id))
+                StringUtils.camelCaseToDashCase(styleRef.content.content.content.id)
               )
             }
 
@@ -325,7 +318,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
+        (styleName: string) => StringUtils.camelCaseToDashCase(styleName)
       )
     }
 
@@ -387,12 +380,4 @@ const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
       return `${styleKey}: ${(styles[styleKey] as UIDLDynamicReference).content.id}`
     })
     .join(', ')
-}
-
-const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
-  return scoping
-    ? StringUtils.camelCaseToDashCase(
-        `${uidlName === 'Component' ? 'AppComponent' : uidlName}-${nodeStyleName}`
-      )
-    : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

@@ -20,6 +20,13 @@ import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
+const createLookupKey = (compName: string, elementName: string) =>
+  StringUtils.camelCaseToDashCase(
+    `${StringUtils.removeIllegalCharacters(compName)}-${StringUtils.removeIllegalCharacters(
+      elementName
+    )}`
+  )
+
 export const mergeMappings = (
   oldMapping: Mapping,
   newMapping?: Mapping,
@@ -277,17 +284,18 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
   }
 }
 
-const generateKeysForElement = (element: UIDLElement, lookup: ElementsLookup) => {
+const generateKeysForElement = (compName: string, element: UIDLElement, lookup: ElementsLookup) => {
   // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
   // NextKey will be appended to the node name to ensure uniqueness inside the component
   // Element name is stored as a lower case string in the lookup, considering camel case
-  const nodeOcurrence = lookup[StringUtils.camelCaseToDashCase(element.name)]
+  const name = createLookupKey(compName, element.name)
+  const nodeOcurrence = lookup[name]
   if (nodeOcurrence.count === 1) {
     // If the name ocurrence is unique we use it as it is
-    element.key = element.name
+    element.key = name
   } else {
     const currentKey = nodeOcurrence.nextKey
-    element.key = generateKey(element.name, currentKey)
+    element.key = generateKey(name, currentKey)
     nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
   }
 }
@@ -304,27 +312,20 @@ export const generateUniqueKeys = (uidl: ComponentUIDL, lookup: ElementsLookup) 
     if (
       child.type !== 'cms-item' &&
       child.type !== 'cms-list' &&
-      child.type !== 'cms-list-repeater'
+      child.type !== 'cms-list-repeater' &&
+      child.type !== 'element'
     ) {
       return
     }
 
-    const nodeOcurrence = lookup[child.content.name]
-    if (nodeOcurrence.count === 1) {
-      child.content.key = child.content.name
-    } else {
-      const currentKey = nodeOcurrence.nextKey
-      child.content.key = generateKey(child.content.name, currentKey)
-      nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
-    }
+    generateKeysForElement(uidl.name, child.content, lookup)
   })
-
-  UIDLUtils.traverseElements(node, (element) => generateKeysForElement(element, lookup))
 
   for (const prop of Object.values(propDefinitions)) {
     if (prop.type === 'element' && prop.defaultValue) {
-      const slotNode = prop.defaultValue as UIDLElementNode
-      UIDLUtils.traverseElements(slotNode, (element) => generateKeysForElement(element, lookup))
+      UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
+        generateKeysForElement(uidl.name, element, lookup)
+      )
     }
   }
 }
@@ -344,9 +345,38 @@ const generateNextIncrementalKey = (currentKey: string): string => {
   return returnValue
 }
 
-const createNodesLookupForElement = (element: UIDLElement, lookup: ElementsLookup) => {
+export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) => {
+  const { node, propDefinitions = {} } = uidl
+
+  UIDLUtils.traverseNodes(node, (child) => {
+    if (
+      child.type !== 'cms-item' &&
+      child.type !== 'cms-list' &&
+      child.type !== 'cms-list-repeater' &&
+      child.type !== 'element'
+    ) {
+      return
+    }
+
+    createNodesLookupForElement(uidl.name, child.content, lookup)
+  })
+
+  for (const prop of Object.values(propDefinitions)) {
+    if (prop.type === 'element' && prop.defaultValue) {
+      UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
+        createNodesLookupForElement(uidl.name, element, lookup)
+      )
+    }
+  }
+}
+
+const createNodesLookupForElement = (
+  compName: string,
+  element: UIDLElement,
+  lookup: ElementsLookup
+) => {
   // Element name is stored as a lower case string in the lookup, considering camel case
-  const elementName = StringUtils.camelCaseToDashCase(element.name)
+  const elementName = createLookupKey(compName, element.name)
   if (!lookup[elementName]) {
     lookup[elementName] = {
       count: 1,
@@ -361,50 +391,6 @@ const createNodesLookupForElement = (element: UIDLElement, lookup: ElementsLooku
     // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
     // nextKey will start either from: '0', '00', '000', etc.
     lookup[elementName].nextKey = lookup[elementName].nextKey + '0'
-  }
-}
-
-export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) => {
-  const { node, propDefinitions = {} } = uidl
-  UIDLUtils.traverseElements(node, (element) => createNodesLookupForElement(element, lookup))
-
-  for (const prop of Object.values(propDefinitions)) {
-    if (prop.type === 'element' && prop.defaultValue) {
-      UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
-        createNodesLookupForElement(element, lookup)
-      )
-    }
-  }
-}
-
-export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
-  UIDLUtils.traverseNodes(node, (child) => {
-    if (
-      child.type !== 'cms-item' &&
-      child.type !== 'cms-list' &&
-      child.type !== 'cms-list-repeater'
-    ) {
-      return
-    }
-    const nodeName = child.content.name
-    nodeAndElementLookup(nodeName, lookup)
-  })
-}
-
-const nodeAndElementLookup = (elementName: string, lookup: ElementsLookup) => {
-  if (!lookup[elementName]) {
-    lookup[elementName] = {
-      count: 0,
-      nextKey: '0',
-    }
-  }
-
-  lookup[elementName].count++
-  const newCount = lookup[elementName].count
-  if (newCount > 9 && isPowerOfTen(newCount)) {
-    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
-    // nextKey will start either from: '0', '00', '000', etc.
-    lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
   }
 }
 

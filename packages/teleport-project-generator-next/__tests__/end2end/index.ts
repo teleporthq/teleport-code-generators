@@ -21,15 +21,14 @@ describe('React Next Project Generator', () => {
     const assetsPath = generator.getAssetsPath()
 
     const publicFolder = outputFolder.subFolders.find((folder) => folder.name === 'pages')
-    const appFile = publicFolder.files.find((file) => file.name === '_app')
+    const appFile = publicFolder?.files.find((file) => file.name === '_app')
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
-    expect(appFile.content).toContain(`import "antd/dist/antd.css`)
-
-    expect(appFile.content).not.toContain(`import './style.css'`)
+    expect(appFile?.content).toContain(`import "antd/dist/antd.css`)
+    expect(appFile?.content).not.toContain(`import './style.css'`)
   })
 
   it('runs without crashing and adding style sheet to _app.js file', async () => {
@@ -37,14 +36,14 @@ describe('React Next Project Generator', () => {
     const assetsPath = generator.getAssetsPath()
 
     const publicFolder = outputFolder.subFolders.find((folder) => folder.name === 'pages')
-    const appFile = publicFolder.files.find((file) => file.name === '_app')
+    const appFile = publicFolder?.files.find((file) => file.name === '_app')
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
-    expect(appFile.content).not.toContain(`import "antd/dist/antd.css`)
-    expect(appFile.content).toContain(`import "./style.css"`)
+    expect(appFile?.content).not.toContain(`import "antd/dist/antd.css`)
+    expect(appFile?.content).toContain(`import "./style.css"`)
   })
 
   it('runs without crashing and adding external dependencies', async () => {
@@ -76,17 +75,17 @@ describe('React Next Project Generator', () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
 
     const pagesFolder = result.subFolders.find((folder) => folder.name === 'pages')
-    const styleSheet = pagesFolder.files.find(
+    const styleSheet = pagesFolder?.files.find(
       (file) => file.name === 'style' && file.fileType === FileType.CSS
     )
-    const appFile = pagesFolder.files.find(
+    const appFile = pagesFolder?.files.find(
       (file) => file.name === '_app' && file.fileType === FileType.JS
     )
 
     expect(styleSheet).toBeDefined()
-    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+    expect(styleSheet?.content).toContain(`--greys-500: #595959`)
     expect(appFile).toBeDefined()
-    expect(appFile.content).toContain(`import "./style.css"`)
+    expect(appFile?.content).toContain(`import "./style.css"`)
   })
 
   it('creates a default route if a page is marked as fallback', async () => {

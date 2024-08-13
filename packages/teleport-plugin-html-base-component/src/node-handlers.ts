@@ -98,6 +98,9 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
       return dynamicNode
 
+    case 'conditional':
+      return HASTBuilders.createComment('Conditional node not supported yet')
+
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -233,7 +236,7 @@ const generateComponentContent = async (
     throw new HTMLComponentGeneratorError(`${compName} is missing from externals object`)
   }
 
-  const componentClone = UIDLUtils.cloneObject(component) as ComponentUIDL
+  const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
   let compHasSlots: boolean = false
   const templateLookup: Record<string, HastNode | HastText> = {}
 

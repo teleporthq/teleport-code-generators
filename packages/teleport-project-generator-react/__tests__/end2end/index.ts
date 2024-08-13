@@ -27,10 +27,10 @@ describe('Passes the rootClass which using the component', () => {
       (file) => file.name === 'place-card' && file.fileType === FileType.CSS
     )
 
-    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name\"`)
-    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name1\"`)
-    expect(styleFile.content).toContain(`.place-card-root-class-name {`)
-    expect(styleFile.content).toContain(`.place-card-root-class-name1 {`)
+    expect(mainFile.content).toContain(`rootClassName=\"root-class-name\"`)
+    expect(mainFile.content).toContain(`rootClassName=\"root-class-name1\"`)
+    expect(styleFile.content).toContain(`.root-class-name {`)
+    expect(styleFile.content).toContain(`.root-class-name1 {`)
   })
 })
 
@@ -120,7 +120,7 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
     expect(viewsFolder.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
-    expect(viewsFolder.files[0].content).toContain(`<div className="home-container2">`)
+    expect(viewsFolder.files[0].content).toContain(`<div className="homecontainer2">`)
     expect(viewsFolder.files[0].content).toContain(`<Script`)
     expect(viewsFolder.files[0].content).toContain("html={`<blockquote class='twitter-tweet'")
     /* Imports that are just need to be inserted are added to router file by default */
