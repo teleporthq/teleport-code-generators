@@ -16,7 +16,6 @@ import {
 
 const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 const stylePlugin = createCSSPlugin({
-  forceScoping: true,
   inlineStyleAttributeKey: '[ngStyle]',
   declareDependency: 'decorator',
   dynamicVariantPrefix: '[ngClass]',

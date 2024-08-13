@@ -13,7 +13,6 @@ import * as types from '@babel/types'
 
 interface StyledJSXConfig {
   componentChunkName: string
-  forceScoping: boolean
 }
 
 const transformStyle = (style: Record<string, UIDLStyleValue>, propsPrefix: string) =>
@@ -32,7 +31,7 @@ const transformStyle = (style: Record<string, UIDLStyleValue>, propsPrefix: stri
   })
 
 export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
-  const { componentChunkName = 'jsx-component', forceScoping = false } = config || {}
+  const { componentChunkName = 'jsx-component' } = config || {}
 
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
@@ -62,7 +61,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
       const className = StringUtils.camelCaseToDashCase(key)
 
-      if (forceScoping && dependency?.type === 'local') {
+      if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
           key,
           jsxNodesLookup,

@@ -184,7 +184,6 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
       const refStyle = referencedStyles[styleRef]
       if (refStyle.content.mapType === 'inlined') {
         handleStyles(node, refStyle.content.styles, propDefinitions, stateDefinitions)
-        return
       }
     })
   }
@@ -268,25 +267,26 @@ const generateComponentContent = async (
     node.content.children = []
   }
 
-  const combinedProps = { ...propDefinitions, ...(componentClone?.propDefinitions || {}) }
-  const propsForInstance: Record<string, UIDLPropDefinition> = {}
-
-  for (const propKey of Object.keys(combinedProps)) {
-    // If the attribute is a named-slot, then we can directly pass the value instead of just the content
-    if (attrs[propKey]?.type === 'element') {
-      propsForInstance[propKey] = {
-        ...combinedProps[propKey],
-        defaultValue: attrs[propKey],
-      }
-    } else if (attrs[propKey]) {
-      propsForInstance[propKey] = {
-        ...combinedProps[propKey],
-        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
-      }
-    } else {
-      propsForInstance[propKey] = combinedProps[propKey]
-    }
+  // We are combining props of the current component
+  // with props of the component that we need to generate.
+  // Refer to line 309, for element props. We either pick from the attr of the current instance of component
+  // or from the propDefinitions of the component that we are generating.
+  // We don't need to keep passing the props of the current component to the child component and so on
+  // for the case of element nodes in attributes or propDefinitions.
+  const combinedProps: Record<string, UIDLPropDefinition> = {
+    ...Object.keys(propDefinitions).reduce<Record<string, UIDLPropDefinition>>(
+      (acc: Record<string, UIDLPropDefinition>, propKey) => {
+        if (propDefinitions[propKey]?.type === 'element') {
+          return acc
+        }
+        acc[propKey] = propDefinitions[propKey]
+        return acc
+      },
+      {}
+    ),
+    ...(componentClone?.propDefinitions || {}),
   }
+  const propsForInstance: Record<string, UIDLPropDefinition> = {}
 
   const combinedStates = { ...stateDefinitions, ...(componentClone?.stateDefinitions || {}) }
   const statesForInstance = Object.keys(combinedStates).reduce(
@@ -304,6 +304,40 @@ const generateComponentContent = async (
     },
     {}
   )
+
+  for (const propKey of Object.keys(combinedProps)) {
+    // If the attribute is a named-slot, then we can directly pass the value instead of just the content
+    if (attrs[propKey]?.type === 'element') {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attrs[propKey],
+      }
+    } else if (attrs[propKey]) {
+      // When we are using a component instance in a component and the attribute
+      // that is passed to the component is of dynamic reference.
+      // If means, the component is redirecting the prop that is received to the prop of the component that it is consuming.
+      // In this case, we need to pass the value of the prop that is received to the prop of the component that it is consuming.
+      // And similary we do the same for the states.
+      if (
+        attrs[propKey].type === 'dynamic' &&
+        (attrs[propKey] as UIDLDynamicReference).content.referenceType === 'prop'
+      ) {
+        propsForInstance[propKey] = combinedProps[propKey]
+      } else if (
+        attrs[propKey].type === 'dynamic' &&
+        (attrs[propKey] as UIDLDynamicReference).content.referenceType === 'state'
+      ) {
+        propsForInstance[propKey] = combinedStates[propKey]
+      } else {
+        propsForInstance[propKey] = {
+          ...combinedProps[propKey],
+          defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+        }
+      }
+    } else {
+      propsForInstance[propKey] = combinedProps[propKey]
+    }
+  }
 
   let componentWrapper = StringUtils.camelCaseToDashCase(`${compName}-wrapper`)
   const isExistingNode = nodesLookup[componentWrapper]
@@ -339,7 +373,6 @@ const generateComponentContent = async (
     templateStyle: 'html',
     templateChunkName: DEFAULT_COMPONENT_CHUNK_NAME,
     declareDependency: 'import',
-    forceScoping: true,
     chunkName: componentClone.name,
     staticPropReferences: true,
   })

@@ -23,7 +23,6 @@ interface CSSPluginConfig {
   componentDecoratorChunkName: string
   inlineStyleAttributeKey: string // style vs :style vs ...
   classAttributeName: string // class vs className
-  forceScoping: boolean // class names get the component name prefix
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
   dynamicVariantPrefix?: string
@@ -39,7 +38,6 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
     classAttributeName = 'class',
     templateStyle = 'html',
     declareDependency = 'none',
-    forceScoping = false,
     dynamicVariantPrefix,
     staticPropReferences = false,
   } = config || {}
@@ -100,7 +98,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         elementType,
       } = element
 
-      if (forceScoping && dependency?.type === 'local') {
+      if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
           attrs,
           key,

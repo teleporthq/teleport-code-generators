@@ -22,10 +22,9 @@ const cssPlugin = createCSSPlugin({
   templateStyle: 'jsx',
   declareDependency: 'import',
   classAttributeName: 'className',
-  forceScoping: true,
 })
 const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
-const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: true })
+const reactStyledJSXPlugin = createReactStyledJSXPlugin()
 
 const stylePlugins = {
   [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,

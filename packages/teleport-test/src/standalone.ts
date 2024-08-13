@@ -104,7 +104,7 @@ const run = async () => {
       project({
         projectType: ProjectType.HTML,
         projectSlug: 'teleport-project-html',
-        plugins: [new ProjectPluginParseEmbed()],
+        plugins: [],
         options: {
           ...packerOptions,
           strictHtmlWhitespaceSensitivity: false,
@@ -114,6 +114,10 @@ const run = async () => {
         projectType: ProjectType.HTML,
         projectSlug: `teleport-project-html-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
+        options: {
+          ...packerOptions,
+          strictHtmlWhitespaceSensitivity: false,
+        },
       }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
       project({
