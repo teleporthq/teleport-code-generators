@@ -98,9 +98,6 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
       return dynamicNode
 
-    case 'conditional':
-      return HASTBuilders.createComment('Conditional node not supported yet')
-
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
