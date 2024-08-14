@@ -370,13 +370,22 @@ export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) =
   }
 }
 
+// This is a special case where the next-key is already used by another.
+// Eg: Let's say we have a container with name `link1` and the component name is footer.
+// So when we are joining both the name is `footer1-link1` in the lookup.
+// Now, we have few other container with the name `Link` multiple times. Now the possible lookups become
+// footer1-link footer1-link1 footer1-link2 footer1-link3 and so on.
+// If you notice now two nodes ended by becoming same `footer1-link1` and `footer1-link1`. But not set by user.
+// So, we make sure even after appending the occurance we are not coliding with any other key.
+
 const createNodesLookupForElement = (
   compName: string,
   element: UIDLElement,
   lookup: ElementsLookup
 ) => {
-  // Element name is stored as a lower case string in the lookup, considering camel case
   const elementName = createLookupKey(compName, element.name)
+
+  // Check if the element already exists in the lookup
   if (!lookup[elementName]) {
     lookup[elementName] = {
       count: 1,
@@ -385,12 +394,25 @@ const createNodesLookupForElement = (
     return
   }
 
+  // Increment the count for the existing element
   lookup[elementName].count++
-  const newCount = lookup[elementName].count
-  if (newCount > 9 && isPowerOfTen(newCount)) {
-    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
-    // nextKey will start either from: '0', '00', '000', etc.
-    lookup[elementName].nextKey = lookup[elementName].nextKey + '0'
+
+  // Generate the initial key with the current nextKey
+  let newKey = elementName + lookup[elementName].nextKey
+
+  // Ensure nextKey is unique
+  while (lookup[newKey]) {
+    // Increment nextKey and try again
+    lookup[elementName].nextKey = generateNextIncrementalKey(lookup[elementName].nextKey)
+    newKey = elementName + lookup[elementName].nextKey
+  }
+
+  // Update the lookup table with the new key
+  lookup[newKey] = { count: 1, nextKey: '1' }
+
+  // Adjust nextKey if the count surpasses a power of ten
+  if (lookup[elementName].count > 9 && isPowerOfTen(lookup[elementName].count)) {
+    lookup[elementName].nextKey += '0'
   }
 }
 

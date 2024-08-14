@@ -104,15 +104,6 @@ const run = async () => {
       project({
         projectType: ProjectType.HTML,
         projectSlug: 'teleport-project-html',
-        plugins: [],
-        options: {
-          ...packerOptions,
-          strictHtmlWhitespaceSensitivity: false,
-        },
-      }),
-      project({
-        projectType: ProjectType.HTML,
-        projectSlug: `teleport-project-html-embeds`,
         plugins: [new ProjectPluginParseEmbed()],
         options: {
           ...packerOptions,
