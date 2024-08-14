@@ -295,7 +295,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         componentStyleSheet,
         cssClasses,
         mediaStylesMap,
-        (styleId: string) => StringUtils.camelCaseToDashCase(styleId)
+        (styleName: string) => StringUtils.camelCaseToDashCase(uidl.name + styleName)
       )
     }
 

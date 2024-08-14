@@ -316,7 +316,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        (styleName: string) => StringUtils.camelCaseToDashCase(styleName)
+        (styleName: string) => StringUtils.camelCaseToDashCase(uidl.name + styleName)
       )
     }
 

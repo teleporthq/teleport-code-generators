@@ -192,7 +192,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         componentStyleSheet,
         classMap,
         mediaStylesMap,
-        (styleName: string) => StringUtils.camelCaseToDashCase(styleName)
+        (styleName: string) => StringUtils.camelCaseToDashCase(uidl.name + styleName)
       )
     }
 

@@ -22,8 +22,8 @@ const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
 const createLookupKey = (compName: string, elementName: string) =>
   StringUtils.camelCaseToDashCase(
-    `${StringUtils.removeIllegalCharacters(compName)}-${StringUtils.removeIllegalCharacters(
-      elementName
+    `${StringUtils.removeIllegalCharacters(compName)}${StringUtils.dashCaseToUpperCamelCase(
+      StringUtils.removeIllegalCharacters(elementName)
     )}`
   )
 
@@ -356,6 +356,10 @@ export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) =
       child.type !== 'element'
     ) {
       return
+    }
+
+    if (child.content === undefined || !child.content.name) {
+      console.log(child)
     }
 
     createNodesLookupForElement(uidl.name, child.content, lookup)

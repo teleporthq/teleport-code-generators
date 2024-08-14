@@ -115,7 +115,6 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         subComponentOptions,
         structure
       )
-
       return dynamicNode
 
     default:
@@ -151,6 +150,10 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
   }
 
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
+    if (nodesLookup[node.content.key]) {
+      return nodesLookup[node.content.key]
+    }
+
     const compTag = await generateComponentContent(
       node,
       nodesLookup,
