@@ -118,7 +118,6 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
       const root = templateLookup[key]
       if (!root) {
-        return
         throw new PluginCSS(
           `Element \n ${JSON.stringify(
             element,
