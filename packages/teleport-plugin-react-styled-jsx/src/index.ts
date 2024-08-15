@@ -53,7 +53,14 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
-      const { style = {}, key, referencedStyles = {}, attrs = {}, dependency } = element
+      const {
+        style = {},
+        key,
+        referencedStyles = {},
+        attrs = {},
+        dependency,
+        elementType,
+      } = element
 
       if (key === undefined) {
         throw new Error(`Key is missing for element \n ${JSON.stringify(element, null, 2)}`)
@@ -66,7 +73,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
           key,
           jsxNodesLookup,
           attrs,
-          getClassName: (str: string) => StringUtils.camelCaseToDashCase(str),
+          getClassName: (str: string) => StringUtils.camelCaseToDashCase(elementType + str),
         })
       }
 

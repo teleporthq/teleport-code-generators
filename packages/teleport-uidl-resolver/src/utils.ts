@@ -327,10 +327,6 @@ export const createNodesLookup = (uidl: ComponentUIDL, lookup: ElementsLookup) =
       return
     }
 
-    if (child.content === undefined || !child.content.name) {
-      console.log(child)
-    }
-
     createNodesLookupForElement(uidl.name, child.content, lookup)
   })
 

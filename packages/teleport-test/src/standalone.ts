@@ -14,12 +14,7 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
-import projectJSON from '../../../examples/test-samples/comp-style-overrides.json'
-// import projectOne from '../../../examples/uidl-samples/project-one.json'
-// import projectTwo from '../../../examples/uidl-samples/project-two.json'
-// import projectThree from '../../../examples/uidl-samples/project-three.json'
-// import projectFour from '../../../examples/uidl-samples/project-four.json'
-
+import projectJSON from '../../../examples/uidl-samples/project.json'
 import contentfulUIDL from '../../../examples/uidl-samples/contentful.json'
 import strapiUIDL from '../../../examples/uidl-samples/strapi.json'
 import wordpressUIDL from '../../../examples/uidl-samples/wordpress.json'
@@ -115,115 +110,75 @@ const run = async () => {
           strictHtmlWhitespaceSensitivity: false,
         },
       }),
-      // project({
-      //   projectType: ProjectType.HTML,
-      //   projectSlug: 'teleport-project-html-0',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      //   options: {
-      //     ...packerOptions,
-      //     strictHtmlWhitespaceSensitivity: false,
-      //   },
-      //   uidl: projectOne,
-      // }),
-      // project({
-      //   projectType: ProjectType.HTML,
-      //   projectSlug: 'teleport-project-html-1',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      //   options: {
-      //     ...packerOptions,
-      //     strictHtmlWhitespaceSensitivity: false,
-      //   },
-      //   uidl: projectTwo,
-      // }),
-      // project({
-      //   projectType: ProjectType.HTML,
-      //   projectSlug: 'teleport-project-html-2',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      //   options: {
-      //     ...packerOptions,
-      //     strictHtmlWhitespaceSensitivity: false,
-      //   },
-      //   uidl: projectThree,
-      // }),
-      // project({
-      //   projectType: ProjectType.HTML,
-      //   projectSlug: 'teleport-project-html-3',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      //   options: {
-      //     ...packerOptions,
-      //     strictHtmlWhitespaceSensitivity: false,
-      //   },
-      //   uidl: projectFour,
-      // }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: `teleport-project-next-embeds`,
-      //   plugins: [new ProjectPluginParseEmbed()],
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: `teleport-project-next-embeds-with-css-modules`,
-      //   plugins: [
-      //     new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
-      //     new ProjectPluginParseEmbed(),
-      //   ],
-      // }),
-      // project({
-      //   projectType: ProjectType.REACT,
-      //   projectSlug: 'teleport-project-react',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      // }),
-      // project({
-      //   projectType: ProjectType.NUXT,
-      //   projectSlug: `teleport-project-nuxt-with-embeds`,
-      //   plugins: [new ProjectPluginParseEmbed()],
-      // }),
-      // project({
-      //   projectType: ProjectType.VUE,
-      //   projectSlug: `teleport-project-vue-with-embeds`,
-      //   plugins: [new ProjectPluginParseEmbed()],
-      // }),
-      // project({
-      //   projectType: ProjectType.ANGULAR,
-      //   projectSlug: `teleport-project-angular-with-embeds`,
-      //   plugins: [new ProjectPluginParseEmbed()],
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: `teleport-project-next-with-reactjss`,
-      //   plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
-      // }),
-      // project({
-      //   projectType: ProjectType.REACT,
-      //   projectSlug: `teleport-project-react-with-styled-components`,
-      //   plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: 'teleport-project-contentful-cms',
-      //   uidl: contentfulUIDL,
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: 'teleport-project-wordpress-cms',
-      //   uidl: wordpressUIDL,
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: 'teleport-project-strapi-cms',
-      //   uidl: strapiUIDL,
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: 'teleport-project-caisy-cms',
-      //   uidl: caisyUIDL,
-      // }),
-      // project({
-      //   projectType: ProjectType.NEXT,
-      //   projectSlug: 'teleport-project-flotiq-cms',
-      //   uidl: flotiqUIDL,
-      // }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-embeds`,
+        plugins: [new ProjectPluginParseEmbed()],
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-embeds-with-css-modules`,
+        plugins: [
+          new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
+          new ProjectPluginParseEmbed(),
+        ],
+      }),
+      project({
+        projectType: ProjectType.REACT,
+        projectSlug: 'teleport-project-react',
+        plugins: [new ProjectPluginParseEmbed()],
+      }),
+      project({
+        projectType: ProjectType.NUXT,
+        projectSlug: `teleport-project-nuxt-with-embeds`,
+        plugins: [new ProjectPluginParseEmbed()],
+      }),
+      project({
+        projectType: ProjectType.VUE,
+        projectSlug: `teleport-project-vue-with-embeds`,
+        plugins: [new ProjectPluginParseEmbed()],
+      }),
+      project({
+        projectType: ProjectType.ANGULAR,
+        projectSlug: `teleport-project-angular-with-embeds`,
+        plugins: [new ProjectPluginParseEmbed()],
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: `teleport-project-next-with-reactjss`,
+        plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
+      }),
+      project({
+        projectType: ProjectType.REACT,
+        projectSlug: `teleport-project-react-with-styled-components`,
+        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-contentful-cms',
+        uidl: contentfulUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-wordpress-cms',
+        uidl: wordpressUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-strapi-cms',
+        uidl: strapiUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-caisy-cms',
+        uidl: caisyUIDL,
+      }),
+      project({
+        projectType: ProjectType.NEXT,
+        projectSlug: 'teleport-project-flotiq-cms',
+        uidl: flotiqUIDL,
+      }),
     ])
   } catch (e) {
     console.info(e)

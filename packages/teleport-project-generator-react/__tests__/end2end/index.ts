@@ -27,10 +27,10 @@ describe('Passes the rootClass which using the component', () => {
       (file) => file.name === 'place-card' && file.fileType === FileType.CSS
     )
 
-    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-root-class-name\"`)
-    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-root-class-name1\"`)
-    expect(styleFile?.content).toContain(`.place-cardroot-class-root-class-name {`)
-    expect(styleFile?.content).toContain(`.place-cardroot-class-root-class-name1 {`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-name\"`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-name1\"`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-name {`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-name1 {`)
   })
 })
 

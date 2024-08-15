@@ -126,9 +126,6 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       )
       return dynamicNode
 
-    case 'conditional':
-      return HASTBuilders.createComment('Conditional nodes are not supported in HTML')
-
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -277,18 +274,6 @@ const generateComponentContent = async (
 
   const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
 
-  // In UIDL, we define only the link between a component and a page.
-  // We define this link using the UIDLLocalDependency approach.
-  // So, during the page resolution step, where we ideally generate the unique keys for the components.
-  // We can't generate the unique keys for the components because we don't have the full UIDL of the component.
-  // When we are using components in a page, the `addExternalComponents` step of the
-  // html-component-generator will add the full UIDL of the component to the externals object after resolving them.
-  // But when a component is used multiple number of times, we are basically using the same nodes again and again.
-  // Which indivates duplication. So, we create a lookup table of all the nodes present with us in the page
-  // And then pass it to the component to avoid any coilissions.
-  const lookupTableForCurrentPage = createLookupTable(component, nodesLookup)
-  generateUniqueKeys(componentClone, lookupTableForCurrentPage)
-
   let compHasSlots: boolean = false
   if (children.length) {
     compHasSlots = true
@@ -302,6 +287,7 @@ const generateComponentContent = async (
             content: {
               key: 'custom-slot',
               elementType: 'slot',
+              name: componentClone.name + 'slot',
               style: {
                 display: {
                   type: 'static',
@@ -320,6 +306,18 @@ const generateComponentContent = async (
     */
     node.content.children = []
   }
+
+  // In UIDL, we define only the link between a component and a page.
+  // We define this link using the UIDLLocalDependency approach.
+  // So, during the page resolution step, where we ideally generate the unique keys for the components.
+  // We can't generate the unique keys for the components because we don't have the full UIDL of the component.
+  // When we are using components in a page, the `addExternalComponents` step of the
+  // html-component-generator will add the full UIDL of the component to the externals object after resolving them.
+  // But when a component is used multiple number of times, we are basically using the same nodes again and again.
+  // Which indivates duplication. So, we create a lookup table of all the nodes present with us in the page
+  // And then pass it to the component to avoid any coilissions.
+  const lookupTableForCurrentPage = createLookupTable(componentClone, nodesLookup)
+  generateUniqueKeys(componentClone, lookupTableForCurrentPage)
 
   // We are combining props of the current component
   // with props of the component that we need to generate.
@@ -512,6 +510,7 @@ const generateComponentContent = async (
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | HastText>> = async (
   node,
+  /* tslint:disable variable-name */
   _compName,
   nodesLookup,
   propDefinitions,

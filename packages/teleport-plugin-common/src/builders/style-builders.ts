@@ -216,14 +216,25 @@ export const setPropValueForCompStyle = (params: {
     }
 
     if (templateStyle === 'jsx') {
-      const compInstanceNode = jsxNodesLookup[key] as types.JSXElement
-      compInstanceNode.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
-        if (attribute.name?.name === attr && (attribute.value as types.StringLiteral)?.value) {
-          ;(attribute.value as types.StringLiteral).value = getClassName(
-            (attribute.value as types.StringLiteral).value
-          )
+      const compInstanceNode = jsxNodesLookup[key]
+      if (
+        compInstanceNode.type !== 'JSXElement' ||
+        'openingElement' in compInstanceNode === false
+      ) {
+        return
+      }
+
+      ;(compInstanceNode as types.JSXElement).openingElement?.attributes.forEach(
+        (attribute: types.JSXAttribute) => {
+          if (
+            attribute.name?.name === attr &&
+            attribute.value.type === 'StringLiteral' &&
+            attribute.value?.value
+          ) {
+            attribute.value.value = getClassName(attribute.value.value)
+          }
         }
-      })
+      )
     }
 
     if (templateStyle === 'html') {

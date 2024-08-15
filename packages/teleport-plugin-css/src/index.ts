@@ -99,12 +99,14 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       } = element
 
       if (dependency?.type === 'local') {
+        // Refer to line 323 all component scoped styles are appended with component name by default
         StyleBuilders.setPropValueForCompStyle({
           attrs,
           key,
           jsxNodesLookup: templateLookup,
           templateStyle,
-          getClassName: StringUtils.camelCaseToDashCase,
+          getClassName: (styleName: string) =>
+            StringUtils.camelCaseToDashCase(elementType + styleName),
         })
       }
 
@@ -224,10 +226,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 ) {
                   return
                 }
-                console.log({ defaultPropValue })
-                classNamesToAppend.add(
-                  StringUtils.camelCaseToDashCase(uidl.name + defaultPropValue)
-                )
+                classNamesToAppend.add(StringUtils.camelCaseToDashCase(defaultPropValue))
               } else {
                 dynamicVariantsToAppend.add(styleRef.content.content.content.id)
               }
