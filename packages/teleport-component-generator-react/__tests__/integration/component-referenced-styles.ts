@@ -44,7 +44,7 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(cssFile?.content).toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`className={styles['my-componentcontainer']}`)
+    expect(jsFile?.content).toContain(`className={styles['my-component-container']}`)
     expect(jsFile?.content).toContain(`import styles from './my-component.module.css`)
   })
 
@@ -61,7 +61,7 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(cssFile?.content).toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`className="my-componentcontainer"`)
+    expect(jsFile?.content).toContain(`className="my-component-container"`)
     expect(jsFile?.content).toContain(`import './my-component.css`)
   })
 
@@ -76,8 +76,8 @@ describe('Generates media, pseudo and normal styles', () => {
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`<MyComponentcontainer>Hello !!</MyComponentcontainer>`)
-    expect(jsFile?.content).toContain(`const MyComponentcontainer = styled('div')`)
+    expect(jsFile?.content).toContain(`<MyComponentContainer>Hello !!</MyComponentContainer>`)
+    expect(jsFile?.content).toContain(`const MyComponentContainer = styled('div')`)
     expect(jsFile?.content).toContain(`width: '100px'`)
     expect(jsFile?.content).toContain(`display: 'none'`)
   })
@@ -94,8 +94,8 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(jsFile).toBeDefined()
 
     expect(jsFile?.content).toContain(`const classes = useStyles()`)
-    expect(jsFile?.content).toContain(`className={classes['myComponentcontainer']}`)
-    expect(jsFile?.content).toContain(`myComponentcontainer: {`)
+    expect(jsFile?.content).toContain(`className={classes['myComponentContainer']}`)
+    expect(jsFile?.content).toContain(`myComponentContainer: {`)
     expect(jsFile?.content).toContain(`width: '100px'`)
     expect(jsFile?.content).toContain(`display: 'none'`)
   })
@@ -147,7 +147,7 @@ describe('Add referenced styles even when direct styles are not present on node'
     expect(cssFile?.content).not.toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`className={styles['my-componentcontainer']}`)
+    expect(jsFile?.content).toContain(`className={styles['my-component-container']}`)
     expect(jsFile?.content).toContain(`import styles from './my-component.module.css`)
   })
 
@@ -164,7 +164,7 @@ describe('Add referenced styles even when direct styles are not present on node'
     expect(cssFile?.content).not.toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`className="my-componentcontainer"`)
+    expect(jsFile?.content).toContain(`className="my-component-container"`)
     expect(jsFile?.content).toContain(`import './my-component.css`)
   })
 
@@ -178,8 +178,8 @@ describe('Add referenced styles even when direct styles are not present on node'
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile?.content).toContain(`<MyComponentcontainer>Hello !!</MyComponentcontainer>`)
-    expect(jsFile?.content).toContain(`const MyComponentcontainer = styled('div')`)
+    expect(jsFile?.content).toContain(`<MyComponentContainer>Hello !!</MyComponentContainer>`)
+    expect(jsFile?.content).toContain(`const MyComponentContainer = styled('div')`)
     expect(jsFile?.content).not.toContain(`width: '100px'`)
     expect(jsFile?.content).toContain(`display: 'none'`)
   })
@@ -195,10 +195,10 @@ describe('Add referenced styles even when direct styles are not present on node'
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className={classes['myComponentcontainer']}`)
-    expect(jsFile.content).toContain(`myComponentcontainer: {`)
-    expect(jsFile.content).not.toContain(`width: '100px'`)
-    expect(jsFile.content).toContain(`display: 'none'`)
+    expect(jsFile?.content).toContain(`className={classes['myComponentContainer']}`)
+    expect(jsFile?.content).toContain(`myComponentContainer: {`)
+    expect(jsFile?.content).not.toContain(`width: '100px'`)
+    expect(jsFile?.content).toContain(`display: 'none'`)
   })
 
   it('Generates styles using StyledJSX', async () => {
@@ -211,10 +211,10 @@ describe('Add referenced styles even when direct styles are not present on node'
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className`)
-    expect(jsFile.content).toContain(`container {`)
-    expect(jsFile.content).not.toContain(`width: '100px'`)
-    expect(jsFile.content).toContain(`display: none`)
+    expect(jsFile?.content).toContain(`className`)
+    expect(jsFile?.content).toContain(`container {`)
+    expect(jsFile?.content).not.toContain(`width: '100px'`)
+    expect(jsFile?.content).toContain(`display: none`)
   })
 })
 
@@ -310,9 +310,9 @@ describe('Referes from project style and adds it to the node, without any styles
 
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
-    expect(jsFile.content).toContain(`className={projectStyles['primary-button']}`)
-    expect(jsFile.content).toContain(`import projectStyles from '../style.module.css'`)
-    expect(jsFile.content).not.toContain(`import styles from './my-component.module.css'`)
+    expect(jsFile?.content).toContain(`className={projectStyles['primary-button']}`)
+    expect(jsFile?.content).toContain(`import projectStyles from '../style.module.css'`)
+    expect(jsFile?.content).not.toContain(`import styles from './my-component.module.css'`)
   })
 
   it('CSS', async () => {
@@ -329,9 +329,9 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
 
-    expect(jsFile.content).toContain('className="primaryButton"')
-    expect(jsFile.content).not.toContain(`import '../style.css'`)
-    expect(jsFile.content).not.toContain(`import './my-component.css'`)
+    expect(jsFile?.content).toContain('className="primaryButton"')
+    expect(jsFile?.content).not.toContain(`import '../style.css'`)
+    expect(jsFile?.content).not.toContain(`import './my-component.css'`)
   })
 
   it('StyledComponents', async () => {
@@ -342,10 +342,10 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
 
-    expect(jsFile.content).toContain(`<MyComponentcontainer projVariant=\"primaryButton\">`)
-    expect(jsFile.content).toContain(`import { projectStyleVariants } from '../style'`)
-    expect(jsFile.content).toContain(
-      `const MyComponentcontainer = styled('div')(projectStyleVariants)`
+    expect(jsFile?.content).toContain(`<MyComponentContainer projVariant=\"primaryButton\">`)
+    expect(jsFile?.content).toContain(`import { projectStyleVariants } from '../style'`)
+    expect(jsFile?.content).toContain(
+      `const MyComponentContainer = styled('div')(projectStyleVariants)`
     )
   })
 
@@ -357,7 +357,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
     // Styled JSX is used only with NextJS, for NextJS we don't need to import anything
-    expect(jsFile.content).toContain('<div className="primaryButton">')
+    expect(jsFile?.content).toContain('<div className="primaryButton">')
   })
 
   it('React JSS', async () => {
@@ -368,8 +368,8 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
 
-    expect(jsFile.content).toContain(`div className={projectStyles['primaryButton']}>`)
-    expect(jsFile.content).toContain(`const projectStyles = useProjectStyles()`)
-    expect(jsFile.content).toContain(`import { useProjectStyles } from '../style'`)
+    expect(jsFile?.content).toContain(`div className={projectStyles['primaryButton']}>`)
+    expect(jsFile?.content).toContain(`const projectStyles = useProjectStyles()`)
+    expect(jsFile?.content).toContain(`import { useProjectStyles } from '../style'`)
   })
 })

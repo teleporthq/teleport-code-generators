@@ -52,18 +52,19 @@ describe('generateUniqueKeys', () => {
     const lookup = {
       'component-container': {
         count: 2,
-        nextKey: '0',
+        nextKey: '1',
       },
     }
 
     generateUniqueKeys(component('component', node), lookup)
 
     expect(node.content.name).toBe('container')
-    expect(node.content.key).toBe('component-container')
+    expect(node.content.key).toBe('component-container1')
 
     const childNode = node.content.children?.[0].content as UIDLElement
     expect(childNode.name).toBe('container')
-    expect(childNode.key).toBe('component-container1')
+    expect(childNode.key).toBe('component-container2')
+    expect(lookup['component-container'].nextKey).toBe('3')
   })
 })
 

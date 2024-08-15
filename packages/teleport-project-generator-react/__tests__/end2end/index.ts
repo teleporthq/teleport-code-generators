@@ -18,19 +18,19 @@ describe('Passes the rootClass which using the component', () => {
 
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
     const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
-    const views = srcFolder.subFolders.find((folder) => folder.name === 'views')
-    const components = srcFolder.subFolders.find((folder) => folder.name === 'components')
-    const mainFile = views.files.find(
+    const views = srcFolder?.subFolders.find((folder) => folder.name === 'views')
+    const components = srcFolder?.subFolders.find((folder) => folder.name === 'components')
+    const mainFile = views?.files.find(
       (file) => file.name === 'landing-page' && file.fileType === FileType.JS
     )
-    const styleFile = components.files.find(
+    const styleFile = components?.files.find(
       (file) => file.name === 'place-card' && file.fileType === FileType.CSS
     )
 
-    expect(mainFile.content).toContain(`rootClassName=\"root-class-name\"`)
-    expect(mainFile.content).toContain(`rootClassName=\"root-class-name1\"`)
-    expect(styleFile.content).toContain(`.root-class-name {`)
-    expect(styleFile.content).toContain(`.root-class-name1 {`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-root-class-name\"`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-root-class-name1\"`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-root-class-name {`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-root-class-name1 {`)
   })
 })
 
@@ -120,7 +120,7 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
     expect(viewsFolder.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
-    expect(viewsFolder.files[0].content).toContain(`<div className="homecontainer2">`)
+    expect(viewsFolder.files[0].content).toContain(`<div className="home-container2">`)
     expect(viewsFolder.files[0].content).toContain(`<Script`)
     expect(viewsFolder.files[0].content).toContain("html={`<blockquote class='twitter-tweet'")
     /* Imports that are just need to be inserted are added to router file by default */

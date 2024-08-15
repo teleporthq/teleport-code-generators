@@ -24,7 +24,7 @@ describe('HTML Component Generator', () => {
             'container',
             {},
             [staticNode('Hello'), dynamicNode('prop', 'heading')],
-            null,
+            undefined,
             {
               width: staticNode('100px'),
             }
@@ -42,7 +42,7 @@ describe('HTML Component Generator', () => {
     expect(jsFile).toBeDefined()
     expect(files.length).toBe(2)
     expect(jsFile?.content).toContain('./navbar.css')
-    expect(jsFile?.content).toContain('<div class="samplecontainer">')
-    expect(cssFile?.content).toContain(`.samplecontainer {`)
+    expect(jsFile?.content).toContain('<div class="sample-container">')
+    expect(cssFile?.content).toContain(`.sample-container {`)
   })
 })

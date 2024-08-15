@@ -14,7 +14,12 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
-import projectJSON from '../../../examples/uidl-samples/project.json'
+import projectJSON from '../../../examples/test-samples/comp-style-overrides.json'
+// import projectOne from '../../../examples/uidl-samples/project-one.json'
+// import projectTwo from '../../../examples/uidl-samples/project-two.json'
+// import projectThree from '../../../examples/uidl-samples/project-three.json'
+// import projectFour from '../../../examples/uidl-samples/project-four.json'
+
 import contentfulUIDL from '../../../examples/uidl-samples/contentful.json'
 import strapiUIDL from '../../../examples/uidl-samples/strapi.json'
 import wordpressUIDL from '../../../examples/uidl-samples/wordpress.json'
@@ -110,6 +115,46 @@ const run = async () => {
           strictHtmlWhitespaceSensitivity: false,
         },
       }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html-0',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      //   uidl: projectOne,
+      // }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html-1',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      //   uidl: projectTwo,
+      // }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html-2',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      //   uidl: projectThree,
+      // }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html-3',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      //   uidl: projectFour,
+      // }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
       // project({
       //   projectType: ProjectType.NEXT,

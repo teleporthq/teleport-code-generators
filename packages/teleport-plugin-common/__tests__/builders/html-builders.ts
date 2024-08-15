@@ -3,7 +3,7 @@ import { createHTMLNode, createTextNode } from '../../src/builders/hast-builders
 describe('HTML Builders', () => {
   describe('createHTMLNode', () => {
     it('should create html node', () => {
-      const htmlNode = createHTMLNode('span', ['span'])
+      const htmlNode = createHTMLNode('span', [createHTMLNode('span', [])])
 
       expect(htmlNode).toHaveProperty('type')
       expect(htmlNode).toHaveProperty('tagName')
@@ -12,7 +12,14 @@ describe('HTML Builders', () => {
       expect(htmlNode.type).toBe('element')
       expect(htmlNode.tagName).toBe('span')
       expect(htmlNode.properties).toEqual({})
-      expect(htmlNode.children).toEqual(['span'])
+      expect(htmlNode.children).toEqual([
+        {
+          children: [],
+          tagName: 'span',
+          type: 'element',
+          properties: {},
+        },
+      ])
     })
   })
   describe('createTextNode', () => {

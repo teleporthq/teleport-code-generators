@@ -54,22 +54,22 @@ describe('Image Resolution', () => {
     expect(mainCSS).toBeDefined()
     expect(indexFile?.content).toContain(`href="public/playground_assets/kitten.png"`)
     expect(indexFile?.content).toContain(`src="public/playground_assets/kitten.png"`)
-    expect(mainCSS?.content).toContain(`.comp-with-image-propcomp-with-image-bg-in-css {
+    expect(mainCSS?.content).toContain(`.comp-with-image-prop-comp-with-image-bg-in-css {
   width: 100%;
   height: 200px;
   background-image: url("public/playground_assets/kitten.png");
 }`)
     expect(mainCSS?.content).toContain(`@media(max-width: 991px) {
-  .comp-with-image-propdiv {
+  .comp-with-image-prop-div {
     width: 100%;
     height: 200px;
     background-image: url("public/playground_assets/kitten.png");
   }
 }`)
-    expect(mainCSS?.content).toContain(`.bg-image-c {
+    expect(mainCSS?.content).toContain(`.comp-with-image-propbg-image-c {
   background-image: url("public/playground_assets/kitten.png");
 }`)
-    expect(mainCSS?.content).toContain(`.homediv {
+    expect(mainCSS?.content).toContain(`.home-div {
   width: 100%;
   height: 200px;
   background-image: url("public/playground_assets/kitten.png");

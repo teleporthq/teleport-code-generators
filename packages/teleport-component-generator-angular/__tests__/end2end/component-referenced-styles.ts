@@ -29,7 +29,15 @@ describe('Generates media, pseudo and normal styles', () => {
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [staticNode('Hello !!')], null, style, null, referencedStyles)
+    elementNode(
+      'container',
+      undefined,
+      [staticNode('Hello !!')],
+      null,
+      style,
+      null,
+      referencedStyles
+    )
   )
 
   it('Generates styles using CSS', async () => {
@@ -43,7 +51,7 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(cssFile?.content).toContain(`width: 100px`)
     expect(cssFile?.content).toContain(`@media(max-width: 991px)`)
     expect(cssFile?.content).toContain(`display: none`)
-    expect(htmlFile?.content).toContain(`class="my-componentcontainer"`)
+    expect(htmlFile?.content).toContain(`class="my-component-container"`)
     expect(tsFile?.content).toContain(`my-component.css`)
   })
 })
@@ -78,7 +86,7 @@ describe('Add referenced styles even when direct styles are not present on node'
     expect(cssFile?.content).not.toContain(`width: 100px`)
     expect(cssFile?.content).toContain(`@media(max-width: 991px)`)
     expect(cssFile?.content).toContain(`display: none`)
-    expect(htmlFile?.content).toContain(`class="my-componentcontainer"`)
+    expect(htmlFile?.content).toContain(`class="my-component-container"`)
     expect(tsFile?.content).toContain(`my-component.css`)
   })
 })
@@ -93,7 +101,10 @@ describe('Throws Error when a node is using project-styles but not present in UI
       },
     },
   }
-  const uidl = component('MyComponent', elementNode('container', {}, [], null, null, null, styles))
+  const uidl = component(
+    'MyComponent',
+    elementNode('container', {}, [], undefined, undefined, undefined, styles)
+  )
 
   it('CSS', async () => {
     const generator = createAngularComponentGenerator()
@@ -113,7 +124,7 @@ describe('Referes from project style and adds it to the node, without any styles
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', {}, [staticNode('Hello')], null, null, null, styles)
+    elementNode('container', {}, [staticNode('Hello')], undefined, undefined, undefined, styles)
   )
   const options: GeneratorOptions = {
     projectStyleSet: {

@@ -217,12 +217,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               }
 
               if (staticPropReferences) {
-                if (!defaultPropValue) {
+                if (
+                  defaultPropValue === undefined ||
+                  typeof defaultPropValue !== 'string' ||
+                  defaultPropValue.length === 0
+                ) {
                   return
                 }
-                if (staticPropReferences) {
-                  classNamesToAppend.add(StringUtils.camelCaseToDashCase(String(defaultPropValue)))
-                }
+                console.log({ defaultPropValue })
+                classNamesToAppend.add(
+                  StringUtils.camelCaseToDashCase(uidl.name + defaultPropValue)
+                )
               } else {
                 dynamicVariantsToAppend.add(styleRef.content.content.content.id)
               }
@@ -238,7 +243,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 )
               }
               classNamesToAppend.add(
-                StringUtils.camelCaseToDashCase(styleRef.content.content.content.id)
+                StringUtils.camelCaseToDashCase(uidl.name + styleRef.content.content.content.id)
               )
             }
 
@@ -316,7 +321,9 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        (styleName: string) => StringUtils.camelCaseToDashCase(uidl.name + styleName)
+        (styleName: string) => {
+          return StringUtils.camelCaseToDashCase(uidl.name + styleName)
+        }
       )
     }
 

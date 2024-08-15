@@ -51,8 +51,8 @@ describe('Styles in Angular Component Generator', () => {
     expect(htmlFile?.content).toContain(
       `[ngStyle]="{flexDirection: direction, height: config.height}"`
     )
-    expect(htmlFile?.content).toContain(`class="component-with-attr-propcontainer"`)
-    expect(cssFile?.content).toContain(`.component-with-attr-propcontainer {`)
+    expect(htmlFile?.content).toContain(`class="component-with-attr-prop-container"`)
+    expect(cssFile?.content).toContain(`.component-with-attr-prop-container {`)
     expect(cssFile?.content).toContain(`align-self: center;`)
   })
 

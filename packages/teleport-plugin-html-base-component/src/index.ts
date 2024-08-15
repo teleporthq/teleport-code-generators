@@ -63,7 +63,12 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       ),
       plugins,
     }
-    const templateOptions = { chunks, dependencies, options, outputOptions }
+    const templateOptions = {
+      chunks,
+      dependencies,
+      options,
+      outputOptions,
+    }
 
     /*
       We need to generate jsx structure of every node that is defined in the UIDL.
@@ -78,6 +83,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       ) {
         await generateHtmlSyntax(
           prop.defaultValue as UIDLElementNode,
+          uidl.name,
           nodesLookup,
           propDefinitions,
           stateDefinitions,
@@ -89,6 +95,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
 
     const bodyContent = await generateHtmlSyntax(
       uidl.node,
+      uidl.name,
       nodesLookup,
       propDefinitions,
       stateDefinitions,
