@@ -59,7 +59,7 @@ describe('Resolves style-sheet', () => {
   }
 
   it('Sorts the style-sheet in order', () => {
-    const result = resolveStyleSetDefinitions(styleSheet)
+    const result = resolveStyleSetDefinitions(styleSheet, {})
 
     expect((result.primaryButton.conditions[0] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
       991
@@ -76,16 +76,15 @@ describe('Resolves style-sheet', () => {
   })
 
   it(`Resolver doesn't throw any error even if conditions are not passed`, () => {
-    const styleSet = {
+    const styleSet: Record<string, UIDLStyleSetDefinition> = {
       primaryButton: {
         type: 'reusable-project-style-map' as const,
-        conditions: [],
         content: {
           display: staticNode('block'),
         },
       },
     }
-    const result = resolveStyleSetDefinitions(styleSet)
+    const result = resolveStyleSetDefinitions(styleSet, {})
 
     expect(result).toEqual(styleSet)
   })

@@ -37,16 +37,13 @@ export default class Resolver {
     this.mapping = utils.mergeMappings(this.mapping, mapping)
   }
 
-  public resolveUIDL(
-    input: ComponentUIDL,
-    options: GeneratorOptions = { extractedResources: {} },
-    nodesLookup: ElementsLookup = {}
-  ) {
+  public resolveUIDL(input: ComponentUIDL, options: GeneratorOptions = { extractedResources: {} }) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
     const newOptions = {
       ...options,
       mapping,
     }
+    const lookup: ElementsLookup = {}
 
     const uidl = UIDLUtils.cloneObject(input)
     uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions, newOptions)
@@ -62,17 +59,14 @@ export default class Resolver {
 
     resolveReferencedStyle(uidl, newOptions)
     resolveHtmlNode(uidl, newOptions)
-    // TODO: Rename into apply mappings
+
     utils.resolveNode(uidl.node, newOptions)
     utils.resolveNodeInPropDefinitions(uidl, newOptions)
 
-    utils.createNodesLookup(uidl, nodesLookup)
-    utils.createCMSNodesLookup(uidl.node, nodesLookup)
-    utils.generateUniqueKeys(uidl, nodesLookup)
+    utils.createNodesLookup(uidl, lookup)
+    utils.generateUniqueKeys(uidl, lookup)
 
     utils.ensureDataSourceUniqueness(uidl.node)
-
-    // There might be urls that need to be prefixed in the metaTags of the component
     utils.resolveMetaTags(uidl, newOptions)
 
     return uidl

@@ -145,7 +145,7 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile?.content).toContain('<Container {...props}')
+      expect(jsFile?.content).toContain('<ComponentWithSinglePropContainer')
       expect(jsFile?.content).toContain('height: props.config.height')
     })
 
@@ -156,7 +156,7 @@ describe('React Styles in Component', () => {
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
 
       const jsFile = findFileByType(result.files, FileType.JS)
-      expect(jsFile?.content).toContain('<Container {...props}')
+      expect(jsFile?.content).toContain('<ComponentWithAttrPropContainer {...props}')
     })
 
     it('should throw error when a state is being refered in generated StyledComponents ', async () => {

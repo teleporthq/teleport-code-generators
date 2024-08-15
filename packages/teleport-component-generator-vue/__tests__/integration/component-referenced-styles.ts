@@ -29,7 +29,7 @@ describe('Generates media, pseudo and normal styles', () => {
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [staticNode('Hello !!')], null, style, null, referencedStyles)
+    elementNode('container', {}, [staticNode('Hello !!')], undefined, style, null, referencedStyles)
   )
 
   it('Generates styles using CSS', async () => {
@@ -38,10 +38,10 @@ describe('Generates media, pseudo and normal styles', () => {
     const vueFile = findFileByType(files, FileType.VUE)
 
     expect(vueFile).toBeDefined()
-    expect(vueFile.content).toContain(`class="my-component-container"`)
-    expect(vueFile.content).toContain('width: 100px')
-    expect(vueFile.content).toContain('@media(max-width: 991px)')
-    expect(vueFile.content).toContain(`display: none`)
+    expect(vueFile?.content).toContain(`class="my-component-container"`)
+    expect(vueFile?.content).toContain('width: 100px')
+    expect(vueFile?.content).toContain('@media(max-width: 991px)')
+    expect(vueFile?.content).toContain(`display: none`)
   })
 })
 
@@ -61,7 +61,15 @@ describe('Add referenced styles even when direct styles are not present on node'
 
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [staticNode('Hello !!')], null, null, null, referencedStyles)
+    elementNode(
+      'container',
+      {},
+      [staticNode('Hello !!')],
+      undefined,
+      undefined,
+      null,
+      referencedStyles
+    )
   )
 
   it('Generates styles using CSS', async () => {
@@ -70,9 +78,9 @@ describe('Add referenced styles even when direct styles are not present on node'
     const vueFile = findFileByType(files, FileType.VUE)
 
     expect(vueFile).toBeDefined()
-    expect(vueFile.content).toContain(`class="my-component-container"`)
-    expect(vueFile.content).toContain('@media(max-width: 991px)')
-    expect(vueFile.content).not.toContain('width: 100px')
+    expect(vueFile?.content).toContain(`class="my-component-container"`)
+    expect(vueFile?.content).toContain('@media(max-width: 991px)')
+    expect(vueFile?.content).not.toContain('width: 100px')
   })
 })
 
@@ -88,7 +96,7 @@ describe('Throws Error when a node is using project-styles but not present in UI
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [], null, null, null, styles)
+    elementNode('container', {}, [], undefined, null, null, styles)
   )
 
   it('CSS', async () => {
@@ -109,7 +117,7 @@ describe('Referes from project style and adds it to the node, without any styles
   }
   const uidl = component(
     'MyComponent',
-    elementNode('container', null, [staticNode('Hello')], null, null, null, styles)
+    elementNode('container', {}, [staticNode('Hello')], undefined, null, null, styles)
   )
   const options: GeneratorOptions = {
     projectStyleSet: {
@@ -138,7 +146,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const vueFile = findFileByType(files, FileType.VUE)
 
     expect(vueFile).toBeDefined()
-    expect(vueFile.content).toContain(`class="primaryButton\"`)
-    expect(vueFile.content).not.toContain(`import '../style.css'`)
+    expect(vueFile?.content).toContain(`class="primaryButton\"`)
+    expect(vueFile?.content).not.toContain(`import '../style.css'`)
   })
 })

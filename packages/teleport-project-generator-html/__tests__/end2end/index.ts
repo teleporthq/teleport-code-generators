@@ -32,7 +32,7 @@ describe('Html Project Generator', () => {
     expect(aboutCSS?.content).toContain('public/playground_assets/kitten.png')
   })
 
-  it('run withut crashing and appends entry things into single index.html', async () => {
+  it('run without crashing and appends entry things into single index.html', async () => {
     const singularGenerator = createHTMLProjectGenerator()
     singularGenerator.addPlugin(pluginHomeReplace)
 
@@ -98,10 +98,10 @@ describe('Unwinds the slot inside the component when used in page', () => {
     )
 
     expect(indexFile).toBeDefined()
-    expect(indexFile?.content).toContain(`app-component-image2`)
-    expect(indexFile?.content).toContain(`app-component-image3`)
+    expect(indexFile?.content).toContain(`app-component-image`)
+    expect(indexFile?.content).toContain(`app-component-image1`)
     expect(cssFile).toBeDefined()
-    expect(cssFile?.content).toContain(`.app-component-image2`)
-    expect(cssFile?.content).toContain(`.app-component-image3`)
+    expect(cssFile?.content).toContain(`.app-component-image`)
+    expect(cssFile?.content).toContain(`.app-component-image1`)
   })
 })

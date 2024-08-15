@@ -110,11 +110,6 @@ const run = async () => {
           strictHtmlWhitespaceSensitivity: false,
         },
       }),
-      project({
-        projectType: ProjectType.HTML,
-        projectSlug: `teleport-project-html-embeds`,
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
       project({
         projectType: ProjectType.NEXT,

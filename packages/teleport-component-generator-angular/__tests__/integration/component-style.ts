@@ -45,19 +45,19 @@ describe('Styles in Angular Component Generator', () => {
     expect(tsFile).toBeDefined()
     expect(cssFile).toBeDefined()
     expect(htmlFile).toBeDefined()
-    expect(tsFile.content).toContain(`@Input()`)
-    expect(tsFile.content).toContain(`direction: string = 'row'`)
-    expect(tsFile.content).toContain(`config: unknown =`)
-    expect(htmlFile.content).toContain(
+    expect(tsFile?.content).toContain(`@Input()`)
+    expect(tsFile?.content).toContain(`direction: string = 'row'`)
+    expect(tsFile?.content).toContain(`config: unknown =`)
+    expect(htmlFile?.content).toContain(
       `[ngStyle]="{flexDirection: direction, height: config.height}"`
     )
-    expect(htmlFile.content).toContain(`class="component-with-attr-prop-container"`)
-    expect(cssFile.content).toContain(`.component-with-attr-prop-container {`)
-    expect(cssFile.content).toContain(`align-self: center;`)
+    expect(htmlFile?.content).toContain(`class="component-with-attr-prop-container"`)
+    expect(cssFile?.content).toContain(`.component-with-attr-prop-container {`)
+    expect(cssFile?.content).toContain(`align-self: center;`)
   })
 
   it('Generates nested styles in css', async () => {
-    const result = generator.generateComponent(ComponentWithNestedStyle as ComponentUIDL)
+    const result = generator.generateComponent(ComponentWithNestedStyle as unknown as ComponentUIDL)
 
     await expect(result).rejects.toThrow()
   })

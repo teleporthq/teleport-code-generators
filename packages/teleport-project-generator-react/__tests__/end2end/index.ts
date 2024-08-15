@@ -18,19 +18,19 @@ describe('Passes the rootClass which using the component', () => {
 
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
     const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
-    const views = srcFolder.subFolders.find((folder) => folder.name === 'views')
-    const components = srcFolder.subFolders.find((folder) => folder.name === 'components')
-    const mainFile = views.files.find(
+    const views = srcFolder?.subFolders.find((folder) => folder.name === 'views')
+    const components = srcFolder?.subFolders.find((folder) => folder.name === 'components')
+    const mainFile = views?.files.find(
       (file) => file.name === 'landing-page' && file.fileType === FileType.JS
     )
-    const styleFile = components.files.find(
+    const styleFile = components?.files.find(
       (file) => file.name === 'place-card' && file.fileType === FileType.CSS
     )
 
-    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name\"`)
-    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name1\"`)
-    expect(styleFile.content).toContain(`.place-card-root-class-name {`)
-    expect(styleFile.content).toContain(`.place-card-root-class-name1 {`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-name\"`)
+    expect(mainFile?.content).toContain(`rootClassName=\"place-cardroot-class-name1\"`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-name {`)
+    expect(styleFile?.content).toContain(`.place-cardroot-class-name1 {`)
   })
 })
 

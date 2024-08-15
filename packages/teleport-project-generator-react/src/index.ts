@@ -43,7 +43,6 @@ const createReactProjectGenerator = () => {
           templateStyle: 'jsx',
           declareDependency: 'import',
           classAttributeName: 'className',
-          forceScoping: true,
         }),
         reactAppRoutingPlugin,
         importStatementsPlugin,

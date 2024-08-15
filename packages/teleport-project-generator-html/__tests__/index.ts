@@ -27,8 +27,8 @@ describe('Passes the rootClass which using the component', () => {
     )
 
     expect(mainFile).toBeDefined()
-    expect(mainFile?.content).toContain(`place-card-root-class-name`)
-    expect(styleFile?.content).toContain(`place-card-root-class-name`)
+    expect(mainFile?.content).toContain(`root-class-name`)
+    expect(styleFile?.content).toContain(`root-class-name`)
   })
 })
 
@@ -66,7 +66,7 @@ describe('Image Resolution', () => {
     background-image: url("public/playground_assets/kitten.png");
   }
 }`)
-    expect(mainCSS?.content).toContain(`.comp-with-image-prop-bg-image-c {
+    expect(mainCSS?.content).toContain(`.comp-with-image-propbg-image-c {
   background-image: url("public/playground_assets/kitten.png");
 }`)
     expect(mainCSS?.content).toContain(`.home-div {

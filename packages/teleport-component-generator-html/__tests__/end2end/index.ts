@@ -24,7 +24,7 @@ describe('HTML Component Generator', () => {
             'container',
             {},
             [staticNode('Hello'), dynamicNode('prop', 'heading')],
-            null,
+            undefined,
             {
               width: staticNode('100px'),
             }
@@ -32,6 +32,7 @@ describe('HTML Component Generator', () => {
           { heading: { type: 'string', defaultValue: 'TeleportHQ' } }
         ),
       },
+      options: {},
     })
 
     const { files } = await generator.generateComponent(uidlSampleJSON)
@@ -40,8 +41,8 @@ describe('HTML Component Generator', () => {
 
     expect(jsFile).toBeDefined()
     expect(files.length).toBe(2)
-    expect(jsFile.content).toContain('./navbar.css')
-    expect(jsFile.content).toContain('<div class="sample-container">')
-    expect(cssFile.content).toContain(`.sample-container {`)
+    expect(jsFile?.content).toContain('./navbar.css')
+    expect(jsFile?.content).toContain('<div class="sample-container">')
+    expect(cssFile?.content).toContain(`.sample-container {`)
   })
 })

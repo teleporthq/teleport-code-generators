@@ -93,7 +93,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         styleSetDefinitions,
         cssMap,
         mediaStylesMap,
-        (styleName: string) => styleName
+        (styleName) => styleName
       )
     }
 

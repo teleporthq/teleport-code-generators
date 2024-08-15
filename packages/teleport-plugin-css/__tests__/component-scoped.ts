@@ -90,7 +90,7 @@ describe('Component Scoped Styles', () => {
     expect(
       jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
         .quasis[0].value.raw
-    ).toBe('md-8 primary-navbar ')
+    ).toBe('md-8 my-componentprimary-navbar ')
     expect(
       jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
         .expressions[0].property.name
@@ -148,7 +148,9 @@ describe('Component Scoped Styles', () => {
     const { chunks } = await plugin(structure)
     const hastComponent = chunks.find((chunk) => chunk.name === 'template')
 
-    expect(hastComponent.meta.nodesLookup.container.properties['class']).toBe('md-8 primary-navbar')
+    expect(hastComponent.meta.nodesLookup.container.properties['class']).toBe(
+      'md-8 my-componentprimary-navbar'
+    )
     expect(hastComponent.meta.nodesLookup.container.properties['v-bind:class']).toBe('variant')
   })
 })

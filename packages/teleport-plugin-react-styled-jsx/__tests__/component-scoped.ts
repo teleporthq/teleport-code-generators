@@ -38,7 +38,7 @@ describe('Component Scoped Styles', () => {
 
     expect(chunks.length).toBe(1)
     expect(styles).toContain('primary-navbar')
-    expect(styles).toContain('.secondary-navbar')
+    expect(styles).toContain('.my-componentsecondary-navbar')
   })
 
   it('Generates style sheet and adds them to the node with JSX template', async () => {

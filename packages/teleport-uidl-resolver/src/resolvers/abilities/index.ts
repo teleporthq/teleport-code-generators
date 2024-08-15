@@ -13,5 +13,6 @@ export const resolveAbilities = (uidl: ComponentUIDL, options: GeneratorOptions)
       }
     }
   }
+
   uidl.node = insertLinks(uidl.node, options)
 }

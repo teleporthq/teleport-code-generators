@@ -107,7 +107,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
     const generateStylesForElementNode = (element: UIDLElement) => {
-      const { style, key, referencedStyles, dependency, attrs = {} } = element
+      const { style, key, referencedStyles, dependency, attrs = {}, elementType } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
       const classNamesToAppend: Set<
         types.MemberExpression | types.Identifier | types.StringLiteral
@@ -118,7 +118,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           attrs,
           key,
           jsxNodesLookup: astNodesLookup,
-          getClassName: (styleName: string) => StringUtils.camelCaseToDashCase(styleName),
+          getClassName: (styleName: string) =>
+            StringUtils.camelCaseToDashCase(elementType + styleName),
         })
       }
 
@@ -295,7 +296,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         componentStyleSheet,
         cssClasses,
         mediaStylesMap,
-        (styleId: string) => StringUtils.camelCaseToDashCase(styleId)
+        (styleName: string) => StringUtils.camelCaseToDashCase(uidl.name + styleName)
       )
     }
 

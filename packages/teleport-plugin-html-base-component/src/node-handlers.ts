@@ -21,12 +21,14 @@ import {
   ComponentStructure,
   UIDLComponentOutputOptions,
   UIDLElement,
+  ElementsLookup,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { generateUniqueKeys, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
 const isValidURL = (url: string) => {
@@ -39,8 +41,32 @@ const isValidURL = (url: string) => {
   }
 }
 
+const addNodeToLookup = (
+  node: UIDLElementNode,
+  tag: HastNode | HastText,
+  nodesLoookup: Record<string, HastNode | HastText>,
+  hierarchy: string[] = []
+) => {
+  // In html code-generation we combine the nodes of the component that is being consumed with the current component.
+  // As html can't load the component at runtime like react or any other frameworks. So, we merge the component as a standalone
+  // component in the current component.
+  if (nodesLoookup[node.content.key]) {
+    throw new HTMLComponentGeneratorError(
+      `\n${hierarchy.join(' -> ')} \n
+Duplicate key found in nodesLookup: ${node.content.key} \n
+
+A node with the same key already exists\n
+Received \n\n ${JSON.stringify(tag)}\n ${JSON.stringify(node)}
+Existing \n\n ${JSON.stringify(nodesLoookup[node.content.key])} \n\n`
+    )
+  }
+
+  nodesLoookup[node.content.key] = tag
+}
+
 type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
+  componentName: string,
   nodesLookup: Record<string, HastNode | HastText>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -58,6 +84,7 @@ type NodeToHTML<NodeType, ReturnType> = (
 
 export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
   node,
+  compName,
   nodesLookup,
   propDefinitions,
   stateDefinitions,
@@ -78,6 +105,7 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
     case 'element':
       const elementNode = await generateElementNode(
         node,
+        compName,
         nodesLookup,
         propDefinitions,
         stateDefinitions,
@@ -89,13 +117,13 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
     case 'dynamic':
       const dynamicNode = await generateDynamicNode(
         node,
+        compName,
         nodesLookup,
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
         structure
       )
-
       return dynamicNode
 
     default:
@@ -111,6 +139,7 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
 const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
   node,
+  compName,
   nodesLookup,
   propDefinitions,
   stateDefinitions,
@@ -124,7 +153,6 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     style = {},
     referencedStyles = {},
     dependency,
-    key,
   } = node.content
   const { dependencies } = structure
   if (dependency && (dependency as UIDLDependency)?.type !== 'local') {
@@ -132,28 +160,23 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
   }
 
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
-    for (const attrKey of Object.keys(attrs)) {
-      const attr = attrs[attrKey]
-      if (attr.type === 'element') {
-        await generateElementNode(
-          attr,
-          nodesLookup,
-          propDefinitions,
-          stateDefinitions,
-          subComponentOptions,
-          structure
-        )
-      }
+    if (nodesLookup[node.content.key]) {
+      return nodesLookup[node.content.key]
     }
 
     const compTag = await generateComponentContent(
       node,
+      compName,
       nodesLookup,
       propDefinitions,
       stateDefinitions,
       subComponentOptions,
       structure
     )
+
+    if ('tagName' in compTag) {
+      compTag.children.unshift(HASTBuilders.createComment(`${node.content.semanticType} component`))
+    }
 
     return compTag
   }
@@ -164,6 +187,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     for (const child of children) {
       const childTag = await generateHtmlSyntax(
         child,
+        compName,
         nodesLookup,
         propDefinitions,
         stateDefinitions,
@@ -184,7 +208,6 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
       const refStyle = referencedStyles[styleRef]
       if (refStyle.content.mapType === 'inlined') {
         handleStyles(node, refStyle.content.styles, propDefinitions, stateDefinitions)
-        return
       }
     })
   }
@@ -203,12 +226,28 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     structure.outputOptions
   )
 
-  nodesLookup[key] = elementNode
+  addNodeToLookup(node, elementNode, nodesLookup, [compName])
   return elementNode
+}
+
+const createLookupTable = (
+  component: ComponentUIDL,
+  nodesLookup: Record<string, HastNode | HastText>
+): ElementsLookup => {
+  const lookup: ElementsLookup = {}
+  for (const node of Object.keys(nodesLookup)) {
+    lookup[node] = {
+      count: 1,
+      nextKey: '1',
+    }
+  }
+  createNodesLookup(component, lookup)
+  return lookup
 }
 
 const generateComponentContent = async (
   node: UIDLElementNode,
+  compName: string,
   nodesLookup: Record<string, HastNode | HastText>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -224,19 +263,18 @@ const generateComponentContent = async (
   }
 ) => {
   const { externals, plugins } = subComponentOptions
-  const { elementType, attrs = {}, key, children = [] } = node.content
+  const { elementType, attrs = {}, children = [] } = node.content
   const { dependencies, chunks = [], options } = structure
   // "Component" will not exist when generating a component because the resolver checks for illegal class names
-  const compName = elementType === 'Component' ? 'AppComponent' : elementType
-  const component = externals[compName]
+  const componentName = elementType === 'Component' ? 'AppComponent' : elementType
+  const component = externals[componentName]
   if (component === undefined) {
-    throw new HTMLComponentGeneratorError(`${compName} is missing from externals object`)
+    throw new HTMLComponentGeneratorError(`${componentName} is missing from externals object`)
   }
 
-  const componentClone = UIDLUtils.cloneObject(component) as ComponentUIDL
-  let compHasSlots: boolean = false
-  const templateLookup: Record<string, HastNode | HastText> = {}
+  const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
 
+  let compHasSlots: boolean = false
   if (children.length) {
     compHasSlots = true
     UIDLUtils.traverseNodes(componentClone.node, (childNode, parentNode) => {
@@ -249,6 +287,7 @@ const generateComponentContent = async (
             content: {
               key: 'custom-slot',
               elementType: 'slot',
+              name: componentClone.name + 'slot',
               style: {
                 display: {
                   type: 'static',
@@ -268,26 +307,37 @@ const generateComponentContent = async (
     node.content.children = []
   }
 
-  const combinedProps = { ...propDefinitions, ...(componentClone?.propDefinitions || {}) }
-  const propsForInstance: Record<string, UIDLPropDefinition> = {}
+  // In UIDL, we define only the link between a component and a page.
+  // We define this link using the UIDLLocalDependency approach.
+  // So, during the page resolution step, where we ideally generate the unique keys for the components.
+  // We can't generate the unique keys for the components because we don't have the full UIDL of the component.
+  // When we are using components in a page, the `addExternalComponents` step of the
+  // html-component-generator will add the full UIDL of the component to the externals object after resolving them.
+  // But when a component is used multiple number of times, we are basically using the same nodes again and again.
+  // Which indivates duplication. So, we create a lookup table of all the nodes present with us in the page
+  // And then pass it to the component to avoid any coilissions.
+  const lookupTableForCurrentPage = createLookupTable(componentClone, nodesLookup)
+  generateUniqueKeys(componentClone, lookupTableForCurrentPage)
 
-  for (const propKey of Object.keys(combinedProps)) {
-    // If the attribute is a named-slot, then we can directly pass the value instead of just the content
-    if (attrs[propKey]?.type === 'element') {
-      propsForInstance[propKey] = {
-        ...combinedProps[propKey],
-        defaultValue: attrs[propKey],
-      }
-    } else if (attrs[propKey]) {
-      propsForInstance[propKey] = {
-        ...combinedProps[propKey],
-        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
-      }
-    } else {
-      propsForInstance[propKey] = combinedProps[propKey]
-    }
+  // We are combining props of the current component
+  // with props of the component that we need to generate.
+  // Refer to line 309, for element props. We either pick from the attr of the current instance of component
+  // or from the propDefinitions of the component that we are generating.
+  // We don't need to keep passing the props of the current component to the child component and so on
+  // for the case of element nodes in attributes or propDefinitions.
+  const combinedProps: Record<string, UIDLPropDefinition> = {
+    ...Object.keys(propDefinitions).reduce<Record<string, UIDLPropDefinition>>(
+      (acc: Record<string, UIDLPropDefinition>, propKey) => {
+        if (propDefinitions[propKey]?.type === 'element') {
+          return acc
+        }
+        acc[propKey] = propDefinitions[propKey]
+        return acc
+      },
+      {}
+    ),
+    ...(componentClone?.propDefinitions || {}),
   }
-
   const combinedStates = { ...stateDefinitions, ...(componentClone?.stateDefinitions || {}) }
   const statesForInstance = Object.keys(combinedStates).reduce(
     (acc: Record<string, UIDLStateDefinition>, propKey) => {
@@ -305,7 +355,67 @@ const generateComponentContent = async (
     {}
   )
 
-  let componentWrapper = StringUtils.camelCaseToDashCase(`${compName}-wrapper`)
+  const propsForInstance: Record<string, UIDLPropDefinition> = {}
+  // this is where we check if the component we are conusming is actually passing any props to the instance.
+  // We check if we are passing any props and pick the value from the atrrs, if not we pick the value from the propDefinitions of
+  // the component instance that we are using here.
+  for (const propKey of Object.keys(combinedProps)) {
+    const prop = attrs[propKey]
+    if (prop?.type === 'element') {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attrs[propKey],
+      }
+      await generateHtmlSyntax(
+        attrs[propKey] as UIDLElementNode,
+        component.name,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure
+      )
+    } else if (prop?.type === 'dynamic') {
+      // When we are using a component instance in a component and the attribute
+      // that is passed to the component is of dynamic reference.
+      // If means, the component is redirecting the prop that is received to the prop of the component that it is consuming.
+      // In this case, we need to pass the value of the prop that is received to the prop of the component that it is consuming.
+      // And similary we do the same for the states.
+      switch (prop.content.referenceType) {
+        case 'prop':
+          propsForInstance[propKey] = combinedProps[propKey]
+          break
+        case 'state':
+          propsForInstance[propKey] = combinedStates[propKey]
+          break
+        default:
+          throw new Error(
+            `ReferenceType ${prop.content.referenceType} is not supported in HTML Export.`
+          )
+      }
+    } else if (prop) {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+      }
+    } else {
+      const propFromCurrentComponent = combinedProps[propKey]
+      if (propFromCurrentComponent.type === 'element' && propFromCurrentComponent.defaultValue) {
+        await generateHtmlSyntax(
+          propFromCurrentComponent.defaultValue as UIDLElementNode,
+          component.name,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+      }
+      propsForInstance[propKey] = propFromCurrentComponent
+    }
+  }
+
+  let componentWrapper = StringUtils.camelCaseToDashCase(`${componentName}-wrapper`)
   const isExistingNode = nodesLookup[componentWrapper]
   if (isExistingNode !== undefined) {
     componentWrapper = `${componentWrapper}-${StringUtils.generateRandomString()}`
@@ -328,7 +438,8 @@ const generateComponentContent = async (
 
   const compTag = await generateHtmlSyntax(
     componentInstanceToGenerate,
-    templateLookup,
+    component.name,
+    nodesLookup,
     propsForInstance,
     statesForInstance,
     subComponentOptions,
@@ -339,7 +450,6 @@ const generateComponentContent = async (
     templateStyle: 'html',
     templateChunkName: DEFAULT_COMPONENT_CHUNK_NAME,
     declareDependency: 'import',
-    forceScoping: true,
     chunkName: componentClone.name,
     staticPropReferences: true,
   })
@@ -359,7 +469,7 @@ const generateComponentContent = async (
         linkAfter: [],
         content: compTag,
         meta: {
-          nodesLookup: templateLookup,
+          nodesLookup,
         },
       },
     ],
@@ -394,34 +504,34 @@ const generateComponentContent = async (
     }
   }
 
-  nodesLookup[key] = compTag
+  addNodeToLookup(node, compTag, nodesLookup, [compName, component.name])
   return compTag
 }
 
-const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode>> = async (
+const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | HastText>> = async (
   node,
+  /* tslint:disable variable-name */
+  _compName,
   nodesLookup,
   propDefinitions,
-  stateDefinitions,
-  subComponentOptions,
-  structure
-): Promise<HastNode> => {
+  stateDefinitions
+): Promise<HastNode | HastText> => {
   const usedReferenceValue = getValueFromReference(
     node.content.id,
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
 
   if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue) {
-    const slotNode = await generateElementNode(
-      usedReferenceValue.defaultValue as UIDLElementNode,
-      nodesLookup,
-      propDefinitions,
-      stateDefinitions,
-      subComponentOptions,
-      structure
-    )
+    const elementNode = usedReferenceValue.defaultValue as UIDLElementNode
 
-    return slotNode as HastNode
+    if (elementNode.content.key in nodesLookup) {
+      return nodesLookup[elementNode.content.key]
+    }
+
+    const spanTagWrapper = HASTBuilders.createHTMLNode('span')
+    const commentNode = HASTBuilders.createComment(`Content for slot ${node.content.id}`)
+    HASTUtils.addChildNode(spanTagWrapper, commentNode)
+    return spanTagWrapper
   }
 
   if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue === undefined) {

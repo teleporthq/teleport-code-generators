@@ -26,7 +26,7 @@ describe('React Component Generator', () => {
       expect(result.files).toBeDefined()
       expect(Array.isArray(result.files)).toBeTruthy()
       expect(result.files.length).toBeTruthy()
-      expect(jsFile.content).toContain('import React')
+      expect(jsFile?.content).toContain('import React')
       expect(result.dependencies).toBeDefined()
     })
   })
@@ -42,7 +42,7 @@ describe('React Component Generator', () => {
 
       expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import React')
+      expect(jsFile?.content).toContain('import React')
       expect(result.dependencies).toBeDefined()
     })
   })
@@ -58,7 +58,7 @@ describe('React Component Generator', () => {
 
       expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import React')
+      expect(jsFile?.content).toContain('import React')
       expect(result.dependencies).toBeDefined()
     })
   })
