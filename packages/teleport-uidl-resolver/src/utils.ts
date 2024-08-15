@@ -379,12 +379,13 @@ const generateKeysForElement = (compName: string, element: UIDLElement, lookup: 
     // footer1-link footer1-link1 footer1-link2 footer1-link3 and so on.
     // If you notice now two nodes ended by becoming same `footer1-link1` and `footer1-link1`. But not set by user.
     // So, we make sure even after appending the occurance we are not coliding with any other key.
-    while (lookup[newKey]) {
+    while (lookup[newKey] || newKey === name) {
       currentKey = generateNextIncrementalKey(currentKey)
       newKey = generateKey(name, currentKey)
     }
 
     element.key = newKey
+    lookup[newKey] = { count: 1, nextKey: generateNextIncrementalKey(currentKey) }
     nodeOccurrence.nextKey = generateNextIncrementalKey(currentKey)
   }
 }
