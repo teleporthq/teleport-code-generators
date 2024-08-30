@@ -13,6 +13,9 @@ import {
   getContentOfStyleObject,
   getCSSVariablesContentFromTokenStyles,
 } from '../utils/style-utils'
+import { isJSXElement } from '../utils/ast-utils'
+import { isHastElement } from '../utils/hast-utils'
+
 jss.setup(preset())
 
 export const createCSSClass = (key: string, styleObject: Record<string, string | number>) => {
@@ -210,39 +213,21 @@ export const setPropValueForCompStyle = (params: {
   getClassName: (str: string) => string
 }) => {
   const { attrs, jsxNodesLookup, key, templateStyle = 'jsx', getClassName } = params
-  Object.keys(attrs).forEach((attr) => {
-    if (attrs[attr].type !== 'comp-style') {
-      return
-    }
-
-    if (templateStyle === 'jsx') {
+  Object.keys(attrs)
+    .filter((attr) => attrs[attr].type === 'comp-style')
+    .forEach((attr) => {
       const compInstanceNode = jsxNodesLookup[key]
-      if (
-        compInstanceNode.type !== 'JSXElement' ||
-        'openingElement' in compInstanceNode === false
-      ) {
-        return
-      }
 
-      ;(compInstanceNode as types.JSXElement).openingElement?.attributes.forEach(
-        (attribute: types.JSXAttribute) => {
-          if (
-            attribute.name?.name === attr &&
-            attribute.value.type === 'StringLiteral' &&
-            attribute.value?.value
-          ) {
+      if (templateStyle === 'jsx' && isJSXElement(compInstanceNode)) {
+        compInstanceNode.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
+          if (attribute.value.type === 'StringLiteral' && attribute.value?.value) {
             attribute.value.value = getClassName(attribute.value.value)
           }
-        }
-      )
-    }
-
-    if (templateStyle === 'html') {
-      const compInstanceNode = jsxNodesLookup[key] as HastNode
-      if (!compInstanceNode?.properties[attr]) {
-        return
+        })
       }
-      compInstanceNode.properties[attr] = getClassName(String(compInstanceNode.properties[attr]))
-    }
-  })
+
+      if (templateStyle === 'html' && isHastElement(compInstanceNode)) {
+        compInstanceNode.properties[attr] = getClassName(String(compInstanceNode.properties[attr]))
+      }
+    })
 }

@@ -12,6 +12,7 @@ import {
   UIDLPropValue,
   UIDLExpressionValue,
   UIDLStateValue,
+  HastNode,
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
 
@@ -1084,3 +1085,6 @@ export const getExpressionFromUIDLExpressionNode = (
 
   return theStatementOnlyWihtoutTheProgram.expression
 }
+
+export const isJSXElement = (value: types.JSXElement | HastNode): value is types.JSXElement =>
+  value.type === 'JSXElement'
