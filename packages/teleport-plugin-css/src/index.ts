@@ -71,7 +71,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       (chunk) => chunk.name === componentDecoratorChunkName
     )
 
-    const templateLookup = templateChunk.meta.nodesLookup as Record<
+    const jsxNodesLookup = templateChunk.meta.nodesLookup as Record<
       string,
       HastNode | types.JSXElement
     >
@@ -93,18 +93,20 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         style = {},
         key,
         referencedStyles = {},
-        dependency,
         attrs = {},
         elementType,
+        dependency,
       } = element
 
+      // Refer to line 323 all component scoped styles are appended with component name by default
       if (dependency?.type === 'local') {
-        // Refer to line 323 all component scoped styles are appended with component name by default
         StyleBuilders.setPropValueForCompStyle({
           attrs,
           key,
-          jsxNodesLookup: templateLookup,
+          jsxNodesLookup,
           templateStyle,
+          // elementType is used here in-order to target the component name that the class is actually defined.
+          // Here we are appendigng to the node where the component is being called.
           getClassName: (styleName: string) =>
             StringUtils.camelCaseToDashCase(elementType + styleName),
         })
@@ -118,7 +120,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         return
       }
 
-      const root = templateLookup[key]
+      const root = jsxNodesLookup[key]
       if (!root) {
         throw new PluginCSS(
           `Element \n ${JSON.stringify(
@@ -212,21 +214,21 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 propDefinitions[styleRef.content.content.content.id]?.defaultValue
 
               if (defaultPropValue) {
-                /* Changing the default value of the prop.
-                  When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
                 propDefinitions[styleRef.content.content.content.id].defaultValue =
                   StringUtils.camelCaseToDashCase(String(defaultPropValue))
               }
 
+              // staticPropReferences flag is only used for just html-code generation.
+              // This is used to append the class name to the node where the component is being called.
+              // Instead of how frameworks handle them using props at runtime. This makes the props
+              // to behave statically during the generation time instead by appending them directly.
               if (staticPropReferences) {
-                if (
-                  defaultPropValue === undefined ||
-                  typeof defaultPropValue !== 'string' ||
-                  defaultPropValue.length === 0
-                ) {
+                if (defaultPropValue === undefined || typeof defaultPropValue !== 'string') {
                   return
                 }
-                classNamesToAppend.add(StringUtils.camelCaseToDashCase(defaultPropValue))
+                classNamesToAppend.add(
+                  StringUtils.camelCaseToDashCase(uidl.name + defaultPropValue)
+                )
               } else {
                 dynamicVariantsToAppend.add(styleRef.content.content.content.id)
               }
