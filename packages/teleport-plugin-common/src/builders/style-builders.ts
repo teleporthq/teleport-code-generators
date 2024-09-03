@@ -207,19 +207,16 @@ export const generateStylesFromStyleSetDefinitions = (
 
 export const setPropValueForCompStyle = (params: {
   attrs: Record<string, UIDLAttributeValue>
-  key: string
-  jsxNodesLookup: Record<string, types.JSXElement | HastNode>
+  root: types.JSXElement | HastNode
   templateStyle?: 'jsx' | 'html'
   getClassName: (str: string) => string
 }) => {
-  const { attrs, jsxNodesLookup, key, templateStyle = 'jsx', getClassName } = params
+  const { attrs, root, templateStyle = 'jsx', getClassName } = params
   Object.keys(attrs)
     .filter((attr) => attrs[attr].type === 'comp-style')
     .forEach((attr) => {
-      const compInstanceNode = jsxNodesLookup[key]
-
-      if (templateStyle === 'jsx' && isJSXElement(compInstanceNode)) {
-        compInstanceNode.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
+      if (templateStyle === 'jsx' && isJSXElement(root)) {
+        root.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
           if (
             attribute.value.type === 'StringLiteral' &&
             attribute.value?.value &&
@@ -230,8 +227,8 @@ export const setPropValueForCompStyle = (params: {
         })
       }
 
-      if (templateStyle === 'html' && isHastElement(compInstanceNode)) {
-        compInstanceNode.properties[attr] = getClassName(String(compInstanceNode.properties[attr]))
+      if (templateStyle === 'html' && isHastElement(root)) {
+        root.properties[attr] = getClassName(String(root.properties[attr]))
       }
     })
 }
