@@ -2,6 +2,7 @@ import { createCSSModulesPlugin } from '../src'
 import { staticNode, elementNode, component } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createComponentChunk } from './mocks'
+import { JSXElement } from '@babel/types'
 
 describe('Component Scoped Styles', () => {
   const uidl = component('MYComponent', elementNode('container', {}, [], null, {}), {}, {})
@@ -85,8 +86,8 @@ describe('Component Scoped Styles', () => {
 
     const { chunks } = await plugin(structure)
     const jsxComponent = chunks.find((chunk) => chunk.name === 'jsx-component')
-    const jsxExpressions =
-      jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
+    const jsxExpressions = (jsxComponent?.meta?.nodesLookup?.container as unknown as JSXElement)
+      .openingElement.attributes[0]?.value.expression
 
     expect(jsxExpressions.quasis.length).toBe(4)
     expect(jsxExpressions.expressions[0]?.value).toBe('md-8')

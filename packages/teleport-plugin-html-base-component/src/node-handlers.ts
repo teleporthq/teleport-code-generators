@@ -160,10 +160,6 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
   } = node.content
   const { dependencies } = structure
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
-    if (nodesLookup[elementType]) {
-      return nodesLookup[elementType]
-    }
-
     const compTag = await generateComponentContent(
       node,
       compName,
@@ -278,9 +274,7 @@ const generateComponentContent = async (
 
   const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
 
-  let compHasSlots: boolean = false
   if (children.length) {
-    compHasSlots = true
     UIDLUtils.traverseNodes(componentClone.node, (childNode, parentNode) => {
       if (childNode.type === 'slot' && parentNode.type === 'element') {
         const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
@@ -489,26 +483,13 @@ const generateComponentContent = async (
     Promise.resolve(initialStructure)
   )
 
-  if (compHasSlots) {
-    result.chunks.forEach((chunk) => {
-      if (chunk.fileType === FileType.CSS) {
-        chunks.push(chunk)
-      }
-    })
-  } else {
-    const chunk = chunks.find((item) => item.name === componentClone.name)
-    if (!chunk) {
-      const styleChunk = result.chunks.find(
-        (item: ChunkDefinition) => item.fileType === FileType.CSS
-      )
-      if (!styleChunk) {
-        return
-      }
-      chunks.push(styleChunk)
+  result.chunks.forEach((chunk) => {
+    if (chunk.fileType === FileType.CSS) {
+      chunks.push(chunk)
     }
-  }
+  })
 
-  addNodeToLookup(elementType, node, compTag, nodesLookup, [compName, component.name])
+  addNodeToLookup(node.content.key, node, compTag, nodesLookup, [compName, component.name])
   return compTag
 }
 

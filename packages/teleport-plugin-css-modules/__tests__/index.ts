@@ -227,12 +227,12 @@ describe('plugin-css-modules', () => {
     const jsxChunk = result.chunks.find((chunk) => chunk.fileType === 'js')
     const cssFile = result.chunks.find((file) => file.fileType === 'css')
 
-    const nodeReference = jsxChunk.meta.nodesLookup.container
-    const styleAttr = nodeReference.openingElement.attributes[0]
+    const nodeReference = jsxChunk?.meta?.nodesLookup?.container
+    const styleAttr = nodeReference?.openingElement?.attributes?.[0]
 
     expect(cssFile).toBeDefined()
     expect(jsxChunk).toBeDefined()
-    expect(nodeReference.openingElement.attributes.length).toBe(1)
+    expect(nodeReference?.openingElement?.attributes?.length).toBe(1)
     expect(styleAttr.value.expression.quasis.length).toBe(3)
     expect(styleAttr.value.expression.expressions.length).toBe(2)
   })
