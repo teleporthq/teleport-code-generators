@@ -77,15 +77,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const componentStyleReferences: Set<string> = new Set()
       const projectStyleReferences: Set<string> = new Set()
 
-      if (dependency?.type === 'local') {
-        StyleBuilders.setPropValueForCompStyle({
-          attrs,
-          key,
-          jsxNodesLookup,
-          getClassName,
-        })
-      }
-
       const root = jsxNodesLookup[key]
       if (root === undefined) {
         throw new PluginStyledComponent(
@@ -95,6 +86,14 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
             2
           )} \n with key ${key} is missing from the template chunk`
         )
+      }
+
+      if (dependency?.type === 'local') {
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          root,
+          getClassName,
+        })
       }
 
       let className = StringUtils.dashCaseToUpperCamelCase(key)

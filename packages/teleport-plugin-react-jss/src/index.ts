@@ -32,6 +32,7 @@ import {
   convertMediaAndStylesToObject,
 } from './utils'
 import { createStyleSheetPlugin } from './style-sheet'
+import { isJSXElement } from '@teleporthq/teleport-plugin-common/dist/cjs/utils/ast-utils'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -75,11 +76,16 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
     const generateStylesForElementNode = (element: UIDLElement) => {
       const { style, key, referencedStyles, dependency, attrs = {} } = element
+
+      const jsxTag = jsxNodesLookup[key]
+      if (!jsxTag || !isJSXElement(jsxTag)) {
+        return
+      }
+
       if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
           attrs,
-          key,
-          jsxNodesLookup,
+          root: jsxTag,
           getClassName,
         })
       }
@@ -88,11 +94,6 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         Object.keys(style || {}).length === 0 &&
         Object.keys(referencedStyles || {}).length === 0
       ) {
-        return
-      }
-
-      const jsxTag = jsxNodesLookup[key] as types.JSXElement
-      if (!jsxTag) {
         return
       }
 

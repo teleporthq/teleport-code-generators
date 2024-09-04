@@ -13,12 +13,17 @@ export const createComponentChunk = (elementKey: string = 'container') => {
     meta: {
       nodesLookup: {
         [elementKey]: {
+          type: 'JSXElement',
           openingElement: {
+            type: 'JSXOpeningElement',
             name: {
+              type: 'JSXIdentifier',
               name: '',
             },
+            selfClosing: false,
             attributes: [],
           },
+          children: [],
         },
       },
       dynamicRefPrefix: {
@@ -36,12 +41,12 @@ export const createComponentChunk = (elementKey: string = 'container') => {
 
 export const setupPluginStructure = (
   elementKey: string = 'container',
-  styleDefinition: UIDLStyleDefinitions = null
+  styleDefinition?: UIDLStyleDefinitions
 ) => {
   const style = styleDefinition || {
     height: staticNode('100px'),
   }
-  const element = elementNode('container', {}, [], null, style)
+  const element = elementNode('container', {}, [], undefined, style)
   element.content.key = elementKey
   const uidlSample = component('CSSModules', element)
 

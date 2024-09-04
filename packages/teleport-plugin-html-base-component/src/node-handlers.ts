@@ -42,6 +42,7 @@ const isValidURL = (url: string) => {
 }
 
 const addNodeToLookup = (
+  key: string,
   node: UIDLElementNode,
   tag: HastNode | HastText,
   nodesLoookup: Record<string, HastNode | HastText>,
@@ -50,18 +51,18 @@ const addNodeToLookup = (
   // In html code-generation we combine the nodes of the component that is being consumed with the current component.
   // As html can't load the component at runtime like react or any other frameworks. So, we merge the component as a standalone
   // component in the current component.
-  if (nodesLoookup[node.content.key]) {
+  if (nodesLoookup[key]) {
     throw new HTMLComponentGeneratorError(
       `\n${hierarchy.join(' -> ')} \n
 Duplicate key found in nodesLookup: ${node.content.key} \n
 
 A node with the same key already exists\n
 Received \n\n ${JSON.stringify(tag)}\n ${JSON.stringify(node)}
-Existing \n\n ${JSON.stringify(nodesLoookup[node.content.key])} \n\n`
+Existing \n\n ${JSON.stringify(nodesLoookup[key])} \n\n`
     )
   }
 
-  nodesLoookup[node.content.key] = tag
+  nodesLoookup[key] = tag
 }
 
 type NodeToHTML<NodeType, ReturnType> = (
@@ -126,6 +127,9 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       )
       return dynamicNode
 
+    case 'conditional':
+      return HASTBuilders.createComment('Conditional nodes are not supported in HTML')
+
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -155,15 +159,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     dependency,
   } = node.content
   const { dependencies } = structure
-  if (dependency && (dependency as UIDLDependency)?.type !== 'local') {
-    dependencies[dependency.path] = dependency
-  }
-
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
-    if (nodesLookup[node.content.key]) {
-      return nodesLookup[node.content.key]
-    }
-
     const compTag = await generateComponentContent(
       node,
       compName,
@@ -179,6 +175,10 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     }
 
     return compTag
+  }
+
+  if (dependency && (dependency as UIDLDependency)?.type !== 'local') {
+    dependencies[dependency.path] = dependency
   }
 
   const elementNode = HASTBuilders.createHTMLNode(elementType)
@@ -226,7 +226,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     structure.outputOptions
   )
 
-  addNodeToLookup(node, elementNode, nodesLookup, [compName])
+  addNodeToLookup(node.content.key, node, elementNode, nodesLookup, [compName])
   return elementNode
 }
 
@@ -274,9 +274,7 @@ const generateComponentContent = async (
 
   const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
 
-  let compHasSlots: boolean = false
   if (children.length) {
-    compHasSlots = true
     UIDLUtils.traverseNodes(componentClone.node, (childNode, parentNode) => {
       if (childNode.type === 'slot' && parentNode.type === 'element') {
         const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
@@ -485,26 +483,13 @@ const generateComponentContent = async (
     Promise.resolve(initialStructure)
   )
 
-  if (compHasSlots) {
-    result.chunks.forEach((chunk) => {
-      if (chunk.fileType === FileType.CSS) {
-        chunks.push(chunk)
-      }
-    })
-  } else {
-    const chunk = chunks.find((item) => item.name === componentClone.name)
-    if (!chunk) {
-      const styleChunk = result.chunks.find(
-        (item: ChunkDefinition) => item.fileType === FileType.CSS
-      )
-      if (!styleChunk) {
-        return
-      }
-      chunks.push(styleChunk)
+  result.chunks.forEach((chunk) => {
+    if (chunk.fileType === FileType.CSS) {
+      chunks.push(chunk)
     }
-  }
+  })
 
-  addNodeToLookup(node, compTag, nodesLookup, [compName, component.name])
+  addNodeToLookup(node.content.key, node, compTag, nodesLookup, [compName, component.name])
   return compTag
 }
 

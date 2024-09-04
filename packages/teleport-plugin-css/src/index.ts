@@ -98,12 +98,16 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         dependency,
       } = element
 
+      const root = jsxNodesLookup[key]
+      if (!root) {
+        return
+      }
+
       // Refer to line 323 all component scoped styles are appended with component name by default
       if (dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
           attrs,
-          key,
-          jsxNodesLookup,
+          root,
           templateStyle,
           // elementType is used here in-order to target the component name that the class is actually defined.
           // Here we are appendigng to the node where the component is being called.
@@ -118,17 +122,6 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         Object.keys(componentStyleSet).length === 0
       ) {
         return
-      }
-
-      const root = jsxNodesLookup[key]
-      if (!root) {
-        throw new PluginCSS(
-          `Element \n ${JSON.stringify(
-            element,
-            null,
-            2
-          )} \n with key ${key} is missing from the template chunk of component ${uidl.name}`
-        )
       }
 
       const className = StringUtils.camelCaseToDashCase(key)
