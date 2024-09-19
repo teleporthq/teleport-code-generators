@@ -339,10 +339,15 @@ const generateComponentContent = async (
   const combinedStates = { ...stateDefinitions, ...(componentClone?.stateDefinitions || {}) }
   const statesForInstance = Object.keys(combinedStates).reduce(
     (acc: Record<string, UIDLStateDefinition>, propKey) => {
-      if (attrs[propKey]) {
+      const attr = attrs[propKey]
+      if (attr.type === 'object') {
+        throw new Error(`Object attributes are not supported in html exports`)
+      }
+
+      if (attr) {
         acc[propKey] = {
           ...combinedStates[propKey],
-          defaultValue: attrs[propKey]?.content || combinedStates[propKey]?.defaultValue,
+          defaultValue: attr?.content || combinedStates[propKey]?.defaultValue,
         }
       } else {
         acc[propKey] = combinedStates[propKey]
@@ -359,6 +364,10 @@ const generateComponentContent = async (
   // the component instance that we are using here.
   for (const propKey of Object.keys(combinedProps)) {
     const prop = attrs[propKey]
+    if (prop?.type === 'object') {
+      throw new Error(`Object attributes are not supported in html exports`)
+    }
+
     if (prop?.type === 'element') {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
@@ -394,7 +403,7 @@ const generateComponentContent = async (
     } else if (prop) {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
-        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+        defaultValue: prop?.content || combinedProps[propKey]?.defaultValue,
       }
     } else {
       const propFromCurrentComponent = combinedProps[propKey]
