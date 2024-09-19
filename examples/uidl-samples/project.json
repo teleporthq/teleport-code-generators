@@ -561,100 +561,27 @@
                                       {
                                           "type": "element",
                                           "content": {
-                                              "elementType": "lottie-node",
-                                              "style": {
-                                                  "width": "200px",
-                                                  "height": "200px"
+                                              "elementType": "component",
+                                              "dependency": {
+                                                  "type": "local"
                                               },
                                               "attrs": {
-                                                  "src": {
-                                                      "type": "static",
-                                                      "content": "https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json"
-                                                  },
-                                                  "autoplay": {
-                                                      "type": "static",
-                                                      "content": true
+                                                "fields": {
+                                                  "type": "object",
+                                                  "content": {
+                                                    "thumbnail": {
+                                                      "src": "https://picsum.photos/300/200",
+                                                      "alt": "Custom"
+                                                    },
+                                                    "Title": "Custom Name",
+                                                    "Description": "This is a description that belongs to this component instance"
                                                   }
-                                              }
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
-                                              "elementType": "component",
-                                              "dependency": {
-                                                  "type": "local"
+                                                }
                                               },
                                               "referencedStyles": {},
                                               "abilities": {},
                                               "children": [],
-                                              "semanticType": "Header"
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
-                                              "elementType": "component",
-                                              "dependency": {
-                                                  "type": "local"
-                                              },
-                                              "referencedStyles": {},
-                                              "abilities": {},
-                                              "children": [],
-                                              "attrs": {
-                                                  "namedSlot": {
-                                                    "type": "element",
-                                                    "content": {
-                                                      "elementType": "container",
-                                                      "style": {
-                                                        "fontSize": "24px",
-                                                        "padding": "20px",
-                                                        "backgroundColor": {
-                                                          "type": "dynamic",
-                                                          "content": {
-                                                            "referenceType": "token",
-                                                            "id": "--dl-color-success-700"
-                                                          }
-                                                        }
-                                                      },
-                                                      "children": [
-                                                        "This is amazing, because this is a named-slot",
-                                                        {
-                                                          "type": "element",
-                                                          "content": {
-                                                            "elementType": "container",
-                                                            "style": {
-                                                              "padding": "20px",
-                                                              "backgroundColor": {
-                                                                "type": "dynamic",
-                                                                "content": {
-                                                                  "referenceType": "token",
-                                                                  "id": "--dl-color-danger-700"
-                                                                }
-                                                              },
-                                                              "marginTop": "20px"
-                                                            },
-                                                            "children": ["And can be nested any number of levels"]
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  }
-                                              },
-                                              "semanticType": "Hero"
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
-                                              "elementType": "component",
-                                              "dependency": {
-                                                  "type": "local"
-                                              },
-                                              "referencedStyles": {},
-                                              "abilities": {},
-                                              "children": [],
-                                              "semanticType": "Footer"
+                                              "semanticType": "Component"
                                           }
                                       }
                                   ],
@@ -5289,7 +5216,14 @@
   },
   "components": {
       "Component": {
-          "propDefinitions": {},
+          "propDefinitions": {
+            "fields": {
+              "type": "object",
+              "defaultValue": {
+                "Title": "Hello World !"
+              }
+            }
+          },
           "node": {
               "type": "element",
               "content": {
@@ -5324,35 +5258,20 @@
                   },
                   "children": [
                     {
-                        "type": "element",
-                        "content": {
-                            "elementType": "html-node",
-                            "attrs": {
-                                "html": {
-                                    "type": "raw",
-                                    "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don't Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script src='https://platform.twitter.com/widgets.js'></script>"
-                                }
-                            }
-                        }
-                    },
-                    {
                       "type": "element",
                       "content": {
-                          "elementType": "html-node",
-                          "attrs": {
-                              "html": {
-                                  "type": "raw",
-                                  "content": "<p>Test<script>console.log('test')</script></p>"
-                              }
-                          },
-                          "styles": {
-                              "width": {
-                                  "type": "static",
-                                  "content": "400px"
-                              }
+                        "elementType": "container",
+                        "children": [
+                          {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "prop",
+                              "id": "fields.Title"
+                            }
                           }
+                        ]
                       }
-                  }
+                    }
                   ],
                   "semanticType": "div"
               }
