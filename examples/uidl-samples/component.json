@@ -12,6 +12,15 @@
         "width": 30
       }
     },
+    "company": {
+      "type": "object",
+      "defaultValue": {
+        "name": "teleportHQ",
+        "location": {
+          "city": "Cluj"
+        }
+      }
+    },
     "url": {
       "type": "string",
       "defaultValue": "http://lorempixel.com/150/150/"
@@ -88,6 +97,20 @@
               "margin": "auto",
               "border-radius": "100%"
             }
+          }
+        },
+        {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "company.name"
+          }
+        },
+        {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "company.location.city"
           }
         },
         {

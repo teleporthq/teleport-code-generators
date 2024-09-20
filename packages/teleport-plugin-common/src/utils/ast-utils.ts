@@ -419,7 +419,7 @@ export const getTSAnnotationForType = (type: any, t = types) => {
     case 'boolean':
       return t.tsBooleanKeyword()
     default:
-      return t.tsUnknownKeyword()
+      return t.tsAnyKeyword()
   }
 }
 
