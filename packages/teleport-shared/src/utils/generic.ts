@@ -89,6 +89,12 @@ export const dynamicPathExistsInDefinitions = (
     return acc
   }, {} as Record<string, unknown>)
 
+  // If the first key does not exist in the object, return true.
+  // Which means there might not be a defaultValue that is set for the prop/state
+  if (!(pathKeys[0] in obj)) {
+    return true
+  }
+
   for (const key of pathKeys) {
     // Check if the key exists in the current object
     // NOTE: using 'key in obj' instead of 'obj[key]' is important to avoid returning 'false' when path exists, but value is empty string/undefined/null
@@ -101,4 +107,17 @@ export const dynamicPathExistsInDefinitions = (
   }
 
   return true
+}
+
+/* tslint:disable no-any */
+export const getValueFromPath = (path: string, definition: Record<string, any> = {}): any => {
+  const pathKeys = path.split(/\.|\[(['"]?)(.+?)\1\]/).filter(Boolean)
+
+  /* tslint:disable no-any */
+  return pathKeys.reduce((acc: any, key: string) => {
+    if (acc === undefined || acc === null) {
+      return undefined
+    }
+    return acc[key]
+  }, definition)
 }
