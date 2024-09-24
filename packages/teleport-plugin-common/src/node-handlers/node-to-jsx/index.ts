@@ -565,10 +565,11 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
       : node.content.condition
 
   const conditionIdentifier = createConditionIdentifier(reference, params, options)
-
-  return subTrees.map((subTree) =>
+  const conditionalExpressions: types.LogicalExpression[] = subTrees.map((subTree) =>
     createConditionalJSXExpression(subTree, condition, conditionIdentifier)
   )
+
+  return conditionalExpressions
 }
 
 const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXElement[]> = (
