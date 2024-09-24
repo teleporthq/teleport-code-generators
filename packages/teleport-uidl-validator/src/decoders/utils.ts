@@ -758,7 +758,7 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
     node: lazy(() => uidlNodeDecoder),
     reference: union(dynamicValueDecoder, expressionValueDecoder),
     importDefinitions: optional(dict(externaldependencyDecoder)),
-    value: union(string(), number(), boolean()),
+    value: optional(union(string(), number(), boolean())),
     condition: optional(
       object({
         conditions: array(
