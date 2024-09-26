@@ -25,7 +25,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { generateUniqueKeys, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
@@ -339,10 +339,15 @@ const generateComponentContent = async (
   const combinedStates = { ...stateDefinitions, ...(componentClone?.stateDefinitions || {}) }
   const statesForInstance = Object.keys(combinedStates).reduce(
     (acc: Record<string, UIDLStateDefinition>, propKey) => {
-      if (attrs[propKey]) {
+      const attr = attrs[propKey]
+      if (attr.type === 'object') {
+        throw new Error(`Object attributes are not supported in html exports`)
+      }
+
+      if (attr) {
         acc[propKey] = {
           ...combinedStates[propKey],
-          defaultValue: attrs[propKey]?.content || combinedStates[propKey]?.defaultValue,
+          defaultValue: attr?.content || combinedStates[propKey]?.defaultValue,
         }
       } else {
         acc[propKey] = combinedStates[propKey]
@@ -358,8 +363,9 @@ const generateComponentContent = async (
   // We check if we are passing any props and pick the value from the atrrs, if not we pick the value from the propDefinitions of
   // the component instance that we are using here.
   for (const propKey of Object.keys(combinedProps)) {
-    const prop = attrs[propKey]
-    if (prop?.type === 'element') {
+    const attribute = attrs[propKey]
+
+    if (attribute?.type === 'element') {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
         defaultValue: attrs[propKey],
@@ -373,13 +379,15 @@ const generateComponentContent = async (
         subComponentOptions,
         structure
       )
-    } else if (prop?.type === 'dynamic') {
+    }
+
+    if (attribute?.type === 'dynamic') {
       // When we are using a component instance in a component and the attribute
       // that is passed to the component is of dynamic reference.
       // If means, the component is redirecting the prop that is received to the prop of the component that it is consuming.
       // In this case, we need to pass the value of the prop that is received to the prop of the component that it is consuming.
       // And similary we do the same for the states.
-      switch (prop.content.referenceType) {
+      switch (attribute.content.referenceType) {
         case 'prop':
           propsForInstance[propKey] = combinedProps[propKey]
           break
@@ -388,15 +396,30 @@ const generateComponentContent = async (
           break
         default:
           throw new Error(
-            `ReferenceType ${prop.content.referenceType} is not supported in HTML Export.`
+            `ReferenceType ${attribute.content.referenceType} is not supported in HTML Export.`
           )
       }
-    } else if (prop) {
+    }
+
+    if (attribute?.type === 'object') {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
-        defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+        defaultValue: (attribute?.content as object) || combinedProps[propKey]?.defaultValue,
       }
-    } else {
+    }
+
+    if (
+      attribute?.type !== 'dynamic' &&
+      attribute?.type !== 'element' &&
+      attribute?.type !== 'object'
+    ) {
+      propsForInstance[propKey] = {
+        ...combinedProps[propKey],
+        defaultValue: attribute?.content || combinedProps[propKey]?.defaultValue,
+      }
+    }
+
+    if (attribute === undefined) {
       const propFromCurrentComponent = combinedProps[propKey]
       if (propFromCurrentComponent.type === 'element' && propFromCurrentComponent.defaultValue) {
         await generateHtmlSyntax(
@@ -505,6 +528,23 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | H
     node.content.id,
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
+
+  if (usedReferenceValue.type === 'object' && usedReferenceValue.defaultValue) {
+    // Let's say users are biding the prop to a node using something like this "fields.Title"
+    // But the fields in the object is the value where the object is defined either in propDefinitions
+    // or on the attrs. So, we just need to parsed the rest of the object path and get the value from the object.
+    const pathKeys: string[] = node.content.id.split(/\.|\[(['"]?)(.+?)\1\]/).filter(Boolean)
+    pathKeys.shift()
+
+    const value = GenericUtils.getValueFromPath(
+      pathKeys.join('.'),
+      usedReferenceValue.defaultValue as Record<string, UIDLPropDefinition>
+    )
+
+    if (value) {
+      return HASTBuilders.createTextNode(String(value))
+    }
+  }
 
   if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue) {
     const elementNode = usedReferenceValue.defaultValue as UIDLElementNode
@@ -651,6 +691,7 @@ const handleAttributes = (
       case 'element':
       case 'import':
       case 'expr':
+      case 'object':
         break
 
       default: {

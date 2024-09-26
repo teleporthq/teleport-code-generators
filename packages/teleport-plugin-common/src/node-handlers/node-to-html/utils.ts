@@ -78,8 +78,14 @@ export const handleAttribute = (
       hastUtils.addChildNode(htmlNode, templateNode)
       break
 
-    // @todo: expression nodes are not supported in vueJS. They are used for cms integrations.
+    case 'object': {
+      dataObject[attrKey] = attrValue.content
+      hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrKey)
+      break
+    }
+
     case 'expr':
+      throw new Error(`Expressions are not supported in HTML templates`)
       break
 
     default:

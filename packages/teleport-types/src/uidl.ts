@@ -349,6 +349,11 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+export interface UIDLObjectValue {
+  type: 'object'
+  content: unknown
+}
+
 export interface UIDLCMSMixedTypeNode {
   type: 'cms-mixed-type'
   content: {
@@ -547,6 +552,7 @@ export type UIDLAttributeValue =
   | UIDLComponentStyleReference
   | UIDLRawValue
   | UIDLElementNode
+  | UIDLObjectValue
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 

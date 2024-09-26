@@ -33,6 +33,7 @@ import {
   generateDynamicWindowImport,
   addDynamicExpressionAttributeToJSXTag,
   resolveObjectValue,
+  objectToObjectExpression,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -167,6 +168,19 @@ const addAttributesToJSXTag = (
         )
 
         break
+
+      case 'object': {
+        const content = attributeValue.content
+        if (typeof content !== 'object') {
+          return
+        }
+        const expression = objectToObjectExpression(content as Record<string, unknown>)
+        elementTag.openingElement.attributes.push(
+          types.jsxAttribute(types.jsxIdentifier(attrKey), types.jsxExpressionContainer(expression))
+        )
+        break
+      }
+
       default:
         throw new Error(
           `generateElementNode could not generate code for attribute of type ${JSON.stringify(

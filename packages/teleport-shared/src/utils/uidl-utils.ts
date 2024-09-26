@@ -205,7 +205,11 @@ export const traverseNodes = (
       const { attrs, children, style, abilities, referencedStyles } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
-          traverseNodes(attrs[attrKey], fn, node)
+          const attr = attrs[attrKey]
+          if (attr.type === 'object') {
+            return
+          }
+          traverseNodes(attr, fn, node)
         })
       }
 
@@ -902,6 +906,7 @@ export const transformAttributesAssignmentsToJson = (
           return acc
         }
 
+        case 'object':
         case 'element':
           acc[key] = attributeContent as UIDLAttributeValue
           return acc

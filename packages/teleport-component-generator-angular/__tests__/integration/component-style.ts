@@ -47,7 +47,7 @@ describe('Styles in Angular Component Generator', () => {
     expect(htmlFile).toBeDefined()
     expect(tsFile?.content).toContain(`@Input()`)
     expect(tsFile?.content).toContain(`direction: string = 'row'`)
-    expect(tsFile?.content).toContain(`config: unknown =`)
+    expect(tsFile?.content).toContain(`config: any =`)
     expect(htmlFile?.content).toContain(
       `[ngStyle]="{flexDirection: direction, height: config.height}"`
     )

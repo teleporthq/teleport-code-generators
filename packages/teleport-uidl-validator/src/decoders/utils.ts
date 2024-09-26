@@ -14,6 +14,7 @@ import {
   intersection,
   withDefault,
   anyJson,
+  unknownJson,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -93,6 +94,7 @@ import {
   VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
   VUIDLPropDefinitions,
+  UIDLObjectValue,
 } from '@teleporthq/teleport-types'
 import {
   isValidElementName,
@@ -507,7 +509,8 @@ export const attributeValueDecoder: Decoder<VUIDLAttributeValue> = union(
   importReferenceDecoder,
   rawValueDecoder,
   lazy(() => uidlComponentStyleReference),
-  lazy(() => elementNodeDecoder)
+  lazy(() => elementNodeDecoder),
+  lazy(() => objectValueDecoder)
 )
 
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
@@ -682,6 +685,11 @@ export const elementComponentReferencedStyle: Decoder<VUIDLElementNodeClassRefer
 export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
   union(staticValueDecoder, string(), number())
 )
+
+export const objectValueDecoder: Decoder<UIDLObjectValue> = object({
+  type: constant('object'),
+  content: unknownJson(),
+})
 
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
