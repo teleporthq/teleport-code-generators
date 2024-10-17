@@ -7,11 +7,14 @@ Object {
   "content": "import React, { useEffect } from 'react'
 import Head from 'next/head'
 
+import { useTranslations } from 'next-intl'
+
 import Header from '../components/header'
 import Hero from '../components/hero'
 import Footer from '../components/footer'
 
 const Home = (props) => {
+  const translate = useTranslations()
   useEffect(() => import('@lottiefiles/lottie-player'), [])
   return (
     <>
@@ -36,6 +39,18 @@ const Home = (props) => {
             </div>
           }
         ></Hero>
+        <span
+          dangerouslySetInnerHTML={{
+            __html: translate.raw('text_S5OU83'),
+          }}
+        ></span>
+        <h1>
+          <span
+            dangerouslySetInnerHTML={{
+              __html: translate.raw('text_S5OU83'),
+            }}
+          ></span>
+        </h1>
         <Footer></Footer>
       </div>
       <style jsx>
@@ -75,6 +90,16 @@ const Home = (props) => {
 }
 
 export default Home
+
+export async function getStaticProps(context) {
+  const messages = (await import('../locales/' + context.locale + '.json'))
+    .default
+  return {
+    props: {
+      messages,
+    },
+  }
+}
 ",
   "fileType": "js",
   "name": "index",

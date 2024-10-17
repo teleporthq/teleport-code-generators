@@ -87,7 +87,7 @@ describe('plugin-css-modules', () => {
     expect(chunks[1].type).toBe('string')
     expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
-    expect(structure.uidl.outputOptions.styleFileName).toContain('.module')
+    expect(structure.uidl.outputOptions?.styleFileName).toContain('.module')
     expect(dependencies.styles.path).toContain('.module.css')
   })
 

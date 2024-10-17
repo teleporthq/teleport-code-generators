@@ -23,5 +23,8 @@
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
+  "devDependencies": {
+    "@babel/types": "^7.5.5"
+  },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

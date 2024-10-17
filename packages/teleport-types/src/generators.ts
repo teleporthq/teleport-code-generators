@@ -12,6 +12,7 @@ import {
   UIDLResources,
   UIDLLocalFontAsset,
 } from './uidl'
+import type { JSXElement } from '@babel/types'
 
 export enum FileType {
   CSS = 'css',
@@ -45,6 +46,7 @@ export interface ChunkDefinition {
       container?: Record<string, unknown>
     } & Record<string, unknown>
     dynamicRefPrefix?: Record<string, unknown>
+    localeReferences?: JSXElement[]
   } & Record<string, unknown>
   content: ChunkContent
   linkAfter: string[]

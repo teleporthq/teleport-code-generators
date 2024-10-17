@@ -119,43 +119,57 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
 }
 
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
+  const isNextIntlUsed = options.dependencies['next-intl']
   const chunks: ChunkDefinition[] = []
   const result = {
     chunks: {},
     dependencies: options.dependencies,
   }
 
-  const contentChunkContent = [
-    t.importDeclaration(
-      [t.importDefaultSpecifier(t.identifier('React'))],
-      t.stringLiteral('react')
+  const jsxComponent = t.jsxElement(
+    t.jsxOpeningElement(
+      t.jsxIdentifier('Component'),
+      [t.jsxSpreadAttribute(t.identifier('pageProps'))],
+      true
     ),
+    null,
+    [],
+    true
+  )
+
+  const nextIntlWrapper = ASTBuilders.createJSXTag('NextIntlProvider', [jsxComponent])
+  nextIntlWrapper.openingElement.attributes.push(
+    t.jsxAttribute(
+      t.jsxIdentifier('messages'),
+      t.jsxExpressionContainer(
+        t.optionalMemberExpression(t.identifier('pageProps'), t.identifier('messages'), false, true)
+      )
+    )
+  )
+
+  const contentChunkContent: Array<types.ImportDeclaration | types.ExportDefaultDeclaration> = [
     t.exportDefaultDeclaration(
       t.functionDeclaration(
         t.identifier('MyApp'),
         [
           t.objectPattern([
-            t.objectProperty(t.identifier('Component'), t.identifier('Component')),
-            t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
+            t.objectProperty(t.identifier('Component'), t.identifier('Component'), false, true),
+            t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps'), false, true),
           ]),
         ],
-        t.blockStatement([
-          t.returnStatement(
-            t.jsxElement(
-              t.jsxOpeningElement(
-                t.jsxIdentifier('Component'),
-                [t.jsxSpreadAttribute(t.identifier('pageProps'))],
-                true
-              ),
-              null,
-              [],
-              true
-            )
-          ),
-        ])
+        t.blockStatement([t.returnStatement(isNextIntlUsed ? nextIntlWrapper : jsxComponent)])
       )
     ),
   ]
+
+  if (isNextIntlUsed) {
+    contentChunkContent.unshift(
+      t.importDeclaration(
+        [t.importSpecifier(t.identifier('NextIntlProvider'), t.identifier('NextIntlProvider'))],
+        types.stringLiteral('next-intl')
+      )
+    )
+  }
 
   chunks.push({
     type: ChunkType.AST,
