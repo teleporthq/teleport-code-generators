@@ -5,9 +5,10 @@ import { UIDLPropDefinition, UIDLDependency, UIDLStateDefinition } from '@telepo
 export interface JSXGenerationParams {
   propDefinitions: Record<string, UIDLPropDefinition>
   stateDefinitions: Record<string, UIDLStateDefinition>
-  nodesLookup: Record<string, types.JSXElement>
+  nodesLookup: Record<string, types.JSXElement | types.JSXExpressionContainer>
   dependencies: Record<string, UIDLDependency>
   windowImports: Record<string, types.ExpressionStatement>
+  localeReferences: types.JSXElement[]
 }
 
 export interface JSXGenerationOptions {

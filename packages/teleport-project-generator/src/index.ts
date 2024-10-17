@@ -546,6 +546,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         configContentGenerator,
         generator,
         plugins: frameworkConfigPlugins,
+        postprocessors: frameworkConfigPostprocessors,
       } = framework.config
 
       if (configContentGenerator && generator) {
@@ -575,10 +576,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
         if (Object.keys(result?.chunks).length > 0) {
           const configGenerator: (params: GeneratorFactoryParams) => ComponentGenerator =
             framework.config.generator
-          const files = configGenerator({ plugins: frameworkConfigPlugins }).linkCodeChunks(
-            result.chunks,
-            framework.config.fileName
-          )
+          const files = configGenerator({
+            plugins: frameworkConfigPlugins,
+            postprocessors: frameworkConfigPostprocessors,
+          }).linkCodeChunks(result.chunks, framework.config.fileName)
 
           inMemoryFilesMap.set(fileName, {
             path: this.strategy.framework.config.path,

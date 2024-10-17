@@ -28,6 +28,7 @@ import {
 import {
   createNextProjectGenerator,
   NextTemplate,
+  ProjectPluginInternationalization,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -150,6 +151,10 @@ export const packProject: PackProjectFunction = async (
       })
     )
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
+  }
+
+  if (projectType === ProjectType.NEXT) {
+    projectGeneratorFactory.addPlugin(new ProjectPluginInternationalization())
   }
 
   if (projectType === ProjectType.NUXT) {

@@ -53,6 +53,7 @@ import {
   UIDLStyleValue,
   UIDLPropDefinition,
   UIDLExternalDependency,
+  UIDLResources,
 } from './uidl'
 import { Modify, ModifyUnionNumber } from './helper'
 
@@ -262,6 +263,15 @@ export type VProjectUIDL = Modify<
     globals: VUIDLGlobalProjectValues
     root: VRootComponentUIDL
     components?: Record<string, VComponentUIDL>
+    resources?: UIDLResources
+    internationalization?: {
+      main: {
+        name: string
+        locale: string
+      }
+      languages: Record<string, string>
+      translations: Record<string, Record<string, VUIDLElementNode | UIDLStaticValue>>
+    }
   }
 >
 
