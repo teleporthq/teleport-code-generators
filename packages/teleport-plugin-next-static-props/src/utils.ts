@@ -14,6 +14,12 @@ export const generateInitialPropsAST = (
       types.catchClause(
         types.identifier('error'),
         types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(
+              types.memberExpression(types.identifier('console'), types.identifier('log')),
+              [types.identifier('error')]
+            )
+          ),
           types.returnStatement(
             types.objectExpression([
               types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
@@ -95,6 +101,23 @@ const computePropsAST = (
                 types.identifier('params'),
                 false,
                 true
+              )
+            ),
+            types.spreadElement(
+              types.logicalExpression(
+                '&&',
+                types.optionalMemberExpression(
+                  types.identifier('context'),
+                  types.identifier('locale'),
+                  false,
+                  true
+                ),
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('locale'),
+                    types.memberExpression(types.identifier('context'), types.identifier('locale'))
+                  ),
+                ])
               )
             ),
             ...funcParams,
