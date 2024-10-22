@@ -8,6 +8,7 @@ import {
   lazy,
   withDefault,
   number,
+  union,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -20,6 +21,8 @@ import {
   resourceItemDecoder,
   resourceMapperDecoder,
   dependencyDecoder,
+  elementNodeDecoder,
+  staticValueDecoder,
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -79,4 +82,14 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
   resources: optional(resourcesDecoder),
+  internationalization: optional(
+    object({
+      main: object({
+        name: string(),
+        locale: string(),
+      }),
+      languages: dict(string()),
+      translations: dict(dict(union(elementNodeDecoder, staticValueDecoder))),
+    })
+  ),
 })

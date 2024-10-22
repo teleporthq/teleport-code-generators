@@ -87,6 +87,14 @@ export interface ProjectUIDL {
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
   resources?: UIDLResources
+  internationalization?: {
+    main: {
+      name: string
+      locale: string
+    }
+    languages: Record<string, string>
+    translations: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
+  }
 }
 
 export interface UIDLGlobalProjectValues {
@@ -299,7 +307,15 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
+export type ReferenceType =
+  | 'prop'
+  | 'state'
+  | 'local'
+  | 'attr'
+  | 'children'
+  | 'token'
+  | 'expr'
+  | 'locale'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'

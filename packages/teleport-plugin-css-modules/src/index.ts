@@ -131,6 +131,12 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         return
       }
 
+      if (!key) {
+        throw new PluginCssModules(
+          'Element node does not have a key \n' + JSON.stringify(element, null, 2)
+        )
+      }
+
       const className = StringUtils.camelCaseToDashCase(key)
       const classReferenceIdentifier = types.memberExpression(
         types.identifier(styleObjectImportName),

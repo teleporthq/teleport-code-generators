@@ -28,6 +28,7 @@ import {
 import {
   createNextProjectGenerator,
   NextTemplate,
+  NextProjectPlugini18nConfig,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -67,6 +68,7 @@ import {
   createHTMLComponentGenerator,
   PlainHTMLMapping,
 } from '@teleporthq/teleport-component-generator-html'
+import { ProjectPlugini18nFiles } from '@teleporthq/teleport-project-plugin-i18n-files'
 import { isNodeProcess } from './utils'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
@@ -141,6 +143,8 @@ export const packProject: PackProjectFunction = async (
   const projectGeneratorFactory = projectGeneratorFactories[projectType]()
   projectGeneratorFactory.cleanPlugins()
 
+  projectGeneratorFactory.addPlugin(new ProjectPlugini18nFiles({ projectType }))
+
   if (projectType === ProjectType.HTML) {
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(
@@ -150,6 +154,10 @@ export const packProject: PackProjectFunction = async (
       })
     )
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
+  }
+
+  if (projectType === ProjectType.NEXT) {
+    projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig())
   }
 
   if (projectType === ProjectType.NUXT) {

@@ -107,7 +107,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       name: fileName,
       type: ChunkType.STRING,
       fileType: FileType.CSS,
-      content: cssMap.join('\n'),
+      content: cssMap.join('\n \n'),
       linkAfter: [],
     })
 

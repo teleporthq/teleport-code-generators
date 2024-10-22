@@ -16,6 +16,8 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
+import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
+import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -30,13 +32,17 @@ const createNextProjectGenerator = () => {
 
   const getStaticPropsPlugin = createStaticPropsPlugin()
   const getStaticPathsPlugin = createStaticPathsPlugin()
+  const nextComponentInlineFetchPlugin = createNextComponentInlineFetchPlugin()
+  const nextPageInlineFetchPlugin = createNextPagesInlineFetchPlugin()
+  const nextInternationalizationPlugin = createNextInternationalizationPlugin()
+  const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin, createNextComponentInlineFetchPlugin()],
+      plugins: [nextImagePlugin, nextComponentInlineFetchPlugin, nextInternationalizationPlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
@@ -46,9 +52,11 @@ const createNextProjectGenerator = () => {
       plugins: [
         nextImagePlugin,
         headConfigPlugin,
+        nextPageInlineFetchPlugin,
+        nextInternationalizationPlugin,
         getStaticPropsPlugin,
         getStaticPathsPlugin,
-        createNextPagesInlineFetchPlugin(),
+        nextLocaleFetcherPlugin,
       ],
       mappings: [NextProjectMapping],
       options: {
@@ -96,3 +104,6 @@ const createNextProjectGenerator = () => {
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
+export { NextProjectPlugini18nConfig } from './internationalization/project'
+export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
+export { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'

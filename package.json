@@ -23,6 +23,7 @@
     "many:check": "manypkg check",
     "many:fix": "manypkg fix",
     "publish": "lerna publish from-package --no-verify-access",
+    "standalone": "lerna run standalone --scope teleport-test",
     "local:adduser": "npm adduser --registry http://localhost:4873",
     "local:publish": "lerna exec --bail=false  -- npm publish -f --registry http://localhost:4873",
     "local:unpublish": "lerna exec --bail=false -- npm unpublish -f --registry http://localhost:4873"
