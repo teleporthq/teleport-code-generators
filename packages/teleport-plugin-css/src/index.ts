@@ -358,7 +358,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         type: ChunkType.STRING,
         name: chunkName,
         fileType: FileType.CSS,
-        content: cssMap.join('\n'),
+        content: cssMap.join('\n \n'),
         linkAfter: [],
       })
     }

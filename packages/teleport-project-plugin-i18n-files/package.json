@@ -1,0 +1,33 @@
+{
+  "name": "@teleporthq/teleport-project-plugin-i18n-files",
+  "version": "0.36.0",
+  "description": "Project generator for a generating i18n files for all frameworks",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@teleporthq/teleport-component-generator-react": "^0.36.5",
+    "@teleporthq/teleport-plugin-common": "^0.36.5",
+    "@teleporthq/teleport-types": "^0.36.0",
+    "@teleporthq/teleport-uidl-resolver": "^0.36.1"
+  }
+}

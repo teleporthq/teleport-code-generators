@@ -675,9 +675,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
       collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
       inMemoryFilesMap = runAfterResult.files
-    } catch (e) {
-      console.trace(e)
-      throw new TeleportError(`Error in generating project after runAfter - ${e}`)
+    } catch (error) {
+      /* tslint:disable no-console */
+      console.error(error)
+      throw new TeleportError(`Error in generating project after runAfter - ${error}`)
     }
 
     inMemoryFilesMap.forEach((stage) => {

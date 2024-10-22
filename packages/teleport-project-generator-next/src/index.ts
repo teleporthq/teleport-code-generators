@@ -104,6 +104,6 @@ const createNextProjectGenerator = () => {
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
-export { ProjectPluginInternationalization } from './internationalization/project'
+export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 export { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'

@@ -9960,10 +9960,37 @@
             "semanticType": "span",
             "referencedStyles": {},
             "abilities": {},
+            "style": {
+              "color": {
+                "type": "static",
+                "content": "blue"
+              }
+            },
             "children": [
               {
                 "type": "static",
                 "content": "How are you?"
+              }
+            ]
+          }
+        },
+        "text_S5OU84": {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "semanticType": "span",
+            "referencedStyles": {},
+            "abilities": {},
+            "style": {
+              "color": {
+                "type": "static",
+                "content": "blue"
+              }
+            },
+            "children": [
+              {
+                "type": "static",
+                "content": "How are you now again?"
               }
             ]
           }
