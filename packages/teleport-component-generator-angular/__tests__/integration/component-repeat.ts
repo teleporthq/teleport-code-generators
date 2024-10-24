@@ -54,7 +54,7 @@ describe('Component with repeat node type', () => {
     expect(tsFile).toBeDefined()
     expect(htmlFile).toBeDefined()
     expect(tsFile.content).toContain(`@Input()`)
-    expect(tsFile.content).toContain(`items: unknown = ['hello', 'world']`)
+    expect(tsFile.content).toContain(`items: any = ['hello', 'world']`)
     expect(htmlFile.content).toContain(`*ngFor="let item of items; index as index"`)
   })
 
@@ -67,7 +67,7 @@ describe('Component with repeat node type', () => {
     expect(tsFile).toBeDefined()
     expect(htmlFile).toBeDefined()
     expect(tsFile.content).toContain(`@Input()`)
-    expect(tsFile.content).toContain(`items: unknown = ['hello', 'world']`)
+    expect(tsFile.content).toContain(`items: any = ['hello', 'world']`)
     expect(htmlFile.content).toContain(`*ngFor="let item of items"`)
   })
 })

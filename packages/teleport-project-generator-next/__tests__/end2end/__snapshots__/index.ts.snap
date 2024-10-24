@@ -7,7 +7,7 @@ Object {
   "content": "import React, { useEffect } from 'react'
 import Head from 'next/head'
 
-import Header from '../components/header'
+import AppComponent from '../components/component'
 import Hero from '../components/hero'
 import Footer from '../components/footer'
 
@@ -25,7 +25,11 @@ const Home = (props) => {
           autoplay
           className=\\"home-lottie-node\\"
         ></lottie-player>
-        <Header></Header>
+        <AppComponent
+          fields={{
+            Title: 'Custom Name',
+          }}
+        ></AppComponent>
         <Hero
           namedSlot={
             <div className=\\"home-container2\\">
