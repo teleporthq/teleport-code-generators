@@ -9958,7 +9958,26 @@
           "content": {
             "elementType": "text",
             "semanticType": "span",
-            "referencedStyles": {},
+            "referencedStyles": {
+              "10826acb-433c-4b96-a5a0-d597b3b7d44b": {
+                "type": "style-map",
+                "content": {
+                  "conditions": [
+                    {
+                      "conditionType": "screen-size",
+                      "maxWidth": 479
+                    }
+                  ],
+                  "mapType": "inlined",
+                  "styles": {
+                    "color": {
+                      "type": "static",
+                      "content": "green"
+                    }
+                  }
+                }
+              }
+            },
             "abilities": {},
             "style": {
               "color": {

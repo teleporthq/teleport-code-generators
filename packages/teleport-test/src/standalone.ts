@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { readFileSync, mkdirSync, accessSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -77,7 +78,7 @@ const project = (params: {
 }) =>
   log(async () => {
     const { projectType, projectSlug, plugins = [], options = packerOptions, uidl } = params
-    await packProject((uidl ?? projectUIDL) as ProjectUIDL, {
+    const { payload } = await packProject((uidl ?? projectUIDL) as ProjectUIDL, {
       ...options,
       projectType,
       plugins,
@@ -87,7 +88,14 @@ const project = (params: {
       },
     })
 
-    return projectSlug
+    return JSON.stringify(
+      {
+        projectSlug,
+        payload,
+      },
+      null,
+      2
+    )
   })
 
 const run = async () => {
@@ -101,84 +109,84 @@ const run = async () => {
     }
 
     await Promise.all([
-      project({
-        projectType: ProjectType.HTML,
-        projectSlug: 'teleport-project-html',
-        plugins: [new ProjectPluginParseEmbed()],
-        options: {
-          ...packerOptions,
-          strictHtmlWhitespaceSensitivity: false,
-        },
-      }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      // }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: `teleport-project-next-embeds`,
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: `teleport-project-next-embeds-with-css-modules`,
-        plugins: [
-          new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
-          new ProjectPluginParseEmbed(),
-        ],
-      }),
-      project({
-        projectType: ProjectType.REACT,
-        projectSlug: 'teleport-project-react',
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
-      project({
-        projectType: ProjectType.NUXT,
-        projectSlug: `teleport-project-nuxt-with-embeds`,
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
-      project({
-        projectType: ProjectType.VUE,
-        projectSlug: `teleport-project-vue-with-embeds`,
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
-      project({
-        projectType: ProjectType.ANGULAR,
-        projectSlug: `teleport-project-angular-with-embeds`,
-        plugins: [new ProjectPluginParseEmbed()],
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: `teleport-project-next-with-reactjss`,
-        plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
-      }),
-      project({
-        projectType: ProjectType.REACT,
-        projectSlug: `teleport-project-react-with-styled-components`,
-        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: 'teleport-project-contentful-cms',
-        uidl: contentfulUIDL,
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: 'teleport-project-wordpress-cms',
-        uidl: wordpressUIDL,
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: 'teleport-project-strapi-cms',
-        uidl: strapiUIDL,
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: 'teleport-project-caisy-cms',
-        uidl: caisyUIDL,
-      }),
-      project({
-        projectType: ProjectType.NEXT,
-        projectSlug: 'teleport-project-flotiq-cms',
-        uidl: flotiqUIDL,
-      }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: `teleport-project-next-embeds`,
+      //   plugins: [new ProjectPluginParseEmbed()],
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: `teleport-project-next-embeds-with-css-modules`,
+      //   plugins: [
+      //     new ProjectPluginCSSModules({ framework: ProjectType.NEXT }),
+      //     new ProjectPluginParseEmbed(),
+      //   ],
+      // }),
+      // project({
+      //   projectType: ProjectType.REACT,
+      //   projectSlug: 'teleport-project-react',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      // }),
+      // project({
+      //   projectType: ProjectType.NUXT,
+      //   projectSlug: `teleport-project-nuxt-with-embeds`,
+      //   plugins: [new ProjectPluginParseEmbed()],
+      // }),
+      // project({
+      //   projectType: ProjectType.VUE,
+      //   projectSlug: `teleport-project-vue-with-embeds`,
+      //   plugins: [new ProjectPluginParseEmbed()],
+      // }),
+      // project({
+      //   projectType: ProjectType.ANGULAR,
+      //   projectSlug: `teleport-project-angular-with-embeds`,
+      //   plugins: [new ProjectPluginParseEmbed()],
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: `teleport-project-next-with-reactjss`,
+      //   plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
+      // }),
+      // project({
+      //   projectType: ProjectType.REACT,
+      //   projectSlug: `teleport-project-react-with-styled-components`,
+      //   plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: 'teleport-project-contentful-cms',
+      //   uidl: contentfulUIDL,
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: 'teleport-project-wordpress-cms',
+      //   uidl: wordpressUIDL,
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: 'teleport-project-strapi-cms',
+      //   uidl: strapiUIDL,
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: 'teleport-project-caisy-cms',
+      //   uidl: caisyUIDL,
+      // }),
+      // project({
+      //   projectType: ProjectType.NEXT,
+      //   projectSlug: 'teleport-project-flotiq-cms',
+      //   uidl: flotiqUIDL,
+      // }),
     ])
   } catch (e) {
     console.info(e)
