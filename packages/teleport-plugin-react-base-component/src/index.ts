@@ -58,6 +58,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       dependencies,
       windowImports,
       localeReferences: [],
+      globalReferences: [],
     }
 
     const jsxOptions: JSXGenerationOptions = {
@@ -119,6 +120,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
         nodesLookup,
         dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
         localeReferences: jsxParams.localeReferences,
+        globalReferences: jsxParams.globalReferences,
       },
       content: pureComponent,
       linkAfter: [importChunkName],

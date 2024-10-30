@@ -138,6 +138,10 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
   params,
   templateSyntax
 ) => {
+  if (node.content.referenceType === 'global') {
+    throw new Error(`Global dynamic values are not supported in the HTML generator`)
+  }
+
   const usedPropType = params.propDefinitions[node.content.id]
   if (usedPropType && usedPropType.type === 'element') {
     let slotNode = createHTMLNode('slot')

@@ -808,7 +808,7 @@ export const transformStylesAssignmentsToJson = (
         return acc
       }
 
-      if (type === 'dynamic') {
+      if (type === 'dynamic' && content.referenceType !== 'global') {
         if (['state', 'prop'].includes(content?.referenceType)) {
           acc[key] = {
             type,
@@ -888,7 +888,12 @@ export const transformAttributesAssignmentsToJson = (
 
         case 'dynamic': {
           const { content } = attributeContent as UIDLDynamicReference
-          if (['state', 'prop'].includes(content?.referenceType)) {
+          // global id's dont need to be transformed. As they are constants and each one is handled by the generator
+          // depending on the context and the framework.
+          if (
+            ['state', 'prop'].includes(content?.referenceType) &&
+            content.referenceType !== 'global'
+          ) {
             acc[key] = {
               type,
               content: {

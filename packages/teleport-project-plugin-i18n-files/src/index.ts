@@ -42,6 +42,7 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
       dependencies: {},
       nodesLookup: {},
       localeReferences: [],
+      globalReferences: [],
     }
 
     const jsxNodeAst = createJSXSyntax(resolvedUIDL.node, jsxParams, {

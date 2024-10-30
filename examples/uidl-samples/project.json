@@ -657,6 +657,23 @@
                       "type": "element",
                       "content": {
                         "elementType": "text",
+                        "semanticType": "h2",
+                        "children": [
+                          "Current locale of the loaded page is - ",
+                          {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "global",
+                              "id": "locale"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "text",
                         "semanticType": "h1",
                         "referencedStyles": {},
                         "abilities": {},

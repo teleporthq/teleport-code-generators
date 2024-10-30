@@ -317,12 +317,27 @@ export type ReferenceType =
   | 'expr'
   | 'locale'
 
-export interface UIDLDynamicReference {
+export type UIDLDynamicReference = UIDLReferenValues | UIDLGlobalReference
+
+interface UIDLReferenValues {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
     refPath?: string[]
     id: string
+  }
+}
+
+/*
+  The id value refers to the global values that needs to be represented.
+  These values are fixed and each framework can make its own decision of how to import and pass these values.
+  Eg: link can come from router, locale can come from i18 etc
+ */
+export interface UIDLGlobalReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'global'
+    id: 'locale' | 'locales'
   }
 }
 
