@@ -118,6 +118,7 @@ export const globalValueDecoder: Decoder<UIDLGlobalReference> = object({
   content: object({
     referenceType: constant('global'),
     id: union(constant('locale'), constant('locales')),
+    refPath: optional(array(string())),
   }),
 })
 

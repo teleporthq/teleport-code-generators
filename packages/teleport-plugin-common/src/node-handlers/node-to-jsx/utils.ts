@@ -12,6 +12,7 @@ import {
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
   UIDLExpressionValue,
+  UIDLGlobalReference,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -144,12 +145,18 @@ const createStateChangeStatement = (
 }
 
 export const createDynamicValueExpression = (
-  identifier: UIDLDynamicReference,
+  identifier: UIDLDynamicReference | UIDLGlobalReference,
   options: JSXGenerationOptions,
   t = types
 ) => {
   const identifierContent = identifier.content
-  const { referenceType, id } = identifierContent
+  const refPath = identifier.content.refPath || []
+  const { referenceType } = identifierContent
+
+  let id = identifierContent.id
+  refPath?.forEach((pathItem) => {
+    id = id.concat(`?.${pathItem}`)
+  })
 
   if (referenceType === 'attr' || referenceType === 'children' || referenceType === 'token') {
     throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)

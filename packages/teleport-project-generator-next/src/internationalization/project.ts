@@ -42,6 +42,64 @@ const findFileInTemplate = (
   return file
 }
 
+const generateGlobalContextFileContent = (
+  locales: Record<string, string>,
+  main: {
+    name: string
+    locale: string
+  }
+) => {
+  const localesArray = Object.keys(locales).map((key) => ({ name: locales[key], short: key }))
+  const currentLocale = localesArray.find((locale) => locale.short === main.locale)
+  return `
+import { createContext, useMemo, useContext, useState, useEffect } from 'react'
+import { useLocale } from "next-intl";
+
+const GlobalContext = createContext(null)
+
+export const GlobalProvider = ({ initialLocales, children }) => {
+  const localeValue = useLocale()
+  const [locales, setLocales] = useState(initialLocales ?? ${JSON.stringify(localesArray)})
+  const [locale, setLocale] = useState(${JSON.stringify(currentLocale)})
+  
+  useEffect(() => {
+    if (!locales) {
+      return
+    }
+
+    const currentLangValue = locales.find((el) => el.short === localeValue)
+    setLocale(currentLangValue)
+  }, [locales])
+
+  const value = useMemo(() => {
+    return {
+      locales,
+      locale,
+      setLocales,
+      setLocale
+    }
+  }, [locales, locale])
+
+  return (
+    <GlobalContext.Provider value={value}>
+      {children}
+    </GlobalContext.Provider>
+  )
+}
+
+export const useGlobalContext = () => {
+  const context = useContext(GlobalContext)
+  if (!context) {
+    throw new Error('useGlobalContext must be used within a GlobalProvider')
+  }
+
+  return {
+    ...context
+  }
+}
+`
+}
+
 export class NextProjectPlugini18nConfig implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     return structure
@@ -82,6 +140,17 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
         ],
       })
     }
+
+    const globalContextFile = generateGlobalContextFileContent(languages, main)
+    files.set('global-context.js', {
+      path: [],
+      files: [
+        {
+          name: 'global-context.js',
+          content: globalContextFile,
+        },
+      ],
+    })
 
     return structure
   }

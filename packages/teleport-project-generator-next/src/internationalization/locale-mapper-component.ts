@@ -1,9 +1,11 @@
 import {
   ComponentPlugin,
   ComponentPluginFactory,
+  UIDLDependency,
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { relative, join } from 'path'
 
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
@@ -26,9 +28,17 @@ export const USE_ROUTER_HOOK: UIDLExternalDependency = {
   },
 }
 
+export const USE_GLOBAL_CONTEXT_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '../global-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = () => {
   const nextInternationalization: ComponentPlugin = async (structure) => {
-    const { chunks } = structure
+    const { chunks, uidl } = structure
     const jsxComponent = chunks.find(
       (chunk) =>
         chunk.name === 'jsx-component' &&
@@ -80,24 +90,43 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     }
 
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
+      if (structure.dependencies.useGlobalContext) {
+        continue
+      }
+      // TODO: Check if this is correct in any case.
+      const contextFilePath = relative(
+        join(uidl.outputOptions?.folderPath.join('/')),
+        '../global-context.js'
+      )
+
       switch (globalRef) {
         case 'locale':
         case 'locales': {
           const variableDecleration = types.variableDeclaration('const', [
             types.variableDeclarator(
               types.objectPattern([
+                // For now, import both locale and locales, even if only one is used.
                 types.objectProperty(
-                  types.identifier(globalRef),
-                  types.identifier(globalRef),
+                  types.identifier('locale'),
+                  types.identifier('locale'),
+                  false,
+                  true
+                ),
+                types.objectProperty(
+                  types.identifier('locales'),
+                  types.identifier('locales'),
                   false,
                   true
                 ),
               ]),
-              types.callExpression(types.identifier('useRouter'), [])
+              types.callExpression(types.identifier('useGlobalContext'), [])
             ),
           ])
           reactHooks.push(variableDecleration)
-          structure.dependencies.useRouter = USE_ROUTER_HOOK
+          structure.dependencies.useGlobalContext = {
+            ...USE_GLOBAL_CONTEXT_HOOK,
+            path: contextFilePath,
+          }
           break
         }
 

@@ -137,7 +137,9 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     true
   )
 
-  const nextIntlWrapper = ASTBuilders.createJSXTag('NextIntlProvider', [jsxComponent])
+  const globalContextWrapper = ASTBuilders.createJSXTag('GlobalProvider', [jsxComponent])
+
+  const nextIntlWrapper = ASTBuilders.createJSXTag('NextIntlProvider', [globalContextWrapper])
   nextIntlWrapper.openingElement.attributes.push(
     t.jsxAttribute(
       t.jsxIdentifier('messages'),
@@ -157,7 +159,9 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
             t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps'), false, true),
           ]),
         ],
-        t.blockStatement([t.returnStatement(isNextIntlUsed ? nextIntlWrapper : jsxComponent)])
+        t.blockStatement([
+          t.returnStatement(isNextIntlUsed ? nextIntlWrapper : globalContextWrapper),
+        ])
       )
     ),
   ]
@@ -170,6 +174,13 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       )
     )
   }
+
+  contentChunkContent.unshift(
+    t.importDeclaration(
+      [t.importSpecifier(t.identifier('GlobalProvider'), t.identifier('GlobalProvider'))],
+      types.stringLiteral('../global-context')
+    )
+  )
 
   chunks.push({
     type: ChunkType.AST,

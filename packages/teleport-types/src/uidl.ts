@@ -338,6 +338,7 @@ export interface UIDLGlobalReference {
   content: {
     referenceType: 'global'
     id: 'locale' | 'locales'
+    refPath?: string[]
   }
 }
 
