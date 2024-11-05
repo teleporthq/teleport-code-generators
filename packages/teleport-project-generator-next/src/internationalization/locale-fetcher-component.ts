@@ -5,7 +5,6 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { relative, join } from 'path'
 
 // This plugin is responsible for adding the locale fetcher to the getStaticProps function
 // This adds getStaticProps by default to all the pages. If getStaticProps is already present, it will add the locale fetcher to it
@@ -14,7 +13,7 @@ import { relative, join } from 'path'
 
 export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
   const nextLocaleFetcher: ComponentPlugin = async (structure) => {
-    const { chunks, uidl } = structure
+    const { chunks } = structure
     const jsxComponent = chunks.find((chunk) => chunk.name === 'jsx-component')
     if (!jsxComponent) {
       return structure
