@@ -5,7 +5,6 @@ import {
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { relative, join } from 'path'
 
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
@@ -38,7 +37,7 @@ export const USE_GLOBAL_CONTEXT_HOOK: UIDLDependency = {
 
 export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = () => {
   const nextInternationalization: ComponentPlugin = async (structure) => {
-    const { chunks, uidl } = structure
+    const { chunks } = structure
     const jsxComponent = chunks.find(
       (chunk) =>
         chunk.name === 'jsx-component' &&
@@ -93,11 +92,6 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       if (structure.dependencies.useGlobalContext) {
         continue
       }
-      // TODO: Check if this is correct in any case.
-      const contextFilePath = relative(
-        join(uidl.outputOptions?.folderPath.join('/')),
-        '../global-context.js'
-      )
 
       switch (globalRef) {
         case 'locale':
@@ -125,7 +119,6 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
           reactHooks.push(variableDecleration)
           structure.dependencies.useGlobalContext = {
             ...USE_GLOBAL_CONTEXT_HOOK,
-            path: contextFilePath,
           }
           break
         }
