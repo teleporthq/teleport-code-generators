@@ -21,7 +21,6 @@ export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
     }
 
     const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
-    const localePath = relative(join(uidl.outputOptions?.folderPath.join('/')), '../locales')
     const fetcher = types.variableDeclaration('const', [
       types.variableDeclarator(
         types.identifier('messages'),
@@ -32,7 +31,8 @@ export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
                 '+',
                 types.binaryExpression(
                   '+',
-                  types.stringLiteral(localePath + '/'),
+                  // This path might not be correct. Check with pages that are not in the root pages folder
+                  types.stringLiteral('../locales' + '/'),
                   types.memberExpression(types.identifier('context'), types.identifier('locale'))
                 ),
                 types.stringLiteral('.json')
