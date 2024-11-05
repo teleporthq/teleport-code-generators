@@ -6,11 +6,15 @@
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
+    "publish": {
+      "registry": "http://localhost:4873" 
+    },
     "version": {
       "allowBranch": [
         "development",
         "feat/better-fetch",
-        "hotfix/*"
+        "hotfix/*",
+        "add-locale-support"
       ],
       "message": "chore(release): 'publish %s'"
     }
