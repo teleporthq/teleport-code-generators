@@ -2,12 +2,12 @@
   "packages": [
     "packages/*"
   ],
-  "version": "0.36.5",
+  "version": "0.37.0",
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
     "publish": {
-      "registry": "http://localhost:4873" 
+      "registry": "http://localhost:4873"
     },
     "version": {
       "allowBranch": [
