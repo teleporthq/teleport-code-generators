@@ -3,6 +3,7 @@ import {
   ComponentPlugin,
   UIDLDynamicReference,
   UIDLStaticValue,
+  UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
@@ -14,6 +15,18 @@ interface JSXHeadPluginConfig {
   configTagDependencyVersion?: string
   isExternalPackage?: boolean
   isDefaultImport?: boolean
+}
+
+export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
+  type: 'package',
+  path: 'next-intl',
+  // next-intl version above to 2.10.0 has issues with next@12 and react@17 which we use.
+  // The latest version is 3.20 something, which relies on next/navigation. Which is only available in next@13.
+  // Which we don't use. So we are sticking with 2.10.0 for now.'
+  version: '2.10.0',
+  meta: {
+    namedImport: true,
+  },
 }
 
 export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config) => {
@@ -28,7 +41,6 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
   const jsxHeadConfigPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       throw new Error(
@@ -40,10 +52,17 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       return structure
     }
 
+    const reactHooks: types.VariableDeclaration[] = []
     const headASTTags = []
+    let translationsAdded = false
 
     if (uidl.seo.title) {
-      const titleAST = generateTitleAST(uidl.seo.title)
+      const { titleAST, hasTranslation } = generateTitleAST(uidl.seo.title)
+      if (hasTranslation) {
+        structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+        reactHooks.push(getTranslationsAST())
+        translationsAdded = true
+      }
       headASTTags.push(titleAST)
     }
 
@@ -52,7 +71,12 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
         const metaAST = ASTBuilders.createSelfClosingJSXTag('meta')
         Object.keys(tag).forEach((key) => {
           const value = tag[key]
-          addAttributeToMetaTag(metaAST, key, value)
+          const { translationUsed } = addAttributeToMetaTag(metaAST, key, value)
+          if (translationUsed && !translationsAdded) {
+            structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+            reactHooks.push(getTranslationsAST())
+            translationsAdded = true
+          }
         })
         headASTTags.push(metaAST)
       })
@@ -92,7 +116,23 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       }
     }
 
+    const componentBody = (
+      (
+        (componentChunk.content as types.VariableDeclaration)
+          .declarations[0] as types.VariableDeclarator
+      ).init as types.ArrowFunctionExpression
+    ).body as types.BlockStatement
+    componentBody.body.unshift(...reactHooks)
     return structure
+  }
+
+  const getTranslationsAST = () => {
+    return types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier('translate'),
+        types.callExpression(types.identifier('useTranslations'), [])
+      ),
+    ])
   }
 
   const addAttributeToMetaTag = (
@@ -102,30 +142,41 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
   ) => {
     if (typeof value === 'string') {
       ASTUtils.addAttributeToJSXTag(metaTag, key, value)
-      return
+      return { translationUsed: false }
     }
 
     const isDynamic = value.type === 'dynamic'
     if (!isDynamic) {
       ASTUtils.addAttributeToJSXTag(metaTag, key, value!.content.toString())
-      return
+      return { translationUsed: false }
     }
 
-    if (value.content.referenceType !== 'prop') {
-      throw new Error(`Only prop references are supported for dynamic meta tags`)
+    if (value.content.referenceType !== 'prop' && value.content.referenceType !== 'locale') {
+      throw new Error(`Only prop and locale references are supported for dynamic meta tags`)
     }
 
-    let content = `props`
-    value.content.refPath?.forEach((pathItem) => {
-      content = content.concat(`?.${pathItem}`)
-    })
+    if (value.content.referenceType === 'prop') {
+      let content = `props`
+      value.content.refPath?.forEach((pathItem) => {
+        content = content.concat(`?.${pathItem}`)
+      })
 
-    metaTag.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier(key),
-        types.jsxExpressionContainer(types.identifier(content))
+      metaTag.openingElement.attributes.push(
+        types.jsxAttribute(
+          types.jsxIdentifier(key),
+          types.jsxExpressionContainer(types.identifier(content))
+        )
       )
+      return { translationUsed: false }
+    }
+
+    const refRawExpression = types.callExpression(
+      types.memberExpression(types.identifier('translate'), types.identifier('raw')),
+      [types.stringLiteral(value.content.id)]
     )
+    const expression = types.jsxExpressionContainer(refRawExpression)
+    metaTag.openingElement.attributes.push(types.jsxAttribute(types.jsxIdentifier(key), expression))
+    return { translationUsed: true }
   }
 
   const generateTitleAST = (title: string | UIDLStaticValue | UIDLDynamicReference) => {
@@ -133,28 +184,39 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
     if (typeof title === 'string') {
       ASTUtils.addChildJSXText(titleAST, title)
-      return titleAST
+      return { titleAST, hasTranslation: false }
     }
 
     const isDynamic = title.type === 'dynamic'
     if (!isDynamic) {
       ASTUtils.addChildJSXText(titleAST, title!.content.toString())
-      return titleAST
+      return { titleAST, hasTranslation: false }
     }
 
-    if (title.content.referenceType !== 'prop') {
-      throw new Error(`Only prop references are supported for dynamic titles`)
+    if (title.content.referenceType !== 'prop' && title.content.referenceType !== 'locale') {
+      throw new Error(`Only prop and locale references are supported for dynamic titles`)
     }
 
-    const expresContainer = types.jsxExpressionContainer(
-      ASTUtils.generateMemberExpressionASTFromBase(
-        types.identifier('props'),
-        title.content.refPath || []
+    if (title.content.referenceType === 'prop') {
+      const expresContainer = types.jsxExpressionContainer(
+        ASTUtils.generateMemberExpressionASTFromBase(
+          types.identifier('props'),
+          title.content.refPath || []
+        )
       )
-    )
 
-    titleAST.children.push(expresContainer)
-    return titleAST
+      titleAST.children.push(expresContainer)
+      return { titleAST, hasTranslation: false }
+    }
+
+    const refRawExpression = types.callExpression(
+      types.memberExpression(types.identifier('translate'), types.identifier('raw')),
+      [types.stringLiteral(title.content.id)]
+    )
+    const expression = types.jsxExpressionContainer(refRawExpression)
+
+    titleAST.children.push(expression)
+    return { titleAST, hasTranslation: true }
   }
 
   return jsxHeadConfigPlugin

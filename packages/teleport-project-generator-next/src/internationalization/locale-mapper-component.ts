@@ -49,6 +49,15 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       return structure
     }
 
+    const componentBody = (
+      (
+        (jsxComponent.content as types.VariableDeclaration)
+          .declarations[0] as types.VariableDeclarator
+      ).init as types.ArrowFunctionExpression
+    ).body as types.BlockStatement
+
+    let useTranslationsInBody = useTranslationsAlreadyInBody(componentBody.body)
+
     for (const localeRef of jsxComponent.meta?.localeReferences || []) {
       const localeRefExpression: types.JSXExpressionContainer | undefined = localeRef.children.find(
         (item): item is types.JSXExpressionContainer => item.type === 'JSXExpressionContainer'
@@ -77,7 +86,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     }
 
     const reactHooks: types.VariableDeclaration[] = []
-    if (jsxComponent.meta?.localeReferences?.length > 0) {
+    if (jsxComponent.meta?.localeReferences?.length > 0 && !useTranslationsInBody) {
       const translationsAST = types.variableDeclaration('const', [
         types.variableDeclarator(
           types.identifier('translate'),
@@ -86,6 +95,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       ])
       reactHooks.push(translationsAST)
       structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+      useTranslationsInBody = true
     }
 
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
@@ -128,16 +138,19 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       }
     }
 
-    const componentBody = (
-      (
-        (jsxComponent.content as types.VariableDeclaration)
-          .declarations[0] as types.VariableDeclarator
-      ).init as types.ArrowFunctionExpression
-    ).body as types.BlockStatement
     componentBody.body.unshift(...reactHooks)
-
     return structure
   }
 
+  const useTranslationsAlreadyInBody = (componentBody: types.Statement[]) => {
+    return componentBody.some((statement) => {
+      return (
+        statement.type === 'VariableDeclaration' &&
+        statement.declarations.some((declaration) => {
+          return declaration.id.type === 'Identifier' && declaration.id.name === 'translate'
+        })
+      )
+    })
+  }
   return nextInternationalization
 }

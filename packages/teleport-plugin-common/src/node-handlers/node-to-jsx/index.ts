@@ -116,13 +116,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 
 export default generateElementNode
 
-// const translationsAST = types.variableDeclaration('const', [
-//   types.variableDeclarator(
-//     types.identifier('translate'),
-//     types.callExpression(types.identifier('useTranslations'), [])
-//   ),
-// ])
-
 const addAttributesToJSXTag = (
   attrs: UIDLElement['attrs'],
   elementTag: types.JSXElement,
