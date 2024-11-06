@@ -4029,6 +4029,16 @@
                                           "name": "LanguageName",
                                           "referencedStyles": {},
                                           "abilities": {},
+                                          "attrs": {
+                                            "alt": {
+                                              "type": "static",
+                                              "content": "logo"
+                                            },
+                                            "src": {
+                                              "type": "static",
+                                              "content": "https://presentation-website-assets.teleporthq.io/logos/logo.png"
+                                            }
+                                          },
                                           "style": {
                                             "fontSize": {
                                               "type": "static",
@@ -4087,6 +4097,29 @@
                                             "transition": {
                                               "type": "static",
                                               "content": "0.3s"
+                                            }
+                                          },
+                                          "abilities": {},
+                                          "style": {
+                                            "display": {
+                                              "type": "static",
+                                              "content": "flex"
+                                            },
+                                            "alignItems": {
+                                              "type": "static",
+                                              "content": "flex-start"
+                                            },
+                                            "marginRight": {
+                                              "type": "static",
+                                              "content": "10rem"
+                                            },
+                                            "flexDirection": {
+                                              "type": "static",
+                                              "content": "row"
+                                            },
+                                            "justifyContent": {
+                                              "type": "static",
+                                              "content": "space-between"
                                             }
                                           },
                                           "children": [

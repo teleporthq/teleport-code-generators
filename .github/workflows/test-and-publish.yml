@@ -19,9 +19,9 @@ jobs:
     - run: yarn run lint
     - run: yarn run build
     - run: yarn run test:coverage
-    - run: yarn run upload:coverage
-      env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    # - run: yarn run upload:coverage
+      # env:
+          # CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     - name: Building Projects
       working-directory: packages/teleport-test
       run: yarn standalone

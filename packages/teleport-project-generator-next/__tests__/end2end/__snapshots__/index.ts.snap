@@ -28,7 +28,11 @@ const Home = (props) => {
           autoplay
           className=\\"home-lottie-node\\"
         ></lottie-player>
-        <Header></Header>
+        <AppComponent
+          fields={{
+            Title: 'Custom Name',
+          }}
+        ></AppComponent>
         <Hero
           namedSlot={
             <div className=\\"home-container2\\">

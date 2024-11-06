@@ -277,6 +277,9 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
       if (dataSourceValue.type === 'element') {
         throw new Error(`Dynamic data source for repeat cannot be an element`)
       }
+      if (dataSourceValue.type === 'object') {
+        throw new Error(`Data source for repeat cannot be an object`)
+      }
       repeatContent.dataSource = dataSourceValue
       // remove original attribute so it is not added as a static/dynamic value on the node
       delete parentElement.attrs[nodeDataSourceAttr]
