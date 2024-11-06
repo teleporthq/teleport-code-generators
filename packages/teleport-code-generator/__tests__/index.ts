@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 import { performance } from 'perf_hooks'
 import projectJson from '../../../examples/test-samples/project-sample.json'
-import htmlProjectJson from '../../../examples/uidl-samples/project.json'
+import htmlProjectJson from '../../../examples/uidl-samples/tests.json'
 import {
   ProjectUIDL,
   GenerateOptions,

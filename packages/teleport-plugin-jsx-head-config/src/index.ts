@@ -119,10 +119,10 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     const componentBody = (
       (
         (componentChunk.content as types.VariableDeclaration)
-          .declarations[0] as types.VariableDeclarator
-      ).init as types.ArrowFunctionExpression
-    ).body as types.BlockStatement
-    componentBody.body.unshift(...reactHooks)
+          .declarations?.[0] as types.VariableDeclarator
+      )?.init as types.ArrowFunctionExpression
+    )?.body as types.BlockStatement
+    componentBody?.body?.unshift(...reactHooks)
     return structure
   }
 

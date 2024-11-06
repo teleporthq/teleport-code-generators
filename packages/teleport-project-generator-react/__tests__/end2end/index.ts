@@ -1,5 +1,5 @@
 import { FileType, ProjectStrategy, ReactStyleVariation } from '@teleporthq/teleport-types'
-import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/tests.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'

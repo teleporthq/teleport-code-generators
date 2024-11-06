@@ -10,7 +10,7 @@ import {
   NextProjectMapping,
   NextTemplate,
 } from '@teleporthq/teleport-project-generator-next'
-import projectUIDL from '../../../examples/uidl-samples/project.json'
+import projectUIDL from '../../../examples/uidl-samples/tests.json'
 
 describe('Plugin to add custom files at the end of project generation', () => {
   const customFiles = [

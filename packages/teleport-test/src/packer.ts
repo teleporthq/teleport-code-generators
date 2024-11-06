@@ -6,12 +6,7 @@ import { createVueProjectGenerator } from '@teleporthq/teleport-project-generato
 import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generator-nuxt'
 import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import {
-  RemoteTemplateDefinition,
-  ProjectUIDL,
-  ProjectGenerator,
-  ReactStyleVariation,
-} from '@teleporthq/teleport-types'
+import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 

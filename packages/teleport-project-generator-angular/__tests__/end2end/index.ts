@@ -1,5 +1,5 @@
 import { FileType } from '@teleporthq/teleport-types'
-import fallbackPageSample from '../../../../examples/uidl-samples/project.json'
+import fallbackPageSample from '../../../../examples/uidl-samples/tests.json'
 import uidlSample from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'

@@ -2,7 +2,7 @@ import { FileType } from '@teleporthq/teleport-types'
 import ProjectTemplate from '../src/project-template'
 import { htmlErrorPageMapping } from '../src/error-page-mapping'
 import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../src'
-import fallbackUidlSample from '../../../examples/uidl-samples/project.json'
+import fallbackUidlSample from '../../../examples/uidl-samples/tests.json'
 import uidlWithCompStyleOverrides from '../../../examples/test-samples/comp-style-overrides.json'
 import uidlWithImages from '../../../examples/test-samples/html-image-use-cases.json'
 

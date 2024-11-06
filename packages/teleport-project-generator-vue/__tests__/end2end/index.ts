@@ -1,4 +1,4 @@
-import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/tests.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'

@@ -232,7 +232,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     // We need to replace the root node with a fragment <>
     // The fragment will be the parent of both the old root JSXNode and the style tag
     const componentAST = componentChunk.content as types.VariableDeclaration
-    const arrowFnExpr = componentAST.declarations[0].init as types.ArrowFunctionExpression
+    const arrowFnExpr = componentAST.declarations?.[0]?.init as types.ArrowFunctionExpression
     const bodyStatement = arrowFnExpr.body as types.BlockStatement
     const returnStatement = bodyStatement.body.find(
       (statement) => statement.type === 'ReturnStatement'

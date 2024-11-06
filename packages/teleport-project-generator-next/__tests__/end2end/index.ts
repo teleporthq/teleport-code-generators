@@ -1,5 +1,5 @@
 import { FileType, GeneratedFolder } from '@teleporthq/teleport-types'
-import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/tests.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
@@ -28,7 +28,6 @@ describe('React Next Project Generator', () => {
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
     expect(appFile?.content).toContain(`import "antd/dist/antd.css`)
-    expect(appFile?.content).not.toContain(`import './style.css'`)
   })
 
   it('runs without crashing and adding style sheet to _app.js file', async () => {

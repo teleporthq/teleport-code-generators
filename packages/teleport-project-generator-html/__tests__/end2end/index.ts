@@ -1,4 +1,4 @@
-import uidlSample from '../../../../examples/uidl-samples/project.json'
+import uidlSample from '../../../../examples/uidl-samples/tests.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import projectWithSlot from '../../../../examples/test-samples/project-with-slot.json'
 import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'

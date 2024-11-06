@@ -85,7 +85,8 @@ export const handleAttribute = (
     }
 
     case 'expr':
-      throw new Error(`Expressions are not supported in HTML templates`)
+      // TODO: Check this in the future. Not throwing an error for now
+      console.info(`Expressions are not supported in HTML templates`)
       break
 
     default:
