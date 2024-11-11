@@ -31,7 +31,7 @@ export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
                 types.binaryExpression(
                   '+',
                   // This path might not be correct. Check with pages that are not in the root pages folder
-                  types.stringLiteral('../locales' + '/'),
+                  types.stringLiteral('/locales' + '/'),
                   types.memberExpression(types.identifier('context'), types.identifier('locale'))
                 ),
                 types.stringLiteral('.json')
