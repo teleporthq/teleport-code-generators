@@ -97,6 +97,12 @@ export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
                       false,
                       true
                     ),
+                    types.objectProperty(
+                      types.identifier('...context'),
+                      types.identifier('...context'),
+                      false,
+                      true
+                    ),
                   ])
                 ),
               ])
