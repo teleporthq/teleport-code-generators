@@ -30,14 +30,18 @@ watcher.on('change', async (filePath) => {
       log(chalk.greenBright(`${splitPath[1]}'s types was successfully re-built`))
       log(chalk.blueBright(`Generating code....`))
 
-      exec(`yarn standalone`, { cwd: 'packages/teleport-test' }, (err, stdout, stderr) => {
-        if (err) {
-          console.error(err)
-        }
-        console.log(stderr)
+      exec(
+        `yarn standalone && yarn comp`,
+        { cwd: 'packages/teleport-test' },
+        (err, stdout, stderr) => {
+          if (err) {
+            console.error(err)
+          }
+          console.log(stderr)
 
-        console.log(stdout)
-      })
+          console.log(stdout)
+        }
+      )
     } else {
       log(err, stdout, stderr)
     }

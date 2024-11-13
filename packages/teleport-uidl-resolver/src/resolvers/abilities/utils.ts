@@ -151,7 +151,7 @@ export const insertLinks = (
     const linkNode = createLinkNode(abilities.link, options)
     linkNode.content.children.push(node)
 
-    if (parentNode?.content.style?.display?.content === 'flex') {
+    if (parentNode === undefined || parentNode?.content.style?.display?.content === 'flex') {
       linkNode.content.style = {
         ...linkNode.content.style,
         display: { type: 'static', content: 'contents' },
