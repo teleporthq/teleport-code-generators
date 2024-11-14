@@ -523,6 +523,8 @@ export interface UIDLConditionalExpression {
     operation: string
     operand?: string | boolean | number
   }>
+  // In the code generation phase, we are only supporting 'all' or '||'
+  // Maybe the type checking for this can be improved.
   matchingCriteria?: string
 }
 

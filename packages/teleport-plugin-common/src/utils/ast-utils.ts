@@ -15,6 +15,7 @@ import {
   HastNode,
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
+import { UnaryOperation, BinaryOperator } from './types'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -1088,3 +1089,25 @@ export const getExpressionFromUIDLExpressionNode = (
 
 export const isJSXElement = (value: types.JSXElement | HastNode): value is types.JSXElement =>
   value.type === 'JSXElement'
+
+/**
+ * Because of the restrictions of the AST Types we need to have a clear subset of binary operators we can use
+ * @param operation - the operation defined in the UIDL for the current state branch
+ */
+export const convertToBinaryOperator = (operation: string): BinaryOperator => {
+  const allowedOperations = ['===', '!==', '>=', '<=', '>', '<']
+  if (allowedOperations.includes(operation)) {
+    return operation as BinaryOperator
+  } else {
+    return '==='
+  }
+}
+
+export const convertToUnaryOperator = (operation: string): UnaryOperation => {
+  const allowedOperations = ['!']
+  if (allowedOperations.includes(operation)) {
+    return operation as UnaryOperation
+  } else {
+    return '!'
+  }
+}

@@ -1,6 +1,10 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '../../utils/ast-utils'
+import {
+  convertToBinaryOperator,
+  convertToUnaryOperator,
+  convertValueToLiteral,
+} from '../../utils/ast-utils'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
@@ -16,8 +20,6 @@ import {
 } from '@teleporthq/teleport-types'
 
 import {
-  BinaryOperator,
-  UnaryOperation,
   JSXASTReturnType,
   ConditionalIdentifier,
   JSXGenerationParams,
@@ -300,28 +302,6 @@ export const createBinaryExpression = (
     return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
   } else {
     return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
-  }
-}
-
-/**
- * Because of the restrictions of the AST Types we need to have a clear subset of binary operators we can use
- * @param operation - the operation defined in the UIDL for the current state branch
- */
-const convertToBinaryOperator = (operation: string): BinaryOperator => {
-  const allowedOperations = ['===', '!==', '>=', '<=', '>', '<']
-  if (allowedOperations.includes(operation)) {
-    return operation as BinaryOperator
-  } else {
-    return '==='
-  }
-}
-
-const convertToUnaryOperator = (operation: string): UnaryOperation => {
-  const allowedOperations = ['!']
-  if (allowedOperations.includes(operation)) {
-    return operation as UnaryOperation
-  } else {
-    return '!'
   }
 }
 

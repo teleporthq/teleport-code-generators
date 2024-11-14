@@ -182,6 +182,9 @@ const createConditional = (
   }
 
   const stringConditions = conditions.map(({ operation, operand }) => {
+    // @todo
+    // unlike jsx code generation, we are not converting the operand to binary or unary operation.
+    // Please refer to https://github.com/teleporthq/teleport-code-generators/blob/development/packages/teleport-plugin-common/src/node-handlers/node-to-jsx/utils.ts#L303-L319
     return `(${stringifyConditionalExpression(conditionalKey, operation, operand)})`
   })
 

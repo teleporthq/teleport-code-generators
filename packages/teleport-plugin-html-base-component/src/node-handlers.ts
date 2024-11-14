@@ -22,9 +22,10 @@ import {
   UIDLComponentOutputOptions,
   UIDLElement,
   ElementsLookup,
+  UIDLConditionalNode,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
-import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
+import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
@@ -128,7 +129,66 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       return dynamicNode
 
     case 'conditional':
-      return HASTBuilders.createComment('Conditional nodes are not supported in HTML')
+      const conditionalNodeComment = HASTBuilders.createComment(
+        'Conditional nodes are not supported in HTML'
+      )
+      const {
+        value: staticValue,
+        reference,
+        condition: { conditions, matchingCriteria },
+      } = node.content
+
+      if (reference.type !== 'dynamic') {
+        return conditionalNodeComment
+      }
+
+      const {
+        content: { referenceType, id },
+      } = reference
+
+      switch (referenceType) {
+        case 'prop': {
+          const usedProp = propDefinitions[id]
+          if (usedProp === undefined || usedProp.defaultValue === undefined) {
+            return conditionalNodeComment
+          }
+
+          // Since we know the operand and the default value from the prop.
+          // We can try building the condition and check if the condition is true or false.
+          // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
+          // UIDL validations need to be improved on this aspect.
+          const dynamicConditions = createConditionalStatement(
+            staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
+            usedProp.defaultValue
+          )
+          const matchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+          const conditionString = dynamicConditions.join(` ${matchCondition} `)
+
+          try {
+            // tslint:disable-next-line function-constructor
+            const isConditionPassing = new Function(`return ${conditionString}`)()
+            if (isConditionPassing) {
+              return generateHtmlSyntax(
+                node.content.node,
+                compName,
+                nodesLookup,
+                propDefinitions,
+                stateDefinitions,
+                subComponentOptions,
+                structure
+              )
+            }
+          } catch (error) {
+            return conditionalNodeComment
+          }
+
+          return conditionalNodeComment
+        }
+
+        case 'state':
+        default:
+          return conditionalNodeComment
+      }
 
     case 'expr':
       return HASTBuilders.createComment('Expressions are not supported in HTML')
@@ -140,6 +200,40 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
           null,
           2
         )} `
+      )
+  }
+}
+
+const createConditionalStatement = (
+  conditions: UIDLConditionalNode['content']['condition']['conditions'],
+  leftOperand: UIDLPropDefinition['defaultValue']
+) => {
+  return conditions.map((condition) => {
+    const { operation, operand } = condition
+
+    if (operand === undefined) {
+      return `${ASTUtils.convertToUnaryOperator(operation)}${getValueType(operand)}`
+    }
+
+    return `${getValueType(leftOperand)} ${ASTUtils.convertToBinaryOperator(
+      operation
+    )} ${getValueType(operand)}`
+  })
+}
+
+const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
+  const valueType = typeof value
+  switch (valueType) {
+    case 'string':
+      return `"${value}"`
+    case 'number':
+      return value
+    case 'boolean':
+      return value
+    default:
+      throw new HTMLComponentGeneratorError(
+        `Conditional node received an operand of type ${valueType} \n
+          Received ${JSON.stringify(value)}`
       )
   }
 }

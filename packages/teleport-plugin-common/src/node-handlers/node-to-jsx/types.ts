@@ -72,32 +72,6 @@ export type JSXASTReturnType =
   | types.Identifier
   | types.MemberExpression
 
-export type BinaryOperator =
-  | '==='
-  | '+'
-  | '-'
-  | '/'
-  | '%'
-  | '*'
-  | '**'
-  | '&'
-  | '|'
-  | '>>'
-  | '>>>'
-  | '<<'
-  | '^'
-  | '=='
-  | '!='
-  | '!=='
-  | 'in'
-  | 'instanceof'
-  | '>'
-  | '<'
-  | '>='
-  | '<='
-
-export type UnaryOperation = '+' | '-' | 'void' | 'throw' | 'delete' | '!' | '~' | 'typeof'
-
 export interface ConditionalIdentifier {
   key: string
   type: string
