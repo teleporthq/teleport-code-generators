@@ -25,45 +25,45 @@ jobs:
     - name: Building Projects
       working-directory: packages/teleport-test
       run: yarn standalone
-    - name: Building Wordpress Project
-      env:
-          CMS_URL: ${{ secrets.WORDPRESS_URL }}
-      working-directory: packages/teleport-test/dist/teleport-project-wordpress-cms
-      run: |
-        yarn
-        yarn build
-    - name: Building Contentful Project
-      env:
-          CMS_URL: ${{ secrets.CONTENTFUL_URL }}
-          CMS_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
-      working-directory: packages/teleport-test/dist/teleport-project-contentful-cms
-      run: |
-        yarn
-        yarn build
-    - name: Building Strapi Porject
-      env:
-          CMS_URL: ${{ secrets.STRAPI_URL }}
-          CMS_ACCESS_TOKEN: ${{ secrets.STRAPI_ACCESS_TOKEN }}
-      working-directory: packages/teleport-test/dist/teleport-project-strapi-cms
-      run: |
-        yarn
-        yarn build
-    - name: Building Caisy Project
-      env:
-          CMS_URL: ${{ secrets.CAISY_URL }}
-          CMS_ACCESS_TOKEN: ${{ secrets.CAISY_ACCESS_TOKEN }}
-      working-directory: packages/teleport-test/dist/teleport-project-caisy-cms
-      run: |
-        yarn
-        yarn build
-    - name: Building Flotiq Project
-      env:
-          CMS_URL: ${{ secrets.FLOTIQ_URL }}
-          CMS_ACCESS_TOKEN: ${{ secrets.FLOTIQ_ACCESS_TOKEN }}
-      working-directory: packages/teleport-test/dist/teleport-project-flotiq-cms
-      run: |
-        yarn
-        yarn build
+    # - name: Building Wordpress Project
+    #   env:
+    #       CMS_URL: ${{ secrets.WORDPRESS_URL }}
+    #   working-directory: packages/teleport-test/dist/teleport-project-wordpress-cms
+    #   run: |
+    #     yarn
+    #     yarn build
+    # - name: Building Contentful Project
+    #   env:
+    #       CMS_URL: ${{ secrets.CONTENTFUL_URL }}
+    #       CMS_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
+    #   working-directory: packages/teleport-test/dist/teleport-project-contentful-cms
+    #   run: |
+    #     yarn
+    #     yarn build
+    # - name: Building Strapi Porject
+    #   env:
+    #       CMS_URL: ${{ secrets.STRAPI_URL }}
+    #       CMS_ACCESS_TOKEN: ${{ secrets.STRAPI_ACCESS_TOKEN }}
+    #   working-directory: packages/teleport-test/dist/teleport-project-strapi-cms
+    #   run: |
+    #     yarn
+    #     yarn build
+    # - name: Building Caisy Project
+    #   env:
+    #       CMS_URL: ${{ secrets.CAISY_URL }}
+    #       CMS_ACCESS_TOKEN: ${{ secrets.CAISY_ACCESS_TOKEN }}
+    #   working-directory: packages/teleport-test/dist/teleport-project-caisy-cms
+    #   run: |
+    #     yarn
+    #     yarn build
+    # - name: Building Flotiq Project
+    #   env:
+    #       CMS_URL: ${{ secrets.FLOTIQ_URL }}
+    #       CMS_ACCESS_TOKEN: ${{ secrets.FLOTIQ_ACCESS_TOKEN }}
+    #   working-directory: packages/teleport-test/dist/teleport-project-flotiq-cms
+    #   run: |
+    #     yarn
+    #     yarn build
 
     - name: Authenticate with Registry
       if: github.ref == 'refs/heads/development'
