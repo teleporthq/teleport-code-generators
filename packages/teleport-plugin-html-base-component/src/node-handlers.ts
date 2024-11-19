@@ -615,11 +615,12 @@ const generateComponentContent = async (
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | HastText>> = async (
   node,
-  /* tslint:disable variable-name */
-  _compName,
+  compName,
   nodesLookup,
   propDefinitions,
-  stateDefinitions
+  stateDefinitions,
+  subComponentOptions,
+  structure
 ): Promise<HastNode | HastText> => {
   if (node.content.referenceType === 'locale') {
     const localeTag = HASTBuilders.createHTMLNode('span')
@@ -650,20 +651,25 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | H
     }
   }
 
-  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue) {
+  if (usedReferenceValue.type === 'element') {
     const elementNode = usedReferenceValue.defaultValue as UIDLElementNode
-
-    if (elementNode.content.key in nodesLookup) {
-      return nodesLookup[elementNode.content.key]
+    if (elementNode) {
+      if (elementNode.content.key in nodesLookup) {
+        return nodesLookup[elementNode.content.key]
+      } else {
+        const elementTag = await generateHtmlSyntax(
+          elementNode,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+        return elementTag
+      }
     }
 
-    const spanTagWrapper = HASTBuilders.createHTMLNode('span')
-    const commentNode = HASTBuilders.createComment(`Content for slot ${node.content.id}`)
-    HASTUtils.addChildNode(spanTagWrapper, commentNode)
-    return spanTagWrapper
-  }
-
-  if (usedReferenceValue.type === 'element' && usedReferenceValue.defaultValue === undefined) {
     const spanTagWrapper = HASTBuilders.createHTMLNode('span')
     const commentNode = HASTBuilders.createComment(`Content for slot ${node.content.id}`)
     HASTUtils.addChildNode(spanTagWrapper, commentNode)
