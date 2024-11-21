@@ -101,11 +101,8 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
 
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files } = structure
-    if (uidl.internationalization === undefined) {
-      return structure
-    }
 
-    const { translations } = uidl.internationalization
+    const { translations = { en: {} } } = uidl.internationalization || {}
     const promises: Array<Promise<Record<string, string>>> = []
 
     for (const locale of Object.keys(translations)) {

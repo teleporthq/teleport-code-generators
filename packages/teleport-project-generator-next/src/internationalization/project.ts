@@ -107,11 +107,9 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
 
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files, template } = structure
-    if (uidl.internationalization === undefined) {
-      return structure
-    }
 
-    const { languages, main } = uidl.internationalization
+    const { languages = { en: 'English' }, main = { locale: 'en', name: 'English' } } =
+      uidl.internationalization || {}
     if (languages !== undefined && Object.keys(languages).length > 0) {
       const languageKeys = Object.keys(languages)
       const nextConfig = `module.exports = {
