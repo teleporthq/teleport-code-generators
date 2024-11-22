@@ -32,7 +32,7 @@ export const buildDefaultPropsAst = (
             parsedFunction = parseResult.expression
           }
         } catch (err) {
-          // silet fail
+          // silet fail.
         }
 
         acc.values[key] = parsedFunction
