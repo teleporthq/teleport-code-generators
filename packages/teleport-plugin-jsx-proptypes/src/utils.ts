@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import { parse } from '@babel/core'
 import { ASTUtils, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 import { UIDLPropDefinition } from '@teleporthq/teleport-types'
 
@@ -17,9 +18,24 @@ export const buildDefaultPropsAst = (
       const { defaultValue, type } = propDefinitions[key]
 
       if (type === 'func') {
-        acc.values[key] = new ParsedASTNode(
+        // Initialize with empty function
+        let parsedFunction: unknown = new ParsedASTNode(
           types.arrowFunctionExpression([], types.blockStatement([]))
         )
+
+        try {
+          const options = {
+            sourceType: 'module' as const,
+          }
+          const parseResult = parse(defaultValue.toString(), options)?.program?.body?.[0]
+          if (parseResult.type === 'ExpressionStatement') {
+            parsedFunction = parseResult.expression
+          }
+        } catch (err) {
+          // silet fail
+        }
+
+        acc.values[key] = parsedFunction
         acc.count++
         return acc
       }

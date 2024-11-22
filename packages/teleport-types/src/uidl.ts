@@ -30,6 +30,7 @@ export interface UIDLPropValue {
   type: 'dynamic'
   content: {
     referenceType: 'prop'
+    refPath?: string[]
     id: string
   }
 }
@@ -38,6 +39,7 @@ export interface UIDLStateValue {
   type: 'dynamic'
   content: {
     referenceType: 'state'
+    refPath?: string[]
     id: string
   }
 }
@@ -264,9 +266,18 @@ export interface UIDLComponentSEO {
 
 export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicReference>
 
+export type PropDefaultValueTypes =
+  | string
+  | number
+  | boolean
+  | unknown[]
+  | object
+  | (() => void)
+  | UIDLElementNode
+
 export interface UIDLPropDefinition {
   type: string
-  defaultValue?: string | number | boolean | unknown[] | object | (() => void) | UIDLElementNode
+  defaultValue?: PropDefaultValueTypes
   isRequired?: boolean
   id?: string
   meta?: {
@@ -349,7 +360,7 @@ export interface UIDLExpressionValue {
 
 export interface UIDLStaticValue {
   type: 'static'
-  content: string | number | boolean | unknown[] // unknown[] for data sources
+  content: string | number | boolean | Record<string, unknown> | unknown[] // unknown[] for data sources
 }
 
 export interface UIDLRawValue {
@@ -762,6 +773,7 @@ export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
     referenceType: 'prop' | 'comp'
+    refPath?: string[]
     id: string
   }
 }

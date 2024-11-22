@@ -23,6 +23,7 @@ import {
   UIDLElement,
   ElementsLookup,
   UIDLConditionalNode,
+  PropDefaultValueTypes,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -143,7 +144,7 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       }
 
       const {
-        content: { referenceType, id },
+        content: { referenceType, id, refPath },
       } = reference
 
       switch (referenceType) {
@@ -153,13 +154,23 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
             return conditionalNodeComment
           }
 
+          let defaultValue = usedProp.defaultValue
+          for (const path of refPath) {
+            defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
+          }
+
+          // Safety measure in case no value is found
+          if (!defaultValue) {
+            defaultValue = usedProp.defaultValue
+          }
+
           // Since we know the operand and the default value from the prop.
           // We can try building the condition and check if the condition is true or false.
           // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
           // UIDL validations need to be improved on this aspect.
           const dynamicConditions = createConditionalStatement(
             staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
-            usedProp.defaultValue
+            defaultValue
           )
           const matchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
           const conditionString = dynamicConditions.join(` ${matchCondition} `)
@@ -634,21 +645,21 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | H
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
   )
 
-  if (usedReferenceValue.type === 'object' && usedReferenceValue.defaultValue) {
+  if (
+    (usedReferenceValue.type === 'object' || usedReferenceValue.type === 'array') &&
+    usedReferenceValue.defaultValue
+  ) {
     // Let's say users are biding the prop to a node using something like this "fields.Title"
     // But the fields in the object is the value where the object is defined either in propDefinitions
     // or on the attrs. So, we just need to parsed the rest of the object path and get the value from the object.
-    const pathKeys: string[] = node.content.id.split(/\.|\[(['"]?)(.+?)\1\]/).filter(Boolean)
-    pathKeys.shift()
-
-    const value = GenericUtils.getValueFromPath(
-      pathKeys.join('.'),
-      usedReferenceValue.defaultValue as Record<string, UIDLPropDefinition>
+    return HASTBuilders.createTextNode(
+      String(
+        extractDefaultValueFromRefPath(
+          usedReferenceValue.defaultValue as Record<string, UIDLPropDefinition>,
+          node.content.refPath
+        )
+      )
     )
-
-    if (value) {
-      return HASTBuilders.createTextNode(String(value))
-    }
   }
 
   if (usedReferenceValue.type === 'element') {
@@ -695,7 +706,9 @@ const handleStyles = (
         style.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
       )
       if (referencedValue.type === 'string' || referencedValue.type === 'number') {
-        style = String(referencedValue.defaultValue)
+        style = String(
+          extractDefaultValueFromRefPath(referencedValue.defaultValue, style?.content?.refPath)
+        )
       }
       node.content.style[styleKey] = typeof style === 'string' ? staticNode(style) : style
     }
@@ -789,7 +802,11 @@ const handleAttributes = (
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions
         )
 
-        HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value.defaultValue))
+        HASTUtils.addAttributeToNode(
+          htmlNode,
+          attrKey,
+          String(extractDefaultValueFromRefPath(value.defaultValue, content.refPath))
+        )
         break
       }
 
@@ -817,7 +834,7 @@ const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
 ): UIDLPropDefinition | undefined => {
-  const usedReferenceValue = definitions[key.includes('.') ? key.split('.')[0] : key]
+  const usedReferenceValue = definitions[key.includes('?.') ? key.split('?.')[0] : key]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(
@@ -825,7 +842,9 @@ const getValueFromReference = (
     )
   }
 
-  if (['string', 'number', 'object', 'element'].includes(usedReferenceValue?.type) === false) {
+  if (
+    ['string', 'number', 'object', 'element', 'array'].includes(usedReferenceValue?.type) === false
+  ) {
     throw new HTMLComponentGeneratorError(
       `Attribute is using dynamic value, but received of type ${JSON.stringify(
         usedReferenceValue,
@@ -849,4 +868,15 @@ const getValueFromReference = (
   }
 
   return usedReferenceValue
+}
+
+const extractDefaultValueFromRefPath = (
+  propDefaultValue: PropDefaultValueTypes,
+  refPath?: string[]
+) => {
+  if (typeof propDefaultValue !== 'object' || !refPath?.length) {
+    return propDefaultValue
+  }
+
+  return GenericUtils.getValueFromPath(refPath.join('.'), propDefaultValue) as PropDefaultValueTypes
 }

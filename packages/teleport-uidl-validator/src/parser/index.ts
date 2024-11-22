@@ -390,6 +390,8 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             id: StringUtils.createStateOrPropStoringValue(
               ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content.id
             ),
+            refPath: ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content
+              .refPath,
           }
         }
 
@@ -438,6 +440,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           id: StringUtils.createStateOrPropStoringValue(
             conditionalNode.content.reference.content.id
           ),
+          refPath: reference.content.refPath,
         }
       }
 
@@ -472,7 +475,10 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     case 'dynamic':
       const dyamicNode = node as unknown as UIDLDynamicReference
       if (['state', 'prop'].includes(dyamicNode.content.referenceType)) {
-        dyamicNode.content.id = StringUtils.createStateOrPropStoringValue(dyamicNode.content.id)
+        dyamicNode.content.id = UIDLUtils.generateIdWithRefPath(
+          dyamicNode.content.id,
+          dyamicNode.content.refPath
+        )
       }
       return dyamicNode
     case 'static':

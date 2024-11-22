@@ -143,7 +143,7 @@ export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
 
 export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   type: constant('static'),
-  content: union(string(), number(), boolean(), array()),
+  content: union(string(), number(), boolean(), array(), object()),
 })
 
 export const rawValueDecoder: Decoder<UIDLRawValue> = object({

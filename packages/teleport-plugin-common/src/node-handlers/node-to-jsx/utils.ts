@@ -5,7 +5,7 @@ import {
   convertToUnaryOperator,
   convertValueToLiteral,
 } from '../../utils/ast-utils'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,
@@ -25,6 +25,7 @@ import {
   JSXGenerationParams,
   JSXGenerationOptions,
 } from './types'
+import { generateIdWithRefPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 // Adds all the event handlers and all the instructions for each event handler
 // in case there is more than one specified in the UIDL
@@ -153,12 +154,9 @@ export const createDynamicValueExpression = (
 ) => {
   const identifierContent = identifier.content
   const refPath = identifier.content.refPath || []
-  const { referenceType } = identifierContent
+  const { referenceType, id } = identifierContent
 
-  let id = identifierContent.id
-  refPath?.forEach((pathItem) => {
-    id = id.concat(`?.${pathItem}`)
-  })
+  const idWithPath = generateIdWithRefPath(id, refPath)
 
   if (referenceType === 'attr' || referenceType === 'children' || referenceType === 'token') {
     throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)
@@ -168,8 +166,8 @@ export const createDynamicValueExpression = (
     options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
 
   return prefix === ''
-    ? t.identifier(id)
-    : t.memberExpression(t.identifier(prefix), t.identifier(id))
+    ? t.identifier(idWithPath)
+    : t.memberExpression(t.identifier(prefix), t.identifier(idWithPath))
 }
 
 // Prepares an identifier (from props or state or an expr) to be used as a conditional rendering identifier
@@ -186,22 +184,30 @@ export const createConditionIdentifier = (
     }
   }
 
-  const { id, referenceType } = dynamicReference.content
+  const { id, referenceType, refPath } = dynamicReference.content
 
   // in case the id is a member expression: eg: fields.name
   const referenceRoot = id.split('.')[0]
+  let type = params.propDefinitions[referenceRoot]?.type
+  if (refPath?.length) {
+    let currentValue = params.propDefinitions[referenceRoot].defaultValue as Record<string, unknown>
+    for (const path of refPath) {
+      currentValue = currentValue?.[path] as Record<string, unknown>
+      type = currentValue ? typeof currentValue : params.propDefinitions[referenceRoot]?.type
+    }
+  }
 
   switch (referenceType) {
     case 'prop':
       return {
-        key: id,
-        type: params.propDefinitions[referenceRoot].type,
+        key: UIDLUtils.generateIdWithRefPath(id, refPath),
+        type,
         prefix: options.dynamicReferencePrefixMap.prop,
       }
     case 'state':
       return {
-        key: id,
-        type: params.stateDefinitions[referenceRoot].type,
+        key: UIDLUtils.generateIdWithRefPath(id, refPath),
+        type,
         prefix: options.dynamicReferencePrefixMap.state,
       }
 

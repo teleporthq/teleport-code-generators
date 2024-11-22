@@ -818,7 +818,7 @@ export const transformStylesAssignmentsToJson = (
             type,
             content: {
               ...content,
-              id: StringUtils.createStateOrPropStoringValue(content.id),
+              id: generateIdWithRefPath(content.id, content.refPath),
             },
           }
         } else {
@@ -839,6 +839,23 @@ export const transformStylesAssignmentsToJson = (
   }, newStyleObject)
 
   return newStyleObject
+}
+
+export const generateIdWithRefPath = (contentId: string, refPath?: string[]) => {
+  let processedId = contentId
+  if (refPath) {
+    const processedRefPath = refPath.reduce((acc, path) => {
+      return `${acc}?.['${path}']`
+    }, '')
+
+    // This is a bit ugly, but in some cases props are parsed twice or already generated.
+    // To avoid possible bugs, this should be a good safety measure
+    if (!processedId.includes(processedRefPath)) {
+      processedId = `${processedId}${processedRefPath}`
+    }
+  }
+
+  return StringUtils.createStateOrPropStoringValue(processedId)
 }
 
 /*
@@ -902,7 +919,7 @@ export const transformAttributesAssignmentsToJson = (
               type,
               content: {
                 ...content,
-                id: StringUtils.createStateOrPropStoringValue(content.id),
+                id: generateIdWithRefPath(content.id, content.refPath),
               },
             }
           } else {
