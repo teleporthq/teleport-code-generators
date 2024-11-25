@@ -16,6 +16,8 @@ describe('declares a propDefinitions with type object and use it', () => {
       city: 'Cluj',
     },
   }`)
-    expect(htmlFile?.content).toContain('{{ company.name }}{{ company.location.city }}')
+    expect(htmlFile?.content).toContain(
+      "{{ company?.['name'] }}{{ company?.['location']?.['city'] }}"
+    )
   })
 })

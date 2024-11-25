@@ -144,10 +144,10 @@ describe('createConditionIdentifier', () => {
   })
 
   it('works on member expressions', () => {
-    const node = dynamicNode('prop', 'fields.title')
+    const node = dynamicNode('prop', 'fields', ['title'])
     const result = createConditionIdentifier(node, params, options)
 
-    expect(result.key).toBe('fields.title')
+    expect(result.key).toBe("fields?.['title']")
     expect(result.prefix).toBe('this.props')
     expect(result.type).toBe('object')
   })

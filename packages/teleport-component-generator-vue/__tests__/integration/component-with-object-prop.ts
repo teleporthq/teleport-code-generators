@@ -8,7 +8,9 @@ describe('declares a propDefinitions with type object and use it', () => {
     const result = await generator.generateComponent(componentUIDL)
     const vueFile = result.files.find((file) => file.fileType === FileType.VUE)
 
-    expect(vueFile?.content).toContain('{{ company.name }}{{ company.location.city }}')
+    expect(vueFile?.content).toContain(
+      "{{ company?.['name'] }}{{ company?.['location']?.['city'] }}"
+    )
     expect(vueFile?.content).toContain(`company: {
       type: Object,
       default: () => ({

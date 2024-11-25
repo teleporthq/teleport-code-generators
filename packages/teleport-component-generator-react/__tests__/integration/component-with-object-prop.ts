@@ -10,7 +10,7 @@ describe('declares a propDefinitions with type object and use it', () => {
 
     expect(jsFile).toBeDefined()
     expect(jsFile?.content).toContain('config: PropTypes.object')
-    expect(jsFile?.content).toContain('height: props.config.height')
+    expect(jsFile?.content).toContain("height: props.config?.['height']")
     expect(jsFile?.content).toContain(`config: {
     height: 30,
     width: 30,

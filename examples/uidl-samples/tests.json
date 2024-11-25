@@ -5386,21 +5386,24 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "fields.Title"
+                      "id": "fields",
+                      "refPath": ["Title"]
                     }
                   },
                   {
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "company.name"
+                      "id": "company",
+                      "refPath": ["name"]
                     }
                   },
                   {
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "company.location"
+                      "id": "company",
+                      "refPath": ["location"]
                     }
                   }
                 ]

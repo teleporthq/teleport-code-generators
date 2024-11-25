@@ -188,12 +188,17 @@ export const createConditionIdentifier = (
 
   // in case the id is a member expression: eg: fields.name
   const referenceRoot = id.split('.')[0]
-  let type = params.propDefinitions[referenceRoot]?.type
+  const currentType =
+    referenceType === 'prop'
+      ? params.propDefinitions[referenceRoot]?.type
+      : params.stateDefinitions[referenceRoot]?.type
+
+  let type = currentType
   if (refPath?.length) {
     let currentValue = params.propDefinitions[referenceRoot].defaultValue as Record<string, unknown>
     for (const path of refPath) {
       currentValue = currentValue?.[path] as Record<string, unknown>
-      type = currentValue ? typeof currentValue : params.propDefinitions[referenceRoot]?.type
+      type = currentValue ? typeof currentValue : currentType
     }
   }
 

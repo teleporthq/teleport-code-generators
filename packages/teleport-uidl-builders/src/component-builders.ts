@@ -120,12 +120,17 @@ export const staticNode = (content: string | boolean | number): UIDLStaticValue 
   }
 }
 
-export const dynamicNode = (referenceType: ReferenceType, id: string): UIDLDynamicReference => {
+export const dynamicNode = (
+  referenceType: ReferenceType,
+  id: string,
+  refPath?: string[]
+): UIDLDynamicReference => {
   return {
     type: 'dynamic',
     content: {
       referenceType,
       id,
+      refPath,
     },
   }
 }

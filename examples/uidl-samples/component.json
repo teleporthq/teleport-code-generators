@@ -103,14 +103,16 @@
           "type": "dynamic",
           "content": {
             "referenceType": "prop",
-            "id": "company.name"
+            "id": "company",
+            "refPath": ["name"]
           }
         },
         {
           "type": "dynamic",
           "content": {
             "referenceType": "prop",
-            "id": "company.location.city"
+            "id": "company",
+            "refPath": ["location", "city"]
           }
         },
         {
@@ -122,14 +124,16 @@
                 "type": "dynamic",
                 "content": {
                   "referenceType": "prop",
-                  "id": "config.height"
+                  "id": "config",
+                  "refPath": ["height"]
                 }
               },
               "width": {
                 "type": "dynamic",
                 "content": {
                   "referenceType": "prop",
-                  "id": "config.width"
+                  "id": "config",
+                  "refPath": ["width"]
                 }
               }
             },
