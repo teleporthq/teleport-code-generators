@@ -16,5 +16,16 @@ export const ReactProjectMapping: Mapping = {
         to: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
       },
     },
+    'cms-list-repeater': {
+      elementType: 'Repeater',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
   },
 }
