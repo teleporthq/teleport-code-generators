@@ -124,7 +124,8 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | HastText | string> = (
 
     case 'expr':
       return 'Expression nodes are not supported'
-
+    case 'cms-list-repeater':
+      return 'CMS repeater nodes are not supported'
     default:
       throw new Error(
         `generateHTMLSyntax encountered a node of unsupported type: ${JSON.stringify(

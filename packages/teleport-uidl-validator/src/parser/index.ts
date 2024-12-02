@@ -384,11 +384,14 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         }
 
         if (type === 'url' && (content as UIDLURLLinkNode['content']).url.type === 'dynamic') {
+          const refPath = ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference)
+            ?.content?.refPath
           ;(content as UIDLURLLinkNode['content']).url.content = {
             referenceType: ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference)
               .content.referenceType,
-            id: StringUtils.createStateOrPropStoringValue(
-              ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content.id
+            id: UIDLUtils.generateIdWithRefPath(
+              ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content.id,
+              refPath
             ),
             refPath: ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content
               .refPath,

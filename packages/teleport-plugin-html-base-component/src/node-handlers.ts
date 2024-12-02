@@ -144,7 +144,7 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       }
 
       const {
-        content: { referenceType, id, refPath },
+        content: { referenceType, id, refPath = [] },
       } = reference
 
       switch (referenceType) {
@@ -203,7 +203,8 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
     case 'expr':
       return HASTBuilders.createComment('Expressions are not supported in HTML')
-
+    case 'cms-list-repeater':
+      return HASTBuilders.createComment('CMS Repeater/Array Mapper nodes are not supported in HTML')
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -448,7 +449,8 @@ const generateComponentContent = async (
   const statesForInstance = Object.keys(combinedStates).reduce(
     (acc: Record<string, UIDLStateDefinition>, propKey) => {
       const attr = attrs[propKey]
-      if (attr.type === 'object') {
+
+      if (attr?.type === 'object') {
         throw new Error(`Object attributes are not supported in html exports`)
       }
 
@@ -501,6 +503,9 @@ const generateComponentContent = async (
           break
         case 'state':
           propsForInstance[propKey] = combinedStates[propKey]
+          break
+        case 'expr':
+          // Ignore expr type attributes in html for the time being.
           break
         default:
           throw new Error(
