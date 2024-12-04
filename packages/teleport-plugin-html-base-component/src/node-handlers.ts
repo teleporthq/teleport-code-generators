@@ -24,6 +24,7 @@ import {
   ElementsLookup,
   UIDLConditionalNode,
   PropDefaultValueTypes,
+  UIDLCMSListRepeaterNode,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -82,6 +83,13 @@ type NodeToHTML<NodeType, ReturnType> = (
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
     outputOptions: UIDLComponentOutputOptions
+  },
+  /**
+   * This param is just to be able to handle CMS array mappers/Repeater nodes. A bit hacky, better support should be implemented
+   */
+  resolvedExpressions?: {
+    expressions: Record<string, UIDLPropDefinition>
+    currentIndex: number
   }
 ) => ReturnType
 
@@ -92,7 +100,8 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  structure
+  structure,
+  resolvedExpressions
 ) => {
   switch (node.type) {
     case 'inject':
@@ -113,7 +122,8 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure
+        structure,
+        resolvedExpressions
       )
       return elementNode
 
@@ -186,7 +196,8 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
                 propDefinitions,
                 stateDefinitions,
                 subComponentOptions,
-                structure
+                structure,
+                resolvedExpressions
               )
             }
           } catch (error) {
@@ -202,9 +213,40 @@ export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
       }
 
     case 'expr':
+      const content = node.content.split('?.')
+
+      if (resolvedExpressions && resolvedExpressions.expressions?.[content[0] || '']) {
+        const uidlDynamicRef: UIDLDynamicReference = {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            refPath: [resolvedExpressions.currentIndex.toString(), ...content.slice(1)],
+            id: content[0],
+          },
+        }
+        const generatedNode = await generateDynamicNode(
+          uidlDynamicRef,
+          compName,
+          nodesLookup,
+          resolvedExpressions.expressions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+        return generatedNode
+      }
+
       return HASTBuilders.createComment('Expressions are not supported in HTML')
     case 'cms-list-repeater':
-      return HASTBuilders.createComment('CMS Repeater/Array Mapper nodes are not supported in HTML')
+      return generateRepeaterNode(
+        node,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure
+      )
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -250,7 +292,10 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
   }
 }
 
-const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
+const generateRepeaterNode: NodeToHTML<
+  UIDLCMSListRepeaterNode,
+  Promise<HastNode | HastText>
+> = async (
   node,
   compName,
   nodesLookup,
@@ -258,6 +303,94 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
   stateDefinitions,
   subComponentOptions,
   structure
+) => {
+  const { nodes } = node.content
+
+  const contextId = node.content.renderPropIdentifier
+  const sourceProp = node.content.source
+  const propDef =
+    propDefinitions[
+      Object.keys(propDefinitions).find((propKey) => sourceProp.includes(propKey)) || ''
+    ]
+
+  propDefinitions[contextId] = propDef
+
+  if (!propDef || !Array.isArray(propDef.defaultValue)) {
+    return HASTBuilders.createComment(
+      'CMS Array Mapper/Repeater not supported in HTML without a prop source'
+    )
+  }
+
+  const elementNode = HASTBuilders.createHTMLNode('div')
+  node.content.nodes.list.content.style = { display: { type: 'static', content: 'contents' } }
+  // Empty case
+  if (propDef.defaultValue.length === 0) {
+    const emptyChildren = nodes.empty.content.children
+    if (emptyChildren) {
+      for (const child of emptyChildren) {
+        const childTag = await generateHtmlSyntax(
+          child,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+
+        if (typeof childTag === 'string') {
+          HASTUtils.addTextNode(elementNode, childTag)
+        } else {
+          HASTUtils.addChildNode(elementNode, childTag as HastNode)
+        }
+      }
+    }
+    return elementNode
+  }
+
+  const listChildren = nodes.list.content.children
+  if (listChildren) {
+    for (let index = 0; index < propDef.defaultValue.length; index++) {
+      for (const child of listChildren) {
+        const childTag = await generateHtmlSyntax(
+          child,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure,
+          { currentIndex: index, expressions: { [contextId]: propDef } }
+        )
+
+        if (typeof childTag === 'string') {
+          HASTUtils.addTextNode(elementNode, childTag)
+        } else {
+          HASTUtils.addChildNode(elementNode, childTag as HastNode)
+        }
+      }
+    }
+  }
+
+  addNodeToLookup(
+    `${node.content.nodes.list.content.key}`,
+    node.content.nodes.list,
+    elementNode,
+    nodesLookup,
+    [compName]
+  )
+  return elementNode
+}
+
+const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
+  node,
+  compName,
+  nodesLookup,
+  propDefinitions,
+  stateDefinitions,
+  subComponentOptions,
+  structure,
+  resolvedExpressions
 ) => {
   const {
     elementType,
@@ -301,7 +434,8 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure
+        structure,
+        resolvedExpressions
       )
 
       if (typeof childTag === 'string') {
@@ -332,10 +466,19 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     propDefinitions,
     stateDefinitions,
     structure.options.projectRouteDefinition,
-    structure.outputOptions
+    structure.outputOptions,
+    resolvedExpressions?.currentIndex
   )
 
-  addNodeToLookup(node.content.key, node, elementNode, nodesLookup, [compName])
+  addNodeToLookup(
+    resolvedExpressions
+      ? `${node.content.key}-repeat${resolvedExpressions.currentIndex}`
+      : node.content.key,
+    node,
+    elementNode,
+    nodesLookup,
+    [compName]
+  )
   return elementNode
 }
 
@@ -505,7 +648,7 @@ const generateComponentContent = async (
           propsForInstance[propKey] = combinedStates[propKey]
           break
         case 'expr':
-          // Ignore expr type attributes in html for the time being.
+          // Ignore expr type attributes in html comp instances for the time being.
           break
         default:
           throw new Error(
@@ -727,7 +870,8 @@ const handleAttributes = (
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   routeDefinitions: UIDLRouteDefinitions,
-  outputOptions: UIDLComponentOutputOptions
+  outputOptions: UIDLComponentOutputOptions,
+  currentIndex?: number
 ) => {
   for (const attrKey of Object.keys(attrs)) {
     const attrValue = attrs[attrKey]
@@ -820,9 +964,28 @@ const handleAttributes = (
         break
       }
 
+      case 'expr': {
+        const fullPath = content.split('?.')
+        const prop = propDefinitions[fullPath?.[0] || '']
+
+        if (!prop) {
+          break
+        }
+
+        const path =
+          typeof currentIndex === 'number'
+            ? [currentIndex.toString(), ...fullPath.slice(1)]
+            : fullPath.slice(1)
+        const value = extractDefaultValueFromRefPath(prop.defaultValue, path)
+        if (!value) {
+          break
+        }
+        HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value))
+        break
+      }
+
       case 'element':
       case 'import':
-      case 'expr':
       case 'object':
         break
 
