@@ -259,7 +259,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               const referedStyle = globalStyleSheet[content.referenceId]
               if (!referedStyle) {
                 throw new PluginCssModules(
-                  `Style used from global stylesheet is missing - ${content.referenceId}`
+                  `Style used from global stylesheet is missing plugin css module - ${content.referenceId}`
                 )
               }
               classNamesToAppend.add(

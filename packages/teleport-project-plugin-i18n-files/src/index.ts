@@ -7,6 +7,7 @@ import {
   ProjectPluginStructure,
   ProjectType,
   UIDLElementNode,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import {
   createJSXSyntax,
@@ -28,7 +29,10 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
     this.resolver = new Resolver(ReactMapping)
   }
 
-  async generateJSX(node: UIDLElementNode): Promise<{ html: string; css?: string }> {
+  async generateJSX(
+    node: UIDLElementNode,
+    projectStyleSet: Record<string, UIDLStyleSetDefinition>
+  ): Promise<{ html: string; css?: string }> {
     const proxyUIDL: ComponentUIDL = {
       name: 'locale-node',
       node,
@@ -73,7 +77,9 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
         },
       ],
       dependencies: {},
-      options: {},
+      options: {
+        projectStyleSet: { styleSetDefinitions: projectStyleSet, fileName: '', path: '' },
+      },
     }
 
     const result = await createCSSPlugin({
@@ -113,7 +119,7 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
         if (item?.type === 'element') {
           promises.push(
             new Promise((resolve) => {
-              this.generateJSX(item).then(({ html, css }) => {
+              this.generateJSX(item, uidl.root.styleSetDefinitions).then(({ html, css }) => {
                 resolve({ [id]: css ? `${html} \n <style>${css}</style>` : html })
               })
             })

@@ -222,7 +222,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
               if (!referedStyle) {
                 throw new PluginReactJSS(
-                  `Style used from global stylesheet is missing - ${content.referenceId}`
+                  `Style used from global stylesheet is missing plugin react jss - ${content.referenceId}`
                 )
               }
 
