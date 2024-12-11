@@ -46,23 +46,21 @@ const isValidURL = (url: string) => {
 
 const addNodeToLookup = (
   key: string,
-  node: UIDLElementNode,
-  tag: HastNode | HastText,
-  nodesLoookup: Record<string, HastNode | HastText>,
-  hierarchy: string[] = []
+  tag: HastNode | HastText | Array<HastNode | HastText>,
+  nodesLoookup: Record<string, HastNode | HastText | Array<HastNode | HastText>>
 ) => {
   // In html code-generation we combine the nodes of the component that is being consumed with the current component.
   // As html can't load the component at runtime like react or any other frameworks. So, we merge the component as a standalone
   // component in the current component.
-  if (nodesLoookup[key]) {
-    throw new HTMLComponentGeneratorError(
-      `\n${hierarchy.join(' -> ')} \n
-Duplicate key found in nodesLookup: ${node.content.key} \n
+  const currentLookup = nodesLoookup[key]
+  if (currentLookup) {
+    if (Array.isArray(currentLookup)) {
+      Array.isArray(tag) ? currentLookup.push(...tag) : currentLookup.push(tag)
+    } else {
+      nodesLoookup[key] = Array.isArray(tag) ? [currentLookup, ...tag] : [currentLookup, tag]
+    }
 
-A node with the same key already exists\n
-Received \n\n ${JSON.stringify(tag)}\n ${JSON.stringify(node)}
-Existing \n\n ${JSON.stringify(nodesLoookup[key])} \n\n`
-    )
+    return
   }
 
   nodesLoookup[key] = tag
@@ -71,7 +69,7 @@ Existing \n\n ${JSON.stringify(nodesLoookup[key])} \n\n`
 type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
   componentName: string,
-  nodesLookup: Record<string, HastNode | HastText>,
+  nodesLookup: Record<string, HastNode | HastText | Array<HastNode | HastText>>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   subComponentOptions: {
@@ -93,7 +91,10 @@ type NodeToHTML<NodeType, ReturnType> = (
   }
 ) => ReturnType
 
-export const generateHtmlSyntax: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
+export const generateHtmlSyntax: NodeToHTML<
+  UIDLNode,
+  Promise<HastNode | HastText | Array<HastNode | HastText>>
+> = async (
   node,
   compName,
   nodesLookup,
@@ -307,22 +308,39 @@ const generateRepeaterNode: NodeToHTML<
   const { nodes } = node.content
 
   const contextId = node.content.renderPropIdentifier
-  const sourceProp = node.content.source
-  const propDef =
+  const sourceValue = node.content.source
+  let propDef =
     propDefinitions[
-      Object.keys(propDefinitions).find((propKey) => sourceProp.includes(propKey)) || ''
+      Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
     ]
 
-  propDefinitions[contextId] = propDef
+  if (!propDef || !Array.isArray(propDef.defaultValue)) {
+    // If no prop is found we might have a static source value
+    try {
+      const parsedSource = JSON.parse(sourceValue)
+      propDef = {
+        defaultValue: parsedSource,
+        id: contextId,
+        type: 'array',
+      }
+    } catch {
+      // Silent fail
+    }
+  }
 
+  // We do the check again to keep typescript happy, otherwise this could be in catch
   if (!propDef || !Array.isArray(propDef.defaultValue)) {
     return HASTBuilders.createComment(
       'CMS Array Mapper/Repeater not supported in HTML without a prop source'
     )
   }
+  propDefinitions[contextId] = propDef
 
   const elementNode = HASTBuilders.createHTMLNode('div')
   node.content.nodes.list.content.style = { display: { type: 'static', content: 'contents' } }
+  if (node.content.nodes.empty) {
+    node.content.nodes.empty.content.style = { display: { type: 'static', content: 'contents' } }
+  }
   // Empty case
   if (propDef.defaultValue.length === 0) {
     const emptyChildren = nodes.empty.content.children
@@ -345,6 +363,8 @@ const generateRepeaterNode: NodeToHTML<
         }
       }
     }
+
+    addNodeToLookup(`${node.content.nodes.empty.content.key}`, elementNode, nodesLookup)
     return elementNode
   }
 
@@ -372,17 +392,14 @@ const generateRepeaterNode: NodeToHTML<
     }
   }
 
-  addNodeToLookup(
-    `${node.content.nodes.list.content.key}`,
-    node.content.nodes.list,
-    elementNode,
-    nodesLookup,
-    [compName]
-  )
+  addNodeToLookup(`${node.content.nodes.list.content.key}`, elementNode, nodesLookup)
   return elementNode
 }
 
-const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
+const generateElementNode: NodeToHTML<
+  UIDLElementNode,
+  Promise<HastNode | HastText | Array<HastNode | HastText>>
+> = async (
   node,
   compName,
   nodesLookup,
@@ -404,7 +421,6 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
     const compTag = await generateComponentContent(
       node,
-      compName,
       nodesLookup,
       propDefinitions,
       stateDefinitions,
@@ -470,21 +486,13 @@ const generateElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTe
     resolvedExpressions?.currentIndex
   )
 
-  addNodeToLookup(
-    resolvedExpressions
-      ? `${node.content.key}-repeat${resolvedExpressions.currentIndex}`
-      : node.content.key,
-    node,
-    elementNode,
-    nodesLookup,
-    [compName]
-  )
+  addNodeToLookup(node.content.key, elementNode, nodesLookup)
   return elementNode
 }
 
 const createLookupTable = (
   component: ComponentUIDL,
-  nodesLookup: Record<string, HastNode | HastText>
+  nodesLookup: Record<string, HastNode | HastText | Array<HastNode | HastText>>
 ): ElementsLookup => {
   const lookup: ElementsLookup = {}
   for (const node of Object.keys(nodesLookup)) {
@@ -499,8 +507,7 @@ const createLookupTable = (
 
 const generateComponentContent = async (
   node: UIDLElementNode,
-  compName: string,
-  nodesLookup: Record<string, HastNode | HastText>,
+  nodesLookup: Record<string, HastNode | HastText | Array<HastNode | HastText>>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   subComponentOptions: {
@@ -768,11 +775,14 @@ const generateComponentContent = async (
     }
   })
 
-  addNodeToLookup(node.content.key, node, compTag, nodesLookup, [compName, component.name])
+  addNodeToLookup(node.content.key, compTag, nodesLookup)
   return compTag
 }
 
-const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | HastText>> = async (
+const generateDynamicNode: NodeToHTML<
+  UIDLDynamicReference,
+  Promise<HastNode | HastText | Array<HastNode | HastText>>
+> = async (
   node,
   compName,
   nodesLookup,
@@ -780,7 +790,7 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, Promise<HastNode | H
   stateDefinitions,
   subComponentOptions,
   structure
-): Promise<HastNode | HastText> => {
+): Promise<HastNode | HastText | Array<HastNode | HastText>> => {
   if (node.content.referenceType === 'locale') {
     const localeTag = HASTBuilders.createHTMLNode('span')
     const commentNode = HASTBuilders.createComment(`Content for locale ${node.content.id}`)
