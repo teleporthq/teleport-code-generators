@@ -1021,7 +1021,9 @@ const getValueFromReference = (
   }
 
   if (
-    ['string', 'number', 'object', 'element', 'array'].includes(usedReferenceValue?.type) === false
+    ['string', 'number', 'object', 'element', 'array', 'boolean'].includes(
+      usedReferenceValue?.type
+    ) === false
   ) {
     throw new HTMLComponentGeneratorError(
       `Attribute is using dynamic value, but received of type ${JSON.stringify(

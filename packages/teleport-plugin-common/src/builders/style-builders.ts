@@ -218,9 +218,9 @@ export const setPropValueForCompStyle = (params: {
       if (templateStyle === 'jsx' && isJSXElement(root)) {
         root.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
           if (
-            attribute.value.type === 'StringLiteral' &&
+            attribute.value?.type === 'StringLiteral' &&
             attribute.value?.value &&
-            attribute.name.name === attr
+            attribute.name?.name === attr
           ) {
             attribute.value.value = getClassName(attribute.value.value)
           }
