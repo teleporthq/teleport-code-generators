@@ -64,7 +64,8 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsData,
       resourceImportName,
-      resources.cache
+      resources.cache,
+      options.skipI18n
     )
 
     chunks.push({

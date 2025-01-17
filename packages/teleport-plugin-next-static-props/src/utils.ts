@@ -6,11 +6,14 @@ import { StringUtils } from '@teleporthq/teleport-shared'
 export const generateInitialPropsAST = (
   initialPropsData: UIDLInitialPropsData,
   resourceImportName: string,
-  globalCache: UIDLResources['cache']
+  globalCache: UIDLResources['cache'],
+  skipI18n?: boolean
 ) => {
   const functionContentAST = types.blockStatement([
     types.tryStatement(
-      types.blockStatement([...computePropsAST(initialPropsData, resourceImportName, globalCache)]),
+      types.blockStatement([
+        ...computePropsAST(initialPropsData, resourceImportName, globalCache, skipI18n),
+      ]),
       types.catchClause(
         types.identifier('error'),
         types.blockStatement([
@@ -49,7 +52,8 @@ export const generateInitialPropsAST = (
 const computePropsAST = (
   initialPropsData: UIDLInitialPropsData,
   resourceImportName: string,
-  globalCache: UIDLResources['cache']
+  globalCache: UIDLResources['cache'],
+  skipI18n?: boolean
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(
     initialPropsData.resource?.params || {}
@@ -89,6 +93,28 @@ const computePropsAST = (
     )
   }
 
+  const localeAST = skipI18n
+    ? []
+    : [
+        types.spreadElement(
+          types.logicalExpression(
+            '&&',
+            types.optionalMemberExpression(
+              types.identifier('context'),
+              types.identifier('locale'),
+              false,
+              true
+            ),
+            types.objectExpression([
+              types.objectProperty(
+                types.identifier('locale'),
+                types.memberExpression(types.identifier('context'), types.identifier('locale'))
+              ),
+            ])
+          )
+        ),
+      ]
+
   const declarationAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('response'),
@@ -103,23 +129,7 @@ const computePropsAST = (
                 true
               )
             ),
-            types.spreadElement(
-              types.logicalExpression(
-                '&&',
-                types.optionalMemberExpression(
-                  types.identifier('context'),
-                  types.identifier('locale'),
-                  false,
-                  true
-                ),
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('locale'),
-                    types.memberExpression(types.identifier('context'), types.identifier('locale'))
-                  ),
-                ])
-              )
-            ),
+            ...localeAST,
             ...funcParams,
           ]),
         ])

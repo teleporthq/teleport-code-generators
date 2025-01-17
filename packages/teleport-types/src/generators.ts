@@ -127,6 +127,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   isRootComponent?: boolean
   skipNavlinkResolver?: boolean
+  skipI18n?: boolean
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>

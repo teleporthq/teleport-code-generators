@@ -272,6 +272,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       extractedResources: {},
       skipValidation: true,
+      skipI18n: !uidl.internationalization,
       ...(uidl.resources &&
         this.strategy?.resources?.path && {
           resources: {

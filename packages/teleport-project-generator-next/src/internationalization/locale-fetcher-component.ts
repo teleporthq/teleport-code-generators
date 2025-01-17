@@ -14,6 +14,10 @@ import * as types from '@babel/types'
 export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
   const nextLocaleFetcher: ComponentPlugin = async (structure) => {
     const { chunks } = structure
+    if (structure.options.skipI18n) {
+      return structure
+    }
+
     const jsxComponent = chunks.find((chunk) => chunk.name === 'jsx-component')
     if (!jsxComponent) {
       return structure
