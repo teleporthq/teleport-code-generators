@@ -127,6 +127,7 @@ describe('Generic Project Generator', () => {
           extractedResources: {},
           mapping: {},
           skipValidation: true,
+          skipI18n: true,
         }
       )
       expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
@@ -147,6 +148,7 @@ describe('Generic Project Generator', () => {
           extractedResources: {},
           mapping: {},
           skipValidation: true,
+          skipI18n: true,
         }
       )
 
@@ -204,6 +206,7 @@ describe('Generic Project Generator', () => {
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
+          skipI18n: true,
         }
       )
 
