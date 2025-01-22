@@ -613,7 +613,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     allHeaders = allHeaders.concat(headersASTs)
   }
 
-  const fetchAST = types.variableDeclaration('const', [
+  const fetchAST = types.variableDeclaration('let', [
     types.variableDeclarator(
       types.identifier('data'),
       types.awaitExpression(
@@ -649,6 +649,66 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     ),
   ])
 
+  // Fallback in case i18n interferes with normal CMS flows
+  const fallbackParams = JSON.parse(JSON.stringify(resource))
+  delete fallbackParams?.params?.locale
+  const fallbackUrlParamsDeclaration = generateParamsAST(fallbackParams?.params)
+  const assignmentOfNewUrlParams = types.expressionStatement(
+    types.assignmentExpression(
+      '=',
+      types.identifier('urlParams'),
+      types.objectExpression([...fallbackUrlParamsDeclaration])
+    )
+  )
+
+  const assignmentExpressionAST = types.expressionStatement(
+    types.assignmentExpression(
+      '=',
+      types.identifier('data'),
+      types.awaitExpression(
+        types.callExpression(types.identifier('fetch'), [
+          url,
+          types.objectExpression([
+            method,
+            ...(allHeaders.length > 0
+              ? [
+                  types.objectProperty(
+                    types.identifier('headers'),
+                    types.objectExpression(allHeaders)
+                  ),
+                ]
+              : []),
+            ...(bodyParamsDecleration.length > 0 && resource?.method === 'POST'
+              ? [
+                  types.objectProperty(
+                    types.identifier('body'),
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('JSON'),
+                        types.identifier('stringify')
+                      ),
+                      [types.identifier('bodyParams')]
+                    )
+                  ),
+                ]
+              : []),
+          ]),
+        ])
+      )
+    )
+  )
+
+  const fallbackAST = types.ifStatement(
+    types.binaryExpression(
+      '!==', // The operator !==
+      types.memberExpression(
+        types.identifier('data'), // Access data
+        types.identifier('status') // Access data.status
+      ),
+      types.numericLiteral(200) // Check if it is not equal to 200
+    ),
+    types.blockStatement([assignmentOfNewUrlParams, assignmentExpressionAST])
+  )
   const responseType = resource?.response?.type ?? 'json'
   let responseJSONAST
 
@@ -718,7 +778,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   return [
     ...(urlParamsDecleration.length > 0
       ? [
-          types.variableDeclaration('const', [
+          types.variableDeclaration('let', [
             types.variableDeclarator(
               types.identifier('urlParams'),
               types.objectExpression(urlParamsDecleration)
@@ -737,6 +797,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
         ]
       : []),
     fetchAST,
+    fallbackAST,
     responseJSONAST,
   ]
 }
