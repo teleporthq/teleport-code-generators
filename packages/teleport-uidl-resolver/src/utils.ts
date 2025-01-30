@@ -116,6 +116,9 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     elements: elementsMapping,
     attributes: attributesMapping,
   } = mapping
+  const isNextMappings =
+    mapping.elements.navlink?.dependency &&
+    mapping.elements.navlink.dependency?.path === 'next/link'
   const originalElement = element
   const originalElementType = originalElement.elementType
   const mappedElement = elementsMapping[originalElement.elementType] || {
@@ -205,6 +208,41 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       )
       originalElement.style = {}
       originalElement.referencedStyles = {}
+    }
+  }
+
+  // Unlike all other frameworks, nextjs doesn't pass attributes on the custom link component.
+  // For eg: If we have additational props on top of Link in react-router-dom. They are passed to the child.
+  // So, we need to manually find the attributes that are not supported by next and pass to the actual anchor tag.
+  // https://github.com/vercel/next.js/blob/v12.3.4/packages/next/client/link.tsx#L29-L54
+  if (isNextMappings && originalElement.elementType === 'Link' && originalElement.attrs) {
+    const unSupportedattributesForNextLink = Object.fromEntries(
+      Object.entries(originalElement.attrs).filter(
+        ([key]) =>
+          [
+            'href',
+            'as',
+            'replace',
+            'scroll',
+            'shallow',
+            'passHref',
+            'prefetch',
+            'locale',
+            'legacyBehavior',
+            'onMouseEnter',
+            'onTouchStart',
+            'onClick',
+          ].includes(key) === false
+      )
+    )
+    if (unSupportedattributesForNextLink && originalElement.children[0].type === 'element') {
+      originalElement.children[0].content.attrs = {
+        ...originalElement.children[0].content.attrs,
+        ...unSupportedattributesForNextLink,
+      }
+      Object.keys(unSupportedattributesForNextLink).forEach(
+        (key) => delete originalElement.attrs[key]
+      )
     }
   }
 }
