@@ -4,6 +4,7 @@ import {
   convertToBinaryOperator,
   convertToUnaryOperator,
   convertValueToLiteral,
+  getExpressionFromUIDLExpressionNode,
 } from '../../utils/ast-utils'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
@@ -284,7 +285,7 @@ export const createConditionalJSXExpression = (
 export const createBinaryExpression = (
   condition: {
     operation: string
-    operand?: string | number | boolean
+    operand?: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
   },
   conditionalIdentifier: ConditionalIdentifier,
   t = types
@@ -308,6 +309,28 @@ export const createBinaryExpression = (
   }
 
   if (operand !== undefined) {
+    if (typeof operand === 'object' && 'type' in operand && operand.type === 'expr') {
+      const exprIdentifier = getExpressionFromUIDLExpressionNode(operand)
+
+      return t.binaryExpression(convertToBinaryOperator(operation), identifier, exprIdentifier)
+    }
+
+    if (typeof operand === 'object' && 'type' in operand && operand.type === 'dynamic') {
+      const dynamicValueIdentifier = createDynamicValueExpression(operand, {
+        dynamicReferencePrefixMap: {
+          prop: 'props',
+          state: '',
+          local: '',
+        },
+      })
+
+      return t.binaryExpression(
+        convertToBinaryOperator(operation),
+        identifier,
+        dynamicValueIdentifier
+      )
+    }
+
     const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
 
     return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)

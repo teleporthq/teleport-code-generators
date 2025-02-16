@@ -532,7 +532,7 @@ export interface UIDLConditionalNode {
 export interface UIDLConditionalExpression {
   conditions: Array<{
     operation: string
-    operand?: string | boolean | number
+    operand?: string | boolean | number | UIDLDynamicReference | UIDLExpressionValue
   }>
   // In the code generation phase, we are only supporting 'all' or '||'
   // Maybe the type checking for this can be improved.
