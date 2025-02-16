@@ -800,7 +800,12 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
     condition: optional(
       object({
         conditions: array(
-          object({ operation: string(), operand: optional(union(string(), number(), boolean())) })
+          object({
+            operation: string(),
+            operand: optional(
+              union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
+            ),
+          })
         ),
         matchingCriteria: optional(string()),
       })

@@ -7,6 +7,8 @@ import {
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
   UIDLElementNode,
+  UIDLExpressionValue,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 import { createHTMLNode } from '../../builders/hast-builders'
@@ -195,7 +197,7 @@ const createConditional = (
 const stringifyConditionalExpression = (
   identifier: string,
   operation: string,
-  value: string | number | boolean
+  value: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
 ) => {
   if (typeof value === 'boolean') {
     return `${value ? '' : '!'}${identifier}`
@@ -203,6 +205,18 @@ const stringifyConditionalExpression = (
 
   if (typeof value === 'string') {
     return `${identifier} ${operation} '${value}'`
+  }
+
+  if (typeof value === 'number') {
+    return `${identifier} ${operation} ${value}`
+  }
+
+  if (value.type === 'dynamic') {
+    return `${identifier} ${operation} ${value.content.id}`
+  }
+
+  if (value.type === 'expr') {
+    return `${identifier} ${operation} ${value.content}`
   }
 
   return `${identifier} ${operation} ${value}`
