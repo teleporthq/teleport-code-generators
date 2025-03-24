@@ -141,9 +141,7 @@ export const generateHtmlSyntax: NodeToHTML<
       return dynamicNode
 
     case 'conditional':
-      const conditionalNodeComment = HASTBuilders.createComment(
-        'Conditional nodes are not supported in HTML'
-      )
+      const conditionalNodeComment = HASTBuilders.createTextNode('')
       const {
         value: staticValue,
         reference,
@@ -580,14 +578,11 @@ const generateComponentContent = async (
   // with props of the component that we need to generate.
   // Refer to line 309, for element props. We either pick from the attr of the current instance of component
   // or from the propDefinitions of the component that we are generating.
-  // We don't need to keep passing the props of the current component to the child component and so on
-  // for the case of element nodes in attributes or propDefinitions.
+  // We NEED to keep passing the props of the current component to the child component and so on,
+  // so that all props are forwarded.
   const combinedProps: Record<string, UIDLPropDefinition> = {
     ...Object.keys(propDefinitions).reduce<Record<string, UIDLPropDefinition>>(
       (acc: Record<string, UIDLPropDefinition>, propKey) => {
-        if (propDefinitions[propKey]?.type === 'element') {
-          return acc
-        }
         acc[propKey] = propDefinitions[propKey]
         return acc
       },
@@ -630,15 +625,6 @@ const generateComponentContent = async (
         ...combinedProps[propKey],
         defaultValue: attrs[propKey],
       }
-      await generateHtmlSyntax(
-        attrs[propKey] as UIDLElementNode,
-        component.name,
-        nodesLookup,
-        propDefinitions,
-        stateDefinitions,
-        subComponentOptions,
-        structure
-      )
     }
 
     if (attribute?.type === 'dynamic') {
@@ -649,10 +635,10 @@ const generateComponentContent = async (
       // And similary we do the same for the states.
       switch (attribute.content.referenceType) {
         case 'prop':
-          propsForInstance[propKey] = combinedProps[propKey]
+          propsForInstance[propKey] = combinedProps[attribute.content.id]
           break
         case 'state':
-          propsForInstance[propKey] = combinedStates[propKey]
+          propsForInstance[propKey] = combinedStates[attribute.content.id]
           break
         case 'expr':
           // Ignore expr type attributes in html comp instances for the time being.
@@ -684,17 +670,6 @@ const generateComponentContent = async (
 
     if (attribute === undefined) {
       const propFromCurrentComponent = combinedProps[propKey]
-      if (propFromCurrentComponent.type === 'element' && propFromCurrentComponent.defaultValue) {
-        await generateHtmlSyntax(
-          propFromCurrentComponent.defaultValue as UIDLElementNode,
-          component.name,
-          nodesLookup,
-          propDefinitions,
-          stateDefinitions,
-          subComponentOptions,
-          structure
-        )
-      }
       propsForInstance[propKey] = propFromCurrentComponent
     }
   }
