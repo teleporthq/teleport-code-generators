@@ -162,16 +162,13 @@ export const generateHtmlSyntax: NodeToHTML<
           if (usedProp === undefined || usedProp.defaultValue === undefined) {
             return conditionalNodeComment
           }
-
           let defaultValue = usedProp.defaultValue
           for (const path of refPath) {
             defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
           }
 
-          // Safety measure in case no value is found
-          if (!defaultValue) {
-            defaultValue = usedProp.defaultValue
-          }
+          // If defaultValue is undefined or null after path traversal, use original default
+          defaultValue = defaultValue ?? usedProp.defaultValue
 
           // Since we know the operand and the default value from the prop.
           // We can try building the condition and check if the condition is true or false.
@@ -602,7 +599,7 @@ const generateComponentContent = async (
       if (attr) {
         acc[propKey] = {
           ...combinedStates[propKey],
-          defaultValue: attr?.content || combinedStates[propKey]?.defaultValue,
+          defaultValue: attr?.content ?? combinedStates[propKey]?.defaultValue,
         }
       } else {
         acc[propKey] = combinedStates[propKey]
@@ -664,7 +661,7 @@ const generateComponentContent = async (
     ) {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
-        defaultValue: attribute?.content || combinedProps[propKey]?.defaultValue,
+        defaultValue: attribute?.content ?? combinedProps[propKey]?.defaultValue,
       }
     }
 
