@@ -420,7 +420,8 @@ const generateElementNode: NodeToHTML<
       propDefinitions,
       stateDefinitions,
       subComponentOptions,
-      structure
+      structure,
+      resolvedExpressions
     )
 
     if ('tagName' in compTag) {
@@ -514,6 +515,10 @@ const generateComponentContent = async (
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
     outputOptions: UIDLComponentOutputOptions
+  },
+  resolvedExpressions?: {
+    expressions: Record<string, UIDLPropDefinition>
+    currentIndex: number
   }
 ) => {
   const { externals, plugins } = subComponentOptions
@@ -654,10 +659,30 @@ const generateComponentContent = async (
       }
     }
 
+    if (attribute?.type === 'expr') {
+      const [ctxId, ...refPath] = attribute.content.split('?.')
+      const propKeyFromAttr = Object.keys(combinedProps).find((key) => key === ctxId)
+
+      const resolvedValue = combinedProps[propKeyFromAttr]
+      propsForInstance[propKey] = Array.isArray(resolvedValue)
+        ? resolvedValue
+        : {
+            ...resolvedValue,
+            defaultValue:
+              refPath.length > 0 && resolvedValue?.defaultValue
+                ? extractDefaultValueFromRefPath(resolvedValue.defaultValue, [
+                    resolvedExpressions.currentIndex.toString(),
+                    ...refPath,
+                  ])
+                : null,
+          }
+    }
+
     if (
       attribute?.type !== 'dynamic' &&
       attribute?.type !== 'element' &&
-      attribute?.type !== 'object'
+      attribute?.type !== 'object' &&
+      attribute?.type !== 'expr'
     ) {
       propsForInstance[propKey] = {
         ...combinedProps[propKey],
