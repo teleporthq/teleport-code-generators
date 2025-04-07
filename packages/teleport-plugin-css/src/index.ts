@@ -16,7 +16,7 @@ import {
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
-import { createConditionalStatement } from '@teleporthq/teleport-plugin-html-base-component/dist/cjs/node-handlers'
+import { createConditionalStatement } from '@teleporthq/teleport-plugin-html-base-component/src/node-handlers'
 
 interface CSSPluginConfig {
   chunkName: string

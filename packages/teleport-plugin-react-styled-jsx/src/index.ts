@@ -1,6 +1,6 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import { createBinaryExpression } from '@teleporthq/teleport-plugin-common/dist/cjs/node-handlers/node-to-jsx/utils'
+import { createBinaryExpression } from '@teleporthq/teleport-plugin-common/src/node-handlers/node-to-jsx/utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
