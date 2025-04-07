@@ -7,7 +7,18 @@ import * as StyleUtils from './utils/style-utils'
 import * as HASTUtils from './utils/hast-utils'
 import ParsedASTNode from './utils/parsed-ast'
 
-export { ASTBuilders, StyleBuilders, HASTBuilders, ASTUtils, StyleUtils, HASTUtils, ParsedASTNode }
+import { createBinaryExpression } from './node-handlers/node-to-jsx/utils'
+
+export {
+  ASTBuilders,
+  StyleBuilders,
+  HASTBuilders,
+  ASTUtils,
+  StyleUtils,
+  HASTUtils,
+  ParsedASTNode,
+  createBinaryExpression,
+}
 
 export { default as createHTMLTemplateSyntax } from './node-handlers/node-to-html'
 export { default as createJSXSyntax } from './node-handlers/node-to-jsx'
