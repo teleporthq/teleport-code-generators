@@ -24,7 +24,7 @@ export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
   classString: string,
   classAttributeName?: string,
-  dynamicValues: Array<types.MemberExpression | types.Identifier> = []
+  dynamicValues: Array<types.MemberExpression | types.Identifier | types.ConditionalExpression> = []
 ) => {
   if (classString === '' && dynamicValues.length === 0) {
     return
@@ -50,7 +50,9 @@ export const addClassStringOnJSXTag = (
     if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
       const classArray = classAttribute.value.value.split(' ')
       const quasis: types.TemplateElement[] = []
-      const expression: Array<types.MemberExpression | types.Identifier> = []
+      const expression: Array<
+        types.MemberExpression | types.Identifier | types.ConditionalExpression
+      > = []
 
       quasis.push(
         types.templateElement({

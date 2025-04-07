@@ -254,7 +254,7 @@ export const generateHtmlSyntax: NodeToHTML<
   }
 }
 
-const createConditionalStatement = (
+export const createConditionalStatement = (
   conditions: UIDLConditionalNode['content']['condition']['conditions'],
   leftOperand: UIDLPropDefinition['defaultValue']
 ) => {

@@ -16,6 +16,7 @@ import {
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
+import { createConditionalStatement } from '@teleporthq/teleport-plugin-html-base-component/dist/cjs/node-handlers'
 
 interface CSSPluginConfig {
   chunkName: string
@@ -253,7 +254,64 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               )
             }
 
-            classNamesToAppend.add(content.referenceId)
+            if (styleRef.content.renderingConditions) {
+              const {
+                value: staticValue,
+                reference,
+                condition: { conditions, matchingCriteria },
+              } = styleRef.content.renderingConditions
+
+              const {
+                content: { referenceType, id, refPath = [] },
+              } = reference
+
+              switch (referenceType) {
+                case 'prop': {
+                  const usedProp = propDefinitions[id]
+                  if (usedProp === undefined || usedProp.defaultValue === undefined) {
+                    throw new PluginCSS(`Prop with ${id} is missing in the propDefinitions.`)
+                  }
+
+                  let defaultValue = usedProp.defaultValue
+                  for (const path of refPath) {
+                    defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
+                  }
+
+                  // If defaultValue is undefined or null after path traversal, use original default
+                  defaultValue = defaultValue ?? usedProp.defaultValue
+
+                  // Since we know the operand and the default value from the prop.
+                  // We can try building the condition and check if the condition is true or false.
+                  // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
+                  // UIDL validations need to be improved on this aspect.
+                  const dynamicConditions = createConditionalStatement(
+                    staticValue !== undefined
+                      ? [{ operand: staticValue, operation: '===' }]
+                      : conditions,
+                    defaultValue
+                  )
+                  const matchCondition =
+                    matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+                  const conditionString = dynamicConditions.join(` ${matchCondition} `)
+
+                  // tslint:disable-next-line function-constructor
+                  const isConditionPassing = new Function(`return ${conditionString}`)()
+                  if (isConditionPassing) {
+                    classNamesToAppend.add(styleRef.content.referenceId)
+                    return
+                  }
+                  return
+                }
+                case 'state':
+                  throw new PluginCSS(`State reference is not supported in the project stylesheet.`)
+                default: {
+                  classNamesToAppend.add(styleRef.content.referenceId)
+                  return
+                }
+              }
+            } else {
+              classNamesToAppend.add(content.referenceId)
+            }
             return
           }
 

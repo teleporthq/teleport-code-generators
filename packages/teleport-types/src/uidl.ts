@@ -518,6 +518,13 @@ export interface UIDLRepeatMeta {
   iteratorKey?: string
 }
 
+export interface UIDLDynamicCondition {
+  reference: UIDLDynamicReference
+  importDefinitions?: Record<string, UIDLExternalDependency>
+  value?: string | number | boolean
+  condition?: UIDLConditionalExpression
+}
+
 export interface UIDLConditionalNode {
   type: 'conditional'
   content: {
@@ -758,6 +765,7 @@ export interface UIDLElementNodeProjectReferencedStyle {
   content: {
     mapType: 'project-referenced'
     referenceId: UIDLProjectReferencedStyleID
+    renderingConditions?: UIDLDynamicCondition
   }
 }
 export interface UIDLElementNodeInlineReferencedStyle {

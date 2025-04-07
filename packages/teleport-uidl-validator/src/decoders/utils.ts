@@ -96,6 +96,7 @@ import {
   VUIDLPropDefinitions,
   UIDLGlobalReference,
   UIDLObjectValue,
+  UIDLDynamicCondition,
 } from '@teleporthq/teleport-types'
 import {
   isValidElementName,
@@ -659,6 +660,20 @@ export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
   elementStyleWithStateConditionDecoder
 )
 
+export const conditionalProjectStyleDecoder: Decoder<UIDLDynamicCondition> = object({
+  reference: dynamicValueDecoder,
+  importDefinitions: optional(dict(externaldependencyDecoder)),
+  value: optional(union(string(), number(), boolean())),
+  condition: optional(
+    object({
+      conditions: array(
+        object({ operation: string(), operand: optional(union(string(), number(), boolean())) })
+      ),
+      matchingCriteria: optional(string()),
+    })
+  ),
+})
+
 export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectReferencedStyle> = object(
   {
     type: constant('style-map'),
@@ -666,6 +681,7 @@ export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectRefere
       mapType: constant('project-referenced'),
       conditions: optional(array(styleConditionsDecoder)),
       referenceId: string(),
+      renderingConditions: optional(conditionalProjectStyleDecoder),
     }),
   }
 )
