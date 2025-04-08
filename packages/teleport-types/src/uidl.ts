@@ -522,7 +522,7 @@ export interface UIDLDynamicCondition {
   reference: UIDLDynamicReference
   importDefinitions?: Record<string, UIDLExternalDependency>
   value?: string | number | boolean
-  condition?: UIDLConditionalExpression
+  expression?: UIDLConditionalExpression
 }
 
 export interface UIDLConditionalNode {
@@ -765,7 +765,7 @@ export interface UIDLElementNodeProjectReferencedStyle {
   content: {
     mapType: 'project-referenced'
     referenceId: UIDLProjectReferencedStyleID
-    renderingConditions?: UIDLDynamicCondition
+    condition?: UIDLDynamicCondition
   }
 }
 export interface UIDLElementNodeInlineReferencedStyle {

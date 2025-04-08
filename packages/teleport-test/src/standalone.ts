@@ -109,15 +109,15 @@ const run = async () => {
     }
 
     await Promise.all([
-      // project({
-      //   projectType: ProjectType.HTML,
-      //   projectSlug: 'teleport-project-html',
-      //   plugins: [new ProjectPluginParseEmbed()],
-      //   options: {
-      //     ...packerOptions,
-      //     strictHtmlWhitespaceSensitivity: false,
-      //   },
-      // }),
+      project({
+        projectType: ProjectType.HTML,
+        projectSlug: 'teleport-project-html',
+        plugins: [new ProjectPluginParseEmbed()],
+        options: {
+          ...packerOptions,
+          strictHtmlWhitespaceSensitivity: false,
+        },
+      }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
       // project({
       //   projectType: ProjectType.NEXT,

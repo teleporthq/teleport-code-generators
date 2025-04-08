@@ -177,15 +177,14 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               throw new PluginStyledJSX(`Project style - ${content.referenceId} is missing`)
             }
 
-            if (styleRef.content.renderingConditions) {
-              const nameToAppend = styleRef.content.renderingConditions.reference.content.id
+            if (styleRef.content.condition) {
+              const nameToAppend = styleRef.content.condition.reference.content.id
 
-              const { conditions } = styleRef.content.renderingConditions.condition
+              const { conditions } = styleRef.content.condition.expression
 
               const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
               const right = conditions[0].operand as string | number | boolean
-              const referenceType =
-                styleRef.content.renderingConditions.reference.content.referenceType
+              const referenceType = styleRef.content.condition.reference.content.referenceType
 
               const binaryExpression = createBinaryExpression(
                 { operation: operator, operand: right },

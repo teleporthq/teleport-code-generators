@@ -664,7 +664,7 @@ export const conditionalProjectStyleDecoder: Decoder<UIDLDynamicCondition> = obj
   reference: dynamicValueDecoder,
   importDefinitions: optional(dict(externaldependencyDecoder)),
   value: optional(union(string(), number(), boolean())),
-  condition: optional(
+  expression: optional(
     object({
       conditions: array(
         object({ operation: string(), operand: optional(union(string(), number(), boolean())) })
@@ -681,7 +681,7 @@ export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectRefere
       mapType: constant('project-referenced'),
       conditions: optional(array(styleConditionsDecoder)),
       referenceId: string(),
-      renderingConditions: optional(conditionalProjectStyleDecoder),
+      condition: optional(conditionalProjectStyleDecoder),
     }),
   }
 )

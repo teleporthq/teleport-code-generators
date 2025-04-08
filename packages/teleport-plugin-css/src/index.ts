@@ -254,12 +254,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               )
             }
 
-            if (styleRef.content.renderingConditions) {
+            if (styleRef.content.condition) {
               const {
                 value: staticValue,
                 reference,
-                condition: { conditions, matchingCriteria },
-              } = styleRef.content.renderingConditions
+                expression: { conditions, matchingCriteria },
+              } = styleRef.content.condition
 
               const {
                 content: { referenceType, id, refPath = [] },
