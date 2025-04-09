@@ -1,5 +1,11 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import {
+  StyleUtils,
+  StyleBuilders,
+  HASTUtils,
+  ASTUtils,
+  createBinaryExpression,
+} from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
@@ -89,7 +95,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
-      const dynamicVariantsToAppend: Set<string> = new Set()
+      const dynamicVariantsToAppend: Set<string | types.ConditionalExpression> = new Set()
       const {
         style = {},
         key,
@@ -255,59 +261,88 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
             }
 
             if (styleRef.content.condition) {
-              const {
-                value: staticValue,
-                reference,
-                expression: { conditions, matchingCriteria },
-              } = styleRef.content.condition
+              if (templateStyle === 'html') {
+                const {
+                  value: staticValue,
+                  reference,
+                  expression: { conditions, matchingCriteria },
+                } = styleRef.content.condition
 
-              const {
-                content: { referenceType, id, refPath = [] },
-              } = reference
+                const {
+                  content: { referenceType, id, refPath = [] },
+                } = reference
 
-              switch (referenceType) {
-                case 'prop': {
-                  const usedProp = propDefinitions[id]
-                  if (usedProp === undefined || usedProp.defaultValue === undefined) {
-                    throw new PluginCSS(`Prop with ${id} is missing in the propDefinitions.`)
+                switch (referenceType) {
+                  case 'prop': {
+                    const usedProp = propDefinitions[id]
+                    if (usedProp === undefined || usedProp.defaultValue === undefined) {
+                      throw new PluginCSS(`Prop with ${id} is missing in the propDefinitions.`)
+                    }
+
+                    let defaultValue = usedProp.defaultValue
+                    for (const path of refPath) {
+                      defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
+                    }
+
+                    // If defaultValue is undefined or null after path traversal, use original default
+                    defaultValue = defaultValue ?? usedProp.defaultValue
+
+                    // Since we know the operand and the default value from the prop.
+                    // We can try building the condition and check if the condition is true or false.
+                    // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
+                    // UIDL validations need to be improved on this aspect.
+                    const dynamicConditions = createConditionalStatement(
+                      staticValue !== undefined
+                        ? [{ operand: staticValue, operation: '===' }]
+                        : conditions,
+                      defaultValue
+                    )
+                    const matchCondition =
+                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
+
+                    // tslint:disable-next-line function-constructor
+                    const isConditionPassing = new Function(`return ${conditionString}`)()
+                    if (isConditionPassing) {
+                      classNamesToAppend.add(styleRef.content.referenceId)
+                      return
+                    }
+                    return
                   }
-
-                  let defaultValue = usedProp.defaultValue
-                  for (const path of refPath) {
-                    defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
-                  }
-
-                  // If defaultValue is undefined or null after path traversal, use original default
-                  defaultValue = defaultValue ?? usedProp.defaultValue
-
-                  // Since we know the operand and the default value from the prop.
-                  // We can try building the condition and check if the condition is true or false.
-                  // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
-                  // UIDL validations need to be improved on this aspect.
-                  const dynamicConditions = createConditionalStatement(
-                    staticValue !== undefined
-                      ? [{ operand: staticValue, operation: '===' }]
-                      : conditions,
-                    defaultValue
-                  )
-                  const matchCondition =
-                    matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-                  const conditionString = dynamicConditions.join(` ${matchCondition} `)
-
-                  // tslint:disable-next-line function-constructor
-                  const isConditionPassing = new Function(`return ${conditionString}`)()
-                  if (isConditionPassing) {
+                  case 'state':
+                    throw new PluginCSS(
+                      `State reference is not supported in the project stylesheet.`
+                    )
+                  default: {
                     classNamesToAppend.add(styleRef.content.referenceId)
                     return
                   }
-                  return
                 }
-                case 'state':
-                  throw new PluginCSS(`State reference is not supported in the project stylesheet.`)
-                default: {
-                  classNamesToAppend.add(styleRef.content.referenceId)
-                  return
-                }
+              } else {
+                const nameToAppend = styleRef.content.condition.reference.content.id
+
+                const { conditions } = styleRef.content.condition.expression
+
+                const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
+                const right = conditions[0].operand as string | number | boolean
+                const referenceType = styleRef.content.condition.reference.content.referenceType
+
+                const binaryExpression = createBinaryExpression(
+                  { operation: operator, operand: right },
+                  {
+                    key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                    type: 'string',
+                  }
+                )
+
+                const conditionalExpression = types.conditionalExpression(
+                  binaryExpression,
+                  types.stringLiteral(content.referenceId),
+                  types.stringLiteral('')
+                )
+
+                dynamicVariantsToAppend.add(conditionalExpression)
+                return
               }
             } else {
               classNamesToAppend.add(content.referenceId)
@@ -348,11 +383,10 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
           Array.from(classNamesToAppend).join(' '),
           classAttributeName,
           Array.from(dynamicVariantsToAppend).map((variant) => {
-            const dynamicAttrValueIdentifier: types.Identifier = dynamicVariantPrefix
-              ? types.identifier(dynamicVariantPrefix)
-              : types.identifier(propsPrefix)
-
-            return types.memberExpression(dynamicAttrValueIdentifier, types.identifier(variant))
+            if (typeof variant === 'string') {
+              return types.identifier(propsPrefix + '?.' + variant)
+            }
+            return variant
           })
         )
       }
