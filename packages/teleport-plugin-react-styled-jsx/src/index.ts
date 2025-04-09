@@ -1,5 +1,10 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
+import {
+  ASTUtils,
+  StyleBuilders,
+  ASTBuilders,
+  createBinaryExpression,
+} from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -52,7 +57,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
-      const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
+      const dynamicVariantsToAppend: Set<
+        types.Identifier | types.MemberExpression | types.ConditionalExpression
+      > = new Set()
       const {
         style = {},
         key,
@@ -170,7 +177,30 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               throw new PluginStyledJSX(`Project style - ${content.referenceId} is missing`)
             }
 
-            classNamesToAppend.add(content.referenceId)
+            if (styleRef.content.condition) {
+              const nameToAppend = styleRef.content.condition.reference.content.id
+
+              const { conditions } = styleRef.content.condition.expression
+
+              const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
+              const right = conditions[0].operand as string | number | boolean
+              const referenceType = styleRef.content.condition.reference.content.referenceType
+
+              const binaryExpression = createBinaryExpression(
+                { operation: operator, operand: right },
+                { key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend, type: 'string' }
+              )
+
+              const conditionalExpression = types.conditionalExpression(
+                binaryExpression,
+                types.stringLiteral(content.referenceId),
+                types.stringLiteral('')
+              )
+
+              dynamicVariantsToAppend.add(conditionalExpression)
+            } else {
+              classNamesToAppend.add(content.referenceId)
+            }
             return
           }
 
