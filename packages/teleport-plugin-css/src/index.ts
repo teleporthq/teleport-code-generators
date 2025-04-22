@@ -51,7 +51,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSet = {}, propDefinitions = {} } = uidl
+    const {
+      node,
+      styleSetDefinitions: componentStyleSet = {},
+      propDefinitions = {},
+      stateDefinitions = {},
+    } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions = {},
@@ -309,10 +314,38 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     }
                     return
                   }
-                  case 'state':
-                    throw new PluginCSS(
-                      `State reference is not supported in the project stylesheet.`
+                  case 'state': {
+                    const usedState = stateDefinitions[id]
+                    if (usedState === undefined || usedState.defaultValue === undefined) {
+                      throw new PluginCSS(`State with ${id} is missing in the stateDefinitions.`)
+                    }
+                    let defaultValue = usedState.defaultValue
+                    for (const path of refPath) {
+                      defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
+                    }
+                    // If defaultValue is undefined or null after path traversal, use original default
+                    defaultValue = defaultValue ?? usedState.defaultValue
+                    // Since we know the operand and the default value from the state.
+                    // We can try building the condition and check if the condition is true or false.
+
+                    const dynamicConditions = createConditionalStatement(
+                      staticValue !== undefined
+                        ? [{ operand: staticValue, operation: '===' }]
+                        : conditions,
+                      defaultValue
                     )
+                    const matchCondition =
+                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
+                    // tslint:disable-next-line function-constructor
+                    const isConditionPassing = new Function(`return ${conditionString}`)()
+                    if (isConditionPassing) {
+                      classNamesToAppend.add(styleRef.content.referenceId)
+                      return
+                    }
+                    return
+                  }
+
                   default: {
                     classNamesToAppend.add(styleRef.content.referenceId)
                     return
@@ -327,11 +360,28 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 const right = conditions[0].operand as string | number | boolean
                 const referenceType = styleRef.content.condition.reference.content.referenceType
 
+                let binaryExpressionType = ''
+                switch (referenceType) {
+                  case 'prop': {
+                    binaryExpressionType = propDefinitions[nameToAppend].type
+                    break
+                  }
+                  case 'state': {
+                    binaryExpressionType = stateDefinitions[nameToAppend].type
+                    break
+                  }
+                  default: {
+                    throw new PluginCSS(
+                      `Un-supported reference type ${referenceType} for ${nameToAppend}`
+                    )
+                  }
+                }
+
                 const binaryExpression = createBinaryExpression(
                   { operation: operator, operand: right },
                   {
                     key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
-                    type: 'string',
+                    type: binaryExpressionType,
                   }
                 )
 
@@ -383,10 +433,16 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
           Array.from(classNamesToAppend).join(' '),
           classAttributeName,
           Array.from(dynamicVariantsToAppend).map((variant) => {
+            const dynamicAttrValueIdentifier: types.Identifier = dynamicVariantPrefix
+              ? types.identifier(dynamicVariantPrefix)
+              : types.identifier(propsPrefix)
+
             if (typeof variant === 'string') {
-              return types.identifier(propsPrefix + '?.' + variant)
+              return types.memberExpression(dynamicAttrValueIdentifier, types.identifier(variant))
+            } else {
+              // variant is a ConditionalExpression, so return it directly
+              return variant
             }
-            return variant
           })
         )
       }
