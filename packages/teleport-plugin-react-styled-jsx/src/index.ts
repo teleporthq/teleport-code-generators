@@ -41,7 +41,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
     const { projectStyleSet } = options
-    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
+    const {
+      node,
+      styleSetDefinitions: componentStyleSheet = {},
+      propDefinitions = {},
+      stateDefinitions = {},
+    } = uidl
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
@@ -186,9 +191,32 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               const right = conditions[0].operand as string | number | boolean
               const referenceType = styleRef.content.condition.reference.content.referenceType
 
+              let binaryExpressionType = ''
+              switch (referenceType) {
+                case 'prop': {
+                  binaryExpressionType = propDefinitions[nameToAppend].type
+                  break
+                }
+                case 'state': {
+                  binaryExpressionType = stateDefinitions[nameToAppend].type
+                  break
+                }
+                default: {
+                  throw new PluginStyledJSX(
+                    `Un-supported reference type ${referenceType} for style reference ${JSON.stringify(
+                      styleRef.content,
+                      null,
+                      2
+                    )}`
+                  )
+                }
+              }
               const binaryExpression = createBinaryExpression(
                 { operation: operator, operand: right },
-                { key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend, type: 'string' }
+                {
+                  key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                  type: binaryExpressionType,
+                }
               )
 
               const conditionalExpression = types.conditionalExpression(
