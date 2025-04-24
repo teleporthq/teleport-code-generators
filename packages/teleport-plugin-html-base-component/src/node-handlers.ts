@@ -958,11 +958,18 @@ const handleAttributes = (
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions
         )
 
-        HASTUtils.addAttributeToNode(
-          htmlNode,
-          attrKey,
-          String(extractDefaultValueFromRefPath(value.defaultValue, content.refPath))
+        const extractedValue = String(
+          extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
         )
+
+        if ((elementType === 'img' || elementType === 'video') && attrKey === 'src') {
+          const path = join(relative(join(...outputOptions.folderPath), './'), extractedValue)
+
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, path)
+          break
+        }
+
+        HASTUtils.addAttributeToNode(htmlNode, attrKey, extractedValue)
         break
       }
 
