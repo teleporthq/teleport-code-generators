@@ -188,7 +188,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               const { conditions } = styleRef.content.condition.expression
 
               const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
-              const right = conditions[0].operand as string | number | boolean
+              const right = conditions[0].operand
               const referenceType = styleRef.content.condition.reference.content.referenceType
 
               let binaryExpressionType = ''
