@@ -683,12 +683,14 @@ export interface UIDLPropCallEvent {
   type: 'propCall'
   calls: string
   args?: Array<string | number | boolean>
+  includeEventObject?: boolean
 }
 
 export interface UIDLStateModifierEvent {
   type: 'stateChange'
   modifies: string
-  newState: string | number | boolean
+  newState: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
+  includeEventObject?: boolean
 }
 
 export type UIDLEventHandlerStatement = UIDLPropCallEvent | UIDLStateModifierEvent

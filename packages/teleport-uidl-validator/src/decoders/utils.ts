@@ -549,12 +549,14 @@ export const propCallEventDecoder: Decoder<UIDLPropCallEvent> = object({
   type: constant('propCall'),
   calls: string(),
   args: optional(array(union(string(), number(), boolean()))),
+  includeEventObject: optional(boolean()),
 })
 
 export const stateChangeEventDecoder: Decoder<UIDLStateModifierEvent> = object({
   type: constant('stateChange'),
   modifies: string(),
-  newState: union(string(), number(), boolean()),
+  newState: union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder),
+  includeEventObject: optional(boolean()),
 })
 
 export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({

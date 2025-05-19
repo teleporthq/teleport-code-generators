@@ -58,15 +58,24 @@ export const addEventHandlerToTag = (
   })
 
   let expressionContent: types.ArrowFunctionExpression | types.Expression
+  const functionParams = eventHandlerStatements.some(
+    (eventHandler) => eventHandler.includeEventObject
+  )
+    ? [t.identifier('event')]
+    : []
+
   if (eventHandlerASTStatements.length === 1) {
     const expression = eventHandlerASTStatements[0].expression
 
     expressionContent =
       expression.type === 'CallExpression' && expression.arguments.length === 0
         ? (expression.callee as types.ArrowFunctionExpression | types.Expression)
-        : t.arrowFunctionExpression([], expression)
+        : t.arrowFunctionExpression(functionParams, expression)
   } else {
-    expressionContent = t.arrowFunctionExpression([], t.blockStatement(eventHandlerASTStatements))
+    expressionContent = t.arrowFunctionExpression(
+      functionParams,
+      t.blockStatement(eventHandlerASTStatements)
+    )
   }
 
   tag.openingElement.attributes.push(
@@ -122,10 +131,21 @@ const createStateChangeStatement = (
     ? options.dynamicReferencePrefixMap.state + '.'
     : ''
 
-  const newStateValue =
-    eventHandlerStatement.newState === '$toggle'
-      ? t.unaryExpression('!', t.identifier(statePrefix + stateKey))
-      : convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
+  let newStateValue
+
+  if (eventHandlerStatement.newState === '$toggle') {
+    newStateValue = t.unaryExpression('!', t.identifier(statePrefix + stateKey))
+  } else if (typeof eventHandlerStatement.newState === 'object') {
+    if (eventHandlerStatement.newState.type === 'expr') {
+      newStateValue = getExpressionFromUIDLExpressionNode(eventHandlerStatement.newState)
+    } else if (eventHandlerStatement.newState.type === 'dynamic') {
+      newStateValue = createDynamicValueExpression(eventHandlerStatement.newState, options)
+    } else {
+      newStateValue = convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
+    }
+  } else {
+    newStateValue = convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
+  }
 
   switch (options.stateHandling) {
     case 'hooks':
