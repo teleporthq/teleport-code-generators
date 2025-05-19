@@ -667,7 +667,12 @@ export const conditionalProjectStyleDecoder: Decoder<UIDLDynamicCondition> = obj
   expression: optional(
     object({
       conditions: array(
-        object({ operation: string(), operand: optional(union(string(), number(), boolean())) })
+        object({
+          operation: string(),
+          operand: optional(
+            union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
+          ),
+        })
       ),
       matchingCriteria: optional(string()),
     })

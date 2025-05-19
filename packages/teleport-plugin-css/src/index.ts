@@ -20,6 +20,9 @@ import {
   PluginCSS,
   UIDLElement,
   UIDLElementNode,
+  UIDLExpressionValue,
+  StateDefaultValueTypes,
+  PropDefaultValueTypes,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { createConditionalStatement } from './utils'
@@ -285,6 +288,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     }
 
                     let defaultValue = usedProp.defaultValue
+                    let operandDefaultValue: StateDefaultValueTypes | PropDefaultValueTypes | string
                     for (const path of refPath) {
                       defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
                     }
@@ -292,14 +296,50 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     // If defaultValue is undefined or null after path traversal, use original default
                     defaultValue = defaultValue ?? usedProp.defaultValue
 
+                    // our conditions can be of type 'expr' or they can be a dynamic reference
+                    const rightSideCondition = conditions[0].operand
+                    const rightSideConditionType = typeof rightSideCondition
+                    if (rightSideConditionType === 'object') {
+                      const type = (
+                        rightSideCondition as UIDLDynamicReference | UIDLExpressionValue
+                      ).type
+                      if (type === 'dynamic') {
+                        const dynamicRef = rightSideCondition as UIDLDynamicReference
+                        if (dynamicRef.content.referenceType === 'prop') {
+                          const prop = propDefinitions[dynamicRef.content.id]
+                          if (prop && prop.defaultValue) {
+                            operandDefaultValue = prop.defaultValue
+                          }
+                        }
+                        if (dynamicRef.content.referenceType === 'state') {
+                          const state = stateDefinitions[dynamicRef.content.id]
+                          if (state && state.defaultValue) {
+                            defaultValue = state.defaultValue
+                          }
+                        }
+                      }
+                      if (type === 'expr') {
+                        operandDefaultValue = (rightSideCondition as UIDLExpressionValue).content
+                      }
+                    } else {
+                      operandDefaultValue = rightSideCondition
+                    }
+
                     // Since we know the operand and the default value from the prop.
                     // We can try building the condition and check if the condition is true or false.
                     // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
                     // UIDL validations need to be improved on this aspect.
+                    const resolvedConditions = [
+                      {
+                        operation: conditions[0].operation,
+                        operand: operandDefaultValue as string,
+                      },
+                    ]
+
                     const dynamicConditions = createConditionalStatement(
                       staticValue !== undefined
                         ? [{ operand: staticValue, operation: '===' }]
-                        : conditions,
+                        : resolvedConditions,
                       defaultValue
                     )
                     const matchCondition =

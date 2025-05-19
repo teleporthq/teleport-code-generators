@@ -275,6 +275,8 @@ export type PropDefaultValueTypes =
   | (() => void)
   | UIDLElementNode
 
+export type StateDefaultValueTypes = string | number | boolean | unknown[] | object | (() => void)
+
 export interface UIDLPropDefinition {
   type: string
   defaultValue?: PropDefaultValueTypes
@@ -287,7 +289,7 @@ export interface UIDLPropDefinition {
 
 export interface UIDLStateDefinition {
   type: string
-  defaultValue: string | number | boolean | unknown[] | object | (() => void)
+  defaultValue: StateDefaultValueTypes
 }
 
 export interface UIDLStateValueDetails {
