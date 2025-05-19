@@ -96,6 +96,7 @@ export interface ProjectUIDL {
     }
     languages: Record<string, string>
     translations: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
+    ignoreBrowserLanguage?: boolean
   }
 }
 

@@ -120,14 +120,18 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files, template } = structure
 
-    const { languages = { en: 'English' }, main = { locale: 'en', name: 'English' } } =
-      uidl.internationalization || {}
+    const {
+      languages = { en: 'English' },
+      main = { locale: 'en', name: 'English' },
+      ignoreBrowserLanguage = false,
+    } = uidl.internationalization || {}
+
     if (languages !== undefined && Object.keys(languages).length > 0) {
       const languageKeys = Object.keys(languages)
       const nextConfig = `module.exports = {
   i18n: {
     locales: [${languageKeys.map((key) => `'${key}'`).join(', ')}],
-    defaultLocale: "${main.locale}",
+    defaultLocale: "${main.locale}",${ignoreBrowserLanguage ? '\n    localeDetection: false,' : ''}
   }
 }`
       const existingNextConfig =
