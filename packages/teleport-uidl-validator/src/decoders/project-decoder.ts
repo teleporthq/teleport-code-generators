@@ -9,6 +9,7 @@ import {
   withDefault,
   number,
   union,
+  boolean,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -88,6 +89,7 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
         name: string(),
         locale: string(),
       }),
+      ignoreBrowserLanguage: optional(boolean()),
       languages: dict(string()),
       translations: dict(dict(union(elementNodeDecoder, staticValueDecoder))),
     })

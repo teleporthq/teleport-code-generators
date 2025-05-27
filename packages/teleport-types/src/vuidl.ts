@@ -269,6 +269,7 @@ export type VProjectUIDL = Modify<
         name: string
         locale: string
       }
+      ignoreBrowserLanguage?: boolean
       languages: Record<string, string>
       translations: Record<string, Record<string, VUIDLElementNode | UIDLStaticValue>>
     }
