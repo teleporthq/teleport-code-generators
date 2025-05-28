@@ -77,6 +77,23 @@ const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) 
 export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
+
+  // This is quite ugly, but we support states an events on page routes, which live in a different structure compared to components.
+  // As such, this validation update is required to validate events in pages properly.
+  if (
+    typeof input.stateDefinitions === 'object' &&
+    'route' in input.stateDefinitions &&
+    input.stateDefinitions?.route
+  ) {
+    const route = input.stateDefinitions?.route
+    if (typeof route === 'object' && 'values' in route && Array.isArray(route.values)) {
+      route.values?.forEach((pageData) => {
+        propKeys.push(...Object.keys(pageData?.pageOptions?.propDefinitions || {}))
+        stateKeys.push(...Object.keys(pageData?.pageOptions?.stateDefinitions || {}))
+      })
+    }
+  }
+
   let importKeys = Object.keys(input.importDefinitions || {})
   const componentStyleSetKyes = Object.keys(input.styleSetDefinitions || {})
 
