@@ -962,9 +962,12 @@ const handleAttributes = (
           extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
         )
 
-        if ((elementType === 'img' || elementType === 'video') && attrKey === 'src') {
+        if (
+          (elementType === 'img' || elementType === 'video') &&
+          attrKey === 'src' &&
+          !extractedValue.startsWith('http')
+        ) {
           const path = join(relative(join(...outputOptions.folderPath), './'), extractedValue)
-
           HASTUtils.addAttributeToNode(htmlNode, attrKey, path)
           break
         }
