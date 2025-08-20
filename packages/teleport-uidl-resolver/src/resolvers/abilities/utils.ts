@@ -6,6 +6,42 @@ import {
   UIDLAttributeValue,
 } from '@teleporthq/teleport-types'
 
+// Whitelist of attributes that are safe to transfer to anchor tags
+const ANCHOR_SAFE_ATTRIBUTES = new Set([
+  // Standard HTML attributes
+  'class',
+  'id',
+  'style',
+  'title',
+  'lang',
+  'dir',
+  'tabindex',
+  'accesskey',
+  'contenteditable',
+  'draggable',
+  'hidden',
+  'spellcheck',
+  'translate',
+])
+
+// ARIA attributes safe for anchor tags (link-specific)
+const ANCHOR_SAFE_ARIA_ATTRIBUTES = new Set([
+  'aria-describedby', // Describes the link purpose (valid transfer)
+  'aria-labelledby', // References label for the link
+  'aria-expanded', // For dropdown/collapsible links
+  'aria-haspopup', // For links that open menus/dialogs
+  'aria-current', // For navigation state
+  'aria-disabled', // For disabled links
+])
+
+const isAttributeSafeForAnchor = (attrName: string): boolean => {
+  return (
+    ANCHOR_SAFE_ATTRIBUTES.has(attrName) ||
+    attrName.startsWith('data-') ||
+    ANCHOR_SAFE_ARIA_ATTRIBUTES.has(attrName)
+  )
+}
+
 export const insertLinks = (
   node: UIDLElementNode,
   options: GeneratorOptions,
@@ -149,6 +185,27 @@ export const insertLinks = (
     }
 
     const linkNode = createLinkNode(abilities.link, options)
+
+    if (node.type === 'element' && node.content.attrs) {
+      // Filter attributes to only transfer those safe for anchor tags
+      const safeAttrs: Record<string, UIDLAttributeValue> = {}
+      Object.keys(node.content.attrs).forEach((attrName) => {
+        if (isAttributeSafeForAnchor(attrName)) {
+          safeAttrs[attrName] = { ...node.content.attrs[attrName] }
+        }
+      })
+
+      linkNode.content.attrs = {
+        ...linkNode.content.attrs,
+        ...safeAttrs,
+      }
+
+      // Remove only the transferred attributes from the original node
+      Object.keys(safeAttrs).forEach((attrName) => {
+        delete node.content.attrs[attrName]
+      })
+    }
+
     linkNode.content.children.push(node)
 
     if (parentNode === undefined || parentNode?.content.style?.display?.content === 'flex') {
