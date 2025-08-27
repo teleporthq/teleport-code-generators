@@ -136,7 +136,8 @@ export const generateHtmlSyntax: NodeToHTML<
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure
+        structure,
+        resolvedExpressions
       )
       return dynamicNode
 
@@ -225,6 +226,56 @@ export const generateHtmlSyntax: NodeToHTML<
           compName,
           nodesLookup,
           resolvedExpressions.expressions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+        return generatedNode
+      }
+
+      // Repeater alias fallback: if inside repeater but key doesn't match, try the single available context
+      if (
+        resolvedExpressions &&
+        resolvedExpressions.expressions &&
+        Object.keys(resolvedExpressions.expressions).length === 1
+      ) {
+        const onlyKey = Object.keys(resolvedExpressions.expressions)[0]
+        const uidlDynamicRef: UIDLDynamicReference = {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            refPath: [resolvedExpressions.currentIndex.toString(), ...content.slice(1)],
+            id: onlyKey,
+          },
+        }
+        const generatedNode = await generateDynamicNode(
+          uidlDynamicRef,
+          compName,
+          nodesLookup,
+          resolvedExpressions.expressions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+        return generatedNode
+      }
+
+      // Fallback: support simple prop/state expressions outside of repeater context
+      if (content[0] && (propDefinitions?.[content[0]] || stateDefinitions?.[content[0]])) {
+        const isProp = Boolean(propDefinitions?.[content[0]])
+        const uidlDynamicRef: UIDLDynamicReference = {
+          type: 'dynamic',
+          content: {
+            referenceType: isProp ? 'prop' : 'state',
+            refPath: content.slice(1),
+            id: content[0],
+          },
+        }
+        const generatedNode = await generateDynamicNode(
+          uidlDynamicRef,
+          compName,
+          nodesLookup,
+          isProp ? propDefinitions : stateDefinitions,
           stateDefinitions,
           subComponentOptions,
           structure
@@ -664,18 +715,27 @@ const generateComponentContent = async (
       const propKeyFromAttr = Object.keys(combinedProps).find((key) => key === ctxId)
 
       const resolvedValue = combinedProps[propKeyFromAttr]
-      propsForInstance[propKey] = Array.isArray(resolvedValue)
-        ? resolvedValue
-        : {
-            ...resolvedValue,
-            defaultValue:
-              refPath.length > 0 && resolvedValue?.defaultValue
-                ? extractDefaultValueFromRefPath(resolvedValue.defaultValue, [
-                    resolvedExpressions.currentIndex.toString(),
-                    ...refPath,
-                  ])
-                : null,
-          }
+      const hasRefPath = refPath.length > 0
+      // Build the path using repeater index when available
+      const fullRefPath =
+        typeof resolvedExpressions?.currentIndex === 'number' && hasRefPath
+          ? [resolvedExpressions.currentIndex.toString(), ...refPath]
+          : refPath
+
+      if (Array.isArray(resolvedValue)) {
+        // If the resolved value itself is an array definition, pass it through
+        propsForInstance[propKey] = resolvedValue
+      } else {
+        const defaultVal = resolvedValue?.defaultValue
+        const extracted =
+          hasRefPath && defaultVal !== undefined
+            ? extractDefaultValueFromRefPath(defaultVal, fullRefPath)
+            : defaultVal ?? null
+        propsForInstance[propKey] = {
+          ...resolvedValue,
+          defaultValue: extracted,
+        }
+      }
     }
 
     if (
@@ -724,7 +784,8 @@ const generateComponentContent = async (
     propsForInstance,
     statesForInstance,
     subComponentOptions,
-    structure
+    structure,
+    resolvedExpressions
   )
 
   const cssPlugin = createCSSPlugin({
@@ -786,7 +847,8 @@ const generateDynamicNode: NodeToHTML<
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  structure
+  structure,
+  resolvedExpressions?
 ): Promise<HastNode | HastText | Array<HastNode | HastText>> => {
   if (node.content.referenceType === 'locale') {
     const localeTag = HASTBuilders.createHTMLNode('span')
@@ -807,33 +869,53 @@ const generateDynamicNode: NodeToHTML<
     // Let's say users are biding the prop to a node using something like this "fields.Title"
     // But the fields in the object is the value where the object is defined either in propDefinitions
     // or on the attrs. So, we just need to parsed the rest of the object path and get the value from the object.
-    return HASTBuilders.createTextNode(
-      String(
-        extractDefaultValueFromRefPath(
-          usedReferenceValue.defaultValue as Record<string, UIDLPropDefinition>,
-          node.content.refPath
-        )
-      )
+    const extracted = extractDefaultValueFromRefPath(
+      usedReferenceValue.defaultValue as Record<string, UIDLPropDefinition>,
+      node.content.refPath
     )
+    if (extracted === undefined || extracted === null) {
+      return HASTBuilders.createTextNode('')
+    }
+    return HASTBuilders.createTextNode(String(extracted))
   }
 
   if (usedReferenceValue.type === 'element') {
     const elementNode = usedReferenceValue.defaultValue as UIDLElementNode
     if (elementNode) {
-      if (elementNode.content.key in nodesLookup) {
-        return nodesLookup[elementNode.content.key]
-      } else {
-        const elementTag = await generateHtmlSyntax(
-          elementNode,
+      // In repeater context, avoid reusing cached nodes; uniquify key per iteration
+      if (resolvedExpressions && typeof resolvedExpressions.currentIndex === 'number') {
+        const elementClone = UIDLUtils.cloneObject<UIDLElementNode>(elementNode)
+        if (elementClone?.content?.key) {
+          elementClone.content.key = `${elementClone.content.key}-${resolvedExpressions.currentIndex}`
+        }
+        const iterElementTag = await generateHtmlSyntax(
+          elementClone,
           compName,
           nodesLookup,
           propDefinitions,
           stateDefinitions,
           subComponentOptions,
-          structure
+          structure,
+          resolvedExpressions
         )
-        return elementTag
+        return iterElementTag
       }
+
+      if (elementNode.content.key in nodesLookup) {
+        return nodesLookup[elementNode.content.key]
+      }
+
+      const generatedElementTag = await generateHtmlSyntax(
+        elementNode,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure,
+        resolvedExpressions
+      )
+      return generatedElementTag
     }
 
     const spanTagWrapper = HASTBuilders.createHTMLNode('span')
@@ -958,9 +1040,8 @@ const handleAttributes = (
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions
         )
 
-        const extractedValue = String(
-          extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
-        )
+        const extracted = extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
+        const extractedValue = String(extracted)
 
         if (
           (elementType === 'img' || elementType === 'video') &&
@@ -1060,8 +1141,25 @@ const getValueFromReference = (
 const extractDefaultValueFromRefPath = (
   propDefaultValue: PropDefaultValueTypes,
   refPath?: string[]
-) => {
-  if (typeof propDefaultValue !== 'object' || !refPath?.length) {
+): PropDefaultValueTypes => {
+  if (!refPath || refPath.length === 0) {
+    return propDefaultValue
+  }
+
+  // Directly handle array indexing for the first segment when applicable
+  if (Array.isArray(propDefaultValue)) {
+    const [first, ...rest] = refPath
+    const idx = Number(first)
+    if (!Number.isNaN(idx) && idx >= 0 && idx < propDefaultValue.length) {
+      const nextVal = propDefaultValue[idx] as PropDefaultValueTypes
+      if (rest.length === 0) {
+        return nextVal
+      }
+      return extractDefaultValueFromRefPath(nextVal, rest)
+    }
+  }
+
+  if (typeof propDefaultValue !== 'object') {
     return propDefaultValue
   }
 
