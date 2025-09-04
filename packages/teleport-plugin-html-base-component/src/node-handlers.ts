@@ -233,33 +233,6 @@ export const generateHtmlSyntax: NodeToHTML<
         return generatedNode
       }
 
-      // Repeater alias fallback: if inside repeater but key doesn't match, try the single available context
-      if (
-        resolvedExpressions &&
-        resolvedExpressions.expressions &&
-        Object.keys(resolvedExpressions.expressions).length === 1
-      ) {
-        const onlyKey = Object.keys(resolvedExpressions.expressions)[0]
-        const uidlDynamicRef: UIDLDynamicReference = {
-          type: 'dynamic',
-          content: {
-            referenceType: 'prop',
-            refPath: [resolvedExpressions.currentIndex.toString(), ...content.slice(1)],
-            id: onlyKey,
-          },
-        }
-        const generatedNode = await generateDynamicNode(
-          uidlDynamicRef,
-          compName,
-          nodesLookup,
-          resolvedExpressions.expressions,
-          stateDefinitions,
-          subComponentOptions,
-          structure
-        )
-        return generatedNode
-      }
-
       // Fallback: support simple prop/state expressions outside of repeater context
       if (content[0] && (propDefinitions?.[content[0]] || stateDefinitions?.[content[0]])) {
         const isProp = Boolean(propDefinitions?.[content[0]])
