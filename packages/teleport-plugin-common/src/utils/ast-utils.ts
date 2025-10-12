@@ -223,13 +223,28 @@ export const stringAsTemplateLiteral = (str: string): types.TemplateLiteral => {
   return container.expression as types.TemplateLiteral
 }
 
+/**
+ * Converts HTML attribute names to React/JSX camelCase format
+ * Preserves data-* and aria-* attributes as-is
+ */
+const convertToReactAttributeName = (attrName: string): string => {
+  // Keep data-* and aria-* attributes as-is (React supports these)
+  if (attrName.startsWith('data-') || attrName.startsWith('aria-')) {
+    return attrName
+  }
+
+  // Convert hyphenated attributes to camelCase for React
+  return attrName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+}
+
 export const addAttributeToJSXTag = (
   jsxNode: types.JSXElement,
   attrName: string,
   attrValue?: boolean | unknown,
   t = types
 ) => {
-  const nameOfAttribute = t.jsxIdentifier(attrName)
+  const reactAttrName = convertToReactAttributeName(attrName)
+  const nameOfAttribute = t.jsxIdentifier(reactAttrName)
   let attributeDefinition
   if (typeof attrValue === 'boolean') {
     attributeDefinition = t.jsxAttribute(
@@ -247,7 +262,7 @@ export const addAttributeToJSXTag = (
 
   const attribute: types.JSXAttribute = jsxNode.openingElement.attributes.find((attr) => {
     if (attr.type === 'JSXAttribute') {
-      return attr.name.name === attrName
+      return attr.name.name === reactAttrName
     }
   }) as types.JSXAttribute
 
