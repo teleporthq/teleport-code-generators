@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-vue",
-  "version": "0.40.6",
+  "version": "0.40.9",
   "description": "Project generator using Vue and Vue-Router",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,14 +25,14 @@
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.40.6",
-    "@teleporthq/teleport-component-generator-vue": "^0.40.6",
-    "@teleporthq/teleport-plugin-css": "^0.40.4",
-    "@teleporthq/teleport-plugin-import-statements": "^0.40.4",
+    "@teleporthq/teleport-component-generator-vue": "^0.40.9",
+    "@teleporthq/teleport-plugin-css": "^0.40.9",
+    "@teleporthq/teleport-plugin-import-statements": "^0.40.9",
     "@teleporthq/teleport-plugin-vue-app-routing": "^0.40.4",
-    "@teleporthq/teleport-plugin-vue-head-config": "^0.40.4",
+    "@teleporthq/teleport-plugin-vue-head-config": "^0.40.9",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.40.4",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.40.4",
-    "@teleporthq/teleport-project-generator": "^0.40.6",
+    "@teleporthq/teleport-project-generator": "^0.40.9",
     "@teleporthq/teleport-shared": "^0.40.4",
     "@teleporthq/teleport-types": "^0.40.4"
   },

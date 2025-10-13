@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-common",
-  "version": "0.40.4",
+  "version": "0.40.9",
   "description": "Common building and modelating functions for ASTs and HASTs",
   "author": "teleportHQ",
   "license": "MIT",
