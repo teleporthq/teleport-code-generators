@@ -110,8 +110,25 @@ export const generateMediaStyle = (
         createCSSClassWithMediaQuery(
           `max-width: ${mediaOffset}px`,
           (styleMap[String(mediaOffset)] || []).reduce(
-            (acc: Record<string, string | number>, style) => {
-              Object.assign(acc, style)
+            (acc: Record<string, string | number | Record<string, string | number>>, style) => {
+              // Deep merge to handle both direct styles and nested subselectors
+              Object.keys(style).forEach((className) => {
+                const existingValue = acc[className]
+                const newValue = style[className]
+
+                if (!existingValue) {
+                  acc[className] = newValue as Record<string, string | number>
+                } else if (typeof existingValue === 'object' && typeof newValue === 'object') {
+                  // Both are objects, merge them
+                  acc[className] = {
+                    ...existingValue,
+                    ...(newValue as Record<string, string | number>),
+                  }
+                } else {
+                  // One or both are primitives, new value overwrites
+                  acc[className] = newValue as Record<string, string | number>
+                }
+              })
               return acc
             },
             {}
@@ -133,6 +150,7 @@ export const generateStylesFromStyleSetDefinitions = (
 ) => {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
+
     const { content, conditions = [], type } = style
     const name = className(style.className || styleId)
     const subselectors = style.subselectors
@@ -147,6 +165,7 @@ export const generateStylesFromStyleSetDefinitions = (
     const cls = subselectors
       ? createCSSClassWithSelector(name, `&${subselectors}`, collectedStyles)
       : createCSSClass(name, collectedStyles)
+
     if (type === 'reusable-component-style-map') {
       cssMap.unshift(cls)
     } else {
