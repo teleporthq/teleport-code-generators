@@ -509,7 +509,11 @@ export const formatErrors = (errors: Array<{ kind: string; at: string; message: 
 
 export const validateNulls = (uidl: Record<string, unknown>) => {
   return JSON.parse(JSON.stringify(uidl), (key, value) => {
-    if (value === undefined || value == null) {
+    // Skip validation for:
+    // 1. Empty string keys (represent array indices and root object)
+    // 2. Null values (valid in array mapper contexts where objects have different schemas)
+    // Only throw for undefined, which is truly invalid in JSON
+    if (value === undefined && key !== '') {
       throw new ComponentValidationError(`Validation error, Received ${value} at ${key}`)
     }
     return value

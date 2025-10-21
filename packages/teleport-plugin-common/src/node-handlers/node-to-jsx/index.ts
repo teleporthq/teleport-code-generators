@@ -640,7 +640,10 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
           [types.identifier(node.content.renderPropIdentifier)],
-          generateNode(node.content.nodes.list, params, options)[0] as types.JSXElement
+          generateNode(node.content.nodes.list, params, {
+            ...options,
+            localIdentifier: node.content.renderPropIdentifier,
+          })[0] as types.JSXElement
         )
       )
     )
