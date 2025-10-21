@@ -175,7 +175,7 @@ describe('createConditionIdentifier', () => {
   })
 
   it('throws an error for unknown reference type', () => {
-    const node = dynamicNode('unknown' as any, 'title')
+    const node = dynamicNode('locale', 'title')
     expect(() => createConditionIdentifier(node, params, options)).toThrowError()
   })
 })
