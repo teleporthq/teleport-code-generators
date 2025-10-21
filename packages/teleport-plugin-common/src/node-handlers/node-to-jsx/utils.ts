@@ -207,6 +207,18 @@ export const createConditionIdentifier = (
 
   const { id, referenceType, refPath } = dynamicReference.content
 
+  // Handle local references (from repeaters/loops) - they don't have an id
+  if (referenceType === 'local') {
+    // For local references, the identifier comes from the refPath
+    const key = refPath && refPath.length > 0 ? refPath.join('.') : ''
+    const prefix = options.localIdentifier || ''
+    return {
+      key,
+      type: 'string', // Default to string, actual type will be determined at runtime
+      prefix,
+    }
+  }
+
   // in case the id is a member expression: eg: fields.name
   const referenceRoot = id.split('.')[0]
   const currentType =

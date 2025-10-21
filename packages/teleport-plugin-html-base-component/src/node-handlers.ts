@@ -304,6 +304,29 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
       return value
     case 'boolean':
       return value
+    case 'object':
+      // Handle dynamic references (local, prop, state)
+      if (value && typeof value === 'object' && 'type' in value) {
+        const dynamicValue = value as unknown as UIDLDynamicReference
+        if (dynamicValue.type === 'dynamic' && dynamicValue.content) {
+          const { referenceType, id, refPath } = dynamicValue.content
+          if (referenceType === 'local' && id) {
+            // Local reference from repeater context
+            if (refPath && refPath.length > 0) {
+              return `${id}.${refPath.join('.')}`
+            }
+            return id
+          } else if (referenceType === 'prop' || referenceType === 'state') {
+            // Prop or state reference
+            const key = refPath && refPath.length > 0 ? refPath.join('.') : id
+            return key
+          }
+        }
+      }
+      throw new HTMLComponentGeneratorError(
+        `Conditional node received an operand of type ${valueType} \n
+          Received ${JSON.stringify(value)}`
+      )
     default:
       throw new HTMLComponentGeneratorError(
         `Conditional node received an operand of type ${valueType} \n

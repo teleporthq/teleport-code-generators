@@ -56,6 +56,12 @@ export interface JSXGenerationOptions {
   slotHandling?: 'native' | 'props'
   customElementTag?: (name: string) => string
   domHTMLInjection?: (content: string) => types.JSXElement
+  /*
+    The local context identifier for references inside repeaters/loops
+    For example, in a cms-list-repeater with renderPropIdentifier="conditions",
+    local references should resolve to properties of "conditions"
+  */
+  localIdentifier?: string
 }
 
 export type NodeToJSX<NodeType, ReturnType> = (

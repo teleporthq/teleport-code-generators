@@ -411,7 +411,8 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           if (typeof child === 'string') {
             return UIDLUtils.transformStringAssignmentToJson(child)
           } else {
-            return parseComponentNode(child, component)
+            const parsed = parseComponentNode(child, component)
+            return parsed
           }
         }, [])
       }
@@ -438,12 +439,27 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         reference.content.referenceType !== 'global' &&
         conditionalNode.content.reference.type === 'dynamic'
       ) {
-        conditionalNode.content.reference.content = {
-          referenceType: reference.content.referenceType,
-          id: StringUtils.createStateOrPropStoringValue(
-            conditionalNode.content.reference.content.id
-          ),
-          refPath: reference.content.refPath,
+        // For local references (e.g., in repeaters), preserve the structure as-is
+        if (reference.content.referenceType === 'local') {
+          conditionalNode.content.reference.content = {
+            referenceType: reference.content.referenceType,
+            refPath: reference.content.refPath,
+            ...(reference.content.fallback !== undefined && {
+              fallback: reference.content.fallback,
+            }),
+          }
+        } else {
+          // For prop/state references, transform the id
+          conditionalNode.content.reference.content = {
+            referenceType: reference.content.referenceType,
+            id: StringUtils.createStateOrPropStoringValue(
+              conditionalNode.content.reference.content.id
+            ),
+            refPath: reference.content.refPath,
+            ...(reference.content.fallback !== undefined && {
+              fallback: reference.content.fallback,
+            }),
+          }
         }
       }
 

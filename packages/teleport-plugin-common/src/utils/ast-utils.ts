@@ -345,8 +345,12 @@ export const objectToObjectExpression = (
       return acc
     }
 
+    // Handle null values explicitly - they are valid in array mappers with different schemas
+    if (value === null) {
+      computedLiteralValue = t.nullLiteral()
+    }
     // This is for function props that have successfully been parsed.
-    if (typeof value === 'object' && 'functionExpressionParseResult' in value) {
+    else if (typeof value === 'object' && 'functionExpressionParseResult' in value) {
       computedLiteralValue = value.functionExpressionParseResult
     } else if (value instanceof ParsedASTNode || value.constructor.name === 'ParsedASTNode') {
       computedLiteralValue = (value as ParsedASTNode).ast

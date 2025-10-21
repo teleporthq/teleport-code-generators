@@ -131,7 +131,8 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = union(
     content: object({
       referenceType: referenceTypeDecoder,
       refPath: optional(array(string())),
-      id: string(),
+      id: optional(string()),
+      fallback: optional(union(string(), number(), boolean())),
     }),
   }),
   globalValueDecoder
