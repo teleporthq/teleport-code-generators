@@ -444,6 +444,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           conditionalNode.content.reference.content = {
             referenceType: reference.content.referenceType,
             refPath: reference.content.refPath,
+            id: reference.content.id,
             ...(reference.content.fallback !== undefined && {
               fallback: reference.content.fallback,
             }),
