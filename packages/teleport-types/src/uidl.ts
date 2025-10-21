@@ -338,7 +338,7 @@ interface UIDLReferenValues {
   content: {
     referenceType: ReferenceType
     refPath?: string[]
-    id?: string
+    id: string
     fallback?: string | number | boolean
   }
 }
