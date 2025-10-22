@@ -4,6 +4,7 @@ import {
   objectToObjectExpression,
   addAttributeToJSXTag,
   addChildJSXTag,
+  addDynamicExpressionAttributeToJSXTag,
 } from '../utils/ast-utils'
 import {
   ImportIdentifier,
@@ -151,7 +152,7 @@ export const createFunctionalComponent = (
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxRoot)
-  const arrowFunction = t.arrowFunctionExpression([], t.blockStatement([returnStatement] || []))
+  const arrowFunction = t.arrowFunctionExpression([], t.blockStatement([returnStatement]))
 
   const declarator = t.variableDeclarator(t.identifier(componentName), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])
@@ -245,7 +246,18 @@ export const appendAssetsAST = (
       addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
 
       if (assetPath) {
-        addAttributeToJSXTag(scriptTag, 'src', assetPath)
+        // If the path contains a template expression (e.g., ${process.env.KEY}),
+        // set it as a dynamic expression so it renders with backticks instead of a plain string.
+        if (assetPath.includes('${')) {
+          // Wrap in backticks so it's parsed as a template literal expression
+          addDynamicExpressionAttributeToJSXTag(
+            scriptTag,
+            { type: 'expr', content: `\`${assetPath}\`` },
+            'src'
+          )
+        } else {
+          addAttributeToJSXTag(scriptTag, 'src', assetPath)
+        }
         if (asset.options && asset.options.defer) {
           addAttributeToJSXTag(scriptTag, 'defer', true)
         }

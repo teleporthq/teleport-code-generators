@@ -89,6 +89,7 @@ export interface ProjectUIDL {
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
   resources?: UIDLResources
+  forms?: UIDLForms
   internationalization?: {
     main: {
       name: string
@@ -871,4 +872,122 @@ export interface UIDLStyleSetStateCondition {
     state: UIDLElementStyleStates
   }
   content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+}
+
+export interface UIDLForms {
+  // Forms indexed by form ID for easy lookup
+  items: Record<string, UIDLFormDefinition>
+
+  // Optional: Global form configuration that applies to all forms
+  globalConfig?: {
+    // Default captcha provider if used across multiple forms
+    captchaProvider?: 'recaptcha' | 'hcaptcha' | 'turnstile'
+    // Default email service configuration reference
+    emailServiceRef?: string
+    // Default captcha public key (can be overridden per form)
+    defaultCaptchaPublicKey?: UIDLStaticValue | UIDLENVValue
+  }
+
+  // Server URL for form submissions (overrides NEXT_PUBLIC_FORMS_API_URL)
+  formsServerUrl?: UIDLStaticValue | UIDLENVValue
+}
+
+export interface UIDLFormDefinition {
+  // Core identification
+  id: UIDLStaticValue
+  name: UIDLStaticValue
+  formNodeId: UIDLStaticValue // Links to the actual form element in the component tree
+
+  // Context - which page/component contains this form
+  context?: {
+    type: 'page' | 'component'
+    id: UIDLStaticValue
+  }
+
+  // Form fields structure
+  fields: Record<string, UIDLFormField>
+
+  // Behavior configurations
+  behaviors: {
+    onSuccess: UIDLFormBehavior
+    onError: UIDLFormBehavior
+    onLimit?: UIDLFormBehavior
+  }
+
+  // Email notifications
+  notifications?: {
+    sendToSubscriber: UIDLStaticValue // boolean
+    sendToEmails: UIDLStaticValue[] // string[]
+  }
+
+  // Security & validation
+  security?: {
+    captchaPublicKey?: UIDLStaticValue | UIDLENVValue
+    honeypotField?: UIDLStaticValue
+  }
+
+  // Limits & constraints
+  constraints?: {
+    expirationDate?: UIDLStaticValue // ISO date string
+    submissionsLimit?: UIDLStaticValue // number
+  }
+
+  // Alert messages for different states
+  messages?: {
+    success?: UIDLStaticValue
+    error?: UIDLStaticValue
+    limit?: UIDLStaticValue
+  }
+
+  // Metadata
+  meta?: {
+    createdAt: UIDLStaticValue
+    updatedAt: UIDLStaticValue
+  }
+}
+
+export interface UIDLFormField {
+  id: UIDLStaticValue
+  name: UIDLStaticValue
+  nodeId: UIDLStaticValue // Links to the input element node
+  type: 'textinput' | 'textarea' | 'select' | 'checkbox' | 'radiobutton' | 'button'
+  required?: UIDLStaticValue // boolean
+
+  // Future extensibility for validation rules
+  validation?: {
+    pattern?: UIDLStaticValue
+    minLength?: UIDLStaticValue
+    maxLength?: UIDLStaticValue
+    min?: UIDLStaticValue
+    max?: UIDLStaticValue
+    customValidation?: UIDLExpressionValue
+  }
+}
+
+export type UIDLFormBehaviorAction =
+  | 'message'
+  | 'redirect-page'
+  | 'redirect-url'
+  | 'clear-form'
+  | 'clear-form-and-alert'
+
+export interface UIDLFormBehavior {
+  action: UIDLFormBehaviorAction
+
+  // Action-specific details
+  details?: {
+    // For redirect-page: reference to page state value
+    pageId?: UIDLStaticValue
+
+    // For redirect-url: external URL
+    url?: UIDLStaticValue
+
+    // For message: can be either a static message or a component reference
+    message?:
+      | UIDLStaticValue
+      | {
+          type: 'component-ref'
+          componentId: UIDLStaticValue
+        }
+  }
 }

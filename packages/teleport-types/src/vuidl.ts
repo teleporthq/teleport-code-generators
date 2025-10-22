@@ -54,6 +54,7 @@ import {
   UIDLPropDefinition,
   UIDLExternalDependency,
   UIDLResources,
+  UIDLForms,
 } from './uidl'
 import { Modify, ModifyUnionNumber } from './helper'
 
@@ -264,6 +265,7 @@ export type VProjectUIDL = Modify<
     root: VRootComponentUIDL
     components?: Record<string, VComponentUIDL>
     resources?: UIDLResources
+    forms?: UIDLForms
     internationalization?: {
       main: {
         name: string

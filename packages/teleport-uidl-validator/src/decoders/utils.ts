@@ -948,3 +948,116 @@ export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
   union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
 )
+
+export const formFieldValidationDecoder = object({
+  pattern: optional(staticValueDecoder),
+  minLength: optional(staticValueDecoder),
+  maxLength: optional(staticValueDecoder),
+  min: optional(staticValueDecoder),
+  max: optional(staticValueDecoder),
+  customValidation: optional(expressionValueDecoder),
+})
+
+export const formFieldDecoder = object({
+  id: staticValueDecoder,
+  name: staticValueDecoder,
+  nodeId: staticValueDecoder,
+  type: oneOf(
+    constant('textinput'),
+    constant('textarea'),
+    constant('select'),
+    constant('checkbox'),
+    constant('radiobutton'),
+    constant('button')
+  ),
+  required: optional(staticValueDecoder),
+  validation: optional(formFieldValidationDecoder),
+})
+
+export const formBehaviorDecoder = object({
+  action: oneOf(
+    constant('message'),
+    constant('redirect-page'),
+    constant('redirect-url'),
+    constant('clear-form'),
+    constant('clear-form-and-alert')
+  ),
+  details: optional(
+    object({
+      pageId: optional(staticValueDecoder),
+      url: optional(staticValueDecoder),
+      message: optional(
+        union(
+          staticValueDecoder,
+          object({
+            type: constant('component-ref'),
+            componentId: staticValueDecoder,
+          })
+        )
+      ),
+    })
+  ),
+})
+
+export const formDefinitionDecoder = object({
+  id: staticValueDecoder,
+  name: staticValueDecoder,
+  formNodeId: staticValueDecoder,
+  context: optional(
+    object({
+      type: oneOf(constant('page'), constant('component')),
+      id: staticValueDecoder,
+    })
+  ),
+  fields: dict(formFieldDecoder),
+  behaviors: object({
+    onSuccess: formBehaviorDecoder,
+    onError: formBehaviorDecoder,
+    onLimit: optional(formBehaviorDecoder),
+  }),
+  notifications: optional(
+    object({
+      sendToSubscriber: staticValueDecoder,
+      sendToEmails: array(staticValueDecoder),
+    })
+  ),
+  security: optional(
+    object({
+      captchaPublicKey: optional(union(staticValueDecoder, envValueDecoder)),
+      honeypotField: optional(staticValueDecoder),
+    })
+  ),
+  constraints: optional(
+    object({
+      expirationDate: optional(staticValueDecoder),
+      submissionsLimit: optional(staticValueDecoder),
+    })
+  ),
+  messages: optional(
+    object({
+      success: optional(staticValueDecoder),
+      error: optional(staticValueDecoder),
+      limit: optional(staticValueDecoder),
+    })
+  ),
+  meta: optional(
+    object({
+      createdAt: staticValueDecoder,
+      updatedAt: staticValueDecoder,
+    })
+  ),
+})
+
+export const formsDecoder = object({
+  items: dict(formDefinitionDecoder),
+  globalConfig: optional(
+    object({
+      captchaProvider: optional(
+        oneOf(constant('recaptcha'), constant('hcaptcha'), constant('turnstile'))
+      ),
+      emailServiceRef: optional(string()),
+      defaultCaptchaPublicKey: optional(union(staticValueDecoder, envValueDecoder)),
+    })
+  ),
+  formsServerUrl: optional(union(staticValueDecoder, envValueDecoder)),
+})

@@ -18,6 +18,7 @@ import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
+import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -36,13 +37,19 @@ const createNextProjectGenerator = () => {
   const nextPageInlineFetchPlugin = createNextPagesInlineFetchPlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
   const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
+  const nextFormSubmissionPlugin = createNextFormSubmissionPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin, nextComponentInlineFetchPlugin, nextInternationalizationPlugin],
+      plugins: [
+        nextImagePlugin,
+        nextComponentInlineFetchPlugin,
+        nextInternationalizationPlugin,
+        nextFormSubmissionPlugin,
+      ],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
@@ -57,6 +64,8 @@ const createNextProjectGenerator = () => {
         nextInternationalizationPlugin,
         nextPageInlineFetchPlugin,
         nextLocaleFetcherPlugin,
+        nextFormSubmissionPlugin,
+        importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
       options: {
@@ -104,6 +113,9 @@ const createNextProjectGenerator = () => {
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
+export { NextFormsEnvFilePlugin } from './forms/env-file-plugin'
+export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 export { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
+export { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
