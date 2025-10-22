@@ -114,7 +114,7 @@ describe('Generic Project Generator', () => {
       expect(generator.componentGenerator.generateComponent).toBeCalledTimes(4)
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
+        expect.objectContaining({
           assets: {
             identifier: null,
             mappings: {},
@@ -128,14 +128,20 @@ describe('Generic Project Generator', () => {
           mapping: {},
           skipValidation: true,
           skipI18n: true,
-        }
+          projectComponents: expect.objectContaining({
+            ExpandableArea: expect.objectContaining({ name: 'ExpandableArea' }),
+            Modal: expect.objectContaining({ name: 'Modal' }),
+            ModalWindow: expect.objectContaining({ name: 'ModalWindow' }),
+            OneComponent: expect.objectContaining({ name: 'OneComponent' }),
+          }),
+        })
       )
       expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
       expect(generator.pageGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({
           name: 'Home',
         }),
-        {
+        expect.objectContaining({
           assets: {
             identifier: null,
             mappings: {},
@@ -149,7 +155,13 @@ describe('Generic Project Generator', () => {
           mapping: {},
           skipValidation: true,
           skipI18n: true,
-        }
+          projectComponents: expect.objectContaining({
+            ExpandableArea: expect.objectContaining({ name: 'ExpandableArea' }),
+            Modal: expect.objectContaining({ name: 'Modal' }),
+            ModalWindow: expect.objectContaining({ name: 'ModalWindow' }),
+            OneComponent: expect.objectContaining({ name: 'OneComponent' }),
+          }),
+        })
       )
 
       const routerUIDL = {
@@ -193,7 +205,7 @@ describe('Generic Project Generator', () => {
       expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
+        expect.objectContaining({
           assets: {
             identifier: null,
             mappings: {},
@@ -207,7 +219,13 @@ describe('Generic Project Generator', () => {
           mapping: {},
           skipValidation: true,
           skipI18n: true,
-        }
+          projectComponents: expect.objectContaining({
+            ExpandableArea: expect.objectContaining({ name: 'ExpandableArea' }),
+            Modal: expect.objectContaining({ name: 'Modal' }),
+            ModalWindow: expect.objectContaining({ name: 'ModalWindow' }),
+            OneComponent: expect.objectContaining({ name: 'OneComponent' }),
+          }),
+        })
       )
 
       expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
