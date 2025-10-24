@@ -815,11 +815,8 @@ function createFormSubmitHandler(
               t.booleanLiteral(false),
             ])
           ),
-          t.expressionStatement(
-            t.callExpression(t.identifier(`setFormMessage_${sanitizedFormId}`), [
-              t.stringLiteral('This form has expired and is no longer accepting submissions.'),
-            ])
-          ),
+          // Handle expiration as a limit reached scenario
+          ...createLimitHandler(sanitizedFormId, formDefinition.behaviors?.onLimit, formDefinition),
           t.returnStatement(),
         ])
       )
@@ -905,6 +902,10 @@ function createFormSubmitHandler(
     formDefinition.security?.captchaPublicKey || forms.globalConfig?.defaultCaptchaPublicKey
   const captchaProvider = forms.globalConfig?.captchaProvider || 'recaptcha'
 
+  // Determine if using default (enterprise) or form-specific captcha
+  const usingDefaultCaptcha =
+    !formDefinition.security?.captchaPublicKey && forms.globalConfig?.defaultCaptchaPublicKey
+
   // Add captcha token if captcha is configured
   if (captchaKey) {
     let captchaKeyExpression: types.Expression
@@ -919,7 +920,54 @@ function createFormSubmitHandler(
       captchaKeyExpression = t.stringLiteral('')
     }
 
-    // Add captcha verification based on provider (wrapped in conditional and try/catch)
+    // Determine the correct API call based on provider and enterprise mode
+    let captchaExecuteExpression: types.Expression
+
+    if (captchaProvider === 'recaptcha') {
+      if (usingDefaultCaptcha) {
+        // Enterprise reCAPTCHA: grecaptcha.enterprise.execute()
+        captchaExecuteExpression = t.callExpression(
+          t.memberExpression(
+            t.memberExpression(
+              t.memberExpression(t.identifier('window'), t.identifier('grecaptcha')),
+              t.identifier('enterprise')
+            ),
+            t.identifier('execute')
+          ),
+          [
+            captchaKeyExpression,
+            t.objectExpression([
+              t.objectProperty(t.identifier('action'), t.stringLiteral('submit')),
+            ]),
+          ]
+        )
+      } else {
+        // Standard reCAPTCHA: grecaptcha.execute()
+        captchaExecuteExpression = t.callExpression(
+          t.memberExpression(
+            t.memberExpression(t.identifier('window'), t.identifier('grecaptcha')),
+            t.identifier('execute')
+          ),
+          [
+            captchaKeyExpression,
+            t.objectExpression([
+              t.objectProperty(t.identifier('action'), t.stringLiteral('submit')),
+            ]),
+          ]
+        )
+      }
+    } else {
+      // Other providers (hcaptcha, turnstile)
+      captchaExecuteExpression = t.callExpression(
+        t.memberExpression(
+          t.memberExpression(t.identifier('window'), t.identifier(captchaProvider)),
+          t.identifier('execute')
+        ),
+        [captchaKeyExpression]
+      )
+    }
+
+    // Add captcha verification (wrapped in conditional and try/catch)
     formDataStatements.push(
       // if (captchaKey) { try { ... } catch { ... } }
       t.ifStatement(
@@ -927,26 +975,11 @@ function createFormSubmitHandler(
         t.blockStatement([
           t.tryStatement(
             t.blockStatement([
-              // const captchaToken = await window.grecaptcha.execute(publicKey, { action: 'submit' })
+              // const captchaToken = await [appropriate API call]
               t.variableDeclaration('const', [
                 t.variableDeclarator(
                   t.identifier('captchaToken'),
-                  t.awaitExpression(
-                    t.callExpression(
-                      t.memberExpression(
-                        t.memberExpression(t.identifier('window'), t.identifier(captchaProvider)),
-                        t.identifier('execute')
-                      ),
-                      captchaProvider === 'recaptcha'
-                        ? [
-                            captchaKeyExpression,
-                            t.objectExpression([
-                              t.objectProperty(t.identifier('action'), t.stringLiteral('submit')),
-                            ]),
-                          ]
-                        : [captchaKeyExpression]
-                    )
-                  )
+                  t.awaitExpression(captchaExecuteExpression)
                 ),
               ]),
               // data['captchaToken'] = captchaToken
