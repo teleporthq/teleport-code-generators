@@ -113,7 +113,6 @@ const createNextProjectGenerator = () => {
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
-export { NextFormsEnvFilePlugin } from './forms/env-file-plugin'
 export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
