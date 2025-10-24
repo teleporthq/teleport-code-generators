@@ -29,7 +29,6 @@ import {
   createNextProjectGenerator,
   NextTemplate,
   NextProjectPlugini18nConfig,
-  NextFormsEnvFilePlugin,
   NextFormsCaptchaScriptPlugin,
 } from '@teleporthq/teleport-project-generator-next'
 import {
@@ -160,7 +159,6 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.NEXT) {
     projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig())
-    projectGeneratorFactory.addPlugin(new NextFormsEnvFilePlugin())
     projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
   }
 
