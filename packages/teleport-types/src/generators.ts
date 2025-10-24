@@ -12,6 +12,7 @@ import {
   UIDLResources,
   UIDLLocalFontAsset,
   UIDLGlobalReference,
+  UIDLForms,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -131,6 +132,7 @@ export interface GeneratorOptions {
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
+  projectComponents?: Record<string, ComponentUIDL>
   projectStyleSet?: {
     styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
     fileName: string
@@ -150,6 +152,7 @@ export interface GeneratorOptions {
     tokens?: UIDLDesignTokens
   }
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
+  forms?: UIDLForms
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

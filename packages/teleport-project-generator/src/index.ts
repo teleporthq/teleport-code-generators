@@ -281,6 +281,12 @@ export class ProjectGenerator implements ProjectGeneratorType {
             path: this.strategy.resources.path,
           },
         }),
+      ...(uidl.forms && {
+        forms: uidl.forms,
+      }),
+      ...(Object.keys(components).length > 0 && {
+        projectComponents: components,
+      }),
       ...(this.strategy.projectStyleSheet?.generator &&
         this.strategy.projectStyleSheet?.path && {
           projectStyleSet: {
