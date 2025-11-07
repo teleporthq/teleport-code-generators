@@ -492,6 +492,65 @@ describe('prefixAssetsPath', () => {
       })
     ).toBe('/noidentifier/kitten.png')
   })
+
+  it('handles duplicate filenames in different folders using full path lookup', () => {
+    // Simulate the mapping structure created by packProject for duplicate filenames
+    const mappings = {
+      '1-200h.png': 'New Folder', // Last occurrence (overwrites basename-only key)
+      'New Folder/1-200h.png': 'New Folder', // Full path for subfolder
+    }
+
+    // Image in subfolder should resolve correctly
+    expect(
+      prefixAssetsPath('/New Folder/1-200h.png', {
+        prefix: '/static',
+        identifier: 'playground_assets',
+        mappings,
+      })
+    ).toBe('/static/playground_assets/New Folder/1-200h.png')
+  })
+
+  it('handles duplicate filenames with one at root level', () => {
+    // Mapping with root-level asset (empty path) and subfolder asset
+    const mappings = {
+      'image.png': '', // Root level (basename-only)
+      'subfolder/image.png': 'subfolder', // Full path for subfolder
+    }
+
+    // Root level image
+    expect(
+      prefixAssetsPath('/image.png', {
+        prefix: '/static',
+        identifier: 'assets',
+        mappings,
+      })
+    ).toBe('/static/assets/image.png')
+
+    // Subfolder image should use full-path lookup
+    expect(
+      prefixAssetsPath('/subfolder/image.png', {
+        prefix: '/static',
+        identifier: 'assets',
+        mappings,
+      })
+    ).toBe('/static/assets/subfolder/image.png')
+  })
+
+  it('falls back to basename-only lookup for backward compatibility', () => {
+    // Old-style mapping (only basename as key)
+    const mappings = {
+      'kitten.png': 'images',
+    }
+
+    // Should still work with full path in UIDL
+    expect(
+      prefixAssetsPath('/images/kitten.png', {
+        prefix: '/static',
+        identifier: 'assets',
+        mappings,
+      })
+    ).toBe('/static/assets/images/kitten.png')
+  })
 })
 
 const nodeToTraverse = elementNode(

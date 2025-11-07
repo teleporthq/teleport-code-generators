@@ -77,7 +77,16 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     }
 
     const assetsAndPathsMap = packAssets?.assets.reduce((acc: Record<string, string>, asset) => {
-      acc[asset.name] = (asset?.path || []).join('/')
+      const pathString = (asset?.path || []).join('/')
+
+      // Always add the basename-only mapping (for backward compatibility)
+      acc[asset.name] = pathString
+
+      // Also add full-path mapping (path + filename) to handle duplicate filenames
+      if (pathString) {
+        acc[`${pathString}/${asset.name}`] = pathString
+      }
+
       return acc
     }, {})
 
