@@ -146,6 +146,10 @@ export const prefixAssetsPath = (
   const assetName = basename(originalString)
   const decodedAssetName = decodeURIComponent(assetName)
 
+  // Extract the full path from the original string (normalize to remove leading slash)
+  const fullPath = originalString.startsWith('/') ? originalString.slice(1) : originalString
+  const decodedFullPath = decodeURIComponent(fullPath)
+
   /*
     If the value is missing from the mapping, it means
      - asset is missing in the project packer
@@ -153,9 +157,14 @@ export const prefixAssetsPath = (
 
     Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas
     the src / url leading to the asset can be encoded and we need to check the decoded version against the asset mapping
+
+    Try full-path lookup first (to handle duplicate filenames in different folders),
+    then fall back to basename-only (for backward compatibility)
   */
 
   if (
+    !(typeof mappings[fullPath] === 'string') &&
+    !(typeof mappings[decodedFullPath] === 'string') &&
     !(typeof mappings[assetName] === 'string') &&
     !(typeof mappings[decodedAssetName] === 'string')
   ) {
@@ -164,10 +173,17 @@ export const prefixAssetsPath = (
 
   /*
     need to use either the original or decoded assetName to retrieve its mapping if there is one
+    Priority: fullPath > decodedFullPath > assetName > decodedAssetName
   */
 
   const assetNameUsedForMapping =
-    typeof mappings[assetName] === 'string' ? assetName : decodedAssetName
+    typeof mappings[fullPath] === 'string'
+      ? fullPath
+      : typeof mappings[decodedFullPath] === 'string'
+      ? decodedFullPath
+      : typeof mappings[assetName] === 'string'
+      ? assetName
+      : decodedAssetName
 
   /*
     If the value from the mapping is an empty string
