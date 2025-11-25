@@ -26,6 +26,7 @@ import {
   elementNodeDecoder,
   staticValueDecoder,
   formsDecoder,
+  dataSourcesDecoder,
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -85,6 +86,7 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
   resources: optional(resourcesDecoder),
+  dataSources: optional(dataSourcesDecoder),
   forms: optional(formsDecoder) as Decoder<UIDLForms | undefined>,
   internationalization: optional(
     object({

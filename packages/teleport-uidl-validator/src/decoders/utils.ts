@@ -15,6 +15,7 @@ import {
   withDefault,
   anyJson,
   unknownJson,
+  succeed,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -729,6 +730,22 @@ export const objectValueDecoder: Decoder<UIDLObjectValue> = object({
   content: unknownJson(),
 })
 
+// Helper decoder that handles both UIDLNode format and plain element format in children arrays
+const flexibleChildDecoder: Decoder<VUIDLNode> = lazy(() => {
+  return anyJson().andThen((json: any) => {
+    // If it has "elementType" but no "type", wrap it in a UIDLNode
+    if (json && typeof json === 'object' && json.elementType && !json.type) {
+      // Return a decoder that succeeds with the wrapped node
+      return succeed({
+        type: 'element' as const,
+        content: json,
+      } as VUIDLNode)
+    }
+    // Otherwise, try parsing as a normal UIDLNode
+    return uidlNodeDecoder
+  })
+})
+
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
@@ -743,7 +760,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
       link: optional(anyJson()),
     })
   ),
-  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  children: withDefault([], array(flexibleChildDecoder)),
   referencedStyles: optional(
     dict(
       union(
@@ -819,11 +836,6 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
       })
     ),
   }),
-})
-
-export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
-  type: constant('element'),
-  content: elementDecoder,
 })
 
 export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
@@ -943,10 +955,170 @@ export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
   }),
 })
 
+// Data source content that can be wrapped in an element node
+// This matches the hybrid structure: { type: "data-source-item", content: {...}, children: [] }
+const dataSourceItemContentDecoder = object({
+  type: constant('data-source-item'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  // Element properties at the hybrid level
+  name: withDefault('data-source-item', string()),
+  key: optional(string()),
+  elementType: optional(string()),
+  semanticType: optional(string()),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+  events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
+  abilities: optional(object({ link: optional(anyJson()) })),
+  referencedStyles: optional(
+    dict(
+      union(
+        elementInlineReferencedStyle,
+        elementProjectReferencedStyle,
+        elementComponentReferencedStyle
+      )
+    )
+  ),
+  selfClosing: optional(boolean()),
+  dependency: optional(dependencyDecoder),
+})
+
+const dataSourceListContentDecoder = object({
+  type: constant('data-source-list'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  // Element properties at the hybrid level
+  name: withDefault('data-source-list', string()),
+  key: optional(string()),
+  elementType: optional(string()),
+  semanticType: optional(string()),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+  events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
+  abilities: optional(object({ link: optional(anyJson()) })),
+  referencedStyles: optional(
+    dict(
+      union(
+        elementInlineReferencedStyle,
+        elementProjectReferencedStyle,
+        elementComponentReferencedStyle
+      )
+    )
+  ),
+  selfClosing: optional(boolean()),
+  dependency: optional(dependencyDecoder),
+})
+
+export const dataSourceItemNodeDecoder: Decoder<any> = object({
+  type: constant('data-source-item'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+})
+
+export const dataSourceListNodeDecoder: Decoder<any> = object({
+  type: constant('data-source-list'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+})
+
+// Element node decoder that can wrap standard elements or data-source hybrid structures
+export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
+  type: constant('element'),
+  content: union(elementDecoder, dataSourceItemContentDecoder, dataSourceListContentDecoder),
+}) as any
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   union(elementNodeDecoder, dynamicValueDecoder, rawValueDecoder, conditionalNodeDecoder),
   union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
-  union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
+  union(
+    cmsItemNodeDecoder,
+    cmsListNodeDecoder,
+    cmsListRepeaterNodeDecoder,
+    cmsMixedTypeNodeDecoder
+  ),
+  union(dataSourceItemNodeDecoder, dataSourceListNodeDecoder)
 )
 
 export const formFieldValidationDecoder = object({
@@ -1061,3 +1233,13 @@ export const formsDecoder = object({
   ),
   formsServerUrl: optional(union(staticValueDecoder, envValueDecoder)),
 })
+
+// Data Sources decoder - allows any configuration structure
+export const dataSourceDecoder = object({
+  id: string(),
+  name: string(),
+  type: string(),
+  config: dict(unknownJson()),
+})
+
+export const dataSourcesDecoder = dict(dataSourceDecoder)

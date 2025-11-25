@@ -281,6 +281,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
             path: this.strategy.resources.path,
           },
         }),
+      ...(uidl.dataSources &&
+        Object.keys(uidl.dataSources).length > 0 && {
+          dataSources: uidl.dataSources,
+        }),
       ...(uidl.forms && {
         forms: uidl.forms,
       }),
@@ -392,7 +396,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
         Generating files from the extracted resources that needs a proxy end-point to access them.
       */
       Object.values(pageOptions.extractedResources).forEach((extractedResource) => {
-        inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
+        // Use path + fileName as key to avoid collisions when same fileName exists in different paths
+        const pathKey = extractedResource.path.join('/')
+        const uniqueKey = `resource-${pathKey}/${extractedResource.fileName}`
+
+        inMemoryFilesMap.set(uniqueKey, {
           path: extractedResource.path,
           files: [
             {

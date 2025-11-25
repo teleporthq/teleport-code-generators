@@ -13,6 +13,7 @@ import {
   UIDLLocalFontAsset,
   UIDLGlobalReference,
   UIDLForms,
+  UIDLDataSource,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -152,6 +153,7 @@ export interface GeneratorOptions {
     tokens?: UIDLDesignTokens
   }
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
+  dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
 }
 

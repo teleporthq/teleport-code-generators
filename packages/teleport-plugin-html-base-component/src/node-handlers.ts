@@ -267,6 +267,29 @@ export const generateHtmlSyntax: NodeToHTML<
         subComponentOptions,
         structure
       )
+
+    case 'cms-item':
+    case 'cms-list':
+    case 'data-source-item':
+    case 'data-source-list':
+      // For HTML generation, render the success node content
+      // Since HTML doesn't support dynamic data fetching, we just render the static structure
+      const successNode = (node.content as any).nodes?.success
+      if (successNode) {
+        return generateHtmlSyntax(
+          successNode,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure,
+          resolvedExpressions
+        )
+      }
+      // If no success node, return empty div
+      return HASTBuilders.createHTMLNode('div')
+
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -352,9 +375,11 @@ const generateRepeaterNode: NodeToHTML<
   const contextId = node.content.renderPropIdentifier
   const sourceValue = node.content.source
   let propDef =
-    propDefinitions[
-      Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
-    ]
+    sourceValue && typeof sourceValue === 'string'
+      ? propDefinitions[
+          Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
+        ]
+      : undefined
 
   if (!propDef || !Array.isArray(propDef.defaultValue)) {
     // If no prop is found we might have a static source value
@@ -451,6 +476,31 @@ const generateElementNode: NodeToHTML<
   structure,
   resolvedExpressions
 ) => {
+  // Check if this is a wrapped data-source node
+  if (
+    node.content &&
+    typeof node.content === 'object' &&
+    'type' in node.content &&
+    (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+  ) {
+    // Handle as data-source node - just render the success content
+    const successNode = (node.content as any).nodes?.success
+    if (successNode) {
+      return generateHtmlSyntax(
+        successNode,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure,
+        resolvedExpressions
+      )
+    }
+    // If no success node, return empty div
+    return HASTBuilders.createHTMLNode('div')
+  }
+
   const {
     elementType,
     children,

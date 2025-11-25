@@ -13,6 +13,8 @@ import {
   UIDLCMSListRepeaterNode,
   UIDLCMSMixedTypeNode,
   UIDLElement,
+  UIDLDataSourceItemNode,
+  UIDLDataSourceListNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, JSXGenerationOptions, JSXGenerationParams, NodeToJSX } from './types'
@@ -51,6 +53,12 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const originalElementName = elementType || 'component'
   let tagName = originalElementName
 
+  // Check if this is a fragment element - normalize to Fragment before processing
+  const isFragment = tagName.toLowerCase() === 'fragment'
+  if (isFragment) {
+    tagName = 'Fragment'
+  }
+
   if (dependency) {
     if (
       options.dependencyHandling === 'import' ||
@@ -78,12 +86,25 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       const dynamicWindowImport = generateDynamicWindowImport('useEffect', dependency.path)
       params.windowImports[dependency.path] = dynamicWindowImport
     }
+  } else if (isFragment) {
+    // If no dependency was provided but this is a fragment, add Fragment dependency
+    if (options.dependencyHandling === 'import') {
+      dependencies.Fragment = {
+        type: 'package',
+        path: 'react',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      }
+    }
   }
 
   const elementName =
     dependency && dependency.type === 'local' && options.customElementTag
       ? options.customElementTag(tagName)
       : tagName
+
   const elementTag = selfClosing ? createSelfClosingJSXTag(elementName) : createJSXTag(elementName)
 
   if (attrs) {
@@ -287,7 +308,22 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'cms-mixed-type':
       return generateCMSMixedTypeNode(node, params, options)
 
+    case 'data-source-item':
+    case 'data-source-list':
+      return generateDataSourceNode(node, params, options)
+
     case 'element':
+      // Check if this element node is wrapping a data-source node
+      if (
+        node.content &&
+        typeof node.content === 'object' &&
+        'type' in node.content &&
+        (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+      ) {
+        // Treat it as a data-source node
+        // tslint:disable-next-line:no-any
+        return generateDataSourceNode(node.content as any, params, options)
+      }
       return [generateElementNode(node, params, options)]
 
     case 'repeat':
@@ -318,7 +354,26 @@ const generateExpressionNode: NodeToJSX<UIDLExpressionValue, types.JSXExpression
   node
 ) => {
   const expression = ASTUtils.getExpressionFromUIDLExpressionNode(node)
-  return types.jsxExpressionContainer(expression)
+
+  // Wrap expression to safely handle objects/arrays: (typeof val === 'object' && val !== null) ? JSON.stringify(val) : val
+  const safeExpression = types.conditionalExpression(
+    types.logicalExpression(
+      '&&',
+      types.binaryExpression(
+        '===',
+        types.unaryExpression('typeof', expression, true),
+        types.stringLiteral('object')
+      ),
+      types.binaryExpression('!==', expression, types.nullLiteral())
+    ),
+    types.callExpression(
+      types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+      [expression]
+    ),
+    expression
+  )
+
+  return types.jsxExpressionContainer(safeExpression)
 }
 
 const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement[]> = (
@@ -567,6 +622,158 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   return [cmsNode]
 }
 
+const generateDataSourceNode: NodeToJSX<
+  UIDLDataSourceItemNode | UIDLDataSourceListNode,
+  types.JSXElement[]
+> = (node, params, options) => {
+  const { renderPropIdentifier, elementType, dependency, resourceDefinition } = node.content
+
+  const key = node.content.key || `ds-${resourceDefinition.dataSourceId}-${Date.now()}`
+  const name = node.content.name || renderPropIdentifier
+
+  // tslint:disable-next-line:no-any
+  const children =
+    node.content.children && node.content.children.length > 0
+      ? node.content.children
+      : (node.content as any).nodes?.success
+      ? [(node.content as any).nodes.success]
+      : []
+
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
+
+  if (dependency && options.dependencyHandling === 'import') {
+    params.dependencies[elementType] = dependency
+  }
+
+  const dataSourceNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+
+  dataSourceNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('resourceDefinition'),
+      types.jsxExpressionContainer(
+        types.objectExpression([
+          types.objectProperty(
+            types.stringLiteral('type'),
+            types.stringLiteral('external-data-source')
+          ),
+          types.objectProperty(
+            types.stringLiteral('dataSourceId'),
+            types.stringLiteral(resourceDefinition.dataSourceId)
+          ),
+          types.objectProperty(
+            types.stringLiteral('tableName'),
+            types.stringLiteral(resourceDefinition.tableName)
+          ),
+          types.objectProperty(
+            types.stringLiteral('dataSourceType'),
+            types.stringLiteral(resourceDefinition.dataSourceType)
+          ),
+        ])
+      )
+    )
+  )
+
+  dataSourceNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('name'),
+      types.jsxExpressionContainer(types.stringLiteral(name))
+    )
+  )
+
+  if (children && children.length > 0) {
+    const childrenNodes = children.flatMap((child) => generateNode(child, params, options))
+    const renderFunction = types.arrowFunctionExpression(
+      [types.identifier(renderPropIdentifier)],
+      types.jsxFragment(
+        types.jsxOpeningFragment(),
+        types.jsxClosingFragment(),
+        childrenNodes as types.JSXElement[]
+      )
+    )
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderSuccess'),
+        types.jsxExpressionContainer(renderFunction)
+      )
+    )
+  }
+
+  // tslint:disable-next-line:no-any
+  if ((node.content as any).nodes?.loading) {
+    // tslint:disable-next-line:no-any
+    const loadingNode = generateNode((node.content as any).nodes.loading, params, options)[0]
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderLoading'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression([], loadingNode as types.JSXElement)
+        )
+      )
+    )
+  }
+
+  // tslint:disable-next-line:no-any
+  if ((node.content as any).nodes?.error) {
+    // tslint:disable-next-line:no-any
+    const errorNode = generateNode((node.content as any).nodes.error, params, options)[0]
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderError'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression([], errorNode as types.JSXElement)
+        )
+      )
+    )
+  }
+
+  // Add resource params if they exist
+  // tslint:disable-next-line:no-any
+  const resourceParams = (node.content as any).resource?.params
+  if (resourceParams && Object.keys(resourceParams).length > 0) {
+    const nodeParams: types.ObjectProperty[] = Object.keys(resourceParams).reduce(
+      (acc: types.ObjectProperty[], attrKey) => {
+        const property = resourceParams[attrKey]
+
+        if (property.type === 'static') {
+          acc.push(types.objectProperty(types.stringLiteral(attrKey), resolveObjectValue(property)))
+        }
+
+        if (property.type === 'expr') {
+          const expression = ASTUtils.getExpressionFromUIDLExpressionNode(property)
+          acc.push(types.objectProperty(types.stringLiteral(attrKey), expression))
+        }
+
+        if (property.type === 'dynamic') {
+          const refType = property.content.referenceType as 'prop' | 'state' | 'local'
+          acc.push(
+            types.objectProperty(
+              types.stringLiteral(attrKey),
+              property.content.referenceType === 'prop'
+                ? types.memberExpression(
+                    types.identifier(options.dynamicReferencePrefixMap[refType]),
+                    types.identifier(property.content.id)
+                  )
+                : types.identifier(property.content.id)
+            )
+          )
+        }
+
+        return acc
+      },
+      []
+    )
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('params'),
+        types.jsxExpressionContainer(types.objectExpression(nodeParams))
+      )
+    )
+  }
+
+  params.nodesLookup[key] = dataSourceNode
+  return [dataSourceNode]
+}
+
 const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer[]> = (
   node,
   params,
@@ -634,16 +841,42 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
     )
   )
 
+  const listElement = generateNode(node.content.nodes.list, params, {
+    ...options,
+    localIdentifier: node.content.renderPropIdentifier,
+  })[0] as types.JSXElement
+
+  // Create key as template literal: `${item?.id}${index}`
+  const keyAttribute = types.jsxAttribute(
+    types.jsxIdentifier('key'),
+    types.jsxExpressionContainer(
+      types.templateLiteral(
+        [
+          types.templateElement({ raw: '', cooked: '' }, false),
+          types.templateElement({ raw: '', cooked: '' }, false),
+          types.templateElement({ raw: '', cooked: '' }, true),
+        ],
+        [
+          types.optionalMemberExpression(
+            types.identifier(node.content.renderPropIdentifier),
+            types.identifier('id'),
+            false,
+            true
+          ),
+          types.identifier('index'),
+        ]
+      )
+    )
+  )
+  listElement.openingElement.attributes.push(keyAttribute)
+
   repeaterNode.openingElement.attributes.push(
     types.jsxAttribute(
       types.jSXIdentifier('renderItem'),
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
-          [types.identifier(node.content.renderPropIdentifier)],
-          generateNode(node.content.nodes.list, params, {
-            ...options,
-            localIdentifier: node.content.renderPropIdentifier,
-          })[0] as types.JSXElement
+          [types.identifier(node.content.renderPropIdentifier), types.identifier('index')],
+          listElement
         )
       )
     )
