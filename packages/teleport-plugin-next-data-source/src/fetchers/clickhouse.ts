@@ -23,11 +23,9 @@ export const validateClickHouseConfig = (
 }
 
 interface ClickHouseConfig {
-  host: string
-  port?: number
+  url?: string
   username?: string
-  password: string
-  database: string
+  password?: string
 }
 
 export const generateClickHouseFetcher = (

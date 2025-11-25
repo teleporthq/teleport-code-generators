@@ -62,7 +62,7 @@ const generateAuthCode = (authorization: Authorization): string => {
 }
 
 interface RESTAPIConfig {
-  url: string
+  url?: string
   method?: string
   headers?: Record<string, string>
   authorization?: Authorization

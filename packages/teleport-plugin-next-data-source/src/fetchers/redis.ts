@@ -44,10 +44,7 @@ interface RedisConfig {
   selectedTables?: Record<string, unknown>
 }
 
-export const generateRedisFetcher = (
-  config: Record<string, unknown>,
-  tableName?: string
-): string => {
+export const generateRedisFetcher = (config: Record<string, unknown>): string => {
   const redisConfig = config as RedisConfig
   const hasUsername = redisConfig.username
 

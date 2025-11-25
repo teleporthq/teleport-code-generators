@@ -19,8 +19,10 @@ export const validateTursoConfig = (
 }
 
 interface TursoConfig {
-  url: string
-  authToken: string
+  url?: string
+  authToken?: string
+  databaseUrl?: string
+  token?: string
 }
 
 export const generateTursoFetcher = (

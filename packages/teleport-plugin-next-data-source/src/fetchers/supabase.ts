@@ -31,8 +31,11 @@ export const validateSupabaseConfig = (
 }
 
 interface SupabaseConfig {
-  url: string
-  anonKey: string
+  url?: string
+  anonKey?: string
+  supabaseUrl?: string
+  serviceRoleKey?: string
+  publicApiKey?: string
 }
 
 export const generateSupabaseFetcher = (

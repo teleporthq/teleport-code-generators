@@ -231,7 +231,7 @@ export const extractDataSourceIntoNextAPIFolder = (
             const idValue = (idProp as any)?.value?.value
 
             if (idValue === dataSourceId) {
-              jsxNode = node as types.JSXElement
+              jsxNode = jsxElement as types.JSXElement
               break
             }
           }

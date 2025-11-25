@@ -128,7 +128,7 @@ export const generateDataSourceFetcher = (
         if (!validation.isValid) {
           throw new Error(`Redis config validation failed: ${validation.error}`)
         }
-        return generateRedisFetcher(config, tableName)
+        return generateRedisFetcher(config)
       }
 
       case 'firestore': {

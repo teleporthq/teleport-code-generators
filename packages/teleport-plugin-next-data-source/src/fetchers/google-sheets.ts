@@ -27,9 +27,12 @@ export const validateGoogleSheetsConfig = (
 }
 
 interface GoogleSheetsConfig {
-  sheetId: string
-  apiKey: string
+  sheetId?: string
+  sheetUrl?: string
+  apiKey?: string
   sheetName?: string
+  range?: string
+  maxRows?: number
 }
 
 export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): string => {
