@@ -49,7 +49,7 @@ export const ReactMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'markdown-to-jsx',
-        version: 'latest',
+        version: '7.7.12',
       },
     },
     'html-node': {
