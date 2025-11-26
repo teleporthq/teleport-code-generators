@@ -30,6 +30,9 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
     let getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
 
+    // Track which dataSourceId + tableName combinations have been processed
+    const processedDataSources = new Set<string>()
+
     UIDLUtils.traverseNodes(uidl.node, (node) => {
       // Data source nodes can be either:
       // 1. Direct: node.type === 'data-source-item' or 'data-source-list'
@@ -64,6 +67,14 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         return
       }
 
+      // Get dataSourceId and tableName to create unique key
+      const resourceDef = dataSourceNode.content.resourceDefinition
+      if (!resourceDef) {
+        return
+      }
+
+      const dataSourceKey = `${resourceDef.dataSourceId}:${resourceDef.tableName || 'data'}`
+
       // Check if resource has dynamic parameters
       // tslint:disable-next-line:no-any
       const hasResourceDynamicParams = dataSourceNode.content.resource?.params
@@ -75,6 +86,11 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       // If no dynamic params, extract to getStaticProps (server-side)
       // Otherwise, extract to API route (client-side)
       if (!hasResourceDynamicParams) {
+        // Skip if we've already processed this dataSource + table combination
+        if (processedDataSources.has(dataSourceKey)) {
+          return
+        }
+
         const result = extractDataSourceIntoGetStaticProps(
           dataSourceNode,
           dataSources,
@@ -87,6 +103,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
         if (result.success && result.chunk) {
           getStaticPropsChunk = result.chunk
+          // Mark this dataSource + table as processed
+          processedDataSources.add(dataSourceKey)
         }
       } else {
         extractDataSourceIntoNextAPIFolder(

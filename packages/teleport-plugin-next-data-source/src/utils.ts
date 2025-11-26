@@ -515,11 +515,28 @@ export const extractDataSourceIntoGetStaticProps = (
       return { success: false }
     }
 
-    // Find JSX node
-    let jsxNode: types.JSXElement | null = null
-    for (const lookupNode of Object.values(componentChunk.meta.nodesLookup)) {
-      if ((lookupNode as any).type === 'JSXElement') {
-        const attrs = (lookupNode as types.JSXElement).openingElement.attributes
+    // Generate prop key first
+    const sanitizedDsName = StringUtils.dashCaseToCamelCase(
+      sanitizeFileName(dataSource.name || dataSourceId)
+    )
+    const sanitizedTableName = StringUtils.dashCaseToCamelCase(
+      sanitizeFileName(tableName || 'data')
+    )
+    const propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+
+    // Find ALL JSX nodes matching this dataSourceId AND tableName and add initialData to ALL of them
+    const matchingJsxNodes: types.JSXElement[] = []
+
+    // Helper function to recursively traverse the AST and find all matching JSXElements
+    const traverseAST = (astNode: any) => {
+      if (!astNode || typeof astNode !== 'object') {
+        return
+      }
+
+      if (astNode.type === 'JSXElement') {
+        const jsxElement = astNode as types.JSXElement
+        const attrs = jsxElement.openingElement.attributes
+
         const resourceDefAttr = attrs.find(
           (attr) =>
             (attr as any).type === 'JSXAttribute' &&
@@ -539,71 +556,80 @@ export const extractDataSourceIntoGetStaticProps = (
             // tslint:disable-next-line:no-any
             const idValue = (idProp as any)?.value?.value
 
-            if (idValue === dataSourceId) {
-              jsxNode = lookupNode as types.JSXElement
-              break
+            // Also check tableName to ensure we're matching the right data source
+            // tslint:disable-next-line:no-any
+            const tableNameProp = props.find((p: any) => p.key?.value === 'tableName')
+            // tslint:disable-next-line:no-any
+            const tableNameValue = (tableNameProp as any)?.value?.value
+
+            if (idValue === dataSourceId && tableNameValue === tableName) {
+              matchingJsxNodes.push(jsxElement)
             }
+          }
+        }
+      }
+
+      // Recursively traverse all properties
+      for (const key in astNode) {
+        if (astNode.hasOwnProperty(key)) {
+          const value = astNode[key]
+          if (Array.isArray(value)) {
+            value.forEach((item) => traverseAST(item))
+          } else if (typeof value === 'object') {
+            traverseAST(value)
           }
         }
       }
     }
 
-    if (!jsxNode || jsxNode.type !== 'JSXElement') {
+    // Traverse the entire component AST content
+    traverseAST(componentChunk.content)
+
+    if (matchingJsxNodes.length === 0) {
       return { success: false }
     }
 
-    // Check if initialData already exists
-    const existingInitialData = jsxNode.openingElement.attributes.find(
-      (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
-    )
-
-    if (existingInitialData) {
-      return { success: false }
-    }
-
-    // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
-    // This is because DataProvider uses children for client-side and renderSuccess for SSR
-    const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(
-      (attr) => (attr as types.JSXAttribute).name?.name === 'children'
-    )
-
-    if (childrenAttrIndex !== -1) {
-      const childrenAttr = jsxNode.openingElement.attributes[
-        childrenAttrIndex
-      ] as types.JSXAttribute
-      // Create a new attribute with 'renderSuccess' name but same value
-      const renderSuccessAttr = types.jsxAttribute(
-        types.jsxIdentifier('renderSuccess'),
-        childrenAttr.value
+    // Update ALL matching JSX nodes with initialData
+    for (const jsxNode of matchingJsxNodes) {
+      // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
+      const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(
+        (attr) => (attr as types.JSXAttribute).name?.name === 'children'
       )
-      // Replace children with renderSuccess
-      jsxNode.openingElement.attributes[childrenAttrIndex] = renderSuccessAttr
-    }
 
-    // Generate prop key
-    const sanitizedDsName = StringUtils.dashCaseToCamelCase(
-      sanitizeFileName(dataSource.name || dataSourceId)
-    )
-    const sanitizedTableName = StringUtils.dashCaseToCamelCase(
-      sanitizeFileName(tableName || 'data')
-    )
-    const propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+      if (childrenAttrIndex !== -1) {
+        const childrenAttr = jsxNode.openingElement.attributes[
+          childrenAttrIndex
+        ] as types.JSXAttribute
+        const renderSuccessAttr = types.jsxAttribute(
+          types.jsxIdentifier('renderSuccess'),
+          childrenAttr.value
+        )
+        jsxNode.openingElement.attributes[childrenAttrIndex] = renderSuccessAttr
+      }
 
-    // Update JSX node with initialData
-    const initialDataAttr = types.jsxAttribute(
-      types.jsxIdentifier('initialData'),
-      types.jsxExpressionContainer(
-        types.memberExpression(types.identifier('props'), types.identifier(propKey))
+      // Remove existing initialData and persistDataDuringLoading attributes to avoid duplicates
+      jsxNode.openingElement.attributes = jsxNode.openingElement.attributes.filter(
+        (attr) =>
+          (attr as types.JSXAttribute).name?.name !== 'initialData' &&
+          (attr as types.JSXAttribute).name?.name !== 'persistDataDuringLoading'
       )
-    )
-    jsxNode.openingElement.attributes.push(initialDataAttr)
 
-    // Add persistDataDuringLoading={true} when using initialData
-    const persistDataAttr = types.jsxAttribute(
-      types.jsxIdentifier('persistDataDuringLoading'),
-      types.jsxExpressionContainer(types.booleanLiteral(true))
-    )
-    jsxNode.openingElement.attributes.push(persistDataAttr)
+      // Add initialData attribute
+      const initialDataAttr = types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(
+          types.memberExpression(types.identifier('props'), types.identifier(propKey))
+        )
+      )
+      jsxNode.openingElement.attributes.push(initialDataAttr)
+
+      // Add persistDataDuringLoading={true}
+      const persistDataAttr = types.jsxAttribute(
+        types.jsxIdentifier('persistDataDuringLoading'),
+        types.jsxExpressionContainer(types.booleanLiteral(true))
+      )
+      jsxNode.openingElement.attributes.push(persistDataAttr)
+    }
 
     // Generate safe file name for the fetcher
     const fileName = generateSafeFileName(dataSourceType, tableName || 'data', dataSourceId)
@@ -679,7 +705,10 @@ export const extractDataSourceIntoGetStaticProps = (
 
     // Get response value path (if specified)
     const responseMemberAST = node.content.valuePath
-      ? ASTUtils.generateMemberExpressionASTFromPath([propKey, ...node.content.valuePath])
+      ? ASTUtils.generateMemberExpressionASTFromPath([
+          propKey,
+          ...ASTUtils.parseValuePath(node.content.valuePath),
+        ])
       : types.identifier(propKey)
 
     // Create or update getStaticProps chunk
@@ -767,11 +796,33 @@ export const extractDataSourceIntoGetStaticProps = (
     ) as types.ObjectProperty
 
     const propsValue = propsObject.value as types.ObjectExpression
-    propsValue.properties.unshift(
-      types.objectProperty(types.identifier(propKey), responseMemberAST, false, false)
-    )
 
-    registerParallelFetch(getStaticPropsChunk, tryBlock, propKey, safeFetchExpression)
+    // Check if propKey already exists in the parallel fetch metadata
+    const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetch as
+      | ParallelFetchMeta
+      | undefined
+    const existingInFetchMeta = parallelFetchMeta?.names.includes(propKey)
+
+    // Always ensure both the fetch and the prop are in sync
+    if (!existingInFetchMeta) {
+      // Add to parallel fetch metadata
+      registerParallelFetch(getStaticPropsChunk, tryBlock, propKey, safeFetchExpression)
+
+      // Check if prop exists in return object
+      const existingProp = propsValue.properties.find(
+        (prop) =>
+          prop.type === 'ObjectProperty' &&
+          prop.key.type === 'Identifier' &&
+          (prop.key as types.Identifier).name === propKey
+      )
+
+      // Add prop if it doesn't exist
+      if (!existingProp) {
+        propsValue.properties.unshift(
+          types.objectProperty(types.identifier(propKey), responseMemberAST, false, false)
+        )
+      }
+    }
 
     return { success: true, chunk: getStaticPropsChunk }
   } catch (error) {

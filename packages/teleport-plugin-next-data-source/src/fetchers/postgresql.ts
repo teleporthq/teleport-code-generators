@@ -38,7 +38,7 @@ const getPool = () => {
       ${pgConfig.sslConfig.ca ? `ca: ${replaceSecretReference(pgConfig.sslConfig.ca)},` : ''}
       ${pgConfig.sslConfig.cert ? `cert: ${replaceSecretReference(pgConfig.sslConfig.cert)},` : ''}
       ${pgConfig.sslConfig.key ? `key: ${replaceSecretReference(pgConfig.sslConfig.key)},` : ''}
-      rejectUnauthorized: ${pgConfig.sslConfig.rejectUnauthorized !== false}
+      rejectUnauthorized: false
     }`
         : '{ rejectUnauthorized: false }'
     }

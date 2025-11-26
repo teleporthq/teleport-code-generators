@@ -548,7 +548,7 @@ export const createReturnExpressionSyntax = (
     createStateHookAST(stateKey, stateDefinitions[stateKey])
   )
 
-  return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement] || [])
+  return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement])
 }
 
 /**
@@ -907,6 +907,22 @@ export const generateMemberExpressionASTFromBase = (
   )
 }
 
+export const parseValuePath = (valuePath: Array<string | number>): Array<string | number> => {
+  return valuePath.map((segment) => {
+    if (typeof segment === 'string') {
+      const bracketMatch = segment.match(/^\[(\d+)\]$/)
+      if (bracketMatch) {
+        return parseInt(bracketMatch[1], 10)
+      }
+      const numericMatch = segment.match(/^\d+$/)
+      if (numericMatch) {
+        return parseInt(segment, 10)
+      }
+    }
+    return segment
+  })
+}
+
 export const generateMemberExpressionASTFromPath = (
   path: Array<string | number>
 ): types.OptionalMemberExpression | types.Identifier => {
@@ -922,7 +938,7 @@ export const generateMemberExpressionASTFromPath = (
     return types.optionalMemberExpression(
       generateMemberExpressionASTFromPath(pathClone),
       types.numericLiteral(currentPath),
-      false,
+      true,
       true
     )
   }

@@ -139,7 +139,7 @@ const computePropsAST = (
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
     'response',
-    ...(initialPropsData.exposeAs.valuePath || []),
+    ...ASTUtils.parseValuePath(initialPropsData.exposeAs.valuePath || []),
   ])
 
   const notFoundAST = types.ifStatement(

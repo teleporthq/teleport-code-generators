@@ -31,7 +31,7 @@ const getPool = () => {
     database: ${JSON.stringify(redshiftConfig.database)},
     ssl: ${
       redshiftConfig.ssl === false
-        ? 'false'
+        ? '{ rejectUnauthorized: false }'
         : redshiftConfig.sslConfig
         ? `{
       ${
