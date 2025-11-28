@@ -218,7 +218,7 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = { 'ds-js': jsxElement }
     // Wrap in AST structure so traverseAST can find it
@@ -254,8 +254,8 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement1 = createMockJSXElementWithResourceDef('ds-js', 'data')
-    const jsxElement2 = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement1 = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
+    const jsxElement2 = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
 
     const componentChunk = createComponentChunk()
     componentChunk.content = types.jsxFragment(
@@ -293,7 +293,7 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = { 'ds-js': jsxElement }
     // Wrap in AST structure so traverseAST can find it
@@ -365,8 +365,8 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const node1 = createDataSourceNode('ds-js-1', 'data1', 'javascript', false)
     const node2 = createDataSourceNode('ds-js-2', 'data2', 'javascript', false)
 
-    const jsxElement1 = createMockJSXElementWithResourceDef('ds-js-1', 'data1')
-    const jsxElement2 = createMockJSXElementWithResourceDef('ds-js-2', 'data2')
+    const jsxElement1 = createMockJSXElementWithResourceDef('ds-js-1', 'data1', 'javascript')
+    const jsxElement2 = createMockJSXElementWithResourceDef('ds-js-2', 'data2', 'javascript')
 
     const componentChunk = createComponentChunk()
     componentChunk.content = types.jsxFragment(
@@ -409,7 +409,7 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const initialAttrCount = jsxElement.openingElement.attributes.length
     jsxElement.openingElement.attributes.push(
       types.jsxAttribute(
@@ -480,7 +480,7 @@ describe('extractDataSourceIntoGetStaticProps', () => {
   it('handles missing data source gracefully', () => {
     const node = createDataSourceNode('ds-missing', '', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-missing', '')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-missing', '', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = { 'ds-missing': jsxElement }
     componentChunk.content = jsxElement
@@ -506,7 +506,7 @@ describe('extractDataSourceIntoGetStaticProps', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.content = jsxElement
 

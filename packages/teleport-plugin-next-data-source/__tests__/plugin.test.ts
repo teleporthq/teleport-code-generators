@@ -87,7 +87,7 @@ describe('createNextComponentDataSourcePlugin', () => {
     const dataSource = createRESTAPIDataSource('ds-2')
     const node = createDataSourceListNode('ds-2', 'data', 'rest-api')
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-2', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-2', 'data', 'rest-api', 'items')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-2': jsxElement,
@@ -159,8 +159,8 @@ describe('createNextComponentDataSourcePlugin', () => {
     const node1 = createDataSourceNode('ds-1', 'users', 'postgresql')
     const node2 = createDataSourceNode('ds-2', '', 'rest-api')
 
-    const jsxElement1 = createMockJSXElementWithResourceDef('ds-1', 'users')
-    const jsxElement2 = createMockJSXElementWithResourceDef('ds-2', '')
+    const jsxElement1 = createMockJSXElementWithResourceDef('ds-1', 'users', 'postgresql')
+    const jsxElement2 = createMockJSXElementWithResourceDef('ds-2', '', 'rest-api')
 
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
@@ -215,7 +215,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,
@@ -280,7 +280,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,
@@ -315,7 +315,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,
@@ -394,7 +394,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,
@@ -436,7 +436,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,
@@ -473,7 +473,7 @@ describe('createNextPagesDataSourcePlugin', () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', 'data', 'javascript', false)
 
-    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data')
+    const jsxElement = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript')
     const componentChunk = createComponentChunk()
     componentChunk.meta!.nodesLookup = {
       'ds-js': jsxElement,

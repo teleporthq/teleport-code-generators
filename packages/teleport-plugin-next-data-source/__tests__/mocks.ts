@@ -206,7 +206,9 @@ export const createComponentStructure = (
 
 export const createMockJSXElementWithResourceDef = (
   dataSourceId: string,
-  tableName: string
+  tableName: string,
+  dataSourceType: string = 'postgresql',
+  renderPropIdentifier: string = 'data'
 ): types.JSXElement => {
   const jsxElement = types.jsxElement(
     types.jsxOpeningElement(types.jsxIdentifier('DataProvider'), [], false),
@@ -216,6 +218,7 @@ export const createMockJSXElementWithResourceDef = (
   )
 
   jsxElement.openingElement.attributes.push(
+    types.jsxAttribute(types.jsxIdentifier('name'), types.stringLiteral(renderPropIdentifier)),
     types.jsxAttribute(
       types.jsxIdentifier('resourceDefinition'),
       types.jsxExpressionContainer(
@@ -225,6 +228,10 @@ export const createMockJSXElementWithResourceDef = (
             types.stringLiteral(dataSourceId)
           ),
           types.objectProperty(types.stringLiteral('tableName'), types.stringLiteral(tableName)),
+          types.objectProperty(
+            types.stringLiteral('dataSourceType'),
+            types.stringLiteral(dataSourceType)
+          ),
         ])
       )
     )
