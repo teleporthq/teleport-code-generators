@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-data-source",
-  "version": "0.40.15",
+  "version": "0.41.0",
   "description": "A plugin for managing data sources for Next.js projects.",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,9 +25,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.40.15",
-    "@teleporthq/teleport-shared": "^0.40.15",
-    "@teleporthq/teleport-types": "^0.40.12"
+    "@teleporthq/teleport-plugin-common": "^0.41.0",
+    "@teleporthq/teleport-shared": "^0.41.0",
+    "@teleporthq/teleport-types": "^0.41.0"
   }
 }
-
