@@ -99,7 +99,8 @@ export const generateJavaScriptFetcher = (config: Record<string, unknown>): stri
 `
 }
 
-export const generateJavaScriptCountFetcher = (config: any): string => {
+// tslint:disable-next-line:variable-name
+export const generateJavaScriptCountFetcher = (_config: any): string => {
   return `
 async function getCount(req, res) {
   try {

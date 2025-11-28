@@ -178,7 +178,8 @@ export default async function handler(req, res) {
 `
 }
 
-export const generateSupabaseCountFetcher = (config: any, tableName: string): string => {
+// tslint:disable-next-line:variable-name
+export const generateSupabaseCountFetcher = (_config: any, tableName: string): string => {
   return `
 async function getCount(req, res) {
   const supabase = getClient()

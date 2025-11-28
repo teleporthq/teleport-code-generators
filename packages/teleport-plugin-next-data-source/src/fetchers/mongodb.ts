@@ -174,7 +174,8 @@ export default async function handler(req, res) {
 `
 }
 
-export const generateMongoDBCountFetcher = (config: any, tableName: string): string => {
+// tslint:disable-next-line:variable-name
+export const generateMongoDBCountFetcher = (_config: any, tableName: string): string => {
   return `
 async function getCount(req, res) {
   const client = getClient()

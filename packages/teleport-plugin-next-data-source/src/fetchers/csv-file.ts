@@ -112,7 +112,8 @@ export default async function handler(req, res) {
 `
 }
 
-export const generateCSVCountFetcher = (config: any): string => {
+// tslint:disable-next-line:variable-name
+export const generateCSVCountFetcher = (_config: any): string => {
   return `
 async function getCount(req, res) {
   try {
