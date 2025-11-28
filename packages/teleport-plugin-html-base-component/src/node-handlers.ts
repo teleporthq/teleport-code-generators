@@ -408,9 +408,12 @@ const generateRepeaterNode: NodeToHTML<
   if (node.content.nodes.empty) {
     node.content.nodes.empty.content.style = { display: { type: 'static', content: 'contents' } }
   }
+  if (node.content.nodes.loading) {
+    node.content.nodes.loading.content.style = { display: { type: 'static', content: 'contents' } }
+  }
   // Empty case
   if (propDef.defaultValue.length === 0) {
-    const emptyChildren = nodes.empty.content.children
+    const emptyChildren = nodes.empty?.content.children
     if (emptyChildren) {
       for (const child of emptyChildren) {
         const childTag = await generateHtmlSyntax(
@@ -431,7 +434,9 @@ const generateRepeaterNode: NodeToHTML<
       }
     }
 
-    addNodeToLookup(`${node.content.nodes.empty.content.key}`, elementNode, nodesLookup)
+    if (nodes.empty) {
+      addNodeToLookup(`${node.content.nodes.empty.content.key}`, elementNode, nodesLookup)
+    }
     return elementNode
   }
 

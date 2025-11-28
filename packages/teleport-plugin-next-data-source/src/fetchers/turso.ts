@@ -30,14 +30,17 @@ export const generateTursoFetcher = (
   tableName: string
 ): string => {
   const tursoConfig = config as TursoConfig
+  const databaseUrl = tursoConfig.databaseUrl
+  const token = tursoConfig.token
+
   return `import { createClient } from '@libsql/client'
 
 export default async function handler(req, res) {
   let client = null
   try {
     client = createClient({
-      url: ${JSON.stringify(tursoConfig.databaseUrl)},
-      authToken: ${replaceSecretReference(tursoConfig.token)}
+      url: ${JSON.stringify(databaseUrl)},
+      authToken: ${replaceSecretReference(token)}
     })
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query

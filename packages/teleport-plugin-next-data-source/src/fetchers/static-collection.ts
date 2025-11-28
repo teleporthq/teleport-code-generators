@@ -26,14 +26,27 @@ export default async function handler(req, res) {
     
     let filteredData = [...data]
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      filteredData = filteredData.filter((item) => {
-        return columns.some((col) => {
-          const value = item[col]
-          return value && String(value).toLowerCase().includes(query.toLowerCase())
+    if (query) {
+      const searchQuery = query.toLowerCase()
+      
+      if (queryColumns) {
+        const columns = JSON.parse(queryColumns)
+        filteredData = filteredData.filter((item) => {
+          return columns.some((col) => {
+            const value = item[col]
+            return value && String(value).toLowerCase().includes(searchQuery)
+          })
         })
-      })
+      } else {
+        filteredData = filteredData.filter((item) => {
+          try {
+            const stringified = JSON.stringify(item).toLowerCase()
+            return stringified.includes(searchQuery)
+          } catch {
+            return false
+          }
+        })
+      }
     }
     
     if (filters) {
@@ -78,6 +91,55 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch data',
+      timestamp: Date.now()
+    })
+  }
+}
+`
+}
+
+export const generateStaticCollectionCountFetcher = (config: any): string => {
+  return `
+async function getCount(req, res) {
+  try {
+    const { query, queryColumns, filters } = req.query
+    const fakeReq = { query: { query, queryColumns, filters }, method: 'GET' }
+    let result = null
+    let statusCode = 200
+    
+    const fakeRes = {
+      status: (code) => {
+        statusCode = code
+        return fakeRes
+      },
+      json: (data) => {
+        result = data
+        return fakeRes
+      },
+    }
+    
+    await handler(fakeReq, fakeRes)
+    
+    if (statusCode !== 200 || !result || !result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get data for counting',
+        timestamp: Date.now()
+      })
+    }
+    
+    const count = Array.isArray(result.data) ? result.data.length : 0
+    
+    return res.status(200).json({
+      success: true,
+      count: count,
+      timestamp: Date.now()
+    })
+  } catch (error) {
+    console.error('Error getting count:', error)
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
   }

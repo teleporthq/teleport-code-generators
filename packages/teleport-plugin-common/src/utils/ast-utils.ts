@@ -1156,6 +1156,7 @@ export const resolveObjectValue = (
   | types.NumericLiteral
   | types.BooleanLiteral
   | types.ObjectExpression
+  | types.ArrayExpression
   | types.Expression => {
   if (prop.type === 'static') {
     const value =
@@ -1165,6 +1166,8 @@ export const resolveObjectValue = (
         ? types.booleanLiteral(prop.content)
         : typeof prop.content === 'number'
         ? types.numericLiteral(prop.content)
+        : Array.isArray(prop.content)
+        ? types.arrayExpression(prop.content.map((element) => convertValueToLiteral(element)))
         : typeof prop.content === 'object'
         ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
         : types.identifier(String(prop.content))

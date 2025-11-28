@@ -268,7 +268,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     }
     case 'cms-list-repeater': {
       const {
-        nodes: { list, empty },
+        nodes: { list, empty, loading },
       } = (node as unknown as UIDLCMSListRepeaterNode).content
 
       if (list) {
@@ -281,6 +281,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       if (empty) {
         ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.empty = parseComponentNode(
           empty as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (loading) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.loading = parseComponentNode(
+          loading as unknown as Record<string, unknown>,
           component
         ) as UIDLElementNode
       }

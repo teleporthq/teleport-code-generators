@@ -29,6 +29,9 @@ export const generateAirtableFetcher = (
   tableName: string
 ): string => {
   const airtableConfig = config as AirtableConfig
+  const baseId = airtableConfig.baseId
+  const personalAccessToken = airtableConfig.personalAccessToken
+
   return `import fetch from 'node-fetch'
 
 export default async function handler(req, res) {
@@ -82,9 +85,7 @@ export default async function handler(req, res) {
       }
     }
     
-    let url = \`https://api.airtable.com/v0/${
-      airtableConfig.baseId
-    }/\${encodeURIComponent('${tableName}')}\`
+    let url = \`https://api.airtable.com/v0/${baseId}/\${encodeURIComponent('${tableName}')}\`
     if (queryParams.toString()) {
       url += \`?\${queryParams.toString()}\`
     }
@@ -99,7 +100,7 @@ export default async function handler(req, res) {
       const response = await fetch(fetchUrl, {
         method: 'GET',
         headers: {
-          Authorization: \`Bearer ${replaceSecretReference(airtableConfig.personalAccessToken, {
+          Authorization: \`Bearer ${replaceSecretReference(personalAccessToken, {
             templateLiteral: true,
           })}\`,
           'Content-Type': 'application/json'

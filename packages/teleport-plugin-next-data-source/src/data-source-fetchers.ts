@@ -30,6 +30,7 @@ import {
   validateGoogleSheetsConfig,
 } from './fetchers'
 import { validateDatabaseConfig } from './validation'
+import { generateCountFetcher } from './count-fetchers'
 
 interface DataSourceFetcherDependencies {
   packages: string[]
@@ -241,9 +242,10 @@ export const generateDataSourceFetcherWithCore = (
     'async function handler'
   )
 
-  return `// Core fetch function for server-side use
-async function fetchData(params = {}) {
-  // Simulate req/res for the handler
+  // Generate count fetcher code
+  const countFetcherCode = generateCountFetcher(dataSource, tableName)
+
+  return `async function fetchData(params = {}) {
   const req = {
     query: params,
     method: 'GET',
@@ -263,7 +265,6 @@ async function fetchData(params = {}) {
     },
   }
   
-  // Call the handler
   await handler(req, res)
   
   if (statusCode !== 200 || !result || !result.success) {
@@ -273,11 +274,40 @@ async function fetchData(params = {}) {
   return result.data
 }
 
-// API route handler
+async function fetchCount(params = {}) {
+  const req = {
+    query: params,
+    method: 'GET',
+  }
+  
+  let result = null
+  let statusCode = 200
+  
+  const res = {
+    status: (code) => {
+      statusCode = code
+      return res
+    },
+    json: (data) => {
+      result = data
+      return res
+    },
+  }
+  
+  await getCount(req, res)
+  
+  if (statusCode !== 200 || !result || !result.success) {
+    throw new Error(result?.error || 'Failed to get count')
+  }
+  
+  return result.count
+}
+
+${countFetcherCode}
+
 ${handlerCode}
 
-// Export both for different use cases
-export { fetchData, handler }
-export default { fetchData, handler }
+export { fetchData, fetchCount, handler, getCount }
+export default { fetchData, fetchCount, handler, getCount }
 `
 }

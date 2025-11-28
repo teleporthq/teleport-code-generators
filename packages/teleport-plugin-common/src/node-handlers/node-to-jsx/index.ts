@@ -41,6 +41,89 @@ import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builde
 import { DEFAULT_JSX_OPTIONS } from './constants'
 import { ASTBuilders, ASTUtils } from '../..'
 
+const getElementType = (node: UIDLNode): string | null => {
+  if (
+    node.type === 'element' &&
+    node.content &&
+    typeof node.content === 'object' &&
+    'elementType' in node.content
+  ) {
+    return (node.content as any).elementType
+  }
+  if ((node.type === 'data-source-list' || node.type === 'data-source-item') && node.content) {
+    return (node.content as any).elementType || 'DataProvider'
+  }
+  return null
+}
+
+const getClassName = (node: UIDLNode): string | null => {
+  if (
+    node.type === 'element' &&
+    node.content &&
+    typeof node.content === 'object' &&
+    'key' in node.content
+  ) {
+    return (node.content as any).key || null
+  }
+  return null
+}
+
+const reorderChildrenForSearch = (children: UIDLNode[]): UIDLNode[] => {
+  const searchNodes: UIDLNode[] = []
+  const dataProviderNodes: UIDLNode[] = []
+  const paginationNodes: UIDLNode[] = []
+  const otherNodes: UIDLNode[] = []
+
+  children.forEach((child) => {
+    const elementType = getElementType(child)
+    const nodeType = child.type
+    const className = getClassName(child)
+
+    // Check for search nodes - use className since elementType is replaced by semanticType
+    if (
+      className &&
+      (className.includes('data-source-search') || className.includes('search-node'))
+    ) {
+      searchNodes.push(child)
+    }
+    // Check for DataProvider nodes - these should appear SECOND
+    else if (
+      nodeType === 'data-source-list' ||
+      nodeType === 'data-source-item' ||
+      elementType === 'DataProvider'
+    ) {
+      dataProviderNodes.push(child)
+    }
+    // Check for pagination nodes - use className since elementType is replaced by semanticType
+    else if (
+      (elementType &&
+        (elementType.includes('pagination') || elementType.includes('cms-pagination'))) ||
+      (className && (className.includes('pagination') || className.includes('cms-pagination')))
+    ) {
+      paginationNodes.push(child)
+    }
+    // Everything else goes in the middle
+    else {
+      otherNodes.push(child)
+    }
+  })
+
+  // Only reorder if we have search or pagination nodes alongside a DataProvider
+  // This ensures we only reorder when there's an actual pagination/search group
+  // If there's no search/pagination, keep original order to preserve DataProvider positions
+  const hasSearchOrPagination = searchNodes.length > 0 || paginationNodes.length > 0
+  const hasDataProvider = dataProviderNodes.length > 0
+
+  if (hasSearchOrPagination && hasDataProvider) {
+    // Order: search nodes first, then data providers, then other nodes, then pagination last
+    // This ensures: search input -> DataProvider -> content -> pagination buttons
+    return [...searchNodes, ...dataProviderNodes, ...otherNodes, ...paginationNodes]
+  } else {
+    // No reordering needed - preserve original order
+    return children
+  }
+}
+
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
   params,
@@ -118,7 +201,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   }
 
   if (!selfClosing && children) {
-    children.forEach((child) => {
+    // Reorder children to ensure search nodes appear before DataProvider nodes
+    const reorderedChildren = reorderChildrenForSearch(children)
+
+    reorderedChildren.forEach((child) => {
       const childTags = generateNode(child, params, options)
       childTags.forEach((childTag) => {
         if (typeof childTag === 'string') {
@@ -894,6 +980,10 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
         )
       )
     )
+  }
+
+  if ('loading' in node.content.nodes) {
+    generateNode(node.content.nodes.loading, params, options)
   }
 
   if (node.content?.dependency && options.dependencyHandling === 'import') {

@@ -284,6 +284,9 @@ export const traverseNodes = (
       if (node.content.nodes.empty) {
         traverseNodes(node.content.nodes.empty, fn)
       }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
       break
 
     case 'cms-item':
@@ -417,6 +420,9 @@ export const traverseResources = (
       traverseResources(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseResources(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
       }
       break
 
@@ -568,6 +574,9 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       traverseElements(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseElements(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
       }
 
       break
@@ -744,6 +753,9 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       traverseRepeats(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseRepeats(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
       }
 
       break
@@ -1199,6 +1211,9 @@ export const removeChildNodes = (
       removeChildNodes(node.content.nodes.list, criteria)
       if (node.content.nodes.empty) {
         removeChildNodes(node.content.nodes.empty, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
       }
 
       break

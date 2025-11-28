@@ -43,6 +43,9 @@ export const generateSupabaseFetcher = (
   tableName: string
 ): string => {
   const supabaseConfig = config as SupabaseConfig
+  const supabaseUrl = supabaseConfig.supabaseUrl
+  const apiKey = supabaseConfig.serviceRoleKey || supabaseConfig.publicApiKey
+
   return `import { createClient } from '@supabase/supabase-js'
 
 let client = null
@@ -51,8 +54,8 @@ const getClient = () => {
   if (client) return client
   
   client = createClient(
-    ${JSON.stringify(supabaseConfig.supabaseUrl)},
-    ${replaceSecretReference(supabaseConfig.serviceRoleKey || supabaseConfig.publicApiKey)}
+    ${JSON.stringify(supabaseUrl)},
+    ${replaceSecretReference(apiKey)}
   )
   
   return client
@@ -65,11 +68,33 @@ export default async function handler(req, res) {
     
     let queryRef = client.from('${tableName}').select(select || '*')
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const searchPattern = \`%\${query}%\`
-      const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
-      queryRef = queryRef.or(orConditions)
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = JSON.parse(queryColumns)
+      } else {
+        // Fallback: Get all column names from a sample row
+        try {
+          const { data: sampleData, error: sampleError } = await client.from('${tableName}').select('*').limit(1).single()
+          if (sampleError) {
+            throw sampleError
+          }
+          if (sampleData) {
+            columns = Object.keys(sampleData)
+          }
+        } catch (schemaError) {
+          console.warn('Failed to fetch sample row for column names:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        const searchPattern = \`%\${query}%\`
+        const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
+        queryRef = queryRef.or(orConditions)
+      }
     }
     
     if (filters) {
@@ -146,6 +171,72 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch data',
+      timestamp: Date.now()
+    })
+  }
+}
+`
+}
+
+export const generateSupabaseCountFetcher = (config: any, tableName: string): string => {
+  return `
+async function getCount(req, res) {
+  const supabase = getClient()
+
+  try {
+    const { query, queryColumns, filters } = req.query
+    let countQuery = supabase.from('${tableName}').select('*', { count: 'exact', head: true })
+
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+      } else {
+        // Fallback: Get all column names from a sample row
+        try {
+          const { data: sampleData, error: sampleError } = await supabase.from('${tableName}').select('*').limit(1).single()
+          if (sampleError) {
+            throw sampleError
+          }
+          if (sampleData) {
+            columns = Object.keys(sampleData)
+          }
+        } catch (schemaError) {
+          console.warn('Failed to fetch sample row for column names:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        const searchPattern = \`%\${query}%\`
+        const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
+        countQuery = countQuery.or(orConditions)
+      }
+    }
+
+    if (filters) {
+      const parsedFilters = JSON.parse(filters)
+      for (const filter of parsedFilters) {
+        countQuery = countQuery.eq(filter.column, filter.value)
+      }
+    }
+
+    const { count, error } = await countQuery
+    
+    if (error) throw error
+
+    return res.status(200).json({
+      success: true,
+      count: count || 0,
+      timestamp: Date.now()
+    })
+  } catch (error) {
+    console.error('Error getting count:', error)
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
   }

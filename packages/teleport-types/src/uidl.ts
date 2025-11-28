@@ -524,9 +524,14 @@ export interface UIDLCMSListRepeaterNodeContent {
   nodes: {
     list: UIDLElementNode
     empty?: UIDLElementNode
+    loading?: UIDLElementNode
   }
   renderPropIdentifier: string
   source?: string
+  paginated?: boolean
+  perPage?: number
+  searchEnabled?: boolean
+  searchDebounce?: number
 }
 
 export interface UIDLDataSourceItemNode {

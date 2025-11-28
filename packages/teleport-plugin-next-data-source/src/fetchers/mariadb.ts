@@ -16,6 +16,8 @@ export const generateMariaDBFetcher = (
   tableName: string
 ): string => {
   const mariaConfig = config as MariaDBConfig
+  const database = mariaConfig.database
+
   return `import mariadb from 'mariadb'
 
 export default async function handler(req, res) {
@@ -56,11 +58,33 @@ export default async function handler(req, res) {
     const conditions = []
     const queryParams = []
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const searchConditions = columns.map((col) => \`\\\`\${col}\\\` LIKE ?\`)
-      columns.forEach(() => queryParams.push(\`%\${query}%\`))
-      conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = JSON.parse(queryColumns)
+      } else {
+        // Fallback: Get all columns from information_schema
+        try {
+          const schemaRows = await connection.query(
+            \`SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? 
+             ORDER BY ORDINAL_POSITION\`,
+            [${JSON.stringify(database)}, ${JSON.stringify(tableName)}]
+          )
+          columns = schemaRows.map(row => row.COLUMN_NAME)
+        } catch (schemaError) {
+          console.warn('Failed to fetch column names from information_schema:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        const searchConditions = columns.map((col) => \`CAST(\\\`\${col}\\\` AS CHAR) LIKE ?\`)
+        columns.forEach(() => queryParams.push(\`%\${query}%\`))
+        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+      }
     }
     
     if (filters) {
@@ -122,6 +146,84 @@ export default async function handler(req, res) {
     if (pool) {
       await pool.end()
     }
+  }
+}
+`
+}
+
+export const generateMariaDBCountFetcher = (
+  config: Record<string, unknown>,
+  tableName: string
+): string => {
+  const mariaConfig = config as MariaDBConfig
+  const database = mariaConfig.database
+
+  return `
+async function getCount(req, res) {
+  const connection = getConnection()
+
+  try {
+    const { query, queryColumns, filters } = req.query
+    const conditions = []
+    const queryParams = []
+
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+      } else {
+        // Fallback: Get all columns from information_schema
+        try {
+          const schemaRows = await connection.query(
+            \`SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? 
+             ORDER BY ORDINAL_POSITION\`,
+            [${JSON.stringify(database)}, ${JSON.stringify(tableName)}]
+          )
+          columns = schemaRows.map(row => row.COLUMN_NAME)
+        } catch (schemaError) {
+          console.warn('Failed to fetch column names from information_schema:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        const searchConditions = columns.map(col => \`CAST(\${col} AS CHAR) LIKE ?\`).join(' OR ')
+        conditions.push(\`(\${searchConditions})\`)
+        columns.forEach(() => queryParams.push(\`%\${query}%\`))
+      }
+    }
+
+    if (filters) {
+      const parsedFilters = JSON.parse(filters)
+      for (const filter of parsedFilters) {
+        conditions.push(\`\${filter.column} \${filter.operator} ?\`)
+        queryParams.push(filter.value)
+      }
+    }
+
+    let countSql = \`SELECT COUNT(*) as count FROM ${tableName}\`
+    if (conditions.length > 0) {
+      countSql += \` WHERE \${conditions.join(' AND ')}\`
+    }
+
+    const [rows] = await connection.execute(countSql, queryParams)
+    const count = rows[0].count
+
+    return res.status(200).json({
+      success: true,
+      count: count,
+      timestamp: Date.now()
+    })
+  } catch (error) {
+    console.error('Error getting count:', error)
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get count',
+      timestamp: Date.now()
+    })
   }
 }
 `

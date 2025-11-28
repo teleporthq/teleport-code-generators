@@ -929,10 +929,15 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     nodes: object({
       list: lazy(() => elementNodeDecoder),
       empty: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
     }),
     dependency: optional(lazy(() => dependencyDecoder)),
     source: optional(string()),
     renderPropIdentifier: string(),
+    paginated: optional(boolean()),
+    perPage: optional(number()),
+    searchEnabled: optional(boolean()),
+    searchDebounce: optional(number()),
   }),
 })
 

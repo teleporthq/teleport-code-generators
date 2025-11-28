@@ -503,8 +503,8 @@ describe('generateDataSourceFetcherWithCore', () => {
 
     expect(code).toContain('async function fetchData')
     expect(code).toContain('async function handler')
-    expect(code).toContain('export { fetchData, handler }')
-    expect(code).toContain('export default { fetchData, handler }')
+    expect(code).toContain('export { fetchData, fetchCount, handler, getCount }')
+    expect(code).toContain('export default { fetchData, fetchCount, handler, getCount }')
   })
 
   it('includes simulation of req/res for fetchData', () => {

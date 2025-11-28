@@ -116,14 +116,27 @@ export default async function handler(req, res) {
     
     let filteredData = [...rows]
     
-    if (query && queryColumns) {
-      const searchColumns = JSON.parse(queryColumns)
-      filteredData = filteredData.filter((item) => {
-        return searchColumns.some((col) => {
-          const value = item[col]
-          return value && String(value).toLowerCase().includes(query.toLowerCase())
+    if (query) {
+      const searchQuery = query.toLowerCase()
+      
+      if (queryColumns) {
+        const searchColumns = JSON.parse(queryColumns)
+        filteredData = filteredData.filter((item) => {
+          return searchColumns.some((col) => {
+            const value = item[col]
+            return value && String(value).toLowerCase().includes(searchQuery)
+          })
         })
-      })
+      } else {
+        filteredData = filteredData.filter((item) => {
+          try {
+            const stringified = JSON.stringify(item).toLowerCase()
+            return stringified.includes(searchQuery)
+          } catch {
+            return false
+          }
+        })
+      }
     }
     
     if (filters) {

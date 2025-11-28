@@ -54,14 +54,15 @@ export const generateMongoDBFetcher = (
   tableName: string
 ): string => {
   const mongoConfig = config as MongoDBConfig
-  const hasUsername = mongoConfig.username
+  const hasUsername = mongoConfig?.username
+  const database = mongoConfig?.database
 
   // Build connection string from parts if not provided
   let connectionString = mongoConfig.connectionString
   if (!connectionString) {
     connectionString = `mongodb://${
       hasUsername ? `${mongoConfig.username}:${mongoConfig.password}@` : ''
-    }${mongoConfig.host}:${mongoConfig.port || 27017}/${mongoConfig.database}`
+    }${mongoConfig.host}:${mongoConfig.port || 27017}/${database}`
   }
 
   return `import { MongoClient, ObjectId } from 'mongodb'
@@ -76,19 +77,38 @@ export default async function handler(req, res) {
     })
     
     await client.connect()
-    const db = client.db(${JSON.stringify(mongoConfig.database)})
+    const db = client.db(${JSON.stringify(database)})
     const collection = db.collection('${tableName}')
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
     const filter = {}
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const orConditions = columns.map((col) => ({
-        [col]: { $regex: query, $options: 'i' }
-      }))
-      filter.$or = orConditions
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = JSON.parse(queryColumns)
+      } else {
+        // Fallback: Get all field names from a sample document
+        try {
+          const sampleDoc = await db.collection(${JSON.stringify(tableName)}).findOne({})
+          if (sampleDoc) {
+            columns = Object.keys(sampleDoc).filter(key => key !== '_id')
+          }
+        } catch (schemaError) {
+          console.warn('Failed to fetch sample document for column names:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        const orConditions = columns.map((col) => ({
+          [col]: { $regex: query, $options: 'i' }
+        }))
+        filter.$or = orConditions
+      }
     }
     
     if (filters) {
@@ -149,6 +169,69 @@ export default async function handler(req, res) {
     if (client) {
       await client.close()
     }
+  }
+}
+`
+}
+
+export const generateMongoDBCountFetcher = (config: any, tableName: string): string => {
+  return `
+async function getCount(req, res) {
+  const client = getClient()
+  const db = client.db()
+
+  try {
+    const { query, queryColumns, filters } = req.query
+    const collection = db.collection('${tableName}')
+    const filter = {}
+
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        // Use specified columns
+        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+      } else {
+        // Fallback: Get all field names from a sample document
+        try {
+          const sampleDoc = await collection.findOne({})
+          if (sampleDoc) {
+            columns = Object.keys(sampleDoc).filter(key => key !== '_id')
+          }
+        } catch (schemaError) {
+          console.warn('Failed to fetch sample document for column names:', schemaError.message)
+          // Continue without search if we can't get columns
+        }
+      }
+      
+      if (columns.length > 0) {
+        filter.$or = columns.map(col => ({
+          [col]: { $regex: query, $options: 'i' }
+        }))
+      }
+    }
+
+    if (filters) {
+      const parsedFilters = JSON.parse(filters)
+      for (const f of parsedFilters) {
+        filter[f.column] = f.value
+      }
+    }
+
+    const count = await collection.countDocuments(filter)
+
+    return res.status(200).json({
+      success: true,
+      count: count,
+      timestamp: Date.now()
+    })
+  } catch (error) {
+    console.error('Error getting count:', error)
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get count',
+      timestamp: Date.now()
+    })
   }
 }
 `

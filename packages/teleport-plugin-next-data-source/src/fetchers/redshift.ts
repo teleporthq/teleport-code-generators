@@ -16,6 +16,15 @@ export const generateRedshiftFetcher = (
   tableName: string
 ): string => {
   const redshiftConfig = config as RedshiftConfig
+  const host = redshiftConfig.host
+  const port = redshiftConfig.port
+  const user = redshiftConfig.user
+  const password = redshiftConfig.password
+  const database = redshiftConfig.database
+  const ssl = redshiftConfig.ssl
+  const sslConfig = redshiftConfig.sslConfig
+  const schema = redshiftConfig.options?.schema
+
   return `import { Pool } from 'pg'
 
 let pool = null
@@ -24,32 +33,20 @@ const getPool = () => {
   if (pool) return pool
   
   pool = new Pool({
-    host: ${JSON.stringify(redshiftConfig.host)},
-    port: ${redshiftConfig.port || 5439},
-    user: ${JSON.stringify(redshiftConfig.user)},
-    password: ${replaceSecretReference(redshiftConfig.password)},
-    database: ${JSON.stringify(redshiftConfig.database)},
+    host: ${JSON.stringify(host)},
+    port: ${port || 5439},
+    user: ${JSON.stringify(user)},
+    password: ${replaceSecretReference(password)},
+    database: ${JSON.stringify(database)},
     ssl: ${
-      redshiftConfig.ssl === false
+      ssl === false
         ? '{ rejectUnauthorized: false }'
-        : redshiftConfig.sslConfig
+        : sslConfig
         ? `{
-      ${
-        redshiftConfig.sslConfig.ca
-          ? `ca: ${replaceSecretReference(redshiftConfig.sslConfig.ca)},`
-          : ''
-      }
-      ${
-        redshiftConfig.sslConfig.cert
-          ? `cert: ${replaceSecretReference(redshiftConfig.sslConfig.cert)},`
-          : ''
-      }
-      ${
-        redshiftConfig.sslConfig.key
-          ? `key: ${replaceSecretReference(redshiftConfig.sslConfig.key)},`
-          : ''
-      }
-      rejectUnauthorized: ${redshiftConfig.sslConfig.rejectUnauthorized !== false}
+      ${sslConfig.ca ? `ca: ${replaceSecretReference(sslConfig.ca)},` : ''}
+      ${sslConfig.cert ? `cert: ${replaceSecretReference(sslConfig.cert)},` : ''}
+      ${sslConfig.key ? `key: ${replaceSecretReference(sslConfig.key)},` : ''}
+      rejectUnauthorized: ${sslConfig.rejectUnauthorized !== false}
     }`
         : '{ rejectUnauthorized: false }' // Default to SSL with no cert verification for Redshift
     }
@@ -61,11 +58,7 @@ const getPool = () => {
 export default async function handler(req, res) {
   try {
     const pool = getPool()
-    ${
-      redshiftConfig.options?.schema
-        ? `await pool.query('SET search_path TO ${redshiftConfig.options.schema}')`
-        : ''
-    }
+    ${schema ? `await pool.query('SET search_path TO ${schema}')` : ''}
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     

@@ -39,6 +39,7 @@ export const generateFirestoreFetcher = (
   tableName: string
 ): string => {
   const firestoreConfig = config as FirestoreConfig
+  const serviceAccount = firestoreConfig.serviceAccount
 
   return `import * as admin from 'firebase-admin'
 
@@ -47,7 +48,7 @@ let firestore = null
 const getFirestore = () => {
   if (firestore) return firestore
   
-  const rawServiceAccount = ${replaceSecretReference(firestoreConfig.serviceAccount)}
+  const rawServiceAccount = ${replaceSecretReference(serviceAccount)}
   let serviceAccount
 
   try {

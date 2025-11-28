@@ -46,14 +46,19 @@ interface RedisConfig {
 
 export const generateRedisFetcher = (config: Record<string, unknown>): string => {
   const redisConfig = config as RedisConfig
-  const hasUsername = redisConfig.username
+  const host = redisConfig.host
+  const port = redisConfig.port
+  const username = redisConfig.username
+  const password = redisConfig.password
+  const database = redisConfig.database
+  const hasUsername = username
 
   // Build connection string from parts if not provided
   let connectionString = redisConfig.connectionString
   if (!connectionString) {
-    connectionString = `redis://${
-      hasUsername ? `${redisConfig.username}:${redisConfig.password}@` : ''
-    }${redisConfig.host}:${redisConfig.port || 6379}`
+    connectionString = `redis://${hasUsername ? `${username}:${password}@` : ''}${host}:${
+      port || 6379
+    }`
   }
 
   return `import { createClient } from 'redis'
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
   try {
     client = createClient({
       url: ${replaceSecretReference(connectionString)}${
-    redisConfig.database ? `,\n      database: ${redisConfig.database}` : ''
+    database ? `,\n      database: ${database}` : ''
   }
     })
     

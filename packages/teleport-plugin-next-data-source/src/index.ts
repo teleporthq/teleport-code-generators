@@ -1,6 +1,117 @@
 import { ComponentPlugin, ComponentPluginFactory } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { extractDataSourceIntoNextAPIFolder, extractDataSourceIntoGetStaticProps } from './utils'
+import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
+
+interface SearchConfig {
+  searchEnabled: boolean
+  searchDebounce: number
+}
+
+interface PaginationConfig {
+  perPageMap: Map<string, number>
+  searchConfigMap: Map<string, SearchConfig>
+  queryColumnsMap: Map<string, string[]>
+}
+
+function extractPaginationConfigEarly(uidlNode: any, resources: any): PaginationConfig {
+  const perPageMap = new Map<string, number>()
+  const searchConfigMap = new Map<string, SearchConfig>()
+  const queryColumnsMap = new Map<string, string[]>()
+
+  const dataSourceToRenderProp = new Map<string, string>()
+
+  const traverse = (node: any): void => {
+    if (!node || typeof node !== 'object') {
+      return
+    }
+
+    if (
+      node.type === 'data-source-list' &&
+      node.content?.renderPropIdentifier &&
+      node.content?.resource?.id
+    ) {
+      const renderProp = node.content.renderPropIdentifier
+      const resourceId = node.content.resource.id
+      dataSourceToRenderProp.set(resourceId, renderProp)
+
+      // Try to get queryColumns from the node's resource params first
+      if (node.content?.resource?.params?.queryColumns) {
+        const queryColumnsValue = node.content.resource.params.queryColumns
+        if (queryColumnsValue.type === 'static' && Array.isArray(queryColumnsValue.content)) {
+          queryColumnsMap.set(renderProp, queryColumnsValue.content)
+        }
+      } else if (resources?.items?.[resourceId]?.params?.queryColumns) {
+        const queryColumnsValue = resources.items[resourceId].params.queryColumns
+        if (queryColumnsValue.type === 'static' && Array.isArray(queryColumnsValue.content)) {
+          queryColumnsMap.set(renderProp, queryColumnsValue.content)
+        }
+      }
+    }
+
+    if (node.type === 'cms-list-repeater') {
+      const perPage = node.content?.perPage
+      const paginated = node.content?.paginated
+      const renderProp = node.content?.renderPropIdentifier
+      const searchEnabled = node.content?.searchEnabled
+      const searchDebounce = node.content?.searchDebounce
+
+      if (paginated && perPage && renderProp) {
+        perPageMap.set(renderProp, perPage)
+      }
+
+      if (searchEnabled && renderProp) {
+        searchConfigMap.set(renderProp, {
+          searchEnabled: true,
+          searchDebounce: searchDebounce || 300,
+        })
+      }
+
+      if (node.content?.nodes?.list) {
+        traverse(node.content.nodes.list)
+      }
+      if (node.content?.nodes?.empty) {
+        traverse(node.content.nodes.empty)
+      }
+      if (node.content?.nodes?.loading) {
+        traverse(node.content.nodes.loading)
+      }
+      return
+    }
+
+    if (node.content) {
+      if (node.content.children && Array.isArray(node.content.children)) {
+        for (const child of node.content.children) {
+          traverse(child)
+        }
+      }
+      if (node.content.node) {
+        traverse(node.content.node)
+      }
+      if (node.content.nodes) {
+        if (node.content.nodes.success) {
+          traverse(node.content.nodes.success)
+        }
+        if (node.content.nodes.error) {
+          traverse(node.content.nodes.error)
+        }
+        if (node.content.nodes.loading) {
+          traverse(node.content.nodes.loading)
+        }
+      }
+    }
+
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        traverse(child)
+      }
+    }
+  }
+
+  traverse(uidlNode)
+
+  return { perPageMap, searchConfigMap, queryColumnsMap }
+}
 
 export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () => {
   const nextPagesDataSourcePlugin: ComponentPlugin = async (structure) => {
@@ -27,6 +138,28 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
     if (!options.extractedResources) {
       return structure
     }
+
+    // Extract pagination and search config EARLY, before any transformations happen
+    const opts = options as any
+    if (!opts.paginationConfig) {
+      opts.paginationConfig = {
+        perPageMap: new Map<string, number>(),
+        searchConfigMap: new Map<string, SearchConfig>(),
+        queryColumnsMap: new Map<string, string[]>(),
+      }
+    }
+
+    // Extract for THIS page and merge with existing maps
+    const pageConfig = extractPaginationConfigEarly(uidl.node, (uidl as any).resources)
+    pageConfig.perPageMap.forEach((perPage, dataSourceId) => {
+      opts.paginationConfig.perPageMap.set(dataSourceId, perPage)
+    })
+    pageConfig.searchConfigMap.forEach((searchConfig, dataSourceId) => {
+      opts.paginationConfig.searchConfigMap.set(dataSourceId, searchConfig)
+    })
+    pageConfig.queryColumnsMap.forEach((queryColumns, dataSourceId) => {
+      opts.paginationConfig.queryColumnsMap.set(dataSourceId, queryColumns)
+    })
 
     let getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
 
@@ -116,7 +249,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       }
     })
 
-    return structure
+    const paginationPlugin = createNextArrayMapperPaginationPlugin()
+    return paginationPlugin(structure)
   }
 
   return nextPagesDataSourcePlugin
@@ -137,6 +271,28 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
     if (!dataSources || Object.keys(dataSources).length === 0) {
       return structure
     }
+
+    // Extract pagination and search config EARLY, before any transformations happen
+    const opts = options as any
+    if (!opts.paginationConfig) {
+      opts.paginationConfig = {
+        perPageMap: new Map<string, number>(),
+        searchConfigMap: new Map<string, SearchConfig>(),
+        queryColumnsMap: new Map<string, string[]>(),
+      }
+    }
+
+    // Extract for THIS component and merge with existing maps
+    const componentConfig = extractPaginationConfigEarly(uidl.node, (uidl as any).resources)
+    componentConfig.perPageMap.forEach((perPage, dataSourceId) => {
+      opts.paginationConfig.perPageMap.set(dataSourceId, perPage)
+    })
+    componentConfig.searchConfigMap.forEach((searchConfig, dataSourceId) => {
+      opts.paginationConfig.searchConfigMap.set(dataSourceId, searchConfig)
+    })
+    componentConfig.queryColumnsMap.forEach((queryColumns, dataSourceId) => {
+      opts.paginationConfig.queryColumnsMap.set(dataSourceId, queryColumns)
+    })
 
     const componentChunk = chunks.find((chunk) => chunk.name === 'jsx-component')
     if (!componentChunk) {
@@ -182,7 +338,8 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
       )
     })
 
-    return structure
+    const paginationPlugin = createNextArrayMapperPaginationPlugin()
+    return paginationPlugin(structure)
   }
 
   return nextComponentDataSourcePlugin
@@ -190,3 +347,6 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
 
 export * from './data-source-fetchers'
 export * from './utils'
+export * from './array-mapper-pagination'
+export * from './pagination-plugin'
+export * from './count-fetchers'

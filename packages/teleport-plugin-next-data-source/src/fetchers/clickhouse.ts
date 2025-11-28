@@ -33,6 +33,10 @@ export const generateClickHouseFetcher = (
   tableName: string
 ): string => {
   const clickConfig = config as ClickHouseConfig
+  const url = clickConfig.url
+  const username = clickConfig.username
+  const password = clickConfig.password
+
   return `import { createClient } from '@clickhouse/client'
 
 let client = null
@@ -41,9 +45,9 @@ const getClient = () => {
   if (client) return client
   
   client = createClient({
-    url: ${JSON.stringify(clickConfig.url)},
-    username: ${JSON.stringify(clickConfig.username)},
-    password: ${replaceSecretReference(clickConfig.password)}
+    url: ${JSON.stringify(url)},
+    username: ${JSON.stringify(username)},
+    password: ${replaceSecretReference(password)}
   })
   
   return client

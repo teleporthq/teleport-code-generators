@@ -59,6 +59,46 @@ export const isNonEmptyString = (value: unknown): value is string => {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+export const hoistLoadingFromRepeater = (dataSourceNode: any): void => {
+  if (!dataSourceNode || !dataSourceNode.content) {
+    return
+  }
+
+  const children = dataSourceNode.children || []
+
+  for (const child of children) {
+    if (child.type === 'cms-list-repeater' && child.content?.nodes?.loading) {
+      if (!dataSourceNode.content.nodes) {
+        dataSourceNode.content.nodes = {}
+      }
+
+      if (
+        !dataSourceNode.content.nodes.loading &&
+        child.content.nodes.loading.content?.children?.length > 0
+      ) {
+        dataSourceNode.content.nodes.loading = child.content.nodes.loading
+      }
+
+      break
+    }
+  }
+
+  if (dataSourceNode.content.nodes?.success?.content?.children) {
+    for (const child of dataSourceNode.content.nodes.success.content.children) {
+      if (child.type === 'cms-list-repeater' && child.content?.nodes?.loading) {
+        if (
+          !dataSourceNode.content.nodes.loading &&
+          child.content.nodes.loading.content?.children?.length > 0
+        ) {
+          dataSourceNode.content.nodes.loading = child.content.nodes.loading
+        }
+
+        break
+      }
+    }
+  }
+}
+
 // tslint:disable-next-line:no-any
 export const validateResourceDefinition = (
   resourceDefinition: any
@@ -201,19 +241,30 @@ export const extractDataSourceIntoNextAPIFolder = (
     // Find JSX node by searching through nodesLookup
     // The JSX generator creates keys like: ds-{dataSourceId}-{timestamp}
     // We need to find the node that matches our resourceDefinition
+    // IMPORTANT: Match by both dataSourceId AND renderPropIdentifier to handle multiple DataProviders with same data source
     let jsxNode: types.JSXElement | null = null
+    const targetRenderProp = node.content?.renderPropIdentifier
 
     // tslint:disable-next-line:no-any
     for (const jsxElement of Object.values(componentChunk.meta.nodesLookup)) {
       // tslint:disable-next-line:no-any
       if ((jsxElement as any).type === 'JSXElement') {
         const attrs = (jsxElement as types.JSXElement).openingElement.attributes
+
         // Look for resourceDefinition attribute
         // tslint:disable-next-line:no-any
         const resourceDefAttr = attrs.find(
           (attr) =>
             (attr as any).type === 'JSXAttribute' &&
             (attr as types.JSXAttribute).name.name === 'resourceDefinition'
+        ) as types.JSXAttribute | undefined
+
+        // Look for name attribute to match with renderPropIdentifier
+        // tslint:disable-next-line:no-any
+        const nameAttr = attrs.find(
+          (attr) =>
+            (attr as any).type === 'JSXAttribute' &&
+            (attr as types.JSXAttribute).name.name === 'name'
         ) as types.JSXAttribute | undefined
 
         if (
@@ -230,9 +281,37 @@ export const extractDataSourceIntoNextAPIFolder = (
             // tslint:disable-next-line:no-any
             const idValue = (idProp as any)?.value?.value
 
-            if (idValue === dataSourceId) {
+            // Match by dataSourceId
+            const dataSourceMatches = idValue === dataSourceId
+
+            // Also check name prop matches renderPropIdentifier
+            let renderPropMatches = !targetRenderProp // If no targetRenderProp, don't check it
+
+            if (targetRenderProp && nameAttr && nameAttr.value) {
+              // The name attribute value is usually a StringLiteral or JSXExpressionContainer
+              if (nameAttr.value.type === 'StringLiteral') {
+                if (nameAttr.value.value === targetRenderProp) {
+                  renderPropMatches = true
+                }
+              } else if (nameAttr.value.type === 'JSXExpressionContainer') {
+                const nameExpr = nameAttr.value.expression
+                if (nameExpr.type === 'StringLiteral' && nameExpr.value === targetRenderProp) {
+                  renderPropMatches = true
+                }
+              }
+            }
+
+            // Before matching, check if this node already has fetchData - if so, skip it
+            // This is crucial for handling multiple DataProviders with same dataSourceId and name
+            const alreadyHasFetchData = attrs.some(
+              (attr) => (attr as types.JSXAttribute).name?.name === 'fetchData'
+            )
+
+            if (dataSourceMatches && renderPropMatches && !alreadyHasFetchData) {
               jsxNode = jsxElement as types.JSXElement
               break
+            } else if (dataSourceMatches && renderPropMatches && alreadyHasFetchData) {
+              // Continue searching for the next matching node without fetchData
             }
           }
         }
@@ -324,12 +403,20 @@ export const extractDataSourceIntoNextAPIFolder = (
       )
     )
 
-    jsxNode.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier('persistDataDuringLoading'),
-        types.jsxExpressionContainer(types.booleanLiteral(true))
-      )
+    const hasPersistDataAttr = jsxNode.openingElement.attributes.some(
+      (attr) =>
+        attr.type === 'JSXAttribute' &&
+        (attr as types.JSXAttribute).name?.name === 'persistDataDuringLoading'
     )
+
+    if (!hasPersistDataAttr) {
+      jsxNode.openingElement.attributes.push(
+        types.jsxAttribute(
+          types.jsxIdentifier('persistDataDuringLoading'),
+          types.jsxExpressionContainer(types.booleanLiteral(true))
+        )
+      )
+    }
 
     // Ensure extracted resources object exists
     if (!extractedResources || typeof extractedResources !== 'object') {
@@ -677,20 +764,37 @@ export const extractDataSourceIntoGetStaticProps = (
     // tslint:disable-next-line:no-any
     Object.entries(resourceParams).forEach(([key, value]: [string, any]) => {
       if (value.type === 'static') {
-        paramsProperties.push(
-          types.objectProperty(
-            types.stringLiteral(key),
-            value.content === null || value.content === undefined
-              ? types.nullLiteral()
-              : typeof value.content === 'string'
-              ? types.stringLiteral(value.content)
-              : typeof value.content === 'number'
-              ? types.numericLiteral(value.content)
-              : typeof value.content === 'boolean'
-              ? types.booleanLiteral(value.content)
-              : types.nullLiteral()
+        let astValue: any
+
+        if (value.content === null || value.content === undefined) {
+          astValue = types.nullLiteral()
+        } else if (Array.isArray(value.content)) {
+          // Handle array values (like queryColumns)
+          astValue = types.arrayExpression(
+            value.content.map((item: any) => {
+              if (typeof item === 'string') {
+                return types.stringLiteral(item)
+              }
+              if (typeof item === 'number') {
+                return types.numericLiteral(item)
+              }
+              if (typeof item === 'boolean') {
+                return types.booleanLiteral(item)
+              }
+              return types.nullLiteral()
+            })
           )
-        )
+        } else if (typeof value.content === 'string') {
+          astValue = types.stringLiteral(value.content)
+        } else if (typeof value.content === 'number') {
+          astValue = types.numericLiteral(value.content)
+        } else if (typeof value.content === 'boolean') {
+          astValue = types.booleanLiteral(value.content)
+        } else {
+          astValue = types.nullLiteral()
+        }
+
+        paramsProperties.push(types.objectProperty(types.stringLiteral(key), astValue))
       }
       // Note: We don't handle 'expr' or 'dynamic' params in getStaticProps
       // as those should be detected by hasResourceDynamicParams check earlier
