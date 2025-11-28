@@ -83,6 +83,40 @@ export interface UIDLResources {
   }
 }
 
+export type DataSourceType =
+  | 'rest-api'
+  | 'postgresql'
+  | 'mysql'
+  | 'mariadb'
+  | 'amazon-redshift'
+  | 'mongodb'
+  | 'cockroachdb'
+  | 'tidb'
+  | 'redis'
+  | 'firestore'
+  | 'clickhouse'
+  | 'airtable'
+  | 'supabase'
+  | 'turso'
+  | 'javascript'
+  | 'google-sheets'
+  | 'csv-file'
+  | 'static-collection'
+
+export interface UIDLDataSource {
+  id: string
+  name: string
+  type: DataSourceType
+  config: Record<string, unknown>
+}
+
+export interface UIDLDataSourceResourceDefinition {
+  type: 'external-data-source'
+  dataSourceId: string
+  tableName: string
+  dataSourceType: DataSourceType
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
@@ -90,6 +124,7 @@ export interface ProjectUIDL {
   components?: Record<string, ComponentUIDL>
   resources?: UIDLResources
   forms?: UIDLForms
+  dataSources?: Record<string, UIDLDataSource>
   internationalization?: {
     main: {
       name: string
@@ -489,9 +524,62 @@ export interface UIDLCMSListRepeaterNodeContent {
   nodes: {
     list: UIDLElementNode
     empty?: UIDLElementNode
+    loading?: UIDLElementNode
   }
   renderPropIdentifier: string
   source?: string
+  paginated?: boolean
+  perPage?: number
+  searchEnabled?: boolean
+  searchDebounce?: number
+}
+
+export interface UIDLDataSourceItemNode {
+  type: 'data-source-item'
+  content: UIDLDataSourceItemNodeContent
+}
+
+export interface UIDLDataSourceListNode {
+  type: 'data-source-list'
+  content: UIDLDataSourceListNodeContent
+}
+
+export interface UIDLDataSourceItemNodeContent {
+  elementType: string
+  name?: string
+  key?: string
+  attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
+  resourceDefinition: UIDLDataSourceResourceDefinition
+  renderPropIdentifier: string
+  nodes?: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  children?: UIDLNode[]
+  valuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
+}
+
+export interface UIDLDataSourceListNodeContent {
+  elementType: string
+  name?: string
+  key?: string
+  attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
+  resourceDefinition: UIDLDataSourceResourceDefinition
+  renderPropIdentifier: string
+  nodes?: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  children?: UIDLNode[]
+  valuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -595,6 +683,8 @@ export type UIDLNode =
   | UIDLDateTimeNode
   | UIDLCMSListRepeaterNode
   | UIDLCMSMixedTypeNode
+  | UIDLDataSourceItemNode
+  | UIDLDataSourceListNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

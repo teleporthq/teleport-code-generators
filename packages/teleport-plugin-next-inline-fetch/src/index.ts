@@ -145,7 +145,7 @@ export const createNextPagesInlineFetchPlugin: ComponentPluginFactory<{}> = () =
 
         const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
           propKey,
-          ...(node.content.valuePath || []),
+          ...ASTUtils.parseValuePath(node.content.valuePath || []),
         ])
 
         if (getStaticPropsChunk === undefined) {

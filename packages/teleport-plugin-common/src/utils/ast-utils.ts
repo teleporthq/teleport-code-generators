@@ -548,7 +548,7 @@ export const createReturnExpressionSyntax = (
     createStateHookAST(stateKey, stateDefinitions[stateKey])
   )
 
-  return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement] || [])
+  return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement])
 }
 
 /**
@@ -671,65 +671,68 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   ])
 
   // Fallback in case i18n interferes with normal CMS flows
-  const fallbackParams = JSON.parse(JSON.stringify(resource))
-  delete fallbackParams?.params?.locale
-  const fallbackUrlParamsDeclaration = generateParamsAST(fallbackParams?.params)
-  const assignmentOfNewUrlParams = types.expressionStatement(
-    types.assignmentExpression(
-      '=',
-      types.identifier('urlParams'),
-      types.objectExpression([...fallbackUrlParamsDeclaration])
-    )
-  )
+  // Only generate fallback if locale parameter exists
+  const hasLocaleParam = resource?.params?.locale !== undefined
+  let fallbackAST = null
 
-  const assignmentExpressionAST = types.expressionStatement(
-    types.assignmentExpression(
-      '=',
-      types.identifier('data'),
-      types.awaitExpression(
-        types.callExpression(types.identifier('fetch'), [
-          url,
-          types.objectExpression([
-            method,
-            ...(allHeaders.length > 0
-              ? [
-                  types.objectProperty(
-                    types.identifier('headers'),
-                    types.objectExpression(allHeaders)
-                  ),
-                ]
-              : []),
-            ...(bodyParamsDecleration.length > 0 && resource?.method === 'POST'
-              ? [
-                  types.objectProperty(
-                    types.identifier('body'),
-                    types.callExpression(
-                      types.memberExpression(
-                        types.identifier('JSON'),
-                        types.identifier('stringify')
-                      ),
-                      [types.identifier('bodyParams')]
-                    )
-                  ),
-                ]
-              : []),
-          ]),
-        ])
+  if (hasLocaleParam) {
+    const fallbackParams = JSON.parse(JSON.stringify(resource))
+    delete fallbackParams?.params?.locale
+    const fallbackUrlParamsDeclaration = generateParamsAST(fallbackParams?.params)
+    const assignmentOfNewUrlParams = types.expressionStatement(
+      types.assignmentExpression(
+        '=',
+        types.identifier('urlParams'),
+        types.objectExpression([...fallbackUrlParamsDeclaration])
       )
     )
-  )
 
-  const fallbackAST = types.ifStatement(
-    types.binaryExpression(
-      '!==', // The operator !==
-      types.memberExpression(
-        types.identifier('data'), // Access data
-        types.identifier('status') // Access data.status
+    const assignmentExpressionAST = types.expressionStatement(
+      types.assignmentExpression(
+        '=',
+        types.identifier('data'),
+        types.awaitExpression(
+          types.callExpression(types.identifier('fetch'), [
+            url,
+            types.objectExpression([
+              method,
+              ...(allHeaders.length > 0
+                ? [
+                    types.objectProperty(
+                      types.identifier('headers'),
+                      types.objectExpression(allHeaders)
+                    ),
+                  ]
+                : []),
+              ...(bodyParamsDecleration.length > 0 && resource?.method === 'POST'
+                ? [
+                    types.objectProperty(
+                      types.identifier('body'),
+                      types.callExpression(
+                        types.memberExpression(
+                          types.identifier('JSON'),
+                          types.identifier('stringify')
+                        ),
+                        [types.identifier('bodyParams')]
+                      )
+                    ),
+                  ]
+                : []),
+            ]),
+          ])
+        )
+      )
+    )
+
+    fallbackAST = types.ifStatement(
+      types.binaryExpression(
+        '!==',
+        types.memberExpression(types.identifier('data'), types.identifier('status')),
+        types.numericLiteral(200)
       ),
-      types.numericLiteral(200) // Check if it is not equal to 200
-    ),
-    types.blockStatement([assignmentOfNewUrlParams, assignmentExpressionAST])
-  )
+      types.blockStatement([assignmentOfNewUrlParams, assignmentExpressionAST])
+    )
+  }
   const responseType = resource?.response?.type ?? 'json'
   let responseJSONAST
 
@@ -818,9 +821,9 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
         ]
       : []),
     fetchAST,
-    fallbackAST,
+    ...(fallbackAST ? [fallbackAST] : []),
     responseJSONAST,
-  ]
+  ].filter(Boolean)
 }
 
 const generateParamsAST = (
@@ -904,6 +907,22 @@ export const generateMemberExpressionASTFromBase = (
   )
 }
 
+export const parseValuePath = (valuePath: Array<string | number>): Array<string | number> => {
+  return valuePath.map((segment) => {
+    if (typeof segment === 'string') {
+      const bracketMatch = segment.match(/^\[(\d+)\]$/)
+      if (bracketMatch) {
+        return parseInt(bracketMatch[1], 10)
+      }
+      const numericMatch = segment.match(/^\d+$/)
+      if (numericMatch) {
+        return parseInt(segment, 10)
+      }
+    }
+    return segment
+  })
+}
+
 export const generateMemberExpressionASTFromPath = (
   path: Array<string | number>
 ): types.OptionalMemberExpression | types.Identifier => {
@@ -919,7 +938,7 @@ export const generateMemberExpressionASTFromPath = (
     return types.optionalMemberExpression(
       generateMemberExpressionASTFromPath(pathClone),
       types.numericLiteral(currentPath),
-      false,
+      true,
       true
     )
   }
@@ -1044,7 +1063,11 @@ export const computeFetchUrl = (resource: UIDLResourceItem) => {
   const routeType = path.route?.type
 
   if (baseUrlType === 'static' && routeType === 'static') {
-    const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
+    const baseUrlStr = typeof fetchBaseUrl === 'string' ? fetchBaseUrl : String(fetchBaseUrl || '')
+    const routeStr = typeof resourceRoute === 'string' ? resourceRoute : String(resourceRoute || '')
+    const cleanBaseUrl = baseUrlStr.endsWith('/') ? baseUrlStr.slice(0, -1) : baseUrlStr
+    const cleanRoute = routeStr.startsWith('/') ? routeStr.slice(1) : routeStr
+    const stringsToJoin = [cleanBaseUrl, cleanRoute].filter((item) => item).join('/')
     return types.templateLiteral(
       [types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true)],
       []
@@ -1133,6 +1156,7 @@ export const resolveObjectValue = (
   | types.NumericLiteral
   | types.BooleanLiteral
   | types.ObjectExpression
+  | types.ArrayExpression
   | types.Expression => {
   if (prop.type === 'static') {
     const value =
@@ -1142,6 +1166,8 @@ export const resolveObjectValue = (
         ? types.booleanLiteral(prop.content)
         : typeof prop.content === 'number'
         ? types.numericLiteral(prop.content)
+        : Array.isArray(prop.content)
+        ? types.arrayExpression(prop.content.map((element) => convertValueToLiteral(element)))
         : typeof prop.content === 'object'
         ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
         : types.identifier(String(prop.content))

@@ -217,9 +217,58 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       return node as unknown as UIDLCMSListNode | UIDLCMSItemNode
     }
+    case 'data-source-item':
+    case 'data-source-list': {
+      const {
+        initialData,
+        nodes: { success, error, loading },
+        resource,
+      } = (node as any).content
+
+      if (initialData) {
+        if (initialData.content && initialData.content.id) {
+          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
+        }
+      }
+
+      // Parse success, error, and loading nodes
+      if (success) {
+        ;(node as any).content.nodes.success = parseComponentNode(
+          success as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (error) {
+        ;(node as any).content.nodes.error = parseComponentNode(
+          error as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (loading) {
+        ;(node as any).content.nodes.loading = parseComponentNode(
+          loading as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (resource?.params) {
+        Object.values(resource?.params || {}).forEach((param: any) => {
+          if (
+            param.type === 'dynamic' &&
+            (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+          ) {
+            param.content.id = StringUtils.createStateOrPropStoringValue(param.content.id)
+          }
+        })
+      }
+
+      return node as any
+    }
     case 'cms-list-repeater': {
       const {
-        nodes: { list, empty },
+        nodes: { list, empty, loading },
       } = (node as unknown as UIDLCMSListRepeaterNode).content
 
       if (list) {
@@ -232,6 +281,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       if (empty) {
         ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.empty = parseComponentNode(
           empty as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (loading) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.loading = parseComponentNode(
+          loading as unknown as Record<string, unknown>,
           component
         ) as UIDLElementNode
       }

@@ -88,7 +88,7 @@ export const insertLinks = (
 
     if (child.type === 'cms-list-repeater') {
       const {
-        nodes: { list, empty },
+        nodes: { list, empty, loading },
       } = child.content
 
       if (list) {
@@ -97,6 +97,10 @@ export const insertLinks = (
 
       if (empty) {
         insertLinks(empty, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
       }
     }
 

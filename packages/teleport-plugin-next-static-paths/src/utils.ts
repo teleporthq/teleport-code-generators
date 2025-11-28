@@ -143,7 +143,7 @@ const computePropsAST = (
                   '||',
                   ASTUtils.generateMemberExpressionASTFromPath([
                     'response',
-                    ...(initialData.exposeAs?.valuePath || []),
+                    ...ASTUtils.parseValuePath(initialData.exposeAs?.valuePath || []),
                   ]),
                   types.arrayExpression()
                 ),

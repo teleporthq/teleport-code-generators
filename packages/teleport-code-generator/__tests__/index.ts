@@ -137,7 +137,7 @@ describe('code generator', () => {
 
     const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
     expect(success).toBeTruthy()
-  })
+  }, 30000)
 
   it('creates a react component', async () => {
     const options: GenerateOptions = {

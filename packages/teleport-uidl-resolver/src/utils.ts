@@ -67,7 +67,55 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
   })
 }
 
+const hoistLoadingFromRepeaterToDataSource = (uidlNode: UIDLNode) => {
+  UIDLUtils.traverseNodes(uidlNode, (node) => {
+    if (node.type === 'data-source-list' || node.type === 'data-source-item') {
+      const dataSourceNode = node as any
+
+      if (!dataSourceNode.content) {
+        return
+      }
+
+      const children = dataSourceNode.children || []
+
+      for (const child of children) {
+        if (child.type === 'cms-list-repeater' && child.content?.nodes?.loading) {
+          if (!dataSourceNode.content.nodes) {
+            dataSourceNode.content.nodes = {}
+          }
+
+          if (
+            !dataSourceNode.content.nodes.loading &&
+            child.content.nodes.loading.content?.children?.length > 0
+          ) {
+            dataSourceNode.content.nodes.loading = child.content.nodes.loading
+          }
+
+          break
+        }
+      }
+
+      if (dataSourceNode.content.nodes?.success?.content?.children) {
+        for (const child of dataSourceNode.content.nodes.success.content.children) {
+          if (child.type === 'cms-list-repeater' && child.content?.nodes?.loading) {
+            if (
+              !dataSourceNode.content.nodes.loading &&
+              child.content.nodes.loading.content?.children?.length > 0
+            ) {
+              dataSourceNode.content.nodes.loading = child.content.nodes.loading
+            }
+
+            break
+          }
+        }
+      }
+    }
+  })
+}
+
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
+  hoistLoadingFromRepeaterToDataSource(uidlNode)
+
   UIDLUtils.traverseNodes(uidlNode, (node, parentNode) => {
     if (node.type === 'element') {
       resolveElement(node.content, options)

@@ -88,6 +88,7 @@ export interface VCMSListRepeaterElementNode
         nodes: {
           list: VUIDLElementNode
           empty?: VUIDLElementNode
+          loading?: VUIDLElementNode
         }
       }
     }

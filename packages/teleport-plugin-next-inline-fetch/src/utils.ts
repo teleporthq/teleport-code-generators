@@ -178,7 +178,7 @@ export const computeUseEffectAST = (params: {
 
   const responseExpression = ASTUtils.generateMemberExpressionASTFromPath([
     'data',
-    ...valuePath,
+    ...ASTUtils.parseValuePath(valuePath),
   ]) as types.OptionalMemberExpression
 
   const resourceAST = types.arrowFunctionExpression(

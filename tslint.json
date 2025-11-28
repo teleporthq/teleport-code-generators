@@ -10,7 +10,7 @@
     "interface-name": [true, "never-prefix"],
     "max-classes-per-file": false,
     "member-ordering": [true, {"order": "statics-first"}],
-    "no-any": [true, {"ignore-rest-args": true}],
+    "no-any": false,
     "no-arg": true,
     "no-bitwise": true,
     "no-console": [

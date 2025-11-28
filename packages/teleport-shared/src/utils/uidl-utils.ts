@@ -222,6 +222,19 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
+      // Check if this element node is wrapping a data-source node
+      // This happens when node.content has a 'type' property that is a data-source type
+      if (
+        node.content &&
+        typeof node.content === 'object' &&
+        'type' in node.content &&
+        (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+      ) {
+        // Treat the entire node.content as a data-source node
+        traverseNodes(node.content as any, fn, node)
+        break
+      }
+
       const { attrs, children, style, abilities, referencedStyles } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
@@ -271,6 +284,9 @@ export const traverseNodes = (
       if (node.content.nodes.empty) {
         traverseNodes(node.content.nodes.empty, fn)
       }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
       break
 
     case 'cms-item':
@@ -295,6 +311,40 @@ export const traverseNodes = (
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseNodes(node.content.mappings[key], fn)
       })
+      break
+
+    case 'data-source-item':
+      if (node.content.nodes?.success) {
+        traverseNodes(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseNodes(child, fn, node)
+        })
+      }
+      break
+
+    case 'data-source-list':
+      if (node.content.nodes?.success) {
+        traverseNodes(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseNodes(child, fn, node)
+        })
+      }
       break
 
     case 'repeat':
@@ -335,6 +385,18 @@ export const traverseResources = (
 ) => {
   switch (node.type) {
     case 'element':
+      // Check if this element node is wrapping a data-source node
+      if (
+        node.content &&
+        typeof node.content === 'object' &&
+        'type' in node.content &&
+        (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+      ) {
+        // Treat the entire node.content as a data-source node
+        traverseResources(node.content as any, fn)
+        break
+      }
+
       const { children } = node.content
 
       if (children) {
@@ -358,6 +420,9 @@ export const traverseResources = (
       traverseResources(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseResources(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
       }
       break
 
@@ -383,6 +448,30 @@ export const traverseResources = (
       Object.keys(node.content?.mappings || {}).forEach((key) => {
         traverseResources(node.content.mappings[key], fn)
       })
+      break
+
+    case 'data-source-item':
+      if (node.content.nodes?.success) {
+        traverseResources(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
+      break
+
+    case 'data-source-list':
+      if (node.content.nodes?.success) {
+        traverseResources(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
       break
 
     case 'repeat':
@@ -425,8 +514,24 @@ const traverseStyleObject = (style: UIDLStyleDefinitions) => {
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
 export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
+  if (!node || !node.type) {
+    return
+  }
+
   switch (node.type) {
     case 'element':
+      // Check if this element node is wrapping a data-source node
+      if (
+        node.content &&
+        typeof node.content === 'object' &&
+        'type' in node.content &&
+        (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+      ) {
+        // Treat the entire node.content as a data-source node
+        traverseElements(node.content as any, fn)
+        break
+      }
+
       fn(node.content)
 
       if (node.content.attrs) {
@@ -469,6 +574,9 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       traverseElements(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseElements(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
       }
 
       break
@@ -517,6 +625,46 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
       break
 
+    case 'data-source-item':
+      if (node.content.nodes?.success) {
+        traverseElements(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+      break
+
+    case 'data-source-list':
+      if (node.content.nodes?.success) {
+        traverseElements(node.content.nodes.success, fn)
+      }
+      if (node.content.nodes?.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes?.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
+      if (node.content.attrs) {
+        for (const attrKey of Object.keys(node.content.attrs)) {
+          const attrValue = node.content.attrs[attrKey]
+          if (attrValue.type === 'element') {
+            traverseElements(attrValue, fn)
+          }
+        }
+      }
+      break
+
     case 'repeat':
       traverseElements(node.content.node, fn)
       break
@@ -546,8 +694,24 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 }
 
 export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
+  if (!node || !node.type) {
+    return
+  }
+
   switch (node.type) {
     case 'element':
+      // Check if this element node is wrapping a data-source node
+      if (
+        node.content &&
+        typeof node.content === 'object' &&
+        'type' in node.content &&
+        (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+      ) {
+        // Treat the entire node.content as a data-source node
+        traverseRepeats(node.content as any, fn)
+        break
+      }
+
       if (node.content.attrs) {
         for (const attrKey of Object.keys(node.content.attrs)) {
           const attrValue = node.content.attrs[attrKey]
@@ -589,6 +753,9 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       traverseRepeats(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseRepeats(node.content.nodes.empty, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
       }
 
       break
@@ -651,6 +818,30 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
     case 'slot':
       if (node.content.fallback) {
         traverseRepeats(node.content.fallback, fn)
+      }
+      break
+
+    case 'data-source-item':
+      if ((node as any).content.nodes?.success) {
+        traverseRepeats((node as any).content.nodes.success, fn)
+      }
+      if ((node as any).content.nodes?.error) {
+        traverseRepeats((node as any).content.nodes.error, fn)
+      }
+      if ((node as any).content.nodes?.loading) {
+        traverseRepeats((node as any).content.nodes.loading, fn)
+      }
+      break
+
+    case 'data-source-list':
+      if ((node as any).content.nodes?.success) {
+        traverseRepeats((node as any).content.nodes.success, fn)
+      }
+      if ((node as any).content.nodes?.error) {
+        traverseRepeats((node as any).content.nodes.error, fn)
+      }
+      if ((node as any).content.nodes?.loading) {
+        traverseRepeats((node as any).content.nodes.loading, fn)
       }
       break
 
@@ -1020,6 +1211,9 @@ export const removeChildNodes = (
       removeChildNodes(node.content.nodes.list, criteria)
       if (node.content.nodes.empty) {
         removeChildNodes(node.content.nodes.empty, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
       }
 
       break
