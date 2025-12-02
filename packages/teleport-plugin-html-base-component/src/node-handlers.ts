@@ -813,12 +813,21 @@ const generateComponentContent = async (
     componentWrapper = `${componentWrapper}-${StringUtils.generateRandomString()}`
   }
 
+  // Transfer data-node attributes from component instance to wrapper
+  const wrapperAttrs: Record<string, UIDLAttributeValue> = {}
+  Object.keys(attrs).forEach((attrKey) => {
+    if (attrKey.startsWith('dataNode') || attrKey.startsWith('data-node')) {
+      wrapperAttrs[attrKey] = attrs[attrKey]
+    }
+  })
+
   const componentInstanceToGenerate: UIDLElementNode = {
     type: 'element',
     content: {
       elementType: componentWrapper,
       key: componentWrapper,
       children: [componentClone.node],
+      attrs: wrapperAttrs,
       style: {
         display: {
           type: 'static',
