@@ -756,6 +756,61 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
   return paginationPlugin
 }
 
+function findParentNode(root: any, target: any, currentParent: any = null): any | null {
+  if (!root || !target) {
+    return null
+  }
+
+  if (root === target) {
+    return currentParent
+  }
+
+  if (root.type === 'JSXElement' || root.type === 'JSXFragment') {
+    if (root.children && Array.isArray(root.children)) {
+      for (const child of root.children) {
+        const found = findParentNode(child, target, root)
+        if (found !== null) {
+          return found
+        }
+      }
+    }
+  } else if (root.type === 'JSXExpressionContainer') {
+    if (root.expression) {
+      const found = findParentNode(root.expression, target, root)
+      if (found !== null) {
+        return found
+      }
+    }
+  } else if (root.type === 'BlockStatement') {
+    if (root.body && Array.isArray(root.body)) {
+      for (const stmt of root.body) {
+        const found = findParentNode(stmt, target, root)
+        if (found !== null) {
+          return found
+        }
+      }
+    }
+  } else if (root.type === 'ReturnStatement') {
+    if (root.argument) {
+      const found = findParentNode(root.argument, target, root)
+      if (found !== null) {
+        return found
+      }
+    }
+  } else if (root.type === 'ConditionalExpression') {
+    const foundConsequent = findParentNode(root.consequent, target, root)
+    if (foundConsequent !== null) {
+      return foundConsequent
+    }
+    const foundAlternate = findParentNode(root.alternate, target, root)
+    if (foundAlternate !== null) {
+      return foundAlternate
+    }
+  }
+
+  return null
+}
+
 function detectPaginationsAndSearchFromJSX(
   blockStatement: types.BlockStatement,
   uidlNode: any
@@ -970,24 +1025,27 @@ function detectPaginationsAndSearchFromJSX(
     } | null = null
     let searchInputInfo: { class: string | null; jsx: any } | null = null
 
-    // Look through parent's children for siblings
-    if (parent && parent.children && Array.isArray(parent.children)) {
-      parent.children.forEach((sibling: any) => {
-        if (sibling === dataProvider) {
+    const findSearchAndPaginationInScope = (scopeNode: any, skipNode: any = null): void => {
+      if (!scopeNode || !scopeNode.children || !Array.isArray(scopeNode.children)) {
+        return
+      }
+
+      scopeNode.children.forEach((child: any) => {
+        if (child === skipNode) {
           return
         }
 
-        if (sibling.type === 'JSXElement') {
-          const siblingClassName = getClassName(sibling.openingElement?.attributes || [])
-          const siblingElementName = sibling.openingElement?.name?.name
+        if (child.type === 'JSXElement') {
+          const childClassName = getClassName(child.openingElement?.attributes || [])
+          const childElementName = child.openingElement?.name?.name
 
           // Found pagination node
-          if (siblingClassName && siblingClassName.includes('cms-pagination-node')) {
-            const prevClass = findChildWithClass(sibling, 'previous')
-            const nextClass = findChildWithClass(sibling, 'next')
+          if (childClassName && childClassName.includes('cms-pagination-node')) {
+            const prevClass = findChildWithClass(child, 'previous')
+            const nextClass = findChildWithClass(child, 'next')
             if (prevClass || nextClass) {
               paginationNodeInfo = {
-                class: siblingClassName,
+                class: childClassName,
                 prevClass,
                 nextClass,
               }
@@ -995,9 +1053,9 @@ function detectPaginationsAndSearchFromJSX(
           }
 
           // Found search container - search for input inside it
-          if (siblingClassName && siblingClassName.includes('data-source-search-node')) {
-            if (sibling.children && Array.isArray(sibling.children)) {
-              sibling.children.forEach((searchChild: any) => {
+          if (childClassName && childClassName.includes('data-source-search-node')) {
+            if (child.children && Array.isArray(child.children)) {
+              child.children.forEach((searchChild: any) => {
                 if (searchChild.type === 'JSXElement') {
                   const searchChildElementName = searchChild.openingElement?.name?.name
                   const searchChildClassName = getClassName(
@@ -1018,19 +1076,33 @@ function detectPaginationsAndSearchFromJSX(
             }
           }
 
-          // Also check if search input is a direct sibling
+          // Also check if search input is a direct child
           if (
-            siblingClassName &&
-            siblingClassName.includes('search-input') &&
-            siblingElementName === 'input'
+            childClassName &&
+            childClassName.includes('search-input') &&
+            childElementName === 'input'
           ) {
             searchInputInfo = {
-              class: siblingClassName,
-              jsx: sibling,
+              class: childClassName,
+              jsx: child,
             }
+          }
+
+          if (!searchInputInfo || !paginationNodeInfo) {
+            findSearchAndPaginationInScope(child, skipNode)
           }
         }
       })
+    }
+
+    let currentScope = parent
+    let depth = 0
+    const maxDepth = 5
+
+    while (currentScope && (!searchInputInfo || !paginationNodeInfo) && depth < maxDepth) {
+      findSearchAndPaginationInScope(currentScope, depth === 0 ? dataProvider : null)
+      currentScope = findParentNode(blockStatement, currentScope)
+      depth++
     }
 
     // Record the DataProvider with its pagination/search info
@@ -1669,6 +1741,8 @@ function modifyPaginationButtons(
   detectedPaginations: DetectedPagination[],
   paginationInfos: ArrayMapperPaginationInfo[]
 ): void {
+  const modifiedButtons = new Set<any>()
+
   const modifyNode = (node: any): void => {
     if (!node) {
       return
@@ -1679,19 +1753,25 @@ function modifyPaginationButtons(
       if (openingElement && openingElement.name && openingElement.name.type === 'JSXIdentifier') {
         const className = getClassName(openingElement.attributes)
 
-        if (className) {
-          detectedPaginations.forEach((detected, index) => {
+        if (className && !modifiedButtons.has(node)) {
+          for (let index = 0; index < detectedPaginations.length; index++) {
+            const detected = detectedPaginations[index]
             const info = paginationInfos[index]
+
             if (!info) {
-              return
+              continue
             }
 
             if (className === detected.prevButtonClass) {
               convertToButton(node, info, 'prev')
+              modifiedButtons.add(node)
+              break
             } else if (className === detected.nextButtonClass) {
               convertToButton(node, info, 'next')
+              modifiedButtons.add(node)
+              break
             }
-          })
+          }
         }
       }
     }
@@ -1715,6 +1795,8 @@ function modifySearchInputs(
   detectedPaginations: DetectedPagination[],
   paginationInfos: ArrayMapperPaginationInfo[]
 ): void {
+  const modifiedInputs = new Set<any>()
+
   const modifyNode = (node: any): void => {
     if (!node) {
       return
@@ -1725,20 +1807,21 @@ function modifySearchInputs(
       if (openingElement && openingElement.name && openingElement.name.type === 'JSXIdentifier') {
         const className = getClassName(openingElement.attributes)
 
-        if (className) {
-          detectedPaginations.forEach((detected, index) => {
+        if (className && !modifiedInputs.has(node)) {
+          for (let index = 0; index < detectedPaginations.length; index++) {
+            const detected = detectedPaginations[index]
             const info = paginationInfos[index]
+
             if (!info || !info.searchEnabled) {
-              return
+              continue
             }
 
             if (className === detected.searchInputClass) {
               addSearchInputHandlers(node, info)
-            } else if (className && className.includes('search-input')) {
-              // Fallback: match any input with 'search-input' in class
-              addSearchInputHandlers(node, info)
+              modifiedInputs.add(node)
+              break
             }
-          })
+          }
         }
       }
     }
@@ -2256,6 +2339,12 @@ function createAPIRoutesForPaginatedDataSources(
 ): void {
   const paginatedDataSourceIds = new Set(paginationInfos.map((info) => info.dataSourceIdentifier))
 
+  const searchEnabledDataSources = new Set(
+    paginationInfos.filter((info) => info.searchEnabled).map((info) => info.dataSourceIdentifier)
+  )
+
+  const createdCountRoutes = new Set<string>()
+
   const traverseForDataSources = (node: any): void => {
     if (!node) {
       return
@@ -2267,8 +2356,10 @@ function createAPIRoutesForPaginatedDataSources(
       if (renderProp && paginatedDataSourceIds.has(renderProp)) {
         extractDataSourceIntoNextAPIFolder(node, dataSources, componentChunk, extractedResources)
 
-        // For components, also create count API route
-        if (isComponent) {
+        const hasSearch = searchEnabledDataSources.has(renderProp)
+        const needsCountRoute = isComponent || hasSearch
+
+        if (needsCountRoute) {
           const resourceDef = node.content.resourceDefinition
           if (resourceDef) {
             const dataSourceId = resourceDef.dataSourceId
@@ -2277,15 +2368,17 @@ function createAPIRoutesForPaginatedDataSources(
             const fileName = `${dataSourceType}-${tableName}-${dataSourceId.substring(0, 8)}`
             const countFileName = `${fileName}-count`
 
-            // Create count API route that exports getCount handler
-            extractedResources[`api/${countFileName}`] = {
-              fileName: countFileName,
-              fileType: FileType.JS,
-              path: ['pages', 'api'],
-              content: `import dataSource from '../../utils/data-sources/${fileName}'
+            if (!createdCountRoutes.has(countFileName)) {
+              extractedResources[`api/${countFileName}`] = {
+                fileName: countFileName,
+                fileType: FileType.JS,
+                path: ['pages', 'api'],
+                content: `import dataSource from '../../utils/data-sources/${fileName}'
 
 export default dataSource.getCount
 `,
+              }
+              createdCountRoutes.add(countFileName)
             }
           }
         }
