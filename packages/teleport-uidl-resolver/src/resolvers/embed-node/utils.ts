@@ -23,16 +23,28 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
     return child
   })
 
-  const { elementType } = node.content
+  const { elementType, attrs = {} } = node.content
   if (elementType !== 'html-node') {
     return node
   }
+
+  // Separate data-* attributes to transfer to outer wrapper
+  const dataAttrs: Record<string, any> = {}
+  const innerAttrs: Record<string, any> = {}
+
+  Object.keys(attrs).forEach((attrKey) => {
+    if (attrKey.startsWith('data')) {
+      dataAttrs[attrKey] = attrs[attrKey]
+    } else {
+      innerAttrs[attrKey] = attrs[attrKey]
+    }
+  })
 
   return {
     type: 'element',
     content: {
       elementType: 'container',
-      attrs: {},
+      attrs: dataAttrs,
       style: node.content.style,
       referencedStyles: node.content.referencedStyles,
       events: node.content.events,
@@ -53,6 +65,7 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
                 type: 'element',
                 content: {
                   ...node.content,
+                  attrs: innerAttrs,
                   events: {},
                   referencedStyles: {},
                   style: {},

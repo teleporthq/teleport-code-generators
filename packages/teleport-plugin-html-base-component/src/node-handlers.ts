@@ -762,12 +762,22 @@ const generateComponentContent = async (
     componentWrapper = `${componentWrapper}-${StringUtils.generateRandomString()}`
   }
 
+  // Transfer data-* attributes from component instance to wrapper
+  const wrapperAttrs: Record<string, UIDLAttributeValue> = {}
+  Object.keys(attrs).forEach((attrKey) => {
+    // Transfer data-* attributes (handles both kebab-case and camelCase forms)
+    if (attrKey.startsWith('data')) {
+      wrapperAttrs[attrKey] = attrs[attrKey]
+    }
+  })
+
   const componentInstanceToGenerate: UIDLElementNode = {
     type: 'element',
     content: {
       elementType: componentWrapper,
       key: componentWrapper,
       children: [componentClone.node],
+      attrs: wrapperAttrs,
       style: {
         display: {
           type: 'static',
