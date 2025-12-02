@@ -83,12 +83,48 @@ export interface UIDLResources {
   }
 }
 
+export type DataSourceType =
+  | 'rest-api'
+  | 'postgresql'
+  | 'mysql'
+  | 'mariadb'
+  | 'amazon-redshift'
+  | 'mongodb'
+  | 'cockroachdb'
+  | 'tidb'
+  | 'redis'
+  | 'firestore'
+  | 'clickhouse'
+  | 'airtable'
+  | 'supabase'
+  | 'turso'
+  | 'javascript'
+  | 'google-sheets'
+  | 'csv-file'
+  | 'static-collection'
+
+export interface UIDLDataSource {
+  id: string
+  name: string
+  type: DataSourceType
+  config: Record<string, unknown>
+}
+
+export interface UIDLDataSourceResourceDefinition {
+  type: 'external-data-source'
+  dataSourceId: string
+  tableName: string
+  dataSourceType: DataSourceType
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
   resources?: UIDLResources
+  forms?: UIDLForms
+  dataSources?: Record<string, UIDLDataSource>
   internationalization?: {
     main: {
       name: string
@@ -339,6 +375,7 @@ interface UIDLReferenValues {
     referenceType: ReferenceType
     refPath?: string[]
     id: string
+    fallback?: string | number | boolean
   }
 }
 
@@ -487,9 +524,62 @@ export interface UIDLCMSListRepeaterNodeContent {
   nodes: {
     list: UIDLElementNode
     empty?: UIDLElementNode
+    loading?: UIDLElementNode
   }
   renderPropIdentifier: string
   source?: string
+  paginated?: boolean
+  perPage?: number
+  searchEnabled?: boolean
+  searchDebounce?: number
+}
+
+export interface UIDLDataSourceItemNode {
+  type: 'data-source-item'
+  content: UIDLDataSourceItemNodeContent
+}
+
+export interface UIDLDataSourceListNode {
+  type: 'data-source-list'
+  content: UIDLDataSourceListNodeContent
+}
+
+export interface UIDLDataSourceItemNodeContent {
+  elementType: string
+  name?: string
+  key?: string
+  attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
+  resourceDefinition: UIDLDataSourceResourceDefinition
+  renderPropIdentifier: string
+  nodes?: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  children?: UIDLNode[]
+  valuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
+}
+
+export interface UIDLDataSourceListNodeContent {
+  elementType: string
+  name?: string
+  key?: string
+  attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
+  resourceDefinition: UIDLDataSourceResourceDefinition
+  renderPropIdentifier: string
+  nodes?: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
+  children?: UIDLNode[]
+  valuePath?: string[]
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -593,6 +683,8 @@ export type UIDLNode =
   | UIDLDateTimeNode
   | UIDLCMSListRepeaterNode
   | UIDLCMSMixedTypeNode
+  | UIDLDataSourceItemNode
+  | UIDLDataSourceListNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
@@ -870,4 +962,122 @@ export interface UIDLStyleSetStateCondition {
     state: UIDLElementStyleStates
   }
   content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+}
+
+export interface UIDLForms {
+  // Forms indexed by form ID for easy lookup
+  items: Record<string, UIDLFormDefinition>
+
+  // Optional: Global form configuration that applies to all forms
+  globalConfig?: {
+    // Default captcha provider if used across multiple forms
+    captchaProvider?: 'recaptcha' | 'hcaptcha' | 'turnstile'
+    // Default email service configuration reference
+    emailServiceRef?: string
+    // Default captcha public key (can be overridden per form)
+    defaultCaptchaPublicKey?: UIDLStaticValue | UIDLENVValue
+  }
+
+  // Server URL for form submissions (overrides NEXT_PUBLIC_FORMS_API_URL)
+  formsServerUrl?: UIDLStaticValue | UIDLENVValue
+}
+
+export interface UIDLFormDefinition {
+  // Core identification
+  id: UIDLStaticValue
+  name: UIDLStaticValue
+  formNodeId: UIDLStaticValue // Links to the actual form element in the component tree
+
+  // Context - which page/component contains this form
+  context?: {
+    type: 'page' | 'component'
+    id: UIDLStaticValue
+  }
+
+  // Form fields structure
+  fields: Record<string, UIDLFormField>
+
+  // Behavior configurations
+  behaviors: {
+    onSuccess: UIDLFormBehavior
+    onError: UIDLFormBehavior
+    onLimit?: UIDLFormBehavior
+  }
+
+  // Email notifications
+  notifications?: {
+    sendToSubscriber: UIDLStaticValue // boolean
+    sendToEmails: UIDLStaticValue[] // string[]
+  }
+
+  // Security & validation
+  security?: {
+    captchaPublicKey?: UIDLStaticValue | UIDLENVValue
+    honeypotField?: UIDLStaticValue
+  }
+
+  // Limits & constraints
+  constraints?: {
+    expirationDate?: UIDLStaticValue // ISO date string
+    submissionsLimit?: UIDLStaticValue // number
+  }
+
+  // Alert messages for different states
+  messages?: {
+    success?: UIDLStaticValue
+    error?: UIDLStaticValue
+    limit?: UIDLStaticValue
+  }
+
+  // Metadata
+  meta?: {
+    createdAt: UIDLStaticValue
+    updatedAt: UIDLStaticValue
+  }
+}
+
+export interface UIDLFormField {
+  id: UIDLStaticValue
+  name: UIDLStaticValue
+  nodeId: UIDLStaticValue // Links to the input element node
+  type: 'textinput' | 'textarea' | 'select' | 'checkbox' | 'radiobutton' | 'button'
+  required?: UIDLStaticValue // boolean
+
+  // Future extensibility for validation rules
+  validation?: {
+    pattern?: UIDLStaticValue
+    minLength?: UIDLStaticValue
+    maxLength?: UIDLStaticValue
+    min?: UIDLStaticValue
+    max?: UIDLStaticValue
+    customValidation?: UIDLExpressionValue
+  }
+}
+
+export type UIDLFormBehaviorAction =
+  | 'message'
+  | 'redirect-page'
+  | 'redirect-url'
+  | 'clear-form'
+  | 'clear-form-and-alert'
+
+export interface UIDLFormBehavior {
+  action: UIDLFormBehaviorAction
+
+  // Action-specific details
+  details?: {
+    // For redirect-page: reference to page state value
+    pageId?: UIDLStaticValue
+
+    // For redirect-url: external URL
+    url?: UIDLStaticValue
+
+    // For message: can be either a static message or a component reference
+    message?:
+      | UIDLStaticValue
+      | {
+          type: 'component-ref'
+          componentId: UIDLStaticValue
+        }
+  }
 }

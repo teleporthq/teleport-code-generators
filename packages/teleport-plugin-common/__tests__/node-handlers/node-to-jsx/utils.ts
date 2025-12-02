@@ -161,8 +161,21 @@ describe('createConditionIdentifier', () => {
     expect(result.type).toBe('boolean')
   })
 
+  it('works with a local reference', () => {
+    const node = dynamicNode('local', 'item', ['type'])
+    const optionsWithLocalIdentifier = {
+      ...options,
+      localIdentifier: 'item',
+    }
+    const result = createConditionIdentifier(node, params, optionsWithLocalIdentifier)
+
+    expect(result.key).toBe('type')
+    expect(result.prefix).toBe('item')
+    expect(result.type).toBe('string')
+  })
+
   it('throws an error for unknown reference type', () => {
-    const node = dynamicNode('local', 'title')
+    const node = dynamicNode('locale', 'title')
     expect(() => createConditionIdentifier(node, params, options)).toThrowError()
   })
 })

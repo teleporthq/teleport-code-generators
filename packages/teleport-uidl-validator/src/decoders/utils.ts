@@ -15,6 +15,7 @@ import {
   withDefault,
   anyJson,
   unknownJson,
+  succeed,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -131,7 +132,8 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = union(
     content: object({
       referenceType: referenceTypeDecoder,
       refPath: optional(array(string())),
-      id: string(),
+      id: optional(string()),
+      fallback: optional(union(string(), number(), boolean())),
     }),
   }),
   globalValueDecoder
@@ -728,6 +730,22 @@ export const objectValueDecoder: Decoder<UIDLObjectValue> = object({
   content: unknownJson(),
 })
 
+// Helper decoder that handles both UIDLNode format and plain element format in children arrays
+const flexibleChildDecoder: Decoder<VUIDLNode> = lazy(() => {
+  return anyJson().andThen((json: any) => {
+    // If it has "elementType" but no "type", wrap it in a UIDLNode
+    if (json && typeof json === 'object' && json.elementType && !json.type) {
+      // Return a decoder that succeeds with the wrapped node
+      return succeed({
+        type: 'element' as const,
+        content: json,
+      } as VUIDLNode)
+    }
+    // Otherwise, try parsing as a normal UIDLNode
+    return uidlNodeDecoder
+  })
+})
+
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
@@ -742,7 +760,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
       link: optional(anyJson()),
     })
   ),
-  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  children: withDefault([], array(flexibleChildDecoder)),
   referencedStyles: optional(
     dict(
       union(
@@ -818,11 +836,6 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
       })
     ),
   }),
-})
-
-export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
-  type: constant('element'),
-  content: elementDecoder,
 })
 
 export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
@@ -916,10 +929,15 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     nodes: object({
       list: lazy(() => elementNodeDecoder),
       empty: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
     }),
     dependency: optional(lazy(() => dependencyDecoder)),
     source: optional(string()),
     renderPropIdentifier: string(),
+    paginated: optional(boolean()),
+    perPage: optional(number()),
+    searchEnabled: optional(boolean()),
+    searchDebounce: optional(number()),
   }),
 })
 
@@ -942,8 +960,291 @@ export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
   }),
 })
 
+// Data source content that can be wrapped in an element node
+// This matches the hybrid structure: { type: "data-source-item", content: {...}, children: [] }
+const dataSourceItemContentDecoder = object({
+  type: constant('data-source-item'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  // Element properties at the hybrid level
+  name: withDefault('data-source-item', string()),
+  key: optional(string()),
+  elementType: optional(string()),
+  semanticType: optional(string()),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+  events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
+  abilities: optional(object({ link: optional(anyJson()) })),
+  referencedStyles: optional(
+    dict(
+      union(
+        elementInlineReferencedStyle,
+        elementProjectReferencedStyle,
+        elementComponentReferencedStyle
+      )
+    )
+  ),
+  selfClosing: optional(boolean()),
+  dependency: optional(dependencyDecoder),
+})
+
+const dataSourceListContentDecoder = object({
+  type: constant('data-source-list'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+  children: withDefault([], array(lazy(() => uidlNodeDecoder))),
+  // Element properties at the hybrid level
+  name: withDefault('data-source-list', string()),
+  key: optional(string()),
+  elementType: optional(string()),
+  semanticType: optional(string()),
+  style: optional(dict(union(styleValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+  events: withDefault({}, dict(array(eventHandlerStatementDecoder))),
+  abilities: optional(object({ link: optional(anyJson()) })),
+  referencedStyles: optional(
+    dict(
+      union(
+        elementInlineReferencedStyle,
+        elementProjectReferencedStyle,
+        elementComponentReferencedStyle
+      )
+    )
+  ),
+  selfClosing: optional(boolean()),
+  dependency: optional(dependencyDecoder),
+})
+
+export const dataSourceItemNodeDecoder: Decoder<any> = object({
+  type: constant('data-source-item'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+})
+
+export const dataSourceListNodeDecoder: Decoder<any> = object({
+  type: constant('data-source-list'),
+  content: object({
+    elementType: string(),
+    name: optional(string()),
+    key: optional(string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+    renderPropIdentifier: string(),
+    dependency: optional(dependencyDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
+    valuePath: optional(array(string())),
+    resourceDefinition: object({
+      type: string(),
+      dataSourceId: string(),
+      tableName: optional(string()),
+      dataSourceType: string(),
+    }),
+    resource: optional(uidlResourceLinkDecoder),
+    initialData: optional(anyJson()),
+  }),
+})
+
+// Element node decoder that can wrap standard elements or data-source hybrid structures
+export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
+  type: constant('element'),
+  content: union(elementDecoder, dataSourceItemContentDecoder, dataSourceListContentDecoder),
+}) as any
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   union(elementNodeDecoder, dynamicValueDecoder, rawValueDecoder, conditionalNodeDecoder),
   union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
-  union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
+  union(
+    cmsItemNodeDecoder,
+    cmsListNodeDecoder,
+    cmsListRepeaterNodeDecoder,
+    cmsMixedTypeNodeDecoder
+  ),
+  union(dataSourceItemNodeDecoder, dataSourceListNodeDecoder)
 )
+
+export const formFieldValidationDecoder = object({
+  pattern: optional(staticValueDecoder),
+  minLength: optional(staticValueDecoder),
+  maxLength: optional(staticValueDecoder),
+  min: optional(staticValueDecoder),
+  max: optional(staticValueDecoder),
+  customValidation: optional(expressionValueDecoder),
+})
+
+export const formFieldDecoder = object({
+  id: staticValueDecoder,
+  name: staticValueDecoder,
+  nodeId: staticValueDecoder,
+  type: oneOf(
+    constant('textinput'),
+    constant('textarea'),
+    constant('select'),
+    constant('checkbox'),
+    constant('radiobutton'),
+    constant('button')
+  ),
+  required: optional(staticValueDecoder),
+  validation: optional(formFieldValidationDecoder),
+})
+
+export const formBehaviorDecoder = object({
+  action: oneOf(
+    constant('message'),
+    constant('redirect-page'),
+    constant('redirect-url'),
+    constant('clear-form'),
+    constant('clear-form-and-alert')
+  ),
+  details: optional(
+    object({
+      pageId: optional(staticValueDecoder),
+      url: optional(staticValueDecoder),
+      message: optional(
+        union(
+          staticValueDecoder,
+          object({
+            type: constant('component-ref'),
+            componentId: staticValueDecoder,
+          })
+        )
+      ),
+    })
+  ),
+})
+
+export const formDefinitionDecoder = object({
+  id: staticValueDecoder,
+  name: staticValueDecoder,
+  formNodeId: staticValueDecoder,
+  context: optional(
+    object({
+      type: oneOf(constant('page'), constant('component')),
+      id: staticValueDecoder,
+    })
+  ),
+  fields: dict(formFieldDecoder),
+  behaviors: object({
+    onSuccess: formBehaviorDecoder,
+    onError: formBehaviorDecoder,
+    onLimit: optional(formBehaviorDecoder),
+  }),
+  notifications: optional(
+    object({
+      sendToSubscriber: staticValueDecoder,
+      sendToEmails: array(staticValueDecoder),
+    })
+  ),
+  security: optional(
+    object({
+      captchaPublicKey: optional(union(staticValueDecoder, envValueDecoder)),
+      honeypotField: optional(staticValueDecoder),
+    })
+  ),
+  constraints: optional(
+    object({
+      expirationDate: optional(staticValueDecoder),
+      submissionsLimit: optional(staticValueDecoder),
+    })
+  ),
+  messages: optional(
+    object({
+      success: optional(staticValueDecoder),
+      error: optional(staticValueDecoder),
+      limit: optional(staticValueDecoder),
+    })
+  ),
+  meta: optional(
+    object({
+      createdAt: staticValueDecoder,
+      updatedAt: staticValueDecoder,
+    })
+  ),
+})
+
+export const formsDecoder = object({
+  items: dict(formDefinitionDecoder),
+  globalConfig: optional(
+    object({
+      captchaProvider: optional(
+        oneOf(constant('recaptcha'), constant('hcaptcha'), constant('turnstile'))
+      ),
+      emailServiceRef: optional(string()),
+      defaultCaptchaPublicKey: optional(union(staticValueDecoder, envValueDecoder)),
+    })
+  ),
+  formsServerUrl: optional(union(staticValueDecoder, envValueDecoder)),
+})
+
+// Data Sources decoder - allows any configuration structure
+export const dataSourceDecoder = object({
+  id: string(),
+  name: string(),
+  type: string(),
+  config: dict(unknownJson()),
+})
+
+export const dataSourcesDecoder = dict(dataSourceDecoder)

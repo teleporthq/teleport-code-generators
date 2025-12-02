@@ -16,6 +16,7 @@ import {
   WebManifest,
   VProjectUIDL,
   UIDLResources,
+  UIDLForms,
 } from '@teleporthq/teleport-types'
 import {
   globalAssetsDecoder,
@@ -24,6 +25,8 @@ import {
   dependencyDecoder,
   elementNodeDecoder,
   staticValueDecoder,
+  formsDecoder,
+  dataSourcesDecoder,
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -83,6 +86,8 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
   resources: optional(resourcesDecoder),
+  dataSources: optional(dataSourcesDecoder),
+  forms: optional(formsDecoder) as Decoder<UIDLForms | undefined>,
   internationalization: optional(
     object({
       main: object({
@@ -94,4 +99,4 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
       translations: dict(dict(union(elementNodeDecoder, staticValueDecoder))),
     })
   ),
-})
+}) as Decoder<VProjectUIDL>

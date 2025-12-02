@@ -20,7 +20,7 @@ module.exports = {
   "testPathIgnorePatterns": ['mocks.ts'],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
-    '<rootDir>/test-mocks/html-whitespace-sensitive-tag-names.json'
+      '<rootDir>/test-mocks/html-whitespace-sensitive-tag-names.json'
   },
   "collectCoverage": false,
   "testEnvironment": "node",

@@ -128,13 +128,28 @@ const addImportChunk = (
     ASTBuilders.createGenericImportStatement(key, dependencies[key])
   )
 
-  chunks.push({
-    type: ChunkType.AST,
-    name: newChunkName,
-    fileType,
-    content: importASTs,
-    linkAfter: [],
-  })
+  // Check if a chunk with this name already exists
+  const existingChunkIndex = chunks.findIndex((chunk) => chunk.name === newChunkName)
+
+  if (existingChunkIndex >= 0) {
+    // Update existing chunk
+    chunks[existingChunkIndex] = {
+      type: ChunkType.AST,
+      name: newChunkName,
+      fileType,
+      content: importASTs,
+      linkAfter: [],
+    }
+  } else {
+    // Add new chunk
+    chunks.push({
+      type: ChunkType.AST,
+      name: newChunkName,
+      fileType,
+      content: importASTs,
+      linkAfter: [],
+    })
+  }
 }
 
 export default createImportPlugin()

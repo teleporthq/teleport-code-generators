@@ -233,33 +233,6 @@ export const generateHtmlSyntax: NodeToHTML<
         return generatedNode
       }
 
-      // Repeater alias fallback: if inside repeater but key doesn't match, try the single available context
-      if (
-        resolvedExpressions &&
-        resolvedExpressions.expressions &&
-        Object.keys(resolvedExpressions.expressions).length === 1
-      ) {
-        const onlyKey = Object.keys(resolvedExpressions.expressions)[0]
-        const uidlDynamicRef: UIDLDynamicReference = {
-          type: 'dynamic',
-          content: {
-            referenceType: 'prop',
-            refPath: [resolvedExpressions.currentIndex.toString(), ...content.slice(1)],
-            id: onlyKey,
-          },
-        }
-        const generatedNode = await generateDynamicNode(
-          uidlDynamicRef,
-          compName,
-          nodesLookup,
-          resolvedExpressions.expressions,
-          stateDefinitions,
-          subComponentOptions,
-          structure
-        )
-        return generatedNode
-      }
-
       // Fallback: support simple prop/state expressions outside of repeater context
       if (content[0] && (propDefinitions?.[content[0]] || stateDefinitions?.[content[0]])) {
         const isProp = Boolean(propDefinitions?.[content[0]])
@@ -294,6 +267,29 @@ export const generateHtmlSyntax: NodeToHTML<
         subComponentOptions,
         structure
       )
+
+    case 'cms-item':
+    case 'cms-list':
+    case 'data-source-item':
+    case 'data-source-list':
+      // For HTML generation, render the success node content
+      // Since HTML doesn't support dynamic data fetching, we just render the static structure
+      const successNode = (node.content as any).nodes?.success
+      if (successNode) {
+        return generateHtmlSyntax(
+          successNode,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure,
+          resolvedExpressions
+        )
+      }
+      // If no success node, return empty div
+      return HASTBuilders.createHTMLNode('div')
+
     default:
       throw new HTMLComponentGeneratorError(
         `generateHtmlSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -331,6 +327,29 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
       return value
     case 'boolean':
       return value
+    case 'object':
+      // Handle dynamic references (local, prop, state)
+      if (value && typeof value === 'object' && 'type' in value) {
+        const dynamicValue = value as unknown as UIDLDynamicReference
+        if (dynamicValue.type === 'dynamic' && dynamicValue.content) {
+          const { referenceType, id, refPath } = dynamicValue.content
+          if (referenceType === 'local' && id) {
+            // Local reference from repeater context
+            if (refPath && refPath.length > 0) {
+              return `${id}.${refPath.join('.')}`
+            }
+            return id
+          } else if (referenceType === 'prop' || referenceType === 'state') {
+            // Prop or state reference
+            const key = refPath && refPath.length > 0 ? refPath.join('.') : id
+            return key
+          }
+        }
+      }
+      throw new HTMLComponentGeneratorError(
+        `Conditional node received an operand of type ${valueType} \n
+          Received ${JSON.stringify(value)}`
+      )
     default:
       throw new HTMLComponentGeneratorError(
         `Conditional node received an operand of type ${valueType} \n
@@ -356,9 +375,11 @@ const generateRepeaterNode: NodeToHTML<
   const contextId = node.content.renderPropIdentifier
   const sourceValue = node.content.source
   let propDef =
-    propDefinitions[
-      Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
-    ]
+    sourceValue && typeof sourceValue === 'string'
+      ? propDefinitions[
+          Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
+        ]
+      : undefined
 
   if (!propDef || !Array.isArray(propDef.defaultValue)) {
     // If no prop is found we might have a static source value
@@ -387,9 +408,12 @@ const generateRepeaterNode: NodeToHTML<
   if (node.content.nodes.empty) {
     node.content.nodes.empty.content.style = { display: { type: 'static', content: 'contents' } }
   }
+  if (node.content.nodes.loading) {
+    node.content.nodes.loading.content.style = { display: { type: 'static', content: 'contents' } }
+  }
   // Empty case
   if (propDef.defaultValue.length === 0) {
-    const emptyChildren = nodes.empty.content.children
+    const emptyChildren = nodes.empty?.content.children
     if (emptyChildren) {
       for (const child of emptyChildren) {
         const childTag = await generateHtmlSyntax(
@@ -410,7 +434,9 @@ const generateRepeaterNode: NodeToHTML<
       }
     }
 
-    addNodeToLookup(`${node.content.nodes.empty.content.key}`, elementNode, nodesLookup)
+    if (nodes.empty) {
+      addNodeToLookup(`${node.content.nodes.empty.content.key}`, elementNode, nodesLookup)
+    }
     return elementNode
   }
 
@@ -455,6 +481,31 @@ const generateElementNode: NodeToHTML<
   structure,
   resolvedExpressions
 ) => {
+  // Check if this is a wrapped data-source node
+  if (
+    node.content &&
+    typeof node.content === 'object' &&
+    'type' in node.content &&
+    (node.content.type === 'data-source-item' || node.content.type === 'data-source-list')
+  ) {
+    // Handle as data-source node - just render the success content
+    const successNode = (node.content as any).nodes?.success
+    if (successNode) {
+      return generateHtmlSyntax(
+        successNode,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure,
+        resolvedExpressions
+      )
+    }
+    // If no success node, return empty div
+    return HASTBuilders.createHTMLNode('div')
+  }
+
   const {
     elementType,
     children,
