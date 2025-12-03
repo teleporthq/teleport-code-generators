@@ -60,12 +60,18 @@ export default async function handler(req, res) {
     
     const conditions = []
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const searchConditions = columns.map(
-        (col) => \`positionCaseInsensitive(toString(\${col}), '\${query}') > 0\`
-      )
-      conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+    if (query) {
+      if (queryColumns) {
+        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const searchConditions = columns.map(
+          (col) => \`positionCaseInsensitive(toString(\${col}), '\${query}') > 0\`
+        )
+        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+      } else {
+        // Note: Without queryColumns, ClickHouse can't search all columns efficiently
+        // Users should provide queryColumns for optimal search performance
+        console.warn('Search query provided without queryColumns - search may not work as expected')
+      }
     }
     
     if (filters) {

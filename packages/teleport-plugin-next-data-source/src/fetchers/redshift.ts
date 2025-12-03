@@ -66,15 +66,38 @@ export default async function handler(req, res) {
     const queryParams = []
     let paramIndex = 1
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const searchConditions = columns.map((col) => {
-        const condition = \`\${col}::text ILIKE $\${paramIndex}\`
-        paramIndex++
-        return condition
-      })
-      columns.forEach(() => queryParams.push(\`%\${query}%\`))
-      conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+    if (query) {
+      let columns = []
+      
+      if (queryColumns) {
+        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+      } else {
+        // Fallback: Get all columns from information_schema
+        try {
+          const schemaQuery = 'SELECT column_name FROM information_schema.columns WHERE table_name = $1' + 
+            ${schema ? `' AND table_schema = $2'` : `''`} + 
+            ' ORDER BY ordinal_position'
+          const schemaParams = ${
+            schema
+              ? `[${JSON.stringify(tableName)}, ${JSON.stringify(schema)}]`
+              : `[${JSON.stringify(tableName)}]`
+          }
+          const schemaResult = await pool.query(schemaQuery, schemaParams)
+          columns = schemaResult.rows.map(row => row.column_name)
+        } catch (schemaError) {
+          console.warn('Failed to fetch column names from information_schema:', schemaError.message)
+        }
+      }
+      
+      if (columns.length > 0) {
+        const searchConditions = columns.map((col) => {
+          const condition = \`\${col}::text ILIKE $\${paramIndex}\`
+          paramIndex++
+          return condition
+        })
+        columns.forEach(() => queryParams.push(\`%\${query}%\`))
+        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+      }
     }
     
     if (filters) {

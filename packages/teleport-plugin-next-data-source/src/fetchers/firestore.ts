@@ -85,12 +85,20 @@ export default async function handler(req, res) {
       })
     }
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      for (const column of columns) {
-        queryRef = queryRef
-          .where(column, '>=', query)
-          .where(column, '<=', query + '\\uf8ff')
+    let usePostFiltering = false
+    
+    if (query) {
+      if (queryColumns) {
+        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        for (const column of columns) {
+          queryRef = queryRef
+            .where(column, '>=', query)
+            .where(column, '<=', query + '\\uf8ff')
+        }
+      } else {
+        // Firestore doesn't support full-text search without queryColumns
+        // We'll fetch all data and filter in JavaScript
+        usePostFiltering = true
       }
     }
     
@@ -100,23 +108,47 @@ export default async function handler(req, res) {
     }
     
     const limitValue = limit || perPage
-    if (limitValue) {
-      queryRef = queryRef.limit(parseInt(limitValue))
-    }
-    
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage && parseInt(page) > 1 ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
-    if (offsetValue !== undefined) {
-      queryRef = queryRef.offset(offsetValue)
+    
+    // Only apply pagination at query level if not post-filtering
+    if (!usePostFiltering) {
+      if (limitValue) {
+        queryRef = queryRef.limit(parseInt(limitValue))
+      }
+      if (offsetValue !== undefined) {
+        queryRef = queryRef.offset(offsetValue)
+      }
     }
     
     const snapshot = await queryRef.get()
-    const documents = []
+    let documents = []
     snapshot.forEach((doc) => {
       documents.push({
         id: doc.id,
         ...doc.data()
       })
     })
+    
+    // Apply post-filtering if needed
+    if (usePostFiltering && query) {
+      const searchQuery = query.toLowerCase()
+      documents = documents.filter((item) => {
+        try {
+          const stringified = JSON.stringify(item).toLowerCase()
+          return stringified.includes(searchQuery)
+        } catch {
+          return false
+        }
+      })
+      
+      // Apply pagination after filtering
+      if (limitValue) {
+        const start = offsetValue || 0
+        documents = documents.slice(start, start + parseInt(limitValue))
+      } else if (offsetValue) {
+        documents = documents.slice(offsetValue)
+      }
+    }
     
     const safeData = JSON.parse(JSON.stringify(documents))
     
