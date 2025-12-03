@@ -48,14 +48,20 @@ export default async function handler(req, res) {
     let sql = \`SELECT * FROM ${tableName}\`
     const whereClauses = []
     const queryParams = []
+    let searchQueryColumns = null
     
-    if (query && queryColumns) {
-      const columns = JSON.parse(queryColumns)
-      const searchConditions = columns.map((col) => \`\${col} LIKE ?\`)
-      whereClauses.push(\`(\${searchConditions.join(' OR ')})\`)
-      columns.forEach(() => {
-        queryParams.push(\`%\${query}%\`)
-      })
+    if (query) {
+      if (queryColumns) {
+        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const searchConditions = columns.map((col) => \`\${col} LIKE ?\`)
+        whereClauses.push(\`(\${searchConditions.join(' OR ')})\`)
+        columns.forEach(() => {
+          queryParams.push(\`%\${query}%\`)
+        })
+      } else {
+        // Store query for post-filtering if columns not specified
+        searchQueryColumns = query
+      }
     }
     
     if (filters) {
@@ -84,14 +90,17 @@ export default async function handler(req, res) {
     const limitValue = limit || perPage
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
     
-    if (limitValue) {
-      sql += \` LIMIT ?\`
-      queryParams.push(parseInt(limitValue))
-    }
-    
-    if (offsetValue !== undefined) {
-      sql += \` OFFSET ?\`
-      queryParams.push(offsetValue)
+    // Only apply SQL pagination if we're not doing post-filtering
+    if (!searchQueryColumns) {
+      if (limitValue) {
+        sql += \` LIMIT ?\`
+        queryParams.push(parseInt(limitValue))
+      }
+      
+      if (offsetValue !== undefined) {
+        sql += \` OFFSET ?\`
+        queryParams.push(offsetValue)
+      }
     }
     
     const result = await client.execute({
@@ -99,13 +108,34 @@ export default async function handler(req, res) {
       args: queryParams
     })
     
-    const data = result.rows.map((row) => {
+    let data = result.rows.map((row) => {
       const obj = {}
       result.columns.forEach((col, idx) => {
         obj[col] = row[col]
       })
       return obj
     })
+    
+    // Apply post-filtering for search without queryColumns
+    if (searchQueryColumns) {
+      const searchQuery = searchQueryColumns.toLowerCase()
+      data = data.filter((item) => {
+        try {
+          const stringified = JSON.stringify(item).toLowerCase()
+          return stringified.includes(searchQuery)
+        } catch {
+          return false
+        }
+      })
+      
+      // Apply pagination after filtering
+      if (limitValue) {
+        const start = offsetValue || 0
+        data = data.slice(start, start + parseInt(limitValue))
+      } else if (offsetValue) {
+        data = data.slice(offsetValue)
+      }
+    }
     
     const safeData = JSON.parse(JSON.stringify(data))
     

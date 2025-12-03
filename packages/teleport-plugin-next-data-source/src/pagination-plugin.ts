@@ -123,6 +123,8 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     const searchConfigMap = opts.paginationConfig?.searchConfigMap || new Map<string, any>()
     const queryColumnsMap = opts.paginationConfig?.queryColumnsMap || new Map<string, string[]>()
 
+    const stateDeclarations: types.Statement[] = []
+
     detectedPaginations.forEach((detected, index) => {
       const paginationNodeId = `pg_${index}`
       // Use arrayMapperRenderProp if available, otherwise fall back to dataSourceIdentifier
@@ -141,55 +143,27 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       )
       paginationInfos.push(info)
 
-      // If both pagination and search are enabled, combine them into a single state object
-      if (info.searchEnabled && info.searchQueryVar && info.setSearchQueryVar) {
-        // Combined state: { page: 1, debouncedQuery: '' }
-        const combinedStateVar = `paginationState_pg_${index}`
-        const setCombinedStateVar = `setPaginationState_pg_${index}`
-
-        const combinedStateAST = types.variableDeclaration('const', [
+      // Add refs to track first render for each useEffect (add first)
+      if (info.searchEnabled) {
+        const skipCountFetchOnMountRefVar = `skipCountFetchOnMount_pg_${index}`
+        const skipCountFetchRefAST = types.variableDeclaration('const', [
           types.variableDeclarator(
-            types.arrayPattern([
-              types.identifier(combinedStateVar),
-              types.identifier(setCombinedStateVar),
-            ]),
-            types.callExpression(types.identifier('useState'), [
-              types.objectExpression([
-                types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
-                types.objectProperty(types.identifier('debouncedQuery'), types.stringLiteral('')),
-              ]),
-            ])
+            types.identifier(skipCountFetchOnMountRefVar),
+            types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
           ),
         ])
-        blockStatement.body.unshift(combinedStateAST)
+        stateDeclarations.push(skipCountFetchRefAST)
+        ;(info as any).skipCountFetchOnMountRefVar = skipCountFetchOnMountRefVar
 
-        // Still need the immediate search query state for the input
-        const searchStateAST = types.variableDeclaration('const', [
+        const skipDebounceOnMountRefVar = `skipDebounceOnMount_pg_${index}`
+        const skipDebounceRefAST = types.variableDeclaration('const', [
           types.variableDeclarator(
-            types.arrayPattern([
-              types.identifier(info.searchQueryVar),
-              types.identifier(info.setSearchQueryVar),
-            ]),
-            types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+            types.identifier(skipDebounceOnMountRefVar),
+            types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
           ),
         ])
-        blockStatement.body.unshift(searchStateAST)
-
-        // Store the combined state var names
-        ;(info as any).combinedStateVar = combinedStateVar
-        ;(info as any).setCombinedStateVar = setCombinedStateVar
-      } else {
-        // If search is not enabled, just add regular page state
-        const pageStateAST = types.variableDeclaration('const', [
-          types.variableDeclarator(
-            types.arrayPattern([
-              types.identifier(info.pageStateVar),
-              types.identifier(info.setPageStateVar),
-            ]),
-            types.callExpression(types.identifier('useState'), [types.numericLiteral(1)])
-          ),
-        ])
-        blockStatement.body.unshift(pageStateAST)
+        stateDeclarations.push(skipDebounceRefAST)
+        ;(info as any).skipDebounceOnMountRefVar = skipDebounceOnMountRefVar
       }
 
       // Add maxPages state
@@ -221,34 +195,67 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           types.callExpression(types.identifier('useState'), [maxPagesInitValue])
         ),
       ])
-      blockStatement.body.unshift(maxPagesStateAST)
+      stateDeclarations.push(maxPagesStateAST)
 
       // Store these for later use
       ;(info as any).maxPagesStateVar = maxPagesStateVar
       ;(info as any).setMaxPagesStateVar = setMaxPagesStateVar
 
-      // Add refs to track first render for each useEffect
-      if (info.searchEnabled) {
-        const skipDebounceOnMountRefVar = `skipDebounceOnMount_pg_${index}`
-        const skipDebounceRefAST = types.variableDeclaration('const', [
-          types.variableDeclarator(
-            types.identifier(skipDebounceOnMountRefVar),
-            types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
-          ),
-        ])
-        blockStatement.body.unshift(skipDebounceRefAST)
-        ;(info as any).skipDebounceOnMountRefVar = skipDebounceOnMountRefVar
+      // If both pagination and search are enabled, combine them into a single state object
+      if (info.searchEnabled && info.searchQueryVar && info.setSearchQueryVar) {
+        // Combined state: { page: 1, debouncedQuery: '' }
+        const combinedStateVar = `paginationState_pg_${index}`
+        const setCombinedStateVar = `setPaginationState_pg_${index}`
 
-        const skipCountFetchOnMountRefVar = `skipCountFetchOnMount_pg_${index}`
-        const skipCountFetchRefAST = types.variableDeclaration('const', [
+        const combinedStateAST = types.variableDeclaration('const', [
           types.variableDeclarator(
-            types.identifier(skipCountFetchOnMountRefVar),
-            types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
+            types.arrayPattern([
+              types.identifier(combinedStateVar),
+              types.identifier(setCombinedStateVar),
+            ]),
+            types.callExpression(types.identifier('useState'), [
+              types.objectExpression([
+                types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
+                types.objectProperty(types.identifier('debouncedQuery'), types.stringLiteral('')),
+              ]),
+            ])
           ),
         ])
-        blockStatement.body.unshift(skipCountFetchRefAST)
-        ;(info as any).skipCountFetchOnMountRefVar = skipCountFetchOnMountRefVar
+        stateDeclarations.push(combinedStateAST)
+
+        // Still need the immediate search query state for the input
+        const searchStateAST = types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.arrayPattern([
+              types.identifier(info.searchQueryVar),
+              types.identifier(info.setSearchQueryVar),
+            ]),
+            types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+          ),
+        ])
+        stateDeclarations.push(searchStateAST)
+
+        // Store the combined state var names
+        ;(info as any).combinedStateVar = combinedStateVar
+        ;(info as any).setCombinedStateVar = setCombinedStateVar
+      } else {
+        // If search is not enabled, just add regular page state
+        const pageStateAST = types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.arrayPattern([
+              types.identifier(info.pageStateVar),
+              types.identifier(info.setPageStateVar),
+            ]),
+            types.callExpression(types.identifier('useState'), [types.numericLiteral(1)])
+          ),
+        ])
+        stateDeclarations.push(pageStateAST)
       }
+    })
+
+    // Add all state declarations at once to the beginning in correct order
+    stateDeclarations.reverse().forEach((stateDecl) => {
+      blockStatement.body.unshift(stateDecl)
     })
 
     // Add useEffect dependency if any pagination has search enabled
@@ -351,201 +358,203 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         blockStatement.body.splice(insertIndex, 0, debounceEffect)
 
         // Add useEffect to refetch count when search changes (for both pages and components)
-        if (info.queryColumns && info.queryColumns.length > 0) {
-          const detected = detectedPaginations.find(
-            (d) => d.dataSourceIdentifier === info.dataSourceIdentifier
-          )
-          if (!detected) {
-            return
-          }
+        const detected = detectedPaginations.find(
+          (d) => d.dataSourceIdentifier === info.dataSourceIdentifier
+        )
+        if (!detected) {
+          return
+        }
 
-          const resourceDefAttr = detected.dataProviderJSX.openingElement.attributes.find(
-            (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'resourceDefinition'
-          )
+        const resourceDefAttr = detected.dataProviderJSX.openingElement.attributes.find(
+          (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'resourceDefinition'
+        )
 
-          if (
-            resourceDefAttr &&
-            resourceDefAttr.value &&
-            resourceDefAttr.value.type === 'JSXExpressionContainer'
-          ) {
-            const resourceDef = resourceDefAttr.value.expression
-            if (resourceDef.type === 'ObjectExpression') {
-              const dataSourceIdProp = (resourceDef.properties as any[]).find(
-                (p: any) => p.type === 'ObjectProperty' && p.key.value === 'dataSourceId'
-              )
-              const tableNameProp = (resourceDef.properties as any[]).find(
-                (p: any) => p.type === 'ObjectProperty' && p.key.value === 'tableName'
-              )
-              const dataSourceTypeProp = (resourceDef.properties as any[]).find(
-                (p: any) => p.type === 'ObjectProperty' && p.key.value === 'dataSourceType'
-              )
+        if (
+          resourceDefAttr &&
+          resourceDefAttr.value &&
+          resourceDefAttr.value.type === 'JSXExpressionContainer'
+        ) {
+          const resourceDef = resourceDefAttr.value.expression
+          if (resourceDef.type === 'ObjectExpression') {
+            const dataSourceIdProp = (resourceDef.properties as any[]).find(
+              (p: any) => p.type === 'ObjectProperty' && p.key.value === 'dataSourceId'
+            )
+            const tableNameProp = (resourceDef.properties as any[]).find(
+              (p: any) => p.type === 'ObjectProperty' && p.key.value === 'tableName'
+            )
+            const dataSourceTypeProp = (resourceDef.properties as any[]).find(
+              (p: any) => p.type === 'ObjectProperty' && p.key.value === 'dataSourceType'
+            )
 
-              if (dataSourceIdProp && tableNameProp && dataSourceTypeProp) {
-                const dataSourceId = dataSourceIdProp.value.value
-                const tableName = tableNameProp.value.value
-                const dataSourceType = dataSourceTypeProp.value.value
-                const fileName = `${dataSourceType}-${tableName}-${dataSourceId.substring(0, 8)}`
-                const setMaxPagesStateVar = (info as any).setMaxPagesStateVar
+            if (dataSourceIdProp && tableNameProp && dataSourceTypeProp) {
+              const dataSourceId = dataSourceIdProp.value.value
+              const tableName = tableNameProp.value.value
+              const dataSourceType = dataSourceTypeProp.value.value
+              const fileName = `${dataSourceType}-${tableName}-${dataSourceId.substring(0, 8)}`
+              const setMaxPagesStateVar = (info as any).setMaxPagesStateVar
 
-                // Create useEffect to refetch count when debounced search changes
-                const skipCountFetchOnMountRefVar = (info as any).skipCountFetchOnMountRefVar
-                const combinedStateVar = (info as any).combinedStateVar
+              // Create useEffect to refetch count when debounced search changes
+              const skipCountFetchOnMountRefVar = (info as any).skipCountFetchOnMountRefVar
+              const combinedStateVar = (info as any).combinedStateVar
 
-                const refetchCountEffect = types.expressionStatement(
-                  types.callExpression(types.identifier('useEffect'), [
-                    types.arrowFunctionExpression(
-                      [],
-                      types.blockStatement([
-                        types.ifStatement(
-                          types.memberExpression(
-                            types.identifier(skipCountFetchOnMountRefVar),
-                            types.identifier('current')
-                          ),
-                          types.blockStatement([
-                            types.expressionStatement(
-                              types.assignmentExpression(
-                                '=',
-                                types.memberExpression(
-                                  types.identifier(skipCountFetchOnMountRefVar),
-                                  types.identifier('current')
-                                ),
-                                types.booleanLiteral(false)
-                              )
-                            ),
-                            types.returnStatement(),
-                          ])
+              // Build URLSearchParams properties - query is always included, queryColumns is optional
+              const urlSearchParamsProperties: any[] = [
+                types.objectProperty(
+                  types.identifier('query'),
+                  types.memberExpression(
+                    types.identifier(combinedStateVar),
+                    types.identifier('debouncedQuery')
+                  )
+                ),
+              ]
+
+              // Add queryColumns only if they exist
+              if (info.queryColumns && info.queryColumns.length > 0) {
+                urlSearchParamsProperties.push(
+                  types.objectProperty(
+                    types.identifier('queryColumns'),
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('JSON'),
+                        types.identifier('stringify')
+                      ),
+                      [
+                        types.arrayExpression(
+                          info.queryColumns.map((col) => types.stringLiteral(col))
                         ),
-                        types.expressionStatement(
-                          types.callExpression(
-                            types.memberExpression(
-                              types.callExpression(
-                                types.memberExpression(
-                                  types.callExpression(types.identifier('fetch'), [
-                                    types.templateLiteral(
-                                      [
-                                        types.templateElement({
-                                          raw: `/api/${fileName}-count?`,
-                                          cooked: `/api/${fileName}-count?`,
-                                        }),
-                                        types.templateElement({ raw: '', cooked: '' }),
-                                      ],
-                                      [
-                                        types.newExpression(types.identifier('URLSearchParams'), [
-                                          types.objectExpression([
-                                            types.objectProperty(
-                                              types.identifier('query'),
-                                              types.memberExpression(
-                                                types.identifier(combinedStateVar),
-                                                types.identifier('debouncedQuery')
-                                              )
-                                            ),
-                                            types.objectProperty(
-                                              types.identifier('queryColumns'),
-                                              types.callExpression(
-                                                types.memberExpression(
-                                                  types.identifier('JSON'),
-                                                  types.identifier('stringify')
-                                                ),
-                                                [
-                                                  types.arrayExpression(
-                                                    info.queryColumns.map((col) =>
-                                                      types.stringLiteral(col)
-                                                    )
-                                                  ),
-                                                ]
-                                              )
-                                            ),
-                                          ]),
-                                        ]),
-                                      ]
+                      ]
+                    )
+                  )
+                )
+              }
+
+              const refetchCountEffect = types.expressionStatement(
+                types.callExpression(types.identifier('useEffect'), [
+                  types.arrowFunctionExpression(
+                    [],
+                    types.blockStatement([
+                      types.ifStatement(
+                        types.memberExpression(
+                          types.identifier(skipCountFetchOnMountRefVar),
+                          types.identifier('current')
+                        ),
+                        types.blockStatement([
+                          types.expressionStatement(
+                            types.assignmentExpression(
+                              '=',
+                              types.memberExpression(
+                                types.identifier(skipCountFetchOnMountRefVar),
+                                types.identifier('current')
+                              ),
+                              types.booleanLiteral(false)
+                            )
+                          ),
+                          types.returnStatement(),
+                        ])
+                      ),
+                      types.expressionStatement(
+                        types.callExpression(
+                          types.memberExpression(
+                            types.callExpression(
+                              types.memberExpression(
+                                types.callExpression(types.identifier('fetch'), [
+                                  types.templateLiteral(
+                                    [
+                                      types.templateElement({
+                                        raw: `/api/${fileName}-count?`,
+                                        cooked: `/api/${fileName}-count?`,
+                                      }),
+                                      types.templateElement({ raw: '', cooked: '' }),
+                                    ],
+                                    [
+                                      types.newExpression(types.identifier('URLSearchParams'), [
+                                        types.objectExpression(urlSearchParamsProperties),
+                                      ]),
+                                    ]
+                                  ),
+                                ]),
+                                types.identifier('then')
+                              ),
+                              [
+                                types.arrowFunctionExpression(
+                                  [types.identifier('res')],
+                                  types.callExpression(
+                                    types.memberExpression(
+                                      types.identifier('res'),
+                                      types.identifier('json')
                                     ),
-                                  ]),
-                                  types.identifier('then')
+                                    []
+                                  )
                                 ),
-                                [
-                                  types.arrowFunctionExpression(
-                                    [types.identifier('res')],
-                                    types.callExpression(
-                                      types.memberExpression(
-                                        types.identifier('res'),
-                                        types.identifier('json')
-                                      ),
-                                      []
+                              ]
+                            ),
+                            types.identifier('then')
+                          ),
+                          [
+                            types.arrowFunctionExpression(
+                              [types.identifier('data')],
+                              types.blockStatement([
+                                types.ifStatement(
+                                  types.logicalExpression(
+                                    '&&',
+                                    types.identifier('data'),
+                                    types.binaryExpression(
+                                      'in',
+                                      types.stringLiteral('count'),
+                                      types.identifier('data')
                                     )
                                   ),
-                                ]
-                              ),
-                              types.identifier('then')
-                            ),
-                            [
-                              types.arrowFunctionExpression(
-                                [types.identifier('data')],
-                                types.blockStatement([
-                                  types.ifStatement(
-                                    types.logicalExpression(
-                                      '&&',
-                                      types.identifier('data'),
-                                      types.binaryExpression(
-                                        'in',
-                                        types.stringLiteral('count'),
-                                        types.identifier('data')
-                                      )
-                                    ),
-                                    types.blockStatement([
-                                      types.expressionStatement(
-                                        types.callExpression(
-                                          types.identifier(setMaxPagesStateVar),
-                                          [
-                                            types.conditionalExpression(
+                                  types.blockStatement([
+                                    types.expressionStatement(
+                                      types.callExpression(types.identifier(setMaxPagesStateVar), [
+                                        types.conditionalExpression(
+                                          types.binaryExpression(
+                                            '===',
+                                            types.memberExpression(
+                                              types.identifier('data'),
+                                              types.identifier('count')
+                                            ),
+                                            types.numericLiteral(0)
+                                          ),
+                                          types.numericLiteral(0),
+                                          types.callExpression(
+                                            types.memberExpression(
+                                              types.identifier('Math'),
+                                              types.identifier('ceil')
+                                            ),
+                                            [
                                               types.binaryExpression(
-                                                '===',
+                                                '/',
                                                 types.memberExpression(
                                                   types.identifier('data'),
                                                   types.identifier('count')
                                                 ),
-                                                types.numericLiteral(0)
+                                                types.numericLiteral(info.perPage)
                                               ),
-                                              types.numericLiteral(0),
-                                              types.callExpression(
-                                                types.memberExpression(
-                                                  types.identifier('Math'),
-                                                  types.identifier('ceil')
-                                                ),
-                                                [
-                                                  types.binaryExpression(
-                                                    '/',
-                                                    types.memberExpression(
-                                                      types.identifier('data'),
-                                                      types.identifier('count')
-                                                    ),
-                                                    types.numericLiteral(info.perPage)
-                                                  ),
-                                                ]
-                                              )
-                                            ),
-                                          ]
-                                        )
-                                      ),
-                                    ])
-                                  ),
-                                ])
-                              ),
-                            ]
-                          )
-                        ),
-                      ])
-                    ),
-                    types.arrayExpression([
-                      types.memberExpression(
-                        types.identifier(combinedStateVar),
-                        types.identifier('debouncedQuery')
+                                            ]
+                                          )
+                                        ),
+                                      ])
+                                    ),
+                                  ])
+                                ),
+                              ])
+                            ),
+                          ]
+                        )
                       ),
-                    ]),
-                  ])
-                )
+                    ])
+                  ),
+                  types.arrayExpression([
+                    types.memberExpression(
+                      types.identifier(combinedStateVar),
+                      types.identifier('debouncedQuery')
+                    ),
+                  ]),
+                ])
+              )
 
-                blockStatement.body.splice(insertIndex, 0, refetchCountEffect)
-              }
+              blockStatement.body.splice(insertIndex, 0, refetchCountEffect)
             }
           }
         }
@@ -623,6 +632,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       })
 
       // Create ONE useEffect per unique data source
+      // Collect all useEffect statements first
+      const componentUseEffects: types.Statement[] = []
+
       dataSourceToInfos.forEach((infos) => {
         const { fileName } = infos[0]
 
@@ -702,7 +714,20 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           ])
         )
 
-        blockStatement.body.unshift(useEffectAST)
+        componentUseEffects.push(useEffectAST)
+      })
+
+      // Insert all component useEffect hooks after state declarations but before return
+      // Find the first return statement
+      const componentReturnIndex = blockStatement.body.findIndex(
+        (stmt: any) => stmt.type === 'ReturnStatement'
+      )
+      const componentEffectsInsertIndex =
+        componentReturnIndex !== -1 ? componentReturnIndex : blockStatement.body.length
+
+      // Insert in reverse order to maintain correct order
+      componentUseEffects.reverse().forEach((effect) => {
+        blockStatement.body.splice(componentEffectsInsertIndex, 0, effect)
       })
     }
 
@@ -736,7 +761,6 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         searchOnlyDataSources,
         searchConfigMap,
         queryColumnsMap,
-        insertIndex,
         dependencies
       )
 
@@ -830,7 +854,7 @@ function detectPaginationsAndSearchFromJSX(
     hasSearch: boolean
   }
 
-  const dataProviderMap = new Map<string, DataProviderInfo>()
+  const dataProviderList: DataProviderInfo[] = []
 
   // First pass: collect array mapper info from UIDL, keyed by array mapper render prop (unique)
   interface ArrayMapperInfo {
@@ -1106,8 +1130,8 @@ function detectPaginationsAndSearchFromJSX(
     }
 
     // Record the DataProvider with its pagination/search info
-    const uniqueKey = `${dataProviderIdentifier}__${arrayMapperRenderProp}`
-    dataProviderMap.set(uniqueKey, {
+    // Use array instead of Map to handle multiple DataProviders with same name
+    dataProviderList.push({
       identifier: dataProviderIdentifier,
       dataProvider,
       arrayMapperRenderProp,
@@ -1124,8 +1148,17 @@ function detectPaginationsAndSearchFromJSX(
   const paginationOnlyMappers: DetectedPagination[] = []
   const plainMappers: DetectedPagination[] = []
 
-  dataProviderMap.forEach((info) => {
-    if (info.hasPagination && info.hasSearch) {
+  dataProviderList.forEach((info) => {
+    // Check UIDL flags for this array mapper
+    const uidlInfo = info.arrayMapperRenderProp
+      ? arrayMapperInfoMap.get(info.arrayMapperRenderProp)
+      : null
+
+    // Only process pagination/search if UIDL explicitly enables it
+    const shouldHavePagination = uidlInfo?.paginated && info.hasPagination
+    const shouldHaveSearch = uidlInfo?.searchEnabled && info.hasSearch
+
+    if (shouldHavePagination && shouldHaveSearch) {
       // Pagination + Search
       paginatedMappers.push({
         paginationNodeClass: info.paginationNode!.class,
@@ -1137,7 +1170,7 @@ function detectPaginationsAndSearchFromJSX(
         searchInputClass: info.searchInput?.class,
         searchInputJSX: info.searchInput?.jsx,
       })
-    } else if (info.hasPagination && !info.hasSearch) {
+    } else if (shouldHavePagination && !shouldHaveSearch) {
       // Pagination only
       paginationOnlyMappers.push({
         paginationNodeClass: info.paginationNode!.class,
@@ -1149,7 +1182,7 @@ function detectPaginationsAndSearchFromJSX(
         searchInputClass: undefined,
         searchInputJSX: undefined,
       })
-    } else if (!info.hasPagination && info.hasSearch) {
+    } else if (!shouldHavePagination && shouldHaveSearch) {
       // Search only
       searchOnlyMappers.push({
         paginationNodeClass: '',
@@ -1162,7 +1195,7 @@ function detectPaginationsAndSearchFromJSX(
         searchInputJSX: info.searchInput?.jsx,
       })
     } else {
-      // Plain (no pagination, no search)
+      // Plain (no pagination, no search) - UIDL doesn't enable it or no controls found
       plainMappers.push({
         paginationNodeClass: '',
         prevButtonClass: null,
@@ -1184,9 +1217,11 @@ function handleSearchOnlyArrayMappers(
   searchOnlyDataSources: DetectedPagination[],
   searchConfigMap: Map<string, any>,
   queryColumnsMap: Map<string, string[]>,
-  insertIndex: number,
   dependencies: any
 ): void {
+  const searchOnlyStates: types.Statement[] = []
+  const searchOnlyEffects: types.Statement[] = []
+
   searchOnlyDataSources.forEach((detected, index) => {
     const searchId = `search_${index}`
     const searchQueryVar = `${searchId}_query`
@@ -1205,14 +1240,14 @@ function handleSearchOnlyArrayMappers(
     const searchDebounce = searchConfig?.searchDebounce || 300
     const queryColumns = queryColumnsMap.get(detected.dataSourceIdentifier)
 
-    // Add search query state
-    const searchStateAST = types.variableDeclaration('const', [
+    // Add skip ref
+    const skipRefAST = types.variableDeclaration('const', [
       types.variableDeclarator(
-        types.arrayPattern([types.identifier(searchQueryVar), types.identifier(setSearchQueryVar)]),
-        types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+        types.identifier(skipDebounceOnMountRefVar),
+        types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
       ),
     ])
-    blockStatement.body.unshift(searchStateAST)
+    searchOnlyStates.push(skipRefAST)
 
     // Add debounced search state
     const debouncedSearchStateAST = types.variableDeclaration('const', [
@@ -1224,16 +1259,16 @@ function handleSearchOnlyArrayMappers(
         types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
       ),
     ])
-    blockStatement.body.unshift(debouncedSearchStateAST)
+    searchOnlyStates.push(debouncedSearchStateAST)
 
-    // Add skip ref
-    const skipRefAST = types.variableDeclaration('const', [
+    // Add search query state
+    const searchStateAST = types.variableDeclaration('const', [
       types.variableDeclarator(
-        types.identifier(skipDebounceOnMountRefVar),
-        types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
+        types.arrayPattern([types.identifier(searchQueryVar), types.identifier(setSearchQueryVar)]),
+        types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
       ),
     ])
-    blockStatement.body.unshift(skipRefAST)
+    searchOnlyStates.push(searchStateAST)
 
     // Add useEffect for debouncing
     if (!dependencies.useEffect) {
@@ -1300,7 +1335,7 @@ function handleSearchOnlyArrayMappers(
         types.arrayExpression([types.identifier(searchQueryVar)]),
       ])
     )
-    blockStatement.body.splice(insertIndex, 0, debounceEffect)
+    searchOnlyEffects.push(debounceEffect)
 
     // Modify DataProvider to include search params (even without queryColumns)
     if (detected.dataProviderJSX) {
@@ -1318,6 +1353,22 @@ function handleSearchOnlyArrayMappers(
         searchEnabled: true,
       } as any)
     }
+  })
+
+  // Add all state declarations at the beginning in correct order
+  searchOnlyStates.reverse().forEach((stateDecl) => {
+    blockStatement.body.unshift(stateDecl)
+  })
+
+  // Recalculate insertIndex after adding states (since unshift shifted everything)
+  const newInsertIndex = blockStatement.body.findIndex(
+    (stmt: any) => stmt.type === 'ReturnStatement'
+  )
+  const finalInsertIndex = newInsertIndex !== -1 ? newInsertIndex : blockStatement.body.length
+
+  // Add all useEffect hooks before the return statement
+  searchOnlyEffects.reverse().forEach((effect) => {
+    blockStatement.body.splice(finalInsertIndex, 0, effect)
   })
 }
 

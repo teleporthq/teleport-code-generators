@@ -53,7 +53,8 @@ export function generateCountFetcher(dataSource: UIDLDataSource, tableName: stri
       return `
 async function getCount(req, res) {
   try {
-    const fakeReq = { query: {}, method: 'GET' }
+    const { query, queryColumns, filters } = req.query
+    const fakeReq = { query: { query, queryColumns, filters }, method: 'GET' }
     let result = null
     let statusCode = 200
     

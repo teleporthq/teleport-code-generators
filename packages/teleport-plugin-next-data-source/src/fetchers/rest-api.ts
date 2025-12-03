@@ -77,7 +77,7 @@ export const generateRESTAPIFetcher = (config: Record<string, unknown>): string 
 
 export default async function handler(req, res) {
   try {
-    const { offset, limit } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
     const url = ${JSON.stringify(restConfig.url)}
     const method = ${JSON.stringify(restConfig.method || 'GET')}
@@ -116,13 +116,75 @@ export default async function handler(req, res) {
     
     let data = await response.json()
     
-    // Apply offset and limit if data is an array and parameters are provided
+    // Apply filtering, sorting, and pagination if data is an array
     if (Array.isArray(data)) {
-      const offsetValue = offset !== undefined ? parseInt(offset) : 0
-      const limitValue = limit !== undefined ? parseInt(limit) : undefined
+      // 1. Apply search filter
+      if (query && query.trim()) {
+        const searchQuery = query.toLowerCase()
+        
+        if (queryColumns) {
+          try {
+            const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+            data = data.filter((item) => {
+              return columns.some((col) => {
+                const value = item[col]
+                if (value === null || value === undefined) return false
+                return String(value).toLowerCase().includes(searchQuery)
+              })
+            })
+          } catch (err) {
+            console.error('Error parsing queryColumns:', err)
+          }
+        } else {
+          // Search across all fields
+          data = data.filter((item) => {
+            try {
+              const stringified = JSON.stringify(item).toLowerCase()
+              return stringified.includes(searchQuery)
+            } catch {
+              return false
+            }
+          })
+        }
+      }
       
-      if (limitValue !== undefined) {
-        data = data.slice(offsetValue, offsetValue + limitValue)
+      // 2. Apply custom filters
+      if (filters) {
+        try {
+          const parsedFilters = typeof filters === 'string' ? JSON.parse(filters) : filters
+          data = data.filter((item) => {
+            return Object.entries(parsedFilters).every(([key, value]) => {
+              if (Array.isArray(value)) {
+                return value.includes(item[key])
+              }
+              return item[key] === value
+            })
+          })
+        } catch (err) {
+          console.error('Error parsing filters:', err)
+        }
+      }
+      
+      // 3. Apply sorting
+      if (sortBy && sortBy.trim()) {
+        data.sort((a, b) => {
+          const aVal = a[sortBy]
+          const bVal = b[sortBy]
+          const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+          if (aVal < bVal) return -sortOrderValue
+          if (aVal > bVal) return sortOrderValue
+          return 0
+        })
+      }
+      
+      // 4. Apply pagination
+      const limitValue = limit || perPage
+      const pageValue = page ? Math.max(1, parseInt(page)) : undefined
+      const offsetValue = offset !== undefined ? Math.max(0, parseInt(offset)) : (pageValue && perPage ? (pageValue - 1) * Math.max(1, parseInt(perPage)) : 0)
+      
+      if (limitValue) {
+        const limitInt = Math.max(1, parseInt(limitValue))
+        data = data.slice(offsetValue, offsetValue + limitInt)
       } else if (offsetValue > 0) {
         data = data.slice(offsetValue)
       }
