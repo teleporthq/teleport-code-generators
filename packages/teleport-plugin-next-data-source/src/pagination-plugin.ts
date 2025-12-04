@@ -774,10 +774,93 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       )
     }
 
+    cleanupStaticDataProviders(blockStatement)
+
     return structure
   }
 
   return paginationPlugin
+}
+
+function cleanupStaticDataProviders(blockStatement: types.BlockStatement): void {
+  const findAllDataProviders = (node: any, results: any[] = []): any[] => {
+    if (!node) {
+      return results
+    }
+
+    if (node.type === 'JSXElement' && node.openingElement?.name?.name === 'DataProvider') {
+      results.push(node)
+    }
+
+    if (node.type === 'ReturnStatement' && node.argument) {
+      findAllDataProviders(node.argument, results)
+    } else if (node.type === 'JSXElement' || node.type === 'JSXFragment') {
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach((child: any) => findAllDataProviders(child, results))
+      }
+    } else if (node.type === 'JSXExpressionContainer') {
+      if (
+        node.expression &&
+        (node.expression.type === 'JSXElement' || node.expression.type === 'JSXFragment')
+      ) {
+        findAllDataProviders(node.expression, results)
+      }
+    } else if (node.type === 'BlockStatement') {
+      if (node.body && Array.isArray(node.body)) {
+        node.body.forEach((stmt: any) => findAllDataProviders(stmt, results))
+      }
+    } else if (node.type === 'ConditionalExpression') {
+      findAllDataProviders(node.consequent, results)
+      findAllDataProviders(node.alternate, results)
+    }
+
+    return results
+  }
+
+  const allDataProviders = findAllDataProviders(blockStatement)
+
+  allDataProviders.forEach((dataProvider) => {
+    const hasInitialData = dataProvider.openingElement.attributes.some(
+      (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'initialData'
+    )
+    const hasFetchData = dataProvider.openingElement.attributes.some(
+      (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'fetchData'
+    )
+    const paramsAttr = dataProvider.openingElement.attributes.find(
+      (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'params'
+    )
+
+    // Case 1: Static SSR/SSG DataProviders (initialData, no fetchData, params)
+    // Remove params to prevent refetch attempts - data was already fetched in getStaticProps
+    if (hasInitialData && !hasFetchData && paramsAttr) {
+      dataProvider.openingElement.attributes = dataProvider.openingElement.attributes.filter(
+        (attr: any) => attr.type !== 'JSXAttribute' || attr.name.name !== 'params'
+      )
+    }
+
+    // Case 2: Client-side DataProviders with plain object params (fetchData, non-memoized params)
+    // Wrap params in useMemo to prevent infinite refetch loops
+    else if (hasFetchData && paramsAttr && paramsAttr.value?.type === 'JSXExpressionContainer') {
+      const paramsExpression = paramsAttr.value.expression
+
+      // Check if params are already memoized (useMemo or useCallback call)
+      const isAlreadyMemoized =
+        paramsExpression.type === 'CallExpression' &&
+        paramsExpression.callee.type === 'Identifier' &&
+        (paramsExpression.callee.name === 'useMemo' ||
+          paramsExpression.callee.name === 'useCallback')
+
+      // If params are a plain ObjectExpression, wrap in useMemo
+      if (!isAlreadyMemoized && paramsExpression.type === 'ObjectExpression') {
+        const memoizedParams = types.callExpression(types.identifier('useMemo'), [
+          types.arrowFunctionExpression([], paramsExpression),
+          types.arrayExpression([]), // Empty deps - params are static
+        ])
+
+        paramsAttr.value.expression = memoizedParams
+      }
+    }
+  })
 }
 
 function findParentNode(root: any, target: any, currentParent: any = null): any | null {
