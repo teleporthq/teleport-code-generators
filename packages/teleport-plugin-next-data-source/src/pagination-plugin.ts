@@ -1049,14 +1049,16 @@ function detectPaginationsAndSearchFromJSX(
     } | null = null
     let searchInputInfo: { class: string | null; jsx: any } | null = null
 
-    const findSearchAndPaginationInScope = (scopeNode: any, skipNode: any = null): void => {
+    const findSearchAndPaginationInScope = (scopeNode: any, skipNode: any = null): boolean => {
       if (!scopeNode || !scopeNode.children || !Array.isArray(scopeNode.children)) {
-        return
+        return false
       }
 
-      scopeNode.children.forEach((child: any) => {
+      let foundSomething = false
+
+      for (const child of scopeNode.children) {
         if (child === skipNode) {
-          return
+          continue
         }
 
         if (child.type === 'JSXElement') {
@@ -1073,13 +1075,14 @@ function detectPaginationsAndSearchFromJSX(
                 prevClass,
                 nextClass,
               }
+              foundSomething = true
             }
           }
 
           // Found search container - search for input inside it
           if (childClassName && childClassName.includes('data-source-search-node')) {
             if (child.children && Array.isArray(child.children)) {
-              child.children.forEach((searchChild: any) => {
+              for (const searchChild of child.children) {
                 if (searchChild.type === 'JSXElement') {
                   const searchChildElementName = searchChild.openingElement?.name?.name
                   const searchChildClassName = getClassName(
@@ -1094,9 +1097,10 @@ function detectPaginationsAndSearchFromJSX(
                       class: searchChildClassName,
                       jsx: searchChild,
                     }
+                    foundSomething = true
                   }
                 }
-              })
+              }
             }
           }
 
@@ -1110,13 +1114,24 @@ function detectPaginationsAndSearchFromJSX(
               class: childClassName,
               jsx: child,
             }
+            foundSomething = true
           }
 
+          // Stop searching if we found both or if we found what we're looking for
+          if (foundSomething && (searchInputInfo || paginationNodeInfo)) {
+            return true
+          }
+
+          // Only recurse if we haven't found what we're looking for yet
           if (!searchInputInfo || !paginationNodeInfo) {
-            findSearchAndPaginationInScope(child, skipNode)
+            if (findSearchAndPaginationInScope(child, skipNode)) {
+              return true
+            }
           }
         }
-      })
+      }
+
+      return foundSomething
     }
 
     let currentScope = parent
@@ -1124,7 +1139,11 @@ function detectPaginationsAndSearchFromJSX(
     const maxDepth = 5
 
     while (currentScope && (!searchInputInfo || !paginationNodeInfo) && depth < maxDepth) {
-      findSearchAndPaginationInScope(currentScope, depth === 0 ? dataProvider : null)
+      const found = findSearchAndPaginationInScope(currentScope, depth === 0 ? dataProvider : null)
+      // Stop searching up the tree if we found a pagination node at this level
+      if (found && paginationNodeInfo) {
+        break
+      }
       currentScope = findParentNode(blockStatement, currentScope)
       depth++
     }
