@@ -4,6 +4,11 @@ import { UIDLUtils } from '@teleporthq/teleport-shared'
 export interface ArrayMapperPaginationInfo {
   paginationNodeId: string
   dataSourceIdentifier: string
+  arrayMapperRenderProp?: string
+  paginationNodeClass?: string
+  prevButtonClass?: string | null
+  nextButtonClass?: string | null
+  searchInputClass?: string | null
   pageStateVar: string
   setPageStateVar: string
   hasPrevPageVar: string

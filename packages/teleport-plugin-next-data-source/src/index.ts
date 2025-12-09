@@ -12,12 +12,14 @@ interface PaginationConfig {
   perPageMap: Map<string, number>
   searchConfigMap: Map<string, SearchConfig>
   queryColumnsMap: Map<string, string[]>
+  limitMap: Map<string, number>
 }
 
 function extractPaginationConfigEarly(uidlNode: any, resources: any): PaginationConfig {
   const perPageMap = new Map<string, number>()
   const searchConfigMap = new Map<string, SearchConfig>()
   const queryColumnsMap = new Map<string, string[]>()
+  const limitMap = new Map<string, number>()
 
   const dataSourceToRenderProp = new Map<string, string>()
 
@@ -45,6 +47,19 @@ function extractPaginationConfigEarly(uidlNode: any, resources: any): Pagination
         const queryColumnsValue = resources.items[resourceId].params.queryColumns
         if (queryColumnsValue.type === 'static' && Array.isArray(queryColumnsValue.content)) {
           queryColumnsMap.set(renderProp, queryColumnsValue.content)
+        }
+      }
+
+      // Extract limit parameter from resource.params.limit for plain array mappers
+      if (node.content?.resource?.params?.limit) {
+        const limitValue = node.content.resource.params.limit
+        if (limitValue.type === 'static' && typeof limitValue.content === 'number') {
+          limitMap.set(renderProp, limitValue.content)
+        }
+      } else if (resources?.items?.[resourceId]?.params?.limit) {
+        const limitValue = resources.items[resourceId].params.limit
+        if (limitValue.type === 'static' && typeof limitValue.content === 'number') {
+          limitMap.set(renderProp, limitValue.content)
         }
       }
     }
@@ -110,7 +125,7 @@ function extractPaginationConfigEarly(uidlNode: any, resources: any): Pagination
 
   traverse(uidlNode)
 
-  return { perPageMap, searchConfigMap, queryColumnsMap }
+  return { perPageMap, searchConfigMap, queryColumnsMap, limitMap }
 }
 
 export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () => {
@@ -146,6 +161,7 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         perPageMap: new Map<string, number>(),
         searchConfigMap: new Map<string, SearchConfig>(),
         queryColumnsMap: new Map<string, string[]>(),
+        limitMap: new Map<string, number>(),
       }
     }
 
@@ -159,6 +175,9 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
     })
     pageConfig.queryColumnsMap.forEach((queryColumns, dataSourceId) => {
       opts.paginationConfig.queryColumnsMap.set(dataSourceId, queryColumns)
+    })
+    pageConfig.limitMap.forEach((limit, dataSourceId) => {
+      opts.paginationConfig.limitMap.set(dataSourceId, limit)
     })
 
     let getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
@@ -279,6 +298,7 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
         perPageMap: new Map<string, number>(),
         searchConfigMap: new Map<string, SearchConfig>(),
         queryColumnsMap: new Map<string, string[]>(),
+        limitMap: new Map<string, number>(),
       }
     }
 
@@ -292,6 +312,9 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
     })
     componentConfig.queryColumnsMap.forEach((queryColumns, dataSourceId) => {
       opts.paginationConfig.queryColumnsMap.set(dataSourceId, queryColumns)
+    })
+    componentConfig.limitMap.forEach((limit, dataSourceId) => {
+      opts.paginationConfig.limitMap.set(dataSourceId, limit)
     })
 
     const componentChunk = chunks.find((chunk) => chunk.name === 'jsx-component')
