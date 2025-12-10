@@ -19,14 +19,10 @@ export const generatePostgreSQLFetcher = (
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
 
-  return `import { Pool } from 'pg'
+  return `import { Client } from 'pg'
 
-let pool = null
-
-const getPool = () => {
-  if (pool) return pool
-  
-  pool = new Pool({
+const getClient = () => {
+  return new Client({
     host: ${JSON.stringify(pgConfig.host)},
     port: ${pgConfig.port || 5432},
     user: ${JSON.stringify(pgConfig.user || pgConfig.username)},
@@ -45,14 +41,14 @@ const getPool = () => {
         : '{ rejectUnauthorized: false }'
     }
   })
-  
-  return pool
 }
 
 export default async function handler(req, res) {
+  const client = getClient()
+  
   try {
-    const pool = getPool()
-    ${schema ? `await pool.query('SET search_path TO ${schema}')` : ''}
+    await client.connect()
+    ${schema ? `await client.query('SET search_path TO ${schema}')` : ''}
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
@@ -80,7 +76,7 @@ export default async function handler(req, res) {
             ? [${JSON.stringify(tableName)}, ${JSON.stringify(schema)}]
             : [${JSON.stringify(tableName)}]
           
-          const schemaResult = await pool.query(schemaQuery, schemaParams)
+          const schemaResult = await client.query(schemaQuery, schemaParams)
           columns = schemaResult.rows.map(row => row.column_name)
         } catch (schemaError) {
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
@@ -135,7 +131,7 @@ export default async function handler(req, res) {
       sql += \` OFFSET \${offsetValue}\`
     }
     
-    const result = await pool.query(sql, queryParams)
+    const result = await client.query(sql, queryParams)
     const rows = Array.isArray(result?.rows) ? result.rows : []
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
@@ -154,6 +150,8 @@ export default async function handler(req, res) {
       error: error.message || 'Failed to fetch data',
       timestamp: Date.now()
     })
+  } finally {
+    await client.end()
   }
 }
 `
@@ -168,9 +166,10 @@ export const generatePostgreSQLCountFetcher = (
 
   return `
 async function getCount(req, res) {
-  const pool = getPool()
+  const client = getClient()
 
   try {
+    await client.connect()
     const { query, queryColumns, filters } = req.query
     const conditions = []
     const queryParams = []
@@ -198,7 +197,7 @@ async function getCount(req, res) {
               : `[${JSON.stringify(tableName)}]`
           }
           
-          const schemaResult = await pool.query(schemaQuery, schemaParams)
+          const schemaResult = await client.query(schemaQuery, schemaParams)
           columns = schemaResult.rows.map(row => row.column_name)
         } catch (schemaError) {
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
@@ -226,7 +225,7 @@ async function getCount(req, res) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }
 
-    const result = await pool.query(countSql, queryParams)
+    const result = await client.query(countSql, queryParams)
     const count = parseInt(result.rows[0].count, 10)
 
     return res.status(200).json({
@@ -241,6 +240,8 @@ async function getCount(req, res) {
       error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
+  } finally {
+    await client.end()
   }
 }
 `
