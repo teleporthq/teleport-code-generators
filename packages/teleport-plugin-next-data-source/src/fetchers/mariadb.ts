@@ -21,9 +21,9 @@ export const generateMariaDBFetcher = (
   return `import mariadb from 'mariadb'
 
 export default async function handler(req, res) {
-  let pool = null
+  let connection = null
   try {
-    pool = mariadb.createPool({
+    connection = await mariadb.createConnection({
       host: ${JSON.stringify(mariaConfig.host)},
       port: ${mariaConfig.port || 3306},
       user: ${JSON.stringify(mariaConfig.user)},
@@ -52,7 +52,6 @@ export default async function handler(req, res) {
   }
     })
     
-    const connection = await pool.getConnection()
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
     const conditions = []
@@ -128,7 +127,6 @@ export default async function handler(req, res) {
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
     )
     const safeData = JSON.parse(JSON.stringify(plainRows))
-    connection.release()
     
     return res.status(200).json({
       success: true,
@@ -143,8 +141,12 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     })
   } finally {
-    if (pool) {
-      await pool.end()
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MariaDB connection:', error)
+      }
     }
   }
 }
@@ -160,9 +162,38 @@ export const generateMariaDBCountFetcher = (
 
   return `
 async function getCount(req, res) {
-  const connection = getConnection()
+  let connection = null
 
   try {
+    connection = await mariadb.createConnection({
+      host: ${JSON.stringify(mariaConfig.host)},
+      port: ${mariaConfig.port || 3306},
+      user: ${JSON.stringify(mariaConfig.user)},
+      password: ${replaceSecretReference(mariaConfig.password)},
+      database: ${JSON.stringify(mariaConfig.database)},
+      ssl: ${mariaConfig.ssl || false}${
+    mariaConfig.sslConfig
+      ? `,
+      sslConfig: {
+        ${
+          mariaConfig.sslConfig.ca ? `ca: ${replaceSecretReference(mariaConfig.sslConfig.ca)},` : ''
+        }
+        ${
+          mariaConfig.sslConfig.cert
+            ? `cert: ${replaceSecretReference(mariaConfig.sslConfig.cert)},`
+            : ''
+        }
+        ${
+          mariaConfig.sslConfig.key
+            ? `key: ${replaceSecretReference(mariaConfig.sslConfig.key)},`
+            : ''
+        }
+        rejectUnauthorized: ${mariaConfig.sslConfig.rejectUnauthorized !== false}
+      }`
+      : ''
+  }
+    })
+    
     const { query, queryColumns, filters } = req.query
     const conditions = []
     const queryParams = []
@@ -209,7 +240,7 @@ async function getCount(req, res) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }
 
-    const [rows] = await connection.execute(countSql, queryParams)
+    const rows = await connection.query(countSql, queryParams)
     const count = rows[0].count
 
     return res.status(200).json({
@@ -224,6 +255,14 @@ async function getCount(req, res) {
       error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
+  } finally {
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MariaDB connection:', error)
+      }
+    }
   }
 }
 `

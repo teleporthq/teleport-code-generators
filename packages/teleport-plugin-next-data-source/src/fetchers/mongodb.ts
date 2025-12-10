@@ -167,7 +167,11 @@ export default async function handler(req, res) {
     })
   } finally {
     if (client) {
-      await client.close()
+      try {
+        await client.close()
+      } catch (error) {
+        console.error('Error closing MongoDB client:', error)
+      }
     }
   }
 }

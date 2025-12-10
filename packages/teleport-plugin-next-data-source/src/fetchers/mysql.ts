@@ -46,12 +46,8 @@ export const generateMySQLFetcher = (
 
   return `import mysql from 'mysql2/promise'
 
-let pool = null
-
-const getPool = () => {
-  if (pool) return pool
-  
-  pool = mysql.createPool({
+const getConnection = () => {
+  return mysql.createConnection({
     host: ${JSON.stringify(mysqlConfig.host)},
     port: ${mysqlConfig.port || 3306},
     user: ${resolvedUser !== null ? JSON.stringify(resolvedUser) : 'undefined'},
@@ -59,13 +55,12 @@ const getPool = () => {
     database: ${JSON.stringify(mysqlConfig.database)},
     ssl: ${sslConfigString}
   })
-  
-  return pool
 }
 
 export default async function handler(req, res) {
+  const connection = await getConnection()
+  
   try {
-    const pool = getPool()
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
     const conditions = []
@@ -80,7 +75,7 @@ export default async function handler(req, res) {
       } else {
         // Fallback: Get all columns from information_schema
         try {
-          const [schemaRows] = await pool.promise().query(
+          const [schemaRows] = await connection.query(
             \`SELECT COLUMN_NAME FROM information_schema.COLUMNS 
              WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? 
              ORDER BY ORDINAL_POSITION\`,
@@ -135,7 +130,7 @@ export default async function handler(req, res) {
       sql += \` OFFSET \${offsetValue}\`
     }
     
-    const [rows] = await pool.query(sql, queryParams)
+    const [rows] = await connection.query(sql, queryParams)
     const rowArray = Array.isArray(rows) ? rows : []
     const plainRows = rowArray.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
@@ -154,6 +149,14 @@ export default async function handler(req, res) {
       error: error.message || 'Failed to fetch data',
       timestamp: Date.now()
     })
+  } finally {
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MySQL connection:', error)
+      }
+    }
   }
 }
 `
@@ -167,7 +170,7 @@ export const generateMySQLCountFetcher = (
 
   return `
 async function getCount(req, res) {
-  const connection = getConnection()
+  const connection = await getConnection()
 
   try {
     const { query, queryColumns, filters } = req.query
@@ -216,7 +219,7 @@ async function getCount(req, res) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }
 
-    const [rows] = await connection.execute(countSql, queryParams)
+    const [rows] = await connection.query(countSql, queryParams)
     const count = rows[0].count
 
     return res.status(200).json({
@@ -231,6 +234,14 @@ async function getCount(req, res) {
       error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
+  } finally {
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MySQL connection:', error)
+      }
+    }
   }
 }
 `

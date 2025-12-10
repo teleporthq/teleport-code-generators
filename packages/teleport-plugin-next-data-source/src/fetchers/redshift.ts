@@ -25,14 +25,10 @@ export const generateRedshiftFetcher = (
   const sslConfig = redshiftConfig.sslConfig
   const schema = redshiftConfig.options?.schema
 
-  return `import { Pool } from 'pg'
+  return `import { Client } from 'pg'
 
-let pool = null
-
-const getPool = () => {
-  if (pool) return pool
-  
-  pool = new Pool({
+const getClient = () => {
+  return new Client({
     host: ${JSON.stringify(host)},
     port: ${port || 5439},
     user: ${JSON.stringify(user)},
@@ -51,14 +47,14 @@ const getPool = () => {
         : '{ rejectUnauthorized: false }' // Default to SSL with no cert verification for Redshift
     }
   })
-  
-  return pool
 }
 
 export default async function handler(req, res) {
+  const client = getClient()
+  
   try {
-    const pool = getPool()
-    ${schema ? `await pool.query('SET search_path TO ${schema}')` : ''}
+    await client.connect()
+    ${schema ? `await client.query('SET search_path TO ${schema}')` : ''}
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
     
@@ -82,7 +78,7 @@ export default async function handler(req, res) {
               ? `[${JSON.stringify(tableName)}, ${JSON.stringify(schema)}]`
               : `[${JSON.stringify(tableName)}]`
           }
-          const schemaResult = await pool.query(schemaQuery, schemaParams)
+          const schemaResult = await client.query(schemaQuery, schemaParams)
           columns = schemaResult.rows.map(row => row.column_name)
         } catch (schemaError) {
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
@@ -136,7 +132,7 @@ export default async function handler(req, res) {
       sql += \` OFFSET \${offsetValue}\`
     }
     
-    const result = await pool.query(sql, queryParams)
+    const result = await client.query(sql, queryParams)
     const rows = Array.isArray(result?.rows) ? result.rows : []
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
@@ -155,6 +151,14 @@ export default async function handler(req, res) {
       error: error.message || 'Failed to fetch data',
       timestamp: Date.now()
     })
+  } finally {
+    if (client) {
+      try {
+        await client.end()
+      } catch (error) {
+        console.error('Error closing Redshift client:', error)
+      }
+    }
   }
 }
 `
