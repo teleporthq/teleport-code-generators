@@ -150,7 +150,13 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     })
   } finally {
-    await connection.end()
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MySQL connection:', error)
+      }
+    }
   }
 }
 `
@@ -229,7 +235,13 @@ async function getCount(req, res) {
       timestamp: Date.now()
     })
   } finally {
-    await connection.end()
+    if (connection) {
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MySQL connection:', error)
+      }
+    }
   }
 }
 `

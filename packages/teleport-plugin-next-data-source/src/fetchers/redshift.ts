@@ -152,7 +152,13 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     })
   } finally {
-    await client.end()
+    if (client) {
+      try {
+        await client.end()
+      } catch (error) {
+        console.error('Error closing Redshift client:', error)
+      }
+    }
   }
 }
 `

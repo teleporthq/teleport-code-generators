@@ -142,7 +142,11 @@ export default async function handler(req, res) {
     })
   } finally {
     if (connection) {
-      await connection.end()
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MariaDB connection:', error)
+      }
     }
   }
 }
@@ -253,7 +257,11 @@ async function getCount(req, res) {
     })
   } finally {
     if (connection) {
-      await connection.end()
+      try {
+        await connection.end()
+      } catch (error) {
+        console.error('Error closing MariaDB connection:', error)
+      }
     }
   }
 }

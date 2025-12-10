@@ -153,7 +153,11 @@ export default async function handler(req, res) {
     })
   } finally {
     if (client) {
-      client.close()
+      try {
+        await client.close()
+      } catch (error) {
+        console.error('Error closing Turso client:', error)
+      }
     }
   }
 }
