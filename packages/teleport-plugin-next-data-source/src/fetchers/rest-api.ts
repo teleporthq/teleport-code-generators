@@ -1,3 +1,5 @@
+import { generateDateFormatterCode } from '../utils'
+
 export const validateRESTAPIConfig = (
   config: Record<string, unknown>
 ): { isValid: boolean; error?: string } => {
@@ -74,6 +76,8 @@ export const generateRESTAPIFetcher = (config: Record<string, unknown>): string 
   const authCode = generateAuthCode(restConfig.authorization || {})
 
   return `import fetch from 'node-fetch'
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
@@ -190,7 +194,7 @@ export default async function handler(req, res) {
       }
     }
     
-    const safeData = JSON.parse(JSON.stringify(data))
+    const safeData = JSON.parse(JSON.stringify(data, dateReplacer))
     
     return res.status(200).json({
       success: true,

@@ -59,7 +59,17 @@ export default async function handler(req, res) {
       })
     }
     
+    let gid = undefined
+    if (sheetUrl) {
+      const gidMatch = sheetUrl.match(/[#&]gid=([0-9]+)/)
+      gid = gidMatch ? gidMatch[1] : undefined
+    }
+    
     let url = \`https://docs.google.com/spreadsheets/d/\${sheetId}/gviz/tq?tqx=out:json&range=\${range}\`
+    
+    if (gid) {
+      url += \`&gid=\${gid}\`
+    }
     
     if (maxRows && maxRows > 0) {
       url += \`&tq=limit \${maxRows}\`
@@ -96,25 +106,115 @@ export default async function handler(req, res) {
       })
     }
     
-    const table = data.table
-    const columns = table.cols.map((col, index) => ({
-      id: col.id || \`col_\${index}\`,
-      label: col.label || \`Column \${index + 1}\`,
-      type: col.type || 'string'
-    }))
+    const formatDateValue = (date) => {
+      const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }
+      
+      const timeOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+      }
+      
+      const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0
+      
+      if (hasTime) {
+        return date.toLocaleString('en-US', { ...options, ...timeOptions })
+      }
+      
+      return date.toLocaleDateString('en-US', options)
+    }
     
-    const rows = table.rows.map((row) => {
+    const parseGoogleSheetsValue = (value) => {
+      if (typeof value === 'string') {
+        const dateMatch = value.match(/^Date\\((\\d+),(\\d+),(\\d+)(?:,(\\d+),(\\d+),(\\d+))?\\)$/)
+        if (dateMatch) {
+          const year = parseInt(dateMatch[1], 10)
+          const month = parseInt(dateMatch[2], 10)
+          const day = parseInt(dateMatch[3], 10)
+          const hour = dateMatch[4] ? parseInt(dateMatch[4], 10) : 0
+          const minute = dateMatch[5] ? parseInt(dateMatch[5], 10) : 0
+          const second = dateMatch[6] ? parseInt(dateMatch[6], 10) : 0
+          const date = new Date(year, month, day, hour, minute, second)
+          return formatDateValue(date)
+        }
+      }
+      return value
+    }
+    
+    const table = data.table
+    const rawRows = table.rows || []
+    
+    if (rawRows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        timestamp: Date.now()
+      })
+    }
+    
+    const firstRow = rawRows[0]
+    const firstRowValues = firstRow.c.map((cell) => cell?.v ?? cell?.f ?? null)
+    
+    const hasHeaderRow = firstRowValues.every((val) => 
+      val !== null && val !== undefined && val !== '' && typeof val === 'string'
+    )
+    
+    let columns
+    let dataRows
+    
+    if (hasHeaderRow && rawRows.length > 1) {
+      columns = firstRowValues.map((headerValue, index) => ({
+        id: \`col_\${index}\`,
+        label: String(headerValue),
+        type: 'string'
+      }))
+      dataRows = rawRows.slice(1)
+    } else {
+      columns = table.cols.map((col, index) => ({
+        id: col.id || \`col_\${index}\`,
+        label: col.label || \`Column \${index + 1}\`,
+        type: col.type || 'string'
+      }))
+      dataRows = rawRows
+    }
+    
+    if (maxRows && dataRows.length > maxRows) {
+      dataRows = dataRows.slice(0, maxRows)
+    }
+    
+    const rows = dataRows.map((row) => {
       const rowData = {}
       row.c.forEach((cell, index) => {
-        const columnId = columns[index].id
-        rowData[columnId] = cell?.v ?? null
+        const columnId = columns[index]?.id || \`col_\${index}\`
+        const rawValue = cell?.v ?? cell?.f ?? null
+        rowData[columnId] = parseGoogleSheetsValue(rawValue)
       })
       return rowData
     })
     
+    const columnsWithData = columns.filter((col, index) => {
+      const hasHeaderData = col.label && col.label !== \`Column \${index + 1}\`
+      const hasDataInColumn = rows.some((row) => {
+        const value = row[col.id]
+        return value !== null && value !== undefined && value !== ''
+      })
+      return hasHeaderData || hasDataInColumn
+    })
+    
+    const filteredRows = rows.map((row) => {
+      const filteredRow = {}
+      columnsWithData.forEach((col) => {
+        filteredRow[col.id] = row[col.id]
+      })
+      return filteredRow
+    })
+    
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset: offsetParam } = req.query
     
-    let filteredData = [...rows]
+    let filteredData = [...filteredRows]
     
     if (query) {
       const searchQuery = query.toLowerCase()

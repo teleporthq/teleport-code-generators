@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 export const validateTursoConfig = (
   config: Record<string, unknown>
@@ -34,6 +34,8 @@ export const generateTursoFetcher = (
   const token = tursoConfig.token
 
   return `import { createClient } from '@libsql/client'
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   let client = null
@@ -137,7 +139,7 @@ export default async function handler(req, res) {
       }
     }
     
-    const safeData = JSON.parse(JSON.stringify(data))
+    const safeData = JSON.parse(JSON.stringify(data, dateReplacer))
     
     return res.status(200).json({
       success: true,

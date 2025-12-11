@@ -1,3 +1,5 @@
+import { generateDateFormatterCode } from '../utils'
+
 export const validateJavaScriptConfig = (
   config: Record<string, unknown>
 ): { isValid: boolean; error?: string } => {
@@ -35,7 +37,9 @@ interface JavaScriptConfig {
 
 export const generateJavaScriptFetcher = (config: Record<string, unknown>): string => {
   const jsConfig = config as JavaScriptConfig
-  return `export default async function handler(req, res) {
+  return `${generateDateFormatterCode()}
+
+export default async function handler(req, res) {
   try {
     const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters } = req.query
     
@@ -115,7 +119,7 @@ export const generateJavaScriptFetcher = (config: Record<string, unknown>): stri
       }
     }
     
-    const safeData = JSON.parse(JSON.stringify(data))
+    const safeData = JSON.parse(JSON.stringify(data, dateReplacer))
     
     return res.status(200).json({
       success: true,

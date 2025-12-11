@@ -1,3 +1,5 @@
+import { generateDateFormatterCode } from '../utils'
+
 export const validateStaticCollectionConfig = (
   config: Record<string, unknown>
 ): { isValid: boolean; error?: string } => {
@@ -19,6 +21,8 @@ interface StaticCollectionConfig {
 export const generateStaticCollectionFetcher = (config: Record<string, unknown>): string => {
   const staticConfig = config as StaticCollectionConfig
   return `const data = ${JSON.stringify(staticConfig.data || [])}
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
@@ -79,7 +83,7 @@ export default async function handler(req, res) {
       filteredData = filteredData.slice(offsetValue, offsetValue + parseInt(limitValue))
     }
     
-    const safeData = JSON.parse(JSON.stringify(filteredData))
+    const safeData = JSON.parse(JSON.stringify(filteredData, dateReplacer))
     
     return res.status(200).json({
       success: true,

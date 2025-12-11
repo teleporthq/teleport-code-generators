@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 interface RedshiftConfig {
   host?: string
@@ -48,6 +48,8 @@ const getClient = () => {
     }
   })
 }
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   const client = getClient()
@@ -137,7 +139,7 @@ export default async function handler(req, res) {
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
     )
-    const safeData = JSON.parse(JSON.stringify(plainRows))
+    const safeData = JSON.parse(JSON.stringify(plainRows, dateReplacer))
 
     return res.status(200).json({
       success: true,

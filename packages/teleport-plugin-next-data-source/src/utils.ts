@@ -510,6 +510,36 @@ export const replaceSecretReference = (
   }
 }
 
+export const generateDateFormatterCode = (): string => {
+  return `const formatDateValue = (date) => {
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }
+  
+  const timeOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  
+  const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0
+  
+  if (hasTime) {
+    return date.toLocaleString('en-US', { ...options, ...timeOptions })
+  }
+  
+  return date.toLocaleDateString('en-US', options)
+}
+
+const dateReplacer = (key, value) => {
+  if (value instanceof Date) {
+    return formatDateValue(value)
+  }
+  return value
+}`
+}
+
 export const sanitizeNumericParam = (value: unknown, defaultValue: number = 0): number => {
   if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
     return Math.max(0, Math.floor(value))

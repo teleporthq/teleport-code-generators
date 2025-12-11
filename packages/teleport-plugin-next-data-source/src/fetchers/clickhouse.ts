@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 export const validateClickHouseConfig = (
   config: Record<string, unknown>
@@ -52,6 +52,8 @@ const getClient = () => {
   
   return client
 }
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
@@ -113,7 +115,7 @@ export default async function handler(req, res) {
     
     const result = await client.query({ query: sql })
     const resultResponse = await result.json()
-    const safeData = JSON.parse(JSON.stringify(resultResponse.data))
+    const safeData = JSON.parse(JSON.stringify(resultResponse.data, dateReplacer))
 
     return res.status(200).json({
       success: true,
