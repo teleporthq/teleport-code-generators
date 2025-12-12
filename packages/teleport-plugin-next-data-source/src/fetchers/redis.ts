@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 export const validateRedisConfig = (
   config: Record<string, unknown>
@@ -62,6 +62,8 @@ export const generateRedisFetcher = (config: Record<string, unknown>): string =>
   }
 
   return `import { createClient } from 'redis'
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   let client = null
@@ -128,7 +130,7 @@ export default async function handler(req, res) {
       })
     }
     
-    const safeData = JSON.parse(JSON.stringify(results))
+    const safeData = JSON.parse(JSON.stringify(results, dateReplacer))
     
     return res.status(200).json({
       success: true,

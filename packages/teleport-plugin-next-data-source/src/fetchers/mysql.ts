@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 interface MySQLConfig {
   host?: string
@@ -56,6 +56,8 @@ const getConnection = () => {
     ssl: ${sslConfigString}
   })
 }
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   const connection = await getConnection()
@@ -135,7 +137,7 @@ export default async function handler(req, res) {
     const plainRows = rowArray.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
     )
-    const safeData = JSON.parse(JSON.stringify(plainRows))
+    const safeData = JSON.parse(JSON.stringify(plainRows, dateReplacer))
 
     return res.status(200).json({
       success: true,

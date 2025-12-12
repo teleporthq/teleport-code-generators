@@ -1,3 +1,5 @@
+import { generateDateFormatterCode } from '../utils'
+
 export const validateCSVConfig = (
   config: Record<string, unknown>
 ): { isValid: boolean; error?: string } => {
@@ -33,6 +35,8 @@ interface CSVFileConfig {
 export const generateCSVFileFetcher = (config: Record<string, unknown>): string => {
   const csvConfig = config as CSVFileConfig
   return `const data = ${JSON.stringify(csvConfig.parsedData || [])}
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
@@ -93,7 +97,7 @@ export default async function handler(req, res) {
       filteredData = filteredData.slice(offsetValue, offsetValue + parseInt(limitValue))
     }
     
-    const safeData = JSON.parse(JSON.stringify(filteredData))
+    const safeData = JSON.parse(JSON.stringify(filteredData, dateReplacer))
     
     return res.status(200).json({
       success: true,

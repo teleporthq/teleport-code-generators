@@ -1,4 +1,4 @@
-import { replaceSecretReference } from '../utils'
+import { replaceSecretReference, generateDateFormatterCode } from '../utils'
 
 export const validateAirtableConfig = (
   config: Record<string, unknown>
@@ -33,6 +33,8 @@ export const generateAirtableFetcher = (
   const personalAccessToken = airtableConfig.personalAccessToken
 
   return `import fetch from 'node-fetch'
+
+${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
@@ -133,7 +135,7 @@ export default async function handler(req, res) {
       createdTime: record.createdTime
     }))
     
-    const safeData = JSON.parse(JSON.stringify(formattedRecords))
+    const safeData = JSON.parse(JSON.stringify(formattedRecords, dateReplacer))
     
     return res.status(200).json({
       success: true,
