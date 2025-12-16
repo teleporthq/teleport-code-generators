@@ -26,7 +26,7 @@ ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset: offsetParam } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
     
     let filteredData = [...data]
     
@@ -55,17 +55,72 @@ export default async function handler(req, res) {
     
     if (filters) {
       const parsedFilters = JSON.parse(filters)
-      filteredData = filteredData.filter((item) => {
-        return Object.entries(parsedFilters).every(([key, value]) => {
-          if (Array.isArray(value)) {
-            return value.includes(item[key])
-          }
-          return item[key] === value
+      
+      if (Array.isArray(parsedFilters)) {
+        filteredData = filteredData.filter((item) => {
+          return parsedFilters.every((filter) => {
+            if (!filter.source || filter.destination === undefined) return true
+            
+            const field = filter.source
+            const value = filter.destination
+            const operand = filter.operand || '='
+            const itemValue = item[field]
+            
+            if (Array.isArray(value)) {
+              if (operand === '!=') {
+                return !value.includes(itemValue)
+              }
+              return value.includes(itemValue)
+            }
+            
+            switch (operand) {
+              case '=':
+                return itemValue === value
+              case '!=':
+                return itemValue !== value
+              case '>':
+                return itemValue > value
+              case '<':
+                return itemValue < value
+              case '>=':
+                return itemValue >= value
+              case '<=':
+                return itemValue <= value
+              default:
+                return itemValue === value
+            }
+          })
         })
-      })
+      } else {
+        filteredData = filteredData.filter((item) => {
+          return Object.entries(parsedFilters).every(([key, value]) => {
+            if (Array.isArray(value)) {
+              return value.includes(item[key])
+            }
+            return item[key] === value
+          })
+        })
+      }
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = JSON.parse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        filteredData.sort((a, b) => {
+          for (const sort of parsedSorts) {
+            if (!sort.field) continue
+            const aVal = a[sort.field]
+            const bVal = b[sort.field]
+            const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            
+            if (aVal < bVal) return -sortOrderValue
+            if (aVal > bVal) return sortOrderValue
+          }
+          return 0
+        })
+      }
+    } else if (sortBy) {
       filteredData.sort((a, b) => {
         const aVal = a[sortBy]
         const bVal = b[sortBy]

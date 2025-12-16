@@ -72,19 +72,52 @@ ${generateDateFormatterCode()}
 export default async function handler(req, res) {
   try {
     const firestore = getFirestore()
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     let queryRef = firestore.collection('${tableName}')
     
     if (filters) {
       const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          queryRef = queryRef.where(key, 'in', value)
-        } else {
-          queryRef = queryRef.where(key, '==', value)
-        }
-      })
+      
+      if (Array.isArray(parsedFilters)) {
+        parsedFilters.forEach((filter) => {
+          if (!filter.source || filter.destination === undefined) return
+          
+          const field = filter.source
+          const value = filter.destination
+          const operand = filter.operand || '='
+          
+          // Map operands to Firestore operators
+          const operatorMap = {
+            '=': '==',
+            '!=': '!=',
+            '>': '>',
+            '<': '<',
+            '>=': '>=',
+            '<=': '<=',
+          }
+          
+          if (Array.isArray(value)) {
+            if (value.length === 0) return
+            if (operand === '!=') {
+              queryRef = queryRef.where(field, 'not-in', value)
+            } else {
+              queryRef = queryRef.where(field, 'in', value)
+            }
+          } else {
+            const firestoreOp = operatorMap[operand] || '=='
+            queryRef = queryRef.where(field, firestoreOp, value)
+          }
+        })
+      } else {
+        Object.entries(parsedFilters).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            queryRef = queryRef.where(key, 'in', value)
+          } else {
+            queryRef = queryRef.where(key, '==', value)
+          }
+        })
+      }
     }
     
     let usePostFiltering = false
@@ -104,7 +137,17 @@ export default async function handler(req, res) {
       }
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = JSON.parse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        parsedSorts.forEach((sort) => {
+          if (!sort.field) return
+          const order = sort.order?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+          queryRef = queryRef.orderBy(sort.field, order)
+        })
+      }
+    } else if (sortBy) {
       const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       queryRef = queryRef.orderBy(sortBy, sortOrderValue)
     }

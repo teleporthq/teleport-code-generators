@@ -597,7 +597,8 @@ export const extractDataSourceIntoGetStaticProps = (
   getStaticPropsChunk: any,
   chunks: any[],
   extractedResources: GeneratorOptions['extractedResources'],
-  dependencies: Record<string, any>
+  dependencies: Record<string, any>,
+  dataProviderPosition?: number
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -632,19 +633,40 @@ export const extractDataSourceIntoGetStaticProps = (
       return { success: false }
     }
 
-    // Generate prop key first
-    const sanitizedDsName = StringUtils.dashCaseToCamelCase(
-      sanitizeFileName(dataSource.name || dataSourceId)
-    )
-    const sanitizedTableName = StringUtils.dashCaseToCamelCase(
-      sanitizeFileName(tableName || 'data')
-    )
-    const propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+    // Generate prop key using renderPropIdentifier and resource ID for uniqueness
+    // This ensures each DataProvider instance gets its own fetch and initialData even when
+    // multiple instances share the same renderPropIdentifier but have different params (sorts, filters)
+    const renderPropIdentifier = node.content?.renderPropIdentifier
+    // tslint:disable-next-line:no-any
+    const resourceId = (node.content?.resource as any)?.id
+    let propKey: string
 
-    // Find ALL JSX nodes matching this dataSourceId AND tableName and add initialData to ALL of them
+    if (renderPropIdentifier && resourceId) {
+      // Include resource ID to differentiate between same renderProp but different params
+      const sanitizedResourceId = StringUtils.dashCaseToCamelCase(
+        sanitizeFileName(resourceId).replace(/^TQ_/, '')
+      )
+      propKey = `${renderPropIdentifier}_${sanitizedResourceId}`
+    } else if (renderPropIdentifier) {
+      // Use the renderPropIdentifier directly as fallback
+      propKey = renderPropIdentifier
+    } else {
+      // Fallback to generating from data source name and table name
+      const sanitizedDsName = StringUtils.dashCaseToCamelCase(
+        sanitizeFileName(dataSource.name || dataSourceId)
+      )
+      const sanitizedTableName = StringUtils.dashCaseToCamelCase(
+        sanitizeFileName(tableName || 'data')
+      )
+      propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+    }
+
+    // Find the specific JSX node(s) matching this data source
+    // When renderPropIdentifier is provided, match that specific instance
+    // Otherwise, match all nodes with the same dataSourceId and tableName
     const matchingJsxNodes: types.JSXElement[] = []
 
-    // Helper function to recursively traverse the AST and find all matching JSXElements
+    // Helper function to recursively traverse the AST and find matching JSXElements
     const traverseAST = (astNode: any) => {
       if (!astNode || typeof astNode !== 'object') {
         return
@@ -658,6 +680,13 @@ export const extractDataSourceIntoGetStaticProps = (
           (attr) =>
             (attr as any).type === 'JSXAttribute' &&
             (attr as types.JSXAttribute).name.name === 'resourceDefinition'
+        ) as types.JSXAttribute | undefined
+
+        // Also check name attribute to match with renderPropIdentifier
+        const nameAttr = attrs.find(
+          (attr) =>
+            (attr as any).type === 'JSXAttribute' &&
+            (attr as types.JSXAttribute).name.name === 'name'
         ) as types.JSXAttribute | undefined
 
         if (
@@ -679,7 +708,21 @@ export const extractDataSourceIntoGetStaticProps = (
             // tslint:disable-next-line:no-any
             const tableNameValue = (tableNameProp as any)?.value?.value
 
-            if (idValue === dataSourceId && tableNameValue === tableName) {
+            // If renderPropIdentifier is provided, match by name attribute as well
+            let nameMatches = true
+            if (renderPropIdentifier && nameAttr && nameAttr.value) {
+              nameMatches = false
+              if (nameAttr.value.type === 'StringLiteral') {
+                nameMatches = nameAttr.value.value === renderPropIdentifier
+              } else if (nameAttr.value.type === 'JSXExpressionContainer') {
+                const nameExpr = nameAttr.value.expression
+                if (nameExpr.type === 'StringLiteral') {
+                  nameMatches = nameExpr.value === renderPropIdentifier
+                }
+              }
+            }
+
+            if (idValue === dataSourceId && tableNameValue === tableName && nameMatches) {
               matchingJsxNodes.push(jsxElement)
             }
           }
@@ -706,8 +749,34 @@ export const extractDataSourceIntoGetStaticProps = (
       return { success: false }
     }
 
-    // Update ALL matching JSX nodes with initialData
-    for (const jsxNode of matchingJsxNodes) {
+    // Use position-based matching when dataProviderPosition is provided
+    // This ensures we match the correct DataProvider based on UIDL order
+    let targetNode: types.JSXElement | null = null
+
+    if (dataProviderPosition !== undefined && dataProviderPosition < matchingJsxNodes.length) {
+      // Match the DataProvider at the specified position
+      targetNode = matchingJsxNodes[dataProviderPosition]
+    } else {
+      // Fallback: Find the first JSX node that hasn't been processed yet (doesn't have initialData)
+      for (const matchedNode of matchingJsxNodes) {
+        const hasInitialData = matchedNode.openingElement.attributes.some(
+          (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
+        )
+        if (!hasInitialData) {
+          targetNode = matchedNode
+          break
+        }
+      }
+    }
+
+    if (!targetNode) {
+      // All nodes have already been processed or position is out of bounds
+      return { success: false }
+    }
+
+    // Update only the target JSX node with initialData
+    const jsxNode = targetNode
+    {
       // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
       const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(
         (attr) => (attr as types.JSXAttribute).name?.name === 'children'
@@ -747,6 +816,7 @@ export const extractDataSourceIntoGetStaticProps = (
       )
       jsxNode.openingElement.attributes.push(persistDataAttr)
     }
+    // End of target node processing
 
     // Generate safe file name for the fetcher
     const fileName = generateSafeFileName(dataSourceType, tableName || 'data', dataSourceId)
@@ -797,23 +867,64 @@ export const extractDataSourceIntoGetStaticProps = (
         let astValue: any
 
         if (value.content === null || value.content === undefined) {
-          astValue = types.nullLiteral()
+          // Skip null/undefined values entirely
+          return
         } else if (Array.isArray(value.content)) {
-          // Handle array values (like queryColumns)
-          astValue = types.arrayExpression(
-            value.content.map((item: any) => {
-              if (typeof item === 'string') {
-                return types.stringLiteral(item)
-              }
-              if (typeof item === 'number') {
-                return types.numericLiteral(item)
-              }
-              if (typeof item === 'boolean') {
-                return types.booleanLiteral(item)
-              }
-              return types.nullLiteral()
-            })
+          // Filter out null/undefined values from the array
+          const validItems = value.content.filter(
+            (item: any) => item !== null && item !== undefined
           )
+
+          // Skip the array entirely if it's empty or only had null values
+          if (validItems.length === 0) {
+            return
+          }
+
+          // For sorts and filters, stringify the array for consistency with API handler
+          if (key === 'sorts' || key === 'filters') {
+            const arrayExpr = types.arrayExpression(
+              validItems.map((item: any) => {
+                if (typeof item === 'string') {
+                  return types.stringLiteral(item)
+                }
+                if (typeof item === 'number') {
+                  return types.numericLiteral(item)
+                }
+                if (typeof item === 'boolean') {
+                  return types.booleanLiteral(item)
+                }
+                if (typeof item === 'object' && item !== null) {
+                  return ASTUtils.objectToObjectExpression(item)
+                }
+                return types.nullLiteral()
+              })
+            )
+            // Wrap in JSON.stringify()
+            astValue = types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [arrayExpr]
+            )
+          } else {
+            // Handle other array values (like queryColumns) normally
+            astValue = types.arrayExpression(
+              validItems.map((item: any) => {
+                if (typeof item === 'string') {
+                  return types.stringLiteral(item)
+                }
+                if (typeof item === 'number') {
+                  return types.numericLiteral(item)
+                }
+                if (typeof item === 'boolean') {
+                  return types.booleanLiteral(item)
+                }
+                if (typeof item === 'object' && item !== null) {
+                  // Handle object items (like sort/filter objects)
+                  return ASTUtils.objectToObjectExpression(item)
+                }
+                return types.nullLiteral()
+              })
+            )
+          }
         } else if (typeof value.content === 'string') {
           astValue = types.stringLiteral(value.content)
         } else if (typeof value.content === 'number') {
@@ -821,7 +932,8 @@ export const extractDataSourceIntoGetStaticProps = (
         } else if (typeof value.content === 'boolean') {
           astValue = types.booleanLiteral(value.content)
         } else {
-          astValue = types.nullLiteral()
+          // Skip other null-like values
+          return
         }
 
         paramsProperties.push(types.objectProperty(types.stringLiteral(key), astValue))
@@ -932,7 +1044,7 @@ export const extractDataSourceIntoGetStaticProps = (
     const propsValue = propsObject.value as types.ObjectExpression
 
     // Check if propKey already exists in the parallel fetch metadata
-    const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetch as
+    const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetchData as
       | ParallelFetchMeta
       | undefined
     const existingInFetchMeta = parallelFetchMeta?.names.includes(propKey)

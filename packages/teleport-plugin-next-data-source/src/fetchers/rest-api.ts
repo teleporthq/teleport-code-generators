@@ -81,7 +81,7 @@ ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     const url = ${JSON.stringify(restConfig.url)}
     const method = ${JSON.stringify(restConfig.method || 'GET')}
@@ -156,21 +156,79 @@ export default async function handler(req, res) {
       if (filters) {
         try {
           const parsedFilters = typeof filters === 'string' ? JSON.parse(filters) : filters
-          data = data.filter((item) => {
-            return Object.entries(parsedFilters).every(([key, value]) => {
-              if (Array.isArray(value)) {
-                return value.includes(item[key])
-              }
-              return item[key] === value
+          
+          if (Array.isArray(parsedFilters)) {
+            data = data.filter((item) => {
+              return parsedFilters.every((filter) => {
+                if (!filter.source || filter.destination === undefined) return true
+                
+                const field = filter.source
+                const value = filter.destination
+                const operand = filter.operand || '='
+                const itemValue = item[field]
+                
+                if (Array.isArray(value)) {
+                  if (operand === '!=') {
+                    return !value.includes(itemValue)
+                  }
+                  return value.includes(itemValue)
+                }
+                
+                switch (operand) {
+                  case '=':
+                    return itemValue === value
+                  case '!=':
+                    return itemValue !== value
+                  case '>':
+                    return itemValue > value
+                  case '<':
+                    return itemValue < value
+                  case '>=':
+                    return itemValue >= value
+                  case '<=':
+                    return itemValue <= value
+                  default:
+                    return itemValue === value
+                }
+              })
             })
-          })
+          } else {
+            data = data.filter((item) => {
+              return Object.entries(parsedFilters).every(([key, value]) => {
+                if (Array.isArray(value)) {
+                  return value.includes(item[key])
+                }
+                return item[key] === value
+              })
+            })
+          }
         } catch (err) {
           console.error('Error parsing filters:', err)
         }
       }
       
       // 3. Apply sorting
-      if (sortBy && sortBy.trim()) {
+      if (sorts) {
+        try {
+          const parsedSorts = typeof sorts === 'string' ? JSON.parse(sorts) : sorts
+          if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+            data.sort((a, b) => {
+              for (const sort of parsedSorts) {
+                if (!sort.field) continue
+                const aVal = a[sort.field]
+                const bVal = b[sort.field]
+                const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+                
+                if (aVal < bVal) return -sortOrderValue
+                if (aVal > bVal) return sortOrderValue
+              }
+              return 0
+            })
+          }
+        } catch (err) {
+          console.error('Error parsing sorts:', err)
+        }
+      } else if (sortBy && sortBy.trim()) {
         data.sort((a, b) => {
           const aVal = a[sortBy]
           const bVal = b[sortBy]

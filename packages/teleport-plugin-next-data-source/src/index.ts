@@ -486,6 +486,9 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
     let firstDataSourceInfo: DataSourceInfo | null = null
     // Track fetcher import name for wrapped providers
     let fetcherImportName: string | null = null
+    // Track the position counter for each (dataSourceId, tableName) combination
+    // This is used to match the correct DataProvider in the JSX based on UIDL order
+    const dataProviderPositionCounters = new Map<string, number>()
 
     UIDLUtils.traverseNodes(uidl.node, (node) => {
       // Data source nodes can be either:
@@ -527,7 +530,59 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         return
       }
 
-      const dataSourceKey = `${resourceDef.dataSourceId}:${resourceDef.tableName || 'data'}`
+      // Track the position of this data-source-list for matching the correct DataProvider
+      // The key is (dataSourceId, tableName) since all matching DataProviders share these
+      const positionKey = `${resourceDef.dataSourceId}:${resourceDef.tableName || 'data'}`
+      const currentPosition = dataProviderPositionCounters.get(positionKey) || 0
+      dataProviderPositionCounters.set(positionKey, currentPosition + 1)
+
+      // Check if this data-source-list contains a cms-list-repeater with pagination or search
+      // If so, skip it - the pagination plugin will handle the data fetching
+      // tslint:disable-next-line:no-any
+      const hasPaginatedOrSearchRepeater = (nodeToCheck: any): boolean => {
+        if (!nodeToCheck || typeof nodeToCheck !== 'object') {
+          return false
+        }
+
+        if (nodeToCheck.type === 'cms-list-repeater') {
+          const content = nodeToCheck.content
+          if (content?.paginated || content?.searchEnabled) {
+            return true
+          }
+        }
+
+        // Check children array
+        if (nodeToCheck.content?.children && Array.isArray(nodeToCheck.content.children)) {
+          for (const child of nodeToCheck.content.children) {
+            if (hasPaginatedOrSearchRepeater(child)) {
+              return true
+            }
+          }
+        }
+
+        // Check nodes object (data-source-list has nodes.success, nodes.error, etc.)
+        if (nodeToCheck.content?.nodes && typeof nodeToCheck.content.nodes === 'object') {
+          for (const nodeKey of Object.keys(nodeToCheck.content.nodes)) {
+            if (hasPaginatedOrSearchRepeater(nodeToCheck.content.nodes[nodeKey])) {
+              return true
+            }
+          }
+        }
+
+        return false
+      }
+
+      if (hasPaginatedOrSearchRepeater(dataSourceNode)) {
+        // Skip this node but position counter is already incremented above
+        return
+      }
+
+      // Include resource ID to differentiate between same dataSource/table with different params (sorts, filters, etc.)
+      // tslint:disable-next-line:no-any
+      const resourceId = (dataSourceNode.content.resource as any)?.id || ''
+      const dataSourceKey = `${resourceDef.dataSourceId}:${
+        resourceDef.tableName || 'data'
+      }:${resourceId}`
 
       // Check if resource has dynamic parameters
       // tslint:disable-next-line:no-any
@@ -552,7 +607,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           getStaticPropsChunk,
           chunks,
           options.extractedResources,
-          dependencies
+          dependencies,
+          currentPosition
         )
 
         if (result.success && result.chunk) {
@@ -762,11 +818,86 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       }
     }
 
+    // Stringify complex params in DataProvider components before pagination plugin runs
+    stringifyComplexParamsInDataProviders(componentChunk)
+
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)
   }
 
   return nextPagesDataSourcePlugin
+}
+
+// Helper function to stringify complex params (sorts, filters) in DataProvider components
+function stringifyComplexParamsInDataProviders(componentChunk: any): void {
+  if (!componentChunk || !componentChunk.content) {
+    return
+  }
+
+  // tslint:disable-next-line:no-any
+  const traverseAST = (astNode: any): void => {
+    if (!astNode || typeof astNode !== 'object') {
+      return
+    }
+
+    // Check if this is a DataProvider JSXElement
+    if (astNode.type === 'JSXElement' && astNode.openingElement?.name?.name === 'DataProvider') {
+      const attrs = astNode.openingElement.attributes
+
+      // Find the params attribute
+      const paramsAttr = attrs.find(
+        // tslint:disable-next-line:no-any
+        (attr: any) =>
+          attr.type === 'JSXAttribute' &&
+          attr.name?.name === 'params' &&
+          attr.value?.type === 'JSXExpressionContainer'
+      )
+
+      if (paramsAttr && paramsAttr.value?.expression?.type === 'ObjectExpression') {
+        const paramsObj = paramsAttr.value.expression
+        const properties = paramsObj.properties
+
+        // Find sorts and filters properties and stringify them
+        for (let i = 0; i < properties.length; i++) {
+          const prop = properties[i]
+          // Get the key name from either Identifier or StringLiteral
+          const keyName =
+            prop.key?.type === 'Identifier'
+              ? prop.key.name
+              : prop.key?.type === 'StringLiteral'
+              ? prop.key.value
+              : undefined
+
+          if (
+            prop.type === 'ObjectProperty' &&
+            (keyName === 'sorts' || keyName === 'filters') &&
+            prop.value?.type === 'ArrayExpression'
+          ) {
+            // Replace the array with JSON.stringify(array)
+            properties[i] = types.objectProperty(
+              prop.key,
+              types.callExpression(
+                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                [prop.value]
+              )
+            )
+          }
+        }
+      }
+    }
+
+    // Recursively traverse all properties
+    for (const key of Object.keys(astNode)) {
+      const value = astNode[key]
+      if (Array.isArray(value)) {
+        value.forEach((item) => traverseAST(item))
+      } else if (typeof value === 'object' && value !== null) {
+        traverseAST(value)
+      }
+    }
+  }
+
+  traverseAST(componentChunk.content)
 }
 
 export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = () => {

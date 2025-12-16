@@ -61,12 +61,115 @@ const getClient = () => {
   return client
 }
 
+// Helper function to process filter values
+const processFilterValue = (value) => {
+  if (typeof value === 'string' && !isNaN(Number(value))) {
+    return Number(value)
+  }
+  return value
+}
+
+// Helper function to apply filters to a query
+const applyFilters = (queryRef, filters) => {
+  if (!filters) return queryRef
+  
+  const parsedFilters = JSON.parse(filters)
+  
+  if (Array.isArray(parsedFilters)) {
+    parsedFilters.forEach((filter) => {
+      if (!filter.source || filter.destination === undefined) return
+      
+      const field = filter.source
+      const value = filter.destination
+      const operand = filter.operand || '='
+      
+      if (Array.isArray(value)) {
+        const processedValues = value.map(processFilterValue)
+        if (operand === '!=') {
+          queryRef = queryRef.not(field, 'in', processedValues)
+        } else {
+          queryRef = queryRef.in(field, processedValues)
+        }
+      } else {
+        const processedValue = processFilterValue(value)
+        
+        // Handle null values
+        if (processedValue === null) {
+          if (operand === '=') {
+            queryRef = queryRef.is(field, null)
+          } else if (operand === '!=') {
+            queryRef = queryRef.not(field, 'is', null)
+          }
+        } else {
+          // Map operand to Supabase methods
+          switch (operand) {
+            case '=':
+              queryRef = queryRef.eq(field, processedValue)
+              break
+            case '!=':
+              queryRef = queryRef.neq(field, processedValue)
+              break
+            case '>':
+              queryRef = queryRef.gt(field, processedValue)
+              break
+            case '>=':
+              queryRef = queryRef.gte(field, processedValue)
+              break
+            case '<':
+              queryRef = queryRef.lt(field, processedValue)
+              break
+            case '<=':
+              queryRef = queryRef.lte(field, processedValue)
+              break
+            default:
+              queryRef = queryRef.eq(field, processedValue)
+          }
+        }
+      }
+    })
+  } else {
+    // Old format: object with key-value pairs (backward compatibility)
+    Object.entries(parsedFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        const processedValues = value.map(processFilterValue)
+        queryRef = queryRef.in(key, processedValues)
+      } else if (typeof value === 'object' && value !== null) {
+        const operator = Object.keys(value)[0]
+        let operatorValue = value[operator]
+        if (typeof operatorValue === 'string' && !isNaN(Number(operatorValue))) {
+          operatorValue = Number(operatorValue)
+        }
+        switch (operator) {
+          case 'eq': queryRef = queryRef.eq(key, operatorValue); break
+          case 'neq': queryRef = queryRef.neq(key, operatorValue); break
+          case 'gt': queryRef = queryRef.gt(key, operatorValue); break
+          case 'gte': queryRef = queryRef.gte(key, operatorValue); break
+          case 'lt': queryRef = queryRef.lt(key, operatorValue); break
+          case 'lte': queryRef = queryRef.lte(key, operatorValue); break
+          case 'like': queryRef = queryRef.like(key, operatorValue); break
+          case 'ilike': queryRef = queryRef.ilike(key, operatorValue); break
+          case 'in': queryRef = queryRef.in(key, operatorValue); break
+          default: queryRef = queryRef.eq(key, operatorValue)
+        }
+      } else {
+        let processedValue = value
+        if (typeof value === 'string' && !isNaN(Number(value))) {
+          processedValue = Number(value)
+        }
+        queryRef = queryRef.eq(key, processedValue)
+      }
+    })
+  }
+  
+  return queryRef
+}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
     const client = getClient()
-    const { query, queryColumns, select, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, select, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     let queryRef = client.from('${tableName}').select(select || '*')
     
@@ -77,14 +180,32 @@ export default async function handler(req, res) {
         // Use specified columns
         columns = JSON.parse(queryColumns)
       } else {
-        // Fallback: Get all column names from a sample row
+        // Fallback: Get text-searchable columns from a sample row
         try {
           const { data: sampleData, error: sampleError } = await client.from('${tableName}').select('*').limit(1).single()
           if (sampleError) {
             throw sampleError
           }
           if (sampleData) {
-            columns = Object.keys(sampleData)
+            // Filter out columns that are likely non-text types
+            // Note: This is heuristic-based since we don't have schema info
+            columns = Object.keys(sampleData).filter(col => {
+              const value = sampleData[col]
+              const colLower = col.toLowerCase()
+              
+              // Exclude common timestamp/date column names
+              if (colLower.includes('_at') || colLower.includes('date') || colLower === 'timestamp') {
+                return false
+              }
+              
+              // Exclude if value is a number, boolean, null, or object (non-string)
+              if (value === null || value === undefined) {
+                return true // Include null columns, let the query handle it
+              }
+              
+              const type = typeof value
+              return type === 'string' // Only include string values
+            })
           }
         } catch (schemaError) {
           console.warn('Failed to fetch sample row for column names:', schemaError.message)
@@ -94,51 +215,29 @@ export default async function handler(req, res) {
       
       if (columns.length > 0) {
         const searchPattern = \`%\${query}%\`
+        // Note: Supabase PostgREST doesn't support ::text casting in .or() syntax
+        // Only text/varchar columns will match; non-text columns will be skipped
         const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
         queryRef = queryRef.or(orConditions)
       }
     }
     
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          const processedValues = value.map((v) => {
-            if (typeof v === 'string' && !isNaN(Number(v))) {
-              return Number(v)
-            }
-            return v
-          })
-          queryRef = queryRef.in(key, processedValues)
-        } else if (typeof value === 'object' && value !== null) {
-          const operator = Object.keys(value)[0]
-          let operatorValue = value[operator]
-          if (typeof operatorValue === 'string' && !isNaN(Number(operatorValue))) {
-            operatorValue = Number(operatorValue)
-          }
-          switch (operator) {
-            case 'eq': queryRef = queryRef.eq(key, operatorValue); break
-            case 'neq': queryRef = queryRef.neq(key, operatorValue); break
-            case 'gt': queryRef = queryRef.gt(key, operatorValue); break
-            case 'gte': queryRef = queryRef.gte(key, operatorValue); break
-            case 'lt': queryRef = queryRef.lt(key, operatorValue); break
-            case 'lte': queryRef = queryRef.lte(key, operatorValue); break
-            case 'like': queryRef = queryRef.like(key, operatorValue); break
-            case 'ilike': queryRef = queryRef.ilike(key, operatorValue); break
-            case 'in': queryRef = queryRef.in(key, operatorValue); break
-            default: queryRef = queryRef.eq(key, operatorValue)
-          }
-        } else {
-          let processedValue = value
-          if (typeof value === 'string' && !isNaN(Number(value))) {
-            processedValue = Number(value)
-          }
-          queryRef = queryRef.eq(key, processedValue)
-        }
-      })
-    }
+    // Apply filters using helper function
+    queryRef = applyFilters(queryRef, filters)
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = JSON.parse(sorts)
+      if (Array.isArray(parsedSorts)) {
+        parsedSorts.forEach((sort) => {
+          if (sort.field) {
+            queryRef = queryRef.order(sort.field, { 
+              ascending: sort.order?.toLowerCase() !== 'desc' 
+            })
+          }
+        })
+      }
+    } else if (sortBy) {
       queryRef = queryRef.order(sortBy, { ascending: sortOrder !== 'desc' })
     }
     
@@ -197,14 +296,32 @@ async function getCount(req, res) {
         // Use specified columns
         columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
       } else {
-        // Fallback: Get all column names from a sample row
+        // Fallback: Get text-searchable columns from a sample row
         try {
           const { data: sampleData, error: sampleError } = await supabase.from('${tableName}').select('*').limit(1).single()
           if (sampleError) {
             throw sampleError
           }
           if (sampleData) {
-            columns = Object.keys(sampleData)
+            // Filter out columns that are likely non-text types
+            // Note: This is heuristic-based since we don't have schema info
+            columns = Object.keys(sampleData).filter(col => {
+              const value = sampleData[col]
+              const colLower = col.toLowerCase()
+              
+              // Exclude common timestamp/date column names
+              if (colLower.includes('_at') || colLower.includes('date') || colLower === 'timestamp') {
+                return false
+              }
+              
+              // Exclude if value is a number, boolean, null, or object (non-string)
+              if (value === null || value === undefined) {
+                return true // Include null columns, let the query handle it
+              }
+              
+              const type = typeof value
+              return type === 'string' // Only include string values
+            })
           }
         } catch (schemaError) {
           console.warn('Failed to fetch sample row for column names:', schemaError.message)
@@ -214,17 +331,15 @@ async function getCount(req, res) {
       
       if (columns.length > 0) {
         const searchPattern = \`%\${query}%\`
+        // Note: Supabase PostgREST doesn't support ::text casting in .or() syntax
+        // Only text/varchar columns will match; non-text columns will be skipped
         const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
         countQuery = countQuery.or(orConditions)
       }
     }
 
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      for (const filter of parsedFilters) {
-        countQuery = countQuery.eq(filter.column, filter.value)
-      }
-    }
+    // Apply filters using helper function
+    countQuery = applyFilters(countQuery, filters)
 
     const { count, error } = await countQuery
     

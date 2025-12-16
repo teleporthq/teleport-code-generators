@@ -67,6 +67,97 @@ export const generateMongoDBFetcher = (
 
   return `import { MongoClient, ObjectId } from 'mongodb'
 
+// Helper function to process filters
+const processFilters = (filters, filter) => {
+  if (!filters) return
+  
+  const parsedFilters = JSON.parse(filters)
+  
+  if (Array.isArray(parsedFilters)) {
+    parsedFilters.forEach((filterItem) => {
+      if (!filterItem.source || filterItem.destination === undefined) return
+      
+      const field = filterItem.source
+      const value = filterItem.destination
+      const operand = filterItem.operand || '='
+      
+      // Handle _id specially
+      const processValue = (v) => {
+        if (field === '_id' && typeof v === 'string') {
+          try {
+            return new ObjectId(v)
+          } catch (e) {
+            return v
+          }
+        }
+        return v
+      }
+      
+      if (Array.isArray(value)) {
+        const processedValues = value.map(processValue)
+        if (operand === '!=') {
+          filter[field] = { $nin: processedValues }
+        } else {
+          filter[field] = { $in: processedValues }
+        }
+      } else {
+        const processedValue = processValue(value)
+        
+        // Handle null values
+        if (processedValue === null) {
+          if (operand === '=') {
+            filter[field] = null
+          } else if (operand === '!=') {
+            filter[field] = { $ne: null }
+          }
+        } else {
+          // Map operand to MongoDB operators
+          switch (operand) {
+            case '=':
+              filter[field] = processedValue
+              break
+            case '!=':
+              filter[field] = { $ne: processedValue }
+              break
+            case '>':
+              filter[field] = { $gt: processedValue }
+              break
+            case '>=':
+              filter[field] = { $gte: processedValue }
+              break
+            case '<':
+              filter[field] = { $lt: processedValue }
+              break
+            case '<=':
+              filter[field] = { $lte: processedValue }
+              break
+            default:
+              filter[field] = processedValue
+          }
+        }
+      }
+    })
+  } else {
+    Object.entries(parsedFilters).forEach(([key, value]) => {
+      if (key === '_id') {
+        if (Array.isArray(value)) {
+          filter[key] = {
+            $in: value.map((id) => (typeof id === 'string' ? new ObjectId(id) : id))
+          }
+        } else if (typeof value === 'string') {
+          filter[key] = new ObjectId(value)
+        } else {
+          filter[key] = value
+        }
+      } else if (Array.isArray(value)) {
+        filter[key] = { $in: value }
+      } else {
+        filter[key] = value
+      }
+    })
+  }
+}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -82,7 +173,7 @@ export default async function handler(req, res) {
     const db = client.db(${JSON.stringify(database)})
     const collection = db.collection('${tableName}')
     
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     const filter = {}
     
@@ -113,30 +204,26 @@ export default async function handler(req, res) {
       }
     }
     
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (key === '_id') {
-          if (Array.isArray(value)) {
-            filter[key] = {
-              $in: value.map((id) => (typeof id === 'string' ? new ObjectId(id) : id))
-            }
-          } else if (typeof value === 'string') {
-            filter[key] = new ObjectId(value)
-          } else {
-            filter[key] = value
-          }
-        } else if (Array.isArray(value)) {
-          filter[key] = { $in: value }
-        } else {
-          filter[key] = value
-        }
-      })
-    }
+    // Apply filters using helper function
+    processFilters(filters, filter)
     
     let cursor = collection.find(filter)
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = JSON.parse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        const sortObject = {}
+        parsedSorts.forEach((sort) => {
+          if (sort.field) {
+            sortObject[sort.field] = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+          }
+        })
+        if (Object.keys(sortObject).length > 0) {
+          cursor = cursor.sort(sortObject)
+        }
+      }
+    } else if (sortBy) {
       const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
       cursor = cursor.sort({ [sortBy]: sortOrderValue })
     }
@@ -218,12 +305,8 @@ async function getCount(req, res) {
       }
     }
 
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      for (const f of parsedFilters) {
-        filter[f.column] = f.value
-      }
-    }
+    // Apply filters using helper function
+    processFilters(filters, filter)
 
     const count = await collection.countDocuments(filter)
 
