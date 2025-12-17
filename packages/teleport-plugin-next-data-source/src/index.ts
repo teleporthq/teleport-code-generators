@@ -607,8 +607,7 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           getStaticPropsChunk,
           chunks,
           options.extractedResources,
-          dependencies,
-          currentPosition
+          dependencies
         )
 
         if (result.success && result.chunk) {

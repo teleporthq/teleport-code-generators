@@ -714,8 +714,7 @@ export const extractDataSourceIntoGetStaticProps = (
   getStaticPropsChunk: any,
   chunks: any[],
   extractedResources: GeneratorOptions['extractedResources'],
-  dependencies: Record<string, any>,
-  dataProviderPosition?: number
+  dependencies: Record<string, any>
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -778,12 +777,14 @@ export const extractDataSourceIntoGetStaticProps = (
       propKey = baseKey
     }
 
-    // Find the specific JSX node(s) matching this data source
-    // When renderPropIdentifier is provided, match that specific instance
-    // Otherwise, match all nodes with the same dataSourceId and tableName
+    // Find matching JSX nodes for this data source
+    // Strategy depends on whether we have a unique resource ID:
+    // - With resource ID: each UIDL node updates ONE JSX element (unique data per element)
+    // - Without resource ID: one UIDL node can update ALL matching JSX elements (shared data)
+    const hasUniqueResourceId = !!resourceId
     const matchingJsxNodes: types.JSXElement[] = []
 
-    // Helper function to recursively traverse the AST and find matching JSXElements
+    // Helper function to recursively traverse the AST and find matching JSX elements
     const traverseAST = (astNode: any) => {
       if (!astNode || typeof astNode !== 'object') {
         return
@@ -799,14 +800,19 @@ export const extractDataSourceIntoGetStaticProps = (
             (attr as types.JSXAttribute).name.name === 'resourceDefinition'
         ) as types.JSXAttribute | undefined
 
-        // Also check name attribute to match with renderPropIdentifier
         const nameAttr = attrs.find(
           (attr) =>
             (attr as any).type === 'JSXAttribute' &&
             (attr as types.JSXAttribute).name.name === 'name'
         ) as types.JSXAttribute | undefined
 
+        // Check if this node already has initialData - if so, skip it
+        const hasInitialData = attrs.some(
+          (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
+        )
+
         if (
+          !hasInitialData &&
           resourceDefAttr &&
           resourceDefAttr.value &&
           resourceDefAttr.value.type === 'JSXExpressionContainer'
@@ -819,13 +825,12 @@ export const extractDataSourceIntoGetStaticProps = (
             // tslint:disable-next-line:no-any
             const idValue = (idProp as any)?.value?.value
 
-            // Also check tableName to ensure we're matching the right data source
             // tslint:disable-next-line:no-any
             const tableNameProp = props.find((p: any) => p.key?.value === 'tableName')
             // tslint:disable-next-line:no-any
             const tableNameValue = (tableNameProp as any)?.value?.value
 
-            // If renderPropIdentifier is provided, match by name attribute as well
+            // Match by name attribute to ensure we get the right renderPropIdentifier
             let nameMatches = true
             if (renderPropIdentifier && nameAttr && nameAttr.value) {
               nameMatches = false
@@ -839,21 +844,29 @@ export const extractDataSourceIntoGetStaticProps = (
               }
             }
 
+            // Collect matching nodes that don't have initialData yet
             if (idValue === dataSourceId && tableNameValue === tableName && nameMatches) {
               matchingJsxNodes.push(jsxElement)
+              // If we have a unique resource ID, stop after finding the first match
+              // Otherwise, collect all matching nodes
+              if (hasUniqueResourceId) {
+                return
+              }
             }
           }
         }
       }
 
-      // Recursively traverse all properties
-      for (const key in astNode) {
-        if (astNode.hasOwnProperty(key)) {
-          const value = astNode[key]
-          if (Array.isArray(value)) {
-            value.forEach((item) => traverseAST(item))
-          } else if (typeof value === 'object') {
-            traverseAST(value)
+      // Recursively traverse all properties (unless we already found a match with unique resource ID)
+      if (!hasUniqueResourceId || matchingJsxNodes.length === 0) {
+        for (const key in astNode) {
+          if (astNode.hasOwnProperty(key)) {
+            const value = astNode[key]
+            if (Array.isArray(value)) {
+              value.forEach((item) => traverseAST(item))
+            } else if (typeof value === 'object') {
+              traverseAST(value)
+            }
           }
         }
       }
@@ -863,35 +876,11 @@ export const extractDataSourceIntoGetStaticProps = (
     traverseAST(componentChunk.content)
 
     if (matchingJsxNodes.length === 0) {
+      // No matching JSX nodes found (all may have already been processed)
       return { success: false }
     }
 
-    // Use position-based matching when dataProviderPosition is provided
-    // This ensures we match the correct DataProvider based on UIDL order
-    const nodesToUpdate: types.JSXElement[] = []
-
-    if (dataProviderPosition !== undefined) {
-      // Position-based matching: update only the node at the specified position
-      if (dataProviderPosition < matchingJsxNodes.length) {
-        nodesToUpdate.push(matchingJsxNodes[dataProviderPosition])
-      }
-    } else {
-      // When position is not provided, update ALL matching nodes that haven't been processed
-      // This is the old behavior needed for tests and backward compatibility
-      for (const matchedNode of matchingJsxNodes) {
-        const hasInitialData = matchedNode.openingElement.attributes.some(
-          (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
-        )
-        if (!hasInitialData) {
-          nodesToUpdate.push(matchedNode)
-        }
-      }
-    }
-
-    if (nodesToUpdate.length === 0) {
-      // All nodes have already been processed or position is out of bounds
-      return { success: false }
-    }
+    const nodesToUpdate: types.JSXElement[] = matchingJsxNodes
 
     // Update all target JSX nodes with initialData
     for (const jsxNode of nodesToUpdate) {
