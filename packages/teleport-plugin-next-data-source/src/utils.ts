@@ -510,6 +510,19 @@ export const replaceSecretReference = (
   }
 }
 
+export const generateSafeJSONParseCode = (): string => {
+  return `const safeJSONParse = (value) => {
+  if (!value) return value
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    console.warn('Failed to parse JSON:', e)
+    return value
+  }
+}`
+}
+
 export const generateDateFormatterCode = (): string => {
   return `const formatDateValue = (date) => {
   const options = {
@@ -537,6 +550,110 @@ const dateReplacer = (key, value) => {
     return formatDateValue(value)
   }
   return value
+}`
+}
+
+export const generateSortFilterHelperCode = (): string => {
+  return `function getNestedValue(obj, path) {
+  if (!obj || typeof obj !== 'object') return undefined
+  const keys = path.split('.')
+  let value = obj
+  for (const key of keys) {
+    if (value && typeof value === 'object' && key in value) {
+      value = value[key]
+    } else {
+      return undefined
+    }
+  }
+  return value
+}
+
+function compareValues(value, target, operand) {
+  if (value === null || value === undefined || target === null || target === undefined) {
+    switch (operand) {
+      case '=': return value == target
+      case '!=': return value != target
+      default: return false
+    }
+  }
+
+  if (typeof value === 'number' && typeof target === 'number') {
+    switch (operand) {
+      case '=': return value === target
+      case '!=': return value !== target
+      case '>': return value > target
+      case '>=': return value >= target
+      case '<': return value < target
+      case '<=': return value <= target
+      default: return true
+    }
+  }
+
+  if (typeof value === 'string' && typeof target === 'string') {
+    switch (operand) {
+      case '=': return value === target
+      case '!=': return value !== target
+      case '>': return value > target
+      case '>=': return value >= target
+      case '<': return value < target
+      case '<=': return value <= target
+      default: return true
+    }
+  }
+
+  const valueDate = value instanceof Date ? value : (typeof value === 'string' ? new Date(value) : null)
+  const targetDate = target instanceof Date ? target : (typeof target === 'string' ? new Date(target) : null)
+  if (valueDate && targetDate && !isNaN(valueDate.getTime()) && !isNaN(targetDate.getTime())) {
+    const valueTime = valueDate.getTime()
+    const targetTime = targetDate.getTime()
+    switch (operand) {
+      case '=': return valueTime === targetTime
+      case '!=': return valueTime !== targetTime
+      case '>': return valueTime > targetTime
+      case '>=': return valueTime >= targetTime
+      case '<': return valueTime < targetTime
+      case '<=': return valueTime <= targetTime
+      default: return true
+    }
+  }
+
+  if (Array.isArray(value) && Array.isArray(target)) {
+    switch (operand) {
+      case '=': return JSON.stringify(value) === JSON.stringify(target)
+      case '!=': return JSON.stringify(value) !== JSON.stringify(target)
+      case '>': return value.length > target.length
+      case '>=': return value.length >= target.length
+      case '<': return value.length < target.length
+      case '<=': return value.length <= target.length
+      default: return true
+    }
+  }
+
+  if (Array.isArray(value) && !Array.isArray(target)) {
+    switch (operand) {
+      case '=': return value.includes(target)
+      case '!=': return !value.includes(target)
+      default: return false
+    }
+  }
+
+  if (typeof value === 'object' && typeof target === 'object') {
+    switch (operand) {
+      case '=': return JSON.stringify(value) === JSON.stringify(target)
+      case '!=': return JSON.stringify(value) !== JSON.stringify(target)
+      default: return false
+    }
+  }
+
+  switch (operand) {
+    case '=': return value == target
+    case '!=': return value != target
+    case '>': return Number(value) > Number(target)
+    case '>=': return Number(value) >= Number(target)
+    case '<': return Number(value) < Number(target)
+    case '<=': return Number(value) <= Number(target)
+    default: return true
+  }
 }`
 }
 
@@ -881,8 +998,8 @@ export const extractDataSourceIntoGetStaticProps = (
             return
           }
 
-          // For sorts and filters, stringify the array for consistency with API handler
-          if (key === 'sorts' || key === 'filters') {
+          // For sorts, filters, and queryColumns, stringify the array for consistency with API handler
+          if (key === 'sorts' || key === 'filters' || key === 'queryColumns') {
             const arrayExpr = types.arrayExpression(
               validItems.map((item: any) => {
                 if (typeof item === 'string') {
@@ -906,7 +1023,7 @@ export const extractDataSourceIntoGetStaticProps = (
               [arrayExpr]
             )
           } else {
-            // Handle other array values (like queryColumns) normally
+            // Handle other array values normally
             astValue = types.arrayExpression(
               validItems.map((item: any) => {
                 if (typeof item === 'string') {

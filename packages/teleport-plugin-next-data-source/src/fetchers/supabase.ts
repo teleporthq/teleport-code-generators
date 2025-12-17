@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateSupabaseConfig = (
   config: Record<string, unknown>
@@ -61,6 +65,8 @@ const getClient = () => {
   return client
 }
 
+${generateSafeJSONParseCode()}
+
 // Helper function to process filter values
 const processFilterValue = (value) => {
   if (typeof value === 'string' && !isNaN(Number(value))) {
@@ -73,7 +79,7 @@ const processFilterValue = (value) => {
 const applyFilters = (queryRef, filters) => {
   if (!filters) return queryRef
   
-  const parsedFilters = JSON.parse(filters)
+  const parsedFilters = safeJSONParse(filters)
   
   if (Array.isArray(parsedFilters)) {
     parsedFilters.forEach((filter) => {
@@ -178,7 +184,7 @@ export default async function handler(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = JSON.parse(queryColumns)
+        columns = safeJSONParse(queryColumns)
       } else {
         // Fallback: Get text-searchable columns from a sample row
         try {
@@ -227,7 +233,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts)) {
         parsedSorts.forEach((sort) => {
           if (sort.field) {
@@ -294,7 +300,8 @@ async function getCount(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get text-searchable columns from a sample row
         try {

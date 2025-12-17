@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateMongoDBConfig = (
   config: Record<string, unknown>
@@ -67,11 +71,13 @@ export const generateMongoDBFetcher = (
 
   return `import { MongoClient, ObjectId } from 'mongodb'
 
+${generateSafeJSONParseCode()}
+
 // Helper function to process filters
 const processFilters = (filters, filter) => {
   if (!filters) return
   
-  const parsedFilters = JSON.parse(filters)
+  const parsedFilters = safeJSONParse(filters)
   
   if (Array.isArray(parsedFilters)) {
     parsedFilters.forEach((filterItem) => {
@@ -182,7 +188,7 @@ export default async function handler(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = JSON.parse(queryColumns)
+        columns = safeJSONParse(queryColumns)
       } else {
         // Fallback: Get all field names from a sample document
         try {
@@ -211,7 +217,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const sortObject = {}
         parsedSorts.forEach((sort) => {
@@ -268,15 +274,34 @@ export default async function handler(req, res) {
 }
 
 // tslint:disable-next-line:variable-name
-export const generateMongoDBCountFetcher = (_config: any, tableName: string): string => {
+export const generateMongoDBCountFetcher = (config: any, tableName: string): string => {
+  const mongoConfig = config as MongoDBConfig
+  const hasUsername = mongoConfig?.username
+  const database = mongoConfig?.database
+
+  // Build connection string from parts if not provided
+  let connectionString = mongoConfig.connectionString
+  if (!connectionString) {
+    connectionString = `mongodb://${
+      hasUsername ? `${mongoConfig.username}:${mongoConfig.password}@` : ''
+    }${mongoConfig.host}:${mongoConfig.port || 27017}/${database}`
+  }
+
   return `
 async function getCount(req, res) {
-  const client = getClient()
-  const db = client.db()
-
+  let client = null
   try {
-    const { query, queryColumns, filters } = req.query
+    const url = ${replaceSecretReference(connectionString)}
+    client = new MongoClient(url, {
+      connectTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 30000
+    })
+    
+    await client.connect()
+    const db = client.db(${JSON.stringify(database)})
     const collection = db.collection('${tableName}')
+    
+    const { query, queryColumns, filters } = req.query
     const filter = {}
 
     if (query) {
@@ -284,7 +309,8 @@ async function getCount(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get all field names from a sample document
         try {
@@ -322,6 +348,14 @@ async function getCount(req, res) {
       error: error.message || 'Failed to get count',
       timestamp: Date.now()
     })
+  } finally {
+    if (client) {
+      try {
+        await client.close()
+      } catch (error) {
+        console.error('Error closing MongoDB client:', error)
+      }
+    }
   }
 }
 `

@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateTursoConfig = (
   config: Record<string, unknown>
@@ -35,6 +39,8 @@ export const generateTursoFetcher = (
 
   return `import { createClient } from '@libsql/client'
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -54,7 +60,8 @@ export default async function handler(req, res) {
     
     if (query) {
       if (queryColumns) {
-        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
         // Cast columns to TEXT to support searching on non-text columns (dates, numbers, etc.)
         const searchConditions = columns.map((col) => \`CAST(\${col} AS TEXT) LIKE ?\`)
         whereClauses.push(\`(\${searchConditions.join(' OR ')})\`)
@@ -77,7 +84,7 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
+      const parsedFilters = safeJSONParse(filters)
       
       if (Array.isArray(parsedFilters)) {
         parsedFilters.forEach((filter) => {
@@ -132,7 +139,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null

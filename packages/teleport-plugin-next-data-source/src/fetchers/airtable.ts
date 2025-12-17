@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateAirtableConfig = (
   config: Record<string, unknown>
@@ -34,6 +38,8 @@ export const generateAirtableFetcher = (
 
   return `import fetch from 'node-fetch'
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -48,7 +54,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         parsedSorts.forEach((sort, index) => {
           if (!sort.field) return
@@ -76,7 +82,7 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
+      const parsedFilters = safeJSONParse(filters)
       
       if (Array.isArray(parsedFilters)) {
         const conditions = parsedFilters.map((filter) => {

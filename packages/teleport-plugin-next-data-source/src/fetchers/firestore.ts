@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateFirestoreConfig = (
   config: Record<string, unknown>
@@ -67,6 +71,8 @@ const getFirestore = () => {
   return firestore
 }
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -77,7 +83,7 @@ export default async function handler(req, res) {
     let queryRef = firestore.collection('${tableName}')
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
+      const parsedFilters = safeJSONParse(filters)
       
       if (Array.isArray(parsedFilters)) {
         parsedFilters.forEach((filter) => {
@@ -124,7 +130,8 @@ export default async function handler(req, res) {
     
     if (query) {
       if (queryColumns) {
-        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
         for (const column of columns) {
           queryRef = queryRef
             .where(column, '>=', query)
@@ -139,7 +146,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         parsedSorts.forEach((sort) => {
           if (!sort.field) return

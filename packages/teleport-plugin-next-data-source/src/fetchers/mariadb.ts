@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 interface MariaDBConfig {
   host?: string
@@ -20,11 +24,13 @@ export const generateMariaDBFetcher = (
 
   return `import mariadb from 'mariadb'
 
+${generateSafeJSONParseCode()}
+
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {
   if (!filters) return
   
-  const parsedFilters = JSON.parse(filters)
+  const parsedFilters = safeJSONParse(filters)
   
   if (Array.isArray(parsedFilters)) {
     parsedFilters.forEach((filter) => {
@@ -116,7 +122,7 @@ export default async function handler(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = JSON.parse(queryColumns)
+        columns = safeJSONParse(queryColumns)
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -151,7 +157,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
@@ -260,7 +266,8 @@ async function getCount(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get all columns from information_schema
         try {

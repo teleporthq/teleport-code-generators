@@ -853,34 +853,57 @@ function stringifyComplexParamsInDataProviders(componentChunk: any): void {
           attr.value?.type === 'JSXExpressionContainer'
       )
 
-      if (paramsAttr && paramsAttr.value?.expression?.type === 'ObjectExpression') {
-        const paramsObj = paramsAttr.value.expression
-        const properties = paramsObj.properties
+      if (paramsAttr) {
+        let paramsObj = null
 
-        // Find sorts and filters properties and stringify them
-        for (let i = 0; i < properties.length; i++) {
-          const prop = properties[i]
-          // Get the key name from either Identifier or StringLiteral
-          const keyName =
-            prop.key?.type === 'Identifier'
-              ? prop.key.name
-              : prop.key?.type === 'StringLiteral'
-              ? prop.key.value
-              : undefined
-
+        // Handle direct ObjectExpression
+        if (paramsAttr.value?.expression?.type === 'ObjectExpression') {
+          paramsObj = paramsAttr.value.expression
+        }
+        // Handle useMemo wrapped params: useMemo(() => ({...}), [...])
+        else if (
+          paramsAttr.value?.expression?.type === 'CallExpression' &&
+          paramsAttr.value.expression.callee?.name === 'useMemo' &&
+          paramsAttr.value.expression.arguments?.length > 0
+        ) {
+          const firstArg = paramsAttr.value.expression.arguments[0]
+          // Check if it's an arrow function returning an object
           if (
-            prop.type === 'ObjectProperty' &&
-            (keyName === 'sorts' || keyName === 'filters') &&
-            prop.value?.type === 'ArrayExpression'
+            firstArg.type === 'ArrowFunctionExpression' &&
+            firstArg.body?.type === 'ObjectExpression'
           ) {
-            // Replace the array with JSON.stringify(array)
-            properties[i] = types.objectProperty(
-              prop.key,
-              types.callExpression(
-                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-                [prop.value]
+            paramsObj = firstArg.body
+          }
+        }
+
+        if (paramsObj && paramsObj.properties) {
+          const properties = paramsObj.properties
+
+          // Find sorts, filters and queryColumns properties and stringify them
+          for (let i = 0; i < properties.length; i++) {
+            const prop = properties[i]
+            // Get the key name from either Identifier or StringLiteral
+            const keyName =
+              prop.key?.type === 'Identifier'
+                ? prop.key.name
+                : prop.key?.type === 'StringLiteral'
+                ? prop.key.value
+                : undefined
+
+            if (
+              prop.type === 'ObjectProperty' &&
+              (keyName === 'sorts' || keyName === 'filters' || keyName === 'queryColumns') &&
+              prop.value?.type === 'ArrayExpression'
+            ) {
+              // Replace the array with JSON.stringify(array)
+              properties[i] = types.objectProperty(
+                prop.key,
+                types.callExpression(
+                  types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                  [prop.value]
+                )
               )
-            )
+            }
           }
         }
       }
@@ -1125,6 +1148,9 @@ export default dataSourceModule.handler
         }
       }
     }
+
+    // Stringify complex params in DataProvider components before pagination plugin runs
+    stringifyComplexParamsInDataProviders(componentChunk)
 
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)

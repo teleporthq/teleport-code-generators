@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 interface RedshiftConfig {
   host?: string
@@ -49,6 +53,8 @@ const getClient = () => {
   })
 }
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -68,7 +74,8 @@ export default async function handler(req, res) {
       let columns = []
       
       if (queryColumns) {
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -108,7 +115,7 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
+      const parsedFilters = safeJSONParse(filters)
       
       if (Array.isArray(parsedFilters)) {
         parsedFilters.forEach((filter) => {
@@ -167,7 +174,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null

@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateClickHouseConfig = (
   config: Record<string, unknown>
@@ -53,6 +57,8 @@ const getClient = () => {
   return client
 }
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -64,7 +70,8 @@ export default async function handler(req, res) {
     
     if (query) {
       if (queryColumns) {
-        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
         const searchConditions = columns.map(
           (col) => \`positionCaseInsensitive(toString(\${col}), '\${query}') > 0\`
         )
@@ -93,7 +100,7 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
+      const parsedFilters = safeJSONParse(filters)
       
       if (Array.isArray(parsedFilters)) {
         parsedFilters.forEach((filter) => {
@@ -146,7 +153,7 @@ export default async function handler(req, res) {
     
     // Handle sorts - new array format
     if (sorts) {
-      const parsedSorts = JSON.parse(sorts)
+      const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null

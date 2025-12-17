@@ -1010,13 +1010,11 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       } else if (usage.category === 'search-only') {
         updateDataProviderForSearchOnly(dp, usage, vars, fileName)
       } else if (usage.category === 'plain') {
-        updateDataProviderForPlain(dp)
+        updateDataProviderForPlain(dp, fileName)
       }
 
-      // Create API route if needed (not needed for 'plain' category)
-      if (usage.category !== 'plain') {
-        ensureAPIRouteExists(options.extractedResources, usage)
-      }
+      // Create API route for all categories (including 'plain' for components)
+      ensureAPIRouteExists(options.extractedResources, usage)
     })
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
@@ -1761,8 +1759,33 @@ function updateDataProviderForSearchOnly(
   )
 }
 
-function updateDataProviderForPlain(dp: any): void {
+function updateDataProviderForPlain(dp: any, fileName: string): void {
   const attrs = dp.openingElement.attributes
+
+  // Check if fetchData already exists
+  const hasFetchData = attrs.some(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'fetchData'
+  )
+
+  // If no fetchData, add it
+  if (!hasFetchData) {
+    attrs.push(createFetchDataAttribute(fileName))
+  }
+
+  // Check if persistDataDuringLoading already exists
+  const hasPersistData = attrs.some(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'persistDataDuringLoading'
+  )
+
+  // If no persistDataDuringLoading, add it
+  if (!hasPersistData) {
+    attrs.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('persistDataDuringLoading'),
+        types.jsxExpressionContainer(types.booleanLiteral(true))
+      )
+    )
+  }
 
   // Find the params attribute
   const paramsAttrIndex = attrs.findIndex(
