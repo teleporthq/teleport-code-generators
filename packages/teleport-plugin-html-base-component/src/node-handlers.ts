@@ -141,6 +141,19 @@ export const generateHtmlSyntax: NodeToHTML<
       )
       return dynamicNode
 
+    case 'repeat':
+      const repeatNode = await generateHtmlSyntax(
+        node.content.node,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure,
+        resolvedExpressions
+      )
+      return repeatNode
+
     case 'conditional':
       const conditionalNodeComment = HASTBuilders.createTextNode('')
       const {
@@ -917,6 +930,13 @@ const generateDynamicNode: NodeToHTML<
     return localeTag
   }
 
+  if (node.content.referenceType === 'global') {
+    const globalTag = HASTBuilders.createHTMLNode('span')
+    const commentNode = HASTBuilders.createComment(`Global reference: ${node.content.id}`)
+    HASTUtils.addChildNode(globalTag, commentNode)
+    return globalTag
+  }
+
   const usedReferenceValue = getValueFromReference(
     node.content.id,
     node.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
@@ -998,6 +1018,14 @@ const handleStyles = (
   Object.keys(styles).forEach((styleKey) => {
     let style: string | UIDLStyleValue = styles[styleKey]
     if (style.type === 'dynamic' && style.content?.referenceType !== 'token') {
+      if (style.content?.referenceType === 'locale') {
+        node.content.style[styleKey] = staticNode(`[locale: ${style.content.id}]`)
+        return
+      }
+      if (style.content?.referenceType === 'global') {
+        node.content.style[styleKey] = staticNode(`[global: ${style.content.id}]`)
+        return
+      }
       const referencedValue = getValueFromReference(
         style.content.id,
         style.content.referenceType === 'prop' ? propDefinitions : stateDefinitions
@@ -1095,6 +1123,16 @@ const handleAttributes = (
       }
 
       case 'dynamic': {
+        if (content.referenceType === 'locale') {
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, `[locale: ${content.id}]`)
+          break
+        }
+
+        if (content.referenceType === 'global') {
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, `[global: ${content.id}]`)
+          break
+        }
+
         const value = getValueFromReference(
           content.id,
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions

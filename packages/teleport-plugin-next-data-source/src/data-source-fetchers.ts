@@ -62,10 +62,7 @@ export const getDataSourceDependencies = (type: DataSourceType): DataSourceFetch
   return dependencyMap[type]
 }
 
-export const generateDataSourceFetcher = (
-  dataSource: UIDLDataSource,
-  tableName: string
-): string => {
+export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName: string): string {
   if (!dataSource || typeof dataSource !== 'object') {
     throw new Error('Invalid data source: data source must be a valid object')
   }
@@ -226,10 +223,11 @@ export const generateDataSourceFetcher = (
  * Generates a fetcher with both a core fetchData function (for server-side use in getStaticProps)
  * and an API handler (for client-side use)
  */
-export const generateDataSourceFetcherWithCore = (
+export function generateDataSourceFetcherWithCore(
   dataSource: UIDLDataSource,
-  tableName: string
-): string => {
+  tableName: string,
+  isApiRoute: boolean = false
+): string {
   const apiHandler = generateDataSourceFetcher(dataSource, tableName)
 
   // Extract the handler function body from the API route
@@ -242,10 +240,29 @@ export const generateDataSourceFetcherWithCore = (
     'async function handler'
   )
 
-  // Generate count fetcher code
-  const countFetcherCode = generateCountFetcher(dataSource, tableName)
+  // Extract imports from handlerCode (they should be at the top)
+  const importRegex = /^import\s+.*?$/gm
+  const imports = handlerCode.match(importRegex) || []
+  const handlerWithoutImports = handlerCode.replace(importRegex, '').trim()
 
-  return `async function fetchData(params = {}) {
+  // Generate count fetcher code and extract its imports
+  const countFetcherCode = generateCountFetcher(dataSource, tableName)
+  const countImports = countFetcherCode.match(importRegex) || []
+  const countFetcherWithoutImports = countFetcherCode.replace(importRegex, '').trim()
+
+  // Combine and deduplicate imports
+  const allImports = Array.from(new Set([...imports, ...countImports]))
+
+  // For API routes, export just the handler function
+  // For utils files, export the full object with all functions
+  const exports = isApiRoute
+    ? 'export default handler'
+    : `export { fetchData, fetchCount, handler, getCount }
+export default { fetchData, fetchCount, handler, getCount }`
+
+  return `${allImports.join('\n')}
+
+async function fetchData(params = {}) {
   const req = {
     query: params,
     method: 'GET',
@@ -303,11 +320,10 @@ async function fetchCount(params = {}) {
   return result.count
 }
 
-${countFetcherCode}
+${countFetcherWithoutImports}
 
-${handlerCode}
+${handlerWithoutImports}
 
-export { fetchData, fetchCount, handler, getCount }
-export default { fetchData, fetchCount, handler, getCount }
+${exports}
 `
 }

@@ -440,10 +440,10 @@ export default dataSourceModule.handler
       return
     }
 
-    // Generate fetcher code with BOTH fetchData and handler
+    // Generate fetcher code for API route (exports just the handler)
     let fetcherCode: string
     try {
-      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '')
+      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '', true)
     } catch (error) {
       return
     }
@@ -639,26 +639,26 @@ export const extractDataSourceIntoGetStaticProps = (
     const renderPropIdentifier = node.content?.renderPropIdentifier
     // tslint:disable-next-line:no-any
     const resourceId = (node.content?.resource as any)?.id
-    let propKey: string
 
+    // Always generate a unique base key from dataSourceId and tableName
+    const sanitizedDsName = StringUtils.dashCaseToCamelCase(
+      sanitizeFileName(dataSource.name || dataSourceId)
+    )
+    const sanitizedTableName = StringUtils.dashCaseToCamelCase(
+      sanitizeFileName(tableName || 'data')
+    )
+    const baseKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+
+    let propKey: string
     if (renderPropIdentifier && resourceId) {
       // Include resource ID to differentiate between same renderProp but different params
       const sanitizedResourceId = StringUtils.dashCaseToCamelCase(
         sanitizeFileName(resourceId).replace(/^TQ_/, '')
       )
       propKey = `${renderPropIdentifier}_${sanitizedResourceId}`
-    } else if (renderPropIdentifier) {
-      // Use the renderPropIdentifier directly as fallback
-      propKey = renderPropIdentifier
     } else {
-      // Fallback to generating from data source name and table name
-      const sanitizedDsName = StringUtils.dashCaseToCamelCase(
-        sanitizeFileName(dataSource.name || dataSourceId)
-      )
-      const sanitizedTableName = StringUtils.dashCaseToCamelCase(
-        sanitizeFileName(tableName || 'data')
-      )
-      propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+      // Use base key for uniqueness (even if renderPropIdentifier exists, base key ensures uniqueness across different data sources)
+      propKey = baseKey
     }
 
     // Find the specific JSX node(s) matching this data source
@@ -751,32 +751,33 @@ export const extractDataSourceIntoGetStaticProps = (
 
     // Use position-based matching when dataProviderPosition is provided
     // This ensures we match the correct DataProvider based on UIDL order
-    let targetNode: types.JSXElement | null = null
+    const nodesToUpdate: types.JSXElement[] = []
 
-    if (dataProviderPosition !== undefined && dataProviderPosition < matchingJsxNodes.length) {
-      // Match the DataProvider at the specified position
-      targetNode = matchingJsxNodes[dataProviderPosition]
+    if (dataProviderPosition !== undefined) {
+      // Position-based matching: update only the node at the specified position
+      if (dataProviderPosition < matchingJsxNodes.length) {
+        nodesToUpdate.push(matchingJsxNodes[dataProviderPosition])
+      }
     } else {
-      // Fallback: Find the first JSX node that hasn't been processed yet (doesn't have initialData)
+      // When position is not provided, update ALL matching nodes that haven't been processed
+      // This is the old behavior needed for tests and backward compatibility
       for (const matchedNode of matchingJsxNodes) {
         const hasInitialData = matchedNode.openingElement.attributes.some(
           (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
         )
         if (!hasInitialData) {
-          targetNode = matchedNode
-          break
+          nodesToUpdate.push(matchedNode)
         }
       }
     }
 
-    if (!targetNode) {
+    if (nodesToUpdate.length === 0) {
       // All nodes have already been processed or position is out of bounds
       return { success: false }
     }
 
-    // Update only the target JSX node with initialData
-    const jsxNode = targetNode
-    {
+    // Update all target JSX nodes with initialData
+    for (const jsxNode of nodesToUpdate) {
       // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
       const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(
         (attr) => (attr as types.JSXAttribute).name?.name === 'children'
