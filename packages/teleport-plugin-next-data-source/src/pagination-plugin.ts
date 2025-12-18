@@ -7,6 +7,7 @@ import {
 import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateSafeFileName } from './utils'
+import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
 // This module uses a UIDL-first approach: we scan the UIDL FIRST to identify
@@ -286,6 +287,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     }
 
     // Check if this is a page or component
+    // Pages have getStaticProps, components don't
     const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
     const isPage = !!getStaticPropsChunk
 
@@ -1014,7 +1016,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       }
 
       // Create API route for all categories (including 'plain' for components)
-      ensureAPIRouteExists(options.extractedResources, usage)
+      ensureAPIRouteExists(options.extractedResources, usage, options.dataSources)
     })
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
@@ -2242,7 +2244,11 @@ function wirePaginationButtons(
   }
 }
 
-function ensureAPIRouteExists(extractedResources: any, usage: DataSourceUsage): void {
+function ensureAPIRouteExists(
+  extractedResources: any,
+  usage: DataSourceUsage,
+  dataSources: Record<string, any>
+): void {
   // Generate file name for the API route
   const fileName = generateSafeFileName(
     usage.resourceDefinition.dataSourceType,
@@ -2250,35 +2256,58 @@ function ensureAPIRouteExists(extractedResources: any, usage: DataSourceUsage): 
     usage.resourceDefinition.dataSourceId
   )
 
-  // Check if the utils data source file exists - if so, create API routes that re-export from it
-  if (extractedResources[`utils/${fileName}`]) {
-    // Create main data API route if not exists
-    if (!extractedResources[`api/${fileName}`]) {
-      const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
+  // Check if the utils data source file exists - if not, create it
+  if (!extractedResources[`utils/${fileName}`]) {
+    // Get the data source from dataSources
+    const dataSource = dataSources[usage.resourceDefinition.dataSourceId]
+    if (dataSource) {
+      try {
+        // Generate the utils file with fetchData, fetchCount, handler, and getCount
+        const fetcherCode = generateDataSourceFetcherWithCore(
+          dataSource,
+          usage.resourceDefinition.tableName || 'data'
+        )
+
+        extractedResources[`utils/${fileName}`] = {
+          fileName,
+          fileType: FileType.JS,
+          path: ['utils', 'data-sources'],
+          content: fetcherCode,
+        }
+      } catch (error) {
+        // If generation fails, skip
+        return
+      }
+    }
+  }
+
+  // Now create API routes that re-export from the utils file
+  // Create main data API route if not exists
+  if (!extractedResources[`api/${fileName}`]) {
+    const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
 
 export default dataSourceModule.handler
 `
-      extractedResources[`api/${fileName}`] = {
-        fileName,
-        fileType: FileType.JS,
-        path: ['pages', 'api'],
-        content: apiRouteCode,
-      }
+    extractedResources[`api/${fileName}`] = {
+      fileName,
+      fileType: FileType.JS,
+      path: ['pages', 'api'],
+      content: apiRouteCode,
     }
+  }
 
-    // Create count API route if not exists (needed for paginated+search cases)
-    const countFileName = `${fileName}-count`
-    if (!extractedResources[`api/${countFileName}`]) {
-      const countApiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
+  // Create count API route if not exists (needed for paginated+search cases)
+  const countFileName = `${fileName}-count`
+  if (!extractedResources[`api/${countFileName}`]) {
+    const countApiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
 
 export default dataSourceModule.getCount
 `
-      extractedResources[`api/${countFileName}`] = {
-        fileName: countFileName,
-        fileType: FileType.JS,
-        path: ['pages', 'api'],
-        content: countApiRouteCode,
-      }
+    extractedResources[`api/${countFileName}`] = {
+      fileName: countFileName,
+      fileType: FileType.JS,
+      path: ['pages', 'api'],
+      content: countApiRouteCode,
     }
   }
 }
@@ -2663,10 +2692,35 @@ function updateGetStaticProps(
         fetchesArray.elements.push(
           types.callExpression(
             types.memberExpression(
-              types.identifier(fetcherImportName),
-              types.identifier('fetchCount')
+              types.callExpression(
+                types.memberExpression(
+                  types.identifier(fetcherImportName),
+                  types.identifier('fetchCount')
+                ),
+                countParams.length > 0 ? [types.objectExpression(countParams)] : []
+              ),
+              types.identifier('catch')
             ),
-            countParams.length > 0 ? [types.objectExpression(countParams)] : []
+            [
+              types.arrowFunctionExpression(
+                [types.identifier('error')],
+                types.blockStatement([
+                  types.expressionStatement(
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('console'),
+                        types.identifier('error')
+                      ),
+                      [
+                        types.stringLiteral(`Error fetching ${countVarName}:`),
+                        types.identifier('error'),
+                      ]
+                    )
+                  ),
+                  types.returnStatement(types.numericLiteral(0)),
+                ])
+              ),
+            ]
           )
         )
 

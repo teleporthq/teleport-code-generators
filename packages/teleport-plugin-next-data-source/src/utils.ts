@@ -806,6 +806,12 @@ export const extractDataSourceIntoGetStaticProps = (
             (attr as types.JSXAttribute).name.name === 'name'
         ) as types.JSXAttribute | undefined
 
+        const paramsAttr = attrs.find(
+          (attr) =>
+            (attr as any).type === 'JSXAttribute' &&
+            (attr as types.JSXAttribute).name.name === 'params'
+        ) as types.JSXAttribute | undefined
+
         // Check if this node already has initialData - if so, skip it
         const hasInitialData = attrs.some(
           (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
@@ -844,8 +850,91 @@ export const extractDataSourceIntoGetStaticProps = (
               }
             }
 
-            // Collect matching nodes that don't have initialData yet
-            if (idValue === dataSourceId && tableNameValue === tableName && nameMatches) {
+            // Check if params match (for nodes with the same renderPropIdentifier but different params)
+            // We only compare simple numeric params that affect data fetching (limit, page, perPage)
+            // Other params like queryColumns are handled by pagination plugin and don't affect matching
+            // tslint:disable-next-line:no-any
+            const nodeResourceParams = (node.content as any).resource?.params || {}
+            let paramsMatch = true
+
+            // Extract numeric params from JSX that affect data fetching
+            const jsxLimitParams: Record<string, number | undefined> = {}
+            let jsxHasParams = false
+
+            if (
+              paramsAttr &&
+              paramsAttr.value &&
+              paramsAttr.value.type === 'JSXExpressionContainer'
+            ) {
+              jsxHasParams = true
+              const paramsExpr = paramsAttr.value.expression
+              let objExpr: types.ObjectExpression | null = null
+
+              // Handle useMemo wrapper
+              if (
+                paramsExpr.type === 'CallExpression' &&
+                (paramsExpr.callee as any).name === 'useMemo'
+              ) {
+                const memoArgs = paramsExpr.arguments
+                if (memoArgs.length > 0 && memoArgs[0].type === 'ArrowFunctionExpression') {
+                  const arrowFunc = memoArgs[0] as types.ArrowFunctionExpression
+                  if (arrowFunc.body.type === 'ObjectExpression') {
+                    objExpr = arrowFunc.body as types.ObjectExpression
+                  }
+                }
+              } else if (paramsExpr.type === 'ObjectExpression') {
+                // Direct object expression (before useMemo wrapping)
+                objExpr = paramsExpr as types.ObjectExpression
+              }
+
+              if (objExpr) {
+                objExpr.properties.forEach((prop: any) => {
+                  if (prop.type === 'ObjectProperty') {
+                    let key: string | undefined
+                    if (prop.key.type === 'Identifier') {
+                      key = prop.key.name
+                    } else if (prop.key.type === 'StringLiteral') {
+                      key = prop.key.value
+                    }
+
+                    // Only extract limit param - this is what differentiates data fetches
+                    if (key === 'limit' && prop.value.type === 'NumericLiteral') {
+                      jsxLimitParams[key] = prop.value.value
+                    }
+                  }
+                })
+              }
+            }
+
+            // Extract limit from resource params
+            const resourceLimit =
+              nodeResourceParams.limit?.type === 'static'
+                ? nodeResourceParams.limit.content
+                : undefined
+
+            // Compare limit params - this determines if data fetches are equivalent
+            const jsxLimit = jsxLimitParams.limit
+            if (jsxLimit !== undefined || resourceLimit !== undefined) {
+              // If either has limit, both must have the same limit value
+              paramsMatch = jsxLimit === resourceLimit
+            } else if (!jsxHasParams && Object.keys(nodeResourceParams).length > 0) {
+              // JSX has no params but resource has params - check if resource only has non-limit params
+              // If resource has limit, no match; otherwise match
+              paramsMatch = resourceLimit === undefined
+            } else if (jsxHasParams && Object.keys(nodeResourceParams).length === 0) {
+              // JSX has params but resource doesn't - check if JSX only has non-limit params
+              // If JSX has limit, no match; otherwise match
+              paramsMatch = jsxLimit === undefined
+            }
+            // else: both don't have params or both have equivalent limit - match
+
+            // Collect matching nodes that don't have initialData yet and have matching params
+            if (
+              idValue === dataSourceId &&
+              tableNameValue === tableName &&
+              nameMatches &&
+              paramsMatch
+            ) {
               matchingJsxNodes.push(jsxElement)
               // If we have a unique resource ID, stop after finding the first match
               // Otherwise, collect all matching nodes
@@ -875,14 +964,12 @@ export const extractDataSourceIntoGetStaticProps = (
     // Traverse the entire component AST content
     traverseAST(componentChunk.content)
 
-    if (matchingJsxNodes.length === 0) {
-      // No matching JSX nodes found (all may have already been processed)
-      return { success: false }
-    }
-
+    // Even if all JSX nodes already have initialData, we should still add the fetch to getStaticProps
+    // This handles cases where multiple data-source-list nodes share the same renderPropIdentifier
+    // but have different params (e.g., one with limit, one without)
     const nodesToUpdate: types.JSXElement[] = matchingJsxNodes
 
-    // Update all target JSX nodes with initialData
+    // Update all target JSX nodes with initialData (only those that don't already have it)
     for (const jsxNode of nodesToUpdate) {
       // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
       const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(

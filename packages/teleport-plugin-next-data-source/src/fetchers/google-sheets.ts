@@ -1,4 +1,5 @@
 import { generateSortFilterHelperCode, generateSafeJSONParseCode } from '../utils'
+import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateGoogleSheetsConfig = (
   config: Record<string, unknown>
@@ -35,15 +36,24 @@ interface GoogleSheetsConfig {
   sheetName?: string
   range?: string
   maxRows?: number
+  autoDetectHeader?: boolean
+  firstRowIsHeader?: boolean
+  columns?: Array<{ id: string; label?: string; type?: string }>
 }
 
 export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): string => {
   const sheetsConfig = config as GoogleSheetsConfig
+  const autoDetectHeader = sheetsConfig.autoDetectHeader
+  const firstRowIsHeader = sheetsConfig.firstRowIsHeader
+  const configColumns = sheetsConfig.columns || []
+
   return `import fetch from 'node-fetch'
 
 ${generateSafeJSONParseCode()}
 
 ${generateSortFilterHelperCode()}
+
+${generateHeaderDetectionCode()}
 
 export default async function handler(req, res) {
   try {
@@ -51,6 +61,8 @@ export default async function handler(req, res) {
     let sheetId = ${JSON.stringify(sheetsConfig.sheetId)}
     const range = ${JSON.stringify(sheetsConfig.range || 'A1:Z1000')}
     const maxRows = ${sheetsConfig.maxRows || 0}
+    const autoDetectHeader = ${autoDetectHeader !== undefined ? autoDetectHeader : true}
+    const firstRowIsHeader = ${firstRowIsHeader !== undefined ? firstRowIsHeader : true}
     
     if (!sheetId && sheetUrl) {
       const match = sheetUrl.match(/\\/d\\/([a-zA-Z0-9-_]+)/)
@@ -164,26 +176,40 @@ export default async function handler(req, res) {
     const firstRow = rawRows[0]
     const firstRowValues = firstRow.c.map((cell) => cell?.v ?? cell?.f ?? null)
     
-    const hasHeaderRow = firstRowValues.every((val) => 
-      val !== null && val !== undefined && val !== '' && typeof val === 'string'
-    )
+    const shouldAutoDetect = autoDetectHeader !== false
+    let hasHeaderRow = false
+    
+    if (shouldAutoDetect) {
+      hasHeaderRow = detectHeaderRow(firstRowValues, rawRows)
+    } else {
+      hasHeaderRow = firstRowIsHeader !== false
+    }
+    
+    const configColumns = ${JSON.stringify(configColumns)}
+    const useConfigColumns = configColumns && configColumns.length > 0
     
     let columns
     let dataRows
     
     if (hasHeaderRow && rawRows.length > 1) {
-      columns = firstRowValues.map((headerValue, index) => ({
-        id: \`col_\${index}\`,
-        label: String(headerValue),
-        type: 'string'
-      }))
+      columns = table.cols.map((col, index) => {
+        const configCol = useConfigColumns ? configColumns[index] : null
+        return {
+          id: configCol?.id || col.id || \`col_\${index}\`,
+          label: String(firstRowValues[index] || col.label || configCol?.label || \`Column \${index + 1}\`),
+          type: configCol?.type || col.type || 'string'
+        }
+      })
       dataRows = rawRows.slice(1)
     } else {
-      columns = table.cols.map((col, index) => ({
-        id: col.id || \`col_\${index}\`,
-        label: col.label || \`Column \${index + 1}\`,
-        type: col.type || 'string'
-      }))
+      columns = table.cols.map((col, index) => {
+        const configCol = useConfigColumns ? configColumns[index] : null
+        return {
+          id: configCol?.id || col.id || \`col_\${index}\`,
+          label: configCol?.label || col.label || \`Column \${index + 1}\`,
+          type: configCol?.type || col.type || 'string'
+        }
+      })
       dataRows = rawRows
     }
     

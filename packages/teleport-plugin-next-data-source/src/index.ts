@@ -1,4 +1,9 @@
-import { ComponentPlugin, ComponentPluginFactory, FileType } from '@teleporthq/teleport-types'
+import {
+  ComponentPlugin,
+  ComponentPluginFactory,
+  FileType,
+  ChunkType,
+} from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   extractDataSourceIntoNextAPIFolder,
@@ -819,6 +824,91 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
     // Stringify complex params in DataProvider components before pagination plugin runs
     stringifyComplexParamsInDataProviders(componentChunk)
+
+    // If getStaticProps doesn't exist yet but we have paginated/search data sources,
+    // create a basic getStaticProps structure for the pagination plugin to populate
+    if (!getStaticPropsChunk && opts.paginationConfig) {
+      const hasPaginatedOrSearchDataSources =
+        opts.paginationConfig.perPageMap.size > 0 || opts.paginationConfig.searchConfigMap.size > 0
+
+      if (hasPaginatedOrSearchDataSources) {
+        // Create a basic getStaticProps structure with Promise.all
+        const getStaticPropsAST = types.exportNamedDeclaration(
+          (() => {
+            const node = types.functionDeclaration(
+              types.identifier('getStaticProps'),
+              [types.identifier('context')],
+              types.blockStatement([
+                types.tryStatement(
+                  types.blockStatement([
+                    // Create Promise.all structure that updateGetStaticProps expects
+                    types.variableDeclaration('const', [
+                      types.variableDeclarator(
+                        types.arrayPattern([]),
+                        types.awaitExpression(
+                          types.callExpression(
+                            types.memberExpression(
+                              types.identifier('Promise'),
+                              types.identifier('all')
+                            ),
+                            [types.arrayExpression([])]
+                          )
+                        )
+                      ),
+                    ]),
+                    types.returnStatement(
+                      types.objectExpression([
+                        types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                      ])
+                    ),
+                  ]),
+                  types.catchClause(
+                    types.identifier('error'),
+                    types.blockStatement([
+                      types.expressionStatement(
+                        types.callExpression(
+                          types.memberExpression(
+                            types.identifier('console'),
+                            types.identifier('error')
+                          ),
+                          [
+                            types.stringLiteral('Error in getStaticProps:'),
+                            types.identifier('error'),
+                          ]
+                        )
+                      ),
+                      types.returnStatement(
+                        types.objectExpression([
+                          types.objectProperty(
+                            types.identifier('props'),
+                            types.objectExpression([])
+                          ),
+                        ])
+                      ),
+                    ])
+                  )
+                ),
+              ]),
+              false,
+              true
+            )
+
+            node.async = true
+            return node
+          })()
+        )
+
+        getStaticPropsChunk = {
+          name: 'getStaticProps',
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          content: getStaticPropsAST,
+          linkAfter: ['jsx-component'],
+        }
+
+        chunks.push(getStaticPropsChunk)
+      }
+    }
 
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)
