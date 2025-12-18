@@ -440,10 +440,10 @@ export default dataSourceModule.handler
       return
     }
 
-    // Generate fetcher code with BOTH fetchData and handler
+    // Generate fetcher code for API route (exports just the handler)
     let fetcherCode: string
     try {
-      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '')
+      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '', true)
     } catch (error) {
       return
     }
@@ -510,6 +510,19 @@ export const replaceSecretReference = (
   }
 }
 
+export const generateSafeJSONParseCode = (): string => {
+  return `const safeJSONParse = (value) => {
+  if (!value) return value
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    console.warn('Failed to parse JSON:', e)
+    return value
+  }
+}`
+}
+
 export const generateDateFormatterCode = (): string => {
   return `const formatDateValue = (date) => {
   const options = {
@@ -537,6 +550,110 @@ const dateReplacer = (key, value) => {
     return formatDateValue(value)
   }
   return value
+}`
+}
+
+export const generateSortFilterHelperCode = (): string => {
+  return `function getNestedValue(obj, path) {
+  if (!obj || typeof obj !== 'object') return undefined
+  const keys = path.split('.')
+  let value = obj
+  for (const key of keys) {
+    if (value && typeof value === 'object' && key in value) {
+      value = value[key]
+    } else {
+      return undefined
+    }
+  }
+  return value
+}
+
+function compareValues(value, target, operand) {
+  if (value === null || value === undefined || target === null || target === undefined) {
+    switch (operand) {
+      case '=': return value == target
+      case '!=': return value != target
+      default: return false
+    }
+  }
+
+  if (typeof value === 'number' && typeof target === 'number') {
+    switch (operand) {
+      case '=': return value === target
+      case '!=': return value !== target
+      case '>': return value > target
+      case '>=': return value >= target
+      case '<': return value < target
+      case '<=': return value <= target
+      default: return true
+    }
+  }
+
+  if (typeof value === 'string' && typeof target === 'string') {
+    switch (operand) {
+      case '=': return value === target
+      case '!=': return value !== target
+      case '>': return value > target
+      case '>=': return value >= target
+      case '<': return value < target
+      case '<=': return value <= target
+      default: return true
+    }
+  }
+
+  const valueDate = value instanceof Date ? value : (typeof value === 'string' ? new Date(value) : null)
+  const targetDate = target instanceof Date ? target : (typeof target === 'string' ? new Date(target) : null)
+  if (valueDate && targetDate && !isNaN(valueDate.getTime()) && !isNaN(targetDate.getTime())) {
+    const valueTime = valueDate.getTime()
+    const targetTime = targetDate.getTime()
+    switch (operand) {
+      case '=': return valueTime === targetTime
+      case '!=': return valueTime !== targetTime
+      case '>': return valueTime > targetTime
+      case '>=': return valueTime >= targetTime
+      case '<': return valueTime < targetTime
+      case '<=': return valueTime <= targetTime
+      default: return true
+    }
+  }
+
+  if (Array.isArray(value) && Array.isArray(target)) {
+    switch (operand) {
+      case '=': return JSON.stringify(value) === JSON.stringify(target)
+      case '!=': return JSON.stringify(value) !== JSON.stringify(target)
+      case '>': return value.length > target.length
+      case '>=': return value.length >= target.length
+      case '<': return value.length < target.length
+      case '<=': return value.length <= target.length
+      default: return true
+    }
+  }
+
+  if (Array.isArray(value) && !Array.isArray(target)) {
+    switch (operand) {
+      case '=': return value.includes(target)
+      case '!=': return !value.includes(target)
+      default: return false
+    }
+  }
+
+  if (typeof value === 'object' && typeof target === 'object') {
+    switch (operand) {
+      case '=': return JSON.stringify(value) === JSON.stringify(target)
+      case '!=': return JSON.stringify(value) !== JSON.stringify(target)
+      default: return false
+    }
+  }
+
+  switch (operand) {
+    case '=': return value == target
+    case '!=': return value != target
+    case '>': return Number(value) > Number(target)
+    case '>=': return Number(value) >= Number(target)
+    case '<': return Number(value) < Number(target)
+    case '<=': return Number(value) <= Number(target)
+    default: return true
+  }
 }`
 }
 
@@ -632,19 +749,42 @@ export const extractDataSourceIntoGetStaticProps = (
       return { success: false }
     }
 
-    // Generate prop key first
+    // Generate prop key using renderPropIdentifier and resource ID for uniqueness
+    // This ensures each DataProvider instance gets its own fetch and initialData even when
+    // multiple instances share the same renderPropIdentifier but have different params (sorts, filters)
+    const renderPropIdentifier = node.content?.renderPropIdentifier
+    // tslint:disable-next-line:no-any
+    const resourceId = (node.content?.resource as any)?.id
+
+    // Always generate a unique base key from dataSourceId and tableName
     const sanitizedDsName = StringUtils.dashCaseToCamelCase(
       sanitizeFileName(dataSource.name || dataSourceId)
     )
     const sanitizedTableName = StringUtils.dashCaseToCamelCase(
       sanitizeFileName(tableName || 'data')
     )
-    const propKey = `${sanitizedDsName}_${sanitizedTableName}_data`
+    const baseKey = `${sanitizedDsName}_${sanitizedTableName}_data`
 
-    // Find ALL JSX nodes matching this dataSourceId AND tableName and add initialData to ALL of them
+    let propKey: string
+    if (renderPropIdentifier && resourceId) {
+      // Include resource ID to differentiate between same renderProp but different params
+      const sanitizedResourceId = StringUtils.dashCaseToCamelCase(
+        sanitizeFileName(resourceId).replace(/^TQ_/, '')
+      )
+      propKey = `${renderPropIdentifier}_${sanitizedResourceId}`
+    } else {
+      // Use base key for uniqueness (even if renderPropIdentifier exists, base key ensures uniqueness across different data sources)
+      propKey = baseKey
+    }
+
+    // Find matching JSX nodes for this data source
+    // Strategy depends on whether we have a unique resource ID:
+    // - With resource ID: each UIDL node updates ONE JSX element (unique data per element)
+    // - Without resource ID: one UIDL node can update ALL matching JSX elements (shared data)
+    const hasUniqueResourceId = !!resourceId
     const matchingJsxNodes: types.JSXElement[] = []
 
-    // Helper function to recursively traverse the AST and find all matching JSXElements
+    // Helper function to recursively traverse the AST and find matching JSX elements
     const traverseAST = (astNode: any) => {
       if (!astNode || typeof astNode !== 'object') {
         return
@@ -660,7 +800,25 @@ export const extractDataSourceIntoGetStaticProps = (
             (attr as types.JSXAttribute).name.name === 'resourceDefinition'
         ) as types.JSXAttribute | undefined
 
+        const nameAttr = attrs.find(
+          (attr) =>
+            (attr as any).type === 'JSXAttribute' &&
+            (attr as types.JSXAttribute).name.name === 'name'
+        ) as types.JSXAttribute | undefined
+
+        const paramsAttr = attrs.find(
+          (attr) =>
+            (attr as any).type === 'JSXAttribute' &&
+            (attr as types.JSXAttribute).name.name === 'params'
+        ) as types.JSXAttribute | undefined
+
+        // Check if this node already has initialData - if so, skip it
+        const hasInitialData = attrs.some(
+          (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
+        )
+
         if (
+          !hasInitialData &&
           resourceDefAttr &&
           resourceDefAttr.value &&
           resourceDefAttr.value.type === 'JSXExpressionContainer'
@@ -673,27 +831,131 @@ export const extractDataSourceIntoGetStaticProps = (
             // tslint:disable-next-line:no-any
             const idValue = (idProp as any)?.value?.value
 
-            // Also check tableName to ensure we're matching the right data source
             // tslint:disable-next-line:no-any
             const tableNameProp = props.find((p: any) => p.key?.value === 'tableName')
             // tslint:disable-next-line:no-any
             const tableNameValue = (tableNameProp as any)?.value?.value
 
-            if (idValue === dataSourceId && tableNameValue === tableName) {
+            // Match by name attribute to ensure we get the right renderPropIdentifier
+            let nameMatches = true
+            if (renderPropIdentifier && nameAttr && nameAttr.value) {
+              nameMatches = false
+              if (nameAttr.value.type === 'StringLiteral') {
+                nameMatches = nameAttr.value.value === renderPropIdentifier
+              } else if (nameAttr.value.type === 'JSXExpressionContainer') {
+                const nameExpr = nameAttr.value.expression
+                if (nameExpr.type === 'StringLiteral') {
+                  nameMatches = nameExpr.value === renderPropIdentifier
+                }
+              }
+            }
+
+            // Check if params match (for nodes with the same renderPropIdentifier but different params)
+            // We only compare simple numeric params that affect data fetching (limit, page, perPage)
+            // Other params like queryColumns are handled by pagination plugin and don't affect matching
+            // tslint:disable-next-line:no-any
+            const nodeResourceParams = (node.content as any).resource?.params || {}
+            let paramsMatch = true
+
+            // Extract numeric params from JSX that affect data fetching
+            const jsxLimitParams: Record<string, number | undefined> = {}
+            let jsxHasParams = false
+
+            if (
+              paramsAttr &&
+              paramsAttr.value &&
+              paramsAttr.value.type === 'JSXExpressionContainer'
+            ) {
+              jsxHasParams = true
+              const paramsExpr = paramsAttr.value.expression
+              let objExpr: types.ObjectExpression | null = null
+
+              // Handle useMemo wrapper
+              if (
+                paramsExpr.type === 'CallExpression' &&
+                (paramsExpr.callee as any).name === 'useMemo'
+              ) {
+                const memoArgs = paramsExpr.arguments
+                if (memoArgs.length > 0 && memoArgs[0].type === 'ArrowFunctionExpression') {
+                  const arrowFunc = memoArgs[0] as types.ArrowFunctionExpression
+                  if (arrowFunc.body.type === 'ObjectExpression') {
+                    objExpr = arrowFunc.body as types.ObjectExpression
+                  }
+                }
+              } else if (paramsExpr.type === 'ObjectExpression') {
+                // Direct object expression (before useMemo wrapping)
+                objExpr = paramsExpr as types.ObjectExpression
+              }
+
+              if (objExpr) {
+                objExpr.properties.forEach((prop: any) => {
+                  if (prop.type === 'ObjectProperty') {
+                    let key: string | undefined
+                    if (prop.key.type === 'Identifier') {
+                      key = prop.key.name
+                    } else if (prop.key.type === 'StringLiteral') {
+                      key = prop.key.value
+                    }
+
+                    // Only extract limit param - this is what differentiates data fetches
+                    if (key === 'limit' && prop.value.type === 'NumericLiteral') {
+                      jsxLimitParams[key] = prop.value.value
+                    }
+                  }
+                })
+              }
+            }
+
+            // Extract limit from resource params
+            const resourceLimit =
+              nodeResourceParams.limit?.type === 'static'
+                ? nodeResourceParams.limit.content
+                : undefined
+
+            // Compare limit params - this determines if data fetches are equivalent
+            const jsxLimit = jsxLimitParams.limit
+            if (jsxLimit !== undefined || resourceLimit !== undefined) {
+              // If either has limit, both must have the same limit value
+              paramsMatch = jsxLimit === resourceLimit
+            } else if (!jsxHasParams && Object.keys(nodeResourceParams).length > 0) {
+              // JSX has no params but resource has params - check if resource only has non-limit params
+              // If resource has limit, no match; otherwise match
+              paramsMatch = resourceLimit === undefined
+            } else if (jsxHasParams && Object.keys(nodeResourceParams).length === 0) {
+              // JSX has params but resource doesn't - check if JSX only has non-limit params
+              // If JSX has limit, no match; otherwise match
+              paramsMatch = jsxLimit === undefined
+            }
+            // else: both don't have params or both have equivalent limit - match
+
+            // Collect matching nodes that don't have initialData yet and have matching params
+            if (
+              idValue === dataSourceId &&
+              tableNameValue === tableName &&
+              nameMatches &&
+              paramsMatch
+            ) {
               matchingJsxNodes.push(jsxElement)
+              // If we have a unique resource ID, stop after finding the first match
+              // Otherwise, collect all matching nodes
+              if (hasUniqueResourceId) {
+                return
+              }
             }
           }
         }
       }
 
-      // Recursively traverse all properties
-      for (const key in astNode) {
-        if (astNode.hasOwnProperty(key)) {
-          const value = astNode[key]
-          if (Array.isArray(value)) {
-            value.forEach((item) => traverseAST(item))
-          } else if (typeof value === 'object') {
-            traverseAST(value)
+      // Recursively traverse all properties (unless we already found a match with unique resource ID)
+      if (!hasUniqueResourceId || matchingJsxNodes.length === 0) {
+        for (const key in astNode) {
+          if (astNode.hasOwnProperty(key)) {
+            const value = astNode[key]
+            if (Array.isArray(value)) {
+              value.forEach((item) => traverseAST(item))
+            } else if (typeof value === 'object') {
+              traverseAST(value)
+            }
           }
         }
       }
@@ -702,12 +964,13 @@ export const extractDataSourceIntoGetStaticProps = (
     // Traverse the entire component AST content
     traverseAST(componentChunk.content)
 
-    if (matchingJsxNodes.length === 0) {
-      return { success: false }
-    }
+    // Even if all JSX nodes already have initialData, we should still add the fetch to getStaticProps
+    // This handles cases where multiple data-source-list nodes share the same renderPropIdentifier
+    // but have different params (e.g., one with limit, one without)
+    const nodesToUpdate: types.JSXElement[] = matchingJsxNodes
 
-    // Update ALL matching JSX nodes with initialData
-    for (const jsxNode of matchingJsxNodes) {
+    // Update all target JSX nodes with initialData (only those that don't already have it)
+    for (const jsxNode of nodesToUpdate) {
       // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
       const childrenAttrIndex = jsxNode.openingElement.attributes.findIndex(
         (attr) => (attr as types.JSXAttribute).name?.name === 'children'
@@ -747,6 +1010,7 @@ export const extractDataSourceIntoGetStaticProps = (
       )
       jsxNode.openingElement.attributes.push(persistDataAttr)
     }
+    // End of target node processing
 
     // Generate safe file name for the fetcher
     const fileName = generateSafeFileName(dataSourceType, tableName || 'data', dataSourceId)
@@ -797,23 +1061,64 @@ export const extractDataSourceIntoGetStaticProps = (
         let astValue: any
 
         if (value.content === null || value.content === undefined) {
-          astValue = types.nullLiteral()
+          // Skip null/undefined values entirely
+          return
         } else if (Array.isArray(value.content)) {
-          // Handle array values (like queryColumns)
-          astValue = types.arrayExpression(
-            value.content.map((item: any) => {
-              if (typeof item === 'string') {
-                return types.stringLiteral(item)
-              }
-              if (typeof item === 'number') {
-                return types.numericLiteral(item)
-              }
-              if (typeof item === 'boolean') {
-                return types.booleanLiteral(item)
-              }
-              return types.nullLiteral()
-            })
+          // Filter out null/undefined values from the array
+          const validItems = value.content.filter(
+            (item: any) => item !== null && item !== undefined
           )
+
+          // Skip the array entirely if it's empty or only had null values
+          if (validItems.length === 0) {
+            return
+          }
+
+          // For sorts, filters, and queryColumns, stringify the array for consistency with API handler
+          if (key === 'sorts' || key === 'filters' || key === 'queryColumns') {
+            const arrayExpr = types.arrayExpression(
+              validItems.map((item: any) => {
+                if (typeof item === 'string') {
+                  return types.stringLiteral(item)
+                }
+                if (typeof item === 'number') {
+                  return types.numericLiteral(item)
+                }
+                if (typeof item === 'boolean') {
+                  return types.booleanLiteral(item)
+                }
+                if (typeof item === 'object' && item !== null) {
+                  return ASTUtils.objectToObjectExpression(item)
+                }
+                return types.nullLiteral()
+              })
+            )
+            // Wrap in JSON.stringify()
+            astValue = types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [arrayExpr]
+            )
+          } else {
+            // Handle other array values normally
+            astValue = types.arrayExpression(
+              validItems.map((item: any) => {
+                if (typeof item === 'string') {
+                  return types.stringLiteral(item)
+                }
+                if (typeof item === 'number') {
+                  return types.numericLiteral(item)
+                }
+                if (typeof item === 'boolean') {
+                  return types.booleanLiteral(item)
+                }
+                if (typeof item === 'object' && item !== null) {
+                  // Handle object items (like sort/filter objects)
+                  return ASTUtils.objectToObjectExpression(item)
+                }
+                return types.nullLiteral()
+              })
+            )
+          }
         } else if (typeof value.content === 'string') {
           astValue = types.stringLiteral(value.content)
         } else if (typeof value.content === 'number') {
@@ -821,7 +1126,8 @@ export const extractDataSourceIntoGetStaticProps = (
         } else if (typeof value.content === 'boolean') {
           astValue = types.booleanLiteral(value.content)
         } else {
-          astValue = types.nullLiteral()
+          // Skip other null-like values
+          return
         }
 
         paramsProperties.push(types.objectProperty(types.stringLiteral(key), astValue))
@@ -932,7 +1238,7 @@ export const extractDataSourceIntoGetStaticProps = (
     const propsValue = propsObject.value as types.ObjectExpression
 
     // Check if propKey already exists in the parallel fetch metadata
-    const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetch as
+    const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetchData as
       | ParallelFetchMeta
       | undefined
     const existingInFetchMeta = parallelFetchMeta?.names.includes(propKey)

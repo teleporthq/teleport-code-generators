@@ -279,10 +279,10 @@ describe('validateCSVConfig', () => {
     expect(result.isValid).toBe(true)
   })
 
-  it('rejects missing parsedData', () => {
+  it('rejects missing parsedData and fileContent', () => {
     const result = validateCSVConfig({})
     expect(result.isValid).toBe(false)
-    expect(result.error).toContain('Parsed data')
+    expect(result.error).toContain('Either fileContent or parsedData')
   })
 
   it('rejects invalid data type', () => {
@@ -310,6 +310,37 @@ describe('validateCSVConfig', () => {
     })
     expect(result.isValid).toBe(false)
     expect(result.error).toContain('column must have a valid id')
+  })
+
+  it('accepts fileContent instead of parsedData', () => {
+    const result = validateCSVConfig({
+      fileContent: 'name,age\nJohn,30',
+    })
+    expect(result.isValid).toBe(true)
+  })
+
+  it('rejects invalid fileContent type', () => {
+    const result = validateCSVConfig({
+      fileContent: 123,
+    })
+    expect(result.isValid).toBe(false)
+    expect(result.error).toContain('File content must be a string')
+  })
+
+  it('accepts both fileContent and autoDetectHeader', () => {
+    const result = validateCSVConfig({
+      fileContent: 'name,age\nJohn,30',
+      autoDetectHeader: true,
+    })
+    expect(result.isValid).toBe(true)
+  })
+
+  it('accepts both fileContent and firstRowIsHeader', () => {
+    const result = validateCSVConfig({
+      fileContent: 'name,age\nJohn,30',
+      firstRowIsHeader: true,
+    })
+    expect(result.isValid).toBe(true)
   })
 })
 

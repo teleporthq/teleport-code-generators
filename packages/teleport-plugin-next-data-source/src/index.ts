@@ -1,4 +1,9 @@
-import { ComponentPlugin, ComponentPluginFactory, FileType } from '@teleporthq/teleport-types'
+import {
+  ComponentPlugin,
+  ComponentPluginFactory,
+  FileType,
+  ChunkType,
+} from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   extractDataSourceIntoNextAPIFolder,
@@ -486,6 +491,9 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
     let firstDataSourceInfo: DataSourceInfo | null = null
     // Track fetcher import name for wrapped providers
     let fetcherImportName: string | null = null
+    // Track the position counter for each (dataSourceId, tableName) combination
+    // This is used to match the correct DataProvider in the JSX based on UIDL order
+    const dataProviderPositionCounters = new Map<string, number>()
 
     UIDLUtils.traverseNodes(uidl.node, (node) => {
       // Data source nodes can be either:
@@ -527,7 +535,59 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         return
       }
 
-      const dataSourceKey = `${resourceDef.dataSourceId}:${resourceDef.tableName || 'data'}`
+      // Track the position of this data-source-list for matching the correct DataProvider
+      // The key is (dataSourceId, tableName) since all matching DataProviders share these
+      const positionKey = `${resourceDef.dataSourceId}:${resourceDef.tableName || 'data'}`
+      const currentPosition = dataProviderPositionCounters.get(positionKey) || 0
+      dataProviderPositionCounters.set(positionKey, currentPosition + 1)
+
+      // Check if this data-source-list contains a cms-list-repeater with pagination or search
+      // If so, skip it - the pagination plugin will handle the data fetching
+      // tslint:disable-next-line:no-any
+      const hasPaginatedOrSearchRepeater = (nodeToCheck: any): boolean => {
+        if (!nodeToCheck || typeof nodeToCheck !== 'object') {
+          return false
+        }
+
+        if (nodeToCheck.type === 'cms-list-repeater') {
+          const content = nodeToCheck.content
+          if (content?.paginated || content?.searchEnabled) {
+            return true
+          }
+        }
+
+        // Check children array
+        if (nodeToCheck.content?.children && Array.isArray(nodeToCheck.content.children)) {
+          for (const child of nodeToCheck.content.children) {
+            if (hasPaginatedOrSearchRepeater(child)) {
+              return true
+            }
+          }
+        }
+
+        // Check nodes object (data-source-list has nodes.success, nodes.error, etc.)
+        if (nodeToCheck.content?.nodes && typeof nodeToCheck.content.nodes === 'object') {
+          for (const nodeKey of Object.keys(nodeToCheck.content.nodes)) {
+            if (hasPaginatedOrSearchRepeater(nodeToCheck.content.nodes[nodeKey])) {
+              return true
+            }
+          }
+        }
+
+        return false
+      }
+
+      if (hasPaginatedOrSearchRepeater(dataSourceNode)) {
+        // Skip this node but position counter is already incremented above
+        return
+      }
+
+      // Include resource ID to differentiate between same dataSource/table with different params (sorts, filters, etc.)
+      // tslint:disable-next-line:no-any
+      const resourceId = (dataSourceNode.content.resource as any)?.id || ''
+      const dataSourceKey = `${resourceDef.dataSourceId}:${
+        resourceDef.tableName || 'data'
+      }:${resourceId}`
 
       // Check if resource has dynamic parameters
       // tslint:disable-next-line:no-any
@@ -762,11 +822,194 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       }
     }
 
+    // Stringify complex params in DataProvider components before pagination plugin runs
+    stringifyComplexParamsInDataProviders(componentChunk)
+
+    // If getStaticProps doesn't exist yet but we have paginated/search data sources,
+    // create a basic getStaticProps structure for the pagination plugin to populate
+    if (!getStaticPropsChunk && opts.paginationConfig) {
+      const hasPaginatedOrSearchDataSources =
+        opts.paginationConfig.perPageMap.size > 0 || opts.paginationConfig.searchConfigMap.size > 0
+
+      if (hasPaginatedOrSearchDataSources) {
+        // Create a basic getStaticProps structure with Promise.all
+        const getStaticPropsAST = types.exportNamedDeclaration(
+          (() => {
+            const node = types.functionDeclaration(
+              types.identifier('getStaticProps'),
+              [types.identifier('context')],
+              types.blockStatement([
+                types.tryStatement(
+                  types.blockStatement([
+                    // Create Promise.all structure that updateGetStaticProps expects
+                    types.variableDeclaration('const', [
+                      types.variableDeclarator(
+                        types.arrayPattern([]),
+                        types.awaitExpression(
+                          types.callExpression(
+                            types.memberExpression(
+                              types.identifier('Promise'),
+                              types.identifier('all')
+                            ),
+                            [types.arrayExpression([])]
+                          )
+                        )
+                      ),
+                    ]),
+                    types.returnStatement(
+                      types.objectExpression([
+                        types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                      ])
+                    ),
+                  ]),
+                  types.catchClause(
+                    types.identifier('error'),
+                    types.blockStatement([
+                      types.expressionStatement(
+                        types.callExpression(
+                          types.memberExpression(
+                            types.identifier('console'),
+                            types.identifier('error')
+                          ),
+                          [
+                            types.stringLiteral('Error in getStaticProps:'),
+                            types.identifier('error'),
+                          ]
+                        )
+                      ),
+                      types.returnStatement(
+                        types.objectExpression([
+                          types.objectProperty(
+                            types.identifier('props'),
+                            types.objectExpression([])
+                          ),
+                        ])
+                      ),
+                    ])
+                  )
+                ),
+              ]),
+              false,
+              true
+            )
+
+            node.async = true
+            return node
+          })()
+        )
+
+        getStaticPropsChunk = {
+          name: 'getStaticProps',
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          content: getStaticPropsAST,
+          linkAfter: ['jsx-component'],
+        }
+
+        chunks.push(getStaticPropsChunk)
+      }
+    }
+
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)
   }
 
   return nextPagesDataSourcePlugin
+}
+
+// Helper function to stringify complex params (sorts, filters) in DataProvider components
+function stringifyComplexParamsInDataProviders(componentChunk: any): void {
+  if (!componentChunk || !componentChunk.content) {
+    return
+  }
+
+  // tslint:disable-next-line:no-any
+  const traverseAST = (astNode: any): void => {
+    if (!astNode || typeof astNode !== 'object') {
+      return
+    }
+
+    // Check if this is a DataProvider JSXElement
+    if (astNode.type === 'JSXElement' && astNode.openingElement?.name?.name === 'DataProvider') {
+      const attrs = astNode.openingElement.attributes
+
+      // Find the params attribute
+      const paramsAttr = attrs.find(
+        // tslint:disable-next-line:no-any
+        (attr: any) =>
+          attr.type === 'JSXAttribute' &&
+          attr.name?.name === 'params' &&
+          attr.value?.type === 'JSXExpressionContainer'
+      )
+
+      if (paramsAttr) {
+        let paramsObj = null
+
+        // Handle direct ObjectExpression
+        if (paramsAttr.value?.expression?.type === 'ObjectExpression') {
+          paramsObj = paramsAttr.value.expression
+        }
+        // Handle useMemo wrapped params: useMemo(() => ({...}), [...])
+        else if (
+          paramsAttr.value?.expression?.type === 'CallExpression' &&
+          paramsAttr.value.expression.callee?.name === 'useMemo' &&
+          paramsAttr.value.expression.arguments?.length > 0
+        ) {
+          const firstArg = paramsAttr.value.expression.arguments[0]
+          // Check if it's an arrow function returning an object
+          if (
+            firstArg.type === 'ArrowFunctionExpression' &&
+            firstArg.body?.type === 'ObjectExpression'
+          ) {
+            paramsObj = firstArg.body
+          }
+        }
+
+        if (paramsObj && paramsObj.properties) {
+          const properties = paramsObj.properties
+
+          // Find sorts, filters and queryColumns properties and stringify them
+          for (let i = 0; i < properties.length; i++) {
+            const prop = properties[i]
+            // Get the key name from either Identifier or StringLiteral
+            const keyName =
+              prop.key?.type === 'Identifier'
+                ? prop.key.name
+                : prop.key?.type === 'StringLiteral'
+                ? prop.key.value
+                : undefined
+
+            if (
+              prop.type === 'ObjectProperty' &&
+              (keyName === 'sorts' || keyName === 'filters' || keyName === 'queryColumns') &&
+              prop.value?.type === 'ArrayExpression'
+            ) {
+              // Replace the array with JSON.stringify(array)
+              properties[i] = types.objectProperty(
+                prop.key,
+                types.callExpression(
+                  types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                  [prop.value]
+                )
+              )
+            }
+          }
+        }
+      }
+    }
+
+    // Recursively traverse all properties
+    for (const key of Object.keys(astNode)) {
+      const value = astNode[key]
+      if (Array.isArray(value)) {
+        value.forEach((item) => traverseAST(item))
+      } else if (typeof value === 'object' && value !== null) {
+        traverseAST(value)
+      }
+    }
+  }
+
+  traverseAST(componentChunk.content)
 }
 
 export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = () => {
@@ -994,6 +1237,9 @@ export default dataSourceModule.handler
         }
       }
     }
+
+    // Stringify complex params in DataProvider components before pagination plugin runs
+    stringifyComplexParamsInDataProviders(componentChunk)
 
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)

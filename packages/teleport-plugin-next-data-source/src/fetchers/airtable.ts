@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateAirtableConfig = (
   config: Record<string, unknown>
@@ -34,11 +38,13 @@ export const generateAirtableFetcher = (
 
   return `import fetch from 'node-fetch'
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
-    const { query, view, limit, page, perPage, sortBy, sortOrder, filters, offset: offsetParam } = req.query
+    const { query, view, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
     
     const queryParams = new URLSearchParams()
     
@@ -46,7 +52,17 @@ export default async function handler(req, res) {
       queryParams.append('view', view)
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        parsedSorts.forEach((sort, index) => {
+          if (!sort.field) return
+          queryParams.append(\`sort[\${index}][field]\`, sort.field)
+          queryParams.append(\`sort[\${index}][direction]\`, sort.order?.toLowerCase() === 'desc' ? 'desc' : 'asc')
+        })
+      }
+    } else if (sortBy) {
       queryParams.append('sort[0][field]', sortBy)
       queryParams.append('sort[0][direction]', sortOrder || 'asc')
     }
@@ -54,36 +70,68 @@ export default async function handler(req, res) {
     const perPageValue = limit || perPage || 100
     queryParams.append('pageSize', Math.min(parseInt(perPageValue), 100).toString())
     
+    const formatAirtableValue = (value) => {
+      if (typeof value === 'string') {
+        return \`'\${value.replace(/'/g, "\\\\'")}'\`
+      } else if (typeof value === 'number') {
+        return String(value)
+      } else if (typeof value === 'boolean') {
+        return value ? 'TRUE()' : 'FALSE()'
+      }
+      return \`'\${String(value)}'\`
+    }
+    
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      const conditions = Object.entries(parsedFilters).map(([field, value]) => {
-        if (Array.isArray(value)) {
-          const arrayConditions = value.map((v) => {
-            if (typeof v === 'string') {
-              return \`{\${field}}='\${v.replace(/'/g, "\\\\'")}'\`
-            } else if (typeof v === 'number') {
-              return \`{\${field}}=\${v}\`
-            } else if (typeof v === 'boolean') {
-              return \`{\${field}}=\${v ? 'TRUE()' : 'FALSE()'}\`
-            }
-            return \`{\${field}}='\${String(v)}'\`
-          })
-          return arrayConditions.length > 1
-            ? \`OR(\${arrayConditions.join(',')})\`
-            : arrayConditions[0]
-        } else if (typeof value === 'string') {
-          return \`{\${field}}='\${value.replace(/'/g, "\\\\'")}'\`
-        } else if (typeof value === 'number') {
-          return \`{\${field}}=\${value}\`
-        } else if (typeof value === 'boolean') {
-          return \`{\${field}}=\${value ? 'TRUE()' : 'FALSE()'}\`
-        }
-        return \`{\${field}}='\${String(value)}'\`
-      })
+      const parsedFilters = safeJSONParse(filters)
       
-      const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
-      if (filterFormula) {
-        queryParams.append('filterByFormula', filterFormula)
+      if (Array.isArray(parsedFilters)) {
+        const conditions = parsedFilters.map((filter) => {
+          if (!filter.source || filter.destination === undefined) return null
+          
+          const field = filter.source
+          const value = filter.destination
+          const operand = filter.operand || '='
+          
+          if (Array.isArray(value)) {
+            if (value.length === 0) return null
+            const arrayConditions = value.map((v) => \`{\${field}}=\${formatAirtableValue(v)}\`)
+            return arrayConditions.length > 1
+              ? \`OR(\${arrayConditions.join(',')})\`
+              : arrayConditions[0]
+          } else {
+            const operatorMap = {
+              '=': '=',
+              '!=': '!=',
+              '>': '>',
+              '<': '<',
+              '>=': '>=',
+              '<=': '<=',
+            }
+            const airtableOp = operatorMap[operand] || '='
+            return \`{\${field}}\${airtableOp}\${formatAirtableValue(value)}\`
+          }
+        }).filter(Boolean)
+        
+        if (conditions.length > 0) {
+          const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
+          queryParams.append('filterByFormula', filterFormula)
+        }
+      } else {
+        const conditions = Object.entries(parsedFilters).map(([field, value]) => {
+          if (Array.isArray(value)) {
+            const arrayConditions = value.map((v) => \`{\${field}}=\${formatAirtableValue(v)}\`)
+            return arrayConditions.length > 1
+              ? \`OR(\${arrayConditions.join(',')})\`
+              : arrayConditions[0]
+          } else {
+            return \`{\${field}}=\${formatAirtableValue(value)}\`
+          }
+        })
+        
+        const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
+        if (filterFormula) {
+          queryParams.append('filterByFormula', filterFormula)
+        }
       }
     }
     

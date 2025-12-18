@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateTursoConfig = (
   config: Record<string, unknown>
@@ -35,6 +39,8 @@ export const generateTursoFetcher = (
 
   return `import { createClient } from '@libsql/client'
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -45,7 +51,7 @@ export default async function handler(req, res) {
       authToken: ${replaceSecretReference(token)}
     })
     
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     let sql = \`SELECT * FROM ${tableName}\`
     const whereClauses = []
@@ -54,8 +60,10 @@ export default async function handler(req, res) {
     
     if (query) {
       if (queryColumns) {
-        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
-        const searchConditions = columns.map((col) => \`\${col} LIKE ?\`)
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
+        // Cast columns to TEXT to support searching on non-text columns (dates, numbers, etc.)
+        const searchConditions = columns.map((col) => \`CAST(\${col} AS TEXT) LIKE ?\`)
         whereClauses.push(\`(\${searchConditions.join(' OR ')})\`)
         columns.forEach(() => {
           queryParams.push(\`%\${query}%\`)
@@ -66,27 +74,86 @@ export default async function handler(req, res) {
       }
     }
     
+    // Helper to sanitize identifier (prevent SQL injection in column names)
+    const sanitizeIdentifier = (name) => {
+      // Only allow alphanumeric and underscore
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+        throw new Error(\`Invalid identifier: \${name}\`)
+      }
+      return \`"\${name}"\`
+    }
+    
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          const placeholders = value.map(() => '?').join(', ')
-          queryParams.push(...value)
-          whereClauses.push(\`\${key} IN (\${placeholders})\`)
-        } else {
-          whereClauses.push(\`\${key} = ?\`)
-          queryParams.push(value)
-        }
-      })
+      const parsedFilters = safeJSONParse(filters)
+      
+      if (Array.isArray(parsedFilters)) {
+        parsedFilters.forEach((filter) => {
+          if (!filter.source || filter.destination === undefined) return
+          
+          const field = sanitizeIdentifier(filter.source)
+          const value = filter.destination
+          const operand = filter.operand || '='
+          
+          if (Array.isArray(value)) {
+            if (value.length === 0) return
+            const placeholders = value.map(() => '?').join(', ')
+            queryParams.push(...value)
+            if (operand === '!=') {
+              whereClauses.push(\`\${field} NOT IN (\${placeholders})\`)
+            } else {
+              whereClauses.push(\`\${field} IN (\${placeholders})\`)
+            }
+          } else {
+            if (value === null) {
+              if (operand === '=') {
+                whereClauses.push(\`\${field} IS NULL\`)
+              } else if (operand === '!=') {
+                whereClauses.push(\`\${field} IS NOT NULL\`)
+              }
+            } else {
+              const validOps = ['=', '!=', '>', '<', '>=', '<=']
+              const sqlOperator = validOps.includes(operand) ? operand : '='
+              whereClauses.push(\`\${field} \${sqlOperator} ?\`)
+              queryParams.push(value)
+            }
+          }
+        })
+      } else {
+        Object.entries(parsedFilters).forEach(([key, value]) => {
+          const field = sanitizeIdentifier(key)
+          if (Array.isArray(value)) {
+            const placeholders = value.map(() => '?').join(', ')
+            queryParams.push(...value)
+            whereClauses.push(\`\${field} IN (\${placeholders})\`)
+          } else {
+            whereClauses.push(\`\${field} = ?\`)
+            queryParams.push(value)
+          }
+        })
+      }
     }
     
     if (whereClauses.length > 0) {
       sql += \` WHERE \${whereClauses.join(' AND ')}\`
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        const orderClauses = parsedSorts.map((sort) => {
+          if (!sort.field) return null
+          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          return \`\${sanitizeIdentifier(sort.field)} \${order}\`
+        }).filter(Boolean)
+        
+        if (orderClauses.length > 0) {
+          sql += \` ORDER BY \${orderClauses.join(', ')}\`
+        }
+      }
+    } else if (sortBy) {
       const sortOrderValue = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
-      sql += \` ORDER BY \${sortBy} \${sortOrderValue}\`
+      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrderValue}\`
     }
     
     const limitValue = limit || perPage

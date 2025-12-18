@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateRedisConfig = (
   config: Record<string, unknown>
@@ -63,6 +67,8 @@ export const generateRedisFetcher = (config: Record<string, unknown>): string =>
 
   return `import { createClient } from 'redis'
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -76,9 +82,23 @@ export default async function handler(req, res) {
     
     await client.connect()
     
-    const { query, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
-    const pattern = (filters && JSON.parse(filters).pattern) || query || '*'
+    let pattern = query || '*'
+    
+    // Extract pattern from filters if available (new format)
+    if (filters) {
+      const parsedFilters = safeJSONParse(filters)
+      if (Array.isArray(parsedFilters)) {
+        const patternFilter = parsedFilters.find(f => f.source === 'pattern')
+        if (patternFilter) {
+          pattern = patternFilter.destination || pattern
+        }
+      } else {
+        pattern = parsedFilters.pattern || pattern
+      }
+    }
+    
     const keys = await client.keys(pattern)
     
     const limitValue = limit || perPage || 100
@@ -119,7 +139,23 @@ export default async function handler(req, res) {
       })
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        const primarySort = parsedSorts[0]
+        if (primarySort.field) {
+          const sortOrderValue = primarySort.order?.toLowerCase() === 'desc' ? -1 : 1
+          results.sort((a, b) => {
+            const aVal = a[primarySort.field]
+            const bVal = b[primarySort.field]
+            if (aVal < bVal) return -sortOrderValue
+            if (aVal > bVal) return sortOrderValue
+            return 0
+          })
+        }
+      }
+    } else if (sortBy) {
       const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
       results.sort((a, b) => {
         const aVal = a[sortBy]

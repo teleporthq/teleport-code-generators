@@ -1,4 +1,9 @@
-import { generateDateFormatterCode } from '../utils'
+import {
+  generateDateFormatterCode,
+  generateSortFilterHelperCode,
+  generateSafeJSONParseCode,
+} from '../utils'
+import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateCSVConfig = (
   config: Record<string, unknown>
@@ -7,11 +12,18 @@ export const validateCSVConfig = (
     return { isValid: false, error: 'Config must be a valid object' }
   }
 
-  if (!config.parsedData || !Array.isArray(config.parsedData)) {
+  if (!config.fileContent && !config.parsedData) {
+    return { isValid: false, error: 'Either fileContent or parsedData must be provided' }
+  }
+
+  if (config.fileContent && typeof config.fileContent !== 'string') {
+    return { isValid: false, error: 'File content must be a string' }
+  }
+
+  if (config.parsedData && !Array.isArray(config.parsedData)) {
     return { isValid: false, error: 'Parsed data must be an array' }
   }
 
-  // Columns are optional - if not provided, we'll infer them from parsedData
   if (config.columns !== undefined) {
     if (!Array.isArray(config.columns)) {
       return { isValid: false, error: 'Columns definition must be an array' }
@@ -28,19 +40,24 @@ export const validateCSVConfig = (
 }
 
 interface CSVFileConfig {
+  fileContent?: string
   parsedData?: unknown[]
-  columns?: Array<{ id: string; [key: string]: unknown }>
+  columns?: Array<{ id: string; label?: string; type?: string }>
+  autoDetectHeader?: boolean
+  firstRowIsHeader?: boolean
 }
 
-export const generateCSVFileFetcher = (config: Record<string, unknown>): string => {
-  const csvConfig = config as CSVFileConfig
-  return `const data = ${JSON.stringify(csvConfig.parsedData || [])}
-
-${generateDateFormatterCode()}
-
-export default async function handler(req, res) {
+const generateHandlerBody = (): string => {
+  return `
   try {
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset: offsetParam } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
+    
+    const labelToIdMap = {}
+    columns.forEach((col) => {
+      if (col.label && col.id) {
+        labelToIdMap[col.label] = col.id
+      }
+    })
     
     let filteredData = [...data]
     
@@ -48,10 +65,11 @@ export default async function handler(req, res) {
       const searchQuery = query.toLowerCase()
       
       if (queryColumns) {
-        const columns = JSON.parse(queryColumns)
+        const searchColumns = safeJSONParse(queryColumns)
         filteredData = filteredData.filter((item) => {
-          return columns.some((col) => {
-            const value = item[col]
+          return searchColumns.some((col) => {
+            const field = labelToIdMap[col] || col
+            const value = getNestedValue(item, field)
             return value && String(value).toLowerCase().includes(searchQuery)
           })
         })
@@ -68,25 +86,98 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      filteredData = filteredData.filter((item) => {
-        return Object.entries(parsedFilters).every(([key, value]) => {
-          if (Array.isArray(value)) {
-            return value.includes(item[key])
-          }
-          return item[key] === value
+      const parsedFilters = safeJSONParse(filters)
+      
+      if (Array.isArray(parsedFilters)) {
+        filteredData = filteredData.filter((item) => {
+          return parsedFilters.every((filter) => {
+            if (!filter.source || filter.destination === undefined) return true
+            
+            const field = labelToIdMap[filter.source] || filter.source
+            const value = getNestedValue(item, field)
+            const target = filter.destination
+            const operand = filter.operand || '='
+            
+            if (Array.isArray(target)) {
+              if (operand === '!=') {
+                return !target.includes(value)
+              }
+              return target.includes(value)
+            }
+            
+            return compareValues(value, target, operand)
+          })
         })
-      })
+      } else {
+        filteredData = filteredData.filter((item) => {
+          return Object.entries(parsedFilters).every(([key, value]) => {
+            const field = labelToIdMap[key] || key
+            const itemValue = getNestedValue(item, field)
+            if (Array.isArray(value)) {
+              return value.includes(itemValue)
+            }
+            return compareValues(itemValue, value, '=')
+          })
+        })
+      }
     }
     
-    if (sortBy) {
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        filteredData.sort((a, b) => {
+          for (const sort of parsedSorts) {
+            if (!sort.field) continue
+            const field = labelToIdMap[sort.field] || sort.field
+            const aVal = getNestedValue(a, field)
+            const bVal = getNestedValue(b, field)
+            const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            
+            let comparison = 0
+            if (aVal === null || aVal === undefined) {
+              comparison = bVal === null || bVal === undefined ? 0 : -1
+            } else if (bVal === null || bVal === undefined) {
+              comparison = 1
+            } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+              comparison = aVal - bVal
+            } else if (aVal instanceof Date && bVal instanceof Date) {
+              comparison = aVal.getTime() - bVal.getTime()
+            } else {
+              const aStr = String(aVal)
+              const bStr = String(bVal)
+              if (aStr < bStr) comparison = -1
+              else if (aStr > bStr) comparison = 1
+            }
+            
+            if (comparison !== 0) return comparison * sortOrderValue
+          }
+          return 0
+        })
+      }
+    } else if (sortBy) {
+      const field = labelToIdMap[sortBy] || sortBy
       filteredData.sort((a, b) => {
-        const aVal = a[sortBy]
-        const bVal = b[sortBy]
+        const aVal = getNestedValue(a, field)
+        const bVal = getNestedValue(b, field)
         const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
-        if (aVal < bVal) return -sortOrderValue
-        if (aVal > bVal) return sortOrderValue
-        return 0
+        
+        let comparison = 0
+        if (aVal === null || aVal === undefined) {
+          comparison = bVal === null || bVal === undefined ? 0 : -1
+        } else if (bVal === null || bVal === undefined) {
+          comparison = 1
+        } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+          comparison = aVal - bVal
+        } else if (aVal instanceof Date && bVal instanceof Date) {
+          comparison = aVal.getTime() - bVal.getTime()
+        } else {
+          const aStr = String(aVal)
+          const bStr = String(bVal)
+          if (aStr < bStr) comparison = -1
+          else if (aStr > bStr) comparison = 1
+        }
+        
+        return comparison * sortOrderValue
       })
     }
     
@@ -112,8 +203,142 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     })
   }
+`
+}
+
+export const generateCSVFileFetcher = (config: Record<string, unknown>): string => {
+  const csvConfig = config as CSVFileConfig
+
+  // Get header detection flags, ensuring boolean false values are preserved
+  const autoDetectHeader = csvConfig.autoDetectHeader !== false
+  const firstRowIsHeader = csvConfig.firstRowIsHeader !== false
+  const configColumns = csvConfig.columns || []
+
+  if (csvConfig.fileContent) {
+    const fileContent = csvConfig.fileContent
+    return `const csvContent = ${JSON.stringify(fileContent)}
+const autoDetectHeader = ${autoDetectHeader}
+const firstRowIsHeader = ${firstRowIsHeader}
+const configColumns = ${JSON.stringify(configColumns)}
+
+${generateSafeJSONParseCode()}
+
+${generateDateFormatterCode()}
+
+${generateSortFilterHelperCode()}
+
+${generateHeaderDetectionCode()}
+
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current)
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  result.push(current)
+  return result
+}
+
+function parseCSVContent(content, autoDetect, firstRowHeader, columns) {
+  const lines = content.split('\\n').filter((line) => line.trim())
+  
+  if (lines.length === 0) {
+    return { columns: [], rows: [] }
+  }
+  
+  const allRowValues = lines.map((line) => parseCSVLine(line))
+  const firstRowValues = allRowValues[0]
+  
+  if (firstRowValues.length === 0) {
+    return { columns: [], rows: [] }
+  }
+  
+  const shouldAutoDetect = autoDetect !== false
+  let hasHeaderRow = false
+  
+  if (shouldAutoDetect) {
+    hasHeaderRow = detectHeaderRow(firstRowValues, allRowValues)
+  } else {
+    hasHeaderRow = firstRowHeader !== false
+  }
+  
+  const useConfigColumns = columns && columns.length > 0
+  let parsedColumns
+  let dataStartIndex
+  
+  if (hasHeaderRow && allRowValues.length > 1) {
+    parsedColumns = firstRowValues.map((header, index) => {
+      const configCol = useConfigColumns ? columns[index] : null
+      return {
+        id: configCol?.id || \`col_\${index}\`,
+        label: String(header || configCol?.label || \`Column \${index + 1}\`),
+        type: configCol?.type || 'string'
+      }
+    })
+    dataStartIndex = 1
+  } else {
+    parsedColumns = firstRowValues.map((_, index) => {
+      const configCol = useConfigColumns ? columns[index] : null
+      return {
+        id: configCol?.id || \`col_\${index}\`,
+        label: configCol?.label || \`Column \${index + 1}\`,
+        type: configCol?.type || 'string'
+      }
+    })
+    dataStartIndex = 0
+  }
+  
+  const rows = []
+  for (let i = dataStartIndex; i < allRowValues.length; i++) {
+    const values = allRowValues[i]
+    const row = {}
+    parsedColumns.forEach((col, index) => {
+      const value = values[index]?.trim() || null
+      row[col.id] = value
+    })
+    rows.push(row)
+  }
+  
+  return { columns: parsedColumns, rows }
+}
+
+const { columns, rows: data } = parseCSVContent(csvContent, autoDetectHeader, firstRowIsHeader, configColumns)
+
+export default async function handler(req, res) {${generateHandlerBody()}
 }
 `
+  } else {
+    return `const data = ${JSON.stringify(csvConfig.parsedData || [])}
+const columns = ${JSON.stringify(configColumns)}
+
+${generateSafeJSONParseCode()}
+
+${generateDateFormatterCode()}
+
+${generateSortFilterHelperCode()}
+
+export default async function handler(req, res) {${generateHandlerBody()}
+}
+`
+  }
 }
 
 // tslint:disable-next-line:variable-name

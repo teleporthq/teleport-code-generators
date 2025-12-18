@@ -7,6 +7,7 @@ import {
 import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateSafeFileName } from './utils'
+import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
 // This module uses a UIDL-first approach: we scan the UIDL FIRST to identify
@@ -34,6 +35,12 @@ interface DataSourceUsage {
   searchDebounce: number
   // Query columns from resource params
   queryColumns: string[]
+  // Sorts from resource params
+  // tslint:disable-next-line:no-any
+  sorts: any[]
+  // Filters from resource params
+  // tslint:disable-next-line:no-any
+  filters: any[]
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -103,6 +110,18 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           queryColumns = parentDataSource.resourceParams.queryColumns.content
         }
 
+        // Extract sorts from parent's resource params
+        let sorts: any[] = []
+        if (parentDataSource.resourceParams?.sorts?.content) {
+          sorts = parentDataSource.resourceParams.sorts.content
+        }
+
+        // Extract filters from parent's resource params
+        let filters: any[] = []
+        if (parentDataSource.resourceParams?.filters?.content) {
+          filters = parentDataSource.resourceParams.filters.content
+        }
+
         // Extract limit from parent's resource params (for plain array mappers)
         let limit = 0
         if (parentDataSource.resourceParams?.limit?.content) {
@@ -127,6 +146,8 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           searchEnabled: !!content.searchEnabled,
           searchDebounce: content.searchDebounce || 300,
           queryColumns,
+          sorts,
+          filters,
           category: 'plain',
         }
 
@@ -266,6 +287,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     }
 
     // Check if this is a page or component
+    // Pages have getStaticProps, components don't
     const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
     const isPage = !!getStaticPropsChunk
 
@@ -498,6 +520,64 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
               types.callExpression(
                 types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
                 [types.arrayExpression(usage.queryColumns.map((c) => types.stringLiteral(c)))]
+              )
+            )
+          )
+        }
+        // Add sorts to count fetch params if present
+        if (usage.sorts && usage.sorts.length > 0) {
+          urlParams.push(
+            types.objectProperty(
+              types.identifier('sorts'),
+              types.callExpression(
+                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                [
+                  types.arrayExpression(
+                    usage.sorts.map((sort: any) =>
+                      types.objectExpression([
+                        types.objectProperty(
+                          types.identifier('field'),
+                          types.stringLiteral(sort.field || '')
+                        ),
+                        types.objectProperty(
+                          types.identifier('order'),
+                          types.stringLiteral(sort.order || '')
+                        ),
+                      ])
+                    )
+                  ),
+                ]
+              )
+            )
+          )
+        }
+        // Add filters to count fetch params if present
+        if (usage.filters && usage.filters.length > 0) {
+          urlParams.push(
+            types.objectProperty(
+              types.identifier('filters'),
+              types.callExpression(
+                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                [
+                  types.arrayExpression(
+                    usage.filters.map((filter: any) =>
+                      types.objectExpression([
+                        types.objectProperty(
+                          types.identifier('source'),
+                          types.stringLiteral(filter.source || '')
+                        ),
+                        types.objectProperty(
+                          types.identifier('destination'),
+                          types.stringLiteral(filter.destination || '')
+                        ),
+                        types.objectProperty(
+                          types.identifier('operand'),
+                          types.stringLiteral(filter.operand || '')
+                        ),
+                      ])
+                    )
+                  ),
+                ]
               )
             )
           )
@@ -931,14 +1011,12 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         updateDataProviderForPaginationOnly(dp, usage, vars, fileName)
       } else if (usage.category === 'search-only') {
         updateDataProviderForSearchOnly(dp, usage, vars, fileName)
-      } else {
-        updateDataProviderForPlain(dp, vars)
+      } else if (usage.category === 'plain') {
+        updateDataProviderForPlain(dp, fileName)
       }
 
-      // Create API route if needed
-      if (usage.category !== 'plain') {
-        ensureAPIRouteExists(options.extractedResources, usage)
-      }
+      // Create API route for all categories (including 'plain' for components)
+      ensureAPIRouteExists(options.extractedResources, usage, options.dataSources)
     })
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
@@ -991,7 +1069,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
     // STEP 6: Update getStaticProps if this is a page
     if (isPage) {
-      updateGetStaticProps(chunks, registry)
+      updateGetStaticProps(chunks, registry, dependencies)
     }
 
     return structure
@@ -1239,6 +1317,66 @@ function updateDataProviderForPaginatedSearch(
     )
   }
 
+  // Add sorts if present
+  if (usage.sorts && usage.sorts.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('sorts'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.sorts.map((sort: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('field'),
+                    types.stringLiteral(sort.field || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('order'),
+                    types.stringLiteral(sort.order || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
+  // Add filters if present
+  if (usage.filters && usage.filters.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('filters'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.filters.map((filter: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('source'),
+                    types.stringLiteral(filter.source || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('destination'),
+                    types.stringLiteral(filter.destination || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('operand'),
+                    types.stringLiteral(filter.operand || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('params'),
@@ -1342,22 +1480,79 @@ function updateDataProviderForPaginationOnly(
       )
   )
 
+  // Build params properties
+  const paramsProps: types.ObjectProperty[] = [
+    types.objectProperty(types.identifier('page'), types.identifier(vars.pageStateVar)),
+    types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage)),
+  ]
+
+  // Add sorts if present
+  if (usage.sorts && usage.sorts.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('sorts'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.sorts.map((sort: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('field'),
+                    types.stringLiteral(sort.field || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('order'),
+                    types.stringLiteral(sort.order || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
+  // Add filters if present
+  if (usage.filters && usage.filters.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('filters'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.filters.map((filter: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('source'),
+                    types.stringLiteral(filter.source || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('destination'),
+                    types.stringLiteral(filter.destination || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('operand'),
+                    types.stringLiteral(filter.operand || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
   // Add params
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('params'),
       types.jsxExpressionContainer(
         types.callExpression(types.identifier('useMemo'), [
-          types.arrowFunctionExpression(
-            [],
-            types.objectExpression([
-              types.objectProperty(types.identifier('page'), types.identifier(vars.pageStateVar)),
-              types.objectProperty(
-                types.identifier('perPage'),
-                types.numericLiteral(usage.perPage)
-              ),
-            ])
-          ),
+          types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
           types.arrayExpression([types.identifier(vars.pageStateVar)]),
         ])
       )
@@ -1448,6 +1643,66 @@ function updateDataProviderForSearchOnly(
     )
   }
 
+  // Add sorts if present
+  if (usage.sorts && usage.sorts.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('sorts'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.sorts.map((sort: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('field'),
+                    types.stringLiteral(sort.field || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('order'),
+                    types.stringLiteral(sort.order || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
+  // Add filters if present
+  if (usage.filters && usage.filters.length > 0) {
+    paramsProps.push(
+      types.objectProperty(
+        types.identifier('filters'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [
+            types.arrayExpression(
+              usage.filters.map((filter: any) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('source'),
+                    types.stringLiteral(filter.source || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('destination'),
+                    types.stringLiteral(filter.destination || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('operand'),
+                    types.stringLiteral(filter.operand || '')
+                  ),
+                ])
+              )
+            ),
+          ]
+        )
+      )
+    )
+  }
+
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('params'),
@@ -1506,29 +1761,76 @@ function updateDataProviderForSearchOnly(
   )
 }
 
-function updateDataProviderForPlain(dp: any, vars: ReturnType<typeof getStateVarsForUsage>): void {
+function updateDataProviderForPlain(dp: any, fileName: string): void {
   const attrs = dp.openingElement.attributes
 
-  // Remove params and fetchData - plain mappers only use initialData
-  dp.openingElement.attributes = attrs.filter(
-    (attr: any) => !['params', 'fetchData'].includes(attr.name?.name)
+  // Check if fetchData already exists
+  const hasFetchData = attrs.some(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'fetchData'
   )
 
-  // Update initialData to use correct prop
-  const existingInitialData = dp.openingElement.attributes.find(
-    (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'initialData'
+  // If no fetchData, add it
+  if (!hasFetchData) {
+    attrs.push(createFetchDataAttribute(fileName))
+  }
+
+  // Check if persistDataDuringLoading already exists
+  const hasPersistData = attrs.some(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'persistDataDuringLoading'
   )
 
-  if (existingInitialData) {
-    existingInitialData.value = types.jsxExpressionContainer(
-      types.optionalMemberExpression(
-        types.identifier('props'),
-        types.identifier(vars.propsPrefix),
-        false,
-        true
+  // If no persistDataDuringLoading, add it
+  if (!hasPersistData) {
+    attrs.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('persistDataDuringLoading'),
+        types.jsxExpressionContainer(types.booleanLiteral(true))
       )
     )
   }
+
+  // Find the params attribute
+  const paramsAttrIndex = attrs.findIndex(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'params'
+  )
+
+  if (paramsAttrIndex === -1) {
+    return
+  }
+
+  const paramsAttr = attrs[paramsAttrIndex] as types.JSXAttribute
+
+  // Check if params is already wrapped in useMemo
+  if (
+    paramsAttr.value?.type === 'JSXExpressionContainer' &&
+    paramsAttr.value.expression.type === 'CallExpression' &&
+    (paramsAttr.value.expression.callee as types.Identifier)?.name === 'useMemo'
+  ) {
+    return
+  }
+
+  // Get the current params value expression
+  let paramsExpression: types.Expression | null = null
+
+  if (paramsAttr.value?.type === 'JSXExpressionContainer') {
+    paramsExpression = paramsAttr.value.expression as types.Expression
+  }
+
+  if (!paramsExpression) {
+    return
+  }
+
+  // Wrap params in useMemo with empty dependencies array
+  const memoizedParams = types.callExpression(types.identifier('useMemo'), [
+    types.arrowFunctionExpression([], paramsExpression),
+    types.arrayExpression([]),
+  ])
+
+  // Replace the params attribute
+  attrs[paramsAttrIndex] = types.jsxAttribute(
+    types.jsxIdentifier('params'),
+    types.jsxExpressionContainer(memoizedParams)
+  )
 }
 
 function stabilizeDataProviderWithoutRepeater(dp: any): void {
@@ -1942,7 +2244,11 @@ function wirePaginationButtons(
   }
 }
 
-function ensureAPIRouteExists(extractedResources: any, usage: DataSourceUsage): void {
+function ensureAPIRouteExists(
+  extractedResources: any,
+  usage: DataSourceUsage,
+  dataSources: Record<string, any>
+): void {
   // Generate file name for the API route
   const fileName = generateSafeFileName(
     usage.resourceDefinition.dataSourceType,
@@ -1950,40 +2256,67 @@ function ensureAPIRouteExists(extractedResources: any, usage: DataSourceUsage): 
     usage.resourceDefinition.dataSourceId
   )
 
-  // Check if the utils data source file exists - if so, create API routes that re-export from it
-  if (extractedResources[`utils/${fileName}`]) {
-    // Create main data API route if not exists
-    if (!extractedResources[`api/${fileName}`]) {
-      const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
+  // Check if the utils data source file exists - if not, create it
+  if (!extractedResources[`utils/${fileName}`]) {
+    // Get the data source from dataSources
+    const dataSource = dataSources[usage.resourceDefinition.dataSourceId]
+    if (dataSource) {
+      try {
+        // Generate the utils file with fetchData, fetchCount, handler, and getCount
+        const fetcherCode = generateDataSourceFetcherWithCore(
+          dataSource,
+          usage.resourceDefinition.tableName || 'data'
+        )
+
+        extractedResources[`utils/${fileName}`] = {
+          fileName,
+          fileType: FileType.JS,
+          path: ['utils', 'data-sources'],
+          content: fetcherCode,
+        }
+      } catch (error) {
+        // If generation fails, skip
+        return
+      }
+    }
+  }
+
+  // Now create API routes that re-export from the utils file
+  // Create main data API route if not exists
+  if (!extractedResources[`api/${fileName}`]) {
+    const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
 
 export default dataSourceModule.handler
 `
-      extractedResources[`api/${fileName}`] = {
-        fileName,
-        fileType: FileType.JS,
-        path: ['pages', 'api'],
-        content: apiRouteCode,
-      }
+    extractedResources[`api/${fileName}`] = {
+      fileName,
+      fileType: FileType.JS,
+      path: ['pages', 'api'],
+      content: apiRouteCode,
     }
+  }
 
-    // Create count API route if not exists (needed for paginated+search cases)
-    const countFileName = `${fileName}-count`
-    if (!extractedResources[`api/${countFileName}`]) {
-      const countApiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
+  // Create count API route if not exists (needed for paginated+search cases)
+  const countFileName = `${fileName}-count`
+  if (!extractedResources[`api/${countFileName}`]) {
+    const countApiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
 
 export default dataSourceModule.getCount
 `
-      extractedResources[`api/${countFileName}`] = {
-        fileName: countFileName,
-        fileType: FileType.JS,
-        path: ['pages', 'api'],
-        content: countApiRouteCode,
-      }
+    extractedResources[`api/${countFileName}`] = {
+      fileName: countFileName,
+      fileType: FileType.JS,
+      path: ['pages', 'api'],
+      content: countApiRouteCode,
     }
   }
 }
 
-function updateGetStaticProps(chunks: any[], registry: StateRegistry): void {
+function updateGetStaticProps(
+  chunks: any[],
+  registry: StateRegistry,
+  dependencies: Record<string, any>
+): void {
   const getStaticPropsChunk = chunks.find((c) => c.name === 'getStaticProps')
   if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
     return
@@ -2046,181 +2379,365 @@ function updateGetStaticProps(chunks: any[], registry: StateRegistry): void {
   // Track unique data sources for count fetching
   const dataSourcesNeedingCount = new Set<string>()
 
-  registry.usages.forEach((usage) => {
-    const vars = getStateVarsForUsage(usage)
-    const fileName = generateSafeFileName(
-      usage.resourceDefinition.dataSourceType,
-      usage.resourceDefinition.tableName,
-      usage.resourceDefinition.dataSourceId
-    )
-    // Use consistent import name generation (matches extractDataSourceIntoGetStaticProps)
-    const fetcherImportName = StringUtils.dashCaseToCamelCase(fileName)
-
-    // Add fetch call
-    const fetchParams: types.ObjectProperty[] = []
-
-    if (usage.paginated) {
-      // For paginated array mappers, add page and perPage
-      fetchParams.push(types.objectProperty(types.identifier('page'), types.numericLiteral(1)))
-      fetchParams.push(
-        types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage))
+  // Only process usages that need pagination or search functionality
+  // Non-paginated, non-search usages are handled by the main plugin
+  registry.usages
+    .filter((u) => u.paginated || u.searchEnabled)
+    .forEach((usage) => {
+      const vars = getStateVarsForUsage(usage)
+      const fileName = generateSafeFileName(
+        usage.resourceDefinition.dataSourceType,
+        usage.resourceDefinition.tableName,
+        usage.resourceDefinition.dataSourceId
       )
-    } else if (usage.perPage > 0) {
-      // For non-paginated array mappers with a limit, add the limit as perPage
-      // This ensures the initial data fetch respects the limit from the UIDL
-      fetchParams.push(
-        types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage))
-      )
-    }
-    if (usage.queryColumns.length > 0) {
-      fetchParams.push(
-        types.objectProperty(
-          types.identifier('queryColumns'),
-          types.callExpression(
-            types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-            [types.arrayExpression(usage.queryColumns.map((c) => types.stringLiteral(c)))]
-          )
+      // Use consistent import name generation (matches extractDataSourceIntoGetStaticProps)
+      const fetcherImportName = StringUtils.dashCaseToCamelCase(fileName)
+
+      // Add fetch call
+      const fetchParams: types.ObjectProperty[] = []
+
+      if (usage.paginated) {
+        // For paginated array mappers, add page and perPage
+        fetchParams.push(types.objectProperty(types.identifier('page'), types.numericLiteral(1)))
+        fetchParams.push(
+          types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage))
         )
-      )
-    }
-
-    // Check if this fetch already exists
-    const existingFetchIndex = arrayPattern.elements.findIndex(
-      (el: any) => el?.type === 'Identifier' && el.name === vars.propsPrefix
-    )
-
-    if (existingFetchIndex === -1) {
-      arrayPattern.elements.push(types.identifier(vars.propsPrefix))
-
-      fetchesArray.elements.push(
-        types.callExpression(
-          types.memberExpression(
-            types.callExpression(
-              types.memberExpression(
-                types.identifier(fetcherImportName),
-                types.identifier('fetchData')
-              ),
-              [types.objectExpression(fetchParams)]
-            ),
-            types.identifier('catch')
-          ),
-          [
-            types.arrowFunctionExpression(
-              [types.identifier('error')],
-              types.blockStatement([
-                types.expressionStatement(
-                  types.callExpression(
-                    types.memberExpression(types.identifier('console'), types.identifier('error')),
-                    [
-                      types.stringLiteral(`Error fetching ${vars.propsPrefix}:`),
-                      types.identifier('error'),
-                    ]
-                  )
-                ),
-                types.returnStatement(types.arrayExpression([])),
-              ])
-            ),
-          ]
+      } else if (usage.perPage > 0) {
+        // For non-paginated array mappers with a limit, add the limit as perPage
+        // This ensures the initial data fetch respects the limit from the UIDL
+        fetchParams.push(
+          types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage))
         )
-      )
-
-      // Add to props
-      propsObj.properties.push(
-        types.objectProperty(types.identifier(vars.propsPrefix), types.identifier(vars.propsPrefix))
-      )
-    }
-
-    // Track for count fetching
-    if (usage.paginated) {
-      dataSourcesNeedingCount.add(
-        `${usage.resourceDefinition.dataSourceType}:${usage.resourceDefinition.tableName}:${usage.resourceDefinition.dataSourceId}`
-      )
-    }
-
-    // Add maxPages calculation for paginated
-    if (usage.paginated) {
-      const maxPagesPropName = `${vars.propsPrefix}_maxPages`
-      const countVarName = `${usage.dataSourceIdentifier}_count`
-
-      // Check if maxPages calculation already exists
-      const existingMaxPages = tryBlock.body.find(
-        (s: any) =>
-          s.type === 'VariableDeclaration' && s.declarations?.[0]?.id?.name === maxPagesPropName
-      )
-
-      if (!existingMaxPages) {
-        // Insert maxPages calculation before return
-        const returnIndex = tryBlock.body.indexOf(returnStmt)
-        tryBlock.body.splice(
-          returnIndex,
-          0,
-          types.variableDeclaration('const', [
-            types.variableDeclarator(
-              types.identifier(maxPagesPropName),
-              types.callExpression(
-                types.memberExpression(types.identifier('Math'), types.identifier('ceil')),
-                [
-                  types.binaryExpression(
-                    '/',
-                    types.logicalExpression(
-                      '||',
-                      types.identifier(countVarName),
-                      types.numericLiteral(0)
-                    ),
-                    types.numericLiteral(usage.perPage)
-                  ),
-                ]
-              )
-            ),
-          ])
-        )
-
-        // Add maxPages to props
-        propsObj.properties.push(
+      }
+      if (usage.queryColumns.length > 0) {
+        fetchParams.push(
           types.objectProperty(
-            types.identifier(maxPagesPropName),
-            types.identifier(maxPagesPropName)
+            types.identifier('queryColumns'),
+            types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [types.arrayExpression(usage.queryColumns.map((c) => types.stringLiteral(c)))]
+            )
           )
         )
       }
-    }
-  })
+
+      // Add sorts if present
+      if (usage.sorts && usage.sorts.length > 0) {
+        fetchParams.push(
+          types.objectProperty(
+            types.identifier('sorts'),
+            types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [
+                types.arrayExpression(
+                  usage.sorts.map((sort: any) =>
+                    types.objectExpression([
+                      types.objectProperty(
+                        types.identifier('field'),
+                        types.stringLiteral(sort.field || '')
+                      ),
+                      types.objectProperty(
+                        types.identifier('order'),
+                        types.stringLiteral(sort.order || '')
+                      ),
+                    ])
+                  )
+                ),
+              ]
+            )
+          )
+        )
+      }
+
+      // Add filters if present
+      if (usage.filters && usage.filters.length > 0) {
+        fetchParams.push(
+          types.objectProperty(
+            types.identifier('filters'),
+            types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [
+                types.arrayExpression(
+                  usage.filters.map((filter: any) =>
+                    types.objectExpression([
+                      types.objectProperty(
+                        types.identifier('source'),
+                        types.stringLiteral(filter.source || '')
+                      ),
+                      types.objectProperty(
+                        types.identifier('destination'),
+                        types.stringLiteral(filter.destination || '')
+                      ),
+                      types.objectProperty(
+                        types.identifier('operand'),
+                        types.stringLiteral(filter.operand || '')
+                      ),
+                    ])
+                  )
+                ),
+              ]
+            )
+          )
+        )
+      }
+
+      // Check if this fetch already exists
+      const existingFetchIndex = arrayPattern.elements.findIndex(
+        (el: any) => el?.type === 'Identifier' && el.name === vars.propsPrefix
+      )
+
+      if (existingFetchIndex === -1) {
+        arrayPattern.elements.push(types.identifier(vars.propsPrefix))
+
+        fetchesArray.elements.push(
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(
+                types.memberExpression(
+                  types.identifier(fetcherImportName),
+                  types.identifier('fetchData')
+                ),
+                [types.objectExpression(fetchParams)]
+              ),
+              types.identifier('catch')
+            ),
+            [
+              types.arrowFunctionExpression(
+                [types.identifier('error')],
+                types.blockStatement([
+                  types.expressionStatement(
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('console'),
+                        types.identifier('error')
+                      ),
+                      [
+                        types.stringLiteral(`Error fetching ${vars.propsPrefix}:`),
+                        types.identifier('error'),
+                      ]
+                    )
+                  ),
+                  types.returnStatement(types.arrayExpression([])),
+                ])
+              ),
+            ]
+          )
+        )
+
+        // Add import dependency for the fetcher
+        if (!dependencies[fetcherImportName]) {
+          dependencies[fetcherImportName] = {
+            type: 'local',
+            path: `../utils/data-sources/${fileName}`,
+          }
+        }
+
+        // Add to props
+        propsObj.properties.push(
+          types.objectProperty(
+            types.identifier(vars.propsPrefix),
+            types.identifier(vars.propsPrefix)
+          )
+        )
+      }
+
+      // Track for count fetching
+      if (usage.paginated) {
+        dataSourcesNeedingCount.add(
+          `${usage.resourceDefinition.dataSourceType}:${usage.resourceDefinition.tableName}:${usage.resourceDefinition.dataSourceId}`
+        )
+      }
+
+      // Add maxPages calculation for paginated
+      if (usage.paginated) {
+        const maxPagesPropName = `${vars.propsPrefix}_maxPages`
+        // Use filter-specific count variable if usage has filters
+        const hasFilters = usage.filters && usage.filters.length > 0
+        const countVarName = hasFilters
+          ? `${usage.dataSourceIdentifier}_ds_${usage.index}_count`
+          : `${usage.dataSourceIdentifier}_count`
+
+        // Check if maxPages calculation already exists
+        const existingMaxPages = tryBlock.body.find(
+          (s: any) =>
+            s.type === 'VariableDeclaration' && s.declarations?.[0]?.id?.name === maxPagesPropName
+        )
+
+        if (!existingMaxPages) {
+          // Insert maxPages calculation before return
+          const returnIndex = tryBlock.body.indexOf(returnStmt)
+          tryBlock.body.splice(
+            returnIndex,
+            0,
+            types.variableDeclaration('const', [
+              types.variableDeclarator(
+                types.identifier(maxPagesPropName),
+                types.callExpression(
+                  types.memberExpression(types.identifier('Math'), types.identifier('ceil')),
+                  [
+                    types.binaryExpression(
+                      '/',
+                      types.logicalExpression(
+                        '||',
+                        types.identifier(countVarName),
+                        types.numericLiteral(0)
+                      ),
+                      types.numericLiteral(usage.perPage)
+                    ),
+                  ]
+                )
+              ),
+            ])
+          )
+
+          // Add maxPages to props
+          propsObj.properties.push(
+            types.objectProperty(
+              types.identifier(maxPagesPropName),
+              types.identifier(maxPagesPropName)
+            )
+          )
+        }
+      }
+    })
 
   // Add count fetches for unique data sources
+  // Group usages by filters to determine which need separate count fetches
+  const processedCountKeys = new Set<string>()
+
   dataSourcesNeedingCount.forEach((key) => {
     const [dataSourceType, tableName, dataSourceId] = key.split(':')
     const fileName = generateSafeFileName(dataSourceType, tableName, dataSourceId)
-    // Use consistent import name generation (matches extractDataSourceIntoGetStaticProps)
     const fetcherImportName = StringUtils.dashCaseToCamelCase(fileName)
 
-    // Find usage to get dataSourceIdentifier
-    const usage = registry.usages.find(
+    // Find all paginated usages for this data source
+    const usagesForDataSource = registry.usages.filter(
       (u) =>
         u.resourceDefinition.dataSourceId === dataSourceId &&
-        u.resourceDefinition.tableName === tableName
+        u.resourceDefinition.tableName === tableName &&
+        u.paginated
     )
-    if (!usage) {
+
+    if (usagesForDataSource.length === 0) {
       return
     }
 
-    const countVarName = `${usage.dataSourceIdentifier}_count`
-
-    // Check if count fetch already exists
-    const existingCount = arrayPattern.elements.findIndex(
-      (el: any) => el?.type === 'Identifier' && el.name === countVarName
-    )
-
-    if (existingCount === -1) {
-      arrayPattern.elements.push(types.identifier(countVarName))
-      fetchesArray.elements.push(
-        types.callExpression(
-          types.memberExpression(
-            types.identifier(fetcherImportName),
-            types.identifier('fetchCount')
-          ),
-          []
-        )
-      )
+    // Group usages by their filters (stringify for comparison)
+    const usagesByFilters = new Map<string, DataSourceUsage[]>()
+    for (const usage of usagesForDataSource) {
+      const filtersKey = JSON.stringify(usage.filters || [])
+      const existing = usagesByFilters.get(filtersKey) || []
+      existing.push(usage)
+      usagesByFilters.set(filtersKey, existing)
     }
+
+    // Generate count fetches for each unique filter configuration
+    usagesByFilters.forEach((usages, filtersKey) => {
+      const firstUsage = usages[0]
+      const hasFilters = firstUsage.filters && firstUsage.filters.length > 0
+
+      // Create unique count variable name based on filters
+      const countVarName = hasFilters
+        ? `${firstUsage.dataSourceIdentifier}_ds_${firstUsage.index}_count`
+        : `${firstUsage.dataSourceIdentifier}_count`
+
+      // Check if this count was already processed
+      const countKey = `${key}:${filtersKey}`
+      if (processedCountKeys.has(countKey)) {
+        return
+      }
+      processedCountKeys.add(countKey)
+
+      // Check if count fetch already exists
+      const existingCount = arrayPattern.elements.findIndex(
+        (el: any) => el?.type === 'Identifier' && el.name === countVarName
+      )
+
+      if (existingCount === -1) {
+        arrayPattern.elements.push(types.identifier(countVarName))
+
+        // Build count params if filters exist
+        const countParams: types.ObjectProperty[] = []
+        if (hasFilters) {
+          countParams.push(
+            types.objectProperty(
+              types.identifier('filters'),
+              types.callExpression(
+                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                [
+                  types.arrayExpression(
+                    firstUsage.filters.map((f: any) =>
+                      types.objectExpression([
+                        types.objectProperty(
+                          types.identifier('source'),
+                          types.stringLiteral(f.source)
+                        ),
+                        types.objectProperty(
+                          types.identifier('destination'),
+                          types.stringLiteral(f.destination)
+                        ),
+                        types.objectProperty(
+                          types.identifier('operand'),
+                          types.stringLiteral(f.operand)
+                        ),
+                      ])
+                    )
+                  ),
+                ]
+              )
+            )
+          )
+        }
+
+        fetchesArray.elements.push(
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(
+                types.memberExpression(
+                  types.identifier(fetcherImportName),
+                  types.identifier('fetchCount')
+                ),
+                countParams.length > 0 ? [types.objectExpression(countParams)] : []
+              ),
+              types.identifier('catch')
+            ),
+            [
+              types.arrowFunctionExpression(
+                [types.identifier('error')],
+                types.blockStatement([
+                  types.expressionStatement(
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('console'),
+                        types.identifier('error')
+                      ),
+                      [
+                        types.stringLiteral(`Error fetching ${countVarName}:`),
+                        types.identifier('error'),
+                      ]
+                    )
+                  ),
+                  types.returnStatement(types.numericLiteral(0)),
+                ])
+              ),
+            ]
+          )
+        )
+
+        // Store which usages use this count variable for maxPages calculation
+        for (const usage of usages) {
+          // tslint:disable-next-line:no-any
+          ;(usage as any).countVarName = countVarName
+        }
+
+        // Add import dependency for the fetcher
+        if (!dependencies[fetcherImportName]) {
+          dependencies[fetcherImportName] = {
+            type: 'local',
+            path: `../utils/data-sources/${fileName}`,
+          }
+        }
+      }
+    })
   })
 }

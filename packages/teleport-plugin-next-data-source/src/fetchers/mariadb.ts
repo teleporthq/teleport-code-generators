@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 interface MariaDBConfig {
   host?: string
@@ -19,6 +23,60 @@ export const generateMariaDBFetcher = (
   const database = mariaConfig.database
 
   return `import mariadb from 'mariadb'
+
+${generateSafeJSONParseCode()}
+
+// Helper function to process filters and build conditions
+const processFilters = (filters, conditions, queryParams) => {
+  if (!filters) return
+  
+  const parsedFilters = safeJSONParse(filters)
+  
+  if (Array.isArray(parsedFilters)) {
+    parsedFilters.forEach((filter) => {
+      if (!filter.source || filter.destination === undefined) return
+      
+      const field = \`\\\`\${filter.source}\\\`\`
+      const value = filter.destination
+      const operand = filter.operand || '='
+      
+      if (Array.isArray(value)) {
+        if (value.length === 0) return
+        const placeholders = value.map(() => '?').join(', ')
+        queryParams.push(...value)
+        if (operand === '!=') {
+          conditions.push(\`\${field} NOT IN (\${placeholders})\`)
+        } else {
+          conditions.push(\`\${field} IN (\${placeholders})\`)
+        }
+      } else {
+        if (value === null) {
+          if (operand === '=') {
+            conditions.push(\`\${field} IS NULL\`)
+          } else if (operand === '!=') {
+            conditions.push(\`\${field} IS NOT NULL\`)
+          }
+        } else {
+          const validOps = ['=', '!=', '>', '<', '>=', '<=']
+          const sqlOperator = validOps.includes(operand) ? operand : '='
+          conditions.push(\`\${field} \${sqlOperator} ?\`)
+          queryParams.push(value)
+        }
+      }
+    })
+  } else {
+    Object.entries(parsedFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        const placeholders = value.map(() => '?').join(', ')
+        queryParams.push(...value)
+        conditions.push(\`\\\`\${key}\\\` IN (\${placeholders})\`)
+      } else {
+        conditions.push(\`\\\`\${key}\\\` = ?\`)
+        queryParams.push(value)
+      }
+    })
+  }
+}
 
 ${generateDateFormatterCode()}
 
@@ -54,7 +112,7 @@ export default async function handler(req, res) {
   }
     })
     
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     const conditions = []
     const queryParams = []
@@ -64,7 +122,7 @@ export default async function handler(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = JSON.parse(queryColumns)
+        columns = safeJSONParse(queryColumns)
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -88,19 +146,8 @@ export default async function handler(req, res) {
       }
     }
     
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          const placeholders = value.map(() => '?').join(', ')
-          queryParams.push(...value)
-          conditions.push(\`\\\`\${key}\\\` IN (\${placeholders})\`)
-        } else {
-          conditions.push(\`\\\`\${key}\\\` = ?\`)
-          queryParams.push(value)
-        }
-      })
-    }
+    // Apply filters using helper function
+    processFilters(filters, conditions, queryParams)
     
     let sql = \`SELECT * FROM \\\`${tableName}\\\`\`
     
@@ -108,7 +155,21 @@ export default async function handler(req, res) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        const orderClauses = parsedSorts.map((sort) => {
+          if (!sort.field) return null
+          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          return \`\\\`\${sort.field}\\\` \${order}\`
+        }).filter(Boolean)
+        
+        if (orderClauses.length > 0) {
+          sql += \` ORDER BY \${orderClauses.join(', ')}\`
+        }
+      }
+    } else if (sortBy) {
       sql += \` ORDER BY \\\`\${sortBy}\\\` \${sortOrder?.toUpperCase() || 'ASC'}\`
     }
     
@@ -205,7 +266,8 @@ async function getCount(req, res) {
       
       if (queryColumns) {
         // Use specified columns
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -229,13 +291,8 @@ async function getCount(req, res) {
       }
     }
 
-    if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      for (const filter of parsedFilters) {
-        conditions.push(\`\${filter.column} \${filter.operator} ?\`)
-        queryParams.push(filter.value)
-      }
-    }
+    // Apply filters using helper function
+    processFilters(filters, conditions, queryParams)
 
     let countSql = \`SELECT COUNT(*) as count FROM ${tableName}\`
     if (conditions.length > 0) {

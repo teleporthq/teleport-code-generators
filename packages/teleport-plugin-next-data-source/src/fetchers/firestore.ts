@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateFirestoreConfig = (
   config: Record<string, unknown>
@@ -67,31 +71,67 @@ const getFirestore = () => {
   return firestore
 }
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
   try {
     const firestore = getFirestore()
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     let queryRef = firestore.collection('${tableName}')
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          queryRef = queryRef.where(key, 'in', value)
-        } else {
-          queryRef = queryRef.where(key, '==', value)
-        }
-      })
+      const parsedFilters = safeJSONParse(filters)
+      
+      if (Array.isArray(parsedFilters)) {
+        parsedFilters.forEach((filter) => {
+          if (!filter.source || filter.destination === undefined) return
+          
+          const field = filter.source
+          const value = filter.destination
+          const operand = filter.operand || '='
+          
+          // Map operands to Firestore operators
+          const operatorMap = {
+            '=': '==',
+            '!=': '!=',
+            '>': '>',
+            '<': '<',
+            '>=': '>=',
+            '<=': '<=',
+          }
+          
+          if (Array.isArray(value)) {
+            if (value.length === 0) return
+            if (operand === '!=') {
+              queryRef = queryRef.where(field, 'not-in', value)
+            } else {
+              queryRef = queryRef.where(field, 'in', value)
+            }
+          } else {
+            const firestoreOp = operatorMap[operand] || '=='
+            queryRef = queryRef.where(field, firestoreOp, value)
+          }
+        })
+      } else {
+        Object.entries(parsedFilters).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            queryRef = queryRef.where(key, 'in', value)
+          } else {
+            queryRef = queryRef.where(key, '==', value)
+          }
+        })
+      }
     }
     
     let usePostFiltering = false
     
     if (query) {
       if (queryColumns) {
-        const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
         for (const column of columns) {
           queryRef = queryRef
             .where(column, '>=', query)
@@ -104,7 +144,17 @@ export default async function handler(req, res) {
       }
     }
     
-    if (sortBy) {
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        parsedSorts.forEach((sort) => {
+          if (!sort.field) return
+          const order = sort.order?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+          queryRef = queryRef.orderBy(sort.field, order)
+        })
+      }
+    } else if (sortBy) {
       const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       queryRef = queryRef.orderBy(sortBy, sortOrderValue)
     }

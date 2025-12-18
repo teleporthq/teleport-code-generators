@@ -1,4 +1,8 @@
-import { replaceSecretReference, generateDateFormatterCode } from '../utils'
+import {
+  replaceSecretReference,
+  generateDateFormatterCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 interface RedshiftConfig {
   host?: string
@@ -49,6 +53,8 @@ const getClient = () => {
   })
 }
 
+${generateSafeJSONParseCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -58,7 +64,7 @@ export default async function handler(req, res) {
     await client.connect()
     ${schema ? `await client.query('SET search_path TO ${schema}')` : ''}
     
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
     
     const conditions = []
     const queryParams = []
@@ -68,7 +74,8 @@ export default async function handler(req, res) {
       let columns = []
       
       if (queryColumns) {
-        columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : [parsed]
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -98,19 +105,65 @@ export default async function handler(req, res) {
       }
     }
     
+    // Helper to sanitize identifier (prevent SQL injection in column names)
+    const sanitizeIdentifier = (name) => {
+      // Only allow alphanumeric, underscore, and dot (for schema.table)
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+        throw new Error(\`Invalid identifier: \${name}\`)
+      }
+      return \`"\${name}"\`
+    }
+    
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      Object.entries(parsedFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          const placeholders = value.map(() => \`$\${paramIndex++}\`)
-          queryParams.push(...value)
-          conditions.push(\`\${key} IN (\${placeholders.join(', ')})\`)
-        } else {
-          conditions.push(\`\${key} = $\${paramIndex}\`)
-          queryParams.push(value)
-          paramIndex++
-        }
-      })
+      const parsedFilters = safeJSONParse(filters)
+      
+      if (Array.isArray(parsedFilters)) {
+        parsedFilters.forEach((filter) => {
+          if (!filter.source || filter.destination === undefined) return
+          
+          const field = sanitizeIdentifier(filter.source)
+          const value = filter.destination
+          const operand = filter.operand || '='
+          
+          if (Array.isArray(value)) {
+            if (value.length === 0) return
+            const placeholders = value.map(() => \`$\${paramIndex++}\`)
+            queryParams.push(...value)
+            if (operand === '!=') {
+              conditions.push(\`\${field} NOT IN (\${placeholders.join(', ')})\`)
+            } else {
+              conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
+            }
+          } else {
+            if (value === null) {
+              if (operand === '=') {
+                conditions.push(\`\${field} IS NULL\`)
+              } else if (operand === '!=') {
+                conditions.push(\`\${field} IS NOT NULL\`)
+              }
+            } else {
+              const validOps = ['=', '!=', '>', '<', '>=', '<=']
+              const sqlOperator = validOps.includes(operand) ? operand : '='
+              conditions.push(\`\${field} \${sqlOperator} $\${paramIndex}\`)
+              queryParams.push(value)
+              paramIndex++
+            }
+          }
+        })
+      } else {
+        Object.entries(parsedFilters).forEach(([key, value]) => {
+          const field = sanitizeIdentifier(key)
+          if (Array.isArray(value)) {
+            const placeholders = value.map(() => \`$\${paramIndex++}\`)
+            queryParams.push(...value)
+            conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
+          } else {
+            conditions.push(\`\${field} = $\${paramIndex}\`)
+            queryParams.push(value)
+            paramIndex++
+          }
+        })
+      }
     }
     
     let sql = \`SELECT * FROM ${tableName}\`
@@ -119,8 +172,22 @@ export default async function handler(req, res) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
     }
     
-    if (sortBy) {
-      sql += \` ORDER BY \${sortBy} \${sortOrder?.toUpperCase() || 'ASC'}\`
+    // Handle sorts - new array format
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        const orderClauses = parsedSorts.map((sort) => {
+          if (!sort.field) return null
+          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          return \`\${sanitizeIdentifier(sort.field)} \${order}\`
+        }).filter(Boolean)
+        
+        if (orderClauses.length > 0) {
+          sql += \` ORDER BY \${orderClauses.join(', ')}\`
+        }
+      }
+    } else if (sortBy) {
+      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrder?.toUpperCase() || 'ASC'}\`
     }
     
     const limitValue = limit || perPage

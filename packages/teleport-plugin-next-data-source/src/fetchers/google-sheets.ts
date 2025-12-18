@@ -1,3 +1,6 @@
+import { generateSortFilterHelperCode, generateSafeJSONParseCode } from '../utils'
+import { generateHeaderDetectionCode } from './utils/header-detection'
+
 export const validateGoogleSheetsConfig = (
   config: Record<string, unknown>
 ): { isValid: boolean; error?: string } => {
@@ -33,11 +36,24 @@ interface GoogleSheetsConfig {
   sheetName?: string
   range?: string
   maxRows?: number
+  autoDetectHeader?: boolean
+  firstRowIsHeader?: boolean
+  columns?: Array<{ id: string; label?: string; type?: string }>
 }
 
 export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): string => {
   const sheetsConfig = config as GoogleSheetsConfig
+  const autoDetectHeader = sheetsConfig.autoDetectHeader
+  const firstRowIsHeader = sheetsConfig.firstRowIsHeader
+  const configColumns = sheetsConfig.columns || []
+
   return `import fetch from 'node-fetch'
+
+${generateSafeJSONParseCode()}
+
+${generateSortFilterHelperCode()}
+
+${generateHeaderDetectionCode()}
 
 export default async function handler(req, res) {
   try {
@@ -45,6 +61,8 @@ export default async function handler(req, res) {
     let sheetId = ${JSON.stringify(sheetsConfig.sheetId)}
     const range = ${JSON.stringify(sheetsConfig.range || 'A1:Z1000')}
     const maxRows = ${sheetsConfig.maxRows || 0}
+    const autoDetectHeader = ${autoDetectHeader !== undefined ? autoDetectHeader : true}
+    const firstRowIsHeader = ${firstRowIsHeader !== undefined ? firstRowIsHeader : true}
     
     if (!sheetId && sheetUrl) {
       const match = sheetUrl.match(/\\/d\\/([a-zA-Z0-9-_]+)/)
@@ -158,26 +176,40 @@ export default async function handler(req, res) {
     const firstRow = rawRows[0]
     const firstRowValues = firstRow.c.map((cell) => cell?.v ?? cell?.f ?? null)
     
-    const hasHeaderRow = firstRowValues.every((val) => 
-      val !== null && val !== undefined && val !== '' && typeof val === 'string'
-    )
+    const shouldAutoDetect = autoDetectHeader !== false
+    let hasHeaderRow = false
+    
+    if (shouldAutoDetect) {
+      hasHeaderRow = detectHeaderRow(firstRowValues, rawRows)
+    } else {
+      hasHeaderRow = firstRowIsHeader !== false
+    }
+    
+    const configColumns = ${JSON.stringify(configColumns)}
+    const useConfigColumns = configColumns && configColumns.length > 0
     
     let columns
     let dataRows
     
     if (hasHeaderRow && rawRows.length > 1) {
-      columns = firstRowValues.map((headerValue, index) => ({
-        id: \`col_\${index}\`,
-        label: String(headerValue),
-        type: 'string'
-      }))
+      columns = table.cols.map((col, index) => {
+        const configCol = useConfigColumns ? configColumns[index] : null
+        return {
+          id: configCol?.id || col.id || \`col_\${index}\`,
+          label: String(firstRowValues[index] || col.label || configCol?.label || \`Column \${index + 1}\`),
+          type: configCol?.type || col.type || 'string'
+        }
+      })
       dataRows = rawRows.slice(1)
     } else {
-      columns = table.cols.map((col, index) => ({
-        id: col.id || \`col_\${index}\`,
-        label: col.label || \`Column \${index + 1}\`,
-        type: col.type || 'string'
-      }))
+      columns = table.cols.map((col, index) => {
+        const configCol = useConfigColumns ? configColumns[index] : null
+        return {
+          id: configCol?.id || col.id || \`col_\${index}\`,
+          label: configCol?.label || col.label || \`Column \${index + 1}\`,
+          type: configCol?.type || col.type || 'string'
+        }
+      })
       dataRows = rawRows
     }
     
@@ -212,7 +244,13 @@ export default async function handler(req, res) {
       return filteredRow
     })
     
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, offset: offsetParam } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
+    
+    // Create label-to-ID mapping for filters and sorts
+    const labelToIdMap = {}
+    columnsWithData.forEach((col) => {
+      labelToIdMap[col.label] = col.id
+    })
     
     let filteredData = [...filteredRows]
     
@@ -220,10 +258,12 @@ export default async function handler(req, res) {
       const searchQuery = query.toLowerCase()
       
       if (queryColumns) {
-        const searchColumns = JSON.parse(queryColumns)
+        const searchColumns = safeJSONParse(queryColumns)
         filteredData = filteredData.filter((item) => {
           return searchColumns.some((col) => {
-            const value = item[col]
+            // Map label to column ID
+            const field = labelToIdMap[col] || col
+            const value = getNestedValue(item, field)
             return value && String(value).toLowerCase().includes(searchQuery)
           })
         })
@@ -240,25 +280,102 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = JSON.parse(filters)
-      filteredData = filteredData.filter((item) => {
-        return Object.entries(parsedFilters).every(([key, value]) => {
-          if (Array.isArray(value)) {
-            return value.includes(item[key])
-          }
-          return item[key] === value
+      const parsedFilters = safeJSONParse(filters)
+      
+      if (Array.isArray(parsedFilters)) {
+        filteredData = filteredData.filter((item) => {
+          return parsedFilters.every((filter) => {
+            if (!filter.source || filter.destination === undefined) return true
+            
+            // Map label to column ID
+            const field = labelToIdMap[filter.source] || filter.source
+            const value = getNestedValue(item, field)
+            const target = filter.destination
+            const operand = filter.operand || '='
+            
+            if (Array.isArray(target)) {
+              if (operand === '!=') {
+                return !target.includes(value)
+              }
+              return target.includes(value)
+            }
+            
+            return compareValues(value, target, operand)
+          })
         })
-      })
+      } else {
+        filteredData = filteredData.filter((item) => {
+          return Object.entries(parsedFilters).every(([key, value]) => {
+            // Map label to column ID
+            const field = labelToIdMap[key] || key
+            const itemValue = getNestedValue(item, field)
+            if (Array.isArray(value)) {
+              return value.includes(itemValue)
+            }
+            return compareValues(itemValue, value, '=')
+          })
+        })
+      }
     }
     
-    if (sortBy) {
+    if (sorts) {
+      const parsedSorts = safeJSONParse(sorts)
+      if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+        filteredData.sort((a, b) => {
+          for (const sort of parsedSorts) {
+            if (!sort.field) continue
+            // Map label to column ID
+            const field = labelToIdMap[sort.field] || sort.field
+            const aVal = getNestedValue(a, field)
+            const bVal = getNestedValue(b, field)
+            const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            
+            let comparison = 0
+            if (aVal === null || aVal === undefined) {
+              comparison = bVal === null || bVal === undefined ? 0 : -1
+            } else if (bVal === null || bVal === undefined) {
+              comparison = 1
+            } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+              comparison = aVal - bVal
+            } else if (aVal instanceof Date && bVal instanceof Date) {
+              comparison = aVal.getTime() - bVal.getTime()
+            } else {
+              const aStr = String(aVal)
+              const bStr = String(bVal)
+              if (aStr < bStr) comparison = -1
+              else if (aStr > bStr) comparison = 1
+            }
+            
+            if (comparison !== 0) return comparison * sortOrderValue
+          }
+          return 0
+        })
+      }
+    } else if (sortBy) {
       filteredData.sort((a, b) => {
-        const aVal = a[sortBy]
-        const bVal = b[sortBy]
+        // Map label to column ID
+        const field = labelToIdMap[sortBy] || sortBy
+        const aVal = getNestedValue(a, field)
+        const bVal = getNestedValue(b, field)
         const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
-        if (aVal < bVal) return -sortOrderValue
-        if (aVal > bVal) return sortOrderValue
-        return 0
+        
+        let comparison = 0
+        if (aVal === null || aVal === undefined) {
+          comparison = bVal === null || bVal === undefined ? 0 : -1
+        } else if (bVal === null || bVal === undefined) {
+          comparison = 1
+        } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+          comparison = aVal - bVal
+        } else if (aVal instanceof Date && bVal instanceof Date) {
+          comparison = aVal.getTime() - bVal.getTime()
+        } else {
+          const aStr = String(aVal)
+          const bStr = String(bVal)
+          if (aStr < bStr) comparison = -1
+          else if (aStr > bStr) comparison = 1
+        }
+        
+        return comparison * sortOrderValue
       })
     }
     

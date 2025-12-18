@@ -1,4 +1,8 @@
-import { generateDateFormatterCode } from '../utils'
+import {
+  generateDateFormatterCode,
+  generateSortFilterHelperCode,
+  generateSafeJSONParseCode,
+} from '../utils'
 
 export const validateJavaScriptConfig = (
   config: Record<string, unknown>
@@ -37,27 +41,31 @@ interface JavaScriptConfig {
 
 export const generateJavaScriptFetcher = (config: Record<string, unknown>): string => {
   const jsConfig = config as JavaScriptConfig
-  return `${generateDateFormatterCode()}
+  return `${generateSafeJSONParseCode()}
+
+${generateDateFormatterCode()}
+
+${generateSortFilterHelperCode()}
 
 export default async function handler(req, res) {
   try {
-    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters } = req.query
+    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts } = req.query
     
     const code = ${JSON.stringify(jsConfig.code)}
     const executeCode = new Function('return ' + code)
     let data = executeCode()
     
     if (Array.isArray(data)) {
-      // 1. Apply search filter
       if (query && query.trim()) {
         const searchQuery = query.toLowerCase()
         
         if (queryColumns) {
           try {
-            const columns = typeof queryColumns === 'string' ? JSON.parse(queryColumns) : (Array.isArray(queryColumns) ? queryColumns : [queryColumns])
+            const parsed = safeJSONParse(queryColumns)
+            const columns = Array.isArray(parsed) ? parsed : [parsed]
             data = data.filter(item => {
               return columns.some(col => {
-                const value = item[col]
+                const value = getNestedValue(item, col)
                 if (value === null || value === undefined) return false
                 return String(value).toLowerCase().includes(searchQuery)
               })
@@ -77,36 +85,107 @@ export default async function handler(req, res) {
         }
       }
       
-      // 2. Apply custom filters
       if (filters) {
         try {
-          const parsedFilters = typeof filters === 'string' ? JSON.parse(filters) : filters
-          data = data.filter((item) => {
-            return Object.entries(parsedFilters).every(([key, value]) => {
-              if (Array.isArray(value)) {
-                return value.includes(item[key])
-              }
-              return item[key] === value
+          const parsedFilters = safeJSONParse(filters)
+          
+          if (Array.isArray(parsedFilters)) {
+            data = data.filter((item) => {
+              return parsedFilters.every((filter) => {
+                if (!filter.source || filter.destination === undefined) return true
+                
+                const field = filter.source
+                const value = getNestedValue(item, field)
+                const target = filter.destination
+                const operand = filter.operand || '='
+                
+                if (Array.isArray(target)) {
+                  if (operand === '!=') {
+                    return !target.includes(value)
+                  }
+                  return target.includes(value)
+                }
+                
+                return compareValues(value, target, operand)
+              })
             })
-          })
+          } else {
+            data = data.filter((item) => {
+              return Object.entries(parsedFilters).every(([key, value]) => {
+                const itemValue = getNestedValue(item, key)
+                if (Array.isArray(value)) {
+                  return value.includes(itemValue)
+                }
+                return compareValues(itemValue, value, '=')
+              })
+            })
+          }
         } catch (err) {
           console.error('Error parsing filters:', err)
         }
       }
       
-      // 3. Apply sorting
-      if (sortBy && sortBy.trim()) {
+      if (sorts) {
+        try {
+          const parsedSorts = safeJSONParse(sorts)
+          if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
+            data.sort((a, b) => {
+              for (const sort of parsedSorts) {
+                if (!sort.field) continue
+                const aVal = getNestedValue(a, sort.field)
+                const bVal = getNestedValue(b, sort.field)
+                const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+                
+                let comparison = 0
+                if (aVal === null || aVal === undefined) {
+                  comparison = bVal === null || bVal === undefined ? 0 : -1
+                } else if (bVal === null || bVal === undefined) {
+                  comparison = 1
+                } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+                  comparison = aVal - bVal
+                } else if (aVal instanceof Date && bVal instanceof Date) {
+                  comparison = aVal.getTime() - bVal.getTime()
+                } else {
+                  const aStr = String(aVal)
+                  const bStr = String(bVal)
+                  if (aStr < bStr) comparison = -1
+                  else if (aStr > bStr) comparison = 1
+                }
+                
+                if (comparison !== 0) return comparison * sortOrderValue
+              }
+              return 0
+            })
+          }
+        } catch (err) {
+          console.error('Error parsing sorts:', err)
+        }
+      } else if (sortBy && sortBy.trim()) {
         data.sort((a, b) => {
-          const aVal = a[sortBy]
-          const bVal = b[sortBy]
+          const aVal = getNestedValue(a, sortBy)
+          const bVal = getNestedValue(b, sortBy)
           const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
-          if (aVal < bVal) return -sortOrderValue
-          if (aVal > bVal) return sortOrderValue
-          return 0
+          
+          let comparison = 0
+          if (aVal === null || aVal === undefined) {
+            comparison = bVal === null || bVal === undefined ? 0 : -1
+          } else if (bVal === null || bVal === undefined) {
+            comparison = 1
+          } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+            comparison = aVal - bVal
+          } else if (aVal instanceof Date && bVal instanceof Date) {
+            comparison = aVal.getTime() - bVal.getTime()
+          } else {
+            const aStr = String(aVal)
+            const bStr = String(bVal)
+            if (aStr < bStr) comparison = -1
+            else if (aStr > bStr) comparison = 1
+          }
+          
+          return comparison * sortOrderValue
         })
       }
       
-      // 4. Apply pagination
       const limitValue = limit || perPage
       const pageValue = page ? Math.max(1, parseInt(page)) : undefined
       const offsetValue = offset !== undefined ? Math.max(0, parseInt(offset)) : (pageValue && perPage ? (pageValue - 1) * Math.max(1, parseInt(perPage)) : 0)

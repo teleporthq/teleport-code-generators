@@ -74,15 +74,15 @@ export const insertLinks = (
       } = child.content
 
       if (success) {
-        insertLinks(success, options, false, node)
+        child.content.nodes.success = insertLinks(success, options, false, node)
       }
 
       if (error) {
-        insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node)
       }
 
       if (loading) {
-        insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node)
       }
     }
 
@@ -92,22 +92,27 @@ export const insertLinks = (
       } = child.content
 
       if (list) {
-        insertLinks(list, options, false, node)
+        child.content.nodes.list = insertLinks(list, options, false, node)
       }
 
       if (empty) {
-        insertLinks(empty, options, false, node)
+        child.content.nodes.empty = insertLinks(empty, options, false, node)
       }
 
       if (loading) {
-        insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node)
       }
     }
 
     if (child.type === 'cms-mixed-type') {
       if (child.content.mappings) {
-        Object.values(child.content.mappings).forEach((mapping) => {
-          insertLinks(mapping, options, false, node)
+        Object.keys(child.content.mappings).forEach((key) => {
+          child.content.mappings[key] = insertLinks(
+            child.content.mappings[key],
+            options,
+            false,
+            node
+          )
         })
       }
 
@@ -115,11 +120,11 @@ export const insertLinks = (
         nodes: { fallback, error },
       } = child.content
       if (fallback) {
-        insertLinks(fallback, options, false, node)
+        child.content.nodes.fallback = insertLinks(fallback, options, false, node)
       }
 
       if (error) {
-        insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node)
       }
     }
 
@@ -129,15 +134,33 @@ export const insertLinks = (
       } = child.content
 
       if (success) {
-        insertLinks(success, options, false, node)
+        child.content.nodes.success = insertLinks(success, options, false, node)
       }
 
       if (error) {
-        insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node)
       }
 
       if (loading) {
-        insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node)
+      }
+    }
+
+    if (child.type === 'data-source-list' || child.type === 'data-source-item') {
+      const {
+        nodes: { success, error, loading },
+      } = child.content
+
+      if (success) {
+        child.content.nodes.success = insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        child.content.nodes.error = insertLinks(error, options, false, node)
+      }
+
+      if (loading) {
+        child.content.nodes.loading = insertLinks(loading, options, false, node)
       }
     }
 
