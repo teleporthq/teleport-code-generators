@@ -490,13 +490,16 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         ) as UIDLDynamicReference
       }
 
-      if (
-        reference.type === 'dynamic' &&
-        reference.content.referenceType !== 'global' &&
-        conditionalNode.content.reference.type === 'dynamic'
-      ) {
-        // For local references (e.g., in repeaters), preserve the structure as-is
-        if (reference.content.referenceType === 'local') {
+      if (reference.type === 'dynamic' && conditionalNode.content.reference.type === 'dynamic') {
+        // For global references, preserve the structure as-is
+        if (reference.content.referenceType === 'global') {
+          conditionalNode.content.reference.content = {
+            referenceType: 'global',
+            id: reference.content.id,
+            refPath: reference.content.refPath,
+          }
+        } else if (reference.content.referenceType === 'local') {
+          // For local references (e.g., in repeaters), preserve the structure as-is
           conditionalNode.content.reference.content = {
             referenceType: reference.content.referenceType,
             refPath: reference.content.refPath,

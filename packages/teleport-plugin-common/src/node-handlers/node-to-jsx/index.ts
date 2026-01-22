@@ -899,6 +899,15 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   const { reference, value } = node.content
   const subTrees = generateNode(node.content.node, params, options)
 
+  // Track global references used in conditionals
+  if (
+    reference.type === 'dynamic' &&
+    'referenceType' in reference.content &&
+    reference.content.referenceType === 'global'
+  ) {
+    params.globalReferences.push(reference.content.id)
+  }
+
   const condition: UIDLConditionalExpression =
     value !== undefined && value !== null
       ? { conditions: [{ operand: value, operation: '===' }] }
