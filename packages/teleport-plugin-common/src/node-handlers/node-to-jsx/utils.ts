@@ -219,6 +219,15 @@ export const createConditionIdentifier = (
     }
   }
 
+  // Handle global references early - they don't use prop/state definitions
+  if (referenceType === 'global') {
+    return {
+      key: UIDLUtils.generateIdWithRefPath(id, refPath),
+      type: 'string',
+      prefix: '',
+    }
+  }
+
   // in case the id is a member expression: eg: fields.name
   const referenceRoot = id.split('.')[0]
   const currentType =
@@ -247,13 +256,6 @@ export const createConditionIdentifier = (
         key: UIDLUtils.generateIdWithRefPath(id, refPath),
         type,
         prefix: options.dynamicReferencePrefixMap.state,
-      }
-
-    case 'global':
-      return {
-        key: UIDLUtils.generateIdWithRefPath(id, refPath),
-        type: 'string',
-        prefix: '',
       }
 
     case 'expr':
