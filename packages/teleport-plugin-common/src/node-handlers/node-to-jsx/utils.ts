@@ -249,6 +249,13 @@ export const createConditionIdentifier = (
         prefix: options.dynamicReferencePrefixMap.state,
       }
 
+    case 'global':
+      return {
+        key: UIDLUtils.generateIdWithRefPath(id, refPath),
+        type: 'string',
+        prefix: '',
+      }
+
     case 'expr':
       return {
         key: id,
