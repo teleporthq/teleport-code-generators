@@ -821,7 +821,39 @@ const generateDataSourceNode: NodeToJSX<
         const property = resourceParams[attrKey]
 
         if (property.type === 'static') {
-          acc.push(types.objectProperty(types.stringLiteral(attrKey), resolveObjectValue(property)))
+          // Special handling for filters array - convert dynamic destinations
+          if (attrKey === 'filters' && Array.isArray(property.content)) {
+            acc.push(
+              types.objectProperty(
+                types.stringLiteral(attrKey),
+                types.arrayExpression(
+                  property.content.map(
+                    (filter: { source?: string; destination?: unknown; operand?: string }) =>
+                      types.objectExpression([
+                        types.objectProperty(
+                          types.identifier('source'),
+                          types.stringLiteral(filter.source || '')
+                        ),
+                        types.objectProperty(
+                          types.identifier('destination'),
+                          ASTUtils.convertFilterDestinationToExpression(filter.destination, {
+                            dynamicReferencePrefixMap: options.dynamicReferencePrefixMap,
+                          })
+                        ),
+                        types.objectProperty(
+                          types.identifier('operand'),
+                          types.stringLiteral(filter.operand || '')
+                        ),
+                      ])
+                  )
+                )
+              )
+            )
+          } else {
+            acc.push(
+              types.objectProperty(types.stringLiteral(attrKey), resolveObjectValue(property))
+            )
+          }
         }
 
         if (property.type === 'expr') {

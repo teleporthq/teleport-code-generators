@@ -1180,6 +1180,77 @@ export const resolveObjectValue = (
   }
 }
 
+/**
+ * Detects if a value is a UIDL dynamic reference (state or prop)
+ */
+export const isUIDLDynamicReference = (value: unknown): boolean => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    (value as Record<string, unknown>).type === 'dynamic' &&
+    'content' in value &&
+    typeof (value as Record<string, unknown>).content === 'object' &&
+    (value as Record<string, unknown>).content !== null &&
+    'referenceType' in ((value as Record<string, unknown>).content as Record<string, unknown>) &&
+    'id' in ((value as Record<string, unknown>).content as Record<string, unknown>)
+  )
+}
+
+/**
+ * Converts a filter destination value to an AST expression.
+ * Handles both static values and dynamic references (state/prop).
+ */
+export const convertFilterDestinationToExpression = (
+  destination: unknown,
+  options?: { dynamicReferencePrefixMap?: Record<string, string> }
+): types.Expression => {
+  // Handle dynamic references (state or prop)
+  if (isUIDLDynamicReference(destination)) {
+    const content = (destination as Record<string, unknown>).content as {
+      referenceType: string
+      id: string
+    }
+    const { referenceType, id } = content
+
+    if (referenceType === 'state') {
+      return types.identifier(id)
+    }
+
+    if (referenceType === 'prop') {
+      const prefix = options?.dynamicReferencePrefixMap?.prop || 'props'
+      return types.memberExpression(types.identifier(prefix), types.identifier(id))
+    }
+
+    // Fallback for other reference types
+    return types.identifier(id)
+  }
+
+  // Handle static string values
+  if (typeof destination === 'string') {
+    return types.stringLiteral(destination)
+  }
+
+  // Handle other primitives
+  if (typeof destination === 'number') {
+    return types.numericLiteral(destination)
+  }
+
+  if (typeof destination === 'boolean') {
+    return types.booleanLiteral(destination)
+  }
+
+  // Handle arrays
+  if (Array.isArray(destination)) {
+    return types.arrayExpression(
+      destination.map((item) => convertFilterDestinationToExpression(item, options))
+    )
+  }
+
+  // Fallback to empty string for undefined/null
+  return types.stringLiteral('')
+}
+
 export const getExpressionFromUIDLExpressionNode = (
   node: UIDLExpressionValue
 ): types.Expression => {
