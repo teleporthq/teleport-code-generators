@@ -1021,7 +1021,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       } else if (usage.category === 'search-only') {
         updateDataProviderForSearchOnly(dp, usage, vars, fileName)
       } else if (usage.category === 'plain') {
-        updateDataProviderForPlain(dp, fileName)
+        updateDataProviderForPlain(dp, fileName, usage)
       }
 
       // Create API route for all categories (including 'plain' for components)
@@ -1788,7 +1788,7 @@ function updateDataProviderForSearchOnly(
   )
 }
 
-function updateDataProviderForPlain(dp: any, fileName: string): void {
+function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSourceUsage): void {
   const attrs = dp.openingElement.attributes
 
   // Check if fetchData already exists
@@ -1847,10 +1847,16 @@ function updateDataProviderForPlain(dp: any, fileName: string): void {
     return
   }
 
-  // Wrap params in useMemo with empty dependencies array
+  // Build useMemo dependencies including filter state IDs
+  const memoDeps: types.Expression[] = []
+  usage.filterStateIds.forEach((stateId) => {
+    memoDeps.push(types.identifier(stateId))
+  })
+
+  // Wrap params in useMemo with filter state dependencies
   const memoizedParams = types.callExpression(types.identifier('useMemo'), [
     types.arrowFunctionExpression([], paramsExpression),
-    types.arrayExpression([]),
+    types.arrayExpression(memoDeps),
   ])
 
   // Replace the params attribute

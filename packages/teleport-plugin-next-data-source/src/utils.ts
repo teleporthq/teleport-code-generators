@@ -969,6 +969,14 @@ export const extractDataSourceIntoGetStaticProps = (
     // but have different params (e.g., one with limit, one without)
     const nodesToUpdate: types.JSXElement[] = matchingJsxNodes
 
+    // Check if filters have dynamic destinations (can't use initialData in this case)
+    // tslint:disable-next-line:no-any
+    const resourceParamsForFilters = (node.content as any).resource?.params || {}
+    const nodeFilters = resourceParamsForFilters.filters?.content || []
+    const hasDynamicFilterDestinations =
+      Array.isArray(nodeFilters) &&
+      nodeFilters.some((f: any) => ASTUtils.isUIDLDynamicReference(f?.destination))
+
     // Update all target JSX nodes with initialData (only those that don't already have it)
     for (const jsxNode of nodesToUpdate) {
       // For SSR/SSG with initialData, rename 'children' to 'renderSuccess'
@@ -994,14 +1002,17 @@ export const extractDataSourceIntoGetStaticProps = (
           (attr as types.JSXAttribute).name?.name !== 'persistDataDuringLoading'
       )
 
-      // Add initialData attribute
-      const initialDataAttr = types.jsxAttribute(
-        types.jsxIdentifier('initialData'),
-        types.jsxExpressionContainer(
-          types.memberExpression(types.identifier('props'), types.identifier(propKey))
+      // Only add initialData if filters don't have dynamic destinations
+      // (dynamic destinations can't be resolved at build time, so initialData would be incorrect)
+      if (!hasDynamicFilterDestinations) {
+        const initialDataAttr = types.jsxAttribute(
+          types.jsxIdentifier('initialData'),
+          types.jsxExpressionContainer(
+            types.memberExpression(types.identifier('props'), types.identifier(propKey))
+          )
         )
-      )
-      jsxNode.openingElement.attributes.push(initialDataAttr)
+        jsxNode.openingElement.attributes.push(initialDataAttr)
+      }
 
       // Add persistDataDuringLoading={true}
       const persistDataAttr = types.jsxAttribute(
@@ -1076,8 +1087,20 @@ export const extractDataSourceIntoGetStaticProps = (
 
           // For sorts, filters, and queryColumns, stringify the array for consistency with API handler
           if (key === 'sorts' || key === 'filters' || key === 'queryColumns') {
+            // For filters, filter out items with dynamic destinations (can't be resolved at build time)
+            let itemsToProcess = validItems
+            if (key === 'filters') {
+              itemsToProcess = validItems.filter(
+                (item: any) => !ASTUtils.isUIDLDynamicReference(item?.destination)
+              )
+              // Skip entirely if no static filters remain
+              if (itemsToProcess.length === 0) {
+                return
+              }
+            }
+
             const arrayExpr = types.arrayExpression(
-              validItems.map((item: any) => {
+              itemsToProcess.map((item: any) => {
                 if (typeof item === 'string') {
                   return types.stringLiteral(item)
                 }
