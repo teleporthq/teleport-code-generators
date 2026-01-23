@@ -6,6 +6,7 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 
@@ -41,6 +42,8 @@ interface DataSourceUsage {
   // Filters from resource params
   // tslint:disable-next-line:no-any
   filters: any[]
+  // State IDs from dynamic filter destinations (for useMemo dependencies)
+  filterStateIds: string[]
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -122,6 +125,11 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           filters = parentDataSource.resourceParams.filters.content
         }
 
+        // Extract state IDs from dynamic filter destinations
+        const filterStateIds: string[] = filters
+          .filter((f) => ASTUtils.isUIDLDynamicReference(f.destination))
+          .map((f) => (f.destination as { content: { id: string } }).content.id)
+
         // Extract limit from parent's resource params (for plain array mappers)
         let limit = 0
         if (parentDataSource.resourceParams?.limit?.content) {
@@ -148,6 +156,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           queryColumns,
           sorts,
           filters,
+          filterStateIds,
           category: 'plain',
         }
 
@@ -568,7 +577,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                         ),
                         types.objectProperty(
                           types.identifier('destination'),
-                          types.stringLiteral(filter.destination || '')
+                          ASTUtils.convertFilterDestinationToExpression(filter.destination)
                         ),
                         types.objectProperty(
                           types.identifier('operand'),
@@ -1012,7 +1021,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       } else if (usage.category === 'search-only') {
         updateDataProviderForSearchOnly(dp, usage, vars, fileName)
       } else if (usage.category === 'plain') {
-        updateDataProviderForPlain(dp, fileName)
+        updateDataProviderForPlain(dp, fileName, usage)
       }
 
       // Create API route for all categories (including 'plain' for components)
@@ -1362,7 +1371,7 @@ function updateDataProviderForPaginatedSearch(
                   ),
                   types.objectProperty(
                     types.identifier('destination'),
-                    types.stringLiteral(filter.destination || '')
+                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
                   ),
                   types.objectProperty(
                     types.identifier('operand'),
@@ -1377,13 +1386,19 @@ function updateDataProviderForPaginatedSearch(
     )
   }
 
+  // Build useMemo dependencies including filter state IDs
+  const memoDeps: types.Expression[] = [types.identifier(vars.combinedStateVar)]
+  usage.filterStateIds.forEach((stateId) => {
+    memoDeps.push(types.identifier(stateId))
+  })
+
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('params'),
       types.jsxExpressionContainer(
         types.callExpression(types.identifier('useMemo'), [
           types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression([types.identifier(vars.combinedStateVar)]),
+          types.arrayExpression(memoDeps),
         ])
       )
     )
@@ -1531,7 +1546,7 @@ function updateDataProviderForPaginationOnly(
                   ),
                   types.objectProperty(
                     types.identifier('destination'),
-                    types.stringLiteral(filter.destination || '')
+                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
                   ),
                   types.objectProperty(
                     types.identifier('operand'),
@@ -1546,6 +1561,12 @@ function updateDataProviderForPaginationOnly(
     )
   }
 
+  // Build useMemo dependencies including filter state IDs
+  const memoDeps: types.Expression[] = [types.identifier(vars.pageStateVar)]
+  usage.filterStateIds.forEach((stateId) => {
+    memoDeps.push(types.identifier(stateId))
+  })
+
   // Add params
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -1553,7 +1574,7 @@ function updateDataProviderForPaginationOnly(
       types.jsxExpressionContainer(
         types.callExpression(types.identifier('useMemo'), [
           types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression([types.identifier(vars.pageStateVar)]),
+          types.arrayExpression(memoDeps),
         ])
       )
     )
@@ -1688,7 +1709,7 @@ function updateDataProviderForSearchOnly(
                   ),
                   types.objectProperty(
                     types.identifier('destination'),
-                    types.stringLiteral(filter.destination || '')
+                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
                   ),
                   types.objectProperty(
                     types.identifier('operand'),
@@ -1703,13 +1724,19 @@ function updateDataProviderForSearchOnly(
     )
   }
 
+  // Build useMemo dependencies including filter state IDs
+  const memoDeps: types.Expression[] = [types.identifier(vars.debouncedSearchQueryVar)]
+  usage.filterStateIds.forEach((stateId) => {
+    memoDeps.push(types.identifier(stateId))
+  })
+
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('params'),
       types.jsxExpressionContainer(
         types.callExpression(types.identifier('useMemo'), [
           types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression([types.identifier(vars.debouncedSearchQueryVar)]),
+          types.arrayExpression(memoDeps),
         ])
       )
     )
@@ -1761,7 +1788,7 @@ function updateDataProviderForSearchOnly(
   )
 }
 
-function updateDataProviderForPlain(dp: any, fileName: string): void {
+function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSourceUsage): void {
   const attrs = dp.openingElement.attributes
 
   // Check if fetchData already exists
@@ -1820,10 +1847,16 @@ function updateDataProviderForPlain(dp: any, fileName: string): void {
     return
   }
 
-  // Wrap params in useMemo with empty dependencies array
+  // Build useMemo dependencies including filter state IDs
+  const memoDeps: types.Expression[] = []
+  usage.filterStateIds.forEach((stateId) => {
+    memoDeps.push(types.identifier(stateId))
+  })
+
+  // Wrap params in useMemo with filter state dependencies
   const memoizedParams = types.callExpression(types.identifier('useMemo'), [
     types.arrowFunctionExpression([], paramsExpression),
-    types.arrayExpression([]),
+    types.arrayExpression(memoDeps),
   ])
 
   // Replace the params attribute
@@ -2450,7 +2483,11 @@ function updateGetStaticProps(
       }
 
       // Add filters if present
-      if (usage.filters && usage.filters.length > 0) {
+      // Filter out dynamic destinations for getStaticProps (they can't be resolved at build time)
+      const staticFilters = (usage.filters || []).filter(
+        (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
+      )
+      if (staticFilters.length > 0) {
         fetchParams.push(
           types.objectProperty(
             types.identifier('filters'),
@@ -2458,7 +2495,7 @@ function updateGetStaticProps(
               types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
               [
                 types.arrayExpression(
-                  usage.filters.map((filter: any) =>
+                  staticFilters.map((filter: any) =>
                     types.objectExpression([
                       types.objectProperty(
                         types.identifier('source'),
@@ -2466,7 +2503,9 @@ function updateGetStaticProps(
                       ),
                       types.objectProperty(
                         types.identifier('destination'),
-                        types.stringLiteral(filter.destination || '')
+                        types.stringLiteral(
+                          typeof filter.destination === 'string' ? filter.destination : ''
+                        )
                       ),
                       types.objectProperty(
                         types.identifier('operand'),
@@ -2551,9 +2590,13 @@ function updateGetStaticProps(
       // Add maxPages calculation for paginated
       if (usage.paginated) {
         const maxPagesPropName = `${vars.propsPrefix}_maxPages`
-        // Use filter-specific count variable if usage has filters
-        const hasFilters = usage.filters && usage.filters.length > 0
-        const countVarName = hasFilters
+        // Use filter-specific count variable if usage has static filters
+        // (dynamic filters can't be resolved at build time)
+        const staticFiltersForCount = (usage.filters || []).filter(
+          (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
+        )
+        const hasStaticFilters = staticFiltersForCount.length > 0
+        const countVarName = hasStaticFilters
           ? `${usage.dataSourceIdentifier}_ds_${usage.index}_count`
           : `${usage.dataSourceIdentifier}_count`
 
@@ -2634,10 +2677,14 @@ function updateGetStaticProps(
     // Generate count fetches for each unique filter configuration
     usagesByFilters.forEach((usages, filtersKey) => {
       const firstUsage = usages[0]
-      const hasFilters = firstUsage.filters && firstUsage.filters.length > 0
+      // Filter out dynamic destinations for getStaticProps (they can't be resolved at build time)
+      const staticFiltersForCount = (firstUsage.filters || []).filter(
+        (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
+      )
+      const hasStaticFilters = staticFiltersForCount.length > 0
 
       // Create unique count variable name based on filters
-      const countVarName = hasFilters
+      const countVarName = hasStaticFilters
         ? `${firstUsage.dataSourceIdentifier}_ds_${firstUsage.index}_count`
         : `${firstUsage.dataSourceIdentifier}_count`
 
@@ -2656,9 +2703,9 @@ function updateGetStaticProps(
       if (existingCount === -1) {
         arrayPattern.elements.push(types.identifier(countVarName))
 
-        // Build count params if filters exist
+        // Build count params if static filters exist
         const countParams: types.ObjectProperty[] = []
-        if (hasFilters) {
+        if (hasStaticFilters) {
           countParams.push(
             types.objectProperty(
               types.identifier('filters'),
@@ -2666,19 +2713,21 @@ function updateGetStaticProps(
                 types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
                 [
                   types.arrayExpression(
-                    firstUsage.filters.map((f: any) =>
+                    staticFiltersForCount.map((f: any) =>
                       types.objectExpression([
                         types.objectProperty(
                           types.identifier('source'),
-                          types.stringLiteral(f.source)
+                          types.stringLiteral(f.source || '')
                         ),
                         types.objectProperty(
                           types.identifier('destination'),
-                          types.stringLiteral(f.destination)
+                          types.stringLiteral(
+                            typeof f.destination === 'string' ? f.destination : ''
+                          )
                         ),
                         types.objectProperty(
                           types.identifier('operand'),
-                          types.stringLiteral(f.operand)
+                          types.stringLiteral(f.operand || '')
                         ),
                       ])
                     )
