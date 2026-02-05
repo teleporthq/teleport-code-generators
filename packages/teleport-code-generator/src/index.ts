@@ -123,11 +123,16 @@ export const packProject: PackProjectFunction = async (
     assets = [],
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
-    excludeGlobalsFromHTMLComponents = true,
+    excludeGlobalsFromHTMLComponents,
     strictHtmlWhitespaceSensitivity = true,
     standaloneHtmlComponents = true,
   }
 ) => {
+  // When standaloneHtmlComponents is true, components should be self-contained fragments
+  // without DOCTYPE/html/head wrapper. Automatically enable excludeGlobalsFromHTMLComponents
+  // unless explicitly set to false by the user.
+  const shouldExcludeGlobals =
+    excludeGlobalsFromHTMLComponents ?? (standaloneHtmlComponents ? true : false)
   const packer = createProjectPacker()
   let publisher
   if (publisherType === PublisherType.DISK) {
@@ -155,7 +160,7 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(
       new ProjectPluginCloneGlobals({
-        excludeGlobalsFromComponents: excludeGlobalsFromHTMLComponents,
+        excludeGlobalsFromComponents: shouldExcludeGlobals,
         strictHtmlWhitespaceSensitivity,
       })
     )
