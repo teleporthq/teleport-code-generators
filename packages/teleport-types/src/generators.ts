@@ -14,6 +14,7 @@ import {
   UIDLGlobalReference,
   UIDLForms,
   UIDLDataSource,
+  UIDLGlobalAsset,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -155,6 +156,7 @@ export interface GeneratorOptions {
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
   dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
+  globalAssets?: UIDLGlobalAsset[]
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -206,6 +208,7 @@ export interface GeneratorFactoryParams {
   postprocessors?: PostProcessor[]
   variation?: StyleVariation
   strictHtmlWhitespaceSensitivity?: boolean
+  standaloneHtmlComponents?: boolean
 }
 
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
@@ -494,6 +497,7 @@ export interface PackerOptions {
   assetsFolder?: string[]
   excludeGlobalsFromHTMLComponents?: boolean
   strictHtmlWhitespaceSensitivity?: boolean
+  standaloneHtmlComponents?: boolean
 }
 
 export interface GenerateOptions {

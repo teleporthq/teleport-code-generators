@@ -75,6 +75,7 @@ type NodeToHTML<NodeType, ReturnType> = (
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
+    standaloneHtmlComponents?: boolean
   },
   structure: {
     chunks: ChunkDefinition[]
@@ -624,6 +625,7 @@ const generateComponentContent = async (
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
+    standaloneHtmlComponents?: boolean
   },
   structure: {
     chunks: ChunkDefinition[]
@@ -636,7 +638,7 @@ const generateComponentContent = async (
     currentIndex: number
   }
 ) => {
-  const { externals, plugins } = subComponentOptions
+  const { externals, plugins, standaloneHtmlComponents = false } = subComponentOptions
   const { elementType, attrs = {}, children = [] } = node.content
   const { dependencies, chunks = [], options } = structure
   // "Component" will not exist when generating a component because the resolver checks for illegal class names
@@ -864,9 +866,10 @@ const generateComponentContent = async (
   const cssPlugin = createCSSPlugin({
     templateStyle: 'html',
     templateChunkName: DEFAULT_COMPONENT_CHUNK_NAME,
-    declareDependency: 'import',
+    declareDependency: standaloneHtmlComponents ? 'none' : 'import',
     chunkName: componentClone.name,
     staticPropReferences: true,
+    standaloneHtmlComponents,
   })
 
   const initialStructure: ComponentStructure = {

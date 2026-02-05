@@ -123,8 +123,9 @@ export const packProject: PackProjectFunction = async (
     assets = [],
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
-    excludeGlobalsFromHTMLComponents = false,
+    excludeGlobalsFromHTMLComponents = true,
     strictHtmlWhitespaceSensitivity = true,
+    standaloneHtmlComponents = true,
   }
 ) => {
   const packer = createProjectPacker()
@@ -142,7 +143,10 @@ export const packProject: PackProjectFunction = async (
     publisher = projectPublisherFactories[publisherType]
   }
 
-  const projectGeneratorFactory = projectGeneratorFactories[projectType]()
+  const projectGeneratorFactory =
+    projectType === ProjectType.HTML
+      ? projectGeneratorFactories[projectType]({ standaloneHtmlComponents })
+      : projectGeneratorFactories[projectType]()
   projectGeneratorFactory.cleanPlugins()
 
   projectGeneratorFactory.addPlugin(new ProjectPlugini18nFiles({ projectType }))

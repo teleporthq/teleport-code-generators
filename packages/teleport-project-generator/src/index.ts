@@ -481,6 +481,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
+          globalAssets: uidl.globals?.assets,
         }
       }
 

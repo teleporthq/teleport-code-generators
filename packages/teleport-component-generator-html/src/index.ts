@@ -20,6 +20,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   plugins = [],
   postprocessors = [],
   strictHtmlWhitespaceSensitivity = false,
+  standaloneHtmlComponents = false,
 }: GeneratorFactoryParams = {}): HTMLComponentGenerator => {
   const generator = createComponentGenerator()
   const resolver = new Resolver()
@@ -51,14 +52,15 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
     },
   })
 
-  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
+  const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin({ standaloneHtmlComponents })
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(
     createCSSPlugin({
       templateChunkName: 'html-chunk',
-      declareDependency: 'import',
+      declareDependency: standaloneHtmlComponents ? 'none' : 'import',
       templateStyle: 'html',
       staticPropReferences: true,
+      standaloneHtmlComponents,
     })
   )
 

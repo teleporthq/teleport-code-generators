@@ -16,6 +16,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 interface HtmlPluginConfig {
   componentChunkName: string
   wrapComponent?: boolean
+  standaloneHtmlComponents?: boolean
 }
 
 interface HtmlPlugin {
@@ -26,7 +27,11 @@ interface HtmlPlugin {
 type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>) => HtmlPlugin
 
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
-  const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = false } = config || {}
+  const {
+    componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
+    wrapComponent = false,
+    standaloneHtmlComponents = false,
+  } = config || {}
   let externals: Record<string, ComponentUIDL> = {}
   let plugins: ComponentPlugin[] = []
 
@@ -50,6 +55,15 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       ? HASTBuilders.createHTMLNode('body')
       : HASTBuilders.createHTMLNode('div')
 
+    // Generate scoped root class for inline style tag mode
+    const scopedRootClass = standaloneHtmlComponents
+      ? `tprt-${StringUtils.camelCaseToDashCase(uidl.name)}-root`
+      : undefined
+
+    if (scopedRootClass) {
+      HASTUtils.addClassToNode(compBase, scopedRootClass)
+    }
+
     const subComponents = {
       externals: Object.values(externals).reduce(
         (acc: Record<string, ComponentUIDL>, comp: ComponentUIDL) => {
@@ -62,6 +76,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
         {}
       ),
       plugins,
+      standaloneHtmlComponents,
     }
     const templateOptions = {
       chunks,
@@ -113,6 +128,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       linkAfter: [],
       meta: {
         nodesLookup,
+        scopedRootClass,
       },
     })
 
