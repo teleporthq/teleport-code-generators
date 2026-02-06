@@ -14,6 +14,10 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   const { meta, assets, manifest, customCode } = uidl.globals
 
   const htmlNode = ASTBuilders.createJSXTag('Html')
+  const defaultLang = uidl.internationalization?.main?.locale || uidl.globals.settings.language
+  if (defaultLang) {
+    ASTUtils.addAttributeToJSXTag(htmlNode, 'lang', defaultLang)
+  }
   const headNode = ASTBuilders.createJSXTag('Head')
   const bodyNode = ASTBuilders.createJSXTag('body')
 

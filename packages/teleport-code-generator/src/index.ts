@@ -125,6 +125,7 @@ export const packProject: PackProjectFunction = async (
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
     excludeGlobalsFromHTMLComponents = false,
     strictHtmlWhitespaceSensitivity = true,
+    generateSitemap = true,
   }
 ) => {
   const packer = createProjectPacker()
@@ -159,7 +160,7 @@ export const packProject: PackProjectFunction = async (
   }
 
   if (projectType === ProjectType.NEXT) {
-    projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig())
+    projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig({ generateSitemap }))
     projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
     projectGeneratorFactory.addPlugin(new NextDataSourceDependenciesPlugin())
   }

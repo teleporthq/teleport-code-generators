@@ -130,6 +130,10 @@ export interface GeneratorOptions {
   isRootComponent?: boolean
   skipNavlinkResolver?: boolean
   skipI18n?: boolean
+  internationalization?: {
+    main: { name: string; locale: string }
+    languages: Record<string, string>
+  }
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
@@ -494,6 +498,7 @@ export interface PackerOptions {
   assetsFolder?: string[]
   excludeGlobalsFromHTMLComponents?: boolean
   strictHtmlWhitespaceSensitivity?: boolean
+  generateSitemap?: boolean
 }
 
 export interface GenerateOptions {
