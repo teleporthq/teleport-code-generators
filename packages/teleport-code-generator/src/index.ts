@@ -125,7 +125,8 @@ export const packProject: PackProjectFunction = async (
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
     excludeGlobalsFromHTMLComponents,
     strictHtmlWhitespaceSensitivity = true,
-    standaloneHtmlComponents = true,
+    standaloneHtmlComponents = false,
+    excludeHtmlComponentFiles = false,
   }
 ) => {
   // When standaloneHtmlComponents is true, components should be self-contained fragments
@@ -133,6 +134,11 @@ export const packProject: PackProjectFunction = async (
   // unless explicitly set to false by the user.
   const shouldExcludeGlobals =
     excludeGlobalsFromHTMLComponents ?? (standaloneHtmlComponents ? true : false)
+  // When standaloneHtmlComponents is true, pages inline all sub-components, so separate
+  // component files are redundant. Automatically enable excludeHtmlComponentFiles unless
+  // explicitly set by the user.
+  const shouldexcludeHtmlComponentFiles =
+    excludeHtmlComponentFiles ?? (standaloneHtmlComponents ? true : false)
   const packer = createProjectPacker()
   let publisher
   if (publisherType === PublisherType.DISK) {
@@ -150,7 +156,10 @@ export const packProject: PackProjectFunction = async (
 
   const projectGeneratorFactory =
     projectType === ProjectType.HTML
-      ? projectGeneratorFactories[projectType]({ standaloneHtmlComponents })
+      ? projectGeneratorFactories[projectType]({
+          standaloneHtmlComponents,
+          excludeHtmlComponentFiles: shouldexcludeHtmlComponentFiles,
+        })
       : projectGeneratorFactories[projectType]()
   projectGeneratorFactory.cleanPlugins()
 

@@ -357,6 +357,7 @@ export interface ProjectStrategyComponentOptions {
   customComponentFileName?: (name?: string, options?: UIDLPageOptions) => string // only used when createFolderForEachComponent is true
   customStyleFileName?: (name?: string) => string
   customTemplateFileName?: (name?: string) => string
+  excludeFiles?: boolean
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
@@ -498,6 +499,7 @@ export interface PackerOptions {
   excludeGlobalsFromHTMLComponents?: boolean
   strictHtmlWhitespaceSensitivity?: boolean
   standaloneHtmlComponents?: boolean
+  excludeHtmlComponentFiles?: boolean
 }
 
 export interface GenerateOptions {

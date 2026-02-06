@@ -11,10 +11,11 @@ import { htmlErrorPageMapping } from './error-page-mapping'
 
 interface HTMLProjectGeneratorOptions {
   standaloneHtmlComponents?: boolean
+  excludeHtmlComponentFiles?: boolean
 }
 
 const createHTMLProjectGenerator = (options: HTMLProjectGeneratorOptions = {}) => {
-  const { standaloneHtmlComponents = false } = options
+  const { standaloneHtmlComponents = false, excludeHtmlComponentFiles = false } = options
 
   // Create component generator factory that includes standaloneHtmlComponents option
   // Must forward all params from bootstrapGenerator while adding our option
@@ -28,6 +29,7 @@ const createHTMLProjectGenerator = (options: HTMLProjectGeneratorOptions = {}) =
     components: {
       generator: componentGeneratorFactory,
       path: ['components'],
+      ...(excludeHtmlComponentFiles && { options: { excludeFiles: true } }),
     },
     pages: {
       generator: createHTMLComponentGenerator,
