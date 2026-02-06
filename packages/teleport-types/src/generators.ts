@@ -498,6 +498,7 @@ export interface PackerOptions {
   assetsFolder?: string[]
   excludeGlobalsFromHTMLComponents?: boolean
   strictHtmlWhitespaceSensitivity?: boolean
+  generateSitemap?: boolean
 }
 
 export interface GenerateOptions {
