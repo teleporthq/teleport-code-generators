@@ -5,6 +5,7 @@ import {
   InMemoryFileRecord,
   ProjectPlugin,
   ProjectPluginStructure,
+  ProjectUIDL,
 } from '@teleporthq/teleport-types'
 
 const findFileInBuild = (
@@ -112,7 +113,128 @@ export const useGlobalContext = () => {
 `
 }
 
+const extractBaseUrl = (
+  routeValues: Array<{ seo?: { assets?: Array<{ type: string }> } }>
+): string | null => {
+  for (const route of routeValues) {
+    const canonical = route.seo?.assets?.find((a) => a.type === 'canonical') as
+      | { type: 'canonical'; path: string }
+      | undefined
+    if (canonical) {
+      try {
+        return new URL(canonical.path).origin
+      } catch {
+        /* skip invalid URLs */
+      }
+    }
+  }
+  return null
+}
+
+const generateSitemapContent = (
+  uidl: ProjectUIDL,
+  languages: Record<string, string>,
+  main: { locale: string; name: string }
+): string | null => {
+  const routeValues = uidl.root.stateDefinitions?.route?.values || []
+  const locales = Object.keys(languages)
+  const hasMultipleLocales = locales.length > 1
+  const homePageName = uidl.root.stateDefinitions?.route?.defaultValue || 'index'
+
+  const baseUrl = extractBaseUrl(routeValues)
+  if (!baseUrl) {
+    return null
+  }
+
+  const currentDate = new Date().toISOString().split('T')[0]
+
+  const indexablePages = routeValues.filter((route) => {
+    if (route.pageOptions?.fallback) {
+      return false
+    }
+    const hasNoIndex = route.seo?.metaTags?.some(
+      (tag: { name?: string; content?: string }) =>
+        tag.name === 'robots' && tag.content === 'noindex'
+    )
+    if (hasNoIndex) {
+      return false
+    }
+    return true
+  })
+
+  if (indexablePages.length === 0) {
+    return null
+  }
+
+  const urlBlocks: string[] = []
+
+  for (const route of indexablePages) {
+    const pagePath = route.pageOptions?.navLink || (route.value === homePageName ? '/' : '/')
+    const isHomePage = pagePath === '/'
+    const fullDefaultUrl = baseUrl + pagePath
+
+    if (hasMultipleLocales) {
+      for (const locale of locales) {
+        const localePrefix = locale === main.locale ? '' : '/' + locale
+        const locUrl = baseUrl + localePrefix + pagePath
+
+        const xhtmlLinks = [
+          `    <xhtml:link rel="alternate" hreflang="x-default" href="${fullDefaultUrl}" />`,
+          ...locales.map((l) => {
+            const lPrefix = l === main.locale ? '' : '/' + l
+            return `    <xhtml:link rel="alternate" hreflang="${l}" href="${baseUrl}${lPrefix}${pagePath}" />`
+          }),
+        ]
+
+        urlBlocks.push(
+          [
+            `  <url>`,
+            `    <loc>${locUrl}</loc>`,
+            `    <lastmod>${currentDate}</lastmod>`,
+            `    <changefreq>weekly</changefreq>`,
+            `    <priority>${isHomePage ? '1.0' : '0.8'}</priority>`,
+            ...xhtmlLinks,
+            `  </url>`,
+          ].join('\n')
+        )
+      }
+    } else {
+      urlBlocks.push(
+        [
+          `  <url>`,
+          `    <loc>${fullDefaultUrl}</loc>`,
+          `    <lastmod>${currentDate}</lastmod>`,
+          `    <changefreq>weekly</changefreq>`,
+          `    <priority>${isHomePage ? '1.0' : '0.8'}</priority>`,
+          `  </url>`,
+        ].join('\n')
+      )
+    }
+  }
+
+  const namespaces = hasMultipleLocales
+    ? [
+        '  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '  xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+      ].join('\n')
+    : '  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset',
+    namespaces,
+    ...urlBlocks,
+    '</urlset>',
+  ].join('\n')
+}
+
 export class NextProjectPlugini18nConfig implements ProjectPlugin {
+  private generateSitemap: boolean
+
+  constructor(options?: { generateSitemap?: boolean }) {
+    this.generateSitemap = options?.generateSitemap ?? false
+  }
+
   async runBefore(structure: ProjectPluginStructure) {
     return structure
   }
@@ -153,6 +275,22 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
           },
         ],
       })
+
+      const sitemapContent = this.generateSitemap
+        ? generateSitemapContent(uidl, languages, main)
+        : null
+      if (sitemapContent) {
+        files.set('sitemap', {
+          path: ['public'],
+          files: [
+            {
+              name: 'sitemap',
+              content: sitemapContent,
+              fileType: 'xml',
+            },
+          ],
+        })
+      }
     }
 
     const globalContextFile = generateGlobalContextFileContent(languages, main)

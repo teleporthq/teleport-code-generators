@@ -127,6 +127,7 @@ export const packProject: PackProjectFunction = async (
     strictHtmlWhitespaceSensitivity = true,
     standaloneHtmlComponents = false,
     excludeHtmlComponentFiles = false,
+    generateSitemap = true,
   }
 ) => {
   // When standaloneHtmlComponents is true, components should be self-contained fragments
@@ -177,7 +178,7 @@ export const packProject: PackProjectFunction = async (
   }
 
   if (projectType === ProjectType.NEXT) {
-    projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig())
+    projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig({ generateSitemap }))
     projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
     projectGeneratorFactory.addPlugin(new NextDataSourceDependenciesPlugin())
   }
