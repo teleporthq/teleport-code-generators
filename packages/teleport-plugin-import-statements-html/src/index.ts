@@ -4,9 +4,47 @@ import {
   ChunkType,
   HTMLComponentGeneratorError,
   HastNode,
+  GeneratorOptions,
+  UIDLElementNode,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
+
+const getTranslation = (
+  id: string,
+  options: GeneratorOptions
+): UIDLElementNode | UIDLStaticValue | null => {
+  const i18n = options.internationalization
+  if (!i18n?.translations) {
+    return null
+  }
+  const locale = i18n.targetLocale || i18n.main?.locale
+  if (!locale) {
+    return null
+  }
+  return i18n.translations[locale]?.[id] || null
+}
+
+const resolveTranslationText = (translation: UIDLElementNode | UIDLStaticValue): string => {
+  if (translation.type === 'static') {
+    return String(translation.content)
+  }
+  if (translation.type === 'element' && translation.content.children) {
+    return translation.content.children
+      .map((child) => {
+        if (child.type === 'static') {
+          return String(child.content)
+        }
+        if (child.type === 'element') {
+          return resolveTranslationText(child)
+        }
+        return ''
+      })
+      .join('')
+  }
+  return ''
+}
 
 export const createHTMLImportStatementsPlugin = () => {
   const htmlImportsPlugin: ComponentPlugin = async (structure) => {
@@ -59,26 +97,51 @@ export const createHTMLImportStatementsPlugin = () => {
       const { metaTags = [], assets, title } = uidl.seo
       if (title) {
         const titleTag = HASTBuilders.createHTMLNode('title')
-        if (typeof title !== 'string') {
-          throw new Error('Unsupporder HTML title type. Only string is supported.')
+        let titleText: string | null = null
+
+        if (typeof title === 'string') {
+          titleText = title
+        } else if (title.type === 'static') {
+          titleText = title.content.toString()
+        } else if (title.type === 'dynamic' && title.content.referenceType === 'locale') {
+          const translation = getTranslation(title.content.id, structure.options)
+          if (translation) {
+            titleText = resolveTranslationText(translation)
+          }
         }
 
-        HASTUtils.addTextNode(titleTag, StringUtils.encode(title))
-        tags.push(titleTag)
+        if (titleText) {
+          HASTUtils.addTextNode(titleTag, StringUtils.encode(titleText))
+          tags.push(titleTag)
+        }
       }
 
       if (metaTags.length > 0) {
         metaTags.forEach((meta) => {
           const metaTag = HASTBuilders.createHTMLNode('meta')
+          let hasUnresolvableValue = false
           Object.keys(meta).forEach((key) => {
             const value = meta[key]
-            if (typeof value !== 'string') {
-              throw new Error('Unsupporder HTML meta type. Only string is supported.')
+            if (typeof value === 'string') {
+              HASTUtils.addAttributeToNode(metaTag, key, value)
+              return
             }
-
-            HASTUtils.addAttributeToNode(metaTag, key, value)
+            if (
+              typeof value === 'object' &&
+              value.type === 'dynamic' &&
+              value.content?.referenceType === 'locale'
+            ) {
+              const translation = getTranslation(value.content.id, structure.options)
+              if (translation) {
+                HASTUtils.addAttributeToNode(metaTag, key, resolveTranslationText(translation))
+                return
+              }
+            }
+            hasUnresolvableValue = true
           })
-          tags.push(metaTag)
+          if (!hasUnresolvableValue) {
+            tags.push(metaTag)
+          }
         })
       }
 

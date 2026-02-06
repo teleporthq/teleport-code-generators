@@ -128,6 +128,7 @@ export const packProject: PackProjectFunction = async (
     standaloneHtmlComponents = false,
     excludeHtmlComponentFiles = false,
     generateSitemap = true,
+    targetLocale,
   }
 ) => {
   // When standaloneHtmlComponents is true, components should be self-contained fragments
@@ -219,7 +220,7 @@ export const packProject: PackProjectFunction = async (
     packer.setPublisher(projectPublisher)
   }
 
-  return packer.pack(projectUIDL, { strictHtmlWhitespaceSensitivity })
+  return packer.pack(projectUIDL, { strictHtmlWhitespaceSensitivity, targetLocale })
 }
 
 export const generateComponent: GenerateComponentFunction = async (

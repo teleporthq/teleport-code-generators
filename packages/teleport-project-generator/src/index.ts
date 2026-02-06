@@ -156,7 +156,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
     input: Record<string, unknown>,
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     mapping: Mapping = {},
-    strictHtmlWhitespaceSensitivity: boolean = false
+    strictHtmlWhitespaceSensitivity: boolean = false,
+    targetLocale?: string
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
@@ -277,6 +278,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
         internationalization: {
           main: uidl.internationalization.main,
           languages: uidl.internationalization.languages,
+          translations: uidl.internationalization.translations,
+          ...(targetLocale && { targetLocale }),
         },
       }),
       ...(uidl.resources &&

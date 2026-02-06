@@ -15,6 +15,8 @@ import {
   UIDLForms,
   UIDLDataSource,
   UIDLGlobalAsset,
+  UIDLElementNode,
+  UIDLStaticValue,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -134,6 +136,8 @@ export interface GeneratorOptions {
   internationalization?: {
     main: { name: string; locale: string }
     languages: Record<string, string>
+    translations?: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
+    targetLocale?: string
   }
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
@@ -196,7 +200,8 @@ export interface ProjectGenerator {
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
     mapping?: Mapping,
-    strictHtmlWhitespaceSensitivity?: boolean
+    strictHtmlWhitespaceSensitivity?: boolean,
+    targetLocale?: string
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string[]
@@ -505,6 +510,7 @@ export interface PackerOptions {
   standaloneHtmlComponents?: boolean
   excludeHtmlComponentFiles?: boolean
   generateSitemap?: boolean
+  targetLocale?: string
 }
 
 export interface GenerateOptions {
