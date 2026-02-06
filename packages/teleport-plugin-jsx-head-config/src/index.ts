@@ -83,13 +83,92 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     }
 
     if (uidl.seo.assets) {
+      const i18n = structure.options.internationalization
+      const hasMultipleLocales = i18n && Object.keys(i18n.languages).length > 1
+      let routerAdded = false
+
       uidl.seo.assets.forEach((asset) => {
-        // TODO: Handle other asset types when needed
         if (asset.type === 'canonical') {
-          const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
-          ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-          ASTUtils.addAttributeToJSXTag(canonicalLink, 'href', asset.path)
-          headASTTags.push(canonicalLink)
+          if (hasMultipleLocales) {
+            const { origin, pathname } = parseCanonicalUrl(asset.path)
+
+            // Add useRouter hook for dynamic canonical
+            if (!routerAdded) {
+              structure.dependencies.useRouter = {
+                type: 'library',
+                path: 'next/router',
+                version: '^12.1.10',
+                meta: { namedImport: true },
+              }
+              reactHooks.push(getRouterAST())
+              routerAdded = true
+            }
+
+            // Dynamic canonical: href={`${origin}${router.locale === router.defaultLocale ? '' : '/' + router.locale}${pathname}`}
+            const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
+            ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
+            canonicalLink.openingElement.attributes.push(
+              types.jsxAttribute(
+                types.jsxIdentifier('href'),
+                types.jsxExpressionContainer(
+                  types.templateLiteral(
+                    [
+                      types.templateElement({ raw: origin, cooked: origin }, false),
+                      types.templateElement({ raw: pathname, cooked: pathname }, true),
+                    ],
+                    [
+                      types.conditionalExpression(
+                        types.binaryExpression(
+                          '===',
+                          types.memberExpression(
+                            types.identifier('router'),
+                            types.identifier('locale')
+                          ),
+                          types.memberExpression(
+                            types.identifier('router'),
+                            types.identifier('defaultLocale')
+                          )
+                        ),
+                        types.stringLiteral(''),
+                        types.binaryExpression(
+                          '+',
+                          types.stringLiteral('/'),
+                          types.memberExpression(
+                            types.identifier('router'),
+                            types.identifier('locale')
+                          )
+                        )
+                      ),
+                    ]
+                  )
+                )
+              )
+            )
+            headASTTags.push(canonicalLink)
+
+            // Hreflang tags for each locale
+            Object.keys(i18n.languages).forEach((locale) => {
+              const hreflangLink = ASTBuilders.createSelfClosingJSXTag('link')
+              ASTUtils.addAttributeToJSXTag(hreflangLink, 'rel', 'alternate')
+              ASTUtils.addAttributeToJSXTag(hreflangLink, 'hreflang', locale)
+              const localePrefix = locale === i18n.main.locale ? '' : '/' + locale
+              ASTUtils.addAttributeToJSXTag(hreflangLink, 'href', origin + localePrefix + pathname)
+              headASTTags.push(hreflangLink)
+            })
+
+            // x-default hreflang (points to default locale URL, no prefix)
+            const xDefaultLink = ASTBuilders.createSelfClosingJSXTag('link')
+            ASTUtils.addAttributeToJSXTag(xDefaultLink, 'rel', 'alternate')
+            ASTUtils.addAttributeToJSXTag(xDefaultLink, 'hreflang', 'x-default')
+            ASTUtils.addAttributeToJSXTag(xDefaultLink, 'href', origin + pathname)
+            headASTTags.push(xDefaultLink)
+          } else {
+            // No i18n or single locale — static canonical
+            const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
+            ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
+            ASTUtils.addAttributeToJSXTag(canonicalLink, 'href', asset.path)
+            headASTTags.push(canonicalLink)
+          }
         }
       })
     }
@@ -133,6 +212,24 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
         types.callExpression(types.identifier('useTranslations'), [])
       ),
     ])
+  }
+
+  const getRouterAST = () => {
+    return types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier('router'),
+        types.callExpression(types.identifier('useRouter'), [])
+      ),
+    ])
+  }
+
+  const parseCanonicalUrl = (url: string): { origin: string; pathname: string } => {
+    try {
+      const parsed = new URL(url)
+      return { origin: parsed.origin, pathname: parsed.pathname }
+    } catch {
+      return { origin: url, pathname: '/' }
+    }
   }
 
   const addAttributeToMetaTag = (
