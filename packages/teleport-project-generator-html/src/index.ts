@@ -3,17 +3,33 @@ import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-gen
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import { GeneratorFactoryParams } from '@teleporthq/teleport-types'
 import HTMLTemplate from './project-template'
 import { pluginCloneGlobals, ProjectPluginCloneGlobals } from './plugin-clone-globals'
 import { pluginHomeReplace } from './plugin-home-replace'
 import { htmlErrorPageMapping } from './error-page-mapping'
 
-const createHTMLProjectGenerator = () => {
+interface HTMLProjectGeneratorOptions {
+  standaloneHtmlComponents?: boolean
+  excludeHtmlComponentFiles?: boolean
+}
+
+const createHTMLProjectGenerator = (options: HTMLProjectGeneratorOptions = {}) => {
+  const { standaloneHtmlComponents = false, excludeHtmlComponentFiles = false } = options
+
+  // Create component generator factory that includes standaloneHtmlComponents option
+  // Must forward all params from bootstrapGenerator while adding our option
+  const componentGeneratorFactory = standaloneHtmlComponents
+    ? (params: GeneratorFactoryParams = {}) =>
+        createHTMLComponentGenerator({ ...params, standaloneHtmlComponents: true })
+    : createHTMLComponentGenerator
+
   const generator = createProjectGenerator({
     id: 'teleport-project-html',
     components: {
-      generator: createHTMLComponentGenerator,
+      generator: componentGeneratorFactory,
       path: ['components'],
+      ...(excludeHtmlComponentFiles && { options: { excludeFiles: true } }),
     },
     pages: {
       generator: createHTMLComponentGenerator,

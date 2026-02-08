@@ -25,6 +25,7 @@ import {
   UIDLConditionalNode,
   PropDefaultValueTypes,
   UIDLCMSListRepeaterNode,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -33,6 +34,41 @@ import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { generateUniqueKeys, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
+
+const getTranslation = (
+  id: string,
+  options: GeneratorOptions
+): UIDLElementNode | UIDLStaticValue | null => {
+  const i18n = options.internationalization
+  if (!i18n?.translations) {
+    return null
+  }
+  const locale = i18n.targetLocale || i18n.main?.locale
+  if (!locale) {
+    return null
+  }
+  return i18n.translations[locale]?.[id] || null
+}
+
+const resolveTranslationText = (translation: UIDLElementNode | UIDLStaticValue): string => {
+  if (translation.type === 'static') {
+    return String(translation.content)
+  }
+  if (translation.type === 'element' && translation.content.children) {
+    return translation.content.children
+      .map((child) => {
+        if (child.type === 'static') {
+          return String(child.content)
+        }
+        if (child.type === 'element') {
+          return resolveTranslationText(child)
+        }
+        return ''
+      })
+      .join('')
+  }
+  return ''
+}
 
 const isValidURL = (url: string) => {
   try {
@@ -75,6 +111,7 @@ type NodeToHTML<NodeType, ReturnType> = (
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
+    standaloneHtmlComponents?: boolean
   },
   structure: {
     chunks: ChunkDefinition[]
@@ -577,13 +614,19 @@ const generateElementNode: NodeToHTML<
     Object.keys(referencedStyles).forEach((styleRef) => {
       const refStyle = referencedStyles[styleRef]
       if (refStyle.content.mapType === 'inlined') {
-        handleStyles(node, refStyle.content.styles, propDefinitions, stateDefinitions)
+        handleStyles(
+          node,
+          refStyle.content.styles,
+          propDefinitions,
+          stateDefinitions,
+          structure.options
+        )
       }
     })
   }
 
   if (Object.keys(style).length > 0) {
-    handleStyles(node, style, propDefinitions, stateDefinitions)
+    handleStyles(node, style, propDefinitions, stateDefinitions, structure.options)
   }
 
   handleAttributes(
@@ -594,6 +637,7 @@ const generateElementNode: NodeToHTML<
     stateDefinitions,
     structure.options.projectRouteDefinition,
     structure.outputOptions,
+    structure.options,
     resolvedExpressions?.currentIndex
   )
 
@@ -624,6 +668,7 @@ const generateComponentContent = async (
   subComponentOptions: {
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
+    standaloneHtmlComponents?: boolean
   },
   structure: {
     chunks: ChunkDefinition[]
@@ -636,7 +681,7 @@ const generateComponentContent = async (
     currentIndex: number
   }
 ) => {
-  const { externals, plugins } = subComponentOptions
+  const { externals, plugins, standaloneHtmlComponents = false } = subComponentOptions
   const { elementType, attrs = {}, children = [] } = node.content
   const { dependencies, chunks = [], options } = structure
   // "Component" will not exist when generating a component because the resolver checks for illegal class names
@@ -864,9 +909,10 @@ const generateComponentContent = async (
   const cssPlugin = createCSSPlugin({
     templateStyle: 'html',
     templateChunkName: DEFAULT_COMPONENT_CHUNK_NAME,
-    declareDependency: 'import',
+    declareDependency: standaloneHtmlComponents ? 'none' : 'import',
     chunkName: componentClone.name,
     staticPropReferences: true,
+    standaloneHtmlComponents,
   })
 
   const initialStructure: ComponentStructure = {
@@ -924,6 +970,23 @@ const generateDynamicNode: NodeToHTML<
   resolvedExpressions?
 ): Promise<HastNode | HastText | Array<HastNode | HastText>> => {
   if (node.content.referenceType === 'locale') {
+    const translation = getTranslation(node.content.id, structure.options)
+    if (translation) {
+      if (translation.type === 'static') {
+        return HASTBuilders.createTextNode(String(translation.content))
+      }
+      if (translation.type === 'element') {
+        return generateHtmlSyntax(
+          translation,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure
+        )
+      }
+    }
     const localeTag = HASTBuilders.createHTMLNode('span')
     const commentNode = HASTBuilders.createComment(`Content for locale ${node.content.id}`)
     HASTUtils.addChildNode(localeTag, commentNode)
@@ -1013,13 +1076,18 @@ const handleStyles = (
   node: UIDLElementNode,
   styles: UIDLStyleDefinitions,
   propDefinitions: Record<string, UIDLPropDefinition>,
-  stateDefinitions: Record<string, UIDLStateDefinition>
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  options: GeneratorOptions
 ) => {
   Object.keys(styles).forEach((styleKey) => {
     let style: string | UIDLStyleValue = styles[styleKey]
     if (style.type === 'dynamic' && style.content?.referenceType !== 'token') {
       if (style.content?.referenceType === 'locale') {
-        node.content.style[styleKey] = staticNode(`[locale: ${style.content.id}]`)
+        const translation = getTranslation(style.content.id, options)
+        const resolvedText = translation
+          ? resolveTranslationText(translation)
+          : `[locale: ${style.content.id}]`
+        node.content.style[styleKey] = staticNode(resolvedText)
         return
       }
       if (style.content?.referenceType === 'global') {
@@ -1048,6 +1116,7 @@ const handleAttributes = (
   stateDefinitions: Record<string, UIDLStateDefinition>,
   routeDefinitions: UIDLRouteDefinitions,
   outputOptions: UIDLComponentOutputOptions,
+  options: GeneratorOptions,
   currentIndex?: number
 ) => {
   for (const attrKey of Object.keys(attrs)) {
@@ -1124,7 +1193,11 @@ const handleAttributes = (
 
       case 'dynamic': {
         if (content.referenceType === 'locale') {
-          HASTUtils.addAttributeToNode(htmlNode, attrKey, `[locale: ${content.id}]`)
+          const translation = getTranslation(content.id, options)
+          const resolvedText = translation
+            ? resolveTranslationText(translation)
+            : `[locale: ${content.id}]`
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, resolvedText)
           break
         }
 

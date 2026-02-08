@@ -3,6 +3,7 @@ import {
   StyleUtils,
   StyleBuilders,
   HASTUtils,
+  HASTBuilders,
   ASTUtils,
   createBinaryExpression,
 } from '@teleporthq/teleport-plugin-common'
@@ -23,6 +24,8 @@ import {
   UIDLExpressionValue,
   StateDefaultValueTypes,
   PropDefaultValueTypes,
+  UIDLStyleInlineAsset,
+  UIDLFontAsset,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { createConditionalStatement } from './utils'
@@ -37,6 +40,7 @@ interface CSSPluginConfig {
   declareDependency: 'import' | 'decorator' | 'none'
   dynamicVariantPrefix?: string
   staticPropReferences?: boolean
+  standaloneHtmlComponents?: boolean
 }
 
 const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
@@ -50,6 +54,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
     declareDependency = 'none',
     dynamicVariantPrefix,
     staticPropReferences = false,
+    standaloneHtmlComponents = false,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
@@ -100,6 +105,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       string,
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
+    const usedProjectStyleIds: Set<string> = new Set()
 
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
@@ -267,6 +273,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 `Style used from global stylesheet is missing - ${content.referenceId}`
               )
             }
+
+            usedProjectStyleIds.add(content.referenceId)
 
             if (styleRef.content.condition) {
               if (templateStyle === 'html') {
@@ -513,7 +521,193 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
 
-    if (cssMap.length > 0) {
+    // Handle inline style tag for HTML templates (self-contained fragments)
+    if (standaloneHtmlComponents && templateStyle === 'html' && templateChunk) {
+      const inlineCssMap: string[] = []
+      const hasTokens = Object.keys(tokens).length > 0
+      const hasUsedProjectStyles = usedProjectStyleIds.size > 0
+      const globalAssets = options.globalAssets || []
+
+      // Get the scoped root class from the template chunk meta
+      const scopedRootClass = templateChunk.meta?.scopedRootClass as string | undefined
+
+      // Utility function to scope CSS selectors
+      const scopeCssSelectors = (css: string, rootSelector: string): string => {
+        // Replace :root with scoped root class
+        let scopedCss = css.replace(/:root\s*\{/g, `${rootSelector} {`)
+
+        // Scope regular selectors (but not inside @media or @keyframes)
+        // This regex matches CSS rules outside of @ blocks
+        scopedCss = scopedCss.replace(/(?:^|\})\s*([^@{}]+?)\s*\{/gm, (match, selectors) => {
+          // Skip if it's just closing brace or empty
+          if (!selectors || selectors.trim() === '') {
+            return match
+          }
+
+          // Skip if selector is already the root class
+          if (selectors.trim() === rootSelector) {
+            return match
+          }
+
+          // Handle multiple selectors (comma-separated)
+          const scopedSelectors = selectors
+            .split(',')
+            .map((sel: string) => {
+              const trimmedSel = sel.trim()
+              // Skip empty selectors
+              if (!trimmedSel) {
+                return ''
+              }
+              // Skip if already scoped
+              if (trimmedSel.startsWith(rootSelector)) {
+                return trimmedSel
+              }
+              // Replace html/body with root selector
+              if (trimmedSel === 'html' || trimmedSel === 'body') {
+                return rootSelector
+              }
+              // For universal selector, scope it
+              if (trimmedSel === '*') {
+                return `${rootSelector} *`
+              }
+              // Prefix other selectors with root
+              return `${rootSelector} ${trimmedSel}`
+            })
+            .filter(Boolean)
+            .join(', ')
+
+          return match.replace(selectors, scopedSelectors)
+        })
+
+        return scopedCss
+      }
+
+      // 0. Add reset and default styles from global assets (scoped)
+      const inlineStyleAssets = globalAssets.filter(
+        (asset): asset is UIDLStyleInlineAsset => asset.type === 'style' && 'content' in asset
+      )
+      for (const styleAsset of inlineStyleAssets) {
+        if (styleAsset.content) {
+          const css = scopedRootClass
+            ? scopeCssSelectors(styleAsset.content, `.${scopedRootClass}`)
+            : styleAsset.content
+          inlineCssMap.push(css)
+        }
+      }
+
+      // 1. Add CSS variables (tokens) - scoped to root class instead of :root
+      if (hasTokens) {
+        const tokenSelector = scopedRootClass ? `.${scopedRootClass}` : ':root'
+        inlineCssMap.push(
+          StyleBuilders.createCSSClassWithSelector(
+            '@global',
+            tokenSelector,
+            StyleUtils.getTokensContentFromTokensObject(tokens)
+          )
+        )
+      }
+
+      // 2. Add project-referenced styles that this component uses (scoped)
+      if (hasUsedProjectStyles) {
+        const usedProjectStyles = Array.from(usedProjectStyleIds)
+        // Include exact matches and compound selectors that reference the same base class
+        const filteredDefinitions = Object.fromEntries(
+          Object.entries(styleSetDefinitions).filter(([key, definition]) => {
+            // Include if exact match
+            if (usedProjectStyles.includes(key)) {
+              return true
+            }
+            // Include compound selectors where className matches a used project style
+            // e.g., "navigation-mobile-overlay.navigation-mobile-overlay-active" has className "navigation-mobile-overlay"
+            const className = (definition as { className?: string }).className
+            if (className && usedProjectStyles.includes(className)) {
+              return true
+            }
+            return false
+          })
+        )
+        const projectStylesCssMap: string[] = []
+        const projectMediaStylesMap: Record<
+          string,
+          Array<{ [x: string]: Record<string, string | number> }>
+        > = {}
+        StyleBuilders.generateStylesFromStyleSetDefinitions(
+          filteredDefinitions,
+          projectStylesCssMap,
+          projectMediaStylesMap,
+          (styleName) => styleName
+        )
+        // Scope the project styles if scoped root class is available
+        if (scopedRootClass) {
+          const scopedProjectStyles = projectStylesCssMap.map((css) =>
+            scopeCssSelectors(css, `.${scopedRootClass}`)
+          )
+          inlineCssMap.push(...scopedProjectStyles)
+        } else {
+          inlineCssMap.push(...projectStylesCssMap)
+        }
+        if (Object.keys(projectMediaStylesMap).length > 0) {
+          const mediaStyles = StyleBuilders.generateMediaStyle(projectMediaStylesMap)
+          if (scopedRootClass) {
+            const scopedMediaStyles = mediaStyles.map((css) =>
+              scopeCssSelectors(css, `.${scopedRootClass}`)
+            )
+            inlineCssMap.push(...scopedMediaStyles)
+          } else {
+            inlineCssMap.push(...mediaStyles)
+          }
+        }
+      }
+
+      // 3. Add component-specific styles (scoped)
+      if (scopedRootClass) {
+        // Scope the component CSS
+        const scopedCssMap = cssMap.map((css) => scopeCssSelectors(css, `.${scopedRootClass}`))
+        inlineCssMap.push(...scopedCssMap)
+      } else {
+        inlineCssMap.push(...cssMap)
+      }
+
+      // 4. Create font link tags from global assets
+      const fontAssets = globalAssets.filter(
+        (asset): asset is UIDLFontAsset => asset.type === 'font' && 'path' in asset
+      )
+      const fontLinkNodes: HastNode[] = []
+      for (const fontAsset of fontAssets) {
+        const linkNode = HASTBuilders.createHTMLNode('link')
+        HASTUtils.addAttributeToNode(linkNode, 'rel', 'stylesheet')
+        HASTUtils.addAttributeToNode(linkNode, 'href', fontAsset.path)
+        if (fontAsset.attrs) {
+          for (const [attrKey, attrValue] of Object.entries(fontAsset.attrs)) {
+            const value =
+              typeof attrValue === 'object' && 'content' in attrValue
+                ? String(attrValue.content)
+                : String(attrValue)
+            HASTUtils.addAttributeToNode(linkNode, attrKey, value)
+          }
+        }
+        fontLinkNodes.push(linkNode)
+      }
+
+      // 5. Create <style> node and prepend to HTML (fonts first, then styles)
+      if (inlineCssMap.length > 0 || fontLinkNodes.length > 0) {
+        const nodesToPrepend: HastNode[] = []
+
+        // Add font links first
+        nodesToPrepend.push(...fontLinkNodes)
+
+        // Add style tag with all CSS
+        if (inlineCssMap.length > 0) {
+          const styleNode = HASTBuilders.createHTMLNode('style')
+          const cssContent = HASTBuilders.createTextNode(inlineCssMap.join('\n\n'))
+          styleNode.children.push(cssContent)
+          nodesToPrepend.push(styleNode)
+        }
+
+        ;(templateChunk.content as HastNode).children.unshift(...nodesToPrepend)
+      }
+    } else if (cssMap.length > 0) {
+      // Original behavior: create separate CSS file
       /**
        * Setup an import statement for the styles
        * The name of the file is either in the meta of the component generator

@@ -156,7 +156,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
     input: Record<string, unknown>,
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     mapping: Mapping = {},
-    strictHtmlWhitespaceSensitivity: boolean = false
+    strictHtmlWhitespaceSensitivity: boolean = false,
+    targetLocale?: string
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
@@ -277,6 +278,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
         internationalization: {
           main: uidl.internationalization.main,
           languages: uidl.internationalization.languages,
+          translations: uidl.internationalization.translations,
+          ...(targetLocale && { targetLocale }),
         },
       }),
       ...(uidl.resources &&
@@ -440,96 +443,99 @@ export class ProjectGenerator implements ProjectGeneratorType {
       }
     }
 
-    // Handling module generation for components
-    if (this.strategy?.components?.module) {
-      const componentModuleGenerator = bootstrapGenerator(
-        this.strategy.components.module,
-        this.strategy.style
-      )
-      const componentsModule = await createComponentModule(
-        uidl,
-        this.strategy,
-        componentModuleGenerator
-      )
-
-      inMemoryFilesMap.set(componentsModule.files[0].name, {
-        path: this.strategy.components.path,
-        files: componentsModule.files,
-      })
-
-      collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
-    }
-
-    // Handling components
-    for (const componentName of Object.keys(components)) {
-      if (!this.strategy?.components?.generator) {
-        throw new TeleportError(
-          `Component Generator is missing from the strategy - ${JSON.stringify(
-            this.strategy.components
-          )}`
+    if (!this.strategy.components?.options?.excludeFiles) {
+      // Handling module generation for components
+      if (this.strategy?.components?.module) {
+        const componentModuleGenerator = bootstrapGenerator(
+          this.strategy.components.module,
+          this.strategy.style
         )
+        const componentsModule = await createComponentModule(
+          uidl,
+          this.strategy,
+          componentModuleGenerator
+        )
+
+        inMemoryFilesMap.set(componentsModule.files[0].name, {
+          path: this.strategy.components.path,
+          files: componentsModule.files,
+        })
+
+        collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
       }
 
-      let componentOptions = options
-      if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPathForComponents = GenericUtils.generateLocalDependenciesPrefix(
-          this.strategy.components.path,
-          this.strategy.projectStyleSheet.path
-        )
-        componentOptions = {
-          ...options,
-          projectStyleSet: {
-            styleSetDefinitions,
-            fileName: this.strategy.projectStyleSheet.fileName,
-            path: this.strategy.components?.options?.createFolderForEachComponent
-              ? join('..', globalStyleSheetPathForComponents)
-              : globalStyleSheetPathForComponents,
-            importFile: this.strategy.projectStyleSheet?.importFile || false,
-          },
-          designLanguage: uidl.root?.designLanguage,
+      // Handling components
+      for (const componentName of Object.keys(components)) {
+        if (!this.strategy?.components?.generator) {
+          throw new TeleportError(
+            `Component Generator is missing from the strategy - ${JSON.stringify(
+              this.strategy.components
+            )}`
+          )
         }
-      }
 
-      if ('addExternalComponents' in this.componentGenerator) {
-        ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-          externals: components,
-          options: componentOptions,
-        })
-      }
-
-      const componentUIDL = components[componentName]
-      const { files, dependencies } = await createComponent(
-        componentUIDL,
-        this.componentGenerator,
-        componentOptions
-      )
-
-      /*
-        Generating files from the extracted resources that needs a proxy end-point to access them.
-      */
-      Object.values(componentOptions.extractedResources).forEach((extractedResource) => {
-        inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
-          path: extractedResource.path,
-          files: [
-            {
-              name: extractedResource.fileName,
-              fileType: extractedResource.fileType,
-              content: extractedResource.content,
+        let componentOptions = options
+        if (this.strategy.projectStyleSheet) {
+          const globalStyleSheetPathForComponents = GenericUtils.generateLocalDependenciesPrefix(
+            this.strategy.components.path,
+            this.strategy.projectStyleSheet.path
+          )
+          componentOptions = {
+            ...options,
+            projectStyleSet: {
+              styleSetDefinitions,
+              fileName: this.strategy.projectStyleSheet.fileName,
+              path: this.strategy.components?.options?.createFolderForEachComponent
+                ? join('..', globalStyleSheetPathForComponents)
+                : globalStyleSheetPathForComponents,
+              importFile: this.strategy.projectStyleSheet?.importFile || false,
             },
-          ],
+            designLanguage: uidl.root?.designLanguage,
+            globalAssets: uidl.globals?.assets,
+          }
+        }
+
+        if ('addExternalComponents' in this.componentGenerator) {
+          ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+            externals: components,
+            options: componentOptions,
+          })
+        }
+
+        const componentUIDL = components[componentName]
+        const { files, dependencies } = await createComponent(
+          componentUIDL,
+          this.componentGenerator,
+          componentOptions
+        )
+
+        /*
+          Generating files from the extracted resources that needs a proxy end-point to access them.
+        */
+        Object.values(componentOptions.extractedResources).forEach((extractedResource) => {
+          inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
+            path: extractedResource.path,
+            files: [
+              {
+                name: extractedResource.fileName,
+                fileType: extractedResource.fileType,
+                content: extractedResource.content,
+              },
+            ],
+          })
         })
-      })
 
-      // Components might be generated inside subfolders in the main components folder
-      const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
-      const path = this.strategy.components.path.concat(relativePath)
+        // Components might be generated inside subfolders in the main components folder
+        const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
+        const path = this.strategy.components.path.concat(relativePath)
 
-      inMemoryFilesMap.set(`component-${componentName}.`, {
-        path,
-        files,
-      })
+        inMemoryFilesMap.set(`component-${componentName}.`, {
+          path,
+          files,
+        })
 
-      collectedDependencies = { ...collectedDependencies, ...dependencies }
+        collectedDependencies = { ...collectedDependencies, ...dependencies }
+      }
     }
 
     // Handling framework specific changes to the project

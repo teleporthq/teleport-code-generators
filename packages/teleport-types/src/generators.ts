@@ -14,6 +14,9 @@ import {
   UIDLGlobalReference,
   UIDLForms,
   UIDLDataSource,
+  UIDLGlobalAsset,
+  UIDLElementNode,
+  UIDLStaticValue,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -133,6 +136,8 @@ export interface GeneratorOptions {
   internationalization?: {
     main: { name: string; locale: string }
     languages: Record<string, string>
+    translations?: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
+    targetLocale?: string
   }
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
@@ -159,6 +164,7 @@ export interface GeneratorOptions {
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
   dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
+  globalAssets?: UIDLGlobalAsset[]
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -194,7 +200,8 @@ export interface ProjectGenerator {
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
     mapping?: Mapping,
-    strictHtmlWhitespaceSensitivity?: boolean
+    strictHtmlWhitespaceSensitivity?: boolean,
+    targetLocale?: string
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string[]
@@ -210,6 +217,7 @@ export interface GeneratorFactoryParams {
   postprocessors?: PostProcessor[]
   variation?: StyleVariation
   strictHtmlWhitespaceSensitivity?: boolean
+  standaloneHtmlComponents?: boolean
 }
 
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
@@ -358,6 +366,7 @@ export interface ProjectStrategyComponentOptions {
   customComponentFileName?: (name?: string, options?: UIDLPageOptions) => string // only used when createFolderForEachComponent is true
   customStyleFileName?: (name?: string) => string
   customTemplateFileName?: (name?: string) => string
+  excludeFiles?: boolean
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
@@ -498,7 +507,10 @@ export interface PackerOptions {
   assetsFolder?: string[]
   excludeGlobalsFromHTMLComponents?: boolean
   strictHtmlWhitespaceSensitivity?: boolean
+  standaloneHtmlComponents?: boolean
+  excludeHtmlComponentFiles?: boolean
   generateSitemap?: boolean
+  targetLocale?: string
 }
 
 export interface GenerateOptions {

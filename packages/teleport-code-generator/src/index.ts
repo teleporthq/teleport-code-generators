@@ -123,11 +123,24 @@ export const packProject: PackProjectFunction = async (
     assets = [],
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
-    excludeGlobalsFromHTMLComponents = false,
+    excludeGlobalsFromHTMLComponents,
     strictHtmlWhitespaceSensitivity = true,
+    standaloneHtmlComponents = false,
+    excludeHtmlComponentFiles = false,
     generateSitemap = true,
+    targetLocale,
   }
 ) => {
+  // When standaloneHtmlComponents is true, components should be self-contained fragments
+  // without DOCTYPE/html/head wrapper. Automatically enable excludeGlobalsFromHTMLComponents
+  // unless explicitly set to false by the user.
+  const shouldExcludeGlobals =
+    excludeGlobalsFromHTMLComponents ?? (standaloneHtmlComponents ? true : false)
+  // When standaloneHtmlComponents is true, pages inline all sub-components, so separate
+  // component files are redundant. Automatically enable excludeHtmlComponentFiles unless
+  // explicitly set by the user.
+  const shouldexcludeHtmlComponentFiles =
+    excludeHtmlComponentFiles ?? (standaloneHtmlComponents ? true : false)
   const packer = createProjectPacker()
   let publisher
   if (publisherType === PublisherType.DISK) {
@@ -143,7 +156,13 @@ export const packProject: PackProjectFunction = async (
     publisher = projectPublisherFactories[publisherType]
   }
 
-  const projectGeneratorFactory = projectGeneratorFactories[projectType]()
+  const projectGeneratorFactory =
+    projectType === ProjectType.HTML
+      ? projectGeneratorFactories[projectType]({
+          standaloneHtmlComponents,
+          excludeHtmlComponentFiles: shouldexcludeHtmlComponentFiles,
+        })
+      : projectGeneratorFactories[projectType]()
   projectGeneratorFactory.cleanPlugins()
 
   projectGeneratorFactory.addPlugin(new ProjectPlugini18nFiles({ projectType }))
@@ -152,7 +171,7 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(
       new ProjectPluginCloneGlobals({
-        excludeGlobalsFromComponents: excludeGlobalsFromHTMLComponents,
+        excludeGlobalsFromComponents: shouldExcludeGlobals,
         strictHtmlWhitespaceSensitivity,
       })
     )
@@ -201,7 +220,7 @@ export const packProject: PackProjectFunction = async (
     packer.setPublisher(projectPublisher)
   }
 
-  return packer.pack(projectUIDL, { strictHtmlWhitespaceSensitivity })
+  return packer.pack(projectUIDL, { strictHtmlWhitespaceSensitivity, targetLocale })
 }
 
 export const generateComponent: GenerateComponentFunction = async (
