@@ -104,7 +104,10 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               routerAdded = true
             }
 
-            // Dynamic canonical: href={`${origin}${router.locale === router.defaultLocale ? '' : '/' + router.locale}${pathname}`}
+            // Dynamic canonical: for home page (pathname='/'), avoid trailing slash on locale URLs
+            // Home: href={`${origin}${router.locale === router.defaultLocale ? '/' : '/' + router.locale}`}
+            // Other: href={`${origin}${router.locale === router.defaultLocale ? '' : '/' + router.locale}${pathname}`}
+            const isRootPath = pathname === '/'
             const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
             ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
             canonicalLink.openingElement.attributes.push(
@@ -114,7 +117,10 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
                   types.templateLiteral(
                     [
                       types.templateElement({ raw: origin, cooked: origin }, false),
-                      types.templateElement({ raw: pathname, cooked: pathname }, true),
+                      types.templateElement(
+                        { raw: isRootPath ? '' : pathname, cooked: isRootPath ? '' : pathname },
+                        true
+                      ),
                     ],
                     [
                       types.conditionalExpression(
@@ -129,7 +135,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
                             types.identifier('defaultLocale')
                           )
                         ),
-                        types.stringLiteral(''),
+                        types.stringLiteral(isRootPath ? '/' : ''),
                         types.binaryExpression(
                           '+',
                           types.stringLiteral('/'),
@@ -152,7 +158,8 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               ASTUtils.addAttributeToJSXTag(hreflangLink, 'rel', 'alternate')
               ASTUtils.addAttributeToJSXTag(hreflangLink, 'hreflang', locale)
               const localePrefix = locale === i18n.main.locale ? '' : '/' + locale
-              ASTUtils.addAttributeToJSXTag(hreflangLink, 'href', origin + localePrefix + pathname)
+              const hrefPath = pathname === '/' && localePrefix ? '' : pathname
+              ASTUtils.addAttributeToJSXTag(hreflangLink, 'href', origin + localePrefix + hrefPath)
               headASTTags.push(hreflangLink)
             })
 
