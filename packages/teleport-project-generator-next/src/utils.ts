@@ -14,9 +14,13 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   const { meta, assets, manifest, customCode } = uidl.globals
 
   const htmlNode = ASTBuilders.createJSXTag('Html')
-  const defaultLang = uidl.internationalization?.main?.locale || uidl.globals.settings.language
-  if (defaultLang) {
-    ASTUtils.addAttributeToJSXTag(htmlNode, 'lang', defaultLang)
+  // When i18n is configured, Next.js automatically sets the lang attribute
+  // on <html> based on the current route locale, so we skip it here.
+  if (!uidl.internationalization) {
+    const defaultLang = uidl.globals.settings.language
+    if (defaultLang) {
+      ASTUtils.addAttributeToJSXTag(htmlNode, 'lang', defaultLang)
+    }
   }
   const headNode = ASTBuilders.createJSXTag('Head')
   const bodyNode = ASTBuilders.createJSXTag('body')

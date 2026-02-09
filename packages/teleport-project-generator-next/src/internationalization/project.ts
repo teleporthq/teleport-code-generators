@@ -176,13 +176,15 @@ const generateSitemapContent = (
     if (hasMultipleLocales) {
       for (const locale of locales) {
         const localePrefix = locale === main.locale ? '' : '/' + locale
-        const locUrl = baseUrl + localePrefix + pagePath
+        const locUrl = baseUrl + localePrefix + (isHomePage && localePrefix ? '' : pagePath)
 
         const xhtmlLinks = [
           `    <xhtml:link rel="alternate" hreflang="x-default" href="${fullDefaultUrl}" />`,
           ...locales.map((l) => {
             const lPrefix = l === main.locale ? '' : '/' + l
-            return `    <xhtml:link rel="alternate" hreflang="${l}" href="${baseUrl}${lPrefix}${pagePath}" />`
+            return `    <xhtml:link rel="alternate" hreflang="${l}" href="${baseUrl}${lPrefix}${
+              isHomePage && lPrefix ? '' : pagePath
+            }" />`
           }),
         ]
 
