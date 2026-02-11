@@ -27,12 +27,183 @@ export const USE_ROUTER_HOOK: UIDLExternalDependency = {
   },
 }
 
+export const NEXT_LINK: UIDLExternalDependency = {
+  type: 'library',
+  path: 'next/link',
+  version: '^12.1.0',
+}
+
 export const USE_GLOBAL_CONTEXT_HOOK: UIDLDependency = {
   type: 'local',
   path: '@/global-context',
   meta: {
     namedImport: true,
   },
+}
+
+/**
+ * Checks if an expression is a member access to `.short` (e.g., `all_languages?.short`)
+ */
+const isShortMemberAccess = (expr: types.Expression | types.JSXEmptyExpression): boolean => {
+  if (types.isOptionalMemberExpression(expr) || types.isMemberExpression(expr)) {
+    return types.isIdentifier(expr.property) && expr.property.name === 'short'
+  }
+  return false
+}
+
+/**
+ * Checks if `const router = useRouter()` is already declared in the component body
+ */
+const useRouterAlreadyInBody = (body: types.Statement[]): boolean => {
+  return body.some((statement) => {
+    return (
+      statement.type === 'VariableDeclaration' &&
+      statement.declarations.some((declaration) => {
+        return declaration.id.type === 'Identifier' && declaration.id.name === 'router'
+      })
+    )
+  })
+}
+
+/**
+ * Recursively traverses a JSX AST node to find <a href={X?.short}> elements
+ * and transforms them to <Link href={router.asPath} locale={X?.short}><a>children</a></Link>
+ * for proper Next.js locale switching.
+ *
+ * Returns true if any transformation was made.
+ */
+const transformLanguageSwitcherLinks = (node: types.Node): boolean => {
+  let transformed = false
+
+  if (types.isJSXElement(node)) {
+    const opening = node.openingElement
+
+    if (types.isJSXIdentifier(opening.name) && opening.name.name === 'a') {
+      const hrefAttrIndex = opening.attributes.findIndex(
+        (attr): attr is types.JSXAttribute =>
+          types.isJSXAttribute(attr) &&
+          types.isJSXIdentifier(attr.name) &&
+          attr.name.name === 'href'
+      )
+
+      if (hrefAttrIndex !== -1) {
+        const hrefAttr = opening.attributes[hrefAttrIndex] as types.JSXAttribute
+        if (
+          types.isJSXExpressionContainer(hrefAttr.value) &&
+          !types.isJSXEmptyExpression(hrefAttr.value.expression) &&
+          isShortMemberAccess(hrefAttr.value.expression)
+        ) {
+          const localeExpr = hrefAttr.value.expression
+          const originalChildren = [...node.children]
+          const nonHrefAttrs = opening.attributes.filter((_, i) => i !== hrefAttrIndex)
+
+          // Mutate node: change <a> to <Link>
+          opening.name = types.jsxIdentifier('Link')
+          if (node.closingElement) {
+            node.closingElement.name = types.jsxIdentifier('Link')
+          }
+
+          // Set Link attributes: href={router.asPath} locale={localeExpr}
+          opening.attributes = [
+            types.jsxAttribute(
+              types.jsxIdentifier('href'),
+              types.jsxExpressionContainer(
+                types.memberExpression(types.identifier('router'), types.identifier('asPath'))
+              )
+            ),
+            types.jsxAttribute(
+              types.jsxIdentifier('locale'),
+              types.jsxExpressionContainer(localeExpr)
+            ),
+          ]
+
+          // Create inner <a> with original children and non-href attributes (Next.js 12 pattern)
+          const innerA = types.jsxElement(
+            types.jsxOpeningElement(types.jsxIdentifier('a'), nonHrefAttrs, false),
+            types.jsxClosingElement(types.jsxIdentifier('a')),
+            originalChildren,
+            false
+          )
+
+          node.children = [innerA]
+          return true
+        }
+      }
+    }
+
+    // Traverse JSX element children
+    for (const child of node.children) {
+      if (transformLanguageSwitcherLinks(child)) {
+        transformed = true
+      }
+    }
+    return transformed
+  }
+
+  if (types.isJSXFragment(node)) {
+    for (const child of node.children) {
+      if (transformLanguageSwitcherLinks(child)) {
+        transformed = true
+      }
+    }
+    return transformed
+  }
+
+  if (types.isJSXExpressionContainer(node) && !types.isJSXEmptyExpression(node.expression)) {
+    return transformLanguageSwitcherLinks(node.expression)
+  }
+
+  if (types.isCallExpression(node)) {
+    for (const arg of node.arguments) {
+      if (transformLanguageSwitcherLinks(arg)) {
+        transformed = true
+      }
+    }
+    return transformed
+  }
+
+  if (types.isArrowFunctionExpression(node)) {
+    return transformLanguageSwitcherLinks(node.body)
+  }
+
+  if (types.isParenthesizedExpression(node)) {
+    return transformLanguageSwitcherLinks(node.expression)
+  }
+
+  if (types.isConditionalExpression(node)) {
+    if (transformLanguageSwitcherLinks(node.consequent)) {
+      transformed = true
+    }
+    if (transformLanguageSwitcherLinks(node.alternate)) {
+      transformed = true
+    }
+    return transformed
+  }
+
+  if (types.isLogicalExpression(node)) {
+    if (transformLanguageSwitcherLinks(node.left)) {
+      transformed = true
+    }
+    if (transformLanguageSwitcherLinks(node.right)) {
+      transformed = true
+    }
+    return transformed
+  }
+
+  if (types.isBlockStatement(node)) {
+    for (const stmt of node.body) {
+      if (transformLanguageSwitcherLinks(stmt)) {
+        transformed = true
+      }
+    }
+    return transformed
+  }
+
+  if (types.isReturnStatement(node) && node.argument) {
+    return transformLanguageSwitcherLinks(node.argument)
+  }
+
+  return false
 }
 
 export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = () => {
@@ -136,6 +307,33 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
 
         default:
           break
+      }
+    }
+
+    // Transform language switcher links: <a href={X?.short}> → <Link href={router.asPath} locale={X?.short}><a>...</a></Link>
+    if (structure.dependencies.useGlobalContext) {
+      const returnStatement = componentBody.body.find(
+        (stmt): stmt is types.ReturnStatement => stmt.type === 'ReturnStatement'
+      )
+
+      if (returnStatement && returnStatement.argument) {
+        const wasTransformed = transformLanguageSwitcherLinks(returnStatement.argument)
+
+        if (wasTransformed) {
+          structure.dependencies.Link = { ...NEXT_LINK }
+          structure.dependencies.useRouter = { ...USE_ROUTER_HOOK }
+
+          if (!useRouterAlreadyInBody(componentBody.body)) {
+            reactHooks.push(
+              types.variableDeclaration('const', [
+                types.variableDeclarator(
+                  types.identifier('router'),
+                  types.callExpression(types.identifier('useRouter'), [])
+                ),
+              ])
+            )
+          }
+        }
       }
     }
 

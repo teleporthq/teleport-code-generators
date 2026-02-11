@@ -149,6 +149,12 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       t.jsxExpressionContainer(
         t.optionalMemberExpression(t.identifier('pageProps'), t.identifier('messages'), false, true)
       )
+    ),
+    t.jsxAttribute(
+      t.jsxIdentifier('locale'),
+      t.jsxExpressionContainer(
+        t.optionalMemberExpression(t.identifier('pageProps'), t.identifier('locale'), false, true)
+      )
     )
   )
 

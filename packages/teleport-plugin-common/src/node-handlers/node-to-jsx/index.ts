@@ -898,9 +898,11 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
   options
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
-  const contentASTs = generateNode(repeatContent, params, options) as types.JSXElement[]
-
   const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey(meta)
+  const contentASTs = generateNode(repeatContent, params, {
+    ...options,
+    localIdentifier: iteratorName,
+  }) as types.JSXElement[]
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
   contentASTs.forEach((contentAST) => {
