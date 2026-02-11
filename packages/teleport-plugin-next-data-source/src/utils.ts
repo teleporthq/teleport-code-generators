@@ -786,6 +786,11 @@ export const extractDataSourceIntoGetStaticProps = (
 
     // Helper function to recursively traverse the AST and find matching JSX elements
     const traverseAST = (astNode: any) => {
+      // Stop all traversal once we found a match with unique resource ID
+      if (hasUniqueResourceId && matchingJsxNodes.length > 0) {
+        return
+      }
+
       if (!astNode || typeof astNode !== 'object') {
         return
       }
