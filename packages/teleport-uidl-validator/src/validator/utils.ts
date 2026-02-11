@@ -40,6 +40,11 @@ export const checkForLocalVariables = (input: ComponentUIDL) => {
   UIDLUtils.traverseRepeats(input.node, (repeatContent) => {
     UIDLUtils.traverseNodes(repeatContent.node, (childNode) => {
       if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
+        // Nodes using refPath instead of id access a property of the iterator item directly
+        if (childNode.content.refPath && !childNode.content.id) {
+          return
+        }
+
         if (childNode.content.id === 'index') {
           if (!repeatContent.meta.useIndex) {
             const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
