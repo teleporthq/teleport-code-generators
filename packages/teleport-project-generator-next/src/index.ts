@@ -136,3 +136,11 @@ export {
   createNextPagesDataSourcePlugin,
   createNextComponentDataSourcePlugin,
 } from '@teleporthq/teleport-plugin-next-data-source'
+export { createNextPartialGenerator } from './partial'
+export type {
+  NextPartialGeneratorOptions,
+  PartialGenerationResult,
+  FrameworkConfigInput,
+} from './partial'
+export { splitProjectUIDL } from './split-utils'
+export type { SplitProjectResult } from './split-utils'

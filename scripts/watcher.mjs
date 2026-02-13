@@ -31,7 +31,7 @@ watcher.on('change', async (filePath) => {
       log(chalk.blueBright(`Generating code....`))
 
       exec(
-        `yarn standalone && yarn comp`,
+        `yarn standalone && yarn standalone:partial && yarn comp`,
         { cwd: 'packages/teleport-test' },
         (err, stdout, stderr) => {
           if (err) {
