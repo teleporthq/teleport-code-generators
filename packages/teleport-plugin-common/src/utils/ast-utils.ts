@@ -280,11 +280,18 @@ export const addRawAttributeToJSXTag = (
   attrValue: UIDLRawValue,
   t = types
 ) => {
+  // The content is expected to be pre-escaped for template literal context
+  // (e.g., \` for backticks). Babel outputs the raw value verbatim.
+  //
+  // However, \/ sequences (used for HTML safety like <\/script> to prevent
+  // the browser's HTML parser from closing script tags) need the backslash
+  // preserved at runtime. In a template literal, \/ just produces /,
+  // so we double-escape: \/ → \\/ which at runtime gives \/ (literal backslash).
+  const content = attrValue.content.replace(/\\\//g, '\\\\/')
+
   const attributeDefinition = t.jsxAttribute(
     t.jsxIdentifier(attrName),
-    t.jsxExpressionContainer(
-      types.templateLiteral([types.templateElement({ raw: attrValue.content })], [])
-    )
+    t.jsxExpressionContainer(types.templateLiteral([types.templateElement({ raw: content })], []))
   )
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
