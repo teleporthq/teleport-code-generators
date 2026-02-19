@@ -451,6 +451,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   navLink: optional(string().andThen(isValidNavLink)),
   fileName: optional(string().andThen(isValidFileName)),
   fallback: optional(boolean()),
+  lastmod: optional(string()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
   initialPathsData: optional(initialPathsDecoder),
