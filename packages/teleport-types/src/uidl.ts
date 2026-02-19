@@ -350,6 +350,7 @@ export interface UIDLPageOptions {
   navLink?: string
   fileName?: string
   fallback?: boolean
+  lastmod?: string
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
