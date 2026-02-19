@@ -53,7 +53,12 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
         (elementType === 'dangerous-html' || element.dependency?.path === 'dangerous-html') &&
         attrs?.html
       ) {
-        const hastNodes = fromHtml(element.attrs.html.content as string, {
+        // Strip pre-escaped backticks (\` → `) from the content. The UIDL may
+        // contain \` for template-literal contexts (e.g. NextJS), but when the
+        // content is embedded directly in HTML (inside <script> tags), backticks
+        // must be bare — \` would be a JavaScript syntax error.
+        const rawHtmlContent = (element.attrs.html.content as string).replace(/\\`/g, '`')
+        const hastNodes = fromHtml(rawHtmlContent, {
           fragment: true,
         })
         const content = hastToJsxOrHtml(hastNodes, { wrapper: 'fragment' })
