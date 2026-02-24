@@ -23,6 +23,27 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
+    'prop-link': {
+      elementType: 'Link',
+      dependency: {
+        type: 'library',
+        path: 'next/link',
+        version: '^12.1.0',
+      },
+      attrs: {
+        href: { type: 'dynamic', content: { referenceType: 'attr', id: 'url' } },
+      },
+      children: [
+        {
+          type: 'element',
+          content: {
+            elementType: 'a',
+            name: 'link',
+            children: [{ type: 'dynamic', content: { referenceType: 'children', id: 'children' } }],
+          },
+        },
+      ],
+    },
     'date-time-node': {
       elementType: 'DateTimePrimitive',
       dependency: {

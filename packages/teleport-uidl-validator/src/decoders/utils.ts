@@ -412,7 +412,7 @@ export const propDefinitionsDecoder: Decoder<VUIDLPropDefinitions> = object({
     constant('func'),
     constant('object'),
     constant('children'),
-    constant('element')
+    union(constant('element'), constant('link'))
   ),
   defaultValue: optional(
     union(
