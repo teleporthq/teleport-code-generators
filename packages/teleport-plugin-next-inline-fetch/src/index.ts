@@ -109,6 +109,31 @@ export const createNextPagesInlineFetchPlugin: ComponentPluginFactory<{}> = () =
           dependencies[node.content.resource.name] = node.content.resource.dependency
         }
 
+        const localeAST = options.skipI18n
+          ? []
+          : [
+              types.spreadElement(
+                types.logicalExpression(
+                  '&&',
+                  types.optionalMemberExpression(
+                    types.identifier('context'),
+                    types.identifier('locale'),
+                    false,
+                    true
+                  ),
+                  types.objectExpression([
+                    types.objectProperty(
+                      types.identifier('locale'),
+                      types.memberExpression(
+                        types.identifier('context'),
+                        types.identifier('locale')
+                      )
+                    ),
+                  ])
+                )
+              ),
+            ]
+
         const extractedResource = types.variableDeclaration('const', [
           types.variableDeclarator(
             types.identifier(propKey),
@@ -123,6 +148,7 @@ export const createNextPagesInlineFetchPlugin: ComponentPluginFactory<{}> = () =
                       true
                     )
                   ),
+                  ...localeAST,
                   ...Object.keys(node.content.resource?.params || {}).reduce(
                     (acc: types.ObjectProperty[], item) => {
                       const prop = node.content.resource.params[item]
