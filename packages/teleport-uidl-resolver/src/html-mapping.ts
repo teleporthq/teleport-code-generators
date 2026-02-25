@@ -103,6 +103,15 @@ export const HTMLMapping: Mapping = {
     navlink: {
       elementType: 'a',
     },
+    'prop-link': {
+      elementType: 'a',
+      attrs: {
+        href: {
+          type: 'dynamic',
+          content: { referenceType: 'attr', id: 'url' },
+        },
+      },
+    },
     button: {
       elementType: 'button',
     },
