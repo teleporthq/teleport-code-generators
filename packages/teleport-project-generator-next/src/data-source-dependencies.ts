@@ -38,7 +38,13 @@ export class NextDataSourceDependenciesPlugin implements ProjectPlugin {
     const dependencies: Record<string, string> = {}
 
     Object.values(uidl.dataSources).forEach((dataSource) => {
-      const depString = DATA_SOURCE_DEPENDENCIES[dataSource.type]
+      // Supabase with connectionString (no supabaseUrl) falls back to pg driver
+      const depString =
+        dataSource.type === 'supabase' &&
+        dataSource.config?.connectionString &&
+        !dataSource.config?.supabaseUrl
+          ? DATA_SOURCE_DEPENDENCIES.postgresql
+          : DATA_SOURCE_DEPENDENCIES[dataSource.type]
       if (!depString) {
         return
       }

@@ -5,6 +5,7 @@ import {
 } from '../utils'
 
 interface PostgreSQLConfig {
+  connectionString?: string
   host?: string
   port?: number
   user?: string
@@ -23,10 +24,11 @@ export const generatePostgreSQLFetcher = (
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
 
-  return `import { Client } from 'pg'
-
-const getClient = () => {
-  return new Client({
+  const clientConfig = pgConfig.connectionString
+    ? `{
+    connectionString: ${replaceSecretReference(pgConfig.connectionString)},
+  }`
+    : `{
     host: ${JSON.stringify(pgConfig.host)},
     port: ${pgConfig.port || 5432},
     user: ${JSON.stringify(pgConfig.user || pgConfig.username)},
@@ -44,7 +46,12 @@ const getClient = () => {
     }`
         : '{ rejectUnauthorized: false }'
     }
-  })
+  }`
+
+  return `import { Client } from 'pg'
+
+const getClient = () => {
+  return new Client(${clientConfig})
 }
 
 ${generateSafeJSONParseCode()}
@@ -162,7 +169,7 @@ export default async function handler(req, res) {
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     
-    let sql = \`SELECT * FROM ${tableName}\`
+    let sql = \`SELECT * FROM "${tableName}"\`
     
     if (conditions.length > 0) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
@@ -288,7 +295,7 @@ async function getCount(req, res) {
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
 
-    let countSql = \`SELECT COUNT(*) FROM ${tableName}\`
+    let countSql = \`SELECT COUNT(*) FROM "${tableName}"\`
     if (conditions.length > 0) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }
