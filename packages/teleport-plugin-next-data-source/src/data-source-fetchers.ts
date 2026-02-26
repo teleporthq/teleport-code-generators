@@ -37,7 +37,19 @@ interface DataSourceFetcherDependencies {
   isDefaultImport?: boolean
 }
 
-export const getDataSourceDependencies = (type: DataSourceType): DataSourceFetcherDependencies => {
+export const isSupabaseConnectionStringFallback = (config: Record<string, unknown>): boolean => {
+  return !!config?.connectionString && !config?.supabaseUrl
+}
+
+export const getDataSourceDependencies = (
+  type: DataSourceType,
+  config?: Record<string, unknown>
+): DataSourceFetcherDependencies => {
+  // Supabase with connectionString falls back to pg driver
+  if (type === 'supabase' && config && isSupabaseConnectionStringFallback(config)) {
+    return { packages: ['pg'], isDefaultImport: false }
+  }
+
   const dependencyMap: Record<DataSourceType, DataSourceFetcherDependencies> = {
     'rest-api': { packages: ['node-fetch'], isDefaultImport: true },
     postgresql: { packages: ['pg'], isDefaultImport: false },
@@ -154,6 +166,17 @@ export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName:
       }
 
       case 'supabase': {
+        // Fall back to PostgreSQL driver when connectionString is provided without supabaseUrl
+        if (isSupabaseConnectionStringFallback(config)) {
+          const pgValidation = validateDatabaseConfig(config)
+          if (!pgValidation.isValid) {
+            throw new Error(
+              `Supabase (PostgreSQL fallback) config validation failed: ${pgValidation.error}`
+            )
+          }
+          return generatePostgreSQLFetcher(config, tableName)
+        }
+
         const validation = validateSupabaseConfig(config)
         if (!validation.isValid) {
           throw new Error(`Supabase config validation failed: ${validation.error}`)
