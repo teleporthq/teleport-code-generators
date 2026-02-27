@@ -1280,7 +1280,7 @@ const getValueFromReference = (
   }
 
   if (
-    ['string', 'number', 'object', 'element', 'array', 'boolean'].includes(
+    ['string', 'number', 'object', 'element', 'array', 'boolean', 'link'].includes(
       usedReferenceValue?.type
     ) === false
   ) {
