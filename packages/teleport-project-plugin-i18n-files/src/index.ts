@@ -31,10 +31,11 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
 
   async generateJSX(
     node: UIDLElementNode,
-    projectStyleSet: Record<string, UIDLStyleSetDefinition>
+    projectStyleSet: Record<string, UIDLStyleSetDefinition>,
+    id: string
   ): Promise<{ html: string; css?: string }> {
     const proxyUIDL: ComponentUIDL = {
-      name: 'locale-node',
+      name: id,
       node,
     }
     const resolvedUIDL = this.resolver.resolveUIDL(proxyUIDL)
@@ -119,7 +120,7 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
         if (item?.type === 'element') {
           promises.push(
             new Promise((resolve) => {
-              this.generateJSX(item, uidl.root.styleSetDefinitions).then(({ html, css }) => {
+              this.generateJSX(item, uidl.root.styleSetDefinitions, id).then(({ html, css }) => {
                 resolve({ [id]: css ? `${html} \n <style>${css}</style>` : html })
               })
             })

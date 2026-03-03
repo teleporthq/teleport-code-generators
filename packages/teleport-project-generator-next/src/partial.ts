@@ -486,9 +486,11 @@ export const useGlobalContext = () => {
 
         if (item?.type === 'element') {
           promises.push(
-            this.renderElementToHTML(item as UIDLElementNode, styleSet).then(({ html, css }) => ({
-              [id]: css ? `${html} \n <style>${css}</style>` : html,
-            }))
+            this.renderElementToHTML(item as UIDLElementNode, styleSet, id).then(
+              ({ html, css }) => ({
+                [id]: css ? `${html} \n <style>${css}</style>` : html,
+              })
+            )
           )
         }
 
@@ -590,9 +592,10 @@ export const useGlobalContext = () => {
 
   private async renderElementToHTML(
     node: UIDLElementNode,
-    projectStyleSet: Record<string, UIDLStyleSetDefinition>
+    projectStyleSet: Record<string, UIDLStyleSetDefinition>,
+    id: string
   ): Promise<{ html: string; css?: string }> {
-    const proxyUIDL: ComponentUIDL = { name: 'locale-node', node }
+    const proxyUIDL: ComponentUIDL = { name: id, node }
     const resolvedUIDL = this.resolver.resolveUIDL(proxyUIDL)
 
     const jsxParams: JSXGenerationParams = {
