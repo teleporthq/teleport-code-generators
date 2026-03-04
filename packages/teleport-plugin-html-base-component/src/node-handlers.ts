@@ -1280,8 +1280,9 @@ const getValueFromReference = (
   }
 
   if (
+    usedReferenceValue?.type &&
     ['string', 'number', 'object', 'element', 'array', 'boolean', 'link'].includes(
-      usedReferenceValue?.type
+      usedReferenceValue.type
     ) === false
   ) {
     throw new HTMLComponentGeneratorError(

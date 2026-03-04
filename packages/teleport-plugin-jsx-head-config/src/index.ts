@@ -208,7 +208,26 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
           .declarations?.[0] as types.VariableDeclarator
       )?.init as types.ArrowFunctionExpression
     )?.body as types.BlockStatement
-    componentBody?.body?.unshift(...reactHooks)
+
+    if (componentBody?.body) {
+      const filteredHooks = reactHooks.filter((hook) => {
+        const isRouterDeclaration = hook.declarations.some(
+          (declaration) => declaration.id.type === 'Identifier' && declaration.id.name === 'router'
+        )
+        if (!isRouterDeclaration) {
+          return true
+        }
+        return !componentBody.body.some(
+          (statement) =>
+            statement.type === 'VariableDeclaration' &&
+            statement.declarations.some(
+              (declaration) =>
+                declaration.id.type === 'Identifier' && declaration.id.name === 'router'
+            )
+        )
+      })
+      componentBody.body.unshift(...filteredHooks)
+    }
     return structure
   }
 
