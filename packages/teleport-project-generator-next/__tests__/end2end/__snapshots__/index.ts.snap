@@ -24,7 +24,7 @@ const Home = (props) => {
         </Head>
         <lottie-player
           src=\\"https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json\\"
-          autoplay
+          autoPlay
           className=\\"home-lottie-node\\"
         ></lottie-player>
         <AppComponent

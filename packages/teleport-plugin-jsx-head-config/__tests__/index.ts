@@ -217,8 +217,8 @@ describe('plugin-jsx-head-config', () => {
     const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
     const helmetNode = astNode.children[0] as types.JSXElement
 
-    // Should have: 1 canonical + 2 hreflang (ro, en) + 1 x-default = 4 link tags
-    expect(helmetNode.children.length).toBe(4)
+    // Should have: 1 canonical + 1 og:url + 2 hreflang (ro, en) + 1 x-default = 5 tags
+    expect(helmetNode.children.length).toBe(5)
 
     // Canonical link should have dynamic href (JSXExpressionContainer, not StringLiteral)
     const canonicalNode = helmetNode.children[0] as types.JSXElement
@@ -258,14 +258,14 @@ describe('plugin-jsx-head-config', () => {
     const helmetNode = astNode.children[0] as types.JSXElement
 
     // hreflang="ro" should point to default locale URL (no prefix)
-    const roLink = helmetNode.children[1] as types.JSXElement
+    const roLink = helmetNode.children[2] as types.JSXElement
     const roHreflang = roLink.openingElement.attributes[1] as types.JSXAttribute
     const roHref = roLink.openingElement.attributes[2] as types.JSXAttribute
     expect((roHreflang.value as types.StringLiteral).value).toBe('ro')
     expect((roHref.value as types.StringLiteral).value).toBe('https://example.com/about/')
 
     // hreflang="en" should point to locale-prefixed URL
-    const enLink = helmetNode.children[2] as types.JSXElement
+    const enLink = helmetNode.children[3] as types.JSXElement
     const enHreflang = enLink.openingElement.attributes[1] as types.JSXAttribute
     const enHref = enLink.openingElement.attributes[2] as types.JSXAttribute
     expect((enHreflang.value as types.StringLiteral).value).toBe('en')
@@ -297,8 +297,8 @@ describe('plugin-jsx-head-config', () => {
     const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
     const helmetNode = astNode.children[0] as types.JSXElement
 
-    // x-default is the last child
-    const xDefaultLink = helmetNode.children[3] as types.JSXElement
+    // x-default is the last child (after canonical, og:url, ro hreflang, en hreflang)
+    const xDefaultLink = helmetNode.children[4] as types.JSXElement
     const xDefaultHreflang = xDefaultLink.openingElement.attributes[1] as types.JSXAttribute
     const xDefaultHref = xDefaultLink.openingElement.attributes[2] as types.JSXAttribute
     expect((xDefaultHreflang.value as types.StringLiteral).value).toBe('x-default')
@@ -330,14 +330,20 @@ describe('plugin-jsx-head-config', () => {
     const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
     const helmetNode = astNode.children[0] as types.JSXElement
 
-    // Only 1 child: the static canonical link (no hreflang tags)
-    expect(helmetNode.children.length).toBe(1)
+    // 2 children: the static canonical link + og:url meta (no hreflang tags)
+    expect(helmetNode.children.length).toBe(2)
 
     const linkNode = helmetNode.children[0] as types.JSXElement
     const relAttr = linkNode.openingElement.attributes[0] as types.JSXAttribute
     const hrefAttr = linkNode.openingElement.attributes[1] as types.JSXAttribute
     expect((relAttr.value as types.StringLiteral).value).toBe('canonical')
     expect((hrefAttr.value as types.StringLiteral).value).toBe('https://example.com/')
+
+    const ogUrlMeta = helmetNode.children[1] as types.JSXElement
+    const ogProperty = ogUrlMeta.openingElement.attributes[0] as types.JSXAttribute
+    const ogContent = ogUrlMeta.openingElement.attributes[1] as types.JSXAttribute
+    expect((ogProperty.value as types.StringLiteral).value).toBe('og:url')
+    expect((ogContent.value as types.StringLiteral).value).toBe('https://example.com/')
 
     // useRouter should NOT be added
     expect(structure.dependencies.useRouter).toBeUndefined()
@@ -373,8 +379,8 @@ describe('plugin-jsx-head-config', () => {
     const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
     const helmetNode = astNode.children[0] as types.JSXElement
 
-    // Only 1 child: static canonical, no hreflang
-    expect(helmetNode.children.length).toBe(1)
+    // 2 children: static canonical + og:url meta, no hreflang
+    expect(helmetNode.children.length).toBe(2)
     expect(structure.dependencies.useRouter).toBeUndefined()
   })
 
