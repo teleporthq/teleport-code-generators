@@ -230,6 +230,10 @@ export const insertLinks = (
     if (elementType === 'button') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''
+      node.content.style = {
+        textAlign: { type: 'static', content: 'center' },
+        ...node.content.style,
+      }
       node.content.attrs = {
         ...node.content.attrs,
         ...createLinkAttributes(abilities.link, options),
@@ -318,6 +322,10 @@ const handleLinkTypeProp = (
   if (elementType === 'button') {
     node.content.elementType = 'prop-link'
     node.content.semanticType = ''
+    node.content.style = {
+      textAlign: { type: 'static', content: 'center' },
+      ...node.content.style,
+    }
     node.content.attrs = { ...node.content.attrs, ...linkAttrs }
     return node
   }
