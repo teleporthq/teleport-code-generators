@@ -281,13 +281,22 @@ export const addRawAttributeToJSXTag = (
   t = types
 ) => {
   // The content is expected to be pre-escaped for template literal context
-  // (e.g., \` for backticks). Babel outputs the raw value verbatim.
+  // (e.g., \` for backticks, \${ for interpolations). Babel validates that
+  // the raw value is valid template literal content.
   //
-  // However, \/ sequences (used for HTML safety like <\/script> to prevent
-  // the browser's HTML parser from closing script tags) need the backslash
-  // preserved at runtime. In a template literal, \/ just produces /,
-  // so we double-escape: \/ → \\/ which at runtime gives \/ (literal backslash).
-  const content = attrValue.content.replace(/\\\//g, '\\\\/')
+  // We fix any unescaped backticks or ${ sequences that would make the
+  // template literal invalid. "Unescaped" means preceded by an even number
+  // of backslashes (0, 2, …), since pairs of backslashes form escape
+  // sequences for backslash itself, leaving the next character unescaped.
+  const content = attrValue.content
+    .replace(/\\*`/g, (match) => {
+      const bs = match.length - 1
+      return bs % 2 === 0 ? match.slice(0, bs) + '\\`' : match
+    })
+    .replace(/\\*\$\{/g, (match) => {
+      const bs = match.length - 2
+      return bs % 2 === 0 ? match.slice(0, bs) + '\\${' : match
+    })
 
   const attributeDefinition = t.jsxAttribute(
     t.jsxIdentifier(attrName),
@@ -420,7 +429,8 @@ export const convertValueToLiteral = (
     return t.arrayExpression(value.map((val) => convertValueToLiteral(val)))
   }
 
-  const typeToCompare = explicitType ? explicitType : typeof value
+  const actualType = typeof value
+  const typeToCompare = explicitType && explicitType === actualType ? explicitType : actualType
   switch (typeToCompare) {
     case 'string':
       return t.stringLiteral(value)
