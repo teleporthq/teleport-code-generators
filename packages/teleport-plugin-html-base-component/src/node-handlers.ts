@@ -254,6 +254,60 @@ export const generateHtmlSyntax: NodeToHTML<
           return conditionalNodeComment
         }
 
+        case 'local': {
+          if (!resolvedExpressions || resolvedExpressions.currentIndex === undefined) {
+            return conditionalNodeComment
+          }
+
+          // Find the matching expression context for this local reference
+          const expressionEntries = Object.values(resolvedExpressions.expressions || {})
+          let localValue: unknown
+          for (const expr of expressionEntries) {
+            if (expr && Array.isArray(expr.defaultValue)) {
+              const currentItem = expr.defaultValue[resolvedExpressions.currentIndex]
+              if (currentItem !== undefined) {
+                localValue = currentItem
+                for (const path of refPath) {
+                  localValue = (localValue as Record<string, unknown>)?.[path]
+                }
+                break
+              }
+            }
+          }
+
+          if (localValue === undefined) {
+            return conditionalNodeComment
+          }
+
+          const localConditions = createConditionalStatement(
+            staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
+            localValue as UIDLPropDefinition['defaultValue']
+          )
+          const localMatchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+          const localConditionString = localConditions.join(` ${localMatchCondition} `)
+
+          try {
+            // tslint:disable-next-line function-constructor
+            const isLocalConditionPassing = new Function(`return ${localConditionString}`)()
+            if (isLocalConditionPassing) {
+              return generateHtmlSyntax(
+                node.content.node,
+                compName,
+                nodesLookup,
+                propDefinitions,
+                stateDefinitions,
+                subComponentOptions,
+                structure,
+                resolvedExpressions
+              )
+            }
+          } catch (error) {
+            return conditionalNodeComment
+          }
+
+          return conditionalNodeComment
+        }
+
         case 'state':
         default:
           return conditionalNodeComment
