@@ -18,7 +18,7 @@ import babelPresetReact from '@babel/preset-react'
 import { UnaryOperation, BinaryOperator } from './types'
 
 /**
- * Adds a class definition string to an existing string of classes
+ * Adds a CSS class definition string to an existing string of classes
  */
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
