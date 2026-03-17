@@ -369,7 +369,8 @@ export const generateHtmlSyntax: NodeToHTML<
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure
+        structure,
+        resolvedExpressions
       )
 
     case 'cms-item':
@@ -472,7 +473,8 @@ const generateRepeaterNode: NodeToHTML<
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  structure
+  structure,
+  resolvedExpressions
 ) => {
   const { nodes } = node.content
 
@@ -484,6 +486,48 @@ const generateRepeaterNode: NodeToHTML<
           Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
         ]
       : undefined
+
+  /*
+   * When we have a nested repeater (e.g. source = "context_yu137?.list || []"),
+   * `propDef` points to the parent context's full array. We need to resolve the
+   * nested path (e.g. ".list") from each item in the parent iteration instead.
+   */
+  let nestedPath: string[] | null = null
+  if (propDef && resolvedExpressions && sourceValue && typeof sourceValue === 'string') {
+    const parentContextKey = Object.keys(resolvedExpressions.expressions || {}).find((key) =>
+      sourceValue.includes(key)
+    )
+    if (parentContextKey) {
+      const parentPropDef = resolvedExpressions.expressions[parentContextKey]
+      // Extract the nested path from the source expression (e.g. "context_yu137?.list || []" → ["list"])
+      const pathMatch = sourceValue.match(
+        new RegExp(`${parentContextKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}((?:\\?\\.\\w+)+)`)
+      )
+      if (pathMatch && pathMatch[1]) {
+        nestedPath = pathMatch[1].split('?.').filter(Boolean)
+      }
+
+      if (nestedPath && parentPropDef && Array.isArray(parentPropDef.defaultValue)) {
+        const parentItem = parentPropDef.defaultValue[resolvedExpressions.currentIndex]
+        if (parentItem && typeof parentItem === 'object' && !Array.isArray(parentItem)) {
+          const nestedValue = nestedPath.reduce(
+            (acc: unknown, key: string) =>
+              acc && typeof acc === 'object' && !Array.isArray(acc)
+                ? (acc as Record<string, unknown>)[key]
+                : acc,
+            parentItem
+          )
+          if (Array.isArray(nestedValue)) {
+            propDef = {
+              defaultValue: nestedValue,
+              id: contextId,
+              type: 'array',
+            }
+          }
+        }
+      }
+    }
+  }
 
   if (!propDef || !Array.isArray(propDef.defaultValue)) {
     // If no prop is found we might have a static source value
