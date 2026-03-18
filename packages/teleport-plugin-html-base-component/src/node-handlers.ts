@@ -1261,7 +1261,11 @@ const handleAttributes = (
             elementType of image is always mapped to img.
             For reference, check `html-mapping` file.
           */
-          if (elementType === 'img' && attrKey === 'src' && !isValidURL(value)) {
+          if (
+            (elementType === 'img' || elementType === 'video') &&
+            attrKey === 'src' &&
+            !isValidURL(value)
+          ) {
             /*
               By default we just prefix all the asset paths with just the
               assetPrefix that is configured in the project. But for `html` generators
