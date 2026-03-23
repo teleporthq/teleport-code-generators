@@ -1,3 +1,4 @@
+import { join, relative } from 'path'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   StyleUtils,
@@ -41,6 +42,25 @@ interface CSSPluginConfig {
   dynamicVariantPrefix?: string
   staticPropReferences?: boolean
   standaloneHtmlComponents?: boolean
+}
+
+const prefixUrlPathsInCss = (css: string, folderPath: string[]): string => {
+  const relativePrefix = relative(join(...folderPath), './')
+  if (!relativePrefix) {
+    return css
+  }
+
+  return css.replace(/url\(["']?(.*?)["']?\)/g, (match, url) => {
+    if (
+      url.startsWith('http') ||
+      url.startsWith('data:') ||
+      url.startsWith('../') ||
+      url.startsWith('#')
+    ) {
+      return match
+    }
+    return `url("${join(relativePrefix, url)}")`
+  })
 }
 
 const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
@@ -744,11 +764,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         }
       }
 
+      const folderPath = uidl.outputOptions?.folderPath
+      const cssContent =
+        folderPath?.length > 0
+          ? cssMap.map((css) => prefixUrlPathsInCss(css, folderPath)).join('\n \n')
+          : cssMap.join('\n \n')
+
       chunks.push({
         type: ChunkType.STRING,
         name: chunkName,
         fileType: FileType.CSS,
-        content: cssMap.join('\n \n'),
+        content: cssContent,
         linkAfter: [],
       })
     }
