@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-css",
-  "version": "0.42.29",
+  "version": "0.42.32",
   "description": "A plugin for creating the styles into external css files",
   "author": "teleportHQ",
   "license": "MIT",
