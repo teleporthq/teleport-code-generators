@@ -107,6 +107,7 @@ const createVuePropsDefinition = (
         mappedType = Array
         break
       case 'object':
+      case 'link':
         mappedType = Object
         break
       case 'func':
