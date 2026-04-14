@@ -485,8 +485,6 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
     let getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
 
-    // Track which dataSourceId + tableName combinations have been processed
-    const processedDataSources = new Set<string>()
     // Track the first data source info for wrapping dataSourceData expressions
     let firstDataSourceInfo: DataSourceInfo | null = null
     // Track fetcher import name for wrapped providers
@@ -582,13 +580,6 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         return
       }
 
-      // Include resource ID to differentiate between same dataSource/table with different params (sorts, filters, etc.)
-      // tslint:disable-next-line:no-any
-      const resourceId = (dataSourceNode.content.resource as any)?.id || ''
-      const dataSourceKey = `${resourceDef.dataSourceId}:${
-        resourceDef.tableName || 'data'
-      }:${resourceId}`
-
       // Check if resource has dynamic parameters
       // tslint:disable-next-line:no-any
       const hasResourceDynamicParams = dataSourceNode.content.resource?.params
@@ -600,11 +591,10 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       // If no dynamic params, extract to getStaticProps (server-side)
       // Otherwise, extract to API route (client-side)
       if (!hasResourceDynamicParams) {
-        // Skip if we've already processed this dataSource + table combination
-        if (processedDataSources.has(dataSourceKey)) {
-          return
-        }
-
+        // extractDataSourceIntoGetStaticProps is called for every UIDL data-source node.
+        // When multiple nodes share the same dataSourceKey (same resource ID), the function is
+        // idempotent for getStaticProps (skips duplicate fetches via existingInFetchMeta) but
+        // still updates the next uninitialized DataProvider JSX node on each call.
         const result = extractDataSourceIntoGetStaticProps(
           dataSourceNode,
           dataSources,
@@ -617,8 +607,6 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
         if (result.success && result.chunk) {
           getStaticPropsChunk = result.chunk
-          // Mark this dataSource + table as processed
-          processedDataSources.add(dataSourceKey)
 
           // Track the first data source info for wrapping dataSourceData expressions
           if (!firstDataSourceInfo) {
