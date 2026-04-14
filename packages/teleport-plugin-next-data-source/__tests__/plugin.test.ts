@@ -523,6 +523,77 @@ describe('createNextPagesDataSourcePlugin', () => {
     expect(result.chunks.length).toBe(initialChunkCount)
   })
 
+  it('adds initialData to ALL DataProvider nodes that share the same resource ID', async () => {
+    // Regression test: multiple UIDL data-source nodes sharing the same resource.id
+    // should all receive initialData/persistDataDuringLoading, not just the first one.
+    const dataSource = createJavaScriptDataSource('ds-js')
+
+    const sharedResourceId = 'TQ_shared123'
+
+    const makeNode = () => {
+      const n = createDataSourceNode('ds-js', 'data', 'javascript', false)
+      ;(n.content.resource as any).id = sharedResourceId
+      return n
+    }
+
+    const node1 = makeNode()
+    const node2 = makeNode()
+    const node3 = makeNode()
+
+    const jsxElement1 = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript', 'data')
+    const jsxElement2 = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript', 'data')
+    const jsxElement3 = createMockJSXElementWithResourceDef('ds-js', 'data', 'javascript', 'data')
+
+    const componentChunk = createComponentChunk()
+    componentChunk.meta!.nodesLookup = {}
+    componentChunk.content = types.arrowFunctionExpression(
+      [],
+      types.blockStatement([
+        types.returnStatement(
+          types.jsxElement(
+            types.jsxOpeningElement(types.jsxIdentifier('div'), [], false),
+            types.jsxClosingElement(types.jsxIdentifier('div')),
+            [jsxElement1, jsxElement2, jsxElement3],
+            false
+          )
+        ),
+      ])
+    )
+
+    const rootNode = elementNode('div', {}, [node1 as any, node2 as any, node3 as any])
+    const uidl = component('Test', rootNode)
+
+    const structure = {
+      uidl,
+      chunks: [componentChunk],
+      dependencies: {},
+      options: {
+        dataSources: { 'ds-js': dataSource },
+        extractedResources: {},
+        isPage: true,
+      },
+    }
+
+    await plugin(structure)
+
+    const hasInitialData = (el: types.JSXElement) =>
+      el.openingElement.attributes.some(
+        (attr) => (attr as types.JSXAttribute).name?.name === 'initialData'
+      )
+
+    expect(hasInitialData(jsxElement1)).toBe(true)
+    expect(hasInitialData(jsxElement2)).toBe(true)
+    expect(hasInitialData(jsxElement3)).toBe(true)
+
+    // getStaticProps should only fetch the data once (not three times)
+    const getStaticPropsChunk = structure.chunks.find((c) => c.name === 'getStaticProps')
+    expect(getStaticPropsChunk).toBeDefined()
+    const meta = getStaticPropsChunk!.meta?.parallelFetchData as any
+    const names: string[] = meta?.names ?? []
+    // All three providers share one prop key — only one fetch should be registered
+    expect(names.length).toBe(1)
+  })
+
   it('skips nodes without resource', async () => {
     const dataSource = createJavaScriptDataSource('ds-js')
     const node = createDataSourceNode('ds-js', '', 'javascript', false)
