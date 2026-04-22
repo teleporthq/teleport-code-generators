@@ -25,3 +25,10 @@ export { default as createJSXSyntax } from './node-handlers/node-to-jsx'
 
 export * from './node-handlers/node-to-html/types'
 export * from './node-handlers/node-to-jsx/types'
+
+export { resolvePageTransition, buildViewTransitionCSS } from './view-transition/preset-css'
+export type {
+  ResolvedViewTransition,
+  ResolvedRegion,
+  ResolvedAnimation,
+} from './view-transition/preset-css'

@@ -150,7 +150,46 @@ export interface UIDLGlobalProjectValues {
   assets: UIDLGlobalAsset[]
   manifest?: WebManifest
   variables?: Record<string, string>
+  pageTransition?: UIDLPageTransition
 }
+
+export type UIDLPageTransitionPreset = 'book-flip' | 'fade' | 'slide' | 'custom'
+
+export interface UIDLPageTransitionAnimation {
+  /** Keyframe name. Generated if omitted. */
+  name?: string
+  /** Keyframes in the standard JSS shape: { '0%': { transform: '...' }, ... } */
+  keyframes?: Record<string, Record<string, string | number>>
+  duration?: number
+  easing?: string
+  delay?: number
+}
+
+export interface UIDLPageTransitionRegion {
+  /** 'freeze' emits animation:none on old/new; 'animate' participates in the preset / custom keyframes. */
+  role: 'freeze' | 'animate'
+  exit?: UIDLPageTransitionAnimation
+  enter?: UIDLPageTransitionAnimation
+}
+
+export interface UIDLPageTransition {
+  preset?: UIDLPageTransitionPreset
+  /**
+   * Map of view-transition-name -> region descriptor.
+   * The generator uses these to emit the matching ::view-transition-old/new(name) rules.
+   */
+  regions?: Record<string, UIDLPageTransitionRegion>
+  /** Top-level defaults; region-level values win. */
+  duration?: { exit?: number; enter?: number }
+  enterDelay?: number
+  easing?: { exit?: string; enter?: string }
+  /** 'instant' = no animation when user prefers reduced motion (default). 'respect-preset' = animate anyway. */
+  reducedMotion?: 'instant' | 'respect-preset'
+  /** Escape hatch: author-supplied CSS appended after preset CSS inside the injected <style>. */
+  customCSS?: string
+}
+
+export type UIDLPageTransitionOverride = UIDLPageTransition | { disabled: true }
 
 export interface UIDLAssetBase {
   options?: {
@@ -356,6 +395,7 @@ export interface UIDLPageOptions {
   initialPathsData?: UIDLInitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
+  pageTransition?: UIDLPageTransitionOverride
 }
 
 export type ReferenceType =
