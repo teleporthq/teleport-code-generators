@@ -433,6 +433,11 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
     case 'boolean':
       return value
     case 'object':
+      // `typeof null === 'object'` — render as the null literal so comparisons
+      // against a missing/null default evaluate sensibly.
+      if (value === null) {
+        return 'null'
+      }
       // Handle dynamic references (local, prop, state)
       if (value && typeof value === 'object' && 'type' in value) {
         const dynamicValue = value as unknown as UIDLDynamicReference
@@ -450,6 +455,16 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
             return key
           }
         }
+      }
+      // Handle link-type prop default values ({ url, newTab }). Collapse to the
+      // url string so comparisons like `mapUrl !== '--'` evaluate sensibly.
+      if (
+        value &&
+        typeof value === 'object' &&
+        'url' in (value as Record<string, unknown>) &&
+        typeof (value as Record<string, unknown>).url === 'string'
+      ) {
+        return `"${(value as Record<string, unknown>).url}"`
       }
       throw new HTMLComponentGeneratorError(
         `Conditional node received an operand of type ${valueType} \n
@@ -1313,6 +1328,12 @@ const handleAttributes = (
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions
         )
 
+        // A `func` prop has no meaningful static HTML representation; skip
+        // rather than emitting the stringified function body as an attribute.
+        if (value.type === 'func') {
+          break
+        }
+
         const extracted = extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
         const extractedValue = String(extracted)
 
@@ -1383,7 +1404,7 @@ const getValueFromReference = (
 
   if (
     usedReferenceValue?.type &&
-    ['string', 'number', 'object', 'element', 'array', 'boolean', 'link'].includes(
+    ['string', 'number', 'object', 'element', 'array', 'boolean', 'link', 'func'].includes(
       usedReferenceValue.type
     ) === false
   ) {
