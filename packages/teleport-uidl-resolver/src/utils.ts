@@ -263,6 +263,11 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // For eg: If we have additational props on top of Link in react-router-dom. They are passed to the child.
   // So, we need to manually find the attributes that are not supported by next and pass to the actual anchor tag.
   // https://github.com/vercel/next.js/blob/v12.3.4/packages/next/client/link.tsx#L29-L54
+  //
+  // Note: we generate against next/link@^12 with legacy behavior (<Link><a>...</a></Link>).
+  // In that mode Next.js requires onClick/onMouseEnter/onTouchStart on the inner <a>, not on
+  // <Link> — otherwise it logs: `"onClick" was passed to <Link> … but "legacyBehavior" was set`.
+  // So these handlers are intentionally *not* in the Link-allowed list below and get pushed down.
   if (isNextMappings && originalElement.elementType === 'Link' && originalElement.attrs) {
     const unSupportedattributesForNextLink = Object.fromEntries(
       Object.entries(originalElement.attrs).filter(
@@ -277,9 +282,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
             'prefetch',
             'locale',
             'legacyBehavior',
-            'onMouseEnter',
-            'onTouchStart',
-            'onClick',
           ].includes(key) === false
       )
     )
@@ -291,6 +293,18 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       Object.keys(unSupportedattributesForNextLink).forEach(
         (key) => delete originalElement.attrs[key]
       )
+    }
+
+    // Move event handlers from <Link> down to the inner <a>. Legacy next/link
+    // behavior (default in next@12) requires click/mouse/touch handlers on the
+    // child anchor, not on the Link itself.
+    if (originalElement.events && originalElement.children[0].type === 'element') {
+      const innerAnchor = originalElement.children[0]
+      innerAnchor.content.events = {
+        ...innerAnchor.content.events,
+        ...originalElement.events,
+      }
+      originalElement.events = {}
     }
   }
 }

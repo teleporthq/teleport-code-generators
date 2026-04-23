@@ -95,7 +95,18 @@ const transformLanguageSwitcherLinks = (node: types.Node): boolean => {
         ) {
           const localeExpr = hrefAttr.value.expression
           const originalChildren = [...node.children]
-          const nonHrefAttrs = opening.attributes.filter((_, i) => i !== hrefAttrIndex)
+          // Drop href/target/rel on the inner anchor — a locale switch should
+          // always stay in the same tab and is driven by Next's router, so the
+          // new-tab affordances from the UIDL's `newTab: true` would be wrong.
+          const innerAnchorStrippedAttrs = new Set(['href', 'target', 'rel'])
+          const nonHrefAttrs = opening.attributes.filter(
+            (attr) =>
+              !(
+                types.isJSXAttribute(attr) &&
+                types.isJSXIdentifier(attr.name) &&
+                innerAnchorStrippedAttrs.has(attr.name.name)
+              )
+          )
 
           // Mutate node: change <a> to <Link>
           opening.name = types.jsxIdentifier('Link')

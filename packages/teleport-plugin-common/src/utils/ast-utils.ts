@@ -1271,11 +1271,25 @@ export const convertFilterDestinationToExpression = (
 export const getExpressionFromUIDLExpressionNode = (
   node: UIDLExpressionValue
 ): types.Expression => {
-  const ast = parse(node.content, {
-    sourceType: 'module' as const,
-  })
+  let ast
+  try {
+    ast = parse(node.content, {
+      sourceType: 'module' as const,
+    })
+  } catch (err) {
+    // Malformed expression content in the UIDL (e.g. `?.subtitle` missing its
+    // left-hand identifier). Don't abort the whole generation — warn and fall
+    // back to `undefined`, which renders as nothing in JSX.
+    // tslint:disable-next-line:no-console
+    console.warn(
+      `Failed to parse UIDL expression content ${JSON.stringify(node.content)}: ${
+        (err as Error).message
+      }. Falling back to 'undefined'.`
+    )
+    return types.identifier('undefined')
+  }
 
-  if (!('program' in ast)) {
+  if (!ast || !('program' in ast)) {
     throw new Error(
       `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
     )
@@ -1283,7 +1297,10 @@ export const getExpressionFromUIDLExpressionNode = (
 
   const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
 
-  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+  if (
+    !theStatementOnlyWihtoutTheProgram ||
+    theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement'
+  ) {
     throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
   }
 
