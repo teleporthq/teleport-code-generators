@@ -26,6 +26,7 @@ import {
   PropDefaultValueTypes,
   UIDLStyleInlineAsset,
   UIDLFontAsset,
+  UIDLGlobalStateDefinition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { createConditionalStatement } from './utils'
@@ -65,7 +66,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       propDefinitions = {},
       stateDefinitions = {},
     } = uidl
-    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
+    const {
+      projectStyleSet,
+      designLanguage: { tokens = {} } = {},
+      isRootComponent,
+      globalStateDefinitions = {},
+    } = options || {}
     const {
       styleSetDefinitions = {},
       fileName: projectStyleSheetName,
@@ -118,6 +124,9 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         elementType,
         dependency,
       } = element
+      const { dynamicStyleBindings } = element
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
       const root = jsxNodesLookup[key]
       if (!root) {
@@ -140,7 +149,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       if (
         Object.keys(style).length === 0 &&
         Object.keys(referencedStyles).length === 0 &&
-        Object.keys(componentStyleSet).length === 0
+        Object.keys(componentStyleSet).length === 0 &&
+        !hasDynamicBindings
       ) {
         return
       }
@@ -160,26 +170,56 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         classNamesToAppend.add(className)
       }
 
+      let jsxInlineStyles: Record<string, unknown> | null = null
+
       if (Object.keys(dynamicStyles).length > 0) {
+        for (const styleValue of Object.values(dynamicStyles)) {
+          if (
+            styleValue.type === 'dynamic' &&
+            styleValue.content.referenceType === 'global' &&
+            templateChunk.meta.globalReferences
+          ) {
+            ;(templateChunk.meta.globalReferences as string[]).push(styleValue.content.id)
+          }
+        }
+
         /* If dynamic styles are on nested-styles they are unfortunately lost,
           since inline style does not support that */
         if (templateStyle === 'html') {
           const inlineStyles = createDynamicInlineStyle(dynamicStyles)
-          HASTUtils.addAttributeToNode(
-            root as HastNode,
-            inlineStyleAttributeKey,
-            `{${inlineStyles}}`
-          )
+          const bindingParts = hasDynamicBindings
+            ? createDynamicBindingInlineStyle(dynamicStyleBindings)
+            : ''
+          const combined = bindingParts ? `${inlineStyles}, ${bindingParts}` : inlineStyles
+          HASTUtils.addAttributeToNode(root as HastNode, inlineStyleAttributeKey, `{${combined}}`)
         } else {
-          const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
+          jsxInlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
             StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
-          ASTUtils.addAttributeToJSXTag(
-            root as types.JSXElement,
-            inlineStyleAttributeKey,
-            inlineStyles
-          )
         }
+      } else if (hasDynamicBindings && templateStyle === 'html') {
+        const bindingParts = createDynamicBindingInlineStyle(dynamicStyleBindings)
+        HASTUtils.addAttributeToNode(root as HastNode, inlineStyleAttributeKey, `{${bindingParts}}`)
+      }
+
+      if (hasDynamicBindings && templateStyle !== 'html') {
+        if (!jsxInlineStyles) {
+          jsxInlineStyles = {}
+        }
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          jsxInlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(binding)
+        }
+      }
+
+      if (jsxInlineStyles) {
+        ASTUtils.addAttributeToJSXTag(
+          root as types.JSXElement,
+          inlineStyleAttributeKey,
+          jsxInlineStyles
+        )
       }
 
       Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
@@ -269,9 +309,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
             const { content } = styleRef
             const referedStyle = styleSetDefinitions[content.referenceId]
             if (!referedStyle) {
-              throw new PluginCSS(
-                `Style used from global stylesheet is missing - ${content.referenceId}`
-              )
+              return
             }
 
             usedProjectStyleIds.add(content.referenceId)
@@ -371,11 +409,51 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     for (const path of refPath) {
                       defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
                     }
-                    // If defaultValue is undefined or null after path traversal, use original default
+                    if (
+                      typeof defaultValue === 'object' &&
+                      defaultValue !== null &&
+                      'type' in (defaultValue as Record<string, unknown>) &&
+                      'content' in (defaultValue as Record<string, unknown>)
+                    ) {
+                      const entry = defaultValue as { type: string; content: unknown }
+                      if (entry.type === 'static') {
+                        defaultValue = entry.content as typeof defaultValue
+                      }
+                    }
                     defaultValue = defaultValue ?? usedState.defaultValue
-                    // Since we know the operand and the default value from the state.
-                    // We can try building the condition and check if the condition is true or false.
 
+                    const dynamicConditions = createConditionalStatement(
+                      staticValue !== undefined
+                        ? [{ operand: staticValue, operation: '===' }]
+                        : conditions,
+                      defaultValue
+                    )
+                    const matchCondition =
+                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
+                    // tslint:disable-next-line function-constructor
+                    const isConditionPassing = new Function(`return ${conditionString}`)()
+                    if (isConditionPassing) {
+                      classNamesToAppend.add(styleRef.content.referenceId)
+                      return
+                    }
+                    return
+                  }
+
+                  case 'globalState' as any: {
+                    const gsDef = findGlobalStateDefinitionById(id, globalStateDefinitions)
+                    if (!gsDef) {
+                      classNamesToAppend.add(styleRef.content.referenceId)
+                      return
+                    }
+                    let defaultValue: StateDefaultValueTypes | PropDefaultValueTypes =
+                      gsDef.defaultValue as StateDefaultValueTypes
+                    for (const path of refPath) {
+                      defaultValue = (defaultValue as Record<string, unknown>)?.[
+                        path
+                      ] as typeof defaultValue
+                    }
+                    defaultValue = defaultValue ?? (gsDef.defaultValue as StateDefaultValueTypes)
                     const dynamicConditions = createConditionalStatement(
                       staticValue !== undefined
                         ? [{ operand: staticValue, operation: '===' }]
@@ -419,16 +497,34 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     break
                   }
                   default: {
+                    if ((referenceType as string) === 'globalState') {
+                      const gsDef = findGlobalStateDefinitionById(
+                        nameToAppend,
+                        globalStateDefinitions
+                      )
+                      if (gsDef) {
+                        binaryExpressionType = gsDef.type
+                      }
+                      break
+                    }
                     throw new PluginCSS(
                       `Un-supported reference type ${referenceType} for ${nameToAppend}`
                     )
                   }
                 }
 
+                let binaryKey = nameToAppend
+                if (referenceType === 'prop') {
+                  binaryKey = 'props?.' + nameToAppend
+                } else if ((referenceType as string) === 'globalState') {
+                  const gsDef = findGlobalStateDefinitionById(nameToAppend, globalStateDefinitions)
+                  binaryKey = gsDef ? gsDef.name : nameToAppend
+                }
+
                 const binaryExpression = createBinaryExpression(
                   { operation: operator, operand: right },
                   {
-                    key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                    key: binaryKey,
                     type: binaryExpressionType,
                   }
                 )
@@ -623,6 +719,23 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
             if (className && usedProjectStyles.includes(className)) {
               return true
             }
+            // Include compound selectors where the base class (before the dot or space) is a used style
+            // e.g., "dashboard-sidebar.collapsed" should be included if "dashboard-sidebar" is used
+            // e.g., "dashboard-sidebar.collapsed .sidebar-brand-text" should also be included
+            const dotIdx = key.indexOf('.')
+            const spaceIdx = key.indexOf(' ')
+            if (dotIdx > 0) {
+              const baseClass = key.substring(0, dotIdx)
+              if (usedProjectStyles.includes(baseClass)) {
+                return true
+              }
+            }
+            if (spaceIdx > 0 && dotIdx < 0) {
+              const baseClass = key.substring(0, spaceIdx)
+              if (usedProjectStyles.includes(baseClass)) {
+                return true
+              }
+            }
             return false
           })
         )
@@ -755,10 +868,45 @@ export { createStyleSheetPlugin, createCSSPlugin }
 
 export default createCSSPlugin()
 
+const findGlobalStateDefinitionById = (
+  id: string,
+  definitions: Record<string, UIDLGlobalStateDefinition>
+): UIDLGlobalStateDefinition | undefined => {
+  for (const def of Object.values(definitions)) {
+    if (def.id === id) {
+      return def
+    }
+  }
+  return undefined
+}
+
 const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
   return Object.keys(styles)
     .map((styleKey) => {
       return `${styleKey}: ${(styles[styleKey] as UIDLDynamicReference).content.id}`
+    })
+    .join(', ')
+}
+
+const createDynamicBindingInlineStyle = (
+  bindings: Record<
+    string,
+    {
+      referenceType: string
+      stateKey: string
+      defaultValue: string
+      contextName?: string
+      stateDefinitionId?: string
+    }
+  >
+): string => {
+  return Object.entries(bindings)
+    .map(([prop, binding]) => {
+      const value =
+        binding.referenceType === 'ctx' && binding.contextName
+          ? `${binding.contextName}.${binding.stateKey}`
+          : binding.stateKey
+      return `${prop}: ${value} != null ? ${value} : '${binding.defaultValue || ''}'`
     })
     .join(', ')
 }

@@ -24,9 +24,10 @@ export {
   validateJavaScriptConfig,
 } from './javascript'
 export { generateCSVFileFetcher, generateCSVCountFetcher, validateCSVConfig } from './csv-file'
-export {
-  generateStaticCollectionFetcher,
-  generateStaticCollectionCountFetcher,
-  validateStaticCollectionConfig,
-} from './static-collection'
 export { generateGoogleSheetsFetcher, validateGoogleSheetsConfig } from './google-sheets'
+export {
+  generateTeleportFetcher,
+  generateTeleportCountFetcher,
+  validateTeleportConfig,
+} from './teleport'
+export { generateRawQueryFetcher, parseQueryTemplateVariables } from './raw-query'

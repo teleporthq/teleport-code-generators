@@ -17,7 +17,7 @@ module.exports = {
     "jsx",
     "node"
   ],
-  "testPathIgnorePatterns": ['mocks.ts'],
+  "testPathIgnorePatterns": ['mocks.ts', '/__tests__/_helpers/'],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
       '<rootDir>/test-mocks/html-whitespace-sensitive-tag-names.json'

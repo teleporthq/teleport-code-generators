@@ -1,6 +1,7 @@
 import { ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 
 const DATA_SOURCE_DEPENDENCIES: Record<string, string> = {
+  teleport: 'pg@^8.11.0',
   postgresql: 'pg@^8.11.0',
   mysql: 'mysql2@^3.6.0',
   mariadb: 'mariadb@^3.2.0',
@@ -17,7 +18,6 @@ const DATA_SOURCE_DEPENDENCIES: Record<string, string> = {
   'rest-api': 'node-fetch@^2.7.0',
   javascript: '', // No dependency needed
   'csv-file': '', // No dependency needed
-  'static-collection': '', // No dependency needed
   'google-sheets': 'node-fetch@^2.7.0',
 }
 

@@ -71,6 +71,9 @@ export const generateStylesFromStyleObj = (
           types.memberExpression(types.identifier('TOKENS'), types.identifier(token))
         )
       default:
+        if ((styleValue.content.referenceType as string) === 'globalState') {
+          return new ParsedASTNode(types.identifier(styleValue.content.id))
+        }
         throw new Error(
           `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
         )

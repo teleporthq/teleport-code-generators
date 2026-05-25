@@ -23,6 +23,7 @@ export interface ArrayMapperRegistryEntry {
   searchEnabled: boolean
   perPage: number
   searchDebounce: number
+  searchDefaultValue?: string
   queryColumns: string[]
 
   stateVarPrefix: string
@@ -68,6 +69,7 @@ export class ArrayMapperRegistry {
     searchEnabled: boolean
     perPage?: number
     searchDebounce?: number
+    searchDefaultValue?: string
     queryColumns?: string[]
   }): ArrayMapperRegistryEntry {
     const type = this.determineType(config.paginated, config.searchEnabled)
@@ -87,6 +89,7 @@ export class ArrayMapperRegistry {
       searchEnabled: config.searchEnabled,
       perPage: config.perPage || 10,
       searchDebounce: config.searchDebounce || 300,
+      searchDefaultValue: config.searchDefaultValue,
       queryColumns: config.queryColumns || [],
 
       stateVarPrefix,
@@ -376,6 +379,15 @@ export function createRegistryFromUIDL(uidlNode: any, allResources: any): ArrayM
         queryColumns = findQueryColumns(resourceId, c.resource, allResources)
       }
 
+      const rawDefault = c.searchDefaultValue
+      const searchDefaultValue =
+        rawDefault &&
+        rawDefault.type === 'static' &&
+        typeof rawDefault.content === 'string' &&
+        rawDefault.content.length > 0
+          ? rawDefault.content
+          : undefined
+
       registry.registerFromUIDL({
         dataSourceIdentifier: currentDataSourceId || 'unknown',
         arrayMapperRenderProp: c.renderPropIdentifier,
@@ -384,6 +396,7 @@ export function createRegistryFromUIDL(uidlNode: any, allResources: any): ArrayM
         searchEnabled: !!c.searchEnabled,
         perPage: c.perPage,
         searchDebounce: c.searchDebounce,
+        searchDefaultValue,
         queryColumns,
       })
     }

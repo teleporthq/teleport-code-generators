@@ -31,6 +31,13 @@ import {
   NextProjectPlugini18nConfig,
   NextFormsCaptchaScriptPlugin,
   NextDataSourceDependenciesPlugin,
+  NextDataSourceUtilityPlugin,
+  NextWorkflowProjectPlugin,
+  NextRichTextEditorProjectPlugin,
+  NextEcommerceProjectPlugin,
+  NextGlobalStateProjectPlugin,
+  NextAIChatProjectPlugin,
+  NextDashboardLayoutPlugin,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -182,6 +189,13 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig({ generateSitemap }))
     projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
     projectGeneratorFactory.addPlugin(new NextDataSourceDependenciesPlugin())
+    projectGeneratorFactory.addPlugin(new NextDataSourceUtilityPlugin())
+    projectGeneratorFactory.addPlugin(new NextWorkflowProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextEcommerceProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextGlobalStateProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextAIChatProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextDashboardLayoutPlugin())
+    projectGeneratorFactory.addPlugin(new NextRichTextEditorProjectPlugin())
   }
 
   if (projectType === ProjectType.NUXT) {

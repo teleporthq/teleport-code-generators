@@ -5,8 +5,8 @@ import { generateMariaDBCountFetcher } from './fetchers/mariadb'
 import { generateMongoDBCountFetcher } from './fetchers/mongodb'
 import { generateSupabaseCountFetcher } from './fetchers/supabase'
 import { generateJavaScriptCountFetcher } from './fetchers/javascript'
-import { generateStaticCollectionCountFetcher } from './fetchers/static-collection'
 import { generateCSVCountFetcher } from './fetchers/csv-file'
+import { generateTeleportCountFetcher } from './fetchers/teleport'
 
 export {
   generatePostgreSQLCountFetcher,
@@ -15,14 +15,17 @@ export {
   generateMongoDBCountFetcher,
   generateSupabaseCountFetcher,
   generateJavaScriptCountFetcher,
-  generateStaticCollectionCountFetcher,
   generateCSVCountFetcher,
+  generateTeleportCountFetcher,
 }
 
 export function generateCountFetcher(dataSource: UIDLDataSource, tableName: string): string {
   const { type, config } = dataSource
 
   switch (type) {
+    case 'teleport':
+      return generateTeleportCountFetcher(config, tableName)
+
     case 'postgresql':
     case 'cockroachdb':
       return generatePostgreSQLCountFetcher(config, tableName)
@@ -42,9 +45,6 @@ export function generateCountFetcher(dataSource: UIDLDataSource, tableName: stri
 
     case 'javascript':
       return generateJavaScriptCountFetcher(config)
-
-    case 'static-collection':
-      return generateStaticCollectionCountFetcher(config)
 
     case 'csv-file':
       return generateCSVCountFetcher(config)

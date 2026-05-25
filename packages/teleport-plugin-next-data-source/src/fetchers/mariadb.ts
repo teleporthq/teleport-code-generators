@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateSearchEscapeHelpersCode,
 } from '../utils'
 
 interface MariaDBConfig {
@@ -25,6 +26,8 @@ export const generateMariaDBFetcher = (
   return `import mariadb from 'mariadb'
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchEscapeHelpersCode()}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {
@@ -121,8 +124,10 @@ export default async function handler(req, res) {
       let columns = []
       
       if (queryColumns) {
-        // Use specified columns
-        columns = safeJSONParse(queryColumns)
+        // Use specified columns. Wrap non-arrays so a single column
+        // passed as a bare string doesn't get iterated as chars.
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
       } else {
         // Fallback: Get all columns from information_schema
         try {
@@ -140,12 +145,16 @@ export default async function handler(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchConditions = columns.map((col) => \`CAST(\\\`\${col}\\\` AS CHAR) LIKE ?\`)
-        columns.forEach(() => queryParams.push(\`%\${query}%\`))
-        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+        const pattern = "%" + escapeLikePattern(query) + "%"
+        const searchConditions = columns.map(
+          (col) =>
+            "LOWER(CAST(\`" + sanitizeSearchIdentifier(col) + "\` AS CHAR)) LIKE LOWER(?) ESCAPE '|'"
+        )
+        columns.forEach(() => queryParams.push(pattern))
+        conditions.push("(" + searchConditions.join(" OR ") + ")")
       }
     }
-    
+
     // Apply filters using helper function
     processFilters(filters, conditions, queryParams)
     
@@ -161,16 +170,16 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
-          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\\\`\${sort.field}\\\` \${order}\`
         }).filter(Boolean)
-        
+
         if (orderClauses.length > 0) {
           sql += \` ORDER BY \${orderClauses.join(', ')}\`
         }
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \\\`\${sortBy}\\\` \${sortOrder?.toUpperCase() || 'ASC'}\`
+      sql += \` ORDER BY \\\`\${sortBy}\\\` \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
     }
     
     const limitValue = limit || perPage
@@ -285,9 +294,15 @@ async function getCount(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchConditions = columns.map(col => \`CAST(\${col} AS CHAR) LIKE ?\`).join(' OR ')
-        conditions.push(\`(\${searchConditions})\`)
-        columns.forEach(() => queryParams.push(\`%\${query}%\`))
+        const pattern = "%" + escapeLikePattern(query) + "%"
+        const searchConditions = columns
+          .map(
+            (col) =>
+              "LOWER(CAST(\`" + sanitizeSearchIdentifier(col) + "\` AS CHAR)) LIKE LOWER(?) ESCAPE '|'"
+          )
+          .join(" OR ")
+        conditions.push("(" + searchConditions + ")")
+        columns.forEach(() => queryParams.push(pattern))
       }
     }
 

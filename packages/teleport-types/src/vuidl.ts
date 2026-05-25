@@ -315,6 +315,7 @@ export type VUIDLNavLinkNode = Modify<
   {
     content: {
       routeName: string | UIDLNavLinkNode['content']['routeName']
+      differentiatorValue?: UIDLNavLinkNode['content']['differentiatorValue']
     }
   }
 >

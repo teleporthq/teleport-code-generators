@@ -131,7 +131,7 @@ const generateHandlerBody = (): string => {
             const field = labelToIdMap[sort.field] || sort.field
             const aVal = getNestedValue(a, field)
             const bVal = getNestedValue(b, field)
-            const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            const sortOrderValue = (sort.order || '').toLowerCase().startsWith('desc') ? -1 : 1
             
             let comparison = 0
             if (aVal === null || aVal === undefined) {
@@ -159,7 +159,7 @@ const generateHandlerBody = (): string => {
       filteredData.sort((a, b) => {
         const aVal = getNestedValue(a, field)
         const bVal = getNestedValue(b, field)
-        const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+        const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? -1 : 1
         
         let comparison = 0
         if (aVal === null || aVal === undefined) {

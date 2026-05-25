@@ -10,8 +10,14 @@ import {
   HastNode,
   HastText,
   UIDLDynamicReference,
+  UIDLRawValue,
 } from '@teleporthq/teleport-types'
-import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
+import {
+  createConditionalStatement,
+  createInlineConditionalStatement,
+  handleAttribute,
+  handleEvent,
+} from './utils'
 import { NodeToHTML } from './types'
 import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
 
@@ -82,6 +88,17 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
     })
   }
 
+  const renderingConditions = node.content.renderingConditions
+  if (renderingConditions) {
+    const statement = createInlineConditionalStatement(
+      renderingConditions.reference,
+      renderingConditions.condition
+    )
+    if (statement) {
+      hastUtils.addAttributeToNode(htmlNode, templateSyntax.conditionalAttr, statement)
+    }
+  }
+
   templateLookup[key] = htmlNode
   return htmlNode
 }
@@ -142,9 +159,10 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
   params,
   templateSyntax
 ) => {
-  if (node.content.referenceType === 'global') {
-    // TODO: Check this in the future. Not throwing an error for now
-    console.info(`Global dynamic values are not supported in the HTML generator`)
+  if (
+    node.content.referenceType === 'global' ||
+    (node.content.referenceType as string) === 'globalState'
+  ) {
     const spanNode = createHTMLNode('span')
     return spanNode
   }
@@ -208,6 +226,18 @@ const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode | HastText 
 const generateRawHTMLNode: NodeToHTML<UIDLNode, HastNode> = (node, params, templateSyntax) => {
   const attrKey = templateSyntax.domHTMLInjection ? templateSyntax.domHTMLInjection : 'innerHTML'
   const htmlNode = createHTMLNode('span')
+  const rawNode = node as UIDLRawValue
+
+  if (rawNode.dynamic) {
+    const { id, refPath } = rawNode.dynamic.content
+    const idWithPath = UIDLUtils.generateIdWithRefPath(id, refPath)
+    const fallbackContent = rawNode.fallback || rawNode.content
+    const fallbackVarName = `htmlFallback${StringUtils.generateRandomString()}`
+    params.dataObject[fallbackVarName] = fallbackContent
+    hastUtils.addAttributeToNode(htmlNode, attrKey, `${idWithPath} || ${fallbackVarName}`)
+    return htmlNode
+  }
+
   const dataObjName = `${node.type}${StringUtils.generateRandomString()}`
   hastUtils.addAttributeToNode(htmlNode, attrKey, dataObjName)
   params.dataObject[dataObjName] = node.content.toString()

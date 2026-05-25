@@ -12,7 +12,24 @@ import {
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
   return Object.keys(stateDefinitions).reduce((result: Record<string, unknown>, key) => {
-    result[key] = stateDefinitions[key].defaultValue
+    const stateDef = stateDefinitions[key]
+    if (stateDef.type === 'object' && ASTUtils.isObjectStateWithEntries(stateDef)) {
+      const defaultValue = stateDef.defaultValue as Record<string, unknown>
+      const resolved: Record<string, unknown> = {}
+      Object.keys(defaultValue).forEach((entryKey) => {
+        const entry = defaultValue[entryKey] as { type?: string; content?: unknown }
+        if (entry?.type === 'static') {
+          resolved[entryKey] = entry.content
+        } else if (entry?.type === 'dynamic') {
+          resolved[entryKey] = ''
+        } else {
+          resolved[entryKey] = entry
+        }
+      })
+      result[key] = resolved
+    } else {
+      result[key] = stateDef.defaultValue
+    }
     return result
   }, {})
 }

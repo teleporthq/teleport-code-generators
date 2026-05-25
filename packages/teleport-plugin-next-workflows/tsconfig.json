@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","compilerOptions":{"outDir":"dist/esm","target":"ES2017","noUnusedParameters":false,"noUnusedLocals":false,"noImplicitAny":false,"strict":false,"strictPropertyInitialization":false},"include":["./src"]}

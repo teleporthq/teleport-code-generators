@@ -6,9 +6,16 @@ export const generateInitialPathsAST = (
   initialData: UIDLInitialPathsData,
   resourceImportName: string,
   resource: UIDLInitialPathsData['resource'],
-  pagination?: PagePaginationOptions
+  pagination?: PagePaginationOptions,
+  dynamicRouteAttribute?: string
 ) => {
-  const computedResourceAST = computePropsAST(initialData, resourceImportName, resource, pagination)
+  const computedResourceAST = computePropsAST(
+    initialData,
+    resourceImportName,
+    resource,
+    pagination,
+    dynamicRouteAttribute
+  )
 
   return types.exportNamedDeclaration(
     (() => {
@@ -30,7 +37,8 @@ const computePropsAST = (
   initialData: UIDLInitialPathsData,
   resourceImportName: string,
   resource: UIDLInitialPathsData['resource'],
-  pagination?: PagePaginationOptions
+  pagination?: PagePaginationOptions,
+  dynamicRouteAttribute?: string
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
     (acc: types.ObjectProperty[], item) => {
@@ -160,7 +168,7 @@ const computePropsAST = (
                           types.identifier('params'),
                           types.objectExpression([
                             types.objectProperty(
-                              types.identifier(initialData.exposeAs.name),
+                              types.identifier(dynamicRouteAttribute || initialData.exposeAs.name),
                               types.callExpression(
                                 types.memberExpression(
                                   ASTUtils.generateMemberExpressionASTFromPath([

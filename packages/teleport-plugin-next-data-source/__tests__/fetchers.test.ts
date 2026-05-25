@@ -9,7 +9,6 @@ import {
   validateRedisConfig,
   validateRESTAPIConfig,
   validateJavaScriptConfig,
-  validateStaticCollectionConfig,
 } from '../src/fetchers'
 import {
   createPostgreSQLDataSource,
@@ -17,7 +16,6 @@ import {
   createMongoDBDataSource,
   createRESTAPIDataSource,
   createJavaScriptDataSource,
-  createStaticCollectionDataSource,
   createRedisDataSource,
 } from './mocks'
 
@@ -52,7 +50,6 @@ describe('getDataSourceDependencies', () => {
   it('returns empty dependencies for embedded sources', () => {
     expect(getDataSourceDependencies('javascript').packages).toEqual([])
     expect(getDataSourceDependencies('csv-file').packages).toEqual([])
-    expect(getDataSourceDependencies('static-collection').packages).toEqual([])
   })
 
   it('handles all supported data source types', () => {
@@ -74,7 +71,6 @@ describe('getDataSourceDependencies', () => {
       'javascript',
       'google-sheets',
       'csv-file',
-      'static-collection',
     ]
 
     types.forEach((type) => {
@@ -334,34 +330,6 @@ describe('validateJavaScriptConfig', () => {
   })
 })
 
-describe('validateStaticCollectionConfig', () => {
-  it('validates correct static collection', () => {
-    const result = validateStaticCollectionConfig({
-      data: [{ id: 1 }, { id: 2 }],
-    })
-    expect(result.isValid).toBe(true)
-  })
-
-  it('rejects non-array data', () => {
-    const result = validateStaticCollectionConfig({
-      data: 'not an array',
-    })
-    expect(result.isValid).toBe(false)
-  })
-
-  it('rejects missing data', () => {
-    const result = validateStaticCollectionConfig({})
-    expect(result.isValid).toBe(false)
-  })
-
-  it('accepts empty array', () => {
-    const result = validateStaticCollectionConfig({
-      data: [],
-    })
-    expect(result.isValid).toBe(true)
-  })
-})
-
 describe('generateDataSourceFetcher', () => {
   it('generates PostgreSQL fetcher', () => {
     const dataSource = createPostgreSQLDataSource('ds-1')
@@ -404,15 +372,6 @@ describe('generateDataSourceFetcher', () => {
 
     expect(code).toContain('executeCode')
     expect(code).toContain('new Function')
-  })
-
-  it('generates Static Collection fetcher', () => {
-    const dataSource = createStaticCollectionDataSource('ds-1')
-    const code = generateDataSourceFetcher(dataSource, '')
-
-    expect(code).toContain('const data = ')
-    expect(code).toContain('"Item 1"')
-    expect(code).toContain('"Item 2"')
   })
 
   it('generates Redis fetcher', () => {
@@ -533,7 +492,6 @@ describe('generateDataSourceFetcherWithCore', () => {
       createMongoDBDataSource('ds-3'),
       createRESTAPIDataSource('ds-4'),
       createJavaScriptDataSource('ds-5'),
-      createStaticCollectionDataSource('ds-6'),
     ]
 
     dataSources.forEach((dataSource) => {

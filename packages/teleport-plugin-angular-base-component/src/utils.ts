@@ -66,13 +66,24 @@ export const generateExportAST = (
     )
   })
 
-  const propertyDecleration = Object.keys(stateDefinitions).map((stateKey) =>
-    t.classProperty(
+  const propertyDecleration = Object.keys(stateDefinitions).map((stateKey) => {
+    const stateDef = stateDefinitions[stateKey]
+    let stateValue: types.Expression
+    if (stateDef.type === 'object' && ASTUtils.isObjectStateWithEntries(stateDef)) {
+      stateValue = ASTUtils.convertObjectStateDefaultToExpression(
+        stateDef.defaultValue as Record<string, unknown>,
+        { prop: 'this', state: 'this', local: '' },
+        t
+      )
+    } else {
+      stateValue = ASTUtils.convertValueToLiteral(stateDef.defaultValue)
+    }
+    return t.classProperty(
       t.identifier(stateKey),
-      ASTUtils.convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
-      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDefinitions[stateKey].type))
+      stateValue,
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDef.type))
     )
-  )
+  })
 
   const dataDeclaration = Object.keys(dataObject).map((dataKey) => {
     return t.classProperty(

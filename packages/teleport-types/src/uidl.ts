@@ -85,6 +85,7 @@ export interface UIDLResources {
 
 export type DataSourceType =
   | 'rest-api'
+  | 'teleport'
   | 'postgresql'
   | 'mysql'
   | 'mariadb'
@@ -101,7 +102,6 @@ export type DataSourceType =
   | 'javascript'
   | 'google-sheets'
   | 'csv-file'
-  | 'static-collection'
 
 export interface UIDLDataSource {
   id: string
@@ -117,6 +117,113 @@ export interface UIDLDataSourceResourceDefinition {
   dataSourceType: DataSourceType
 }
 
+export interface UIDLAuthProvider {
+  id: string
+  name: string
+  credentials: Record<string, string>
+}
+
+export interface UIDLAuthTableColumn {
+  name: string
+  type: string
+  nullable: boolean
+  isPrimaryKey?: boolean
+  defaultValue?: string
+}
+
+export interface UIDLAuthPageProtection {
+  requiresAuth: boolean
+  allowedRoles: string[]
+  pageName: string
+  route: string
+  // Row-level ownership metadata for self-guarding details pages.
+  // When set, the page's page-load SQL fetch enforces ownership
+  // per-row (typically matching both the logged-in user_id and the
+  // persistent anonymous-localStorage UUID, mirroring the
+  // `Resolve User Or Guest Session` custom node), so the
+  // framework-level middleware does not need to block unauthenticated
+  // visitors at the route level — the SQL is the guard. The same
+  // signal is consumed by the workflow emitter to neutralise the
+  // redundant `isLoggedIn === true` page-load gate that would
+  // otherwise redirect guest buyers away from the order they just
+  // paid for under their anonymous UUID.
+  rowOwnerColumn?: string
+  rowOwnerTable?: string
+  rowOwnerDataSourceId?: string
+  rowOwnerDifferentiator?: string
+}
+
+export interface UIDLAuthFolderProtection {
+  requiresAuth: boolean
+  allowedRoles: string[]
+  folderName: string
+  parentId: string | null
+  children: Record<string, 'page' | 'folder'>
+}
+
+export interface UIDLAuthPage {
+  pageId: string
+  pageName: string
+  route: string
+}
+
+export interface UIDLCustomUserProperty {
+  key: string
+  label: string
+  columnType: string
+  attributeType: 'string' | 'number' | 'datetime' | 'boolean'
+}
+
+export interface UIDLAuthentication {
+  enabled: boolean
+  dataSourceId: string | null
+  dataSourceType: DataSourceType | null
+  passwordAuthEnabled: boolean
+  providers: UIDLAuthProvider[]
+  roles: string[]
+  tables: Record<string, UIDLAuthTableColumn[]>
+  pageProtection: Record<string, UIDLAuthPageProtection>
+  folderProtection: Record<string, UIDLAuthFolderProtection>
+  authPages: {
+    signIn?: UIDLAuthPage
+    signUp?: UIDLAuthPage
+  }
+  callbackBaseUrl: string
+  envKeys: Record<string, string>
+  customUserProperties: UIDLCustomUserProperty[]
+}
+
+export interface UIDLSortConfigEntry {
+  field: string
+  order: 'asc' | 'desc'
+}
+
+export interface UIDLDynamicFilterRef {
+  referenceType: 'global' | 'globalState'
+  id: string
+  refPath: string[]
+}
+
+export interface UIDLFilterConfigEntry {
+  source: string
+  destination: unknown
+  operand: string
+  isDynamic?: boolean
+  dynamicRef?: UIDLDynamicFilterRef
+}
+
+export interface UIDLGlobalStateDefinition {
+  id: string
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
+  defaultValue: string | number | boolean | Record<string, unknown> | unknown[]
+  name: string
+  dataSourceBinding?: UIDLStateDataSourceBinding
+  mappingFunction?: string
+  sortConfig?: UIDLSortConfigEntry[]
+  filterConfig?: UIDLFilterConfigEntry[]
+  query?: string
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
@@ -125,6 +232,7 @@ export interface ProjectUIDL {
   resources?: UIDLResources
   forms?: UIDLForms
   dataSources?: Record<string, UIDLDataSource>
+  authentication?: UIDLAuthentication
   internationalization?: {
     main: {
       name: string
@@ -134,6 +242,151 @@ export interface ProjectUIDL {
     translations: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
     ignoreBrowserLanguage?: boolean
   }
+  workflows?: UIDLWorkflows
+  globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>
+  invoiceSettings?: UIDLInvoiceSettings
+  ecommerceSettings?: UIDLEcommerceSettings
+  aiAssistantChat?: UIDLAIAssistantChat
+}
+
+export interface UIDLAIAssistantChatAuthProtection {
+  requiresAuth: boolean
+  allowedRoles: string[]
+}
+
+export interface UIDLAIAssistantChat {
+  enabled: boolean
+  dataSourceId: string | null
+  authProtection?: UIDLAIAssistantChatAuthProtection
+  aiProvider: {
+    provider: string
+    model: string
+    secretKeyReference: string | null
+  } | null
+  chatSettings: {
+    chatName: string
+    welcomeMessage: string
+    unknownInformationMessage: string
+    agentIconAssetId: string | null
+    bubblePosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+    bubbleStyles: Record<string, string>
+    bubbleClosedIconAssetId: string | null
+    bubbleOpenedIconAssetId: string | null
+    window: {
+      windowStyles: Record<string, string>
+      headerStyles: Record<string, string>
+      messagesContainerStyles: Record<string, string>
+      botMessageStyles: Record<string, string>
+      userMessageStyles: Record<string, string>
+      welcomeMessageStyles: Record<string, string>
+      inputContainerStyles: Record<string, string>
+      inputStyles: Record<string, string>
+      sendButtonStyles: Record<string, string>
+    }
+    custom: {
+      styles: string
+      scripts: string
+    }
+  }
+  ragConfig: {
+    embeddingModel: string
+    searchTopK: number
+    conversationHistoryLimit: number
+    rephrase: {
+      temperature: number
+      maxTokens: number
+      systemMessage: string
+    }
+    answer: {
+      temperature: number
+      maxTokens: number
+      streaming: boolean
+      systemMessage: string
+    }
+  }
+  tables: {
+    settingsTable: string
+    knowledgeSourcesTable: string
+    documentsTable: string
+    conversationsTable: string
+    messagesTable: string
+    topicsTable: string
+  }
+}
+
+export interface UIDLWorkflows {
+  workflows: Record<string, UIDLWorkflow>
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
+}
+
+export interface UIDLWorkflow {
+  id: string
+  name: string
+  description?: string
+  trigger: UIDLWorkflowTrigger
+  webhookConfig?: UIDLWebhookConfig
+  nodes: UIDLWorkflowNode[]
+  edges: UIDLWorkflowEdge[]
+  errorHandler?: UIDLWorkflowErrorHandler
+  usedInNodes: Record<string, boolean | number>
+}
+
+export interface UIDLWebhookConfig {
+  urlPath: string
+  httpMethod: 'POST' | 'GET' | 'PUT' | 'DELETE'
+  verifySignature: boolean
+  signatureHeader?: string
+  signatureSecret?: string
+  signatureAlgorithm?: 'hmac-sha256' | 'hmac-sha1' | 'stripe-v1' | 'paypal-v1' | 'custom'
+  expectedHeaders?: Array<{ key: string; value?: string }>
+}
+
+export interface UIDLWorkflowNode {
+  id: string
+  type: string
+  label: string
+  name?: string
+  config: Record<string, unknown>
+  executionEnv: 'client' | 'server' | 'universal'
+  stepNumber: number
+}
+
+export interface UIDLWorkflowEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string
+  targetHandle?: string
+  data?: Record<string, unknown>
+}
+
+export interface UIDLWorkflowTrigger {
+  nodeId: string
+  type: string
+  config: Record<string, unknown>
+  scope: 'global' | 'page' | 'element'
+}
+
+export interface UIDLWorkflowErrorHandler {
+  nodeId: string
+  type: string
+  config: Record<string, unknown>
+  executionEnv: 'client' | 'server' | 'universal'
+}
+
+export interface UIDLCustomWorkflowNode {
+  id: string
+  name: string
+  description?: string
+  nodes: UIDLWorkflowNode[]
+  edges: UIDLWorkflowEdge[]
+  parameters: Array<{ key: string; defaultValue?: unknown }>
+}
+
+export interface WorkflowContextValue {
+  type: 'workflowContext'
+  nodeId: string
+  path: string[]
 }
 
 export interface UIDLGlobalProjectValues {
@@ -226,12 +479,24 @@ export interface ComponentUIDL {
   importDefinitions?: Record<string, UIDLExternalDependency>
   peerDefinitions?: Record<string, UIDLPeerDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
+  searchParams?: UIDLSearchParamsDefinition
   outputOptions?: UIDLComponentOutputOptions
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }
   seo?: UIDLComponentSEO
 }
+
+export type UIDLSearchParamType = 'string' | 'number' | 'boolean'
+
+export interface UIDLSearchParamDefinition {
+  key: string
+  type?: UIDLSearchParamType
+  defaultValue?: string
+  description?: string
+}
+
+export type UIDLSearchParamsDefinition = UIDLSearchParamDefinition[]
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 
@@ -290,9 +555,11 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  dynamicRouteAttribute?: string
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
+  pageId?: string
 }
 
 export interface UIDLComponentSEO {
@@ -324,13 +591,30 @@ export interface UIDLPropDefinition {
   }
 }
 
+export interface UIDLStateDataSourceBinding {
+  dataSourceId: string
+  refPath: Array<string | number>
+}
+
+export interface UIDLStateUrlSearchParamBinding {
+  key: string
+}
+
 export interface UIDLStateDefinition {
   type: string
   defaultValue: StateDefaultValueTypes
+  id?: string
+  dataSourceBinding?: UIDLStateDataSourceBinding
+  urlSearchParamBinding?: UIDLStateUrlSearchParamBinding
+  mappingFunction?: string
+  sortConfig?: UIDLSortConfigEntry[]
+  filterConfig?: UIDLFilterConfigEntry[]
+  query?: string
 }
 
 export interface UIDLStateValueDetails {
   value: string | number | boolean
+  pageId?: string
   pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
   seo?: UIDLComponentSEO
 }
@@ -345,14 +629,25 @@ export interface PagePaginationOptions {
   totalCountPath: { type: 'headers' | 'body'; path: Array<string | number> }
 }
 
+export interface UIDLDetailsPageInfo {
+  dataSourceId: string
+  dataSourceName: string
+  dataSourceType: string
+  tableName: string
+  differentiatorColumn: string
+  featureIdentifier: string
+}
+
 export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
   fileName?: string
   fallback?: boolean
+  dynamicRouteAttribute?: string
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
+  detailsPageInfo?: UIDLDetailsPageInfo
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
@@ -366,8 +661,13 @@ export type ReferenceType =
   | 'token'
   | 'expr'
   | 'locale'
+  | 'ctx'
+  | 'urlSearchParams'
 
-export type UIDLDynamicReference = UIDLReferenValues | UIDLGlobalReference
+export type UIDLDynamicReference =
+  | UIDLReferenValues
+  | UIDLGlobalReference
+  | UIDLGlobalStateReference
 
 interface UIDLReferenValues {
   type: 'dynamic'
@@ -376,6 +676,15 @@ interface UIDLReferenValues {
     refPath?: string[]
     id: string
     fallback?: string | number | boolean
+    /**
+     * Optional JavaScript source string of the form
+     * `function mapValue(value) { return String(...) }`. When present, the
+     * resolved dynamic value is run through this function before being
+     * rendered. Code generators and runtime renderers must wrap the base
+     * expression in a sandboxed try/catch and fall back to the raw value
+     * on error. See `packages/teleport-plugin-common/src/node-handlers/node-to-jsx/utils.ts`.
+     */
+    valueMapper?: string
   }
 }
 
@@ -388,7 +697,16 @@ export interface UIDLGlobalReference {
   type: 'dynamic'
   content: {
     referenceType: 'global'
-    id: 'locale' | 'locales'
+    id: 'locale' | 'locales' | 'currentUser' | 'userIsLoggedIn' | 'ecommerce' | 'cart'
+    refPath?: string[]
+  }
+}
+
+export interface UIDLGlobalStateReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'globalState'
+    id: string
     refPath?: string[]
   }
 }
@@ -406,6 +724,8 @@ export interface UIDLStaticValue {
 export interface UIDLRawValue {
   type: 'raw'
   content: string
+  dynamic?: UIDLDynamicReference
+  fallback?: string
 }
 
 export interface UIDLInjectValue {
@@ -532,6 +852,12 @@ export interface UIDLCMSListRepeaterNodeContent {
   perPage?: number
   searchEnabled?: boolean
   searchDebounce?: number
+  // Initial value seeded into the generated search input's `useState`.
+  // Static values are emitted verbatim; dynamic values are expected to
+  // reference props / state / URL params and are emitted as expressions.
+  searchDefaultValue?: UIDLStaticValue | UIDLExpressionValue
+  sort?: UIDLStaticValue | UIDLExpressionValue
+  sortDirection?: UIDLStaticValue | UIDLExpressionValue
 }
 
 export interface UIDLDataSourceItemNode {
@@ -633,6 +959,7 @@ export interface UIDLConditionalExpression {
   conditions: Array<{
     operation: string
     operand?: string | boolean | number | UIDLDynamicReference | UIDLExpressionValue
+    containsField?: string
   }>
   // In the code generation phase, we are only supporting 'all' or '||'
   // Maybe the type checking for this can be improved.
@@ -647,6 +974,19 @@ export interface UIDLElementNode {
 export interface UIDLDateTimeNode {
   type: 'date-time-node'
   content: UIDLElement
+}
+
+export interface UIDLDynamicStyleBinding {
+  referenceType: 'state' | 'ctx'
+  stateKey: string
+  contextName?: string
+  defaultValue: string
+  stateDefinitionId?: string
+}
+
+export interface UIDLElementRenderingConditions {
+  reference: UIDLDynamicReference | UIDLExpressionValue
+  condition: UIDLConditionalExpression
 }
 
 export interface UIDLElement {
@@ -665,6 +1005,8 @@ export interface UIDLElement {
   referencedStyles?: UIDLReferencedStyles
   children?: UIDLNode[]
   selfClosing?: boolean
+  dynamicStyleBindings?: Record<string, UIDLDynamicStyleBinding>
+  renderingConditions?: UIDLElementRenderingConditions
 }
 
 export type UIDLNode =
@@ -748,6 +1090,7 @@ export interface UIDLNavLinkNode {
       | UIDLImportReference
       | UIDLComponentStyleReference
       | UIDLRawValue
+    differentiatorValue?: UIDLDynamicReference | UIDLStaticValue | UIDLExpressionValue
   }
 }
 
@@ -779,10 +1122,79 @@ export interface UIDLPropCallEvent {
   includeEventObject?: boolean
 }
 
+/**
+ * Type-aware state modifiers introduced in plan v14 to fix the broken
+ * multi-step form output (`setCurrentStep(!currentStep)` on a number,
+ * `setQuizAnswers('oily')` replacing an object). The bare literal forms
+ * still work for `boolean` (`true` / `false` / `$toggle`), `string`, and
+ * `number` state — but for numeric increments, object key patches, and
+ * array appends the previous shape silently corrupted state. The four
+ * new modifier variants below make the intent explicit and the codegen
+ * can emit a functional setter (`setX(prev => ...)`) so the AI never has
+ * to write arithmetic.
+ *
+ *   { type: '$increment'; delta?: number }
+ *       Numeric state only. Emits `setX(prev => prev + (delta ?? 1))`.
+ *   { type: '$decrement'; delta?: number }
+ *       Numeric state only. Emits `setX(prev => prev - (delta ?? 1))`.
+ *   { type: '$patch'; path: string; value: UIDLStateNewValuePrimitive }
+ *       Object state only. Emits `setX(prev => ({ ...prev, [path]: value }))`.
+ *   { type: '$append'; value: UIDLStateNewValuePrimitive }
+ *       Array state only. Emits `setX(prev => [...prev, value])`.
+ *
+ * The codegen safety net (`createStateChangeStatement` in
+ * teleport-plugin-common) is type-aware: `$toggle` / primitive replacements
+ * against the wrong declared type now fail safe (skip the IIFE statement
+ * + log a warn) instead of fail dirty (corrupt the React state).
+ */
+export type UIDLStateNewValuePrimitive =
+  | string
+  | number
+  | boolean
+  | UIDLDynamicReference
+  | UIDLExpressionValue
+
+export interface UIDLStateIncrementModifier {
+  type: '$increment'
+  /** Defaults to `1` when omitted. May be negative for decrement-by-step (use $decrement for clarity). */
+  delta?: number
+}
+
+export interface UIDLStateDecrementModifier {
+  type: '$decrement'
+  delta?: number
+}
+
+export interface UIDLStatePatchModifier {
+  type: '$patch'
+  /** Object property name to patch. Single-level only; nested paths are not supported. */
+  path: string
+  value: UIDLStateNewValuePrimitive
+}
+
+export interface UIDLStateAppendModifier {
+  type: '$append'
+  value: UIDLStateNewValuePrimitive
+}
+
+export type UIDLStateNewValueModifier =
+  | UIDLStateIncrementModifier
+  | UIDLStateDecrementModifier
+  | UIDLStatePatchModifier
+  | UIDLStateAppendModifier
+
+export type UIDLStateNewValue =
+  | string
+  | number
+  | boolean
+  | UIDLDynamicReference
+  | UIDLExpressionValue
+  | UIDLStateNewValueModifier
+
 export interface UIDLStateModifierEvent {
   type: 'stateChange'
   modifies: string
-  newState: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
+  newState: UIDLStateNewValue
   includeEventObject?: boolean
 }
 
@@ -1080,4 +1492,209 @@ export interface UIDLFormBehavior {
           componentId: UIDLStaticValue
         }
   }
+}
+
+export interface UIDLEcommerceDeliveryConfig {
+  deliveryPrice: number
+  freeDeliveryEnabled: boolean
+  freeDeliveryThreshold: number
+  estimatedDeliveryDays: number | null
+  allowDeliveryNotes: boolean
+}
+
+export interface UIDLEcommerceStockManagementConfig {
+  allowBackorders: boolean
+  lowStockThreshold: number
+  lowStockAlerts: boolean
+  outOfStockVisibility: 'visible' | 'hidden'
+  maxQuantityPerProduct: number | null
+  // Same shape as orderNotificationConfig — surfaced from the GUI so
+  // the generated /api/ecommerce/low-stock-alert endpoint knows where
+  // to send the alert and what subject/body templates to render. When
+  // omitted (or when lowStockAlerts === false), the alert endpoint
+  // is not emitted at all.
+  lowStockAlertConfig?: UIDLEcommerceLowStockAlertConfig | null
+}
+
+// Mirrors UIDLEcommerceOrderNotificationConfig so the same email
+// provider + template grammar applies to both flows. Kept separate
+// (instead of a shared type) because the canonical token set differs:
+// low-stock alerts resolve {{productsList}}, {{productsCount}},
+// {{threshold}}, {{productName}}, {{sku}}, {{currentStock}},
+// {{companyName}} — order notifications resolve order-shaped tokens.
+export interface UIDLEcommerceLowStockAlertConfig {
+  provider: string | null
+  fromEmail: string
+  fromName: string
+  notificationEmails: string[]
+  replyTo?: string
+  subject?: string
+  body?: string
+}
+
+export interface UIDLEcommerceOrderNotificationConfig {
+  provider: string | null
+  fromEmail: string
+  fromName: string
+  notificationEmails: string[]
+  // Optional reply-to address surfaced as the email's Reply-To
+  // header. Empty string means "no reply-to header" — recipients
+  // reply to fromEmail.
+  replyTo?: string
+  // Subject + body templates with `{{token}}` placeholders. The
+  // canonical tokens (orderNumber, customerName, customerEmail,
+  // totalAmount, currency, paymentMethod, fulfillmentMethod,
+  // itemsCount, orderDate, shippingAddress) are resolved by the
+  // generated /api/ecommerce/order-notification handler from the
+  // request payload. Unknown tokens render as empty string.
+  subject?: string
+  body?: string
+}
+
+export interface UIDLEcommercePaymentProvider {
+  type: string
+  name: string
+}
+
+export interface UIDLEcommerceSettings {
+  cashOnDelivery: boolean
+  deliveryEnabled: boolean
+  storePickupEnabled: boolean
+  guestCheckout: boolean
+  stockManagement: boolean
+  orderNotifications: boolean
+  deliveryConfig: UIDLEcommerceDeliveryConfig | null
+  stockManagementConfig: UIDLEcommerceStockManagementConfig | null
+  orderNotificationConfig: UIDLEcommerceOrderNotificationConfig | null
+  paymentProviders: UIDLEcommercePaymentProvider[]
+  allowFavourites?: boolean
+}
+
+export interface UIDLInvoiceSettings {
+  enabled: boolean
+  autoGenerateOnPayment: boolean
+  invoicePrefix: string
+  nextInvoiceNumber: number
+  defaultTaxRate: number
+  taxIncludedInPrice: boolean
+  showDiscount: boolean
+  companyDetails: UIDLCompanyDetails
+  template: { document: UIDLInvoiceLayoutNode }
+  templateComponentId: string | null
+  tables: { invoicesTable: string; invoiceItemsTable: string }
+  dynamicFields: UIDLInvoiceDynamicField[]
+  emailDelivery: UIDLInvoiceEmailDelivery
+}
+
+export interface UIDLCompanyDetails {
+  companyName: string
+  companyAddress: string
+  companyCity: string
+  companyState: string
+  companyZip: string
+  companyCountry: string
+  companyVat: string
+  companyRegNumber: string
+  companyEmail: string
+  companyPhone: string
+  companyLogoAssetId: string | null
+  companyWebsite: string
+}
+
+export interface UIDLInvoiceDynamicField {
+  id: string
+  label: string
+  path: string
+  type: 'string' | 'number' | 'date' | 'currency' | 'array'
+  category: string
+}
+
+export interface UIDLInvoiceEmailDelivery {
+  enabled: boolean
+  provider: 'sendgrid' | 'resend' | 'mailgun' | 'postmark' | 'mailersend' | null
+  fromEmail: string
+  fromName: string
+  subject: string
+  body: string
+  secretKeys: Record<string, string>
+}
+
+export interface UIDLInvoiceLayoutNode {
+  id: string
+  type:
+    | 'document'
+    | 'row'
+    | 'column'
+    | 'text'
+    | 'image'
+    | 'table'
+    | 'divider'
+    | 'spacer'
+    | 'repeat'
+    | 'conditional'
+  label?: string
+  enabled?: boolean
+  styles?: Record<string, string | number>
+  children?: UIDLInvoiceLayoutNode[]
+  pageSettings?: {
+    size: 'A4' | 'Letter' | 'Legal'
+    orientation: 'portrait' | 'landscape'
+    margins: { top: number; right: number; bottom: number; left: number }
+  }
+  defaultStyles?: {
+    fontFamily: string
+    fontSize: number
+    color: string
+    lineHeight: number
+  }
+  content?: UIDLInvoiceTextSpan[]
+  source?: {
+    type: 'static' | 'dynamic' | 'asset'
+    value: string
+    dynamicPropertyId?: string
+  }
+  alt?: string
+  objectFit?: 'contain' | 'cover' | 'fill'
+  columns?: UIDLInvoiceTableColumn[]
+  showHeader?: boolean
+  alternateRowBackground?: string
+  dataSource?: string
+  headerStyles?: Record<string, string | number>
+  cellStyles?: Record<string, string | number>
+  thickness?: number
+  color?: string
+  dashPattern?: number[]
+  height?: number
+  itemVariable?: string
+  condition?: {
+    propertyId: string
+    operator: 'exists' | 'notExists' | 'equals' | 'notEquals' | 'greaterThan' | 'lessThan'
+    value?: string | number
+  }
+}
+
+export interface UIDLInvoiceTextSpan {
+  id: string
+  type: 'static' | 'dynamic'
+  value: string
+  dynamicPropertyId?: string
+  format?: {
+    dateFormat?: string
+    currencyFormat?: boolean
+    numberDecimals?: number
+    thousandsSeparator?: string
+    prefix?: string
+    suffix?: string
+  }
+  styles?: Record<string, string | number>
+}
+
+export interface UIDLInvoiceTableColumn {
+  id: string
+  header: UIDLInvoiceTextSpan[]
+  width?: string
+  align?: 'left' | 'center' | 'right'
+  cellContent: UIDLInvoiceTextSpan[]
+  headerStyles?: Record<string, string | number>
+  cellStyles?: Record<string, string | number>
 }

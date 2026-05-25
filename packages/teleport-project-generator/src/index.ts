@@ -235,7 +235,15 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const { components = {} } = uidl
-    const { styleSetDefinitions = {}, designLanguage: {} = {} } = uidl.root
+    const { styleSetDefinitions: rawStyleSetDefinitions = {}, designLanguage: {} = {} } = uidl.root
+
+    // Filter out style set definitions with invalid keys (e.g. "||", "'coin'", "{{")
+    const styleSetDefinitions = Object.fromEntries(
+      Object.entries(rawStyleSetDefinitions).filter(([key]) => {
+        const sanitized = StringUtils.removeIllegalCharacters(key)
+        return sanitized !== null && sanitized.length > 0
+      })
+    )
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -297,6 +305,16 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.forms && {
         forms: uidl.forms,
       }),
+      ...(uidl.workflows && {
+        workflows: uidl.workflows,
+      }),
+      ...(uidl.authentication && {
+        auth: uidl.authentication,
+      }),
+      ...(uidl.globalStateDefinitions &&
+        Object.keys(uidl.globalStateDefinitions).length > 0 && {
+          globalStateDefinitions: uidl.globalStateDefinitions,
+        }),
       ...(Object.keys(components).length > 0 && {
         projectComponents: components,
       }),
@@ -707,6 +725,23 @@ export class ProjectGenerator implements ProjectGeneratorType {
       /* tslint:disable no-console */
       console.error(error)
       throw new TeleportError(`Error in generating project after runAfter - ${error}`)
+    }
+
+    // Re-emit env files from the (possibly mutated) uidl.globals.env so that
+    // runAfter plugins which register additional env vars (e.g. the workflow
+    // and ecommerce project plugins that add STRIPE_*, RUNTIME_STORAGE_*,
+    // TELEPORT_DB_*, AUTH_*, etc.) have their entries reflected in the final
+    // .env / .env.example files written to disk. Without this, those env
+    // additions are silently dropped because the first createEnvFiles call
+    // ran before runAfter.
+    if (uidl.globals.env) {
+      const regeneratedEnvFiles = createEnvFiles(uidl.globals.env)
+      regeneratedEnvFiles.forEach((file) => {
+        inMemoryFilesMap.set(file.name, {
+          path: [],
+          files: [file],
+        })
+      })
     }
 
     inMemoryFilesMap.forEach((stage) => {

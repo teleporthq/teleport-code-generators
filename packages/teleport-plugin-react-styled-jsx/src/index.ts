@@ -3,6 +3,7 @@ import {
   ASTUtils,
   StyleBuilders,
   ASTBuilders,
+  ParsedASTNode,
   createBinaryExpression,
 } from '@teleporthq/teleport-plugin-common'
 import {
@@ -72,7 +73,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         attrs = {},
         dependency,
         elementType,
+        dynamicStyleBindings,
       } = element
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
       if (key === undefined) {
         throw new Error(`Key is missing for element \n ${JSON.stringify(element, null, 2)}`)
@@ -98,13 +102,72 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         })
       }
 
-      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
+      if (
+        Object.keys(style).length === 0 &&
+        Object.keys(referencedStyles).length === 0 &&
+        !hasDynamicBindings
+      ) {
         return
       }
 
+      // Collect all inline styles from various sources
+      const allInlineStyles: Record<string, unknown> = {}
+
+      if (hasDynamicBindings) {
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          const staticValue = style[cssProperty]
+          const staticTemplate =
+            staticValue && staticValue.type === 'static' && typeof staticValue.content === 'string'
+              ? staticValue.content
+              : null
+          allInlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(
+            binding,
+            undefined,
+            cssProperty,
+            staticTemplate
+          )
+        }
+      }
+
+      // Separate styles containing template expressions ({{ expr }}) from static CSS.
+      // Templates with non-state variables (e.g. {{ enemy.x }}) must be inline styles
+      // since those variables are scoped to Repeater render callbacks.
+      // Templates with state variables (e.g. {{ state.cameraX }}) are also made inline
+      // because they need to be interpolated as JS expressions, not raw CSS text.
+      const hasTemplate = (str: string) => /\{\{/.test(str)
+      const cssStyles: Record<string, UIDLStyleValue> = {}
+
+      for (const [prop, value] of Object.entries(style)) {
+        // Skip properties that have dynamic bindings — they're already handled as inline styles
+        if (hasDynamicBindings && dynamicStyleBindings[prop]) {
+          continue
+        }
+        if (
+          value.type === 'static' &&
+          typeof value.content === 'string' &&
+          hasTemplate(value.content)
+        ) {
+          const camelCaseProperty = prop.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          allInlineStyles[camelCaseProperty] = new ParsedASTNode(
+            ASTUtils.parseStringWithTemplateExpressions(String(value.content))
+          )
+        } else {
+          cssStyles[prop] = value
+        }
+      }
+
+      if (Object.keys(allInlineStyles).length > 0) {
+        ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', allInlineStyles)
+      }
+
       // Generating the string templates for the dynamic styles
-      if (Object.keys(style).length > 0) {
-        const styleRules = transformStyle(style, propsPrefix)
+      if (Object.keys(cssStyles).length > 0) {
+        const styleRules = transformStyle(cssStyles, propsPrefix)
         classMap.push(StyleBuilders.createCSSClass(className, styleRules))
         classNamesToAppend.add(className)
       }
@@ -179,7 +242,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
             const { content } = styleRef
             const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
             if (!referedStyle) {
-              throw new PluginStyledJSX(`Project style - ${content.referenceId} is missing`)
+              return
+            }
+
+            // Validate that the referenceId is a valid CSS class name.
+            // Skip entries that contain dots, quotes, braces, pipes, or other
+            // characters that indicate a JavaScript expression fragment was
+            // incorrectly used as a class name (e.g. "item.type", "'coin'", "{{", "||")
+            const refId = content.referenceId as string
+            if (/[.'"{}|()!@#$%^&*+=<>?/\\]/.test(refId) || /^\d/.test(refId)) {
+              return
             }
 
             if (styleRef.content.condition) {
@@ -240,11 +312,31 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         }
       })
 
+      // Handle {{ xxx }} template expressions in class names by converting to dynamic values
+      let joinedClasses = Array.from(classNamesToAppend).join(' ')
+      const dynamicVals: Array<
+        types.Identifier | types.MemberExpression | types.ConditionalExpression
+      > = Array.from(dynamicVariantsToAppend)
+
+      const templateClassMatches = joinedClasses.match(/\{\{\s*(.+?)\s*\}\}/g)
+      if (templateClassMatches) {
+        for (const match of templateClassMatches) {
+          const expr = match.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '')
+          dynamicVals.push(
+            ASTUtils.parseJSExpressionAsAST(expr) as types.Identifier | types.MemberExpression
+          )
+        }
+        joinedClasses = joinedClasses
+          .replace(/\{\{\s*(.+?)\s*\}\}/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+      }
+
       ASTUtils.addClassStringOnJSXTag(
         root as types.JSXElement,
-        Array.from(classNamesToAppend).join(' '),
+        joinedClasses,
         'className',
-        Array.from(dynamicVariantsToAppend)
+        dynamicVals
       )
     }
 
@@ -276,7 +368,25 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       return structure
     }
 
-    const styleJSXAST = generateStyledJSXTag(classMap.join('\n'))
+    // Convert {{ state.xxx }} template expressions to ${xxx} styled-jsx interpolations
+    // Handles both well-formed {{ state.xxx }} and malformed/unclosed {{ state.xxx patterns
+    const convertStateTemplates = (css: string): string => {
+      return css.replace(
+        /\{\{\s*(.*?state\..+?)(\s*\}\}|(?=["`;])|\s*$)/gm,
+        (_match, expr, closing) => {
+          let cleanExpr = expr.trim()
+          // Replace all state.xxx references with just xxx
+          cleanExpr = cleanExpr.replace(/state\.(\w+)/g, '$1')
+          // Remove trailing semicolons or whitespace
+          cleanExpr = cleanExpr.replace(/[;\s]+$/, '')
+          const isClosed = closing && closing.includes('}}')
+          return '${' + cleanExpr + '}' + (isClosed ? '' : 'px)')
+        }
+      )
+    }
+    const cssString = convertStateTemplates(classMap.join('\n'))
+
+    const styleJSXAST = generateStyledJSXTag(cssString)
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component

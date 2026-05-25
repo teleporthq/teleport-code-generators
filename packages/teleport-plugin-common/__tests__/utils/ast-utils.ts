@@ -8,7 +8,11 @@ import {
   convertValueToLiteral,
   objectToObjectExpression,
   addRawAttributeToJSXTag,
+  collectGlobalReferencesFromObjectStates,
+  createStateHookAST,
+  sanitizeExprContent,
 } from '../../src/utils/ast-utils'
+import generator from '@babel/generator'
 import ParsedASTNode from '../../src/utils/parsed-ast'
 import { createJSXTag } from '../../src/builders/ast-builders'
 import * as types from '@babel/types'
@@ -282,5 +286,136 @@ describe('objectToObjectExpression', () => {
       expect(result).toHaveProperty('properties')
       expect(result.type).toEqual('ObjectExpression')
     })
+  })
+})
+
+describe('collectGlobalReferencesFromObjectStates', () => {
+  it('resolves refPath-style global references (no explicit id) via GLOBAL_REF_ID_MAP', () => {
+    const stateDefinitions = {
+      profileViewer: {
+        type: 'object',
+        defaultValue: {
+          currentUserId: {
+            type: 'dynamic',
+            content: {
+              referenceType: 'global',
+              refPath: ['Current User', 'id'],
+            },
+          },
+        },
+      },
+    }
+    const refs = collectGlobalReferencesFromObjectStates(stateDefinitions as never)
+    expect(refs).toContain('currentUser')
+  })
+
+  it('resolves id-style global references untouched', () => {
+    const stateDefinitions = {
+      cartViewer: {
+        type: 'object',
+        defaultValue: {
+          itemCount: {
+            type: 'dynamic',
+            content: { referenceType: 'global', id: 'cart', refPath: ['items', 'length'] },
+          },
+        },
+      },
+    }
+    const refs = collectGlobalReferencesFromObjectStates(stateDefinitions as never)
+    expect(refs).toContain('cart')
+  })
+})
+
+describe('createStateHookAST – urlSearchParamBinding', () => {
+  const codeOf = (node: types.Node) => generator(node).code
+
+  it('emits plain useState(defaultValue) when no binding is declared', () => {
+    const decl = createStateHookAST('openPanel', {
+      type: 'boolean',
+      defaultValue: false,
+    })
+    expect(codeOf(decl)).toBe('const [openPanel, setOpenPanel] = useState(false);')
+  })
+
+  it('seeds useState from window.location.search falling back to the declared default', () => {
+    // Deliberately uses `window.location.search` rather than `router.query`
+    // because on SSG pages `router.query` is empty on the first render and
+    // only hydrates after `router.isReady` flips — past that, `useState`'s
+    // initializer has already captured the fallback default. Direct reads
+    // from `window.location.search` are synchronously available on both
+    // direct loads and client-side navigations.
+    const decl = createStateHookAST('products_detail_panel_item_id', {
+      type: 'string',
+      defaultValue: '',
+      urlSearchParamBinding: { key: 'products_detail_panel_item_id' },
+    })
+    expect(codeOf(decl)).toBe(
+      'const [products_detail_panel_item_id, setProductsDetailPanelItemId] = useState((typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("products_detail_panel_item_id") : null) ?? "");'
+    )
+  })
+
+  it('falls back to a non-empty static default when the param is absent', () => {
+    const decl = createStateHookAST('category', {
+      type: 'string',
+      defaultValue: 'all',
+      urlSearchParamBinding: { key: 'category' },
+    })
+    expect(codeOf(decl)).toBe(
+      'const [category, setCategory] = useState((typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("category") : null) ?? "all");'
+    )
+  })
+
+  it('ignores urlSearchParamBinding with an empty key (defensive)', () => {
+    const decl = createStateHookAST('foo', {
+      type: 'string',
+      defaultValue: 'x',
+      urlSearchParamBinding: { key: '' },
+    })
+    expect(codeOf(decl)).toBe('const [foo, setFoo] = useState("x");')
+  })
+
+  it('prefers dataSourceBinding over urlSearchParamBinding when both are declared', () => {
+    const decl = createStateHookAST('mixed', {
+      type: 'string',
+      defaultValue: 'fallback',
+      dataSourceBinding: { dataSourceId: 'ds', refPath: [] },
+      urlSearchParamBinding: { key: 'mixed' },
+    })
+    // dataSourceBinding path short-circuits: props.mixed !== undefined ? props.mixed : "fallback"
+    expect(codeOf(decl)).toBe(
+      'const [mixed, setMixed] = useState(props.mixed !== undefined ? props.mixed : "fallback");'
+    )
+  })
+})
+
+describe('sanitizeExprContent', () => {
+  const originalWarn = console.warn
+  beforeEach(() => {
+    console.warn = jest.fn()
+  })
+  afterEach(() => {
+    console.warn = originalWarn
+  })
+
+  it('passes through well-formed expressions unchanged', () => {
+    const expr = '`/profile/' + '$' + '{' + 'currentUser?.id}' + '`'
+    expect(sanitizeExprContent(expr, 'href')).toBe(expr)
+    expect((console.warn as jest.Mock).mock.calls.length).toBe(0)
+  })
+
+  it('repairs the /profile/${} My Profile navlink pattern', () => {
+    const expr = '`/profile/' + '$' + '{}' + '`'
+    expect(sanitizeExprContent(expr, 'href')).toBe(
+      '`/profile/' + '$' + '{' + 'currentUser?.id}' + '`'
+    )
+    expect((console.warn as jest.Mock).mock.calls.length).toBe(1)
+  })
+
+  it('repairs generic empty ${} with an empty-string placeholder', () => {
+    const expr = '`/unknown/' + '$' + '{}' + '/edit`'
+    expect(sanitizeExprContent(expr, 'href')).toBe(
+      '`/unknown/' + '$' + '{' + "'" + "'" + '}' + '/edit`'
+    )
+    expect((console.warn as jest.Mock).mock.calls.length).toBe(1)
   })
 })

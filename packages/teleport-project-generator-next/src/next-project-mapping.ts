@@ -45,6 +45,16 @@ export const NextProjectMapping: Mapping = {
         },
       },
     },
+    'markdown-node': {
+      elementType: 'div',
+    },
+    'rich-text-editor-node': {
+      elementType: 'RichTextEditor',
+      dependency: {
+        type: 'local',
+        path: '../components/rich-text-editor',
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
       dependency: {

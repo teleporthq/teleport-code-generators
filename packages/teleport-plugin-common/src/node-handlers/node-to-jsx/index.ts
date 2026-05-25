@@ -15,6 +15,8 @@ import {
   UIDLElement,
   UIDLDataSourceItemNode,
   UIDLDataSourceListNode,
+  UIDLRawValue,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, JSXGenerationOptions, JSXGenerationParams, NodeToJSX } from './types'
@@ -25,6 +27,9 @@ import {
   createDynamicValueExpression,
   createConditionalJSXExpression,
   getRepeatSourceIdentifier,
+  resolveGlobalStateName,
+  createGlobalStateExpression,
+  resolveAndRegisterGlobalStateSource,
 } from './utils'
 import {
   addChildJSXText,
@@ -36,10 +41,129 @@ import {
   addDynamicExpressionAttributeToJSXTag,
   resolveObjectValue,
   objectToObjectExpression,
+  parseStringWithTemplateExpressions,
+  parseJSExpressionAsAST,
+  convertToReactAttributeName,
+  GLOBAL_REF_ID_MAP,
+  sanitizeExprContent,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
 import { ASTBuilders, ASTUtils } from '../..'
+
+// Global references in the UIDL come in two shapes:
+// Shape A: { id: "ecommerce", refPath: ["Cart", "total"] }
+// Shape B: { id: undefined, refPath: ["E-commerce", "Settings", "Delivery", "..."] }
+// This helper normalizes Shape B into Shape A so downstream code can handle
+// both uniformly. The first refPath segment is mapped to a variable name via
+// GLOBAL_REF_ID_MAP (exported from ast-utils so all sites stay in sync).
+// Expression attributes (UIDLExpressionValue) bypass the dynamic-reference
+// tracking in createDynamicValueExpression. When such an expression mentions
+// a known global (currentUser/ecommerce/cart/locale/userIsLoggedIn) we still
+// Plan v15 Layer 4 — junk-name attribute guard.
+// AI fabrication artefacts emit attributes whose KEY is a JS literal
+// (`true="true"`, `false="false"`, `0="x"`, `null="..."`). They survive JSX
+// parsing (treated as string-valued attrs) but break DOM semantics. The
+// upstream Layer 1–3 pipeline should already strip them; this is the final
+// codegen safety net.
+const CODEGEN_JUNK_ATTR_NAMES: ReadonlySet<string> = new Set(['true', 'false', 'null', 'undefined'])
+
+function isJunkAttributeName(name: string): boolean {
+  if (typeof name !== 'string' || name.length === 0) {
+    return true
+  }
+  const lower = name.toLowerCase()
+  if (CODEGEN_JUNK_ATTR_NAMES.has(lower)) {
+    return true
+  }
+  if (/^[0-9]+$/.test(name)) {
+    return true
+  }
+  return false
+}
+
+function hasCorruptBindingMarkers(value: string): boolean {
+  // Entity-escaped `{` / `}` from upstream serialization that should never
+  // reach the JSX output verbatim.
+  if (/&#123;|&#125;/.test(value)) {
+    return true
+  }
+  // Unbalanced `{{` (no matching `}}`).
+  const opens = (value.match(/\{\{/g) || []).length
+  const closes = (value.match(/\}\}/g) || []).length
+  if (opens > closes) {
+    return true
+  }
+  return false
+}
+
+function truncate(value: string): string {
+  if (value.length <= 60) {
+    return value
+  }
+  return value.slice(0, 57) + '...'
+}
+
+// need to push it into params.globalReferences so downstream plugins inject
+// the corresponding `useGlobalContext()` destructuring.
+const GLOBAL_EXPRESSION_IDENTIFIERS: Array<{ pattern: RegExp; id: string }> = [
+  { pattern: /\bcurrentUser\b/, id: 'currentUser' },
+  { pattern: /\buserIsLoggedIn\b/, id: 'userIsLoggedIn' },
+  { pattern: /\becommerce\b/, id: 'ecommerce' },
+  { pattern: /\bcart\b/, id: 'cart' },
+  { pattern: /\blocales?\b/, id: 'locale' },
+]
+
+const trackGlobalRefsInExpression = (expression: string, params: JSXGenerationParams): void => {
+  if (!expression) {
+    return
+  }
+  for (const { pattern, id } of GLOBAL_EXPRESSION_IDENTIFIERS) {
+    if (pattern.test(expression)) {
+      params.globalReferences.push(id as Parameters<typeof params.globalReferences.push>[0])
+    }
+  }
+
+  // Global-state identifiers behave the same way: an expression-shaped UIDL
+  // attribute (e.g. cms-mixed-type `itemData`) bypasses the dynamic-ref
+  // pipeline that registers `useGlobalState()` destructuring, so we walk the
+  // raw expression text and re-attach any state name we recognise. The
+  // matched names are added to `globalStateReferences` and the
+  // next-global-state component plugin destructures them at codegen time.
+  const definitions = params.globalStateDefinitions
+  if (!definitions || Object.keys(definitions).length === 0) {
+    return
+  }
+  for (const def of Object.values(definitions)) {
+    const name = def?.name
+    if (!name) {
+      continue
+    }
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (new RegExp(`\\b${escaped}\\b`).test(expression)) {
+      params.globalStateReferences.push({ id: def.id, name })
+    }
+  }
+}
+
+const normalizeGlobalRef = <
+  T extends { content: { id: string; refPath?: string[]; referenceType: string } }
+>(
+  node: T
+): T => {
+  if (node.content.id || !node.content.refPath || node.content.refPath.length === 0) {
+    return node
+  }
+  const firstSeg = node.content.refPath[0]
+  const mappedId = GLOBAL_REF_ID_MAP[firstSeg]
+  if (!mappedId) {
+    return node
+  }
+  return {
+    ...node,
+    content: { ...node.content, id: mappedId, refPath: node.content.refPath.slice(1) },
+  }
+}
 
 const getElementType = (node: UIDLNode): string | null => {
   if (
@@ -66,6 +190,91 @@ const getClassName = (node: UIDLNode): string | null => {
     return (node.content as any).key || null
   }
   return null
+}
+
+const REACT_CHARTJS2_CHART_TAGS = new Set([
+  'Line',
+  'Bar',
+  'Doughnut',
+  'Pie',
+  'Radar',
+  'Bubble',
+  'PolarArea',
+  'Scatter',
+])
+
+const isReactChartjs2Chart = (
+  dependency: UIDLDependency | undefined,
+  elementType: string
+): boolean => {
+  if (dependency?.path !== 'react-chartjs-2') {
+    return false
+  }
+  return REACT_CHARTJS2_CHART_TAGS.has(elementType)
+}
+
+/**
+ * Chart.js with maintainAspectRatio:false fills the parent; if height is on the chart
+ * component via className, react-chartjs-2 may not apply it to the canvas host correctly
+ * inside flex layouts, causing unbounded growth. Wrap in a bounded div and move className
+ * to the wrapper; the chart fills with height/width 100%.
+ */
+const wrapReactChartJs2Element = (
+  chartElement: types.JSXElement,
+  _node: UIDLElementNode
+): types.JSXElement => {
+  const attrs = chartElement.openingElement.attributes
+  const kept: typeof attrs = []
+  let classNameAttr: types.JSXAttribute | null = null
+  for (const a of attrs) {
+    if (
+      a.type === 'JSXAttribute' &&
+      a.name.type === 'JSXIdentifier' &&
+      a.name.name === 'className'
+    ) {
+      classNameAttr = a
+    } else {
+      kept.push(a)
+    }
+  }
+  chartElement.openingElement.attributes = kept
+  const hasStyleAttr = kept.some(
+    (a) => a.type === 'JSXAttribute' && a.name.type === 'JSXIdentifier' && a.name.name === 'style'
+  )
+  if (!hasStyleAttr) {
+    chartElement.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('style'),
+        types.jsxExpressionContainer(
+          types.objectExpression([
+            types.objectProperty(types.identifier('height'), types.stringLiteral('100%')),
+            types.objectProperty(types.identifier('width'), types.stringLiteral('100%')),
+          ])
+        )
+      )
+    )
+  }
+
+  const wrapperStyle = types.objectExpression([
+    types.objectProperty(types.identifier('position'), types.stringLiteral('relative')),
+    types.objectProperty(types.identifier('minHeight'), types.numericLiteral(0)),
+    types.objectProperty(types.identifier('flexShrink'), types.numericLiteral(0)),
+    types.objectProperty(types.identifier('overflow'), types.stringLiteral('hidden')),
+  ])
+
+  const wrapperAttrs: types.JSXAttribute[] = [
+    types.jsxAttribute(types.jsxIdentifier('style'), types.jsxExpressionContainer(wrapperStyle)),
+  ]
+  if (classNameAttr) {
+    wrapperAttrs.push(classNameAttr)
+  }
+
+  return types.jsxElement(
+    types.jsxOpeningElement(types.jsxIdentifier('div'), wrapperAttrs),
+    types.jsxClosingElement(types.jsxIdentifier('div')),
+    [chartElement],
+    false
+  )
 }
 
 const reorderChildrenForSearch = (children: UIDLNode[]): UIDLNode[] => {
@@ -121,6 +330,131 @@ const reorderChildrenForSearch = (children: UIDLNode[]): UIDLNode[] => {
   } else {
     // No reordering needed - preserve original order
     return children
+  }
+}
+
+/**
+ * Extracts autocomplete context from a thq-autocomplete node's children.
+ * Returns the input's field name and the dropdown's isOpen state name,
+ * so child option/clear elements can wire up onClick handlers.
+ */
+const extractAutocompleteContext = (
+  children: UIDLNode[],
+  formStateName?: string
+): JSXGenerationParams['autocompleteContext'] => {
+  let fieldName: string | null = null
+  let inputHtmlId: string | null = null
+  let isOpenStateName: string | null = null
+
+  for (const child of children) {
+    if (child.type === 'element') {
+      const content = child.content as UIDLElement
+      // Check both original elementType and data-thq attr (elementType may have been resolved)
+      const dataThq = content.attrs?.['data-thq']
+      const thqValue = dataThq?.type === 'static' ? String(dataThq.content) : ''
+      if (
+        content.elementType === 'thq-autocomplete-input' ||
+        thqValue === 'thq-autocomplete-input'
+      ) {
+        const nameAttr = content.attrs?.name
+        if (nameAttr?.type === 'static' && typeof nameAttr.content === 'string') {
+          fieldName = nameAttr.content
+        }
+        const idAttr = content.attrs?.id
+        if (idAttr?.type === 'static' && typeof idAttr.content === 'string') {
+          inputHtmlId = idAttr.content
+        }
+      }
+    } else if (child.type === 'conditional') {
+      const condContent = child.content as UIDLConditionalNode['content']
+      const ref = (condContent as any).reference?.content
+      if (ref?.referenceType === 'state' && typeof ref.id === 'string') {
+        isOpenStateName = ref.id
+      }
+    }
+  }
+
+  if (fieldName && isOpenStateName) {
+    return { fieldName, inputHtmlId: inputHtmlId || '', formStateName, isOpenStateName }
+  }
+  return undefined
+}
+
+const maybeAddFormStoreFieldBinding = (
+  elementTag: types.JSXElement,
+  elementName: string,
+  attrs: UIDLElement['attrs'] | undefined,
+  params: JSXGenerationParams,
+  events?: UIDLElement['events']
+) => {
+  const stateKey = params.formStoreStateName
+  if (!stateKey || !attrs) {
+    return
+  }
+
+  const nameAttr = attrs.name
+  if (!nameAttr || nameAttr.type !== 'static' || typeof nameAttr.content !== 'string') {
+    return
+  }
+
+  const tag = elementName.toLowerCase()
+  const isRichTextEditor = tag === 'richtexteditor'
+  if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !isRichTextEditor) {
+    return
+  }
+
+  // Autocomplete inputs manage their own value through workflows and option onClick handlers.
+  // Do NOT bind them to the form store — it causes infinite loops with state-change workflows.
+  const dataThq = attrs['data-thq']
+  if (dataThq?.type === 'static' && String(dataThq.content) === 'thq-autocomplete-input') {
+    return
+  }
+
+  const fieldName = nameAttr.content
+  const stateId = types.identifier(stateKey)
+  const fieldAccess = types.memberExpression(stateId, types.stringLiteral(fieldName), true)
+
+  const typeAttr = attrs.type
+  const isCheckbox = typeAttr?.type === 'static' && String(typeAttr.content) === 'checkbox'
+
+  const hasValueInAttrs = Object.prototype.hasOwnProperty.call(attrs, 'value')
+  const hasCheckedInAttrs = Object.prototype.hasOwnProperty.call(attrs, 'checked')
+
+  if (isRichTextEditor) {
+    const valueForEditor = types.logicalExpression('||', fieldAccess, types.stringLiteral(''))
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('value'), types.jsxExpressionContainer(valueForEditor))
+    )
+    const setterName = `set${stateKey.charAt(0).toUpperCase()}${stateKey.slice(1)}`
+    const richHandler = parseJSExpressionAsAST(
+      `(html) => { ${setterName}(prev => ({ ...prev, ['${fieldName}']: html })); }`
+    )
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('onChange'), types.jsxExpressionContainer(richHandler))
+    )
+    return
+  }
+
+  if (!hasValueInAttrs && !isCheckbox) {
+    const valueExpr = types.logicalExpression('??', fieldAccess, types.stringLiteral(''))
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('value'), types.jsxExpressionContainer(valueExpr))
+    )
+  } else if (isCheckbox && !hasCheckedInAttrs) {
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('checked'), types.jsxExpressionContainer(fieldAccess))
+    )
+  }
+
+  const hasUidlOnChange = events && Object.prototype.hasOwnProperty.call(events, 'onChange')
+  if (!hasUidlOnChange) {
+    const setterName = `set${stateKey.charAt(0).toUpperCase()}${stateKey.slice(1)}`
+    const handler = parseJSExpressionAsAST(
+      `(e) => { const t = e.target; if (t.name) { ${setterName}(prev => ({ ...prev, [t.name]: t.type === 'checkbox' ? t.checked : t.value })); } }`
+    )
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('onChange'), types.jsxExpressionContainer(handler))
+    )
   }
 }
 
@@ -191,7 +525,13 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const elementTag = selfClosing ? createSelfClosingJSXTag(elementName) : createJSXTag(elementName)
 
   if (attrs) {
-    addAttributesToJSXTag(attrs, elementTag, options, params)
+    addAttributesToJSXTag(
+      attrs,
+      elementTag,
+      options,
+      params,
+      node.content.semanticType || elementType
+    )
   }
 
   if (events) {
@@ -200,12 +540,108 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     })
   }
 
+  // Generate onChange handler for form elements with data-store-values-state
+  let childParams = params
+  if (attrs?.['data-store-values-state']) {
+    const storeAttr = attrs['data-store-values-state']
+    if (storeAttr.type === 'static' && typeof storeAttr.content === 'string') {
+      const stateName = storeAttr.content
+      childParams = { ...params, formStoreStateName: stateName }
+      const setterName = `set${stateName.charAt(0).toUpperCase()}${stateName.slice(1)}`
+      const handler = parseJSExpressionAsAST(
+        `(e) => { const t = e.target; if (t.name && t.getAttribute('data-thq') !== 'thq-autocomplete-input') { ${setterName}(prev => ({ ...prev, [t.name]: t.type === 'checkbox' ? t.checked : t.value })); } }`
+      )
+      elementTag.openingElement.attributes.push(
+        types.jsxAttribute(types.jsxIdentifier('onChange'), types.jsxExpressionContainer(handler))
+      )
+    }
+  }
+
+  maybeAddFormStoreFieldBinding(elementTag, elementName, attrs, childParams, events)
+
+  // thq-autocomplete-input: make uncontrolled by converting `value` → `defaultValue`
+  // A controlled autocomplete input triggers state-change workflows on every keystroke,
+  // which normalizes the typed text and prevents free typing for search/filtering.
+  const dataThqAttr = attrs?.['data-thq']
+  const dataThqValue = dataThqAttr?.type === 'static' ? String(dataThqAttr.content) : ''
+
+  if (dataThqValue === 'thq-autocomplete-input') {
+    const jsxAttrs = elementTag.openingElement.attributes
+    const valueIdx = jsxAttrs.findIndex(
+      (a) => a.type === 'JSXAttribute' && a.name.type === 'JSXIdentifier' && a.name.name === 'value'
+    )
+    if (valueIdx !== -1) {
+      // Convert value → defaultValue so the input is uncontrolled but has initial value
+      const valueAttr = jsxAttrs[valueIdx] as types.JSXAttribute
+      jsxAttrs.splice(
+        valueIdx,
+        1,
+        types.jsxAttribute(types.jsxIdentifier('defaultValue'), valueAttr.value)
+      )
+    }
+  }
+
+  if (dataThqValue === 'thq-autocomplete' && children) {
+    const acCtx = extractAutocompleteContext(children, childParams.formStoreStateName)
+    if (acCtx) {
+      childParams = { ...childParams, autocompleteContext: acCtx }
+    }
+  }
+
+  // thq-autocomplete-option: add onClick to select the option value
+  if (dataThqValue === 'thq-autocomplete-option' && params.autocompleteContext) {
+    const { fieldName, formStateName, isOpenStateName, inputHtmlId } = params.autocompleteContext
+    const isOpenSetterName = `set${isOpenStateName.charAt(0).toUpperCase()}${isOpenStateName.slice(
+      1
+    )}`
+
+    let handlerCode: string
+    // The autocomplete input is uncontrolled, so always set the DOM value.
+    // If form-store mode, also update the form state for form submission.
+    const inputLookup = inputHtmlId
+      ? `document.getElementById('${inputHtmlId}')`
+      : `e.currentTarget.closest('[data-thq="thq-autocomplete"]').querySelector('[data-thq="thq-autocomplete-input"]')`
+    const formStoreUpdate = formStateName
+      ? `var setter = ${`set${formStateName.charAt(0).toUpperCase()}${formStateName.slice(
+          1
+        )}`}; setter(function(prev) { return Object.assign({}, prev, { ['${fieldName}']: text }); });`
+      : ''
+    handlerCode = `(e) => { var text = (e.currentTarget.textContent || '').trim(); var input = ${inputLookup}; if (input) { input.value = text; } ${formStoreUpdate} ${isOpenSetterName}(false); }`
+    const handler = parseJSExpressionAsAST(handlerCode)
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('onClick'), types.jsxExpressionContainer(handler))
+    )
+  }
+
+  // thq-autocomplete-clear: add onClick to clear the input value and close dropdown
+  if (dataThqValue === 'thq-autocomplete-clear' && params.autocompleteContext) {
+    const { fieldName, formStateName, isOpenStateName, inputHtmlId } = params.autocompleteContext
+    const isOpenSetterName = `set${isOpenStateName.charAt(0).toUpperCase()}${isOpenStateName.slice(
+      1
+    )}`
+
+    let handlerCode: string
+    const clearInputLookup = inputHtmlId
+      ? `document.getElementById('${inputHtmlId}')`
+      : `e.currentTarget.closest('[data-thq="thq-autocomplete"]').querySelector('[data-thq="thq-autocomplete-input"]')`
+    const clearFormStoreUpdate = formStateName
+      ? `var setter = ${`set${formStateName.charAt(0).toUpperCase()}${formStateName.slice(
+          1
+        )}`}; setter(function(prev) { return Object.assign({}, prev, { ['${fieldName}']: '' }); });`
+      : ''
+    handlerCode = `(e) => { var input = ${clearInputLookup}; if (input) { input.value = ''; } ${clearFormStoreUpdate} ${isOpenSetterName}(false); }`
+    const handler = parseJSExpressionAsAST(handlerCode)
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('onClick'), types.jsxExpressionContainer(handler))
+    )
+  }
+
   if (!selfClosing && children) {
     // Reorder children to ensure search nodes appear before DataProvider nodes
     const reorderedChildren = reorderChildrenForSearch(children)
 
     reorderedChildren.forEach((child) => {
-      const childTags = generateNode(child, params, options)
+      const childTags = generateNode(child, childParams, options)
       childTags.forEach((childTag) => {
         if (typeof childTag === 'string') {
           addChildJSXText(elementTag, childTag)
@@ -218,6 +654,12 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     })
   }
 
+  if (dependency && isReactChartjs2Chart(dependency, originalElementName)) {
+    const wrapped = wrapReactChartJs2Element(elementTag, node)
+    nodesLookup[key] = wrapped
+    return wrapped
+  }
+
   nodesLookup[key] = elementTag
   return elementTag
 }
@@ -228,7 +670,8 @@ const addAttributesToJSXTag = (
   attrs: UIDLElement['attrs'],
   elementTag: types.JSXElement,
   options: JSXGenerationOptions,
-  params: JSXGenerationParams
+  params: JSXGenerationParams,
+  elementName?: string
 ) => {
   Object.keys(attrs ?? {}).forEach((attrKey) => {
     const attributeValue = attrs[attrKey]
@@ -237,22 +680,92 @@ const addAttributesToJSXTag = (
       return
     }
 
+    // Skip code-gen directives - handled in generateElementNode
+    if (attrKey === 'data-store-values-state') {
+      return
+    }
+
+    // Plan v15 Layer 4 — codegen safety net.
+    //
+    // Drop attributes that look like AI fabrication artefacts even when the
+    // upstream pipeline missed them. These never produce valid DOM/JSX:
+    //   1. attr names that are pure JS literals (`true`, `false`, bare
+    //      numbers, `null`, `undefined`) — e.g. the `true="true"` that
+    //      shipped with the broken Navigation in the 2026-05-24 run.
+    //   2. static string values that contain entity-escaped binding markers
+    //      (`&#123;` / `&#125;`) — emitting them produces broken DOM text.
+    //   3. static string values that contain an UNBALANCED `{{` (no
+    //      matching `}}`) — always garbage, never valid.
+    if (isJunkAttributeName(attrKey)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[codegen safety net] dropping junk-name attribute "${attrKey}" on <${
+          elementName ?? 'element'
+        }>`
+      )
+      return
+    }
+    if (attributeValue.type === 'static') {
+      const staticContent = (attributeValue as { content?: unknown }).content
+      if (typeof staticContent === 'string' && hasCorruptBindingMarkers(staticContent)) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[codegen safety net] dropping attribute "${attrKey}" on <${
+            elementName ?? 'element'
+          }> — value has entity-escaped or truncated binding markers (${truncate(staticContent)})`
+        )
+        return
+      }
+    }
+
     switch (attributeValue.type) {
       case 'dynamic':
+        const dynamicRef = attributeValue as UIDLDynamicReference
         const {
           content: { referenceType },
-        } = attributeValue
+        } = dynamicRef
+
+        if (referenceType === 'global') {
+          const normRef = normalizeGlobalRef(dynamicRef)
+          params.globalReferences.push(
+            normRef.content.id as Parameters<typeof params.globalReferences.push>[0]
+          )
+          // Use the normalized ref to generate the attribute expression
+          const globalExpr = createDynamicValueExpression(normRef, options)
+          elementTag.openingElement.attributes.push(
+            types.jsxAttribute(
+              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxExpressionContainer(globalExpr)
+            )
+          )
+          break
+        }
+
+        if ((referenceType as string) === 'globalState') {
+          const gsName = resolveGlobalStateName(
+            dynamicRef.content.id,
+            params.globalStateDefinitions
+          )
+          params.globalStateReferences.push({ id: dynamicRef.content.id, name: gsName })
+          const expr = createGlobalStateExpression(dynamicRef as any, params.globalStateDefinitions)
+          elementTag.openingElement.attributes.push(
+            types.jsxAttribute(
+              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxExpressionContainer(expr)
+            )
+          )
+          break
+        }
 
         switch (referenceType) {
           default:
             const prefix =
-              options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
-            addDynamicAttributeToJSXTag(
-              elementTag,
-              attrKey,
-              (attributeValue as UIDLDynamicReference).content.id,
-              prefix
+              options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
+            const idWithPath = UIDLUtils.generateIdWithRefPath(
+              dynamicRef.content.id,
+              dynamicRef.content.refPath
             )
+            addDynamicAttributeToJSXTag(elementTag, attrKey, idWithPath, prefix)
 
             break
         }
@@ -260,15 +773,60 @@ const addAttributesToJSXTag = (
       case 'import':
         addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
         break
-      case 'raw':
+      case 'raw': {
+        const rawValue = attributeValue as UIDLRawValue
+        if (elementName === 'markdown-node') {
+          if (rawValue.dynamic) {
+            applyDynamicMarkdownInjection(elementTag, rawValue, params, options)
+          } else {
+            applyStaticMarkdownInjection(elementTag, rawValue, params)
+          }
+          break
+        }
+        if (elementName === 'rich-text-editor-node') {
+          applyRichTextEditorRawAttribute(elementTag, attrKey, rawValue, params, options)
+          break
+        }
+        if (rawValue.dynamic) {
+          applyDynamicHtmlInjection(elementTag, rawValue, params, options)
+          break
+        }
         addRawAttributeToJSXTag(elementTag, attrKey, attributeValue)
         break
+      }
       case 'comp-style':
-      case 'static':
         addAttributeToJSXTag(elementTag, attrKey, attributeValue.content)
+        break
+      case 'static':
+        if (
+          typeof attributeValue.content === 'object' &&
+          attributeValue.content !== null &&
+          !Array.isArray(attributeValue.content)
+        ) {
+          const constName = `__staticProp${params.hoistedConstants.length}`
+          const expression = objectToObjectExpression(
+            attributeValue.content as Record<string, unknown>
+          )
+          params.hoistedConstants.push({ name: constName, expression })
+          elementTag.openingElement.attributes.push(
+            types.jsxAttribute(
+              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxExpressionContainer(types.identifier(constName))
+            )
+          )
+        } else {
+          addAttributeToJSXTag(elementTag, attrKey, attributeValue.content)
+        }
         break
       case 'expr':
         addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
+        // Scan the *sanitized* content so any globals introduced by the
+        // repair (e.g. `/profile/${}` → `/profile/${currentUser?.id}`) still
+        // trigger the downstream useGlobalContext() wiring.
+        trackGlobalRefsInExpression(
+          sanitizeExprContent(String(attributeValue.content), attrKey),
+          params
+        )
         break
 
       case 'element':
@@ -302,17 +860,56 @@ const addAttributesToJSXTag = (
   })
 }
 
+/**
+ * Converts text containing {{ expr }} templates into a mix of JSX text and expression containers.
+ * e.g. "x{{ (state.score / 10) || '0' }}" → ["x", JSXExpressionContainer((score / 10) || '0')]
+ *
+ * Uses parseStringWithTemplateExpressions to parse the template into a TemplateLiteral AST,
+ * then converts its quasis (text parts) and expressions into JSX children.
+ */
+const convertTextTemplateToJSX = (text: string): JSXASTReturnType[] => {
+  try {
+    const templateLiteral = parseStringWithTemplateExpressions(text)
+    const result: JSXASTReturnType[] = []
+
+    for (let i = 0; i < templateLiteral.quasis.length; i++) {
+      const quasi = templateLiteral.quasis[i]
+      const textPart = quasi.value.cooked || quasi.value.raw
+      if (textPart) {
+        result.push(StringUtils.encode(textPart))
+      }
+      if (i < templateLiteral.expressions.length) {
+        result.push(
+          types.jsxExpressionContainer(templateLiteral.expressions[i] as types.Expression)
+        )
+      }
+    }
+
+    return result.length > 0 ? result : [StringUtils.encode(text)]
+  } catch {
+    // If parsing fails, fall back to encoded text
+    return [StringUtils.encode(text)]
+  }
+}
+
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, options) => {
   switch (node.type) {
     case 'expr':
       return [generateExpressionNode(node, params, options)]
 
-    case 'raw':
+    case 'raw': {
+      const rawNode = node as UIDLRawValue
+      if (rawNode.dynamic) {
+        const dynamicExpr = resolveDynamicReferenceExpression(rawNode.dynamic, params, options)
+        const fallback = rawNode.fallback || rawNode.content
+        return [ASTBuilders.createDynamicDOMInjectionNode(dynamicExpr, fallback)]
+      }
       return [
         options.domHTMLInjection
           ? options.domHTMLInjection(node.content.toString())
           : node.content.toString(),
       ]
+    }
 
     case 'inject':
       if (node?.dependency) {
@@ -320,8 +917,14 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
       }
       return [node.content.toString()]
 
-    case 'static':
-      return [StringUtils.encode(node.content.toString())]
+    case 'static': {
+      const textContent = node.content.toString()
+      // Check if the text contains {{ }} template expressions
+      if (/\{\{/.test(textContent)) {
+        return convertTextTemplateToJSX(textContent)
+      }
+      return [StringUtils.encode(textContent)]
+    }
 
     case 'dynamic':
       switch (node.content.referenceType) {
@@ -376,11 +979,24 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
         }
 
         case 'global': {
-          params.globalReferences.push(node.content.id)
-          return [createDynamicValueExpression(node, options)]
+          const globalNode = normalizeGlobalRef(node)
+          params.globalReferences.push(
+            globalNode.content.id as Parameters<typeof params.globalReferences.push>[0]
+          )
+          return [createDynamicValueExpression(globalNode, options)]
         }
 
         default:
+          if ((node.content.referenceType as string) === 'globalState') {
+            const gsName = resolveGlobalStateName(node.content.id, params.globalStateDefinitions)
+            params.globalStateReferences.push({ id: node.content.id, name: gsName })
+            return [
+              createGlobalStateExpression(
+                node as any,
+                params.globalStateDefinitions
+              ) as JSXASTReturnType,
+            ]
+          }
           return [createDynamicValueExpression(node, options)]
       }
 
@@ -398,7 +1014,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'data-source-list':
       return generateDataSourceNode(node, params, options)
 
-    case 'element':
+    case 'element': {
       // Check if this element node is wrapping a data-source node
       if (
         node.content &&
@@ -410,7 +1026,21 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
         // tslint:disable-next-line:no-any
         return generateDataSourceNode(node.content as any, params, options)
       }
-      return [generateElementNode(node, params, options)]
+      const elementTag = generateElementNode(node, params, options)
+      const renderingConditions = (node.content as UIDLElement | undefined)?.renderingConditions
+      if (renderingConditions) {
+        return [
+          wrapWithConditional(
+            elementTag,
+            renderingConditions.reference,
+            renderingConditions.condition,
+            params,
+            options
+          ),
+        ]
+      }
+      return [elementTag]
+    }
 
     case 'repeat':
       return generateRepeatNode(node, params, options)
@@ -573,7 +1203,10 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
         types.jsxExpressionContainer(
           types.arrowFunctionExpression(
             [types.identifier(renderPropIdentifier)],
-            generateNode(success, params, options)[0] as types.JSXElement
+            generateNode(success, params, {
+              ...options,
+              localIdentifier: renderPropIdentifier,
+            })[0] as types.JSXElement
           )
         )
       )
@@ -624,16 +1257,20 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     )
   }
 
-  if (initialData && initialData.content.referenceType === 'prop') {
+  if (initialData && initialData.content.referenceType) {
+    const refType = initialData.content.referenceType as 'prop' | 'state' | 'local'
+    const initialDataExpr =
+      refType === 'prop'
+        ? types.memberExpression(
+            types.identifier(options.dynamicReferencePrefixMap[refType]),
+            types.identifier(initialData.content.id)
+          )
+        : types.identifier(initialData.content.id)
+
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
-        types.jsxExpressionContainer(
-          types.memberExpression(
-            types.identifier(options.dynamicReferencePrefixMap[initialData.content.referenceType]),
-            types.identifier(initialData.content.id)
-          )
-        )
+        types.jsxExpressionContainer(initialDataExpr)
       )
     )
 
@@ -644,22 +1281,24 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       )
     )
 
-    let keyValue = 'props?.pagination?.page'
+    if (refType === 'prop') {
+      let keyValue = 'props?.pagination?.page'
 
-    if (node.type === 'cms-item') {
-      const { entityKeyProperty } = node.content
-      const entityName = initialData.content.id
-      keyValue = entityKeyProperty
-        ? `props?.${entityName}?.${entityKeyProperty}`
-        : `props?.${entityName}?.id`
-    }
+      if (node.type === 'cms-item') {
+        const { entityKeyProperty } = node.content
+        const entityName = initialData.content.id
+        keyValue = entityKeyProperty
+          ? `props?.${entityName}?.${entityKeyProperty}`
+          : `props?.${entityName}?.id`
+      }
 
-    cmsNode.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier('key'),
-        types.jsxExpressionContainer(types.identifier(keyValue))
+      cmsNode.openingElement.attributes.push(
+        types.jsxAttribute(
+          types.jsxIdentifier('key'),
+          types.jsxExpressionContainer(types.identifier(keyValue))
+        )
       )
-    )
+    }
   }
 
   if (Object.keys(resourceParams || {}).length > 0) {
@@ -767,7 +1406,17 @@ const generateDataSourceNode: NodeToJSX<
   )
 
   if (children && children.length > 0) {
-    const childrenNodes = children.flatMap((child) => generateNode(child, params, options))
+    // Pass the render prop identifier as the 'ctx' prefix for data source context references
+    // and as the localIdentifier so conditional nodes resolve local refs correctly
+    const childOptions = {
+      ...options,
+      localIdentifier: renderPropIdentifier,
+      dynamicReferencePrefixMap: {
+        ...options.dynamicReferencePrefixMap,
+        ctx: renderPropIdentifier,
+      },
+    }
+    const childrenNodes = children.flatMap((child) => generateNode(child, params, childOptions))
     const renderFunction = types.arrowFunctionExpression(
       [types.identifier(renderPropIdentifier)],
       types.jsxFragment(
@@ -888,6 +1537,34 @@ const generateDataSourceNode: NodeToJSX<
     )
   }
 
+  // Add initialData if the UIDL node has it (similar to CMS nodes)
+  // tslint:disable-next-line:no-any
+  const nodeInitialData = (node.content as any).initialData
+  if (nodeInitialData && nodeInitialData.content?.referenceType) {
+    const refType = nodeInitialData.content.referenceType as 'prop' | 'state' | 'local'
+    const initialDataExpr =
+      refType === 'prop'
+        ? types.memberExpression(
+            types.identifier(options.dynamicReferencePrefixMap[refType]),
+            types.identifier(nodeInitialData.content.id)
+          )
+        : types.identifier(nodeInitialData.content.id)
+
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(initialDataExpr)
+      )
+    )
+
+    dataSourceNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('persistDataDuringLoading'),
+        types.jsxExpressionContainer(types.booleanLiteral(true))
+      )
+    )
+  }
+
   params.nodesLookup[key] = dataSourceNode
   return [dataSourceNode]
 }
@@ -925,6 +1602,50 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
   )
 }
 
+// Shared between UIDLConditionalNode (wraps a child subtree) and the inline
+// `renderingConditions` property on UIDLElement content. Tracks global and
+// globalState references on params, resolves the condition identifier, and
+// builds the `condition && <content/>` logical expression.
+const wrapWithConditional = (
+  subTree: JSXASTReturnType,
+  reference: UIDLConditionalNode['content']['reference'],
+  condition: UIDLConditionalExpression,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+): types.LogicalExpression => {
+  if (
+    reference.type === 'dynamic' &&
+    'referenceType' in reference.content &&
+    reference.content.referenceType === 'global'
+  ) {
+    const normCondRef = normalizeGlobalRef(reference as any)
+    params.globalReferences.push(
+      normCondRef.content.id as Parameters<typeof params.globalReferences.push>[0]
+    )
+  }
+
+  if (
+    reference.type === 'dynamic' &&
+    'referenceType' in reference.content &&
+    (reference.content.referenceType as string) === 'globalState'
+  ) {
+    const gsName = resolveGlobalStateName(reference.content.id, params.globalStateDefinitions)
+    params.globalStateReferences.push({ id: reference.content.id, name: gsName })
+  }
+
+  const effectiveRef =
+    reference.type === 'dynamic' &&
+    'referenceType' in reference.content &&
+    reference.content.referenceType === 'global'
+      ? (normalizeGlobalRef(reference as any) as typeof reference)
+      : reference
+  const conditionIdentifier = createConditionIdentifier(effectiveRef, params, options)
+  return createConditionalJSXExpression(subTree, condition, conditionIdentifier, {
+    localIdentifier: options.localIdentifier,
+    detailsPageExposeAsName: options.detailsPageExposeAsName || params.detailsPageExposeAsName,
+  })
+}
+
 const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpression[]> = (
   node,
   params,
@@ -933,26 +1654,14 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   const { reference, value } = node.content
   const subTrees = generateNode(node.content.node, params, options)
 
-  // Track global references used in conditionals
-  if (
-    reference.type === 'dynamic' &&
-    'referenceType' in reference.content &&
-    reference.content.referenceType === 'global'
-  ) {
-    params.globalReferences.push(reference.content.id)
-  }
-
   const condition: UIDLConditionalExpression =
     value !== undefined && value !== null
       ? { conditions: [{ operand: value, operation: '===' }] }
       : node.content.condition
 
-  const conditionIdentifier = createConditionIdentifier(reference, params, options)
-  const conditionalExpressions: types.LogicalExpression[] = subTrees.map((subTree) =>
-    createConditionalJSXExpression(subTree, condition, conditionIdentifier)
+  return subTrees.map((subTree) =>
+    wrapWithConditional(subTree, reference, condition, params, options)
   )
-
-  return conditionalExpressions
 }
 
 const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXElement[]> = (
@@ -963,16 +1672,52 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.content.elementType)
   const repeaterNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
+  // When the repeater source is a global context like "ecommerce", resolve to
+  // the appropriate array from the ecommerce context based on what the repeater
+  // iterates over (determined by renderPropIdentifier).
+  let repeaterItemsExpr: types.Expression
+  const source = node.content.source ?? 'params'
+  if (source === 'ecommerce') {
+    const rpId = node.content.renderPropIdentifier || ''
+    // Map renderPropIdentifier to the correct ecommerce context path
+    const ecommercePathMap: Record<string, string[]> = {
+      paymentProvider: ['paymentProviders'],
+      storeLocation: ['storeLocations'],
+    }
+    // Default: cart items for orderItem, cartItem, or any unrecognized identifier
+    const path = ecommercePathMap[rpId] || ['Cart', 'items']
+
+    let expr: types.Expression = types.identifier('ecommerce')
+    for (const seg of path) {
+      expr = types.optionalMemberExpression(expr, types.identifier(seg), false, true)
+    }
+    repeaterItemsExpr = types.logicalExpression('||', expr, types.arrayExpression([]))
+    params.globalReferences.push('ecommerce' as Parameters<typeof params.globalReferences.push>[0])
+  } else {
+    // Resolve any global-state reference encoded in `source` and register it
+    // so the `next-global-state` component plugin destructures the matching
+    // identifier from `useGlobalState()`. Without this, sources emitted as
+    // either `<globalStateName> || []` (modern) or `globalState_<defId>`
+    // (legacy) compile to a `ReferenceError` at render time because the
+    // identifier never enters scope.
+    const resolvedSource = resolveAndRegisterGlobalStateSource(source, params)
+    repeaterItemsExpr = types.identifier(resolvedSource)
+  }
+
   repeaterNode.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('items'),
-      types.jsxExpressionContainer(types.identifier(node.content.source ?? 'params'))
+      types.jsxExpressionContainer(repeaterItemsExpr)
     )
   )
 
   const listElement = generateNode(node.content.nodes.list, params, {
     ...options,
     localIdentifier: node.content.renderPropIdentifier,
+    dynamicReferencePrefixMap: {
+      ...options.dynamicReferencePrefixMap,
+      ctx: node.content.renderPropIdentifier,
+    },
   })[0] as types.JSXElement
 
   // Create key as template literal: `${item?.id}${index}`
@@ -1099,4 +1844,200 @@ const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
   }
 
   return slotNode
+}
+
+const resolveDynamicReferenceExpression = (
+  dynamicRef: UIDLDynamicReference,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+): types.Expression => {
+  const { referenceType } = dynamicRef.content
+
+  if (referenceType === 'global') {
+    const normDynRef = normalizeGlobalRef(dynamicRef)
+    params.globalReferences.push(
+      normDynRef.content.id as Parameters<typeof params.globalReferences.push>[0]
+    )
+    return createDynamicValueExpression(normDynRef, options)
+  }
+
+  if ((referenceType as string) === 'globalState') {
+    const gsName = resolveGlobalStateName(dynamicRef.content.id, params.globalStateDefinitions)
+    params.globalStateReferences.push({ id: dynamicRef.content.id, name: gsName })
+    return createGlobalStateExpression(
+      dynamicRef as any,
+      params.globalStateDefinitions
+    ) as types.Expression
+  }
+
+  return createDynamicValueExpression(dynamicRef, options)
+}
+
+const applyDynamicHtmlInjection = (
+  elementTag: types.JSXElement,
+  rawValue: UIDLRawValue,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+) => {
+  const dynamicExpr = resolveDynamicReferenceExpression(rawValue.dynamic, params, options)
+  const fallbackContent = rawValue.fallback || rawValue.content
+  const fallbackExpr = types.stringLiteral(fallbackContent)
+  const valueExpr = types.logicalExpression('||', dynamicExpr, fallbackExpr)
+
+  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'span'
+  if (elementTag.closingElement) {
+    ;(elementTag.closingElement.name as types.JSXIdentifier).name = 'span'
+  }
+  elementTag.openingElement.selfClosing = true
+  elementTag.closingElement = null
+  elementTag.children = []
+
+  elementTag.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('dangerouslySetInnerHTML'),
+      types.jsxExpressionContainer(
+        types.objectExpression([types.objectProperty(types.identifier('__html'), valueExpr)])
+      )
+    )
+  )
+
+  Object.keys(params.dependencies).forEach((key) => {
+    if (params.dependencies[key]?.path?.includes('dangerous-html')) {
+      delete params.dependencies[key]
+    }
+  })
+}
+
+const applyStaticMarkdownInjection = (
+  elementTag: types.JSXElement,
+  rawValue: UIDLRawValue,
+  params: JSXGenerationParams
+) => {
+  const content = rawValue.content || ''
+
+  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'div'
+  elementTag.openingElement.selfClosing = true
+  elementTag.closingElement = null
+  elementTag.children = []
+
+  elementTag.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('dangerouslySetInnerHTML'),
+      types.jsxExpressionContainer(
+        types.objectExpression([
+          types.objectProperty(types.identifier('__html'), types.stringLiteral(content)),
+        ])
+      )
+    )
+  )
+
+  cleanupMarkdownMappingDependencies(params)
+}
+
+const applyDynamicMarkdownInjection = (
+  elementTag: types.JSXElement,
+  rawValue: UIDLRawValue,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+) => {
+  const dynamicExpr = resolveDynamicReferenceExpression(rawValue.dynamic, params, options)
+  const fallbackContent = rawValue.fallback || rawValue.content
+
+  const reactMarkdownTag = createJSXTag('ReactMarkdown')
+  addChildJSXTag(reactMarkdownTag, types.jsxExpressionContainer(types.cloneNode(dynamicExpr)))
+
+  const fallbackTag = ASTBuilders.createDOMInjectionNode(fallbackContent)
+
+  const conditionalExpr = types.conditionalExpression(dynamicExpr, reactMarkdownTag, fallbackTag)
+
+  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'div'
+  elementTag.openingElement.selfClosing = false
+  if (!elementTag.closingElement) {
+    elementTag.closingElement = types.jsxClosingElement(types.jsxIdentifier('div'))
+  } else {
+    ;(elementTag.closingElement.name as types.JSXIdentifier).name = 'div'
+  }
+  elementTag.children = [types.jsxExpressionContainer(conditionalExpr)]
+
+  cleanupMarkdownMappingDependencies(params)
+
+  params.dependencies.ReactMarkdown = {
+    type: 'package',
+    path: 'react-markdown',
+    version: '^8.0.7',
+  }
+}
+
+const cleanupMarkdownMappingDependencies = (params: JSXGenerationParams) => {
+  Object.keys(params.dependencies).forEach((key) => {
+    if (params.dependencies[key]?.path?.includes('markdown-to-jsx')) {
+      delete params.dependencies[key]
+    }
+  })
+}
+
+/**
+ * Handles raw attributes on a rich-text-editor-node element.
+ *
+ * - `html` attribute → becomes a `value` prop (static string or dynamic expression with fallback)
+ * - `quillFormats` attribute → parsed from JSON string into a JS array expression
+ */
+const applyRichTextEditorRawAttribute = (
+  elementTag: types.JSXElement,
+  attrKey: string,
+  rawValue: UIDLRawValue,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+) => {
+  if (attrKey === 'html' && params.formStoreStateName) {
+    return
+  }
+
+  if (attrKey === 'html') {
+    if (rawValue.dynamic) {
+      const dynamicExpr = resolveDynamicReferenceExpression(rawValue.dynamic, params, options)
+      const fallbackContent = rawValue.fallback || rawValue.content || ''
+      const valueExpr = types.logicalExpression(
+        '||',
+        dynamicExpr,
+        types.stringLiteral(fallbackContent)
+      )
+      elementTag.openingElement.attributes.push(
+        types.jsxAttribute(types.jsxIdentifier('value'), types.jsxExpressionContainer(valueExpr))
+      )
+    } else {
+      const content = rawValue.content || ''
+      addAttributeToJSXTag(elementTag, 'value', content)
+    }
+    return
+  }
+
+  if (attrKey === 'quillFormats') {
+    let formats: string[] | null = null
+    try {
+      const parsed = JSON.parse(rawValue.content)
+      if (Array.isArray(parsed)) {
+        formats = parsed
+      }
+    } catch {
+      // Parsing failed → don't add the attribute; component will use all formats
+    }
+
+    if (formats === null) {
+      // Parse failure or not an array → omit attribute so component uses all formats
+      return
+    }
+
+    const arrayExpr = types.arrayExpression(formats.map((f) => types.stringLiteral(f)))
+    elementTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('quillFormats'),
+        types.jsxExpressionContainer(arrayExpr)
+      )
+    )
+    return
+  }
+
+  // Any other raw attribute on rich-text-editor-node: fall through to default handling
+  addRawAttributeToJSXTag(elementTag, attrKey, rawValue)
 }

@@ -144,18 +144,6 @@ export const createJavaScriptDataSource = (id: string): UIDLDataSource => ({
   },
 })
 
-export const createStaticCollectionDataSource = (id: string): UIDLDataSource => ({
-  id,
-  name: 'Static Collection',
-  type: 'static-collection',
-  config: {
-    data: [
-      { id: 1, name: 'Item 1' },
-      { id: 2, name: 'Item 2' },
-    ],
-  },
-})
-
 export const createRedisDataSource = (id: string): UIDLDataSource => ({
   id,
   name: 'Redis',

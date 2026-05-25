@@ -6,6 +6,22 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 
+export const USE_ECOMMERCE_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '@/ecommerce-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
+export const USE_CART_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '@/ecommerce-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
   path: 'next-intl',
@@ -270,44 +286,69 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       useTranslationsInBody = true
     }
 
+    const globalCtxProperties: Set<string> = new Set()
+    let needsEcommerce = false
+    let needsCart = false
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
-      if (structure.dependencies.useGlobalContext) {
-        continue
-      }
-
       switch (globalRef) {
         case 'locale':
-        case 'locales': {
-          const variableDecleration = types.variableDeclaration('const', [
-            types.variableDeclarator(
-              types.objectPattern([
-                // For now, import both locale and locales, even if only one is used.
-                types.objectProperty(
-                  types.identifier('locale'),
-                  types.identifier('locale'),
-                  false,
-                  true
-                ),
-                types.objectProperty(
-                  types.identifier('locales'),
-                  types.identifier('locales'),
-                  false,
-                  true
-                ),
-              ]),
-              types.callExpression(types.identifier('useGlobalContext'), [])
-            ),
-          ])
-          reactHooks.push(variableDecleration)
-          structure.dependencies.useGlobalContext = {
-            ...USE_GLOBAL_CONTEXT_HOOK,
-          }
+        case 'locales':
+          globalCtxProperties.add('locale')
+          globalCtxProperties.add('locales')
           break
-        }
-
+        case 'currentUser':
+          globalCtxProperties.add('currentUser')
+          break
+        case 'userIsLoggedIn':
+          globalCtxProperties.add('userIsLoggedIn')
+          break
+        case 'ecommerce':
+          needsEcommerce = true
+          break
+        case 'cart':
+          needsCart = true
+          break
         default:
           break
       }
+    }
+
+    if (globalCtxProperties.size > 0 && !structure.dependencies.useGlobalContext) {
+      const destructuredProps = Array.from(globalCtxProperties).map((prop) =>
+        types.objectProperty(types.identifier(prop), types.identifier(prop), false, true)
+      )
+      const variableDecleration = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.objectPattern(destructuredProps),
+          types.callExpression(types.identifier('useGlobalContext'), [])
+        ),
+      ])
+      reactHooks.push(variableDecleration)
+      structure.dependencies.useGlobalContext = {
+        ...USE_GLOBAL_CONTEXT_HOOK,
+      }
+    }
+
+    if (needsEcommerce && !structure.dependencies.useEcommerce) {
+      const ecommerceHook = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('ecommerce'),
+          types.callExpression(types.identifier('useEcommerce'), [])
+        ),
+      ])
+      reactHooks.push(ecommerceHook)
+      structure.dependencies.useEcommerce = { ...USE_ECOMMERCE_HOOK }
+    }
+
+    if (needsCart && !needsEcommerce && !structure.dependencies.useCart) {
+      const cartHook = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('cart'),
+          types.callExpression(types.identifier('useCart'), [])
+        ),
+      ])
+      reactHooks.push(cartHook)
+      structure.dependencies.useCart = { ...USE_CART_HOOK }
     }
 
     // Transform language switcher links: <a href={X?.short}> → <Link href={router.asPath} locale={X?.short}><a>...</a></Link>

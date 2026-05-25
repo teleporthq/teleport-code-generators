@@ -145,7 +145,7 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const primarySort = parsedSorts[0]
         if (primarySort.field) {
-          const sortOrderValue = primarySort.order?.toLowerCase() === 'desc' ? -1 : 1
+          const sortOrderValue = (primarySort.order || '').toLowerCase().startsWith('desc') ? -1 : 1
           results.sort((a, b) => {
             const aVal = a[primarySort.field]
             const bVal = b[primarySort.field]
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
-      const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+      const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? -1 : 1
       results.sort((a, b) => {
         const aVal = a[sortBy]
         const bVal = b[sortBy]

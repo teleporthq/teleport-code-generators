@@ -54,11 +54,15 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     const jsxParams: JSXGenerationParams = {
       propDefinitions,
       stateDefinitions,
+      globalStateDefinitions: structure.options?.globalStateDefinitions || {},
       nodesLookup,
       dependencies,
       windowImports,
       localeReferences: [],
       globalReferences: [],
+      globalStateReferences: [],
+      hoistedConstants: [],
+      detailsPageExposeAsName: uidl.outputOptions?.initialPropsData?.exposeAs?.name,
     }
 
     const jsxOptions: JSXGenerationOptions = {
@@ -71,6 +75,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       stateHandling: 'hooks',
       slotHandling: 'props',
       domHTMLInjection: (content: string) => ASTBuilders.createDOMInjectionNode(content),
+      detailsPageExposeAsName: uidl.outputOptions?.initialPropsData?.exposeAs?.name,
     }
 
     /*
@@ -84,15 +89,126 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       }
     }
 
+    const objectStateGlobalRefs = ASTUtils.collectGlobalReferencesFromObjectStates(stateDefinitions)
+    objectStateGlobalRefs.forEach((ref) => {
+      jsxParams.globalReferences.push(ref as any)
+    })
+
+    const objectStateGlobalStateRefs =
+      ASTUtils.collectGlobalStateReferencesFromObjectStates(stateDefinitions)
+    objectStateGlobalStateRefs.forEach((ref) => {
+      const definitions = structure.options?.globalStateDefinitions || {}
+      let name = ref.id
+      for (const def of Object.values(definitions)) {
+        if (def.id === ref.id) {
+          name = def.name
+          break
+        }
+      }
+      jsxParams.globalStateReferences.push({ id: ref.id, name })
+    })
+
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
+
+    // Chart.js v3+ requires explicit registration of scales, elements, and plugins.
+    // When react-chartjs-2 is used, we need to add the registration code.
+    const usedChartComponents: string[] = []
+    Object.keys(dependencies).forEach((dep) => {
+      if (dependencies[dep]?.path === 'react-chartjs-2') {
+        usedChartComponents.push(dep)
+      }
+    })
+
+    if (usedChartComponents.length > 0) {
+      const chartRegistrations = [
+        'CategoryScale',
+        'LinearScale',
+        'PointElement',
+        'LineElement',
+        'BarElement',
+        'ArcElement',
+        'Title',
+        'Tooltip',
+        'Legend',
+        'Filler',
+      ]
+      dependencies.ChartJS = {
+        type: 'package',
+        path: 'chart.js',
+        version: '^4.0.0',
+        meta: {
+          namedImport: true,
+          originalName: 'Chart',
+        },
+      }
+      chartRegistrations.forEach((reg) => {
+        dependencies[reg] = {
+          type: 'package',
+          path: 'chart.js',
+          version: '^4.0.0',
+          meta: {
+            namedImport: true,
+          },
+        }
+      })
+    }
 
     const componentName = UIDLUtils.getComponentClassName(uidl)
     const pureComponent = ASTUtils.createPureComponent(
       componentName,
       stateDefinitions,
       jsxTagStructure,
-      windowImports
+      windowImports,
+      jsxOptions.dynamicReferencePrefixMap
     )
+
+    // Add Chart.js registration call after imports
+    if (usedChartComponents.length > 0) {
+      const chartRegistrations = [
+        'CategoryScale',
+        'LinearScale',
+        'PointElement',
+        'LineElement',
+        'BarElement',
+        'ArcElement',
+        'Title',
+        'Tooltip',
+        'Legend',
+        'Filler',
+      ]
+      const registerCall = types.expressionStatement(
+        types.callExpression(
+          types.memberExpression(types.identifier('ChartJS'), types.identifier('register')),
+          chartRegistrations.map((r) => types.identifier(r))
+        )
+      )
+      structure.chunks.push({
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        name: 'chart-registration',
+        content: registerCall,
+        linkAfter: [importChunkName],
+      })
+    }
+
+    // Hoist static object attributes as module-level constants to prevent
+    // unnecessary re-renders (new object references on each render)
+    if (jsxParams.hoistedConstants.length > 0) {
+      const declarations = jsxParams.hoistedConstants.map((c) =>
+        types.variableDeclaration('const', [
+          types.variableDeclarator(types.identifier(c.name), c.expression),
+        ])
+      )
+      declarations.forEach((decl, i) => {
+        structure.chunks.push({
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          name: `hoisted-constant-${i}`,
+          content: decl,
+          linkAfter: [importChunkName],
+        })
+      })
+    }
 
     if (dependencies?.useRouter) {
       const routerAST = types.variableDeclaration('const', [
@@ -121,6 +237,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
         dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
         localeReferences: jsxParams.localeReferences,
         globalReferences: jsxParams.globalReferences,
+        globalStateReferences: jsxParams.globalStateReferences,
       },
       content: pureComponent,
       linkAfter: [importChunkName],

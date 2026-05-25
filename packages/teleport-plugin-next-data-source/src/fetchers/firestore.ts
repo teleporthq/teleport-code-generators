@@ -150,12 +150,12 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         parsedSorts.forEach((sort) => {
           if (!sort.field) return
-          const order = sort.order?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+          const order = (sort.order || '').toLowerCase().startsWith('desc') ? 'desc' : 'asc'
           queryRef = queryRef.orderBy(sort.field, order)
         })
       }
     } else if (sortBy) {
-      const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+      const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? 'desc' : 'asc'
       queryRef = queryRef.orderBy(sortBy, sortOrderValue)
     }
     

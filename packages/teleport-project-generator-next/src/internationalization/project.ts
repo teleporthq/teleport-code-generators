@@ -6,6 +6,7 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
   ProjectUIDL,
+  UIDLCustomUserProperty,
 } from '@teleporthq/teleport-types'
 
 const findFileInBuild = (
@@ -55,15 +56,65 @@ const generateJsConfigFile = () => {
 }`
 }
 
+const generatePickUserEntries = (customProps: UIDLCustomUserProperty[]): string => {
+  if (customProps.length === 0) {
+    return ''
+  }
+  return (
+    ', ' + customProps.map((p) => `${p.key}: u.${p.key} != null ? u.${p.key} : null`).join(', ')
+  )
+}
+
 const generateGlobalContextFileContent = (
   locales: Record<string, string>,
   main: {
     name: string
     locale: string
-  }
+  },
+  authEnabled?: boolean,
+  customUserProperties?: UIDLCustomUserProperty[]
 ) => {
   const localesArray = Object.keys(locales).map((key) => ({ name: locales[key], short: key }))
   const currentLocale = localesArray.find((locale) => locale.short === main.locale)
+  const customEntries = generatePickUserEntries(customUserProperties || [])
+
+  const authState = authEnabled
+    ? `
+  const [currentUser, setCurrentUser] = useState(null)
+
+  const pickUser = (u) => {
+    if (!u) return null
+    return { id: u.id || null, name: u.name || null, email: u.email || null, emailVerified: u.emailVerified || null, image: u.image || null, role: u.role || null${customEntries} }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/auth/session')
+      .then((res) => res.ok ? res.json() : null)
+      .then((session) => {
+        if (!cancelled && session && session.user) {
+          setCurrentUser(pickUser(session.user))
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const handler = (e) => {
+      setCurrentUser(e.detail && e.detail.user ? pickUser(e.detail.user) : null)
+    }
+    window.addEventListener('teleport:auth-user-changed', handler)
+    return () => window.removeEventListener('teleport:auth-user-changed', handler)
+  }, [])
+`
+    : ''
+
+  const authValueEntries = authEnabled
+    ? `\n      currentUser,\n      setCurrentUser,\n      userIsLoggedIn: currentUser !== null,`
+    : ''
+  const authMemoEntries = authEnabled ? ', currentUser' : ''
+
   return `
 import { createContext, useMemo, useContext, useState, useEffect } from 'react'
 import { useLocale } from "next-intl";
@@ -83,15 +134,15 @@ export const GlobalProvider = ({ initialLocales, children }) => {
     const currentLangValue = locales.find((el) => el.short === localeValue)
     setLocale(currentLangValue)
   }, [locales, localeValue])
-
+${authState}
   const value = useMemo(() => {
     return {
       locales,
       locale,
       setLocales,
-      setLocale
+      setLocale,${authValueEntries}
     }
-  }, [locales, locale])
+  }, [locales, locale${authMemoEntries}])
 
   return (
     <GlobalContext.Provider value={value}>
@@ -256,6 +307,25 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
   i18n: {
     locales: [${languageKeys.map((key) => `'${key}'`).join(', ')}],
     defaultLocale: "${main.locale}",${ignoreBrowserLanguage ? '\n    localeDetection: false,' : ''}
+  },
+  webpack: (config, { isServer }) => {
+    // Generated data-source modules (utils/data-sources/*.js) import Node-only
+    // packages like 'pg'. When a page only uses them server-side (getStaticProps
+    // / API routes) Next.js normally tree-shakes them from the client bundle,
+    // but if a dead import sneaks into a page the client build tries to resolve
+    // 'fs', 'net', etc. and fails. Stub these on the client so the build
+    // succeeds and the modules remain server-only at runtime.
+    if (!isServer) {
+      config.resolve.fallback = Object.assign({}, config.resolve.fallback, {
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        child_process: false,
+        'pg-native': false,
+      })
+    }
+    return config
   }
 }`
       const existingNextConfig =
@@ -295,7 +365,14 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
       }
     }
 
-    const globalContextFile = generateGlobalContextFileContent(languages, main)
+    const authEnabled = !!uidl.authentication?.enabled
+    const customUserProperties = uidl.authentication?.customUserProperties || []
+    const globalContextFile = generateGlobalContextFileContent(
+      languages,
+      main,
+      authEnabled,
+      customUserProperties
+    )
     files.set('global-context.js', {
       path: [],
       files: [

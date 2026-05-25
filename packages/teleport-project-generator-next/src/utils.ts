@@ -46,6 +46,10 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   }
 
   meta.forEach((metaItem) => {
+    // Next.js warns against placing viewport meta tags in _document.js's <Head>
+    if (metaItem.name === 'viewport') {
+      return
+    }
     const metaTag = ASTBuilders.createJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
       const metaValue = UIDLUtils.prefixAssetsPath(metaItem[key], options.assets)

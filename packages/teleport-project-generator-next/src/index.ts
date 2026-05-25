@@ -18,12 +18,26 @@ import {
 import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
+import { createStateDataSourcePlugin } from './state-data-source-plugin'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
+import { createNextUrlSearchParamsPlugin } from './url-search-params-plugin'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
+import { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
+import {
+  createNextWorkflowPlugin,
+  NextWorkflowProjectPlugin,
+} from '@teleporthq/teleport-plugin-next-workflows'
+import { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
+import { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
+import { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
+import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
+import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
+import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
+import { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -42,10 +56,26 @@ const createNextProjectGenerator = () => {
   const nextPageInlineFetchPlugin = createNextPagesInlineFetchPlugin()
   const nextComponentDataSourcePlugin = createNextComponentDataSourcePlugin()
   const nextPagesDataSourcePlugin = createNextPagesDataSourcePlugin()
+  const stateDataSourcePlugin = createStateDataSourcePlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
+  const nextUrlSearchParamsPlugin = createNextUrlSearchParamsPlugin()
   const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
   const nextFormSubmissionPlugin = createNextFormSubmissionPlugin()
   const dataSourceDependenciesPlugin = new NextDataSourceDependenciesPlugin()
+  const dataSourceUtilityPlugin = new NextDataSourceUtilityPlugin()
+  const nextComponentWorkflowPlugin = createNextWorkflowPlugin({ isPage: false })
+  const nextPageWorkflowPlugin = createNextWorkflowPlugin({ isPage: true })
+  const workflowProjectPlugin = new NextWorkflowProjectPlugin()
+  const globalStateComponentPlugin = createNextGlobalStateComponentPlugin()
+  const globalStateProjectPlugin = new NextGlobalStateProjectPlugin()
+  const aiChatProjectPlugin = new NextAIChatProjectPlugin()
+  const ecommerceProjectPlugin = new NextEcommerceProjectPlugin()
+  const dashboardLayoutPlugin = new NextDashboardLayoutPlugin()
+  const richTextEditorProjectPlugin = new NextRichTextEditorProjectPlugin()
+  const richTextEditorPagePlugin = createRichTextEditorComponentPlugin({ basePath: ['pages'] })
+  const richTextEditorComponentPlugin = createRichTextEditorComponentPlugin({
+    basePath: ['components'],
+  })
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
@@ -57,7 +87,11 @@ const createNextProjectGenerator = () => {
         nextComponentInlineFetchPlugin,
         nextComponentDataSourcePlugin,
         nextInternationalizationPlugin,
+        nextUrlSearchParamsPlugin,
         nextFormSubmissionPlugin,
+        nextComponentWorkflowPlugin,
+        globalStateComponentPlugin,
+        richTextEditorComponentPlugin,
       ],
       mappings: [NextProjectMapping],
       path: ['components'],
@@ -71,10 +105,15 @@ const createNextProjectGenerator = () => {
         getStaticPropsPlugin,
         getStaticPathsPlugin,
         nextInternationalizationPlugin,
+        nextUrlSearchParamsPlugin,
         nextPageInlineFetchPlugin,
         nextPagesDataSourcePlugin,
+        stateDataSourcePlugin,
         nextLocaleFetcherPlugin,
         nextFormSubmissionPlugin,
+        nextPageWorkflowPlugin,
+        globalStateComponentPlugin,
+        richTextEditorPagePlugin,
         importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -119,16 +158,31 @@ const createNextProjectGenerator = () => {
     },
   })
 
-  // Add data source dependencies plugin to handle package.json dependencies
   generator.addPlugin(dataSourceDependenciesPlugin)
+  generator.addPlugin(dataSourceUtilityPlugin)
+  generator.addPlugin(workflowProjectPlugin)
+  generator.addPlugin(ecommerceProjectPlugin)
+  generator.addPlugin(globalStateProjectPlugin)
+  generator.addPlugin(aiChatProjectPlugin)
+  generator.addPlugin(dashboardLayoutPlugin)
+  generator.addPlugin(richTextEditorProjectPlugin)
 
   return generator
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
+export { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
+export { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
+export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
+export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
+export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
+export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
+export { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
 export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
+export { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
+export { NextWorkflowProjectPlugin } from '@teleporthq/teleport-plugin-next-workflows'
 export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 export { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 export { createNextFormSubmissionPlugin } from './forms/form-submission-handler'

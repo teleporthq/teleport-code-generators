@@ -1,7 +1,7 @@
 import * as types from '@babel/types'
 import { parse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLStateDefinition,
   UIDLPropDefinition,
@@ -16,6 +16,34 @@ import {
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
 import { UnaryOperation, BinaryOperator } from './types'
+
+/**
+ * Converts HTML attribute names to React/JSX camelCase format
+ * Preserves data-* and aria-* attributes as-is
+ */
+export const convertToReactAttributeName = (attrName: string): string => {
+  if (attrName.startsWith('data-') || attrName.startsWith('aria-')) {
+    return attrName
+  }
+
+  const htmlToReact: Record<string, string> = {
+    colspan: 'colSpan',
+    rowspan: 'rowSpan',
+    maxlength: 'maxLength',
+    minlength: 'minLength',
+    readonly: 'readOnly',
+    autocomplete: 'autoComplete',
+    autofocus: 'autoFocus',
+    tabindex: 'tabIndex',
+    contenteditable: 'contentEditable',
+    spellcheck: 'spellCheck',
+  }
+  if (htmlToReact[attrName]) {
+    return htmlToReact[attrName]
+  }
+
+  return attrName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+}
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -111,13 +139,14 @@ export const addDynamicAttributeToJSXTag = (
   prefix: string = '',
   t = types
 ) => {
+  const reactName = convertToReactAttributeName(name)
   const content =
     prefix === ''
       ? t.identifier(value)
       : t.memberExpression(t.identifier(prefix), t.identifier(value))
 
   jsxASTNode.openingElement.attributes.push(
-    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
+    t.jsxAttribute(t.jsxIdentifier(reactName), t.jsxExpressionContainer(content))
   )
 }
 
@@ -127,6 +156,53 @@ export const addDynamicAttributeToJSXTag = (
  * the corresponding value from the contexts for now
  * and in the future with other sources.
  */
+/**
+ * UIDL `expr` values are opaque JavaScript expressions, but authoring tools
+ * (notably Teleport-GUI while the differentiator-navlink contract is mid-
+ * migration) occasionally emit malformed template literals with empty
+ * substitutions like `` `/profile/${}` ``. Babel rejects these and the whole
+ * generation run fails.
+ *
+ * We only repair a narrow set of known-safe patterns to avoid silently
+ * masking real UIDL bugs:
+ *   1. `/profile/${}`  → `/profile/${currentUser?.id}` (My Profile navlink
+ *                         per the dual-mode profile page contract).
+ *   2. any remaining empty `${}` → `${''}` — at least the output parses and
+ *      the placeholder is visibly empty at runtime.
+ * Each repair logs a warning so the upstream UIDL bug remains visible.
+ */
+export const sanitizeExprContent = (content: string, attrKey?: string): string => {
+  if (typeof content !== 'string' || !content.includes('${}')) {
+    return content
+  }
+
+  let repaired = content
+
+  // My Profile navlink: the differentiator is always the session user's id.
+  repaired = repaired.replace(
+    /`([^`]*\/profile\/)\$\{\}([^`]*)`/g,
+    '`$1' + '$' + '{' + 'currentUser?.id}' + '$2`'
+  )
+
+  // Generic fallback: any other empty `${}` becomes an empty string literal so
+  // downstream Babel parsing succeeds. This is intentionally lossy — the goal
+  // is not to guess the original intent, just to keep the build from crashing.
+  if (repaired.includes('${}')) {
+    repaired = repaired.replace(/\$\{\}/g, '$' + '{' + "'" + "'" + '}')
+  }
+
+  if (repaired !== content) {
+    // tslint:disable-next-line:no-console
+    console.warn(
+      `[teleport] Repaired malformed empty template substitution in expr${
+        attrKey ? ` attribute "${attrKey}"` : ''
+      }: ${content} → ${repaired}`
+    )
+  }
+
+  return repaired
+}
+
 export const addDynamicExpressionAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
   dynamicRef: UIDLExpressionValue,
@@ -138,7 +214,7 @@ export const addDynamicExpressionAttributeToJSXTag = (
     throw new Error(`This method only works with dynamic nodes that have code expressions`)
   }
 
-  const code = dynamicContent
+  const code = sanitizeExprContent(dynamicContent, attrKey)
   const options = {
     sourceType: 'module' as const,
   }
@@ -157,10 +233,33 @@ export const addDynamicExpressionAttributeToJSXTag = (
     throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
   }
 
+  let expression = theStatementOnlyWihtoutTheProgram.expression
+
+  // When an expression accesses `.value` on a simple identifier (e.g. `galleryImage?.value`),
+  // wrap it with a typeof check so that if the item is already a string we use it directly:
+  // `typeof galleryImage === 'string' ? galleryImage : galleryImage?.value`
+  if (
+    (expression.type === 'OptionalMemberExpression' || expression.type === 'MemberExpression') &&
+    expression.object.type === 'Identifier' &&
+    expression.property.type === 'Identifier' &&
+    expression.property.name === 'value'
+  ) {
+    const varName = expression.object.name
+    expression = t.conditionalExpression(
+      t.binaryExpression(
+        '===',
+        t.unaryExpression('typeof', t.identifier(varName)),
+        t.stringLiteral('string')
+      ),
+      t.identifier(varName),
+      expression
+    )
+  }
+
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(
-      t.jsxIdentifier(attrKey),
-      t.jsxExpressionContainer(theStatementOnlyWihtoutTheProgram.expression)
+      t.jsxIdentifier(convertToReactAttributeName(attrKey)),
+      t.jsxExpressionContainer(expression)
     )
   )
 }
@@ -224,18 +323,115 @@ export const stringAsTemplateLiteral = (str: string): types.TemplateLiteral => {
 }
 
 /**
- * Converts HTML attribute names to React/JSX camelCase format
- * Preserves data-* and aria-* attributes as-is
+ * Checks if a string contains {{ expression }} template patterns
  */
-const convertToReactAttributeName = (attrName: string): string => {
-  // Keep data-* and aria-* attributes as-is (React supports these)
-  if (attrName.startsWith('data-') || attrName.startsWith('aria-')) {
-    return attrName
+export const containsTemplateExpression = (str: string): boolean => {
+  return /\{\{.+?\}\}/.test(str)
+}
+
+/**
+ * Parses a JavaScript expression string into an AST Expression node.
+ * e.g. "item.type || 'coin'" → LogicalExpression AST
+ */
+export const parseJSExpressionAsAST = (expr: string): types.Expression => {
+  const ast = parse(`(${expr})`, {
+    sourceType: 'module',
+  })
+
+  if (!ast || !('program' in ast)) {
+    throw new Error(`Failed to parse expression: ${expr}`)
   }
 
-  // Convert hyphenated attributes to camelCase for React
-  return attrName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+  return (ast.program.body[0] as types.ExpressionStatement).expression
 }
+
+/**
+ * Parses a string containing {{ expr }} template patterns into a TemplateLiteral AST node.
+ * e.g. "translate({{ enemy.x || '0' }}px)" → `translate(${enemy.x || '0'}px)`
+ */
+export const parseStringWithTemplateExpressions = (str: string): types.TemplateLiteral => {
+  // Step 1: Normalize state references: state.xxx → xxx
+  const normalized = str.replace(/state\.(\w+)/g, '$1')
+
+  // Step 2: Convert well-formed {{ expr }} to ${expr}
+  let templateStr = normalized.replace(
+    /\{\{\s*(.+?)\s*\}\}/g,
+    (_, expr: string) => '${' + expr.trim() + '}'
+  )
+
+  // Step 3: Handle unclosed {{ expr (no closing }})
+  // After step 2, any remaining {{ was not well-formed
+  if (/\{\{/.test(templateStr)) {
+    templateStr = templateStr.replace(
+      /\{\{\s*(.+?)$/gm,
+      (_, expr: string) => '${' + expr.trim() + '}'
+    )
+  }
+
+  // Step 4: Detect and fix incomplete CSS function calls
+  // If the original string contained a CSS function like translateX(...) or translate(...)
+  // but the template expression consumed the closing, we need to re-close it.
+  const openParens = (templateStr.match(/\(/g) || []).length
+  const closeParens = (templateStr.match(/\)/g) || []).length
+  if (openParens > closeParens) {
+    // Determine the CSS unit by:
+    // 1. Looking for existing units already in the string (e.g. "translate(${x}px, ${y" → px)
+    // 2. Inferring from the CSS function name
+    const existingUnit = templateStr.match(/(px|deg|em|rem|%|vh|vw)[),\s]/)
+    let unit = 'px' // default
+    if (existingUnit) {
+      unit = existingUnit[1]
+    } else {
+      // Infer unit from the CSS function name
+      const fnMatch = templateStr.match(/\b(rotate|skew|skewX|skewY)\s*\(/)
+      if (fnMatch) {
+        unit = 'deg'
+      }
+      const noUnitFns = /\b(scale|scaleX|scaleY|scale3d|opacity)\s*\(/
+      if (noUnitFns.test(templateStr)) {
+        unit = ''
+      }
+    }
+
+    const missingCloses = openParens - closeParens
+    templateStr += unit + ')'.repeat(missingCloses)
+  }
+
+  const ast = parse('const x = `' + templateStr + '`', {
+    sourceType: 'module',
+  })
+
+  if (!ast || !('program' in ast)) {
+    throw new Error(`Failed to parse template expression: ${str}`)
+  }
+
+  const decl = ast.program.body[0] as types.VariableDeclaration
+  return decl.declarations[0].init as types.TemplateLiteral
+}
+
+const REACT_BOOLEAN_DOM_PROPS = new Set([
+  'disabled',
+  'required',
+  'readOnly',
+  'checked',
+  'multiple',
+  'hidden',
+  'autoFocus',
+  'muted',
+  'loop',
+  'playsInline',
+  'controls',
+  'async',
+  'defer',
+  'inert',
+  'scoped',
+  'reversed',
+  'allowFullScreen',
+  'defaultChecked',
+  'selected',
+  'formNoValidate',
+  'noValidate',
+])
 
 export const addAttributeToJSXTag = (
   jsxNode: types.JSXElement,
@@ -246,17 +442,27 @@ export const addAttributeToJSXTag = (
   const reactAttrName = convertToReactAttributeName(attrName)
   const nameOfAttribute = t.jsxIdentifier(reactAttrName)
   let attributeDefinition
-  if (typeof attrValue === 'boolean') {
+  let normalizedValue: boolean | unknown = attrValue
+  if (
+    typeof attrValue === 'string' &&
+    (attrValue === 'true' || attrValue === 'false') &&
+    REACT_BOOLEAN_DOM_PROPS.has(reactAttrName)
+  ) {
+    normalizedValue = attrValue === 'true'
+  }
+  if (typeof normalizedValue === 'boolean') {
     attributeDefinition = t.jsxAttribute(
       nameOfAttribute,
-      attrValue === true ? undefined : t.jsxExpressionContainer(t.booleanLiteral(attrValue))
+      normalizedValue === true
+        ? undefined
+        : t.jsxExpressionContainer(t.booleanLiteral(normalizedValue))
     )
   } else if (t.isNode(attrValue) && t.isJSXElement(attrValue)) {
     attributeDefinition = t.jsxAttribute(nameOfAttribute, t.jsxExpressionContainer(attrValue))
   } else {
     attributeDefinition = t.jsxAttribute(
       nameOfAttribute,
-      getProperAttributeValueAssignment(attrValue)
+      getProperAttributeValueAssignment(normalizedValue)
     )
   }
 
@@ -294,12 +500,12 @@ export const addRawAttributeToJSXTag = (
  * equivalent
  */
 const getProperAttributeValueAssignment = (value: string | unknown, t = types) => {
-  if (!value) {
-    return null
-  }
-
   if (typeof value === 'string') {
     return t.stringLiteral(StringUtils.encode(value))
+  }
+
+  if (!value && value !== 0 && value !== false) {
+    return null
   }
 
   return t.jsxExpressionContainer(convertValueToLiteral(value))
@@ -413,7 +619,25 @@ export const convertValueToLiteral = (
     return t.arrayExpression(value.map((val) => convertValueToLiteral(val)))
   }
 
-  const typeToCompare = explicitType ? explicitType : typeof value
+  if (explicitType === 'array' && typeof value === 'object' && value !== null) {
+    const arr = Object.keys(value)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((key) => convertValueToLiteral(value[key]))
+    return t.arrayExpression(arr)
+  }
+
+  // When the explicit type is 'array' or 'object' but the value is a JSON string, parse it first
+  if ((explicitType === 'array' || explicitType === 'object') && typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return convertValueToLiteral(parsed, explicitType, t)
+    } catch {
+      // If parsing fails, fall through to treat as a regular string
+    }
+  }
+
+  const actualType = typeof value
+  const typeToCompare = explicitType && explicitType === actualType ? explicitType : actualType
   switch (typeToCompare) {
     case 'string':
       return t.stringLiteral(value)
@@ -471,6 +695,7 @@ export const createClassComponent = (
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
+  dynamicReferencePrefixMap?: { prop: string; state: string; local: string },
   t = types
 ) => {
   // TODO: Add event handlers as separate functions later
@@ -484,6 +709,20 @@ export const createClassComponent = (
   if (Object.keys(stateDefinitions).length > 0) {
     const stateDeclarationsAST = Object.keys(stateDefinitions).map((stateKey) => {
       const stateDefinition = stateDefinitions[stateKey]
+      if (
+        stateDefinition.type === 'object' &&
+        dynamicReferencePrefixMap &&
+        isObjectStateWithEntries(stateDefinition)
+      ) {
+        return t.objectProperty(
+          t.identifier(stateKey),
+          convertObjectStateDefaultToExpression(
+            stateDefinition.defaultValue as Record<string, unknown>,
+            dynamicReferencePrefixMap,
+            t
+          )
+        )
+      }
       return t.objectProperty(
         t.identifier(stateKey),
         convertValueToLiteral(stateDefinition.defaultValue)
@@ -521,12 +760,14 @@ export const createPureComponent = (
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
   windowImports: Record<string, types.ExpressionStatement> = {},
+  dynamicReferencePrefixMap?: { prop: string; state: string; local: string },
   t = types
 ): types.VariableDeclaration => {
   const arrowFunctionBody = createReturnExpressionSyntax(
     stateDefinitions,
     jsxTagTree,
-    windowImports
+    windowImports,
+    dynamicReferencePrefixMap
   )
   const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
 
@@ -540,12 +781,13 @@ export const createReturnExpressionSyntax = (
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
   windowImports: Record<string, types.ExpressionStatement> = {},
+  dynamicReferencePrefixMap?: { prop: string; state: string; local: string },
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxTagTree)
 
   const stateHooks = Object.keys(stateDefinitions).map((stateKey) =>
-    createStateHookAST(stateKey, stateDefinitions[stateKey])
+    createStateHookAST(stateKey, stateDefinitions[stateKey], dynamicReferencePrefixMap)
   )
 
   return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement])
@@ -557,12 +799,80 @@ export const createReturnExpressionSyntax = (
 export const createStateHookAST = (
   stateKey: string,
   stateDefinition: UIDLStateDefinition,
+  dynamicReferencePrefixMap?: { prop: string; state: string; local: string },
   t = types
 ) => {
-  const defaultValueArgument = convertValueToLiteral(
-    stateDefinition.defaultValue,
-    stateDefinition.type
-  )
+  let defaultValueArgument: types.Expression
+
+  if (
+    stateDefinition.type === 'object' &&
+    dynamicReferencePrefixMap &&
+    isObjectStateWithEntries(stateDefinition)
+  ) {
+    defaultValueArgument = convertObjectStateDefaultToExpression(
+      stateDefinition.defaultValue as Record<string, unknown>,
+      dynamicReferencePrefixMap,
+      t
+    )
+  } else {
+    defaultValueArgument = convertValueToLiteral(stateDefinition.defaultValue, stateDefinition.type)
+  }
+
+  // When the state has a dataSourceBinding, the initial value comes from props
+  // Generated: useState(props.stateKey !== undefined ? props.stateKey : defaultValue)
+  let useStateArgument: types.Expression = defaultValueArgument
+  if (stateDefinition.dataSourceBinding) {
+    const propAccess = t.memberExpression(t.identifier('props'), t.identifier(stateKey))
+    useStateArgument = t.conditionalExpression(
+      t.binaryExpression('!==', propAccess, t.identifier('undefined')),
+      propAccess,
+      defaultValueArgument
+    )
+  } else if (
+    stateDefinition.urlSearchParamBinding &&
+    typeof stateDefinition.urlSearchParamBinding.key === 'string' &&
+    stateDefinition.urlSearchParamBinding.key !== ''
+  ) {
+    // URL-search-param binding: seed the initial state directly from
+    // `window.location.search`. We deliberately DO NOT use Next.js'
+    // `router.query` here because on statically-generated pages (getStaticProps
+    // / getStaticPaths) `router.query` is empty on the first render and only
+    // hydrates after `router.isReady` flips to true — by which point React's
+    // `useState` initializer has already captured the fallback default. That
+    // regression shipped as "detail panel does not auto-open on deep links to
+    // /admin/products?products_detail_panel_item_id=<id>". `window.location`
+    // is populated synchronously on both direct loads and client-side
+    // navigations, and the `typeof window` guard keeps SSR falling back to
+    // the declared static default cleanly.
+    //
+    // Emitted shape:
+    //   useState(
+    //     (typeof window !== "undefined"
+    //       ? new URLSearchParams(window.location.search).get("<key>")
+    //       : null) ?? <defaultValueLiteral>
+    //   )
+    const paramKey = stateDefinition.urlSearchParamBinding.key
+    const urlSearchParamsExpr = t.newExpression(t.identifier('URLSearchParams'), [
+      t.memberExpression(
+        t.memberExpression(t.identifier('window'), t.identifier('location')),
+        t.identifier('search')
+      ),
+    ])
+    const readParamExpr = t.callExpression(
+      t.memberExpression(urlSearchParamsExpr, t.identifier('get')),
+      [t.stringLiteral(paramKey)]
+    )
+    const browserGuard = t.binaryExpression(
+      '!==',
+      t.unaryExpression('typeof', t.identifier('window')),
+      t.stringLiteral('undefined')
+    )
+    useStateArgument = t.logicalExpression(
+      '??',
+      t.conditionalExpression(browserGuard, readParamExpr, t.nullLiteral()),
+      defaultValueArgument
+    )
+  }
 
   return t.variableDeclaration('const', [
     t.variableDeclarator(
@@ -570,9 +880,189 @@ export const createStateHookAST = (
         t.identifier(stateKey),
         t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
-      t.callExpression(t.identifier('useState'), [defaultValueArgument])
+      t.callExpression(t.identifier('useState'), [useStateArgument])
     ),
   ])
+}
+
+export const isObjectStateWithEntries = (stateDefinition: UIDLStateDefinition): boolean => {
+  if (stateDefinition.type !== 'object') {
+    return false
+  }
+  const defaultValue = stateDefinition.defaultValue
+  if (typeof defaultValue !== 'object' || defaultValue === null || Array.isArray(defaultValue)) {
+    return false
+  }
+  return Object.values(defaultValue).some((entry) => {
+    if (typeof entry !== 'object' || entry === null) {
+      return false
+    }
+    const typed = entry as Record<string, unknown>
+    return (typed.type === 'static' || typed.type === 'dynamic') && 'content' in typed
+  })
+}
+
+export const convertObjectStateDefaultToExpression = (
+  defaultValue: Record<string, unknown>,
+  prefixMap: { prop: string; state: string; local: string },
+  t = types
+): types.ObjectExpression => {
+  const properties = Object.keys(defaultValue).map((key) => {
+    const valueExpression = resolveObjectStateEntry(defaultValue[key], prefixMap, t)
+    return t.objectProperty(t.stringLiteral(key), valueExpression)
+  })
+
+  return t.objectExpression(properties)
+}
+
+const resolveObjectStateEntry = (
+  entry: unknown,
+  prefixMap: { prop: string; state: string; local: string },
+  t = types
+): types.Expression => {
+  if (typeof entry !== 'object' || entry === null) {
+    return convertValueToLiteral(entry) as types.Expression
+  }
+
+  const typed = entry as { type?: string; content?: unknown }
+
+  if (typed.type === 'static') {
+    return convertValueToLiteral(typed.content) as types.Expression
+  }
+
+  if (typed.type === 'dynamic') {
+    const content = typed.content as {
+      referenceType: string
+      id: string
+      refPath?: string[]
+    }
+    const { referenceType, id, refPath } = content
+
+    if (referenceType === 'globalState') {
+      const gsRefPath = refPath || []
+      let expr: types.Identifier | types.OptionalMemberExpression = t.identifier(id)
+      for (const segment of gsRefPath) {
+        expr = t.optionalMemberExpression(expr, t.identifier(segment), false, true)
+      }
+      return expr
+    }
+
+    if (referenceType === 'global') {
+      // Normalize Shape B ({ refPath: ['Current User', 'id'] }) to Shape A
+      // ({ id: 'currentUser', refPath: ['id'] }) so downstream access is uniform.
+      const resolvedId = resolveGlobalRefId(content)
+      if (resolvedId) {
+        const tail = !id && refPath && refPath.length > 0 ? refPath.slice(1) : refPath || []
+        let expr: types.Identifier | types.OptionalMemberExpression = t.identifier(resolvedId)
+        for (const segment of tail) {
+          expr = t.optionalMemberExpression(expr, t.identifier(segment), false, true)
+        }
+        return expr
+      }
+    }
+
+    const idWithPath = UIDLUtils.generateIdWithRefPath(id, refPath)
+    const prefix = prefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
+
+    return prefix === ''
+      ? t.identifier(idWithPath)
+      : t.memberExpression(t.identifier(prefix), t.identifier(idWithPath))
+  }
+
+  return convertValueToLiteral(entry) as types.Expression
+}
+
+// Mapping from the UIDL display name used in a global reference refPath
+// to the runtime variable name that holds the value. Kept here so both the
+// JSX emitter and the object-state global-reference collectors stay in sync.
+export const GLOBAL_REF_ID_MAP: Record<string, string> = {
+  'E-commerce': 'ecommerce',
+  Cart: 'cart',
+  'Current User': 'currentUser',
+}
+
+export const resolveGlobalRefId = (
+  content: { id?: string; refPath?: string[] } | undefined
+): string | undefined => {
+  if (!content) {
+    return undefined
+  }
+  if (content.id) {
+    return content.id
+  }
+  if (!content.refPath || content.refPath.length === 0) {
+    return undefined
+  }
+  return GLOBAL_REF_ID_MAP[content.refPath[0]]
+}
+
+export const collectGlobalReferencesFromObjectStates = (
+  stateDefinitions: Record<string, UIDLStateDefinition>
+): string[] => {
+  const globalRefs: string[] = []
+
+  Object.values(stateDefinitions).forEach((stateDef) => {
+    if (stateDef.type !== 'object') {
+      return
+    }
+    const defaultValue = stateDef.defaultValue
+    if (typeof defaultValue !== 'object' || defaultValue === null || Array.isArray(defaultValue)) {
+      return
+    }
+
+    Object.values(defaultValue as Record<string, unknown>).forEach((entry) => {
+      if (typeof entry !== 'object' || entry === null) {
+        return
+      }
+      const typed = entry as { type?: string; content?: unknown }
+      if (typed.type === 'dynamic') {
+        const content = typed.content as {
+          referenceType?: string
+          id?: string
+          refPath?: string[]
+        }
+        if (content.referenceType === 'global') {
+          const resolvedId = resolveGlobalRefId(content)
+          if (resolvedId) {
+            globalRefs.push(resolvedId)
+          }
+        }
+      }
+    })
+  })
+
+  return globalRefs
+}
+
+export const collectGlobalStateReferencesFromObjectStates = (
+  stateDefinitions: Record<string, UIDLStateDefinition>
+): Array<{ id: string }> => {
+  const refs: Array<{ id: string }> = []
+
+  Object.values(stateDefinitions).forEach((stateDef) => {
+    if (stateDef.type !== 'object') {
+      return
+    }
+    const defaultValue = stateDef.defaultValue
+    if (typeof defaultValue !== 'object' || defaultValue === null || Array.isArray(defaultValue)) {
+      return
+    }
+
+    Object.values(defaultValue as Record<string, unknown>).forEach((entry) => {
+      if (typeof entry !== 'object' || entry === null) {
+        return
+      }
+      const typed = entry as { type?: string; content?: unknown }
+      if (typed.type === 'dynamic') {
+        const content = typed.content as { referenceType?: string; id?: string }
+        if (content.referenceType === 'globalState' && content.id) {
+          refs.push({ id: content.id })
+        }
+      }
+    })
+  })
+
+  return refs
 }
 
 export const generateDynamicWindowImport = (
@@ -1068,6 +1558,37 @@ export const computeFetchUrl = (resource: UIDLResourceItem) => {
     const cleanBaseUrl = baseUrlStr.endsWith('/') ? baseUrlStr.slice(0, -1) : baseUrlStr
     const cleanRoute = routeStr.startsWith('/') ? routeStr.slice(1) : routeStr
     const stringsToJoin = [cleanBaseUrl, cleanRoute].filter((item) => item).join('/')
+
+    // If the URL is relative (starts with /), add a runtime base URL prefix
+    // so fetch() works in server-side contexts (getStaticProps/getServerSideProps).
+    // Non-NEXT_PUBLIC_ env vars are only available server-side in Next.js,
+    // so NEXTAUTH_URL naturally resolves to undefined on the client (making baseUrl '').
+    if (stringsToJoin.startsWith('/')) {
+      const processEnv = types.memberExpression(
+        types.identifier('process'),
+        types.identifier('env')
+      )
+      const serverBaseUrlExpr = types.logicalExpression(
+        '||',
+        types.logicalExpression(
+          '||',
+          types.memberExpression(processEnv, types.identifier('NEXT_PUBLIC_SITE_URL')),
+          types.memberExpression(
+            types.memberExpression(types.identifier('process'), types.identifier('env')),
+            types.identifier('NEXTAUTH_URL')
+          )
+        ),
+        types.stringLiteral('')
+      )
+      return types.templateLiteral(
+        [
+          types.templateElement({ cooked: '', raw: '' }, false),
+          types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true),
+        ],
+        [serverBaseUrlExpr]
+      )
+    }
+
     return types.templateLiteral(
       [types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true)],
       []
@@ -1254,7 +1775,7 @@ export const convertFilterDestinationToExpression = (
 export const getExpressionFromUIDLExpressionNode = (
   node: UIDLExpressionValue
 ): types.Expression => {
-  const ast = parse(node.content, {
+  const ast = parse(sanitizeExprContent(node.content), {
     sourceType: 'module' as const,
   })
 

@@ -25,6 +25,16 @@ export const navlinkMockedDefinition = (): UIDLNavLinkNode => ({
   },
 })
 
+export const exprNavlinkMockedDefinition = (): UIDLNavLinkNode => ({
+  type: 'navlink',
+  content: {
+    routeName: {
+      type: 'expr',
+      content: '`/blog/' + '$' + '{' + 'blogPost?.slug}' + '`',
+    },
+  },
+})
+
 export const phoneMockedDefinition = (): UIDLPhoneLinkNode => ({
   type: 'phone',
   content: {

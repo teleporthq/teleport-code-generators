@@ -3,6 +3,7 @@
     and pseudo styles on them. These need to be sorted as we do for referenced-Styles
 */
 
+import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   GeneratorOptions,
   UIDLStyleSetDefinition,
@@ -11,11 +12,33 @@ import {
 } from '@teleporthq/teleport-types'
 import { prefixAssetURLs } from '../../utils'
 
+const isValidStyleSetKey = (key: string): boolean => {
+  const sanitized = StringUtils.removeIllegalCharacters(key)
+  if (sanitized === null || sanitized.length === 0) {
+    return false
+  }
+  // Allow compound CSS selectors like "base-class.modifier" or "base-class.modifier .child-class"
+  // These are valid CSS and used for state-dependent styling (e.g., dashboard-sidebar.collapsed)
+  // Also allow pseudo-selectors like "class:hover" and "class:focus-within"
+  // Reject characters that indicate JS expression fragments or are truly invalid
+  if (/['"{}|()!@#$%^&*+=<>?/\\]/.test(key)) {
+    return false
+  }
+  // Reject keys that start with a digit
+  if (/^\d/.test(key)) {
+    return false
+  }
+  return true
+}
+
 export const resolveStyleSetDefinitions = (
   styleSets: Record<string, UIDLStyleSetDefinition> = {},
   options: GeneratorOptions
 ): Record<string, UIDLStyleSetDefinition> => {
   return Object.keys(styleSets).reduce((acc: Record<string, UIDLStyleSetDefinition>, styleId) => {
+    if (!isValidStyleSetKey(styleId)) {
+      return acc
+    }
     const styleRef = styleSets[styleId]
     const { conditions = [], content = {} } = styleRef
 

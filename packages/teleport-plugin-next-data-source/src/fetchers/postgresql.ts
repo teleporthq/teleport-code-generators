@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateSearchEscapeHelpersCode,
 } from '../utils'
 
 interface PostgreSQLConfig {
@@ -48,6 +49,8 @@ const getClient = () => {
 }
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchEscapeHelpersCode()}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
@@ -124,14 +127,16 @@ export default async function handler(req, res) {
       let columns = []
       
       if (queryColumns) {
-        // Use specified columns
-        columns = safeJSONParse(queryColumns)
+        // Use specified columns. Wrap non-arrays so that a single
+        // column passed as a bare string doesn't get iterated as chars.
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
       } else {
         // Fallback: Get all columns from information_schema
         try {
           const schemaQuery = \`
-            SELECT column_name 
-            FROM information_schema.columns 
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_name = $1
             ${schema ? `AND table_schema = $2` : ''}
             ORDER BY ordinal_position
@@ -149,16 +154,17 @@ export default async function handler(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchConditions = columns.map((col) => {
-          const condition = \`\${col}::text ILIKE $\${paramIndex}\`
-          paramIndex++
-          return condition
-        })
-        columns.forEach(() => queryParams.push(\`%\${query}%\`))
-        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+        const pattern = '%' + escapeLikePattern(query) + '%'
+        const placeholder = '$' + paramIndex
+        paramIndex++
+        queryParams.push(pattern)
+        const searchConditions = columns.map(
+          (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
+        )
+        conditions.push('(' + searchConditions.join(' OR ') + ')')
       }
     }
-    
+
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     
@@ -174,16 +180,16 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
-          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sort.field} \${order}\`
         }).filter(Boolean)
-        
+
         if (orderClauses.length > 0) {
           sql += \` ORDER BY \${orderClauses.join(', ')}\`
         }
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \${sortBy} \${sortOrder?.toUpperCase() || 'ASC'}\`
+      sql += \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
     }
     
     const limitValue = limit || perPage
@@ -279,9 +285,16 @@ async function getCount(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchConditions = columns.map(col => \`\${col}::text ILIKE $\${paramIndex++}\`).join(' OR ')
-        conditions.push(\`(\${searchConditions})\`)
-        columns.forEach(() => queryParams.push(\`%\${query}%\`))
+        const pattern = '%' + escapeLikePattern(query) + '%'
+        const placeholder = '$' + paramIndex
+        paramIndex++
+        queryParams.push(pattern)
+        const searchConditions = columns
+          .map(
+            (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
+          )
+          .join(' OR ')
+        conditions.push('(' + searchConditions + ')')
       }
     }
 

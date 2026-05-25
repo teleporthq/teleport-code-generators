@@ -108,11 +108,21 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
     const generateStylesForElementNode = (element: UIDLElement) => {
-      const { style, key, referencedStyles, dependency, attrs = {}, elementType } = element
+      const {
+        style,
+        key,
+        referencedStyles,
+        dependency,
+        attrs = {},
+        elementType,
+        dynamicStyleBindings,
+      } = element
       const jsxTag = astNodesLookup[key]
       const classNamesToAppend: Set<
         types.MemberExpression | types.Identifier | types.StringLiteral
       > = new Set()
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
       if (!jsxTag || !isJSXElement(jsxTag)) {
         return
@@ -127,7 +137,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         })
       }
 
-      if (!style && !referencedStyles) {
+      if (!style && !referencedStyles && !hasDynamicBindings) {
         return
       }
 
@@ -144,6 +154,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         true
       )
 
+      let jsxInlineStyles: Record<string, unknown> | null = null
+
       /* Generating styles from UIDLElementNode to component style sheet */
       if (Object.keys(style || {}).length > 0) {
         const { staticStyles, dynamicStyles, tokenStyles } =
@@ -157,16 +169,26 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         }
 
         if (Object.keys(dynamicStyles).length) {
-          const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
+          jsxInlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
             StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
-
-          /* If dynamic styles are on nested-styles they are unfortunately lost,
-            since inline style does not support that */
-          if (Object.keys(inlineStyles).length > 0) {
-            ASTUtils.addAttributeToJSXTag(jsxTag, 'style', inlineStyles)
-          }
         }
+      }
+
+      if (hasDynamicBindings) {
+        if (!jsxInlineStyles) {
+          jsxInlineStyles = {}
+        }
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          jsxInlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(binding)
+        }
+      }
+
+      if (jsxInlineStyles && Object.keys(jsxInlineStyles).length > 0) {
+        ASTUtils.addAttributeToJSXTag(jsxTag, 'style', jsxInlineStyles)
       }
 
       /* Any media-styles, component-scoped styles, global style sheet styles are handled here */
@@ -258,9 +280,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               isProjectStyleReferred = true
               const referedStyle = globalStyleSheet[content.referenceId]
               if (!referedStyle) {
-                throw new PluginCssModules(
-                  `Style used from global stylesheet is missing plugin css module - ${content.referenceId}`
-                )
+                return
               }
               classNamesToAppend.add(
                 types.memberExpression(

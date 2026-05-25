@@ -178,9 +178,15 @@ export const repeatNode = (
   }
 }
 
-export const rawNode = (content: string): UIDLRawValue => {
+export const rawNode = (
+  content: string,
+  dynamic?: UIDLDynamicReference,
+  fallback?: string
+): UIDLRawValue => {
   return {
     type: 'raw',
     content,
+    ...(dynamic && { dynamic }),
+    ...(fallback && { fallback }),
   }
 }

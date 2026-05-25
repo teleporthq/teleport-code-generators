@@ -24,6 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
+    "@babel/parser": "^7.26.10",
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-plugin-common": "^0.42.15",
     "@teleporthq/teleport-shared": "^0.42.13",

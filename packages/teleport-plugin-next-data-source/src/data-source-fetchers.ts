@@ -24,13 +24,17 @@ import {
   validateJavaScriptConfig,
   generateCSVFileFetcher,
   validateCSVConfig,
-  generateStaticCollectionFetcher,
-  validateStaticCollectionConfig,
   generateGoogleSheetsFetcher,
   validateGoogleSheetsConfig,
+  generateTeleportFetcher,
+  validateTeleportConfig,
+  generateRawQueryFetcher,
+  parseQueryTemplateVariables,
 } from './fetchers'
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
+
+export { generateRawQueryFetcher, parseQueryTemplateVariables }
 
 interface DataSourceFetcherDependencies {
   packages: string[]
@@ -56,7 +60,7 @@ export const getDataSourceDependencies = (type: DataSourceType): DataSourceFetch
     javascript: { packages: [], isDefaultImport: false },
     'google-sheets': { packages: ['node-fetch'], isDefaultImport: true },
     'csv-file': { packages: [], isDefaultImport: false },
-    'static-collection': { packages: [], isDefaultImport: false },
+    teleport: { packages: ['pg'], isDefaultImport: false },
   }
 
   return dependencyMap[type]
@@ -193,20 +197,20 @@ export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName:
         return generateCSVFileFetcher(config)
       }
 
-      case 'static-collection': {
-        const validation = validateStaticCollectionConfig(config)
-        if (!validation.isValid) {
-          throw new Error(`Static collection config validation failed: ${validation.error}`)
-        }
-        return generateStaticCollectionFetcher(config)
-      }
-
       case 'google-sheets': {
         const validation = validateGoogleSheetsConfig(config)
         if (!validation.isValid) {
           throw new Error(`Google Sheets config validation failed: ${validation.error}`)
         }
         return generateGoogleSheetsFetcher(config)
+      }
+
+      case 'teleport': {
+        const validation = validateTeleportConfig(config)
+        if (!validation.isValid) {
+          throw new Error(`Teleport config validation failed: ${validation.error}`)
+        }
+        return generateTeleportFetcher(config, tableName)
       }
 
       default:
