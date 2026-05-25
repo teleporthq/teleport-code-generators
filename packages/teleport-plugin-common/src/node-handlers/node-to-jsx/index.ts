@@ -761,11 +761,11 @@ const addAttributesToJSXTag = (
           default:
             const prefix =
               options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
-            const idWithPath = UIDLUtils.generateIdWithRefPath(
+            const idWithRefPath = UIDLUtils.generateIdWithRefPath(
               dynamicRef.content.id,
               dynamicRef.content.refPath
             )
-            addDynamicAttributeToJSXTag(elementTag, attrKey, idWithPath, prefix)
+            addDynamicAttributeToJSXTag(elementTag, attrKey, idWithRefPath, prefix)
 
             break
         }

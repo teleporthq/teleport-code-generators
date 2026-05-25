@@ -7,6 +7,37 @@ interface ParseEmbedPluginConfig {
   projectType: SUPPORTED_PROJECT_TYPES
 }
 
+const SCRIPT_CLOSE_PH = '__THQ_SC__'
+
+/**
+ * Replace all `</script>` except the last one with a placeholder so
+ * hast-util-from-html doesn't prematurely close the script element
+ * when the JS code inside contains a nested `</script>` (e.g. in a
+ * template-literal string).
+ */
+function escapeNestedScriptClose(html: string): string {
+  const regex = /<\/script\s*>/gi
+  const indices: Array<{ idx: number; len: number }> = []
+  let m = regex.exec(html)
+  while (m !== null) {
+    indices.push({ idx: m.index, len: m[0].length })
+    m = regex.exec(html)
+  }
+  if (indices.length <= 1) {
+    return html
+  }
+
+  let result = ''
+  let lastEnd = 0
+  for (let i = 0; i < indices.length - 1; i++) {
+    result += html.substring(lastEnd, indices[i].idx)
+    result += SCRIPT_CLOSE_PH
+    lastEnd = indices[i].idx + indices[i].len
+  }
+  result += html.substring(lastEnd)
+  return result
+}
+
 const NODE_MAPPER: Record<
   SUPPORTED_PROJECT_TYPES,
   Promise<(content: unknown, options: unknown) => string>
@@ -57,7 +88,28 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
           return
         }
 
-        const hastNodes = fromHtml(element.attrs.html.content as string, {
+        let rawHtmlContent = element.attrs.html.content as string
+
+        if (
+          projectType === 'teleport-project-html' ||
+          projectType === 'teleport-project-angular' ||
+          projectType === 'teleport-project-vue' ||
+          projectType === 'teleport-project-nuxt'
+        ) {
+          // Strip pre-escaped backticks (\` → `) for HTML/template frameworks.
+          // In these contexts backticks are just regular characters and the
+          // escaping would be a JavaScript syntax error inside <script> tags.
+          rawHtmlContent = rawHtmlContent.replace(/\\`/g, '`')
+        }
+        // For React/Next.js, keep escaped backticks intact — the content gets
+        // wrapped in template literals by hast-util-to-jsx-inline-script, so
+        // backticks inside must stay escaped to avoid syntax errors.
+
+        // Escape nested </script> tags so hast-util-from-html doesn't truncate
+        // script content at an inner </script> (e.g. one inside a template literal).
+        rawHtmlContent = escapeNestedScriptClose(rawHtmlContent)
+
+        const hastNodes = fromHtml(rawHtmlContent, {
           fragment: true,
         })
         const content = hastToJsxOrHtml(hastNodes, { wrapper: 'fragment' })
@@ -78,7 +130,10 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
 
           Object.assign(node, {
             type: 'text',
-            value: content,
+            // Restore nested </script> with <\/script> — the backslash prevents
+            // the browser's HTML parser from closing the script tag prematurely,
+            // and \/ evaluates to / in JavaScript at runtime.
+            value: content.replace(new RegExp(SCRIPT_CLOSE_PH, 'g'), '<\\/script>'),
           })
 
           delete node.children
@@ -94,7 +149,13 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
           node.openingElement.attributes = []
           node.children.push({
             type: 'JSXText' as const,
-            value: content,
+            // Double-escape </script> for the outer template literal {`…`}:
+            //   file:    <\\/script>
+            //   outer `` eval:  <\/script>   (\\→\, HTML parser won't close)
+            //   inner `` eval:  </script>    (\/→/, correct runtime value)
+            value: content
+              .replace(new RegExp(SCRIPT_CLOSE_PH, 'g'), '<\\\\/script>')
+              .replace(/<\\\/script/g, '<\\\\/script'),
           } as JSXText)
         }
       }

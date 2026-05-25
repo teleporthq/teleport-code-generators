@@ -46,7 +46,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   }
 
   meta.forEach((metaItem) => {
-    // Next.js warns against placing viewport meta tags in _document.js's <Head>
+    // Skip viewport meta tags in _document.js — Next.js requires them in _app.js via next/head
     if (metaItem.name === 'viewport') {
       return
     }
@@ -162,6 +162,18 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     )
   )
 
+  // Wrap app content in a Fragment with Head containing viewport meta
+  const viewportMeta = ASTBuilders.createSelfClosingJSXTag('meta')
+  ASTUtils.addAttributeToJSXTag(viewportMeta, 'name', 'viewport')
+  ASTUtils.addAttributeToJSXTag(viewportMeta, 'content', 'width=device-width, initial-scale=1.0')
+  const headTag = ASTBuilders.createJSXTag('Head', [viewportMeta])
+
+  const appContent = isNextIntlUsed ? nextIntlWrapper : globalContextWrapper
+  const fragment = t.jsxFragment(t.jsxOpeningFragment(), t.jsxClosingFragment(), [
+    headTag,
+    appContent,
+  ])
+
   const contentChunkContent: Array<types.ImportDeclaration | types.ExportDefaultDeclaration> = [
     t.exportDefaultDeclaration(
       t.functionDeclaration(
@@ -172,9 +184,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
             t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps'), false, true),
           ]),
         ],
-        t.blockStatement([
-          t.returnStatement(isNextIntlUsed ? nextIntlWrapper : globalContextWrapper),
-        ])
+        t.blockStatement([t.returnStatement(fragment)])
       )
     ),
   ]
@@ -192,6 +202,13 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     t.importDeclaration(
       [t.importSpecifier(t.identifier('GlobalProvider'), t.identifier('GlobalProvider'))],
       types.stringLiteral('../global-context')
+    )
+  )
+
+  contentChunkContent.unshift(
+    t.importDeclaration(
+      [t.importDefaultSpecifier(t.identifier('Head'))],
+      types.stringLiteral('next/head')
     )
   )
 

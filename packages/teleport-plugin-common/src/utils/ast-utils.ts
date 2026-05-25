@@ -46,7 +46,7 @@ export const convertToReactAttributeName = (attrName: string): string => {
 }
 
 /**
- * Adds a class definition string to an existing string of classes
+ * Adds a CSS class definition string to an existing string of classes
  */
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
@@ -486,11 +486,27 @@ export const addRawAttributeToJSXTag = (
   attrValue: UIDLRawValue,
   t = types
 ) => {
+  // The content is expected to be pre-escaped for template literal context
+  // (e.g., \` for backticks, \${ for interpolations). Babel validates that
+  // the raw value is valid template literal content.
+  //
+  // We fix any unescaped backticks or ${ sequences that would make the
+  // template literal invalid. "Unescaped" means preceded by an even number
+  // of backslashes (0, 2, …), since pairs of backslashes form escape
+  // sequences for backslash itself, leaving the next character unescaped.
+  const content = attrValue.content
+    .replace(/\\*`/g, (match) => {
+      const bs = match.length - 1
+      return bs % 2 === 0 ? match.slice(0, bs) + '\\`' : match
+    })
+    .replace(/\\*\$\{/g, (match) => {
+      const bs = match.length - 2
+      return bs % 2 === 0 ? match.slice(0, bs) + '\\${' : match
+    })
+
   const attributeDefinition = t.jsxAttribute(
     t.jsxIdentifier(attrName),
-    t.jsxExpressionContainer(
-      types.templateLiteral([types.templateElement({ raw: attrValue.content })], [])
-    )
+    t.jsxExpressionContainer(types.templateLiteral([types.templateElement({ raw: content })], []))
   )
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
@@ -626,7 +642,6 @@ export const convertValueToLiteral = (
     return t.arrayExpression(arr)
   }
 
-  // When the explicit type is 'array' or 'object' but the value is a JSON string, parse it first
   if ((explicitType === 'array' || explicitType === 'object') && typeof value === 'string') {
     try {
       const parsed = JSON.parse(value)
@@ -1775,11 +1790,25 @@ export const convertFilterDestinationToExpression = (
 export const getExpressionFromUIDLExpressionNode = (
   node: UIDLExpressionValue
 ): types.Expression => {
-  const ast = parse(sanitizeExprContent(node.content), {
-    sourceType: 'module' as const,
-  })
+  let ast
+  try {
+    ast = parse(sanitizeExprContent(node.content), {
+      sourceType: 'module' as const,
+    })
+  } catch (err) {
+    // Malformed expression content in the UIDL (e.g. `?.subtitle` missing its
+    // left-hand identifier). Don't abort the whole generation — warn and fall
+    // back to `undefined`, which renders as nothing in JSX.
+    // tslint:disable-next-line:no-console
+    console.warn(
+      `Failed to parse UIDL expression content ${JSON.stringify(node.content)}: ${
+        (err as Error).message
+      }. Falling back to 'undefined'.`
+    )
+    return types.identifier('undefined')
+  }
 
-  if (!('program' in ast)) {
+  if (!ast || !('program' in ast)) {
     throw new Error(
       `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
     )
@@ -1787,7 +1816,10 @@ export const getExpressionFromUIDLExpressionNode = (
 
   const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
 
-  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+  if (
+    !theStatementOnlyWihtoutTheProgram ||
+    theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement'
+  ) {
     throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
   }
 

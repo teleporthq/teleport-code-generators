@@ -4,6 +4,8 @@ import {
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
   UIDLSectionLinkNode,
+  UIDLDynamicReference,
+  UIDLPropDefinition,
 } from '@teleporthq/teleport-types'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 
@@ -58,5 +60,20 @@ export const mailMockedDefinition = (): UIDLMailLinkNode => ({
     mail: 'test@teleporthq.io',
     subject: 'Hello',
     body: "Is it me you're looking for?",
+  },
+})
+
+export const linkTypePropDefinitions = (): Record<string, UIDLPropDefinition> => ({
+  cardLink: {
+    type: 'link',
+    defaultValue: { url: '/', newTab: false },
+  },
+})
+
+export const linkTypePropDynamicReference = (): UIDLDynamicReference => ({
+  type: 'dynamic',
+  content: {
+    referenceType: 'prop',
+    id: 'cardLink',
   },
 })

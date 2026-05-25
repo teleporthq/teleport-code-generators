@@ -259,6 +259,60 @@ export const generateHtmlSyntax: NodeToHTML<
           return conditionalNodeComment
         }
 
+        case 'local': {
+          if (!resolvedExpressions || resolvedExpressions.currentIndex === undefined) {
+            return conditionalNodeComment
+          }
+
+          // Find the matching expression context for this local reference
+          const expressionEntries = Object.values(resolvedExpressions.expressions || {})
+          let localValue: unknown
+          for (const expr of expressionEntries) {
+            if (expr && Array.isArray(expr.defaultValue)) {
+              const currentItem = expr.defaultValue[resolvedExpressions.currentIndex]
+              if (currentItem !== undefined) {
+                localValue = currentItem
+                for (const path of refPath) {
+                  localValue = (localValue as Record<string, unknown>)?.[path]
+                }
+                break
+              }
+            }
+          }
+
+          if (localValue === undefined) {
+            return conditionalNodeComment
+          }
+
+          const localConditions = createConditionalStatement(
+            staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
+            localValue as UIDLPropDefinition['defaultValue']
+          )
+          const localMatchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+          const localConditionString = localConditions.join(` ${localMatchCondition} `)
+
+          try {
+            // tslint:disable-next-line function-constructor
+            const isLocalConditionPassing = new Function(`return ${localConditionString}`)()
+            if (isLocalConditionPassing) {
+              return generateHtmlSyntax(
+                node.content.node,
+                compName,
+                nodesLookup,
+                propDefinitions,
+                stateDefinitions,
+                subComponentOptions,
+                structure,
+                resolvedExpressions
+              )
+            }
+          } catch (error) {
+            return conditionalNodeComment
+          }
+
+          return conditionalNodeComment
+        }
+
         case 'state':
         default:
           return conditionalNodeComment
@@ -320,7 +374,8 @@ export const generateHtmlSyntax: NodeToHTML<
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure
+        structure,
+        resolvedExpressions
       )
 
     case 'cms-item':
@@ -383,6 +438,11 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
     case 'boolean':
       return value
     case 'object':
+      // `typeof null === 'object'` — render as the null literal so comparisons
+      // against a missing/null default evaluate sensibly.
+      if (value === null) {
+        return 'null'
+      }
       // Handle dynamic references (local, prop, state)
       if (value && typeof value === 'object' && 'type' in value) {
         const dynamicValue = value as unknown as UIDLDynamicReference
@@ -400,6 +460,16 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
             return key
           }
         }
+      }
+      // Handle link-type prop default values ({ url, newTab }). Collapse to the
+      // url string so comparisons like `mapUrl !== '--'` evaluate sensibly.
+      if (
+        value &&
+        typeof value === 'object' &&
+        'url' in (value as Record<string, unknown>) &&
+        typeof (value as Record<string, unknown>).url === 'string'
+      ) {
+        return `"${(value as Record<string, unknown>).url}"`
       }
       throw new HTMLComponentGeneratorError(
         `Conditional node received an operand of type ${valueType} \n
@@ -423,7 +493,8 @@ const generateRepeaterNode: NodeToHTML<
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  structure
+  structure,
+  resolvedExpressions
 ) => {
   const { nodes } = node.content
 
@@ -435,6 +506,48 @@ const generateRepeaterNode: NodeToHTML<
           Object.keys(propDefinitions).find((propKey) => sourceValue.includes(propKey)) || ''
         ]
       : undefined
+
+  /*
+   * When we have a nested repeater (e.g. source = "context_yu137?.list || []"),
+   * `propDef` points to the parent context's full array. We need to resolve the
+   * nested path (e.g. ".list") from each item in the parent iteration instead.
+   */
+  let nestedPath: string[] | null = null
+  if (propDef && resolvedExpressions && sourceValue && typeof sourceValue === 'string') {
+    const parentContextKey = Object.keys(resolvedExpressions.expressions || {}).find((key) =>
+      sourceValue.includes(key)
+    )
+    if (parentContextKey) {
+      const parentPropDef = resolvedExpressions.expressions[parentContextKey]
+      // Extract the nested path from the source expression (e.g. "context_yu137?.list || []" → ["list"])
+      const pathMatch = sourceValue.match(
+        new RegExp(`${parentContextKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}((?:\\?\\.\\w+)+)`)
+      )
+      if (pathMatch && pathMatch[1]) {
+        nestedPath = pathMatch[1].split('?.').filter(Boolean)
+      }
+
+      if (nestedPath && parentPropDef && Array.isArray(parentPropDef.defaultValue)) {
+        const parentItem = parentPropDef.defaultValue[resolvedExpressions.currentIndex]
+        if (parentItem && typeof parentItem === 'object' && !Array.isArray(parentItem)) {
+          const nestedValue = nestedPath.reduce(
+            (acc: unknown, key: string) =>
+              acc && typeof acc === 'object' && !Array.isArray(acc)
+                ? (acc as Record<string, unknown>)[key]
+                : acc,
+            parentItem
+          )
+          if (Array.isArray(nestedValue)) {
+            propDef = {
+              defaultValue: nestedValue,
+              id: contextId,
+              type: 'array',
+            }
+          }
+        }
+      }
+    }
+  }
 
   if (!propDef || !Array.isArray(propDef.defaultValue)) {
     // If no prop is found we might have a static source value
@@ -1174,7 +1287,11 @@ const handleAttributes = (
             elementType of image is always mapped to img.
             For reference, check `html-mapping` file.
           */
-          if (elementType === 'img' && attrKey === 'src' && !isValidURL(value)) {
+          if (
+            (elementType === 'img' || elementType === 'video') &&
+            attrKey === 'src' &&
+            !isValidURL(value)
+          ) {
             /*
               By default we just prefix all the asset paths with just the
               assetPrefix that is configured in the project. But for `html` generators
@@ -1224,6 +1341,12 @@ const handleAttributes = (
           content.id,
           content.referenceType === 'prop' ? propDefinitions : stateDefinitions
         )
+
+        // A `func` prop has no meaningful static HTML representation; skip
+        // rather than emitting the stringified function body as an attribute.
+        if (value.type === 'func') {
+          break
+        }
 
         const extracted = extractDefaultValueFromRefPath(value.defaultValue, content.refPath)
         const extractedValue = String(extracted)
@@ -1295,8 +1418,9 @@ const getValueFromReference = (
   }
 
   if (
-    ['string', 'number', 'object', 'element', 'array', 'boolean'].includes(
-      usedReferenceValue?.type
+    usedReferenceValue?.type &&
+    ['string', 'number', 'object', 'element', 'array', 'boolean', 'link', 'func'].includes(
+      usedReferenceValue.type
     ) === false
   ) {
     throw new HTMLComponentGeneratorError(

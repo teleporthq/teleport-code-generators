@@ -255,13 +255,17 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
             }
 
             if (styleRef.content.condition) {
-              const nameToAppend = styleRef.content.condition.reference.content.id
+              const referenceContent = styleRef.content.condition.reference.content
+              const referenceType = referenceContent.referenceType
+              const nameToAppend =
+                referenceType === 'local' && referenceContent.refPath?.length
+                  ? referenceContent.refPath.join('.')
+                  : referenceContent.id
 
               const { conditions } = styleRef.content.condition.expression
 
               const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
               const right = conditions[0].operand
-              const referenceType = styleRef.content.condition.reference.content.referenceType
 
               let binaryExpressionType = ''
               switch (referenceType) {
@@ -271,6 +275,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                 }
                 case 'state': {
                   binaryExpressionType = stateDefinitions[nameToAppend].type
+                  break
+                }
+                case 'local': {
+                  binaryExpressionType = typeof right as string
                   break
                 }
                 default: {

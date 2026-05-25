@@ -644,6 +644,7 @@ export interface UIDLPageOptions {
   fileName?: string
   fallback?: boolean
   dynamicRouteAttribute?: string
+  lastmod?: string
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData

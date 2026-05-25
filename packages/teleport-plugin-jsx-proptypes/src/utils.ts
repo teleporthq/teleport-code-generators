@@ -84,7 +84,12 @@ export const buildTypesOfPropsAst = (
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     // tslint:disable-next-line no-any
     (acc: any, key) => {
-      const { type, isRequired } = propDefinitions[key]
+      const { type: rawType, isRequired } = propDefinitions[key]
+      const PROP_TYPE_MAP: Record<string, string> = {
+        link: 'object',
+        boolean: 'bool',
+      }
+      const type = PROP_TYPE_MAP[rawType] || rawType
       const astProp = t.memberExpression(t.identifier(propTypesNames), t.identifier(type))
       const astValue = isRequired
         ? t.memberExpression(astProp, t.identifier('isRequired'))

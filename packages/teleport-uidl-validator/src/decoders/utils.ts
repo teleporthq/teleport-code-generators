@@ -439,7 +439,7 @@ export const propDefinitionsDecoder: Decoder<VUIDLPropDefinitions> = object({
     constant('func'),
     constant('object'),
     constant('children'),
-    constant('element')
+    union(constant('element'), constant('link'))
   ),
   defaultValue: optional(
     union(
@@ -512,6 +512,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   fileName: optional(string().andThen(isValidFileName)),
   fallback: optional(boolean()),
   dynamicRouteAttribute: optional(string()),
+  lastmod: optional(string()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
   initialPathsData: optional(initialPathsDecoder),

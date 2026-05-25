@@ -32,6 +32,7 @@ import {
   STOCK_DECREMENT_MARKER,
   looksLikeStockDecrementBuilder,
   buildStockDecrementBuilder,
+  hoistStockDecrementOutOfCodBranch,
   reportStockWriteAudit,
 } from './ecommerce/stock-decrement'
 import {
@@ -546,6 +547,18 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
   const customNodes = (uidl.workflows.customNodes || {}) as Record<string, { nodes?: unknown }>
   for (const cn of Object.values(customNodes)) {
     visit(cn && cn.nodes)
+  }
+
+  // Legacy UIDLs (and any future AI drift that puts the stock chain
+  // inside the COD branch of the payment-method IF gate) get rewired
+  // here: the chain is spliced onto the SHARED path so EVERY order —
+  // COD or Stripe / PayPal — decrements stock when the order is
+  // created. Gated on stockManagement because, when off, the merchant
+  // explicitly opted out of any stock concerns and we leave the
+  // workflow shape alone. See `./ecommerce/stock-decrement.ts` for the
+  // algorithm + idempotency contract.
+  if (ctx.stockManagementEnabled) {
+    hoistStockDecrementOutOfCodBranch(uidl)
   }
 
   // After our own rewrites have run, audit the FINAL workflow set for

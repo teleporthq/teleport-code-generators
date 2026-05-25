@@ -1,4 +1,5 @@
 import { UIDLDataSource } from '@teleporthq/teleport-types'
+import { isSupabaseConnectionStringFallback } from './data-source-fetchers'
 import { generatePostgreSQLCountFetcher } from './fetchers/postgresql'
 import { generateMySQLCountFetcher } from './fetchers/mysql'
 import { generateMariaDBCountFetcher } from './fetchers/mariadb'
@@ -41,6 +42,9 @@ export function generateCountFetcher(dataSource: UIDLDataSource, tableName: stri
       return generateMongoDBCountFetcher(config, tableName)
 
     case 'supabase':
+      if (isSupabaseConnectionStringFallback(config)) {
+        return generatePostgreSQLCountFetcher(config, tableName)
+      }
       return generateSupabaseCountFetcher(config, tableName)
 
     case 'javascript':

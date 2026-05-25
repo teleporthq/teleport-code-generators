@@ -3,6 +3,7 @@ import {
   classifyStockWriteSite,
   auditStockWriteSites,
   reportStockWriteAudit,
+  hoistStockDecrementOutOfCodBranch,
   STOCK_DECREMENT_MARKER,
 } from '../src/ecommerce/stock-decrement'
 import * as path from 'path'
@@ -476,5 +477,273 @@ describe('stock-write audit against the real example project UIDL', () => {
     for (const site of audit.admin) {
       expect(site.workflowName.toLowerCase()).toContain('admin')
     }
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────
+// HOIST REWRITER
+// ────────────────────────────────────────────────────────────────────
+//
+// `hoistStockDecrementOutOfCodBranch` repairs legacy UIDLs that placed
+// the stock-decrement chain inside the COD branch of the payment-method
+// IF gate. After the hoist, the chain lives on the shared path —
+// orders paid via Stripe / PayPal decrement stock too.
+
+const AI_DECREMENT_CODE = `function customHandler(previousContext, params) {
+  var cartItems = null;
+  for (var i = 0; i < params.length; i++) {
+    var p = params[i];
+    if (p && Array.isArray(p.items)) { cartItems = p.items; break; }
+  }
+  if (!cartItems || cartItems.length === 0) {
+    return { query: "SELECT 1", affected: [] };
+  }
+  var query = "UPDATE teleport_products SET quantity = quantity - CASE id END WHERE id IN ('a')";
+  return { query: query, affected: ['a'] };
+}`
+
+// A synthetic UIDL workflow modeled on the legacy COD-only shape:
+//
+//   loop → IF(payment-method)
+//             ├── true (COD)  → updateOrderCod → buildDecrementSql →
+//             │                  decrementStock → buildDetectLow →
+//             │                  detectLow → buildLowStockPayload →
+//             │                  clearCart
+//             └── false       → setOrderNumberPaid → chargeUser
+const buildLegacyCodOnlyWorkflow = () => ({
+  id: 'wfPlaceOrder',
+  name: 'Place Order',
+  nodes: [
+    { id: 'loop', type: 'general-loop', config: {}, label: 'Loop' },
+    {
+      id: 'isCod',
+      type: 'general-if-statement',
+      config: {},
+      label: 'Is Payment Cash On Delivery?',
+    },
+    {
+      id: 'updateOrderCod',
+      type: 'data-update-item',
+      config: { tableName: 'teleport_orders' },
+      label: 'Mark COD Confirmed',
+    },
+    {
+      id: 'buildDecrementSql',
+      type: 'general-custom-js',
+      config: { code: AI_DECREMENT_CODE },
+      label: 'Build Stock Decrement SQL',
+    },
+    {
+      id: 'decrementStock',
+      type: 'data-raw-query',
+      config: {},
+      label: 'Decrement Product Stock After Order',
+    },
+    {
+      id: 'buildDetectLow',
+      type: 'general-custom-js',
+      config: { code: 'function customHandler() { return { query: "SELECT 1" }; }' },
+      label: 'Build Low-Stock Detection SQL',
+    },
+    {
+      id: 'detectLow',
+      type: 'data-raw-query',
+      config: {},
+      label: 'Detect Low-Stock Products',
+    },
+    {
+      id: 'buildLowStockPayload',
+      type: 'general-custom-js',
+      config: { code: 'function customHandler() { return { skip: true }; }' },
+      label: 'Build Low-Stock Email Payload',
+    },
+    { id: 'clearCart', type: 'cart-clear', config: {}, label: 'Clear Cart' },
+    {
+      id: 'setOrderNumberPaid',
+      type: 'data-update-item',
+      config: { tableName: 'teleport_orders' },
+      label: 'Set Order Number',
+    },
+    {
+      id: 'chargeUser',
+      type: 'payment-charge-user',
+      config: {},
+      label: 'Redirect To Payment Provider Checkout',
+    },
+  ],
+  edges: [
+    { id: 'e-loop-isCod', source: 'loop', target: 'isCod', sourceHandle: 'exit' },
+    { id: 'e-cod-true', source: 'isCod', target: 'updateOrderCod', sourceHandle: 'true' },
+    { id: 'e-uo-bds', source: 'updateOrderCod', target: 'buildDecrementSql' },
+    { id: 'e-bds-ds', source: 'buildDecrementSql', target: 'decrementStock' },
+    { id: 'e-ds-bdl', source: 'decrementStock', target: 'buildDetectLow' },
+    { id: 'e-bdl-dl', source: 'buildDetectLow', target: 'detectLow' },
+    { id: 'e-dl-bls', source: 'detectLow', target: 'buildLowStockPayload' },
+    { id: 'e-bls-cc', source: 'buildLowStockPayload', target: 'clearCart' },
+    { id: 'e-cod-false', source: 'isCod', target: 'setOrderNumberPaid', sourceHandle: 'false' },
+    { id: 'e-sn-cu', source: 'setOrderNumberPaid', target: 'chargeUser' },
+  ],
+})
+
+const buildUidlWith = (workflow: ReturnType<typeof buildLegacyCodOnlyWorkflow>) => ({
+  workflows: { workflows: { [workflow.id]: workflow } },
+})
+
+describe('hoistStockDecrementOutOfCodBranch — splices the chain onto the shared path', () => {
+  it('hoists the chain so loop → chain → IF → branches (legacy COD-only shape)', () => {
+    const wf = buildLegacyCodOnlyWorkflow()
+    const uidl = buildUidlWith(wf) as any
+    const result = hoistStockDecrementOutOfCodBranch(uidl)
+    expect(result.hoistedWorkflows).toBe(1)
+    expect(result.skippedWorkflows).toBe(0)
+
+    // After hoist: loop → buildDecrementSql (chain head) → … → IF.
+    // The COD branch retains updateOrderCod between IF.true and what
+    // used to come after the chain (clearCart). The IF.true handle
+    // still routes to updateOrderCod; updateOrderCod now closes the
+    // branch by pointing at clearCart directly. No edge skips
+    // updateOrderCod — the buyer's COD confirmation step is preserved.
+    const edges = wf.edges
+    const hasLoopToChain = edges.some(
+      (e) => e.source === 'loop' && e.target === 'buildDecrementSql' && e.sourceHandle === 'exit'
+    )
+    const hasChainToIf = edges.some(
+      (e) => e.source === 'buildLowStockPayload' && e.target === 'isCod'
+    )
+    const hasUpdateOrderCodToChain = edges.some(
+      (e) => e.source === 'updateOrderCod' && e.target === 'buildDecrementSql'
+    )
+    const hasIfTrueToUpdateOrderCod = edges.some(
+      (e) => e.source === 'isCod' && e.target === 'updateOrderCod' && e.sourceHandle === 'true'
+    )
+    const hasUpdateOrderCodToClearCart = edges.some(
+      (e) => e.source === 'updateOrderCod' && e.target === 'clearCart'
+    )
+    const hasLoopToIfDirectly = edges.some((e) => e.source === 'loop' && e.target === 'isCod')
+    const hasChainToClearCart = edges.some(
+      (e) => e.source === 'buildLowStockPayload' && e.target === 'clearCart'
+    )
+
+    expect(hasLoopToChain).toBe(true)
+    expect(hasChainToIf).toBe(true)
+    expect(hasUpdateOrderCodToChain).toBe(false)
+    expect(hasIfTrueToUpdateOrderCod).toBe(true)
+    expect(hasUpdateOrderCodToClearCart).toBe(true)
+    expect(hasLoopToIfDirectly).toBe(false)
+    expect(hasChainToClearCart).toBe(false)
+  })
+
+  it('is idempotent — running twice produces the same shape as running once', () => {
+    const wf = buildLegacyCodOnlyWorkflow()
+    const uidl = buildUidlWith(wf) as any
+    hoistStockDecrementOutOfCodBranch(uidl)
+    const edgesAfterFirst = wf.edges.length
+    const second = hoistStockDecrementOutOfCodBranch(uidl)
+    expect(second.hoistedWorkflows).toBe(0)
+    expect(second.skippedWorkflows).toBe(1)
+    expect(wf.edges.length).toBe(edgesAfterFirst)
+  })
+
+  it('skips a workflow whose chain is already on the shared path', () => {
+    // Synthetic "modern" shape: the decrement node has the IF
+    // downstream (chain → IF), not upstream — nothing to hoist.
+    const wf = {
+      id: 'wfPlaceOrder',
+      name: 'Place Order',
+      nodes: [
+        { id: 'loop', type: 'general-loop', config: {}, label: 'Loop' },
+        {
+          id: 'buildDecrementSql',
+          type: 'general-custom-js',
+          config: { code: AI_DECREMENT_CODE },
+          label: 'Build Stock Decrement SQL',
+        },
+        {
+          id: 'isCod',
+          type: 'general-if-statement',
+          config: {},
+          label: 'Is Payment Cash On Delivery?',
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'loop', target: 'buildDecrementSql', sourceHandle: 'exit' },
+        { id: 'e2', source: 'buildDecrementSql', target: 'isCod' },
+      ],
+    }
+    const result = hoistStockDecrementOutOfCodBranch(buildUidlWith(wf) as any)
+    expect(result.hoistedWorkflows).toBe(0)
+    expect(result.skippedWorkflows).toBe(1)
+  })
+
+  it('skips a workflow without any stock-decrement node', () => {
+    const wf = {
+      id: 'wfBenign',
+      name: 'Other Flow',
+      nodes: [{ id: 'noop', type: 'general-custom-js', config: { code: 'function f(){}' } }],
+      edges: [],
+    }
+    const result = hoistStockDecrementOutOfCodBranch(buildUidlWith(wf) as any)
+    expect(result.hoistedWorkflows).toBe(0)
+    expect(result.skippedWorkflows).toBe(1)
+  })
+
+  it('skips a UIDL with no workflows at all', () => {
+    const result = hoistStockDecrementOutOfCodBranch({} as any)
+    expect(result.hoistedWorkflows).toBe(0)
+    expect(result.skippedWorkflows).toBe(0)
+  })
+
+  it('also recognises a marker-rewritten decrement (rewriter ran before hoist)', () => {
+    // The pattern matcher uses `looksLikeStockDecrementBuilder` which
+    // already recognises the marker-rewritten shape, so the hoist
+    // works whether the rewriter ran first or not.
+    const wf = buildLegacyCodOnlyWorkflow()
+    const decrementNode = wf.nodes.find((n) => n.id === 'buildDecrementSql') as any
+    decrementNode.config.code = `${STOCK_DECREMENT_MARKER}
+function customHandler() {
+  var setClause = "quantity = quantity - CASE id WHEN 'a' THEN 1 END";
+  return { query: "UPDATE teleport_products SET " + setClause, affected: ['a'] };
+}`
+    const result = hoistStockDecrementOutOfCodBranch(buildUidlWith(wf) as any)
+    expect(result.hoistedWorkflows).toBe(1)
+  })
+})
+
+describe('reportStockWriteAudit — IF-branch structural check', () => {
+  let warnSpy: jest.SpyInstance
+  beforeEach(() => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    warnSpy.mockRestore()
+  })
+
+  it('warns when a workflow still has the decrement inside an IF branch', () => {
+    const uidl = buildUidlWith(buildLegacyCodOnlyWorkflow()) as any
+    reportStockWriteAudit(uidl)
+    // At least one warn carries the branch-site rollup phrasing.
+    const calls = warnSpy.mock.calls.map((c) => String(c[0]))
+    expect(calls.some((s) => s.includes('decrement stock inside an IF branch'))).toBe(true)
+  })
+
+  it('emits no branch-warning after the hoist runs', () => {
+    const wf = buildLegacyCodOnlyWorkflow()
+    const uidl = buildUidlWith(wf) as any
+    hoistStockDecrementOutOfCodBranch(uidl)
+    warnSpy.mockClear()
+    reportStockWriteAudit(uidl)
+    const calls = warnSpy.mock.calls.map((c) => String(c[0]))
+    expect(calls.some((s) => s.includes('decrement stock inside an IF branch'))).toBe(false)
+  })
+
+  it('does not warn when a workflow has no stock-decrement at all', () => {
+    const wf = {
+      id: 'wfBenign',
+      name: 'Other Flow',
+      nodes: [{ id: 'noop', type: 'general-custom-js', config: { code: 'function f(){}' } }],
+      edges: [],
+    }
+    reportStockWriteAudit(buildUidlWith(wf) as any)
+    expect(warnSpy).not.toHaveBeenCalled()
   })
 })

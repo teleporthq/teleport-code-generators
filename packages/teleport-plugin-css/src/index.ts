@@ -1,3 +1,4 @@
+import { join, relative } from 'path'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   StyleUtils,
@@ -42,6 +43,25 @@ interface CSSPluginConfig {
   dynamicVariantPrefix?: string
   staticPropReferences?: boolean
   standaloneHtmlComponents?: boolean
+}
+
+const prefixUrlPathsInCss = (css: string, folderPath: string[]): string => {
+  const relativePrefix = relative(join(...folderPath), './')
+  if (!relativePrefix) {
+    return css
+  }
+
+  return css.replace(/url\(["']?(.*?)["']?\)/g, (match, url) => {
+    if (
+      url.startsWith('http') ||
+      url.startsWith('data:') ||
+      url.startsWith('../') ||
+      url.startsWith('#')
+    ) {
+      return match
+    }
+    return `url("${join(relativePrefix, url)}")`
+  })
 }
 
 const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
@@ -478,13 +498,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   }
                 }
               } else {
-                const nameToAppend = styleRef.content.condition.reference.content.id
+                const referenceContent = styleRef.content.condition.reference.content
+                const referenceType = referenceContent.referenceType
+                const nameToAppend =
+                  referenceType === 'local' && referenceContent.refPath?.length
+                    ? referenceContent.refPath.join('.')
+                    : referenceContent.id
 
                 const { conditions } = styleRef.content.condition.expression
 
                 const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
                 const right = conditions[0].operand as string | number | boolean
-                const referenceType = styleRef.content.condition.reference.content.referenceType
 
                 let binaryExpressionType = ''
                 switch (referenceType) {
@@ -494,6 +518,10 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   }
                   case 'state': {
                     binaryExpressionType = stateDefinitions[nameToAppend].type
+                    break
+                  }
+                  case 'local': {
+                    binaryExpressionType = typeof right as string
                     break
                   }
                   default: {
@@ -849,11 +877,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         }
       }
 
+      const folderPath = uidl.outputOptions?.folderPath
+      const cssContent =
+        folderPath?.length > 0
+          ? cssMap.map((css) => prefixUrlPathsInCss(css, folderPath)).join('\n \n')
+          : cssMap.join('\n \n')
+
       chunks.push({
         type: ChunkType.STRING,
         name: chunkName,
         fileType: FileType.CSS,
-        content: cssMap.join('\n \n'),
+        content: cssContent,
         linkAfter: [],
       })
     }

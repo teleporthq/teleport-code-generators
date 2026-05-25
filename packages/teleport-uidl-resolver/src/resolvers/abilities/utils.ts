@@ -5,6 +5,8 @@ import {
   UIDLNavLinkNode,
   UIDLElementNode,
   UIDLAttributeValue,
+  UIDLPropDefinition,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 
 type NavlinkDifferentiatorValue = NonNullable<UIDLNavLinkNode['content']['differentiatorValue']>
@@ -49,26 +51,45 @@ export const insertLinks = (
   node: UIDLElementNode,
   options: GeneratorOptions,
   linkInParent: boolean = false,
-  parentNode?: UIDLElementNode
+  parentNode?: UIDLElementNode,
+  propDefinitions?: Record<string, UIDLPropDefinition>
 ): UIDLElementNode => {
   const { abilities, children, elementType, semanticType, attrs = {} } = node.content
   const linkInNode = linkInParent || !!abilities?.link
 
   node.content.children = children?.map((child) => {
     if (child.type === 'element') {
-      return insertLinks(child, options, linkInNode, node)
+      return insertLinks(child, options, linkInNode, node, propDefinitions)
     }
 
     if (child.type === 'repeat') {
-      child.content.node = insertLinks(child.content.node, options, linkInNode, node)
+      child.content.node = insertLinks(
+        child.content.node,
+        options,
+        linkInNode,
+        node,
+        propDefinitions
+      )
     }
 
     if (child.type === 'conditional' && child.content.node.type === 'element') {
-      child.content.node = insertLinks(child.content.node, options, linkInNode, node)
+      child.content.node = insertLinks(
+        child.content.node,
+        options,
+        linkInNode,
+        node,
+        propDefinitions
+      )
     }
 
     if (child.type === 'slot' && child.content.fallback?.type === 'element') {
-      child.content.fallback = insertLinks(child.content.fallback, options, linkInNode, node)
+      child.content.fallback = insertLinks(
+        child.content.fallback,
+        options,
+        linkInNode,
+        node,
+        propDefinitions
+      )
     }
 
     if (child.type === 'cms-list') {
@@ -77,15 +98,15 @@ export const insertLinks = (
       } = child.content
 
       if (success) {
-        child.content.nodes.success = insertLinks(success, options, false, node)
+        child.content.nodes.success = insertLinks(success, options, false, node, propDefinitions)
       }
 
       if (error) {
-        child.content.nodes.error = insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node, propDefinitions)
       }
 
       if (loading) {
-        child.content.nodes.loading = insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node, propDefinitions)
       }
     }
 
@@ -95,15 +116,15 @@ export const insertLinks = (
       } = child.content
 
       if (list) {
-        child.content.nodes.list = insertLinks(list, options, false, node)
+        child.content.nodes.list = insertLinks(list, options, false, node, propDefinitions)
       }
 
       if (empty) {
-        child.content.nodes.empty = insertLinks(empty, options, false, node)
+        child.content.nodes.empty = insertLinks(empty, options, false, node, propDefinitions)
       }
 
       if (loading) {
-        child.content.nodes.loading = insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node, propDefinitions)
       }
     }
 
@@ -114,7 +135,8 @@ export const insertLinks = (
             child.content.mappings[key],
             options,
             false,
-            node
+            node,
+            propDefinitions
           )
         })
       }
@@ -123,11 +145,11 @@ export const insertLinks = (
         nodes: { fallback, error },
       } = child.content
       if (fallback) {
-        child.content.nodes.fallback = insertLinks(fallback, options, false, node)
+        child.content.nodes.fallback = insertLinks(fallback, options, false, node, propDefinitions)
       }
 
       if (error) {
-        child.content.nodes.error = insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node, propDefinitions)
       }
     }
 
@@ -137,15 +159,15 @@ export const insertLinks = (
       } = child.content
 
       if (success) {
-        child.content.nodes.success = insertLinks(success, options, false, node)
+        child.content.nodes.success = insertLinks(success, options, false, node, propDefinitions)
       }
 
       if (error) {
-        child.content.nodes.error = insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node, propDefinitions)
       }
 
       if (loading) {
-        child.content.nodes.loading = insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node, propDefinitions)
       }
     }
 
@@ -155,15 +177,15 @@ export const insertLinks = (
       } = child.content
 
       if (success) {
-        child.content.nodes.success = insertLinks(success, options, false, node)
+        child.content.nodes.success = insertLinks(success, options, false, node, propDefinitions)
       }
 
       if (error) {
-        child.content.nodes.error = insertLinks(error, options, false, node)
+        child.content.nodes.error = insertLinks(error, options, false, node, propDefinitions)
       }
 
       if (loading) {
-        child.content.nodes.loading = insertLinks(loading, options, false, node)
+        child.content.nodes.loading = insertLinks(loading, options, false, node, propDefinitions)
       }
     }
 
@@ -174,7 +196,13 @@ export const insertLinks = (
     const attr = attrs[attrKey]
 
     if (attr.type === 'element') {
-      node.content.attrs[attrKey] = insertLinks(attr as UIDLElementNode, options, false, node)
+      node.content.attrs[attrKey] = insertLinks(
+        attr as UIDLElementNode,
+        options,
+        false,
+        node,
+        propDefinitions
+      )
     }
   }
 
@@ -189,11 +217,26 @@ export const insertLinks = (
       delete node.content.attrs.type
     }
 
+    /* Handle link-type prop references: when the link ability is a dynamic reference
+       to a prop with type 'link', route it through the navlink path so frameworks
+       can map it to their link component (e.g. Next.js <Link>) */
+    if (
+      abilities.link.type === 'dynamic' &&
+      abilities.link.content.referenceType === 'prop' &&
+      propDefinitions?.[abilities.link.content.id]?.type === 'link'
+    ) {
+      return handleLinkTypeProp(node, abilities.link as UIDLDynamicReference, parentNode)
+    }
+
     /* We repalce buttons with link to use <a> tag's, to make the generated
     code to be semantically correct. */
     if (elementType === 'button') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''
+      node.content.style = {
+        textAlign: { type: 'static', content: 'center' },
+        ...node.content.style,
+      }
       node.content.attrs = {
         ...node.content.attrs,
         ...createLinkAttributes(abilities.link, options),
@@ -249,6 +292,94 @@ export const insertLinks = (
   }
 
   return node
+}
+
+const handleLinkTypeProp = (
+  node: UIDLElementNode,
+  linkRef: UIDLDynamicReference,
+  parentNode?: UIDLElementNode
+): UIDLElementNode => {
+  const { elementType, semanticType } = node.content
+  const propId = linkRef.content.id
+
+  const linkAttrs: Record<string, UIDLAttributeValue> = {
+    url: {
+      type: 'dynamic',
+      content: {
+        referenceType: 'prop',
+        id: propId,
+        refPath: ['url'],
+      },
+    } as UIDLDynamicReference,
+    target: {
+      type: 'expr',
+      content: `props.${propId}?.['newTab'] ? '_blank' : undefined`,
+    },
+    rel: {
+      type: 'expr',
+      content: `props.${propId}?.['newTab'] ? 'noreferrer noopener' : undefined`,
+    },
+  }
+
+  // For buttons: replace element type directly
+  if (elementType === 'button') {
+    node.content.elementType = 'prop-link'
+    node.content.semanticType = ''
+    node.content.style = {
+      textAlign: { type: 'static', content: 'center' },
+      ...node.content.style,
+    }
+    node.content.attrs = { ...node.content.attrs, ...linkAttrs }
+    return node
+  }
+
+  // For text spans: replace element type directly
+  if (elementType === 'text' && semanticType === 'span') {
+    node.content.elementType = 'prop-link'
+    node.content.semanticType = ''
+    node.content.attrs = { ...node.content.attrs, ...linkAttrs }
+    return node
+  }
+
+  // For other elements: wrap with a link node
+  const linkNode: UIDLElementNode = {
+    type: 'element',
+    content: {
+      elementType: 'prop-link',
+      attrs: { ...linkAttrs },
+      children: [],
+    },
+  }
+
+  // Transfer safe attributes to the wrapper
+  if (node.type === 'element' && node.content.attrs) {
+    const safeAttrs: Record<string, UIDLAttributeValue> = {}
+    Object.keys(node.content.attrs).forEach((attrName) => {
+      if (isAttributeSafeForAnchor(attrName)) {
+        safeAttrs[attrName] = { ...node.content.attrs[attrName] }
+      }
+    })
+
+    linkNode.content.attrs = {
+      ...linkNode.content.attrs,
+      ...safeAttrs,
+    }
+
+    Object.keys(safeAttrs).forEach((attrName) => {
+      delete node.content.attrs[attrName]
+    })
+  }
+
+  linkNode.content.children.push(node)
+
+  if (parentNode === undefined || parentNode?.content.style?.display?.content === 'flex') {
+    linkNode.content.style = {
+      ...linkNode.content.style,
+      display: { type: 'static', content: 'contents' },
+    }
+  }
+
+  return linkNode
 }
 
 export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): UIDLElementNode => {

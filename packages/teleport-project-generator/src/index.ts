@@ -531,7 +531,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
           Generating files from the extracted resources that needs a proxy end-point to access them.
         */
         Object.values(componentOptions.extractedResources).forEach((extractedResource) => {
-          inMemoryFilesMap.set(`resource-${extractedResource.fileName}`, {
+          const pathKey = extractedResource.path.join('/')
+          const uniqueKey = `resource-${pathKey}/${extractedResource.fileName}`
+          inMemoryFilesMap.set(uniqueKey, {
             path: extractedResource.path,
             files: [
               {

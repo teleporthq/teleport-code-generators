@@ -211,17 +211,29 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     }
 
     if (dependencies?.useRouter) {
-      const routerAST = types.variableDeclaration('const', [
-        types.variableDeclarator(
-          types.identifier('router'),
-          types.callExpression(types.identifier('useRouter'), [])
-        ),
-      ])
       const componentBody = (
         (pureComponent.declarations[0] as types.VariableDeclarator)
           .init as types.ArrowFunctionExpression
       ).body as types.BlockStatement
-      componentBody.body.unshift(routerAST)
+
+      const routerAlreadyDeclared = componentBody.body.some(
+        (statement) =>
+          statement.type === 'VariableDeclaration' &&
+          statement.declarations.some(
+            (declaration) =>
+              declaration.id.type === 'Identifier' && declaration.id.name === 'router'
+          )
+      )
+
+      if (!routerAlreadyDeclared) {
+        const routerAST = types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.identifier('router'),
+            types.callExpression(types.identifier('useRouter'), [])
+          ),
+        ])
+        componentBody.body.unshift(routerAST)
+      }
     }
 
     if (Object.keys(windowImports).length) {

@@ -260,8 +260,12 @@ export const traverseNodes = (
         traverseStyleObject(style)
       }
 
-      if (abilities?.link?.type === 'url') {
-        traverseNodes(abilities?.link?.content?.url, fn, node)
+      if (abilities?.link) {
+        if (abilities.link.type === 'url') {
+          traverseNodes(abilities.link.content?.url, fn, node)
+        } else if (abilities.link.type === 'dynamic') {
+          traverseNodes(abilities.link as UIDLNode, fn, node)
+        }
       }
 
       if (children) {

@@ -197,8 +197,6 @@ const generateSitemapContent = (
     return null
   }
 
-  const currentDate = new Date().toISOString().split('T')[0]
-
   const indexablePages = routeValues.filter((route) => {
     if (route.pageOptions?.fallback) {
       return false
@@ -223,6 +221,7 @@ const generateSitemapContent = (
     const pagePath = route.pageOptions?.navLink || (route.value === homePageName ? '/' : '/')
     const isHomePage = pagePath === '/'
     const fullDefaultUrl = baseUrl + pagePath
+    const lastmod = route.pageOptions?.lastmod
 
     if (hasMultipleLocales) {
       for (const locale of locales) {
@@ -243,7 +242,7 @@ const generateSitemapContent = (
           [
             `  <url>`,
             `    <loc>${locUrl}</loc>`,
-            `    <lastmod>${currentDate}</lastmod>`,
+            ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
             `    <changefreq>weekly</changefreq>`,
             `    <priority>${isHomePage ? '1.0' : '0.8'}</priority>`,
             ...xhtmlLinks,
@@ -256,7 +255,7 @@ const generateSitemapContent = (
         [
           `  <url>`,
           `    <loc>${fullDefaultUrl}</loc>`,
-          `    <lastmod>${currentDate}</lastmod>`,
+          ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
           `    <changefreq>weekly</changefreq>`,
           `    <priority>${isHomePage ? '1.0' : '0.8'}</priority>`,
           `  </url>`,
