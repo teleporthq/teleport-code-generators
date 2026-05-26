@@ -803,3 +803,137 @@ describe('low-stock SELECT-builder prefers RETURNING rows over intended affected
     expect(result.query).toContain("'a'")
   })
 })
+
+// ────────────────────────────────────────────────────────────────────
+// rewriteLowStockCustomHandlers — end-to-end with the hoist
+// ────────────────────────────────────────────────────────────────────
+//
+// The full rewriter pipeline does THREE things to a legacy place-order
+// workflow:
+//   1. Swap each AI-shape customHandler for the settings-driven body
+//      (this was the original module behaviour — already tested above).
+//   2. Hoist the stock-decrement chain out of the COD branch onto the
+//      shared path, so online buyers also decrement stock.
+//   3. Run the audit and emit a console.warn for any unknown sites.
+//
+// This block exercises step 2 specifically — that the call to
+// `hoistStockDecrementOutOfCodBranch` inside
+// `rewriteLowStockCustomHandlers` actually fires when stock management
+// is enabled.
+
+describe('rewriteLowStockCustomHandlers → hoists chain out of COD branch', () => {
+  const AI_DECREMENT = `function customHandler(previousContext, params) {
+  var cartItems = null;
+  for (var i = 0; i < params.length; i++) {
+    var p = params[i];
+    if (p && Array.isArray(p.items)) { cartItems = p.items; break; }
+  }
+  if (!cartItems || cartItems.length === 0) {
+    return { query: "SELECT 1", affected: [] };
+  }
+  var query = "UPDATE teleport_products SET quantity = quantity - CASE id END WHERE id IN ('a')";
+  return { query: query, affected: ['a'] };
+}`
+
+  const legacyCodOnlyUidl = () =>
+    ({
+      workflows: {
+        workflows: {
+          wfPlaceOrder: {
+            id: 'wfPlaceOrder',
+            name: 'Place Order',
+            nodes: [
+              { id: 'loop', type: 'general-loop', config: {}, label: 'Loop' },
+              {
+                id: 'isCod',
+                type: 'general-if-statement',
+                config: {},
+                label: 'Is Payment Cash On Delivery?',
+              },
+              {
+                id: 'updateOrderCod',
+                type: 'data-update-item',
+                config: { tableName: 'teleport_orders' },
+                label: 'Mark COD Confirmed',
+              },
+              {
+                id: 'buildDecrementSql',
+                type: 'general-custom-js',
+                config: { code: AI_DECREMENT },
+                label: 'Build Stock Decrement SQL',
+              },
+              {
+                id: 'decrementStock',
+                type: 'data-raw-query',
+                config: {},
+                label: 'Decrement Product Stock After Order',
+              },
+              { id: 'clearCart', type: 'cart-clear', config: {}, label: 'Clear Cart' },
+              {
+                id: 'chargeUser',
+                type: 'payment-charge-user',
+                config: {},
+                label: 'Charge User',
+              },
+            ],
+            edges: [
+              { id: 'e1', source: 'loop', target: 'isCod', sourceHandle: 'exit' },
+              { id: 'e2', source: 'isCod', target: 'updateOrderCod', sourceHandle: 'true' },
+              { id: 'e3', source: 'updateOrderCod', target: 'buildDecrementSql' },
+              { id: 'e4', source: 'buildDecrementSql', target: 'decrementStock' },
+              { id: 'e5', source: 'decrementStock', target: 'clearCart' },
+              { id: 'e6', source: 'isCod', target: 'chargeUser', sourceHandle: 'false' },
+            ],
+          },
+        },
+      },
+      ecommerceSettings: {
+        stockManagement: true,
+        stockManagementConfig: {
+          lowStockThreshold: 5,
+          lowStockAlerts: false,
+          allowBackorders: false,
+          lowStockAlertConfig: { provider: null },
+        },
+      },
+    } as any)
+
+  it('rewires the chain onto the shared path when stockManagement is on', () => {
+    const uidl = legacyCodOnlyUidl()
+    rewriteLowStockCustomHandlers(uidl)
+    const edges = uidl.workflows.workflows.wfPlaceOrder.edges
+    // After hoist: loop → buildDecrementSql (NOT loop → isCod directly).
+    expect(
+      edges.some(
+        (e: any) =>
+          e.source === 'loop' && e.target === 'buildDecrementSql' && e.sourceHandle === 'exit'
+      )
+    ).toBe(true)
+    // The chain's tail (decrementStock) feeds into the IF.
+    expect(edges.some((e: any) => e.source === 'decrementStock' && e.target === 'isCod')).toBe(true)
+    // The IF.true handle still routes to updateOrderCod.
+    expect(
+      edges.some(
+        (e: any) =>
+          e.source === 'isCod' && e.target === 'updateOrderCod' && e.sourceHandle === 'true'
+      )
+    ).toBe(true)
+    // updateOrderCod now closes the branch by pointing at clearCart.
+    expect(edges.some((e: any) => e.source === 'updateOrderCod' && e.target === 'clearCart')).toBe(
+      true
+    )
+  })
+
+  it('does NOT hoist when stockManagement is off', () => {
+    const uidl = legacyCodOnlyUidl()
+    uidl.ecommerceSettings.stockManagement = false
+    rewriteLowStockCustomHandlers(uidl)
+    const edges = uidl.workflows.workflows.wfPlaceOrder.edges
+    // Original loop → isCod edge is still there because the hoist was
+    // gated off — merchant opted out of stock concerns.
+    expect(edges.some((e: any) => e.source === 'loop' && e.target === 'isCod')).toBe(true)
+    expect(
+      edges.some((e: any) => e.source === 'updateOrderCod' && e.target === 'buildDecrementSql')
+    ).toBe(true)
+  })
+})

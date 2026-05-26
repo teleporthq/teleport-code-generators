@@ -328,8 +328,17 @@ const looksLikeOrderDecrementCustomHandler = (code: string): boolean => {
     // Belt-and-braces: even when the marker is present, the code must
     // actually be a stock-decrement (not, say, an unrelated rewritten
     // node that happens to live next to teleport_products references).
-    if (/quantity\s*=\s*quantity\s*-/.test(code) && code.indexOf('teleport_products') >= 0) {
-      return true
+    // Accept BOTH the legacy concat shape (`quantity = quantity - CASE
+    // id …`) AND the current safety-wrapped shape (`quantity =
+    // GREATEST(0, COALESCE(quantity, 0) - CASE id …)`) — they're both
+    // emitted by `buildStockDecrementBuilder` across time.
+    if (code.indexOf('teleport_products') >= 0) {
+      if (/quantity\s*=\s*quantity\s*-/.test(code)) {
+        return true
+      }
+      if (/quantity\s*=\s*GREATEST\s*\(\s*\d+\s*,\s*COALESCE\s*\(\s*quantity/i.test(code)) {
+        return true
+      }
     }
     return false
   }
@@ -656,14 +665,33 @@ const locateBranchDecrementSite = (workflow: {
   // shape — `looksLikeStockDecrementBuilder` deliberately short-circuits
   // on the marker (so the rewriter is idempotent), but the hoist must
   // detect either, so we check the marker too.
+  // Accepts THREE shapes:
+  //   1. AI-shape (no marker): `quantity = quantity - CASE id …`
+  //   2. Marker-rewritten with the legacy concat (early
+  //      `buildStockDecrementBuilder` output): `setClause = "quantity =
+  //      quantity - CASE id …"`
+  //   3. Marker-rewritten with the current safety wrapping:
+  //      `setClause = "quantity = GREATEST(0, COALESCE(quantity, 0) -
+  //      CASE id …)"`
+  //
+  // The marker alone (emitted ONLY by `buildStockDecrementBuilder`) is
+  // a reliable signal for #2/#3 — if a teleport_products reference is
+  // also present, the chain originated from our rewriter. The label
+  // check belt-and-braces guards against future drift in the safety
+  // wrapping (e.g. swapping GREATEST for a different clamp function)
+  // by also matching nodes that carry the canonical "Build Stock
+  // Decrement SQL" name.
   const isDecrementCandidate = (n: any): boolean => {
     if (!n || n.type !== 'general-custom-js') return false
     const code = n?.config?.code
     if (typeof code !== 'string') return false
     if (looksLikeStockDecrementBuilder(code)) return true
+    if (code.indexOf(STOCK_DECREMENT_MARKER) >= 0 && code.indexOf('teleport_products') >= 0) {
+      return true
+    }
+    const label = String(n?.name || n?.label || '')
     if (
-      code.indexOf(STOCK_DECREMENT_MARKER) >= 0 &&
-      /quantity\s*=\s*quantity\s*-/.test(code) &&
+      (label === 'Build Stock Decrement SQL' || label.indexOf('Build Stock Decrement') === 0) &&
       code.indexOf('teleport_products') >= 0
     ) {
       return true
