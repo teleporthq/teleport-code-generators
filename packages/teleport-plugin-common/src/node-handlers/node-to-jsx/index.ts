@@ -963,6 +963,12 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.content.elementType)
   const repeaterNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
+  const dataNodeIdAttr = (node.content as { attrs?: { dataNodeId?: { content?: string } } }).attrs
+    ?.dataNodeId
+  if (dataNodeIdAttr?.content) {
+    addAttributeToJSXTag(repeaterNode, 'dataNodeId', dataNodeIdAttr.content)
+  }
+
   repeaterNode.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('items'),
