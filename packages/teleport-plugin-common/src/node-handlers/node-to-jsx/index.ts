@@ -1672,6 +1672,12 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.content.elementType)
   const repeaterNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
+  const dataNodeIdAttr = (node.content as { attrs?: { dataNodeId?: { content?: string } } }).attrs
+    ?.dataNodeId
+  if (dataNodeIdAttr?.content) {
+    addAttributeToJSXTag(repeaterNode, 'dataNodeId', dataNodeIdAttr.content)
+  }
+
   // When the repeater source is a global context like "ecommerce", resolve to
   // the appropriate array from the ecommerce context based on what the repeater
   // iterates over (determined by renderPropIdentifier).

@@ -1025,6 +1025,7 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
   content: object({
     elementType: string(),
     name: withDefault('cms-list-repeater', string()),
+    attrs: optional(lazy(() => dict(union(attributeValueDecoder, string(), number())))),
     nodes: object({
       list: lazy(() => elementNodeDecoder),
       empty: optional(lazy(() => elementNodeDecoder)),

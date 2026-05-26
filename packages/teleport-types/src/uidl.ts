@@ -841,6 +841,7 @@ export interface UIDLCMSListRepeaterNodeContent {
   elementType: string
   name: string
   key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
   dependency?: UIDLDependency
   nodes: {
     list: UIDLElementNode
