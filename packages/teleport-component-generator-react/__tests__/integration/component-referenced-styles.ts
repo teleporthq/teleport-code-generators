@@ -218,7 +218,11 @@ describe('Add referenced styles even when direct styles are not present on node'
   })
 })
 
-describe('Throws Error when a node is using project-styles but not present in UIDL', () => {
+describe('Silently drops project-styles whose referenceId is missing from the UIDL', () => {
+  // Tolerant fallback for agent-generated UIDLs: when a node references a
+  // project style that wasn't defined in `projectStyleSet.styleSetDefinitions`,
+  // the plugin pipeline drops the reference and emits the component without
+  // that style rather than aborting the whole generation.
   const styles: UIDLReferencedStyles = {
     '123456789': {
       type: 'style-map',
@@ -235,14 +239,20 @@ describe('Throws Error when a node is using project-styles but not present in UI
 
   it('CSS Modules', async () => {
     const generator = createReactComponentGenerator()
-    await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
+    const { files } = await generator.generateComponent(uidl)
+    const jsFile = findFileByType(files, FileType.JS)
+    expect(jsFile).toBeDefined()
+    expect(jsFile?.content).not.toContain('987654321')
   })
 
   it('CSS', async () => {
     const generator = createReactComponentGenerator({
       variation: ReactStyleVariation.CSS,
     })
-    await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
+    const { files } = await generator.generateComponent(uidl)
+    const jsFile = findFileByType(files, FileType.JS)
+    expect(jsFile).toBeDefined()
+    expect(jsFile?.content).not.toContain('987654321')
   })
 
   it('Styled Components', async () => {
