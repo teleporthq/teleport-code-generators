@@ -400,9 +400,12 @@ async function utility_full_text_search(config: any, context: Record<string, unk
         }
       }
 
-      // IDF = log(totalDocs / docsContaining), with smoothing to avoid division by zero
+      // Smoothed IDF: log(1 + N/df) stays strictly positive even when a term
+      // appears in every document (the plain log(N/df) collapses to 0 in that
+      // case and silently drops every result, since downstream scoring filters
+      // on totalScore > 0).
       if (docsContaining > 0) {
-        idfMap[term] = Math.log(totalDocs / docsContaining)
+        idfMap[term] = Math.log(1 + totalDocs / docsContaining)
       } else {
         idfMap[term] = 0
       }

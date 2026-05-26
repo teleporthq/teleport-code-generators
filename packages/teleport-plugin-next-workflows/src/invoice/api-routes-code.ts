@@ -24,6 +24,7 @@ ${emailEnabled ? `var emailSender = require('../../../utils/invoices/email-sende
 
 var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 var DEFAULT_TAX_RATE = ${defaultTaxRate};
+var DEFAULT_CURRENCY = "USD";
 var SHOW_DISCOUNT = ${showDiscount};
 var TAX_INCLUDED_IN_PRICE = ${taxIncludedInPrice};
 var TEMPLATE_DOCUMENT = ${templateDocumentJson};
@@ -159,7 +160,7 @@ module.exports = async function handler(req, res) {
           console.info('[invoice] Hydration: orderId=' + body.orderId + ' not found in teleport_orders');
         }
       } catch (hydrateErr) {
-        console.error('[invoice] Hydration FAILED:', hydrateErr && hydrateErr.message);
+        console.error('[invoice] Invoice generation: order hydration failed:', hydrateErr && hydrateErr.message);
       }
     } else {
       console.info('[invoice] No orderId in request — skipping DB hydration, using body.* fields verbatim');
@@ -183,7 +184,7 @@ module.exports = async function handler(req, res) {
     }
 
     var currency = String(
-      body.currency || (hydratedOrder && hydratedOrder.currency) || 'USD'
+      body.currency || (hydratedOrder && hydratedOrder.currency) || DEFAULT_CURRENCY
     ).toUpperCase();
     var currencySymbol = body.currencySymbol || CURRENCY_SYMBOLS[currency] || currency + ' ';
 

@@ -56,10 +56,29 @@ describe('navigation-go-to-page', () => {
   })
 
   describe('static target page', () => {
-    it('uses targetPage.staticUrl in preference to pageId', async () => {
+    // For NON-details pages, pageId wins: the project plugin's `runBefore`
+    // step rewrites `pageId` to the authoritative Next.js route, while
+    // `targetPage.staticUrl` is a mapper best-guess that can diverge from
+    // the real route (e.g. home ships as `/home` but Next serves it at `/`).
+    it('uses pageId in preference to targetPage.staticUrl for non-details pages', async () => {
       await handler(
         {
-          pageId: '/should-be-ignored',
+          pageId: '/about-us',
+          openInNewTab: false,
+          targetPage: {
+            pageId: 'page_about',
+            staticUrl: '/should-be-ignored',
+            isDetailsPage: false,
+          },
+        },
+        {}
+      )
+      expect(win.location.href).toBe('/about-us')
+    })
+
+    it('falls back to targetPage.staticUrl when pageId is missing', async () => {
+      await handler(
+        {
           openInNewTab: false,
           targetPage: {
             pageId: 'page_about',
