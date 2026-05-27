@@ -27,6 +27,7 @@ import {
   staticValueDecoder,
   formsDecoder,
   dataSourcesDecoder,
+  pageTransitionDecoder,
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -58,6 +59,7 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
   assets: array(globalAssetsDecoder),
   manifest: optional(webManifestDecoder),
   variables: optional(dict(string())),
+  pageTransition: optional(pageTransitionDecoder),
 })
 
 export const resourcesDecoder: Decoder<UIDLResources> = object({

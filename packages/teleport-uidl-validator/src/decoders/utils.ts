@@ -97,6 +97,9 @@ import {
   VUIDLPropDefinitions,
   UIDLGlobalReference,
   UIDLObjectValue,
+  UIDLPageTransition,
+  UIDLPageTransitionAnimation,
+  UIDLPageTransitionRegion,
   UIDLDynamicCondition,
 } from '@teleporthq/teleport-types'
 import {
@@ -446,6 +449,45 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
   defaultValue: stateDefinitionsDefaultValueDecoder,
 })
 
+const pageTransitionAnimationDecoder: Decoder<UIDLPageTransitionAnimation> = object({
+  name: optional(string()),
+  keyframes: optional(dict(dict(union(string(), number())))),
+  duration: optional(number()),
+  easing: optional(string()),
+  delay: optional(number()),
+})
+
+const pageTransitionRegionDecoder: Decoder<UIDLPageTransitionRegion> = object({
+  role: union(constant<'freeze'>('freeze'), constant<'animate'>('animate')),
+  exit: optional(pageTransitionAnimationDecoder),
+  enter: optional(pageTransitionAnimationDecoder),
+})
+
+export const pageTransitionDecoder: Decoder<UIDLPageTransition> = object({
+  preset: optional(
+    union(
+      constant<'book-flip'>('book-flip'),
+      constant<'fade'>('fade'),
+      constant<'slide'>('slide'),
+      constant<'custom'>('custom')
+    )
+  ),
+  regions: optional(dict(pageTransitionRegionDecoder)),
+  duration: optional(object({ exit: optional(number()), enter: optional(number()) })),
+  enterDelay: optional(number()),
+  easing: optional(object({ exit: optional(string()), enter: optional(string()) })),
+  reducedMotion: optional(
+    union(constant<'instant'>('instant'), constant<'respect-preset'>('respect-preset'))
+  ),
+  customCSS: optional(string()),
+})
+
+export const pageTransitionOverrideDecoder: Decoder<UIDLPageTransition | { disabled: true }> =
+  union(
+    object({ disabled: constant<true>(true) }) as unknown as Decoder<{ disabled: true }>,
+    pageTransitionDecoder
+  )
+
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   componentName: optional(string().andThen(isValidComponentName)),
   navLink: optional(string().andThen(isValidNavLink)),
@@ -457,6 +499,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   initialPathsData: optional(initialPathsDecoder),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
+  pageTransition: optional(pageTransitionOverrideDecoder),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({

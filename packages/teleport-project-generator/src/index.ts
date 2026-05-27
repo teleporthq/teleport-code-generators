@@ -599,6 +599,12 @@ export class ProjectGenerator implements ProjectGeneratorType {
               ),
           },
           dependencies: collectedDependencies,
+          viewTransition: uidl.globals?.pageTransition
+            ? {
+                config: uidl.globals.pageTransition,
+                disabledPaths: collectDisabledViewTransitionPaths(uidl),
+              }
+            : undefined,
         })
 
         collectedDependencies = result.dependencies
@@ -749,3 +755,23 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 }
 
 export default createProjectGenerator
+
+// Collects `router.asPath` values for pages that opt out of View Transitions
+// via `pageOptions.pageTransition = { disabled: true }`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const collectDisabledViewTransitionPaths = (uidl: any): string[] => {
+  const routeDef = uidl?.root?.stateDefinitions?.route
+  if (!routeDef?.values) {
+    return []
+  }
+  const paths: string[] = []
+  for (const entry of routeDef.values) {
+    const override = entry?.pageOptions?.pageTransition
+    if (override && 'disabled' in override && override.disabled) {
+      // Route values map to router.asPath segments like "/about". The default page uses "/".
+      const value = String(entry.value)
+      paths.push(routeDef.defaultValue === value ? '/' : `/${value}`)
+    }
+  }
+  return paths
+}

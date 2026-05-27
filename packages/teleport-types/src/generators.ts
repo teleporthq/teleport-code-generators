@@ -17,6 +17,7 @@ import {
   UIDLGlobalAsset,
   UIDLElementNode,
   UIDLStaticValue,
+  UIDLPageTransition,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -346,6 +347,16 @@ export interface FrameWorkConfigOptions {
     path: string
     sheetName: string
     isGlobalStylesDependent?: boolean
+  }
+  /**
+   * When set, the framework config generator may emit a View Transition API swap-point
+   * in the entry file (e.g. Next.js `_app.js`). Populated by the project generator core
+   * from `uidl.globals.pageTransition`.
+   */
+  viewTransition?: {
+    config: UIDLPageTransition
+    /** Route paths (matching router.asPath) that opt out of VTA animation. */
+    disabledPaths: string[]
   }
 }
 

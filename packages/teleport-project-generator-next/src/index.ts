@@ -24,6 +24,7 @@ import { createNextInternationalizationPlugin } from './internationalization/loc
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
+import { NextViewTransitionPlugin } from './view-transition/plugin'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -122,10 +123,14 @@ const createNextProjectGenerator = () => {
   // Add data source dependencies plugin to handle package.json dependencies
   generator.addPlugin(dataSourceDependenciesPlugin)
 
+  // Injects View Transition API CSS into customCode.head when uidl.globals.pageTransition is set.
+  generator.addPlugin(new NextViewTransitionPlugin())
+
   return generator
 }
 
 export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
+export { NextViewTransitionPlugin } from './view-transition/plugin'
 export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
