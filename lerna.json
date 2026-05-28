@@ -1,8 +1,6 @@
 {
-  "packages": [
-    "packages/*"
-  ],
-  "version": "0.42.35",
+  "packages": ["packages/*"],
+  "version": "0.43.0",
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
@@ -10,22 +8,14 @@
       "registry": "http://localhost:4873"
     },
     "version": {
-      "allowBranch": [
-        "development",
-        "feat/better-fetch",
-        "hotfix/*",
-        "add-locale-support"
-      ],
+      "allowBranch": ["development", "feat/better-fetch", "hotfix/*", "add-locale-support"],
       "message": "chore(release): 'publish %s'"
     }
   },
   "changelog": {
     "repo": "teleporthq/teleport-code-generators",
     "cacheDir": ".changelog",
-    "ignoreCommitters": [
-      "allcontributors",
-      "dependabot"
-    ],
+    "ignoreCommitters": ["allcontributors", "dependabot"],
     "labels": {
       "enhancement": ":rocket: New Features",
       "react generators": ":electric_plug: React Generators",
