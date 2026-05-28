@@ -58,6 +58,7 @@ import {
   generateRuntimeStorageUploadRoute,
 } from './runtime-storage-generator'
 import { rewriteLowStockCustomHandlers } from './ecommerce-customhandler-rewriter'
+import { assertWorkflowsAreSecure } from './security-scanner'
 
 export class NextWorkflowProjectPlugin implements ProjectPlugin {
   private static INLINE_HANDLED_NODE_TYPES = new Set([
@@ -68,6 +69,14 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
   ])
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, strategy } = structure
+
+    // Codegen-time security gate. Throws CodegenSecurityError if any
+    // `general-custom-js` body references a protected platform secret
+    // or uses an obvious sandbox-escape primitive. Backstop for the GUI
+    // and services-worker static checks; surfaces the failure before
+    // any code is emitted.
+    assertWorkflowsAreSecure(uidl.workflows)
+
     if (uidl.workflows?.workflows) {
       const pageRouteMap = this.buildPageRouteMap(uidl, strategy)
 

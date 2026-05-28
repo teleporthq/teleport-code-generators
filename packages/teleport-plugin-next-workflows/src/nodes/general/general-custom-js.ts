@@ -292,6 +292,47 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
     // helpers may be declared at the top level (e.g. `function helper(){…}
     // function customHandler(){…}`). Without this preference the runtime
     // would invoke the helper with the wrong arguments and crash.
+    // Runtime preamble that shadows `process` for the duration of the
+    // user-supplied JS execution. Protected platform secrets — the
+    // names a deployed Teleport project may not leak — resolve to
+    // `undefined` through this shadow even when the user goes through
+    // `globalThis.process` or `Object.keys(process.env)`. This is a
+    // defence-in-depth layer; static analysis at publish time already
+    // rejects code that does any of this.
+    //
+    // The user code is wrapped in an IIFE that takes `process` and
+    // `globalThis` as parameters. Doing it that way (instead of `var process
+    // = ...` in the outer scope) avoids JS hoisting: a top-level `var
+    // process` declaration would shadow the global at the FIRST line of
+    // the function body, causing `typeof process !== "undefined"` to read
+    // the hoisted `undefined` local instead of the real global.
+    const SECURITY_PREAMBLE =
+      'var __TQ_PROTECTED = {' +
+      '"TELEPORT_DB_CONNECTION_STRING":1,' +
+      '"RUNTIME_STORAGE_API_KEY":1,' +
+      '"RUNTIME_STORAGE_PROJECT_ID":1,' +
+      '"TELEPORT_PROJECT_TOKEN":1,' +
+      '"REALTIME_SERVER_API_KEY":1,' +
+      '"REALTIME_SERVER_URL":1,' +
+      '"PDF_SERVICE_URL":1,' +
+      '"PDF_SERVICE_API_KEY":1' +
+      '};\n' +
+      'var __TQ_origProcess = (typeof process !== "undefined") ? process : undefined;\n' +
+      'var __TQ_origGlobalThis = (typeof globalThis !== "undefined") ? globalThis : (typeof global !== "undefined" ? global : undefined);\n' +
+      'var __TQ_safeEnv = (__TQ_origProcess && __TQ_origProcess.env && typeof Proxy !== "undefined")' +
+      ' ? new Proxy(__TQ_origProcess.env, {' +
+      '  get: function(t,k){ return __TQ_PROTECTED[k] ? undefined : t[k]; },' +
+      '  has: function(t,k){ return !__TQ_PROTECTED[k] && (k in t); },' +
+      '  ownKeys: function(t){ return Object.keys(t).filter(function(k){ return !__TQ_PROTECTED[k]; }); },' +
+      '  getOwnPropertyDescriptor: function(t,k){ return __TQ_PROTECTED[k] ? undefined : Object.getOwnPropertyDescriptor(t,k); }' +
+      '}) : (__TQ_origProcess ? __TQ_origProcess.env : undefined);\n' +
+      'var __TQ_safeProcess = __TQ_origProcess && typeof Proxy !== "undefined"' +
+      ' ? new Proxy(__TQ_origProcess, { get: function(t,k){ return k === "env" ? __TQ_safeEnv : t[k]; } })' +
+      ' : __TQ_origProcess;\n' +
+      'var __TQ_safeGlobalThis = __TQ_origGlobalThis && typeof Proxy !== "undefined"' +
+      ' ? new Proxy(__TQ_origGlobalThis, { get: function(t,k){ return k === "process" ? __TQ_safeProcess : t[k]; } })' +
+      ' : __TQ_origGlobalThis;\n'
+
     const slice = code.slice(codeStart)
     const customHandlerMatch = slice.match(/function\s+customHandler\s*\(([^)]*)\)/)
     const fnMatch = customHandlerMatch
@@ -306,7 +347,31 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       // If the user declared no args, fall back to passing `params` so
       // legacy code that ignores arguments keeps working.
       const argNames = declaredArgs.length > 0 ? declaredArgs : ['params']
-      const execCode = code + '\nreturn ' + fnName + '(' + argNames.join(', ') + ');'
+      // User code runs inside an IIFE so the safe `process` / `globalThis`
+      // shadow are visible as locals without var-hoisting hazards. The
+      // IIFE forwards the outer argument names through its own parameter
+      // list so the user function still receives params / innerParamsN
+      // exactly as before. We use TQ-prefixed param names then reassign
+      // `process` / `globalThis` via `var` inside the IIFE so the user
+      // can still safely declare a parameter named `process` in their
+      // own customHandler signature without colliding with the wrapper.
+      const iifeParams = ['__TQ_p', '__TQ_g'].concat(argNames).join(', ')
+      const iifeArgs = ['__TQ_safeProcess', '__TQ_safeGlobalThis'].concat(argNames).join(', ')
+      const execCode =
+        SECURITY_PREAMBLE +
+        'return (function(' +
+        iifeParams +
+        ') {\n' +
+        'var process = __TQ_p;\n' +
+        'var globalThis = __TQ_g;\n' +
+        code +
+        '\nreturn ' +
+        fnName +
+        '(' +
+        argNames.join(', ') +
+        ');\n})(' +
+        iifeArgs +
+        ');'
       // The legacy Function(parameterList, body) form takes a comma-separated
       // string of formal parameter names. We use it here so the handler's
       // compiled output stays free of helper-dependent spread syntax — the
@@ -335,7 +400,16 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
 
     // No function declaration: treat the code as a script body. Expose
     // params + previousContext as the documented top-level entry points.
-    const scriptBodyFn = new Function('params', 'previousContext', code)
+    // User code runs inside an IIFE that captures the safe `process` /
+    // `globalThis` shadow via local var reassignment (see SECURITY_PREAMBLE).
+    const scriptBody =
+      SECURITY_PREAMBLE +
+      'return (function(__TQ_p, __TQ_g, params, previousContext) {\n' +
+      'var process = __TQ_p;\n' +
+      'var globalThis = __TQ_g;\n' +
+      code +
+      '\n})(__TQ_safeProcess, __TQ_safeGlobalThis, params, previousContext);'
+    const scriptBodyFn = new Function('params', 'previousContext', scriptBody)
     let scriptResult = scriptBodyFn(argValues.params, argValues.previousContext)
     if (scriptResult && typeof scriptResult.then === 'function') {
       scriptResult = await scriptResult

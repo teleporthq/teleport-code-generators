@@ -1672,12 +1672,24 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
       const debounce = config.debounce as number | undefined
 
       if (debounce) {
+        // Plan v35 D4 — the debounce wraps the WORKFLOW execution, but the
+        // generated handler MUST also dispatch a custom `__wfDebouncedInput`
+        // event so the controlled-input wrapper can update React state
+        // IMMEDIATELY (before the debounce fires). Without this, the input's
+        // `value={…}` prop only changes after the 300ms delay, the user sees
+        // a frozen text field, and the workflow never gets a chance to run
+        // because every keystroke clears the timer.
         return (
           `(function() {\n` +
           `      let timer = null;\n` +
           `      return function(event) {\n` +
-          `        clearTimeout(timer);\n` +
           `        const value = event.target.value;\n` +
+          `        // Plan v35 D4 — dispatch IMMEDIATELY so the controlled-input mirror\n` +
+          `        // state updates without waiting for the workflow debounce.\n` +
+          `        try {\n` +
+          `          event.target.dispatchEvent(new CustomEvent('__wfDebouncedInput', { detail: { value: value, elementId: '${elementId}' }, bubbles: true }));\n` +
+          `        } catch (e) { /* non-fatal */ }\n` +
+          `        clearTimeout(timer);\n` +
           `        timer = setTimeout(async function() {\n` +
           `          const triggerContext = { value: value, elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n` +
           `          __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});\n` +
