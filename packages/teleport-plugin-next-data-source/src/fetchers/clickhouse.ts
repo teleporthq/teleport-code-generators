@@ -68,28 +68,13 @@ export default async function handler(req, res) {
     
     const conditions = []
     
-    if (query) {
-      if (queryColumns) {
-        const parsed = safeJSONParse(queryColumns)
-        const columns = Array.isArray(parsed) ? parsed : [parsed]
-        const searchConditions = columns.map(
-          (col) => \`positionCaseInsensitive(toString(\${col}), '\${query}') > 0\`
-        )
-        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
-      } else {
-        // Note: Without queryColumns, ClickHouse can't search all columns efficiently
-        // Users should provide queryColumns for optimal search performance
-        console.warn('Search query provided without queryColumns - search may not work as expected')
-      }
-    }
-    
     const formatClickHouseValue = (value) => {
       if (value === null || value === undefined) return 'NULL'
       if (typeof value === 'string') return \`'\${value.replace(/'/g, "\\\\'")}'\`
       if (typeof value === 'boolean') return value ? '1' : '0'
       return String(value)
     }
-    
+
     // Helper to sanitize identifier (prevent SQL injection in column names)
     const sanitizeIdentifier = (name) => {
       // Only allow alphanumeric and underscore
@@ -97,6 +82,27 @@ export default async function handler(req, res) {
         throw new Error(\`Invalid identifier: \${name}\`)
       }
       return \`\\\`\${name}\\\`\`
+    }
+
+    if (query) {
+      if (queryColumns) {
+        const parsed = safeJSONParse(queryColumns)
+        const columns = Array.isArray(parsed) ? parsed : [parsed]
+        // Escape the search term into a ClickHouse string literal so
+        // single quotes and backslashes can't break out of the literal
+        // or execute injected SQL. Column identifiers are sanitized
+        // against the identifier regex above.
+        const queryLiteral = formatClickHouseValue(String(query))
+        const searchConditions = columns.map(
+          (col) =>
+            \`positionCaseInsensitiveUTF8(toString(\${sanitizeIdentifier(col)}), \${queryLiteral}) > 0\`
+        )
+        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+      } else {
+        // Note: Without queryColumns, ClickHouse can't search all columns efficiently
+        // Users should provide queryColumns for optimal search performance
+        console.warn('Search query provided without queryColumns - search may not work as expected')
+      }
     }
     
     if (filters) {
@@ -157,16 +163,16 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
-          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sanitizeIdentifier(sort.field)} \${order}\`
         }).filter(Boolean)
-        
+
         if (orderClauses.length > 0) {
           sql += \` ORDER BY \${orderClauses.join(', ')}\`
         }
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrder?.toUpperCase() || 'ASC'}\`
+      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
     }
     
     const limitValue = limit || perPage

@@ -5,10 +5,64 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { parseExpression } from '@babel/parser'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
+import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
+import { appendFiltersParam, pushStateIdsAsDeps } from './filter-utils'
+
+// ----- searchDefaultValue support -----
+//
+// `searchDefaultValue` on a `cms-list-repeater` UIDL node seeds the
+// generated search input and the pre-debounce combined state. UIDL
+// stores the attribute as either `{type:'static',content:string}` (a
+// hard-coded initial value) or `{type:'expr',content:string}` (a JS
+// expression referencing props / state / router query / a URL param
+// helper). Static strings become `types.stringLiteral(...)` and
+// expressions are parsed via `@babel/parser.parseExpression` into a
+// real AST node we slot straight into `useState(...)`.
+type SearchDefaultValue =
+  | { kind: 'static'; value: string }
+  | { kind: 'expression'; ast: types.Expression }
+
+// tslint:disable-next-line:no-any
+function parseSearchDefaultValue(raw: any): SearchDefaultValue | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined
+  }
+  if (raw.type === 'static' && typeof raw.content === 'string' && raw.content.length > 0) {
+    return { kind: 'static', value: raw.content }
+  }
+  if ((raw.type === 'expr' || raw.type === 'dynamic') && typeof raw.content === 'string') {
+    const src = raw.content.trim()
+    if (src.length === 0) {
+      return undefined
+    }
+    try {
+      const ast = parseExpression(src, { sourceType: 'module', plugins: ['jsx'] })
+      return { kind: 'expression', ast: ast as types.Expression }
+    } catch {
+      // Fall back to no seed if the expression is malformed — better to
+      // render an empty input than to emit broken code.
+      return undefined
+    }
+  }
+  return undefined
+}
+
+function searchDefaultValueInitAST(value: SearchDefaultValue | undefined): types.Expression {
+  if (!value) {
+    return types.stringLiteral('')
+  }
+  if (value.kind === 'static') {
+    return types.stringLiteral(value.value)
+  }
+  // Clone so multiple `useState(...)` call sites each get an
+  // independent AST node — Babel does not support shared references.
+  return types.cloneNode(value.ast, /* deep */ true) as types.Expression
+}
 
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
 // This module uses a UIDL-first approach: we scan the UIDL FIRST to identify
@@ -34,16 +88,37 @@ interface DataSourceUsage {
   // Search config
   searchEnabled: boolean
   searchDebounce: number
+  // Initial value for the search input. Static strings are seeded as
+  // `useState(<string>)`; dynamic UIDL expressions are parsed via
+  // `@babel/parser` and slotted in as real AST nodes so the generated
+  // component can reference props / state / router-query / URL-param
+  // helpers in the initial value.
+  searchDefaultValue?: SearchDefaultValue
   // Query columns from resource params
   queryColumns: string[]
-  // Sorts from resource params
+  // Sorts from resource params (legacy static-array form)
   // tslint:disable-next-line:no-any
   sorts: any[]
-  // Filters from resource params
+  // Dynamic single-column sort bound to component state (set when legacy sorts empty
+  // and cms-list-repeater declares sort/sortDirection fields)
+  dynamicSort?: DynamicSortAST
+  // Filters from resource params (FLAT condition array — any `{ type: 'group',
+  // children: [...] }` wrappers from the UIDL inspector have already been
+  // unwrapped via `flattenFilterGroups`). Downstream emit sites rely on
+  // entries having `.source` / `.destination` / `.operand` directly.
   // tslint:disable-next-line:no-any
   filters: any[]
-  // State IDs from dynamic filter destinations (for useMemo dependencies)
+  // State IDs from dynamic filter destinations (for useMemo dependencies).
+  // Only state references land here; `urlSearchParams` refs are tracked in
+  // `filterUrlSearchParamKeys` because their dep expression is
+  // `router.query.<key>`, not a bare identifier.
   filterStateIds: string[]
+  // URL search-param keys referenced by filter destinations (e.g.
+  // `'categoryFilter'`). Drives `const router = useRouter()` injection and
+  // the corresponding `router.query.<key>` entries in `useMemo` deps so the
+  // client-side fetch refires when the buyer navigates between
+  // `?categoryFilter=Rings` and `?categoryFilter=Necklaces`.
+  filterUrlSearchParamKeys: string[]
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -54,6 +129,205 @@ interface StateRegistry {
   byDataSourceId: Map<string, DataSourceUsage[]>
   // Map from arrayMapperRenderProp to usage
   byArrayMapperRenderProp: Map<string, DataSourceUsage>
+}
+
+// The UIDL's `filters.content` array can wrap one or more conditions inside
+// a `{ type: 'group', operator: 'and' | 'or', children: [...] }` entry — the
+// GUI builds this shape when the inspector adds a logical group. The data
+// source API endpoint (`processFilters` in the generated data-source module)
+// only knows how to consume a FLAT array of `{ source, destination, operand }`
+// conditions, so we walk groups recursively here and collect their leaf
+// conditions in order. Anything that isn't a group AND isn't a condition is
+// dropped — defensive against partially-built filter entries that would
+// otherwise emit `{ source: '', destination: '', operand: '' }` rows the
+// API ignores anyway.
+//
+// `or`-grouped conditions are flattened just like `and`-grouped ones — the
+// downstream SQL builder always joins flat filters with `AND`, so emitting
+// the conditions side-by-side approximates AND semantics. A future API
+// upgrade that respects group operators would key off the original tree
+// directly; until then, AND-flattening is the closest correct behaviour and
+// matches what the inspector preview shows for the common single-group case
+// the GUI emits today.
+function flattenFilterGroups(filters: any[]): any[] {
+  if (!Array.isArray(filters)) {
+    return []
+  }
+  const out: any[] = []
+  const walk = (entry: any): void => {
+    if (!entry || typeof entry !== 'object') {
+      return
+    }
+    if (entry.type === 'group' && Array.isArray(entry.children)) {
+      for (const child of entry.children) {
+        walk(child)
+      }
+      return
+    }
+    // Backwards-compatible: entries without an explicit `type` (legacy flat
+    // form) and entries explicitly tagged `condition` are both treated as
+    // condition leaves.
+    if (entry.type === undefined || entry.type === 'condition') {
+      out.push(entry)
+    }
+  }
+  for (const entry of filters) {
+    walk(entry)
+  }
+  return out
+}
+
+// Walks a flat filter list to extract every `urlSearchParams` reference key
+// (e.g. `'categoryFilter'`). Used to (a) inject `const router = useRouter()`
+// once at the top of the component, (b) wire `router.query.<key>` into the
+// `useMemo` dependency array so the client-side fetch reruns whenever the
+// buyer navigates to a URL with a different `?key=value`. Returned in the
+// order keys first appear so the generated dep array stays stable.
+function collectFilterUrlSearchParamKeys(filters: any[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const f of filters) {
+    const dest = f?.destination
+    if (!ASTUtils.isUIDLDynamicReference(dest)) {
+      continue
+    }
+    const content = (dest as { content?: { referenceType?: string; id?: string } }).content
+    if (!content || content.referenceType !== 'urlSearchParams' || !content.id) {
+      continue
+    }
+    if (seen.has(content.id)) {
+      continue
+    }
+    seen.add(content.id)
+    out.push(content.id)
+  }
+  return out
+}
+
+// Returns true when any filter destination is a `urlSearchParams` dynamic
+// reference — used by the plugin to know it needs to import `useRouter` and
+// emit `const router = useRouter()` at the top of the component. Cheaper to
+// test against the precomputed key list once than to walk all filters on
+// every check.
+function hasUrlSearchParamFilters(usage: DataSourceUsage): boolean {
+  return usage.filterUrlSearchParamKeys.length > 0
+}
+
+// Appends `router.query.<key>` member expressions to a useMemo deps array so
+// every client-side fetch refires when the buyer navigates between URLs
+// that differ only by `?key=value`. React's shallow-compare semantics treat
+// the member expression as a distinct value per render, so the array stays
+// stable across paints with the same query string and changes the moment
+// the URL does. Skip the bare-identifier dedupe `filterStateIds` uses —
+// member expressions never collide with state identifiers, and the deps
+// array allows duplicates without harm.
+function pushUrlSearchParamMemoDeps(memoDeps: types.Expression[], usage: DataSourceUsage): void {
+  for (const key of usage.filterUrlSearchParamKeys) {
+    memoDeps.push(
+      types.memberExpression(
+        types.memberExpression(types.identifier('router'), types.identifier('query')),
+        types.identifier(key)
+      )
+    )
+  }
+}
+
+// Builds the AST for `!router.query.<key1> && !router.query.<key2> && ...`,
+// used as a runtime guard around `initialData={props.X}` so the server-
+// prefetched (unfiltered) data is only handed to `DataProvider` when the
+// URL has no active filter. Without this guard, navigating to
+// `/products-list?categoryFilter=Rings` (especially via soft Next.js
+// transitions where the page component remounts with fresh getStaticProps
+// but the buyer's URL filter is still in scope) shows the unfiltered list
+// for the first paint AND keeps it on screen because `DataProvider`'s
+// `passFetchBecauseWeHaveInitialData` ref skips the very first fetch when
+// `initialData !== undefined`. By emitting `undefined` here whenever ANY
+// url-search-param filter is set, the DataProvider's mount-time fetch runs
+// immediately with the filtered params instead of presenting stale data.
+//
+// Returns `null` when the usage has no url-search-param filters at all —
+// callers fall back to the existing `props.X` expression unchanged so
+// non-filtered pages still benefit from the SSR prefetch.
+function buildNoUrlFilterGuard(usage: DataSourceUsage): types.Expression | null {
+  if (usage.filterUrlSearchParamKeys.length === 0 && usage.filterStateIds.length === 0) {
+    return null
+  }
+  const guards: types.Expression[] = []
+  for (const key of usage.filterUrlSearchParamKeys) {
+    guards.push(
+      types.unaryExpression(
+        '!',
+        types.memberExpression(
+          types.memberExpression(types.identifier('router'), types.identifier('query')),
+          types.identifier(key)
+        ),
+        true
+      )
+    )
+  }
+  // State-bound filter destinations (e.g. `selectedCategory`) emit as bare
+  // identifiers, so the corresponding guard is `!selectedCategory`. An empty
+  // string ('') for the state — which the GUI emits when the user picks the
+  // "All Categories" reset option — is falsy and so passes through the guard
+  // exactly like a missing URL param: initialData (unfiltered prefetch) wins
+  // until the user picks a real value.
+  for (const id of usage.filterStateIds) {
+    guards.push(types.unaryExpression('!', types.identifier(id), true))
+  }
+  return guards.reduce((acc, next) => types.logicalExpression('&&', acc, next))
+}
+
+// Wraps an existing `initialData` condition with the additional "no URL
+// filter active" guard so server-prefetched data is only handed to
+// DataProvider when both (a) the original guard (page === 1, no search
+// query, etc.) AND (b) every relevant `router.query.<key>` is falsy. See
+// `buildNoUrlFilterGuard` for the rationale on why bare-identity feature
+// detection is safer than the `dynamicSort`-style "always undefined" path.
+function wrapInitialDataWithUrlFilterGuard(
+  baseCondition: types.Expression,
+  usage: DataSourceUsage
+): types.Expression {
+  const noFilterGuard = buildNoUrlFilterGuard(usage)
+  if (!noFilterGuard) {
+    return baseCondition
+  }
+  return types.logicalExpression('&&', baseCondition, noFilterGuard)
+}
+
+// Builds the destination AST for a single filter entry. Replaces the bare
+// `ASTUtils.convertFilterDestinationToExpression(filter.destination)` call
+// at every emit site so `urlSearchParams` references resolve to
+// `router?.query?.<key>` instead of falling through to a bare identifier
+// (which the existing helper would emit, leaving the client-side fetch
+// referencing an undeclared symbol).
+//
+// State and prop references delegate back to the shared helper so the
+// existing inspector behaviour (state-bound filter destinations) keeps
+// working unchanged. `router?.query?.<key>` is the same shape the
+// `createNextUrlSearchParamsPlugin`-driven `dynamicReferencePrefixMap`
+// emits for page-level navlink reads.
+function buildFilterDestinationExpression(destination: unknown): types.Expression {
+  if (ASTUtils.isUIDLDynamicReference(destination)) {
+    const content = (destination as { content?: { referenceType?: string; id?: string } }).content
+    if (content?.referenceType === 'urlSearchParams' && content?.id) {
+      // router?.query?.<id> — the optional-chain survives the first paint
+      // where Next.js's `useRouter()` returns `null` during static export
+      // hydration, so the fetch doesn't crash with "Cannot read properties
+      // of null" before the router is ready.
+      return types.optionalMemberExpression(
+        types.optionalMemberExpression(
+          types.identifier('router'),
+          types.identifier('query'),
+          false,
+          true
+        ),
+        types.identifier(content.id),
+        false,
+        true
+      )
+    }
+  }
+  return ASTUtils.convertFilterDestinationToExpression(destination)
 }
 
 // Scan UIDL to find all data source usages and build a registry
@@ -113,22 +387,52 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           queryColumns = parentDataSource.resourceParams.queryColumns.content
         }
 
-        // Extract sorts from parent's resource params
+        // Extract sorts from parent's resource params (legacy static array form)
         let sorts: any[] = []
         if (parentDataSource.resourceParams?.sorts?.content) {
           sorts = parentDataSource.resourceParams.sorts.content
         }
 
-        // Extract filters from parent's resource params
-        let filters: any[] = []
-        if (parentDataSource.resourceParams?.filters?.content) {
-          filters = parentDataSource.resourceParams.filters.content
+        // If legacy sorts aren't set, fall back to the new dynamic single-column
+        // sort fields on the cms-list-repeater (used by admin-panel listing pages).
+        let dynamicSort: DynamicSortAST | undefined
+        if ((!sorts || sorts.length === 0) && content.sort) {
+          dynamicSort = extractDynamicSort(content.sort, content.sortDirection)
         }
 
-        // Extract state IDs from dynamic filter destinations
-        const filterStateIds: string[] = filters
-          .filter((f) => ASTUtils.isUIDLDynamicReference(f.destination))
-          .map((f) => (f.destination as { content: { id: string } }).content.id)
+        // Extract filters from parent's resource params. The inspector wraps
+        // every condition in a `{ type: 'group' }` envelope (single-group or
+        // nested), so flatten to leaf conditions before the downstream emit
+        // sites consume `.source` / `.destination` / `.operand` directly —
+        // they expect a flat condition array. See `flattenFilterGroups`'s
+        // header comment for why AND-flattening is the correct fallback for
+        // the API endpoint's flat-condition contract.
+        let filters: any[] = []
+        if (parentDataSource.resourceParams?.filters?.content) {
+          filters = flattenFilterGroups(parentDataSource.resourceParams.filters.content)
+        }
+
+        // Split dynamic destination keys by reference type. `state`/`prop`
+        // refs resolve to bare identifiers (so they're useMemo deps as-is);
+        // `urlSearchParams` refs resolve to `router.query.<key>` and need a
+        // `useRouter()` declaration injected separately.
+        const filterStateIds: string[] = []
+        for (const f of filters) {
+          if (!ASTUtils.isUIDLDynamicReference(f.destination)) {
+            continue
+          }
+          const destinationContent = (
+            f.destination as { content?: { referenceType?: string; id?: string } }
+          ).content
+          if (!destinationContent || !destinationContent.id) {
+            continue
+          }
+          if (destinationContent.referenceType === 'urlSearchParams') {
+            continue
+          }
+          filterStateIds.push(destinationContent.id)
+        }
+        const filterUrlSearchParamKeys: string[] = collectFilterUrlSearchParamKeys(filters)
 
         // Extract limit from parent's resource params (for plain array mappers)
         let limit = 0
@@ -139,6 +443,8 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
         // For paginated mappers, use perPage from cms-list-repeater
         // For plain mappers, use limit from data-source-list resource params
         const effectivePerPage = content.paginated ? content.perPage : limit || content.perPage
+
+        const searchDefaultValue = parseSearchDefaultValue(content.searchDefaultValue)
 
         const usage: DataSourceUsage = {
           index: index++,
@@ -153,10 +459,13 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           perPage: effectivePerPage,
           searchEnabled: !!content.searchEnabled,
           searchDebounce: content.searchDebounce || 300,
+          searchDefaultValue,
           queryColumns,
           sorts,
+          dynamicSort,
           filters,
           filterStateIds,
+          filterUrlSearchParamKeys,
           category: 'plain',
         }
 
@@ -419,14 +728,18 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
               types.callExpression(types.identifier('useState'), [
                 types.objectExpression([
                   types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
-                  types.objectProperty(types.identifier('debouncedQuery'), types.stringLiteral('')),
+                  types.objectProperty(
+                    types.identifier('debouncedQuery'),
+                    searchDefaultValueInitAST(usage.searchDefaultValue)
+                  ),
                 ]),
               ])
             ),
           ])
         )
 
-        // Immediate search query state
+        // Immediate search query state — seeded with `searchDefaultValue`
+        // when provided so the input is pre-filled on mount.
         stateDeclarations.push(
           types.variableDeclaration('const', [
             types.variableDeclarator(
@@ -434,7 +747,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+              types.callExpression(types.identifier('useState'), [
+                searchDefaultValueInitAST(usage.searchDefaultValue),
+              ])
             ),
           ])
         )
@@ -561,36 +876,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           )
         }
         // Add filters to count fetch params if present
-        if (usage.filters && usage.filters.length > 0) {
-          urlParams.push(
-            types.objectProperty(
-              types.identifier('filters'),
-              types.callExpression(
-                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-                [
-                  types.arrayExpression(
-                    usage.filters.map((filter: any) =>
-                      types.objectExpression([
-                        types.objectProperty(
-                          types.identifier('source'),
-                          types.stringLiteral(filter.source || '')
-                        ),
-                        types.objectProperty(
-                          types.identifier('destination'),
-                          ASTUtils.convertFilterDestinationToExpression(filter.destination)
-                        ),
-                        types.objectProperty(
-                          types.identifier('operand'),
-                          types.stringLiteral(filter.operand || '')
-                        ),
-                      ])
-                    )
-                  ),
-                ]
-              )
-            )
-          )
-        }
+        appendFiltersParam(urlParams, usage.filters, buildFilterDestinationExpression)
 
         // Build the count fetch effect body
         const countFetchEffectBody: types.Statement[] = []
@@ -712,16 +998,26 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           )
         )
 
+        const countEffectDeps: types.Expression[] = [
+          types.memberExpression(
+            types.identifier(vars.combinedStateVar),
+            types.identifier('debouncedQuery')
+          ),
+        ]
+        // Refresh the count whenever a state-bound filter destination changes
+        // (e.g. user picks a category) so pagination tracks the filtered
+        // result-set, not the mount-time unfiltered total. Without these
+        // deps, ds_0_maxPages stays at the original count and the "Next"
+        // button stays enabled past the actual last page of the filtered
+        // results — letting the user click into empty pages.
+        pushStateIdsAsDeps(countEffectDeps, new Set<string>(), usage.filterStateIds)
+        // Same goes for URL-driven filters (already documented above).
+        pushUrlSearchParamMemoDeps(countEffectDeps, usage)
         effectStatements.push(
           types.expressionStatement(
             types.callExpression(types.identifier('useEffect'), [
               types.arrowFunctionExpression([], types.blockStatement(countFetchEffectBody)),
-              types.arrayExpression([
-                types.memberExpression(
-                  types.identifier(vars.combinedStateVar),
-                  types.identifier('debouncedQuery')
-                ),
-              ]),
+              types.arrayExpression(countEffectDeps),
             ])
           )
         )
@@ -862,7 +1158,18 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                     ),
                   ])
                 ),
-                types.arrayExpression([]), // Empty dependency array - fetch on mount only
+                // Default to mount-only; refresh when ANY filter destination
+                // changes — state-bound (e.g. `selectedCategory`) and
+                // URL-driven — so the pagination control reflects the current
+                // filtered count instead of the unfiltered mount-time total.
+                types.arrayExpression(
+                  ((): types.Expression[] => {
+                    const deps: types.Expression[] = []
+                    pushStateIdsAsDeps(deps, new Set<string>(), usage.filterStateIds)
+                    pushUrlSearchParamMemoDeps(deps, usage)
+                    return deps
+                  })()
+                ),
               ])
             )
           )
@@ -885,7 +1192,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.debouncedSearchQueryVar),
                 types.identifier(vars.setDebouncedSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+              types.callExpression(types.identifier('useState'), [
+                searchDefaultValueInitAST(usage.searchDefaultValue),
+              ])
             ),
           ])
         )
@@ -897,7 +1206,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [types.stringLiteral('')])
+              types.callExpression(types.identifier('useState'), [
+                searchDefaultValueInitAST(usage.searchDefaultValue),
+              ])
             ),
           ])
         )
@@ -966,6 +1277,57 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
     // Insert state declarations at the beginning
     stateDeclarations.reverse().forEach((s) => blockStatement.body.unshift(s))
+
+    // Inject `const router = useRouter()` at the very top of the component
+    // body whenever any usage's filters reference URL search params (e.g.
+    // a navlink that bakes `?categoryFilter=Rings` into the href). The
+    // filter destination expressions emitted earlier reference `router.query`
+    // directly, so the symbol must be in scope by the time the component
+    // body runs. We add the dependency + declaration here rather than
+    // relying on the sibling `createNextUrlSearchParamsPlugin` because
+    // (a) that plugin only fires when the UIDL declares `pageOptions.searchParams`,
+    // and (b) component-level data fetches can use URL params even when
+    // the page itself has no `searchParams` definition (e.g. a navigation
+    // component embedded on a page that didn't author the param). The
+    // `body.some(isUseRouterDecl)` guard keeps us idempotent with both the
+    // search-params plugin and the i18n plugin, both of which may have
+    // already unshifted the same declaration.
+    const needsUseRouter = registry.usages.some((u) => hasUrlSearchParamFilters(u))
+    if (needsUseRouter) {
+      if (!dependencies.useRouter) {
+        // Match the shape the sibling Next.js plugins use (i18n locale mapper,
+        // search-params plugin) so the deduped import line is identical and
+        // the dependency-resolver merges instead of emitting a second one.
+        dependencies.useRouter = {
+          type: 'library',
+          path: 'next/router',
+          version: '^12.1.10',
+          meta: { namedImport: true },
+        }
+      }
+      const hasRouterDecl = blockStatement.body.some(
+        (statement) =>
+          statement.type === 'VariableDeclaration' &&
+          statement.declarations.some(
+            (decl) =>
+              decl.id.type === 'Identifier' &&
+              decl.id.name === 'router' &&
+              decl.init?.type === 'CallExpression' &&
+              decl.init.callee.type === 'Identifier' &&
+              decl.init.callee.name === 'useRouter'
+          )
+      )
+      if (!hasRouterDecl) {
+        blockStatement.body.unshift(
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('router'),
+              types.callExpression(types.identifier('useRouter'), [])
+            ),
+          ])
+        )
+      }
+    }
 
     // Insert effects before return statement
     const returnIndex = blockStatement.body.findIndex((s: any) => s.type === 'ReturnStatement')
@@ -1078,7 +1440,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
     // STEP 6: Update getStaticProps if this is a page
     if (isPage) {
-      updateGetStaticProps(chunks, registry, dependencies)
+      updateGetStaticProps(chunks, registry, dependencies, uidl.outputOptions?.folderPath)
     }
 
     return structure
@@ -1326,71 +1688,20 @@ function updateDataProviderForPaginatedSearch(
     )
   }
 
-  // Add sorts if present
-  if (usage.sorts && usage.sorts.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('sorts'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.sorts.map((sort: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('field'),
-                    types.stringLiteral(sort.field || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('order'),
-                    types.stringLiteral(sort.order || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  // Add sorts if present (legacy static array wins; otherwise dynamic state-bound sort)
+  appendSortsParam(paramsProps, usage.sorts, usage.dynamicSort)
 
   // Add filters if present
-  if (usage.filters && usage.filters.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('filters'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.filters.map((filter: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('source'),
-                    types.stringLiteral(filter.source || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('destination'),
-                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
-                  ),
-                  types.objectProperty(
-                    types.identifier('operand'),
-                    types.stringLiteral(filter.operand || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
 
-  // Build useMemo dependencies including filter state IDs
+  // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.combinedStateVar)]
-  usage.filterStateIds.forEach((stateId) => {
-    memoDeps.push(types.identifier(stateId))
-  })
+  const seenDeps = new Set<string>([vars.combinedStateVar])
+  pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  if (usage.dynamicSort) {
+    pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
+  }
+  pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -1404,42 +1715,56 @@ function updateDataProviderForPaginatedSearch(
     )
   )
 
-  // Add initialData
-  const initialDataCondition = types.logicalExpression(
-    '&&',
-    types.binaryExpression(
-      '===',
-      types.memberExpression(types.identifier(vars.combinedStateVar), types.identifier('page')),
-      types.numericLiteral(1)
-    ),
-    types.unaryExpression(
-      '!',
-      types.memberExpression(
-        types.identifier(vars.combinedStateVar),
-        types.identifier('debouncedQuery')
-      ),
-      true
-    )
-  )
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('initialData'),
-      types.jsxExpressionContainer(
-        types.conditionalExpression(
-          initialDataCondition,
-          types.optionalMemberExpression(
-            types.identifier('props'),
-            types.identifier(vars.propsPrefix),
-            false,
-            true
+  // Add initialData. Skip the server-prefetched data entirely when a dynamic
+  // state-bound sort is active — the prefetch ran without sort parameters, so
+  // reusing it would mask the current sort state AND cause DataProvider to skip
+  // the first client fetch (its internal guard only skips when initialData is
+  // defined on mount). Without that skip, toggling sort correctly triggers a
+  // refetch via the useMemo params dependency chain.
+  if (!usage.dynamicSort) {
+    const initialDataCondition = wrapInitialDataWithUrlFilterGuard(
+      types.logicalExpression(
+        '&&',
+        types.binaryExpression(
+          '===',
+          types.memberExpression(types.identifier(vars.combinedStateVar), types.identifier('page')),
+          types.numericLiteral(1)
+        ),
+        types.unaryExpression(
+          '!',
+          types.memberExpression(
+            types.identifier(vars.combinedStateVar),
+            types.identifier('debouncedQuery')
           ),
-          types.identifier('undefined')
+          true
+        )
+      ),
+      usage
+    )
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(
+          types.conditionalExpression(
+            initialDataCondition,
+            types.optionalMemberExpression(
+              types.identifier('props'),
+              types.identifier(vars.propsPrefix),
+              false,
+              true
+            ),
+            types.identifier('undefined')
+          )
         )
       )
     )
-  )
+  }
 
-  // Add key
+  // Add key. Sort is intentionally NOT part of the key — a key change would
+  // remount the DataProvider, and a fresh mount re-arms the internal
+  // "skip-first-fetch-when-we-have-initialData" guard, which would prevent the
+  // new sort params from reaching the fetcher. Leaving sort out of the key
+  // lets the useMemo params identity change alone drive refetch.
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('key'),
@@ -1501,71 +1826,20 @@ function updateDataProviderForPaginationOnly(
     types.objectProperty(types.identifier('perPage'), types.numericLiteral(usage.perPage)),
   ]
 
-  // Add sorts if present
-  if (usage.sorts && usage.sorts.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('sorts'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.sorts.map((sort: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('field'),
-                    types.stringLiteral(sort.field || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('order'),
-                    types.stringLiteral(sort.order || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  // Add sorts if present (legacy static array wins; otherwise dynamic state-bound sort)
+  appendSortsParam(paramsProps, usage.sorts, usage.dynamicSort)
 
   // Add filters if present
-  if (usage.filters && usage.filters.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('filters'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.filters.map((filter: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('source'),
-                    types.stringLiteral(filter.source || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('destination'),
-                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
-                  ),
-                  types.objectProperty(
-                    types.identifier('operand'),
-                    types.stringLiteral(filter.operand || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
 
-  // Build useMemo dependencies including filter state IDs
+  // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.pageStateVar)]
-  usage.filterStateIds.forEach((stateId) => {
-    memoDeps.push(types.identifier(stateId))
-  })
+  const seenDeps = new Set<string>([vars.pageStateVar])
+  pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  if (usage.dynamicSort) {
+    pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
+  }
+  pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   // Add params
   dp.openingElement.attributes.push(
@@ -1580,30 +1854,36 @@ function updateDataProviderForPaginationOnly(
     )
   )
 
-  // Add initialData
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('initialData'),
-      types.jsxExpressionContainer(
-        types.conditionalExpression(
-          types.binaryExpression(
-            '===',
-            types.identifier(vars.pageStateVar),
-            types.numericLiteral(1)
-          ),
-          types.optionalMemberExpression(
-            types.identifier('props'),
-            types.identifier(vars.propsPrefix),
-            false,
-            true
-          ),
-          types.identifier('undefined')
+  // Add initialData. See paginated+search updater for why we skip prefetch
+  // reuse when a dynamic state-bound sort is active.
+  if (!usage.dynamicSort) {
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(
+          types.conditionalExpression(
+            wrapInitialDataWithUrlFilterGuard(
+              types.binaryExpression(
+                '===',
+                types.identifier(vars.pageStateVar),
+                types.numericLiteral(1)
+              ),
+              usage
+            ),
+            types.optionalMemberExpression(
+              types.identifier('props'),
+              types.identifier(vars.propsPrefix),
+              false,
+              true
+            ),
+            types.identifier('undefined')
+          )
         )
       )
     )
-  )
+  }
 
-  // Add key
+  // Add key — sort is intentionally NOT included; see paginated+search updater.
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('key'),
@@ -1664,71 +1944,20 @@ function updateDataProviderForSearchOnly(
     )
   }
 
-  // Add sorts if present
-  if (usage.sorts && usage.sorts.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('sorts'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.sorts.map((sort: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('field'),
-                    types.stringLiteral(sort.field || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('order'),
-                    types.stringLiteral(sort.order || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  // Add sorts if present (legacy static array wins; otherwise dynamic state-bound sort)
+  appendSortsParam(paramsProps, usage.sorts, usage.dynamicSort)
 
   // Add filters if present
-  if (usage.filters && usage.filters.length > 0) {
-    paramsProps.push(
-      types.objectProperty(
-        types.identifier('filters'),
-        types.callExpression(
-          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-          [
-            types.arrayExpression(
-              usage.filters.map((filter: any) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('source'),
-                    types.stringLiteral(filter.source || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('destination'),
-                    ASTUtils.convertFilterDestinationToExpression(filter.destination)
-                  ),
-                  types.objectProperty(
-                    types.identifier('operand'),
-                    types.stringLiteral(filter.operand || '')
-                  ),
-                ])
-              )
-            ),
-          ]
-        )
-      )
-    )
-  }
+  appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
 
-  // Build useMemo dependencies including filter state IDs
+  // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.debouncedSearchQueryVar)]
-  usage.filterStateIds.forEach((stateId) => {
-    memoDeps.push(types.identifier(stateId))
-  })
+  const seenDeps = new Set<string>([vars.debouncedSearchQueryVar])
+  pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  if (usage.dynamicSort) {
+    pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
+  }
+  pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -1742,26 +1971,32 @@ function updateDataProviderForSearchOnly(
     )
   )
 
-  // Add initialData
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('initialData'),
-      types.jsxExpressionContainer(
-        types.conditionalExpression(
-          types.unaryExpression('!', types.identifier(vars.debouncedSearchQueryVar), true),
-          types.optionalMemberExpression(
-            types.identifier('props'),
-            types.identifier(vars.propsPrefix),
-            false,
-            true
-          ),
-          types.identifier('undefined')
+  // Add initialData. See paginated+search updater for why we skip prefetch
+  // reuse when a dynamic state-bound sort is active.
+  if (!usage.dynamicSort) {
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(
+          types.conditionalExpression(
+            wrapInitialDataWithUrlFilterGuard(
+              types.unaryExpression('!', types.identifier(vars.debouncedSearchQueryVar), true),
+              usage
+            ),
+            types.optionalMemberExpression(
+              types.identifier('props'),
+              types.identifier(vars.propsPrefix),
+              false,
+              true
+            ),
+            types.identifier('undefined')
+          )
         )
       )
     )
-  )
+  }
 
-  // Add key
+  // Add key — sort is intentionally NOT included; see paginated+search updater.
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('key'),
@@ -1849,9 +2084,8 @@ function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSource
 
   // Build useMemo dependencies including filter state IDs
   const memoDeps: types.Expression[] = []
-  usage.filterStateIds.forEach((stateId) => {
-    memoDeps.push(types.identifier(stateId))
-  })
+  pushStateIdsAsDeps(memoDeps, new Set<string>(), usage.filterStateIds)
+  pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   // Wrap params in useMemo with filter state dependencies
   const memoizedParams = types.callExpression(types.identifier('useMemo'), [
@@ -2348,7 +2582,8 @@ export default dataSourceModule.getCount
 function updateGetStaticProps(
   chunks: any[],
   registry: StateRegistry,
-  dependencies: Record<string, any>
+  dependencies: Record<string, any>,
+  folderPath?: string[]
 ): void {
   const getStaticPropsChunk = chunks.find((c) => c.name === 'getStaticProps')
   if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
@@ -2565,9 +2800,11 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
+          const depth = (folderPath ? folderPath.length : 0) + 1
+          const relativePrefix = '../'.repeat(depth)
           dependencies[fetcherImportName] = {
             type: 'local',
-            path: `../utils/data-sources/${fileName}`,
+            path: `${relativePrefix}utils/data-sources/${fileName}`,
           }
         }
 
@@ -2781,9 +3018,11 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
+          const depth = (folderPath ? folderPath.length : 0) + 1
+          const relativePrefix = '../'.repeat(depth)
           dependencies[fetcherImportName] = {
             type: 'local',
-            path: `../utils/data-sources/${fileName}`,
+            path: `${relativePrefix}utils/data-sources/${fileName}`,
           }
         }
       }

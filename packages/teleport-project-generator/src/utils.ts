@@ -48,8 +48,15 @@ const createPageUIDL = (
   const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
   pageDefinition.pageOptions = pageOptions
 
-  const { fileName, componentName, pagination, initialPropsData, initialPathsData, navLink } =
-    pageOptions
+  const {
+    fileName,
+    componentName,
+    pagination,
+    initialPropsData,
+    initialPathsData,
+    dynamicRouteAttribute,
+    navLink,
+  } = pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -100,7 +107,9 @@ const createPageUIDL = (
       ...outputOptions,
       initialPropsData,
       initialPathsData,
+      dynamicRouteAttribute,
       pagination,
+      pageId: pageDefinition?.pageId,
     },
     propDefinitions: pageOptions.propDefinitions,
     stateDefinitions: pageOptions.stateDefinitions,
@@ -201,6 +210,13 @@ export const extractPageOptions = (
       ...pageOptions,
       ...pageDefinition.pageOptions,
     }
+  }
+
+  if (pageOptions.dynamicRouteAttribute && !pageOptions.navLink && !isHomePage) {
+    const routeSegments = routeName.split('/')
+    const staticPath =
+      routeSegments.length > 1 ? routeSegments.slice(0, -1).join('/') : basename(friendlyFileName)
+    pageOptions.navLink = `/${staticPath}/[${pageOptions.dynamicRouteAttribute}]`
   }
 
   const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)

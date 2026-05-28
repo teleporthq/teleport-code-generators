@@ -84,7 +84,17 @@ export const createDynamicStyleExpression = (
       )
     case 'token':
       return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
+    case 'global': {
+      const idWithPath = UIDLUtils.generateIdWithRefPath(
+        styleValue.content.id,
+        styleValue.content.refPath
+      )
+      return new ParsedASTNode(t.identifier(idWithPath))
+    }
     default:
+      if ((styleValue.content.referenceType as string) === 'globalState') {
+        return new ParsedASTNode(t.identifier(styleValue.content.id))
+      }
       throw new Error(
         `createDynamicStyleExpression received unsupported ${JSON.stringify(
           styleValue,
@@ -93,6 +103,60 @@ export const createDynamicStyleExpression = (
         )} UIDLDynamicReference value`
       )
   }
+}
+
+export const createDynamicBindingExpression = (
+  binding: {
+    referenceType: string
+    stateKey: string
+    defaultValue: string
+    contextName?: string
+    stateDefinitionId?: string
+  },
+  t = types,
+  cssProperty?: string,
+  staticTemplate?: string | null
+): ParsedASTNode => {
+  const makeValueExpr = (): types.Expression => {
+    if (binding.referenceType === 'ctx' && binding.contextName) {
+      return t.memberExpression(t.identifier(binding.contextName), t.identifier(binding.stateKey))
+    }
+    return t.identifier(binding.stateKey)
+  }
+
+  // For CSS properties like transform, wrap the dynamic value using the static template as a guide
+  // e.g. static "translateX(0px)" + dynamic pipe.x => `translateX(${pipe.x}px)`
+  if (cssProperty === 'transform' && staticTemplate) {
+    const templateMatch = staticTemplate.match(/^(\w+)\(.*?\)$/)
+    if (templateMatch) {
+      const fn = templateMatch[1] // e.g. "translateX"
+      // Detect the unit from the static template (e.g. "px" from "translateX(0px)")
+      const unitMatch = staticTemplate.match(/\d+(px|em|rem|%|deg|vh|vw)/)
+      const cssUnit = unitMatch ? unitMatch[1] : 'px'
+      const defaultVal = `${fn}(${binding.defaultValue || '0'}${cssUnit})`
+      return new ParsedASTNode(
+        t.conditionalExpression(
+          t.binaryExpression('!=', makeValueExpr(), t.nullLiteral()),
+          t.templateLiteral(
+            [
+              t.templateElement({ raw: `${fn}(`, cooked: `${fn}(` }, false),
+              t.templateElement({ raw: `${cssUnit})`, cooked: `${cssUnit})` }, true),
+            ],
+            [makeValueExpr()]
+          ),
+          t.stringLiteral(defaultVal)
+        )
+      )
+    }
+  }
+
+  return new ParsedASTNode(
+    t.conditionalExpression(
+      t.binaryExpression('!=', makeValueExpr(), t.nullLiteral()),
+      makeValueExpr(),
+      t.stringLiteral(String(binding.defaultValue || ''))
+    )
+  )
 }
 
 export const generateMediaStyle = (

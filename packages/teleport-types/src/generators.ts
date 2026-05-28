@@ -12,11 +12,14 @@ import {
   UIDLResources,
   UIDLLocalFontAsset,
   UIDLGlobalReference,
+  UIDLGlobalStateDefinition,
   UIDLForms,
   UIDLDataSource,
   UIDLGlobalAsset,
   UIDLElementNode,
   UIDLStaticValue,
+  UIDLWorkflows,
+  UIDLAuthentication,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -54,6 +57,7 @@ export interface ChunkDefinition {
     dynamicRefPrefix?: Record<string, unknown>
     localeReferences?: JSXElement[]
     globalReferences?: Array<UIDLGlobalReference['content']['id']>
+    globalStateReferences?: Array<{ id: string; name: string }>
   } & Record<string, unknown>
   content: ChunkContent
   linkAfter: string[]
@@ -165,6 +169,15 @@ export interface GeneratorOptions {
   dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
   globalAssets?: UIDLGlobalAsset[]
+  workflows?: UIDLWorkflows
+  globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>
+  // Project-level authentication metadata, plumbed down to component
+  // plugins so a page-level workflow generator can read
+  // `auth.pageProtection[pageId]` and react to row-ownership signals.
+  // Without this the workflow plugin cannot tell whether the page it
+  // is emitting is self-guarded by SQL or relies on a framework-level
+  // auth gate.
+  auth?: UIDLAuthentication
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

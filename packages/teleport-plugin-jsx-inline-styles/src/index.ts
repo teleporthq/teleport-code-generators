@@ -18,22 +18,39 @@ export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig>
     }
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
-      const { style, key } = element
+      const { style, key, dynamicStyleBindings } = element
+      const hasStyle = style && Object.keys(style).length > 0
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
-      if (style && Object.keys(style).length > 0) {
-        const jsxASTTag = componentChunk.meta.nodesLookup[key] as types.JSXElement
-        const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
-        if (!jsxASTTag) {
-          return
-        }
+      if (!hasStyle && !hasDynamicBindings) {
+        return
+      }
 
-        // Nested styles are ignored
-        const inlineStyles = UIDLUtils.transformDynamicStyles(style, (styleValue) =>
+      const jsxASTTag = componentChunk.meta.nodesLookup[key] as types.JSXElement
+      const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
+      if (!jsxASTTag) {
+        return
+      }
+
+      let inlineStyles: Record<string, unknown> = {}
+
+      if (hasStyle) {
+        inlineStyles = UIDLUtils.transformDynamicStyles(style, (styleValue) =>
           StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
         )
-
-        ASTUtils.addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)
       }
+
+      if (hasDynamicBindings) {
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          inlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(binding)
+        }
+      }
+
+      ASTUtils.addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)
     })
 
     return structure

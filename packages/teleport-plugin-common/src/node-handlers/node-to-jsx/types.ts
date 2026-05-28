@@ -5,16 +5,47 @@ import {
   UIDLDependency,
   UIDLStateDefinition,
   UIDLGlobalReference,
+  UIDLGlobalStateDefinition,
 } from '@teleporthq/teleport-types'
+
+export interface GlobalStateReferenceEntry {
+  id: string
+  name: string
+}
+
+export interface HoistedConstant {
+  name: string
+  expression: types.Expression
+}
 
 export interface JSXGenerationParams {
   propDefinitions: Record<string, UIDLPropDefinition>
   stateDefinitions: Record<string, UIDLStateDefinition>
+  globalStateDefinitions: Record<string, UIDLGlobalStateDefinition>
   nodesLookup: Record<string, types.JSXElement | types.JSXExpressionContainer>
   dependencies: Record<string, UIDLDependency>
   windowImports: Record<string, types.ExpressionStatement>
   localeReferences: types.JSXElement[]
   globalReferences: Array<UIDLGlobalReference['content']['id']>
+  globalStateReferences: GlobalStateReferenceEntry[]
+  hoistedConstants: HoistedConstant[]
+  /** When set, native form fields with `name` bind `value`/`checked` from this object state */
+  formStoreStateName?: string
+  /** Context propagated from a parent thq-autocomplete to its child option/clear elements */
+  autocompleteContext?: {
+    fieldName: string
+    inputHtmlId: string
+    formStateName?: string
+    isOpenStateName: string
+  }
+  /**
+   * On a dynamic details page, the name under which the fetched row is exposed
+   * to the page component as a prop (i.e. `initialPropsData.exposeAs.name`).
+   * A `referenceType: 'local'` reference at the page root (no enclosing
+   * repeater) resolves to `props.<detailsPageExposeAsName>.<refPath>` —
+   * conceptually "a column on the fetched row".
+   */
+  detailsPageExposeAsName?: string
 }
 
 export interface JSXGenerationOptions {
@@ -30,6 +61,7 @@ export interface JSXGenerationOptions {
     prop: string
     state: string
     local: string
+    ctx?: string
   }
 
   /*
@@ -62,6 +94,14 @@ export interface JSXGenerationOptions {
     local references should resolve to properties of "conditions"
   */
   localIdentifier?: string
+  /**
+   * On a dynamic details page, the name under which the fetched row is exposed
+   * to the page component as a prop (matches JSXGenerationParams field of the
+   * same name). Mirrored here so helpers that only receive `options` — notably
+   * `createDynamicValueExpression` — can resolve page-root `local` references
+   * without plumbing `params` through every call site.
+   */
+  detailsPageExposeAsName?: string
 }
 
 export type NodeToJSX<NodeType, ReturnType> = (
@@ -74,12 +114,17 @@ export type JSXASTReturnType =
   | string
   | types.JSXExpressionContainer
   | types.JSXElement
-  | types.LogicalExpression
-  | types.Identifier
-  | types.MemberExpression
+  // Any Babel expression is legal as a JSX child — the printer wraps it in
+  // `{ ... }` when needed. The union intentionally broadens to `Expression`
+  // so helpers like `createDynamicValueExpression` can return specific
+  // subtypes (Identifier / MemberExpression / OptionalMemberExpression /
+  // LogicalExpression / CallExpression / ConditionalExpression …) without
+  // each call site needing to cast.
+  | types.Expression
 
 export interface ConditionalIdentifier {
   key: string
   type: string
   prefix?: string
+  referenceType?: string
 }

@@ -134,7 +134,7 @@ export default async function handler(req, res) {
                 if (!sort.field) continue
                 const aVal = getNestedValue(a, sort.field)
                 const bVal = getNestedValue(b, sort.field)
-                const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+                const sortOrderValue = (sort.order || '').toLowerCase().startsWith('desc') ? -1 : 1
                 
                 let comparison = 0
                 if (aVal === null || aVal === undefined) {
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
         data.sort((a, b) => {
           const aVal = getNestedValue(a, sortBy)
           const bVal = getNestedValue(b, sortBy)
-          const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+          const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? -1 : 1
           
           let comparison = 0
           if (aVal === null || aVal === undefined) {

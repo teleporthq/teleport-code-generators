@@ -33,6 +33,12 @@ export const HTMLMapping: Mapping = {
         },
       },
     },
+    'markdown-node': {
+      elementType: 'div',
+    },
+    'rich-text-editor-node': {
+      elementType: 'div',
+    },
     'date-time-node': {
       elementType: 'date-time-primitive',
       dependency: {

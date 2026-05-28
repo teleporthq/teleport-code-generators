@@ -222,7 +222,7 @@ export default async function handler(req, res) {
         const sortObject = {}
         parsedSorts.forEach((sort) => {
           if (sort.field) {
-            sortObject[sort.field] = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            sortObject[sort.field] = (sort.order || '').toLowerCase().startsWith('desc') ? -1 : 1
           }
         })
         if (Object.keys(sortObject).length > 0) {
@@ -230,7 +230,7 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
-      const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+      const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? -1 : 1
       cursor = cursor.sort({ [sortBy]: sortOrderValue })
     }
     

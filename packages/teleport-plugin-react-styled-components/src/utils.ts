@@ -131,6 +131,10 @@ export const generateStyledComponentStyles = (params: {
         tokensReferred?.add(usedToken)
       }
 
+      if (style.type === 'dynamic' && (style.content.referenceType as string) === 'globalState') {
+        acc.push(types.objectProperty(styleKey, types.identifier(style.content.id)))
+      }
+
       return acc
     },
     []

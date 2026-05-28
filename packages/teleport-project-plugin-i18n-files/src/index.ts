@@ -43,11 +43,14 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
     const jsxParams: JSXGenerationParams = {
       stateDefinitions: {},
       propDefinitions: {},
+      globalStateDefinitions: {},
       windowImports: {},
       dependencies: {},
       nodesLookup: {},
       localeReferences: [],
       globalReferences: [],
+      globalStateReferences: [],
+      hoistedConstants: [],
     }
 
     const jsxNodeAst = createJSXSyntax(resolvedUIDL.node, jsxParams, {

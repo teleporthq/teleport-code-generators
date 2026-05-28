@@ -65,7 +65,9 @@ export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   traverseElements(uidl.node, (element) => {
     if (element.dependency) {
       element.semanticType = dashCaseToUpperCamelCase(
-        removeIllegalCharacters(element.semanticType) || defaultComponentName
+        removeIllegalCharacters(element.semanticType) ||
+          removeIllegalCharacters(element.elementType) ||
+          defaultComponentName
       )
     } else {
       element.semanticType = removeIllegalCharacters(element.semanticType)
@@ -1027,7 +1029,11 @@ export const transformStylesAssignmentsToJson = (
         return acc
       }
 
-      if (type === 'dynamic' && content.referenceType !== 'global') {
+      if (
+        type === 'dynamic' &&
+        content.referenceType !== 'global' &&
+        content.referenceType !== 'globalState'
+      ) {
         if (['state', 'prop'].includes(content?.referenceType)) {
           acc[key] = {
             type,
@@ -1039,6 +1045,10 @@ export const transformStylesAssignmentsToJson = (
         } else {
           acc[key] = styleContentAtKey as UIDLDynamicReference
         }
+      }
+
+      if (type === 'dynamic' && content.referenceType === 'globalState') {
+        acc[key] = styleContentAtKey as UIDLDynamicReference
       }
 
       return acc
@@ -1057,20 +1067,43 @@ export const transformStylesAssignmentsToJson = (
 }
 
 export const generateIdWithRefPath = (contentId: string, refPath?: string[]) => {
-  let processedId = contentId
+  if (!contentId) {
+    return contentId
+  }
+  // CamelCase only the base identifier, not the bracket-notation property paths.
+  // Property paths (e.g. ?.['email_verified']) must preserve their original casing
+  // because they reference actual data keys (DB columns, API fields, etc.).
+  const bracketIdx = contentId.indexOf("?.['")
+  let basePart: string
+  let existingRefPart: string
+
+  if (bracketIdx >= 0) {
+    basePart = contentId.substring(0, bracketIdx)
+    existingRefPart = contentId.substring(bracketIdx)
+  } else {
+    basePart = contentId
+    existingRefPart = ''
+  }
+
+  let processedId = StringUtils.createStateOrPropStoringValue(basePart) + existingRefPart
+
   if (refPath) {
     const processedRefPath = refPath.reduce((acc, path) => {
       return `${acc}?.['${path}']`
     }, '')
 
-    // This is a bit ugly, but in some cases props are parsed twice or already generated.
-    // To avoid possible bugs, this should be a good safety measure
-    if (!processedId.includes(processedRefPath)) {
+    // Also check against the camelCased version of the refPath, since
+    // prior passes may have already camelCased the path segments.
+    const camelCasedRefPath = refPath.reduce((acc, path) => {
+      return `${acc}?.['${StringUtils.dashCaseToCamelCase(path)}']`
+    }, '')
+
+    if (!processedId.includes(processedRefPath) && !processedId.includes(camelCasedRefPath)) {
       processedId = `${processedId}${processedRefPath}`
     }
   }
 
-  return StringUtils.createStateOrPropStoringValue(processedId)
+  return processedId
 }
 
 /*
@@ -1124,11 +1157,10 @@ export const transformAttributesAssignmentsToJson = (
 
         case 'dynamic': {
           const { content } = attributeContent as UIDLDynamicReference
-          // global id's dont need to be transformed. As they are constants and each one is handled by the generator
-          // depending on the context and the framework.
           if (
             ['state', 'prop'].includes(content?.referenceType) &&
-            content.referenceType !== 'global'
+            content.referenceType !== 'global' &&
+            (content as any).referenceType !== 'globalState'
           ) {
             acc[key] = {
               type,
@@ -1136,7 +1168,7 @@ export const transformAttributesAssignmentsToJson = (
                 ...content,
                 id: generateIdWithRefPath(content.id, content.refPath),
               },
-            }
+            } as UIDLDynamicReference
           } else {
             acc[key] = attributeContent as UIDLAttributeValue
           }

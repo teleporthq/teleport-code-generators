@@ -2,11 +2,14 @@ import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   GeneratorOptions,
   UIDLLinkNode,
+  UIDLNavLinkNode,
   UIDLElementNode,
   UIDLAttributeValue,
   UIDLPropDefinition,
   UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
+
+type NavlinkDifferentiatorValue = NonNullable<UIDLNavLinkNode['content']['differentiatorValue']>
 
 // Whitelist of attributes that are safe to transfer to anchor tags
 const ANCHOR_SAFE_ATTRIBUTES = new Set([
@@ -450,8 +453,15 @@ const createLinkAttributes = (
       }
 
     case 'navlink': {
+      const baseRoute = resolveNavlink(link.content.routeName, options)
+      const differentiatorValue = link.content.differentiatorValue
+      if (differentiatorValue) {
+        return {
+          transitionTo: buildDifferentiatorTransitionTo(baseRoute, differentiatorValue),
+        }
+      }
       return {
-        transitionTo: resolveNavlink(link.content.routeName, options),
+        transitionTo: baseRoute,
       }
     }
 
@@ -525,5 +535,92 @@ const resolveNavlink = (
   return {
     type: 'static',
     content: pageOptions.navLink ?? `/${friendlyURL}`,
+  }
+}
+
+// Keep in sync with GLOBAL_REF_ID_MAP in teleport-plugin-common/ast-utils —
+// inlined here so the resolver has no dependency on plugin-common.
+const NAVLINK_GLOBAL_REF_ID_MAP: Record<string, string> = {
+  'E-commerce': 'ecommerce',
+  Cart: 'cart',
+  'Current User': 'currentUser',
+}
+
+const escapeTemplateLiteralText = (value: string): string =>
+  value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${')
+
+// Converts a UIDL differentiatorValue into a JS expression string suitable
+// for embedding in a template literal: `${baseRoute}/${<expr>}`.
+const differentiatorToJsExpression = (value: NavlinkDifferentiatorValue): string => {
+  if (value.type === 'static') {
+    return escapeTemplateLiteralText(String(value.content))
+  }
+
+  if (value.type === 'expr') {
+    return String(value.content)
+  }
+
+  // dynamic reference
+  const content = value.content as {
+    referenceType?: string
+    id?: string
+    refPath?: string[]
+  }
+  const refPath = content.refPath || []
+
+  if (content.referenceType === 'global') {
+    const hasId = !!content.id
+    const rootName = hasId
+      ? (content.id as string)
+      : NAVLINK_GLOBAL_REF_ID_MAP[refPath[0]] || refPath[0]
+    const tailPath = hasId ? refPath : refPath.slice(1)
+    const chain = tailPath.map((seg: string) => `?.${seg}`).join('')
+    return `${rootName}${chain}`
+  }
+
+  if (content.referenceType === 'state' || content.referenceType === 'prop') {
+    const prefix = content.referenceType === 'prop' ? 'props.' : ''
+    const head = content.id || ''
+    const chain = refPath.map((seg: string) => `?.${seg}`).join('')
+    return `${prefix}${head}${chain}`
+  }
+
+  if (content.referenceType === 'local') {
+    const head = refPath[0] || content.id || ''
+    const tail = refPath.slice(1)
+    const chain = tail.map((seg: string) => `?.${seg}`).join('')
+    return `${head}${chain}`
+  }
+
+  return String(content.id || '')
+}
+
+const buildDifferentiatorTransitionTo = (
+  baseRoute: UIDLAttributeValue,
+  differentiatorValue: NavlinkDifferentiatorValue
+): UIDLAttributeValue => {
+  // If the base route is a static value we can inline it into the template
+  // literal; otherwise fall back to leaving the base untouched and emitting
+  // a raw expression that references the original (uncommon path).
+  if (baseRoute.type !== 'static') {
+    return baseRoute
+  }
+  const baseText = escapeTemplateLiteralText(String(baseRoute.content))
+
+  // A static differentiator resolves to literal path text; concatenate it as
+  // a quasi segment rather than wrapping it in `${...}` (which would parse as
+  // a bare identifier).
+  if (differentiatorValue.type === 'static') {
+    const staticPath = encodeURIComponent(String(differentiatorValue.content))
+    return {
+      type: 'static',
+      content: `${String(baseRoute.content)}/${staticPath}`,
+    }
+  }
+
+  const diffExpr = differentiatorToJsExpression(differentiatorValue)
+  return {
+    type: 'expr',
+    content: `\`${baseText}/\${${diffExpr}}\``,
   }
 }

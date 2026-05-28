@@ -72,10 +72,20 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     const generateStylesForElementNode = (element: UIDLElement) => {
-      const { key, elementType, referencedStyles, dependency, style, attrs = {} } = element
+      const {
+        key,
+        elementType,
+        referencedStyles,
+        dependency,
+        style,
+        attrs = {},
+        dynamicStyleBindings,
+      } = element
       const propsReferred: Set<string> = new Set()
       const componentStyleReferences: Set<string> = new Set()
       const projectStyleReferences: Set<string> = new Set()
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
       const root = jsxNodesLookup[key]
       if (root === undefined) {
@@ -94,6 +104,18 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           root,
           getClassName,
         })
+      }
+
+      if (hasDynamicBindings) {
+        const bindingInlineStyles: Record<string, unknown> = {}
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          bindingInlineStyles[camelCaseProperty] =
+            StyleBuilders.createDynamicBindingExpression(binding)
+        }
+        ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', bindingInlineStyles)
       }
 
       let className = StringUtils.dashCaseToUpperCamelCase(key)
@@ -229,9 +251,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               const { content } = styleRef
               const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
               if (!referedStyle) {
-                throw new Error(
-                  `Style that is being used for reference is missing - ${content.referenceId}`
-                )
+                return
               }
               dependencies[projectVariantPropPrefix] = {
                 type: 'local',

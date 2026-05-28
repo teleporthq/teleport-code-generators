@@ -3,6 +3,7 @@ import { elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
   urlMockedDefinition,
   navlinkMockedDefinition,
+  exprNavlinkMockedDefinition,
   phoneMockedDefinition,
   mailMockedDefinition,
   sectionMockedDefinition,
@@ -62,6 +63,56 @@ describe('insertLink', () => {
     )
   })
 
+  it('passes through an expr-based navlink routeName unchanged', () => {
+    const node = elementNode('container', {}, [elementNode('container'), elementNode('container')])
+
+    const secondChild = node.content.children[1] as UIDLElementNode
+
+    const navlink = exprNavlinkMockedDefinition()
+    secondChild.content.abilities = { link: navlink }
+
+    const result = insertLinks(node, {}, false)
+    const secondChildAfterInsertLinks = result.content.children[1] as UIDLElementNode
+
+    expect(secondChildAfterInsertLinks.content.elementType).toBe('navlink')
+    expect(secondChildAfterInsertLinks.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      content: '`/blog/' + '$' + '{' + 'blogPost?.slug}' + '`',
+    })
+  })
+
+  it('passes through an expr-based navlink even with projectRouteDefinition', () => {
+    const node = elementNode('container')
+
+    const navlink = exprNavlinkMockedDefinition()
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [
+            {
+              value: 'home',
+              pageOptions: {
+                navLink: '/main-page',
+              },
+            },
+          ],
+        },
+      },
+      false
+    )
+
+    expect(result.content.elementType).toBe('navlink')
+    expect(result.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      content: '`/blog/' + '$' + '{' + 'blogPost?.slug}' + '`',
+    })
+  })
+
   it('works with a navlink with page settings', () => {
     const node = elementNode('container', {}, [
       elementNode('container'),
@@ -96,6 +147,46 @@ describe('insertLink', () => {
 
     expect(secondChildAfterInsertLinks.content.elementType).toBe('navlink')
     expect(secondChildAfterInsertLinks.content.attrs.transitionTo.content).toBe(`/main-page`)
+  })
+
+  it('emits a template-literal transitionTo when differentiatorValue is set', () => {
+    const node = elementNode('container')
+
+    const navlink = navlinkMockedDefinition()
+    // Point at the /profile route and append the logged-in user's id, as per
+    // the GenericDetailsNavlinkContent contract for the auth profile page.
+    navlink.content.routeName = { type: 'static', content: 'profile' }
+    navlink.content.differentiatorValue = {
+      type: 'dynamic',
+      content: {
+        referenceType: 'global',
+        refPath: ['Current User', 'id'],
+      },
+    } as never
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [
+            {
+              value: 'profile',
+              pageOptions: { navLink: '/profile' },
+            },
+          ],
+        },
+      },
+      false
+    )
+
+    expect(result.content.elementType).toBe('navlink')
+    expect(result.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      content: '`/profile/' + '$' + '{' + 'currentUser?.id}' + '`',
+    })
   })
 })
 

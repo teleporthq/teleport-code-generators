@@ -10,6 +10,7 @@ import {
   number,
   union,
   boolean,
+  anyJson,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -88,6 +89,7 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   resources: optional(resourcesDecoder),
   dataSources: optional(dataSourcesDecoder),
   forms: optional(formsDecoder) as Decoder<UIDLForms | undefined>,
+  authentication: optional(anyJson()),
   internationalization: optional(
     object({
       main: object({
@@ -99,4 +101,16 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
       translations: dict(dict(union(elementNodeDecoder, staticValueDecoder))),
     })
   ),
+  workflows: optional(anyJson()),
+  // These top-level project-level settings are consumed by downstream generator
+  // plugins (NextEcommerceProjectPlugin, NextAIChatProjectPlugin, the invoice
+  // sub-plugin of the workflows project plugin, NextGlobalStateProjectPlugin).
+  // They were previously dropped here because they were not declared — which
+  // silently disabled e-commerce API routes, the AI chat library/routes, the
+  // invoice templates, and the global-state store. Passing them through as
+  // anyJson keeps validation permissive while letting the plugins see them.
+  globalStateDefinitions: optional(anyJson()),
+  invoiceSettings: optional(anyJson()),
+  ecommerceSettings: optional(anyJson()),
+  aiAssistantChat: optional(anyJson()),
 }) as Decoder<VProjectUIDL>

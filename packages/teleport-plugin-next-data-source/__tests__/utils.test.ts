@@ -136,7 +136,6 @@ describe('validateResourceDefinition', () => {
       'javascript',
       'google-sheets',
       'csv-file',
-      'static-collection',
     ]
 
     validTypes.forEach((type) => {
@@ -263,7 +262,6 @@ describe('isEmbeddedDataSource', () => {
   it('identifies embedded data sources', () => {
     expect(isEmbeddedDataSource('javascript')).toBe(true)
     expect(isEmbeddedDataSource('csv-file')).toBe(true)
-    expect(isEmbeddedDataSource('static-collection')).toBe(true)
   })
 
   it('identifies non-embedded data sources', () => {

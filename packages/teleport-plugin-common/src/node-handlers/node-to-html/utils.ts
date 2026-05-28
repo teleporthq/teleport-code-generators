@@ -1,5 +1,5 @@
 import * as hastUtils from '../../utils/hast-utils'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLConditionalExpression,
   UIDLConditionalNode,
@@ -9,6 +9,7 @@ import {
   UIDLElementNode,
   UIDLExpressionValue,
   UIDLDynamicReference,
+  UIDLRawValue,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 import { createHTMLNode } from '../../builders/hast-builders'
@@ -37,9 +38,15 @@ export const handleAttribute = (
         StringUtils.encode(attrValue.content.toString())
       )
       break
-    case 'raw':
+    case 'raw': {
+      const rawValue = attrValue as UIDLRawValue
+      if (rawValue.dynamic) {
+        applyDynamicHtmlDirective(htmlNode, rawValue, params, templateSyntax, node)
+        break
+      }
       hastUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
       break
+    }
     case 'static':
       if (Array.isArray(attrValue.content)) {
         // This handles the cases when arrays are sent as props or passed as attributes
@@ -161,6 +168,19 @@ export const createConditionalStatement = (node: UIDLConditionalNode): string =>
   }
 }
 
+// Used by the inline `renderingConditions` path on UIDLElement — identical
+// semantics to `createConditionalStatement` except the reference / condition
+// are supplied directly rather than extracted from a UIDLConditionalNode.
+export const createInlineConditionalStatement = (
+  reference: UIDLConditionalNode['content']['reference'],
+  condition: UIDLConditionalExpression
+): string => {
+  if (reference.type === 'dynamic') {
+    return createConditional(reference.content.id, condition)
+  }
+  return ''
+}
+
 const standardizeUIDLConditionalExpression = (
   value: string | number | boolean,
   condition: UIDLConditionalExpression
@@ -178,27 +198,82 @@ const createConditional = (
 ) => {
   const { matchingCriteria, conditions } = conditionalExpression
   if (conditions.length === 1) {
-    // Separate handling for single condition to avoid unnecessary () around
-    const { operation, operand } = conditions[0]
-    return stringifyConditionalExpression(conditionalKey, operation, operand)
+    const { operation, operand, containsField } = conditions[0]
+    return stringifyConditionalExpression(conditionalKey, operation, operand, containsField)
   }
 
-  const stringConditions = conditions.map(({ operation, operand }) => {
-    // @todo
-    // unlike jsx code generation, we are not converting the operand to binary or unary operation.
-    // Please refer to https://github.com/teleporthq/teleport-code-generators/blob/development/packages/teleport-plugin-common/src/node-handlers/node-to-jsx/utils.ts#L303-L319
-    return `(${stringifyConditionalExpression(conditionalKey, operation, operand)})`
+  const stringConditions = conditions.map(({ operation, operand, containsField }) => {
+    return `(${stringifyConditionalExpression(conditionalKey, operation, operand, containsField)})`
   })
 
   const joinOperator = matchingCriteria === 'all' ? '&&' : '||'
   return stringConditions.join(` ${joinOperator} `)
 }
 
+const stringifyOperandValue = (
+  value: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
+): string => {
+  if (typeof value === 'string') {
+    return `'${value}'`
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (typeof value === 'object' && 'type' in value) {
+    if (value.type === 'dynamic') {
+      return value.content.id
+    }
+    if (value.type === 'expr') {
+      return value.content
+    }
+  }
+  return String(value)
+}
+
 const stringifyConditionalExpression = (
   identifier: string,
   operation: string,
-  value: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue
+  value: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue,
+  containsField?: string
 ) => {
+  // Array/object operators
+  if (operation === 'isEmpty') {
+    return `${identifier}.length === 0`
+  }
+  if (operation === 'isNotEmpty') {
+    return `${identifier}.length > 0`
+  }
+  if (operation === 'lengthEquals') {
+    return `${identifier}.length === ${stringifyOperandValue(value)}`
+  }
+  if (operation === 'lengthGreaterThan') {
+    return `${identifier}.length > ${stringifyOperandValue(value)}`
+  }
+  if (operation === 'lengthLessThan') {
+    return `${identifier}.length < ${stringifyOperandValue(value)}`
+  }
+  if (operation === 'contains') {
+    const operandStr = stringifyOperandValue(value)
+    if (containsField) {
+      return `${identifier}.some(item => item.${containsField} === ${operandStr})`
+    }
+    return `${identifier}.includes(${operandStr})`
+  }
+  if (operation === 'notContains') {
+    const operandStr = stringifyOperandValue(value)
+    if (containsField) {
+      return `!${identifier}.some(item => item.${containsField} === ${operandStr})`
+    }
+    return `!${identifier}.includes(${operandStr})`
+  }
+  if (operation === 'hasKey') {
+    return `Object.prototype.hasOwnProperty.call(${identifier}, ${stringifyOperandValue(value)})`
+  }
+  if (operation === 'notHasKey') {
+    return `!Object.prototype.hasOwnProperty.call(${identifier}, ${stringifyOperandValue(value)})`
+  }
+
+  // Standard operators
   if (typeof value === 'boolean') {
     return `${value ? '' : '!'}${identifier}`
   }
@@ -220,4 +295,29 @@ const stringifyConditionalExpression = (
   }
 
   return `${identifier} ${operation} ${value}`
+}
+
+const applyDynamicHtmlDirective = (
+  htmlNode: HastNode,
+  rawValue: UIDLRawValue,
+  params: HTMLTemplateGenerationParams,
+  templateSyntax: HTMLTemplateSyntax,
+  node: UIDLElementNode
+) => {
+  const dynamicRef = rawValue.dynamic
+  const { id, refPath } = dynamicRef.content
+  const idWithPath = UIDLUtils.generateIdWithRefPath(id, refPath)
+  const fallbackContent = rawValue.fallback || rawValue.content
+  const fallbackVarName = `htmlFallback${StringUtils.generateRandomString()}`
+  params.dataObject[fallbackVarName] = fallbackContent
+  const expression = `${idWithPath} || ${fallbackVarName}`
+
+  const directiveKey = templateSyntax.domHTMLInjection || 'innerHTML'
+  htmlNode.tagName = 'span'
+  hastUtils.addAttributeToNode(htmlNode, directiveKey, expression)
+
+  const elementType = node.content.elementType
+  if (params.dependencies[elementType]?.path?.includes('dangerous-html')) {
+    delete params.dependencies[elementType]
+  }
 }

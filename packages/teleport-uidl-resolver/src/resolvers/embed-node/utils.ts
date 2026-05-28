@@ -24,7 +24,7 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
   })
 
   const { elementType, attrs = {} } = node.content
-  if (elementType !== 'html-node') {
+  if (elementType !== 'html-node' && elementType !== 'markdown-node') {
     return node
   }
 

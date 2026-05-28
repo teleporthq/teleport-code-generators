@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateSearchEscapeHelpersCode,
 } from '../utils'
 
 export const validateTursoConfig = (
@@ -41,6 +42,8 @@ export const generateTursoFetcher = (
 
 ${generateSafeJSONParseCode()}
 
+${generateSearchEscapeHelpersCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -62,11 +65,16 @@ export default async function handler(req, res) {
       if (queryColumns) {
         const parsed = safeJSONParse(queryColumns)
         const columns = Array.isArray(parsed) ? parsed : [parsed]
-        // Cast columns to TEXT to support searching on non-text columns (dates, numbers, etc.)
-        const searchConditions = columns.map((col) => \`CAST(\${col} AS TEXT) LIKE ?\`)
-        whereClauses.push(\`(\${searchConditions.join(' OR ')})\`)
+        // Cast columns to TEXT and LOWER both sides so the match is
+        // case-insensitive regardless of SQLite collation.
+        const pattern = "%" + escapeLikePattern(query) + "%"
+        const searchConditions = columns.map(
+          (col) =>
+            'LOWER(CAST("' + sanitizeSearchIdentifier(col) + '" AS TEXT)) LIKE LOWER(?) ESCAPE ' + "'|'"
+        )
+        whereClauses.push("(" + searchConditions.join(" OR ") + ")")
         columns.forEach(() => {
-          queryParams.push(\`%\${query}%\`)
+          queryParams.push(pattern)
         })
       } else {
         // Store query for post-filtering if columns not specified
@@ -143,16 +151,16 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
-          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sanitizeIdentifier(sort.field)} \${order}\`
         }).filter(Boolean)
-        
+
         if (orderClauses.length > 0) {
           sql += \` ORDER BY \${orderClauses.join(', ')}\`
         }
       }
     } else if (sortBy) {
-      const sortOrderValue = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+      const sortOrderValue = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
       sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrderValue}\`
     }
     

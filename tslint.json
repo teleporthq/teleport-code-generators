@@ -6,7 +6,6 @@
   ],
   "rules": {
     "array-type": [true, "array-simple"],
-    "curly": true,
     "interface-name": [true, "never-prefix"],
     "max-classes-per-file": false,
     "member-ordering": [true, {"order": "statics-first"}],
@@ -37,7 +36,15 @@
       true,
       "ban-keywords",
       "check-format",
-      "allow-pascal-case"
-    ]
+      "allow-pascal-case",
+      "allow-snake-case",
+      "allow-leading-underscore"
+    ],
+    "only-arrow-functions": false,
+    "curly": false,
+    "prefer-conditional-expression": false,
+    "no-unused-expression": false,
+    "function-constructor": false,
+    "no-empty": false
   }
 }

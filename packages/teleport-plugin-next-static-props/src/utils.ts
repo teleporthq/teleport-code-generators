@@ -9,7 +9,23 @@ export const generateInitialPropsAST = (
   globalCache: UIDLResources['cache'],
   skipI18n?: boolean
 ) => {
+  // Destructure params from context so expr-type resource params can reference `params` directly
+  const paramsDestructureAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.objectPattern([
+        types.objectProperty(
+          types.identifier('params'),
+          types.assignmentPattern(types.identifier('params'), types.objectExpression([])),
+          false,
+          true
+        ),
+      ]),
+      types.identifier('context')
+    ),
+  ])
+
   const functionContentAST = types.blockStatement([
+    paramsDestructureAST,
     types.tryStatement(
       types.blockStatement([
         ...computePropsAST(initialPropsData, resourceImportName, globalCache, skipI18n),

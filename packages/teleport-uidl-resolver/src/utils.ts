@@ -180,6 +180,12 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Semantic type has precedence as it is dictated by the user
   originalElement.elementType = originalElement.semanticType || mappedElement.elementType
 
+  // Preserve the original element type so downstream generators can detect special nodes
+  // (e.g., markdown-node mapped to div still needs ReactMarkdown rendering)
+  if (originalElementType !== originalElement.elementType && !originalElement.semanticType) {
+    originalElement.semanticType = originalElementType
+  }
+
   if (mappedElement.style) {
     originalElement.style = deepmerge(mappedElement.style, originalElement.style || {})
   }
@@ -791,12 +797,30 @@ export const checkForDefaultStateValueContainingAssets = (
 ) => {
   if (uidl.stateDefinitions) {
     Object.keys(uidl.stateDefinitions).forEach((state) => {
-      const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
+      const stateDef = uidl.stateDefinitions[state]
+      const stateDefaultValue = stateDef.defaultValue
       if (typeof stateDefaultValue === 'string' && options.assets) {
         uidl.stateDefinitions[state].defaultValue = UIDLUtils.prefixAssetsPath(
           stateDefaultValue,
           options.assets
         )
+      } else if (
+        stateDef.type === 'object' &&
+        typeof stateDefaultValue === 'object' &&
+        stateDefaultValue !== null &&
+        !Array.isArray(stateDefaultValue) &&
+        options.assets
+      ) {
+        const objectValue = stateDefaultValue as Record<
+          string,
+          { type?: string; content?: unknown }
+        >
+        Object.keys(objectValue).forEach((key) => {
+          const entry = objectValue[key]
+          if (entry?.type === 'static' && typeof entry.content === 'string') {
+            entry.content = UIDLUtils.prefixAssetsPath(entry.content, options.assets)
+          }
+        })
       }
     })
   }

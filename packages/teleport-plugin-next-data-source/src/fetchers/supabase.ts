@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateSearchEscapeHelpersCode,
 } from '../utils'
 
 export const validateSupabaseConfig = (
@@ -49,7 +50,66 @@ export const generateSupabaseFetcher = (
   const supabaseConfig = config as SupabaseConfig
   const supabaseUrl = supabaseConfig.supabaseUrl
   const apiKey = supabaseConfig.serviceRoleKey || supabaseConfig.publicApiKey
+  /*
+DO $$
+DECLARE
+    first_account_id UUID;
+    first_team_id UUID;
+BEGIN
+    -- Step 1: Select the first account's id
+    SELECT id INTO first_account_id
+    FROM accounts
+    ORDER BY id
+    LIMIT 1;
 
+    -- Step 2: Insert into subscriptions
+    INSERT INTO subscriptions (
+        "stripeSubscriptionId",
+        "accountId",
+        "stripeCurrentPeriodStart",
+        "stripeCurrentPeriodEnd",
+        "createdAt",
+        "updatedAt",
+        "percentOff"
+    ) VALUES (
+        'abc',
+        first_account_id,
+        '2025-08-13 00:00:00+00'::timestamptz,
+        '2035-09-13 00:00:00+00'::timestamptz,
+        '2025-08-13 00:00:00+00'::timestamptz,
+        '2025-08-13 00:00:00+00'::timestamptz,
+        100
+    );
+
+    -- Step 3: Insert into subscription-items
+    INSERT INTO "subscription-items" (
+        "stripeSubscriptionItemId",
+        "stripePriceId",
+        "stripeSubscriptionId",
+        "createdAt",
+        "updatedAt"
+    ) VALUES (
+        'abc',
+        'price_1KO3BuGd5V11xo4EFF8fKiVR',
+        'abc',
+        '2025-08-13 00:00:00+00'::timestamptz,
+        '2025-08-13 00:00:00+00'::timestamptz
+    );
+
+    -- Step 4: Get first team id and update its subscriptionItemId
+    SELECT id INTO first_team_id
+    FROM teams
+    ORDER BY id
+    LIMIT 1;
+
+    UPDATE teams
+    SET "subscriptionItemId" = 'abc'
+    WHERE id = first_team_id;
+
+    RAISE NOTICE 'Script completed successfully. Account ID: %, Team ID: %', first_account_id, first_team_id;
+END $$;
+
+*/
   return `import { createClient } from '@supabase/supabase-js'
 
 let client = null
@@ -66,6 +126,8 @@ const getClient = () => {
 }
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchEscapeHelpersCode()}
 
 // Helper function to process filter values
 const processFilterValue = (value) => {
@@ -183,8 +245,10 @@ export default async function handler(req, res) {
       let columns = []
       
       if (queryColumns) {
-        // Use specified columns
-        columns = safeJSONParse(queryColumns)
+        // Use specified columns. Wrap non-arrays so a single column
+        // passed as a bare string doesn't get iterated as chars.
+        const parsed = safeJSONParse(queryColumns)
+        columns = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
       } else {
         // Fallback: Get text-searchable columns from a sample row
         try {
@@ -220,14 +284,26 @@ export default async function handler(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchPattern = \`%\${query}%\`
-        // Note: Supabase PostgREST doesn't support ::text casting in .or() syntax
-        // Only text/varchar columns will match; non-text columns will be skipped
-        const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
+        // PostgREST .or() DSL separates conditions with comma and uses
+        // dot to split field / operator / value, so we wrap the pattern
+        // in double quotes and backslash-escape any embedded quotes or
+        // backslashes in the user's search term. Columns go through the
+        // shared identifier sanitizer to reject injection. Note:
+        // PostgREST .ilike. does not expose a LIKE ESCAPE clause, so
+        // raw % / _ in the user input still act as wildcards in this
+        // backend; the canvas preview path escapes them explicitly.
+        const rawPattern = "%" + String(query) + "%"
+        const escapedForPostgrest = rawPattern
+          .replace(/\\\\/g, "\\\\\\\\")
+          .replace(/"/g, '\\\\"')
+        const searchPattern = '"' + escapedForPostgrest + '"'
+        const orConditions = columns
+          .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
+          .join(",")
         queryRef = queryRef.or(orConditions)
       }
     }
-    
+
     // Apply filters using helper function
     queryRef = applyFilters(queryRef, filters)
     
@@ -237,14 +313,14 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts)) {
         parsedSorts.forEach((sort) => {
           if (sort.field) {
-            queryRef = queryRef.order(sort.field, { 
-              ascending: sort.order?.toLowerCase() !== 'desc' 
+            queryRef = queryRef.order(sort.field, {
+              ascending: !(sort.order || '').toLowerCase().startsWith('desc')
             })
           }
         })
       }
     } else if (sortBy) {
-      queryRef = queryRef.order(sortBy, { ascending: sortOrder !== 'desc' })
+      queryRef = queryRef.order(sortBy, { ascending: !(sortOrder || '').toLowerCase().startsWith('desc') })
     }
     
     const limitValue = limit || perPage
@@ -337,10 +413,17 @@ async function getCount(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchPattern = \`%\${query}%\`
-        // Note: Supabase PostgREST doesn't support ::text casting in .or() syntax
-        // Only text/varchar columns will match; non-text columns will be skipped
-        const orConditions = columns.map((col) => \`\${col}.ilike.\${searchPattern}\`).join(',')
+        // Mirror the fetch handler: sanitize identifiers, wrap the
+        // pattern in double quotes for PostgREST .or() DSL, and escape
+        // backslashes / quotes in the user's search term.
+        const rawPattern = "%" + String(query) + "%"
+        const escapedForPostgrest = rawPattern
+          .replace(/\\\\/g, "\\\\\\\\")
+          .replace(/"/g, '\\\\"')
+        const searchPattern = '"' + escapedForPostgrest + '"'
+        const orConditions = columns
+          .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
+          .join(",")
         countQuery = countQuery.or(orConditions)
       }
     }

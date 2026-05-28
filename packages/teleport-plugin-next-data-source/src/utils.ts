@@ -15,6 +15,7 @@ import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'rest-api',
+  'teleport',
   'postgresql',
   'mysql',
   'mariadb',
@@ -31,7 +32,6 @@ const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'javascript',
   'google-sheets',
   'csv-file',
-  'static-collection',
 ]
 
 export const sanitizeFileName = (input: string): string => {
@@ -460,7 +460,7 @@ export default dataSourceModule.handler
 }
 
 export const isEmbeddedDataSource = (dataSourceType: string): boolean => {
-  return ['javascript', 'csv-file', 'static-collection'].includes(dataSourceType)
+  return ['javascript', 'csv-file'].includes(dataSourceType)
 }
 
 export const replaceSecretReference = (
@@ -508,6 +508,41 @@ export const replaceSecretReference = (
     // Fallback for any serialization issues
     return '""'
   }
+}
+
+/**
+ * Emit runtime helpers that every SQL-based fetcher needs to safely
+ * apply the `{ query, queryColumns }` search contract:
+ *
+ *   - `SEARCH_LIKE_ESCAPE_CHAR` — the char we register via `ESCAPE '|'`
+ *     in LIKE / ILIKE expressions. `|` is not special in any SQL
+ *     dialect's string-literal grammar, so the emitted SQL parses
+ *     unambiguously across Postgres, MySQL (regardless of
+ *     `NO_BACKSLASH_ESCAPES`), and SQLite.
+ *
+ *   - `escapeLikePattern(term)` — prefixes `|` to `|`, `%`, `_` so a
+ *     user typing `50%` matches a literal `%` rather than any-chars.
+ *
+ *   - `sanitizeSearchIdentifier(name)` — validates column identifiers
+ *     against `[A-Za-z_][A-Za-z0-9_]*` and throws on anything else. The
+ *     caller is responsible for wrapping in the dialect's quote chars.
+ *
+ * Kept as a single snippet so every fetcher imports the exact same
+ * contract and the canvas preview (data-fetcher-worker /
+ * database-provider-worker) and the generated Next.js app emit
+ * byte-identical search SQL.
+ */
+export const generateSearchEscapeHelpersCode = (): string => {
+  return `const SEARCH_LIKE_ESCAPE_CHAR = '|'
+const escapeLikePattern = (term) => {
+  return String(term == null ? '' : term).replace(/[|%_]/g, (m) => SEARCH_LIKE_ESCAPE_CHAR + m)
+}
+const sanitizeSearchIdentifier = (name) => {
+  if (typeof name !== 'string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+    throw new Error('Invalid search column identifier: ' + String(name))
+  }
+  return name
+}`
 }
 
 export const generateSafeJSONParseCode = (): string => {
@@ -706,6 +741,147 @@ export const sanitizeIdentifier = (identifier: unknown): string => {
   return identifier.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64)
 }
 
+/**
+ * Checks if a dynamic param is resolvable from the route's dynamic attribute
+ * (i.e. available via context.params in getStaticProps/getServerSideProps).
+ */
+const isDynamicParamRouteResolvable = (
+  param: { type: string; content?: { referenceType?: string; id?: string } },
+  dynamicRouteAttr: string
+): boolean => {
+  if (param.type !== 'dynamic') {
+    return false
+  }
+  return param.content?.referenceType === 'prop' && param.content?.id === dynamicRouteAttr
+}
+
+/**
+ * Checks if a filter destination (within a static filters array) is resolvable
+ * from the route's dynamic attribute.
+ */
+const isFilterDestinationRouteResolvable = (
+  destination: unknown,
+  dynamicRouteAttr: string
+): boolean => {
+  if (!ASTUtils.isUIDLDynamicReference(destination)) {
+    return false
+  }
+  const content = (destination as { content: { referenceType: string; id: string } }).content
+  return content.referenceType === 'prop' && content.id === dynamicRouteAttr
+}
+
+/**
+ * Determines if any resource params have dynamic values that cannot be resolved
+ * server-side. Params whose dynamic references match the page's dynamicRouteAttribute
+ * can be resolved from context.params and are NOT considered unresolvable.
+ */
+// tslint:disable-next-line:no-any
+export const hasUnresolvableDynamicParams = (
+  params: Record<string, any>,
+  dynamicRouteAttr?: string
+): boolean => {
+  return Object.values(params).some((param: any) => {
+    if (param.type === 'expr') {
+      return true
+    }
+
+    if (param.type === 'dynamic') {
+      if (dynamicRouteAttr && isDynamicParamRouteResolvable(param, dynamicRouteAttr)) {
+        return false
+      }
+      return true
+    }
+
+    if (param.type === 'static' && Array.isArray(param.content)) {
+      const hasDynamicDestinations = param.content.some(
+        (item: any) =>
+          item && typeof item === 'object' && ASTUtils.isUIDLDynamicReference(item?.destination)
+      )
+
+      if (hasDynamicDestinations && dynamicRouteAttr) {
+        const allResolvable = param.content.every((item: any) => {
+          if (!item || typeof item !== 'object') {
+            return true
+          }
+          if (!ASTUtils.isUIDLDynamicReference(item.destination)) {
+            return true
+          }
+          return isFilterDestinationRouteResolvable(item.destination, dynamicRouteAttr)
+        })
+        return !allResolvable
+      }
+
+      return hasDynamicDestinations
+    }
+
+    return false
+  })
+}
+
+const isValidJSIdentifier = (name: string): boolean => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)
+
+/**
+ * Generates context.params.attr or context.params['attr'] depending on
+ * whether the attribute name is a valid JS identifier.
+ */
+const createContextParamsAccess = (attr: string): types.MemberExpression => {
+  const contextParams = types.memberExpression(
+    types.identifier('context'),
+    types.identifier('params')
+  )
+  return isValidJSIdentifier(attr)
+    ? types.memberExpression(contextParams, types.identifier(attr))
+    : types.memberExpression(contextParams, types.stringLiteral(attr), true)
+}
+
+/**
+ * Builds an AST ObjectExpression for a filter item, resolving dynamic destinations
+ * that reference the route attribute to context.params[attr].
+ */
+const buildFilterObjectAST = (
+  filterItem: Record<string, unknown>,
+  dynamicRouteAttr?: string
+): types.ObjectExpression => {
+  const properties: types.ObjectProperty[] = []
+
+  for (const [key, value] of Object.entries(filterItem)) {
+    if (value === undefined) {
+      continue
+    }
+
+    if (key === 'destination' && dynamicRouteAttr && ASTUtils.isUIDLDynamicReference(value)) {
+      const content = (value as { content: { id: string } }).content
+      properties.push(
+        types.objectProperty(types.stringLiteral(key), createContextParamsAccess(content.id))
+      )
+    } else if (typeof value === 'string') {
+      properties.push(types.objectProperty(types.stringLiteral(key), types.stringLiteral(value)))
+    } else if (typeof value === 'number') {
+      properties.push(types.objectProperty(types.stringLiteral(key), types.numericLiteral(value)))
+    } else if (typeof value === 'boolean') {
+      properties.push(types.objectProperty(types.stringLiteral(key), types.booleanLiteral(value)))
+    } else if (value === null) {
+      properties.push(types.objectProperty(types.stringLiteral(key), types.nullLiteral()))
+    } else if (Array.isArray(value)) {
+      properties.push(
+        types.objectProperty(
+          types.stringLiteral(key),
+          types.arrayExpression(value.map((v) => ASTUtils.convertValueToLiteral(v)))
+        )
+      )
+    } else if (typeof value === 'object') {
+      properties.push(
+        types.objectProperty(
+          types.stringLiteral(key),
+          ASTUtils.objectToObjectExpression(value as Record<string, unknown>)
+        )
+      )
+    }
+  }
+
+  return types.objectExpression(properties)
+}
+
 // tslint:disable-next-line:no-any
 export const extractDataSourceIntoGetStaticProps = (
   node: UIDLDataSourceItemNode | UIDLDataSourceListNode,
@@ -714,7 +890,9 @@ export const extractDataSourceIntoGetStaticProps = (
   getStaticPropsChunk: any,
   chunks: any[],
   extractedResources: GeneratorOptions['extractedResources'],
-  dependencies: Record<string, any>
+  dependencies: Record<string, any>,
+  dynamicRouteAttr?: string,
+  folderPath?: string[]
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -1061,9 +1239,16 @@ export const extractDataSourceIntoGetStaticProps = (
 
     // Add dependency for the fetcher
     const fetcherImportName = StringUtils.dashCaseToCamelCase(fileName)
+    // Calculate the correct relative path based on page folder depth.
+    // folderPath contains subfolders within pages/ (e.g. ['admin'] for pages/admin/X.js).
+    // We add 1 for the pages/ directory itself.
+    // Pages at pages/X.js (folderPath=[]) need '../' (1 level up)
+    // Pages at pages/admin/X.js (folderPath=['admin']) need '../../' (2 levels up)
+    const depth = (folderPath ? folderPath.length : 0) + 1
+    const relativePrefix = '../'.repeat(depth)
     dependencies[fetcherImportName] = {
       type: 'local',
-      path: `../utils/data-sources/${fileName}`,
+      path: `${relativePrefix}utils/data-sources/${fileName}`,
     }
 
     // Build params object from resource params
@@ -1092,17 +1277,33 @@ export const extractDataSourceIntoGetStaticProps = (
 
           // For sorts, filters, and queryColumns, stringify the array for consistency with API handler
           if (key === 'sorts' || key === 'filters' || key === 'queryColumns') {
-            // For filters, filter out items with dynamic destinations (can't be resolved at build time)
             let itemsToProcess = validItems
             if (key === 'filters') {
-              itemsToProcess = validItems.filter(
-                (item: any) => !ASTUtils.isUIDLDynamicReference(item?.destination)
-              )
-              // Skip entirely if no static filters remain
+              // Keep filter items that are either static or route-resolvable (via dynamicRouteAttr)
+              // Filter out items with unresolvable dynamic destinations
+              itemsToProcess = validItems.filter((item: any) => {
+                if (!ASTUtils.isUIDLDynamicReference(item?.destination)) {
+                  return true
+                }
+                if (dynamicRouteAttr) {
+                  return isFilterDestinationRouteResolvable(item.destination, dynamicRouteAttr)
+                }
+                return false
+              })
               if (itemsToProcess.length === 0) {
                 return
               }
             }
+
+            const hasRouteResolvableFilters =
+              key === 'filters' &&
+              dynamicRouteAttr &&
+              itemsToProcess.some(
+                (item: any) =>
+                  item &&
+                  typeof item === 'object' &&
+                  ASTUtils.isUIDLDynamicReference(item?.destination)
+              )
 
             const arrayExpr = types.arrayExpression(
               itemsToProcess.map((item: any) => {
@@ -1116,6 +1317,12 @@ export const extractDataSourceIntoGetStaticProps = (
                   return types.booleanLiteral(item)
                 }
                 if (typeof item === 'object' && item !== null) {
+                  if (
+                    hasRouteResolvableFilters &&
+                    ASTUtils.isUIDLDynamicReference(item?.destination)
+                  ) {
+                    return buildFilterObjectAST(item, dynamicRouteAttr)
+                  }
                   return ASTUtils.objectToObjectExpression(item)
                 }
                 return types.nullLiteral()
@@ -1159,9 +1366,18 @@ export const extractDataSourceIntoGetStaticProps = (
         }
 
         paramsProperties.push(types.objectProperty(types.stringLiteral(key), astValue))
+      } else if (
+        value.type === 'dynamic' &&
+        dynamicRouteAttr &&
+        isDynamicParamRouteResolvable(value, dynamicRouteAttr)
+      ) {
+        paramsProperties.push(
+          types.objectProperty(
+            types.stringLiteral(key),
+            createContextParamsAccess(value.content.id)
+          )
+        )
       }
-      // Note: We don't handle 'expr' or 'dynamic' params in getStaticProps
-      // as those should be detected by hasResourceDynamicParams check earlier
     })
 
     const fetchCallExpression = types.callExpression(

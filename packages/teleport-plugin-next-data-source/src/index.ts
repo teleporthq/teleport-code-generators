@@ -3,12 +3,15 @@ import {
   ComponentPluginFactory,
   FileType,
   ChunkType,
+  UIDLComponentSEO,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   extractDataSourceIntoNextAPIFolder,
   extractDataSourceIntoGetStaticProps,
   sanitizeFileName,
+  hasUnresolvableDynamicParams,
 } from './utils'
 import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
 import * as types from '@babel/types'
@@ -580,15 +583,14 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
         return
       }
 
-      // Check if resource has dynamic parameters
+      // Check if resource has dynamic parameters that can't be resolved server-side
+      const dynamicRouteAttr = uidl.outputOptions?.dynamicRouteAttribute
       // tslint:disable-next-line:no-any
       const hasResourceDynamicParams = dataSourceNode.content.resource?.params
-        ? Object.values(dataSourceNode.content.resource.params).some(
-            (param: any) => param.type === 'expr' || param.type === 'dynamic'
-          )
+        ? hasUnresolvableDynamicParams(dataSourceNode.content.resource.params, dynamicRouteAttr)
         : false
 
-      // If no dynamic params, extract to getStaticProps (server-side)
+      // If no dynamic params (or all are route-resolvable), extract to getStaticProps (server-side)
       // Otherwise, extract to API route (client-side)
       if (!hasResourceDynamicParams) {
         // extractDataSourceIntoGetStaticProps is called for every UIDL data-source node.
@@ -602,7 +604,9 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           getStaticPropsChunk,
           chunks,
           options.extractedResources,
-          dependencies
+          dependencies,
+          dynamicRouteAttr,
+          uidl.outputOptions?.folderPath
         )
 
         if (result.success && result.chunk) {
@@ -898,11 +902,147 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
       }
     }
 
+    // For pages with dynamicRouteAttribute and dynamic SEO references,
+    // add the SEO-referenced fields as direct page props from the fetched data.
+    // The head config plugin generates props?.metaTitle from refPath: ['metaTitle'],
+    // so we need those fields at the top level of props.
+    if (uidl.outputOptions?.dynamicRouteAttribute && getStaticPropsChunk && uidl.seo) {
+      addDynamicSeoPropsToGetStaticProps(uidl.seo, getStaticPropsChunk)
+    }
+
     const paginationPlugin = createNextArrayMapperPaginationPlugin()
     return paginationPlugin(structure)
   }
 
   return nextPagesDataSourcePlugin
+}
+
+/**
+ * Extracts dynamic SEO reference paths from UIDLComponentSEO and returns the
+ * refPath arrays for prop-based dynamic references.
+ */
+function extractDynamicSeoRefPaths(seo: UIDLComponentSEO): string[][] {
+  const paths: string[][] = []
+
+  const extractFromValue = (value: unknown) => {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      (value as { type: string }).type === 'dynamic'
+    ) {
+      const dynRef = value as UIDLDynamicReference
+      if (dynRef.content.referenceType === 'prop' && dynRef.content.refPath?.length) {
+        paths.push(dynRef.content.refPath)
+      }
+    }
+  }
+
+  if (seo.title) {
+    extractFromValue(seo.title)
+  }
+
+  if (seo.metaTags) {
+    seo.metaTags.forEach((tag) => {
+      Object.values(tag).forEach(extractFromValue)
+    })
+  }
+
+  return paths
+}
+
+/**
+ * For pages with dynamic route attributes and dynamic SEO prop references,
+ * augments the getStaticProps return to include SEO fields extracted from
+ * the first fetched entity. This enables server-side SEO resolution.
+ */
+function addDynamicSeoPropsToGetStaticProps(
+  seo: UIDLComponentSEO,
+  getStaticPropsChunk: { content: unknown; type: string }
+): void {
+  const seoRefPaths = extractDynamicSeoRefPaths(seo)
+  if (seoRefPaths.length === 0) {
+    return
+  }
+
+  try {
+    const exportDecl = getStaticPropsChunk.content as types.ExportNamedDeclaration
+    if (!exportDecl?.declaration || exportDecl.declaration.type !== 'FunctionDeclaration') {
+      return
+    }
+
+    const funcBody = exportDecl.declaration.body
+    const tryStmt = funcBody.body.find((s) => s.type === 'TryStatement') as types.TryStatement
+    if (!tryStmt) {
+      return
+    }
+
+    const returnStmt = tryStmt.block.body.find(
+      (s) => s.type === 'ReturnStatement'
+    ) as types.ReturnStatement
+    if (!returnStmt?.argument || returnStmt.argument.type !== 'ObjectExpression') {
+      return
+    }
+
+    const propsProperty = returnStmt.argument.properties.find(
+      (p) =>
+        p.type === 'ObjectProperty' &&
+        ((p.key as types.Identifier)?.name === 'props' ||
+          (p.key as types.StringLiteral)?.value === 'props')
+    ) as types.ObjectProperty | undefined
+    if (!propsProperty || propsProperty.value.type !== 'ObjectExpression') {
+      return
+    }
+
+    const propsObj = propsProperty.value as types.ObjectExpression
+
+    // Find the first data prop (non-spread, non-string-keyed) as the source entity.
+    // Exclude spread elements and meta spreads that the data-source plugin adds.
+    const firstDataProp = propsObj.properties.find(
+      (p) => p.type === 'ObjectProperty' && (p.key as types.Identifier)?.name !== undefined
+    ) as types.ObjectProperty | undefined
+
+    if (!firstDataProp) {
+      return
+    }
+
+    const addedSeoFields = new Set<string>()
+
+    for (const refPath of seoRefPaths) {
+      const fieldName = refPath[refPath.length - 1]
+      if (addedSeoFields.has(fieldName)) {
+        continue
+      }
+      addedSeoFields.add(fieldName)
+
+      let memberExpr: types.Expression = types.cloneNode(
+        firstDataProp.value as types.Expression,
+        true
+      )
+
+      // If the prop value is an array (no index access), get the first element
+      const valueStr = JSON.stringify(firstDataProp.value)
+      const hasIndexAccess = valueStr.includes('"computed":true')
+      if (!hasIndexAccess) {
+        memberExpr = types.optionalMemberExpression(memberExpr, types.numericLiteral(0), true, true)
+      }
+
+      for (const segment of refPath) {
+        memberExpr = types.optionalMemberExpression(
+          memberExpr,
+          types.identifier(segment),
+          false,
+          true
+        )
+      }
+
+      const seoValue = types.logicalExpression('??', memberExpr, types.stringLiteral(''))
+
+      propsObj.properties.push(types.objectProperty(types.identifier(fieldName), seoValue))
+    }
+  } catch {
+    // If AST manipulation fails, skip SEO prop injection silently
+  }
 }
 
 // Helper function to stringify complex params (sorts, filters) in DataProvider components

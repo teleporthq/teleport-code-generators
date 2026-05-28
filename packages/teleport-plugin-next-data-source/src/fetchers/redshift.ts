@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateSearchEscapeHelpersCode,
 } from '../utils'
 
 interface RedshiftConfig {
@@ -55,6 +56,8 @@ const getClient = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateSearchEscapeHelpersCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -95,13 +98,14 @@ export default async function handler(req, res) {
       }
       
       if (columns.length > 0) {
-        const searchConditions = columns.map((col) => {
-          const condition = \`\${col}::text ILIKE $\${paramIndex}\`
-          paramIndex++
-          return condition
-        })
-        columns.forEach(() => queryParams.push(\`%\${query}%\`))
-        conditions.push(\`(\${searchConditions.join(' OR ')})\`)
+        const pattern = '%' + escapeLikePattern(query) + '%'
+        const placeholder = '$' + paramIndex
+        paramIndex++
+        queryParams.push(pattern)
+        const searchConditions = columns.map(
+          (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
+        )
+        conditions.push('(' + searchConditions.join(' OR ') + ')')
       }
     }
     
@@ -178,16 +182,16 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const orderClauses = parsedSorts.map((sort) => {
           if (!sort.field) return null
-          const order = sort.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sanitizeIdentifier(sort.field)} \${order}\`
         }).filter(Boolean)
-        
+
         if (orderClauses.length > 0) {
           sql += \` ORDER BY \${orderClauses.join(', ')}\`
         }
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrder?.toUpperCase() || 'ASC'}\`
+      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
     }
     
     const limitValue = limit || perPage

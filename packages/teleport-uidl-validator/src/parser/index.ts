@@ -27,6 +27,7 @@ import {
   UIDLDependency,
   UIDLEventHandlerStatement,
   UIDLCMSMixedTypeNode,
+  UIDLRawValue,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -82,7 +83,47 @@ export const parseComponentJSON = (
     assets.forEach(parseAssets)
   }
 
+  // Build ID-to-name maps from state and prop definitions so that dynamic
+  // references using unique IDs (e.g. "TQ_i4txR6Whux") can be resolved to
+  // the actual variable names (e.g. "dashboardChartUsersMonthly").
+  // We map both the original ID and its camelCased form because IDs may
+  // have already been processed by generateIdWithRefPath in a prior parse pass.
+  const stateIdToName: Record<string, string> = {}
+  if (safeInput.stateDefinitions) {
+    for (const [name, def] of Object.entries(
+      safeInput.stateDefinitions as Record<string, UIDLStateDefinition & { id?: string }>
+    )) {
+      if (def.id && def.id !== name) {
+        stateIdToName[def.id] = name
+        const camelCasedId = StringUtils.createStateOrPropStoringValue(def.id)
+        if (camelCasedId !== name) {
+          stateIdToName[camelCasedId] = name
+        }
+      }
+    }
+  }
+  const propIdToName: Record<string, string> = {}
+  if (safeInput.propDefinitions) {
+    for (const [name, def] of Object.entries(
+      safeInput.propDefinitions as Record<string, UIDLPropDefinition & { id?: string }>
+    )) {
+      if (def.id && def.id !== name) {
+        propIdToName[def.id] = name
+        const camelCasedId = StringUtils.createStateOrPropStoringValue(def.id)
+        if (camelCasedId !== name) {
+          propIdToName[camelCasedId] = name
+        }
+      }
+    }
+  }
+
   const node = safeInput.node as Record<string, unknown>
+
+  // Resolve state/prop reference IDs in the node tree before further parsing
+  if (node && (Object.keys(stateIdToName).length > 0 || Object.keys(propIdToName).length > 0)) {
+    resolveReferenceIds(node, stateIdToName, propIdToName)
+  }
+
   const result: ComponentUIDL = {
     ...(safeInput as unknown as ComponentUIDL),
   }
@@ -175,7 +216,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         resource,
       } = (node as unknown as UIDLCMSItemNode).content
 
-      if (initialData) {
+      if (initialData?.content?.id) {
         initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
       }
 
@@ -208,7 +249,8 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         Object.values(resource?.params || {}).forEach((param) => {
           if (
             param.type === 'dynamic' &&
-            (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+            (param.content.referenceType === 'state' || param.content.referenceType === 'prop') &&
+            param.content.id
           ) {
             param.content.id = StringUtils.createStateOrPropStoringValue(param.content.id)
           }
@@ -257,7 +299,8 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         Object.values(resource?.params || {}).forEach((param: any) => {
           if (
             param.type === 'dynamic' &&
-            (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+            (param.content.referenceType === 'state' || param.content.referenceType === 'prop') &&
+            param.content.id
           ) {
             param.content.id = StringUtils.createStateOrPropStoringValue(param.content.id)
           }
@@ -380,13 +423,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         Object.values(elementContent.events).forEach(
           (eventHandler: UIDLEventHandlerStatement[]) => {
             eventHandler.forEach((eventStatement) => {
-              if (eventStatement.type === 'stateChange') {
+              if (eventStatement.type === 'stateChange' && eventStatement.modifies) {
                 eventStatement.modifies = StringUtils.createStateOrPropStoringValue(
                   eventStatement.modifies
                 )
               }
 
-              if (eventStatement.type === 'propCall') {
+              if (eventStatement.type === 'propCall' && eventStatement.calls) {
                 eventStatement.calls = StringUtils.createStateOrPropStoringValue(
                   eventStatement.calls
                 )
@@ -498,6 +541,12 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             id: reference.content.id,
             refPath: reference.content.refPath,
           }
+        } else if ((reference.content as any).referenceType === 'globalState') {
+          conditionalNode.content.reference.content = {
+            referenceType: 'globalState' as any,
+            id: reference.content.id,
+            refPath: reference.content.refPath,
+          }
         } else if (reference.content.referenceType === 'local') {
           // For local references (e.g., in repeaters), preserve the structure as-is
           conditionalNode.content.reference.content = {
@@ -509,15 +558,14 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             }),
           }
         } else {
-          // For prop/state references, transform the id
+          const refContent = reference.content as any
+          const rawId = conditionalNode.content.reference.content.id
           conditionalNode.content.reference.content = {
-            referenceType: reference.content.referenceType,
-            id: StringUtils.createStateOrPropStoringValue(
-              conditionalNode.content.reference.content.id
-            ),
-            refPath: reference.content.refPath,
-            ...(reference.content.fallback !== undefined && {
-              fallback: reference.content.fallback,
+            referenceType: refContent.referenceType,
+            id: rawId ? StringUtils.createStateOrPropStoringValue(rawId) : rawId,
+            refPath: refContent.refPath,
+            ...(refContent.fallback !== undefined && {
+              fallback: refContent.fallback,
             }),
           }
         }
@@ -559,15 +607,65 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           dyamicNode.content.refPath
         )
       }
+      // globalState references are preserved as-is (like global references)
       return dyamicNode
     case 'static':
-    case 'raw':
     case 'expr':
     case 'inject':
       return node as unknown as UIDLNode
 
+    case 'raw': {
+      const rawNode = node as unknown as UIDLRawValue
+      if (rawNode.dynamic && ['state', 'prop'].includes(rawNode.dynamic.content.referenceType)) {
+        rawNode.dynamic.content.id = UIDLUtils.generateIdWithRefPath(
+          rawNode.dynamic.content.id,
+          rawNode.dynamic.content.refPath
+        )
+      }
+      return rawNode as unknown as UIDLNode
+    }
+
     default:
       throw new ParserError(`parseComponentNode attempted to parsed invalid node type ${node.type}`)
+  }
+}
+
+/**
+ * Recursively walks a raw UIDL node tree and resolves dynamic state/prop
+ * reference IDs to their corresponding variable names.
+ */
+const resolveReferenceIds = (
+  obj: unknown,
+  stateIdToName: Record<string, string>,
+  propIdToName: Record<string, string>
+): void => {
+  if (!obj || typeof obj !== 'object') {
+    return
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      resolveReferenceIds(item, stateIdToName, propIdToName)
+    }
+    return
+  }
+
+  const record = obj as Record<string, unknown>
+
+  // Check if this is a dynamic reference with a resolvable ID
+  if (record.type === 'dynamic' && record.content && typeof record.content === 'object') {
+    const content = record.content as Record<string, unknown>
+    if (typeof content.id === 'string') {
+      if (content.referenceType === 'state' && stateIdToName[content.id]) {
+        content.id = stateIdToName[content.id]
+      } else if (content.referenceType === 'prop' && propIdToName[content.id]) {
+        content.id = propIdToName[content.id]
+      }
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    resolveReferenceIds(value, stateIdToName, propIdToName)
   }
 }
 

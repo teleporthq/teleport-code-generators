@@ -1,3 +1,4 @@
+import * as types from '@babel/types'
 import {
   ChunkType,
   ComponentPlugin,
@@ -14,6 +15,15 @@ interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
+const isDynamicRoute = (uidl: {
+  outputOptions?: { folderPath?: string[]; fileName?: string }
+}): boolean => {
+  const { folderPath = [], fileName = '' } = uidl.outputOptions || {}
+  return [...folderPath, fileName].some(
+    (segment) => segment.startsWith('[') && segment.endsWith(']')
+  )
+}
+
 export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
 ) => {
@@ -24,6 +34,76 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     const { resources } = options
 
     if (!uidl.outputOptions?.initialPathsData) {
+      // For dynamic routes without initialPathsData,
+      // generate a fallback getStaticPaths with empty paths and fallback: 'blocking'.
+      // This is needed because Next.js requires getStaticPaths for any dynamic route
+      // that uses getStaticProps (which may be added later by the i18n or data source plugins).
+      if (isDynamicRoute(uidl)) {
+        const fallbackGetStaticPaths = types.exportNamedDeclaration(
+          (() => {
+            const node = types.functionDeclaration(
+              types.identifier('getStaticPaths'),
+              [],
+              types.blockStatement([
+                types.returnStatement(
+                  types.objectExpression([
+                    types.objectProperty(types.identifier('paths'), types.arrayExpression([])),
+                    types.objectProperty(
+                      types.identifier('fallback'),
+                      types.stringLiteral('blocking')
+                    ),
+                  ])
+                ),
+              ]),
+              false,
+              true
+            )
+            node.async = true
+            return node
+          })()
+        )
+
+        chunks.push({
+          name: 'getStaticPaths',
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          content: fallbackGetStaticPaths,
+          linkAfter: [componentChunkName],
+        })
+
+        // Next.js requires getStaticProps when getStaticPaths is present.
+        // Generate a minimal getStaticProps if no initialPropsData will provide one.
+        if (!uidl.outputOptions?.initialPropsData) {
+          const fallbackGetStaticProps = types.exportNamedDeclaration(
+            (() => {
+              const node = types.functionDeclaration(
+                types.identifier('getStaticProps'),
+                [types.identifier('context')],
+                types.blockStatement([
+                  types.returnStatement(
+                    types.objectExpression([
+                      types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                    ])
+                  ),
+                ]),
+                false,
+                true
+              )
+              node.async = true
+              return node
+            })()
+          )
+
+          chunks.push({
+            name: 'getStaticProps',
+            type: ChunkType.AST,
+            fileType: FileType.JS,
+            content: fallbackGetStaticProps,
+            linkAfter: ['getStaticPaths'],
+          })
+        }
+      }
+
       return structure
     }
 
@@ -74,7 +154,8 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       uidl.outputOptions.initialPathsData,
       resourceImportName,
       resource,
-      uidl.outputOptions.pagination
+      uidl.outputOptions.pagination,
+      uidl.outputOptions.dynamicRouteAttribute
     )
 
     chunks.push({

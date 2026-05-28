@@ -84,6 +84,10 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
         (elementType === 'dangerous-html' || element.dependency?.path === 'dangerous-html') &&
         attrs?.html
       ) {
+        if (attrs.html.type === 'raw' && (attrs.html as any).dynamic) {
+          return
+        }
+
         let rawHtmlContent = element.attrs.html.content as string
 
         if (

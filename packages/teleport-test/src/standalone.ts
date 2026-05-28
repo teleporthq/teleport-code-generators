@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { readFileSync, mkdirSync, accessSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, accessSync, rmSync, existsSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -98,6 +98,61 @@ const project = (params: {
     )
   })
 
+// Parse a KEY=value .env file into a plain object. Lines starting with `#`
+// and empty lines are skipped. Values are taken verbatim (no quote
+// unwrapping) because that's how `createEnvFiles` also writes them.
+const parseDotEnv = (content: string): Record<string, string> => {
+  const out: Record<string, string> = {}
+  content.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) {
+      return
+    }
+    const eq = line.indexOf('=')
+    if (eq < 0) {
+      return
+    }
+    const key = line.slice(0, eq).trim()
+    const value = line.slice(eq + 1)
+    if (key) {
+      out[key] = value
+    }
+  })
+  return out
+}
+
+// Preserve the buyer-editable subset of the existing `.env` across regeneration.
+// The generator strips `teleporthq.secrets.*` placeholders to empty strings
+// via `resolveAuthEnvValue`, so without this hook every `yarn standalone`
+// wipes out values the user manually set (Stripe / PayPal test keys, DB
+// connection string, etc.). By injecting the on-disk values into
+// `uidl.globals.env` BEFORE packing, those values survive regeneration.
+// Only non-empty existing values are promoted, so new keys introduced by the
+// generator still take their default (empty) state on first run.
+const preserveExistingEnv = (uidl: ProjectUIDL, envPath: string): void => {
+  if (!existsSync(envPath)) {
+    return
+  }
+  let raw = ''
+  try {
+    raw = readFileSync(envPath, 'utf8')
+  } catch {
+    return
+  }
+  const existing = parseDotEnv(raw)
+  if (!uidl.globals.env) {
+    uidl.globals.env = {}
+  }
+  const env = uidl.globals.env as Record<string, string>
+  // Copy over every existing key (even ones the generator did not emit this
+  // pass) so user-added entries such as TELEPORT_PROJECT_TOKEN stay in the
+  // regenerated file. Values that are explicitly empty in the file are kept
+  // empty — matching what the user saw on disk.
+  Object.keys(existing).forEach((key) => {
+    env[key] = existing[key]
+  })
+}
+
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
@@ -106,18 +161,35 @@ const run = async () => {
       } catch {
         mkdirSync('dist')
       }
+      const wfApi = join(
+        __dirname,
+        '..',
+        'dist',
+        'teleport-project-next',
+        'pages',
+        'api',
+        'workflows'
+      )
+      if (existsSync(wfApi)) {
+        rmSync(wfApi, { recursive: true, force: true })
+      }
+      // Preserve the user's existing `.env` values before regeneration so
+      // Stripe / PayPal / DB credentials survive the trip through the
+      // generator's secret-placeholder resolver.
+      const existingEnvPath = join(__dirname, '..', 'dist', 'teleport-project-next', '.env')
+      preserveExistingEnv(projectUIDL, existingEnvPath)
     }
 
     await Promise.all([
-      project({
-        projectType: ProjectType.HTML,
-        projectSlug: 'teleport-project-html',
-        plugins: [new ProjectPluginParseEmbed()],
-        options: {
-          ...packerOptions,
-          strictHtmlWhitespaceSensitivity: false,
-        },
-      }),
+      // project({
+      //   projectType: ProjectType.HTML,
+      //   projectSlug: 'teleport-project-html',
+      //   plugins: [new ProjectPluginParseEmbed()],
+      //   options: {
+      //     ...packerOptions,
+      //     strictHtmlWhitespaceSensitivity: false,
+      //   },
+      // }),
       project({ projectType: ProjectType.NEXT, projectSlug: 'teleport-project-next' }),
       // project({
       //   projectType: ProjectType.NEXT,

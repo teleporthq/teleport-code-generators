@@ -23,6 +23,7 @@ import {
   UIDLDynamicReference,
   UIDLStateDefinition,
   UIDLPageOptions,
+  UIDLDetailsPageInfo,
   UIDLComponentOutputOptions,
   UIDLDependency,
   UIDLStyleDefinitions,
@@ -113,18 +114,39 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('attr'),
   constant('children'),
   constant('token'),
-  constant('expr'),
-  constant('locale')
+  union(constant('expr'), constant('locale'), constant('ctx'))
 )
 
 export const globalValueDecoder: Decoder<UIDLGlobalReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: constant('global'),
-    id: union(constant('locale'), constant('locales')),
+    // id is optional to support Shape B refs where the first refPath segment
+    // encodes the context root (e.g. refPath: ["E-commerce", "Cart", "total"]).
+    // The generator normalizes these to id="ecommerce" at code-gen time.
+    id: optional(
+      union(
+        constant('locale'),
+        constant('locales'),
+        constant('currentUser'),
+        constant('userIsLoggedIn'),
+        constant('ecommerce'),
+        constant('cart'),
+        string()
+      )
+    ),
     refPath: optional(array(string())),
   }),
-})
+}) as Decoder<UIDLGlobalReference>
+
+export const globalStateValueDecoder: Decoder<UIDLDynamicReference> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('globalState' as any),
+    id: string(),
+    refPath: optional(array(string())),
+  }),
+}) as Decoder<UIDLDynamicReference>
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = union(
   object({
@@ -134,9 +156,11 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = union(
       refPath: optional(array(string())),
       id: optional(string()),
       fallback: optional(union(string(), number(), boolean())),
+      valueMapper: optional(string()),
     }),
   }),
-  globalValueDecoder
+  globalValueDecoder,
+  globalStateValueDecoder
 )
 
 export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
@@ -152,6 +176,8 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
 export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   type: constant('raw'),
   content: string(),
+  dynamic: optional(dynamicValueDecoder),
+  fallback: optional(string()),
 })
 
 export const envValueDecoder: Decoder<UIDLENVValue> = object({
@@ -399,6 +425,7 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
 
 export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
+  pageId: optional(string()),
   pageOptions: optional(lazy(() => pageOptionsDecoder)),
   seo: optional(componentSeoDecoder),
 })
@@ -433,6 +460,23 @@ export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = obje
   }),
 })
 
+export const dataSourceBindingDecoder = object({
+  dataSourceId: string(),
+  refPath: array(union(string(), number())),
+})
+
+// Binds a state definition's initial value to a page-level URL search param.
+// At runtime the generator emits `useState(router?.query?.<key> ?? defaultValue)`
+// so the state hydrates from the URL on navigation — e.g. a deep link like
+// `/admin/products?products_detail_panel_item_id=<id>` auto-opens the matching
+// detail panel. The decoder MUST list this field explicitly; the json-type
+// `object(...)` decoder is strict and silently drops any unrecognised keys,
+// which previously nulled out this binding during schema validation and left
+// the generated hook as a plain `useState('')`.
+export const urlSearchParamBindingDecoder = object({
+  key: string(),
+})
+
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
   type: union(
     constant('string'),
@@ -444,6 +488,22 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('children')
   ),
   defaultValue: stateDefinitionsDefaultValueDecoder,
+  id: optional(string()),
+  dataSourceBinding: optional(dataSourceBindingDecoder),
+  urlSearchParamBinding: optional(urlSearchParamBindingDecoder),
+  query: optional(string()),
+  mappingFunction: optional(string()),
+  sortConfig: optional(anyJson()),
+  filterConfig: optional(anyJson()),
+})
+
+export const detailsPageInfoDecoder: Decoder<UIDLDetailsPageInfo> = object({
+  dataSourceId: string(),
+  dataSourceName: string(),
+  dataSourceType: string(),
+  tableName: string(),
+  differentiatorColumn: string(),
+  featureIdentifier: string(),
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
@@ -451,10 +511,12 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   navLink: optional(string().andThen(isValidNavLink)),
   fileName: optional(string().andThen(isValidFileName)),
   fallback: optional(boolean()),
+  dynamicRouteAttribute: optional(string()),
   lastmod: optional(string()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
   initialPathsData: optional(initialPathsDecoder),
+  detailsPageInfo: optional(detailsPageInfoDecoder),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
 })
@@ -466,6 +528,10 @@ export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object(
   templateFileName: optional(string().andThen(isValidFileName)),
   moduleName: optional(string().andThen(isValidFileName)),
   folderPath: optional(array(string().andThen(isValidFileName))),
+  dynamicRouteAttribute: optional(string()),
+  pagination: optional(pageOptionsPaginationDecoder),
+  initialPropsData: optional(initialPropsDecoder),
+  initialPathsData: optional(initialPathsDecoder),
 })
 
 export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
@@ -605,6 +671,9 @@ export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
       uidlComponentStyleReference,
       rawValueDecoder,
       string()
+    ),
+    differentiatorValue: optional(
+      union(dynamicValueDecoder, staticValueDecoder, expressionValueDecoder)
     ),
   }),
 })
@@ -747,6 +816,23 @@ const flexibleChildDecoder: Decoder<VUIDLNode> = lazy(() => {
   })
 })
 
+export const conditionalExpressionDecoder = object({
+  conditions: array(
+    object({
+      operation: string(),
+      operand: optional(
+        union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
+      ),
+    })
+  ),
+  matchingCriteria: optional(string()),
+})
+
+export const renderingConditionsDecoder = object({
+  reference: union(dynamicValueDecoder, expressionValueDecoder),
+  condition: conditionalExpressionDecoder,
+})
+
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
@@ -772,6 +858,18 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
     )
   ),
   selfClosing: optional(boolean()),
+  dynamicStyleBindings: optional(
+    dict(
+      object({
+        referenceType: oneOf(constant('state'), constant('ctx')),
+        stateKey: string(),
+        defaultValue: string(),
+        contextName: optional(string()),
+        stateDefinitionId: optional(string()),
+      })
+    )
+  ),
+  renderingConditions: optional(renderingConditionsDecoder),
 })
 
 export const slotNodeDecoder: Decoder<VUIDLSlotNode> = object({
@@ -940,6 +1038,8 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     perPage: optional(number()),
     searchEnabled: optional(boolean()),
     searchDebounce: optional(number()),
+    sort: optional(union(staticValueDecoder, expressionValueDecoder)),
+    sortDirection: optional(union(staticValueDecoder, expressionValueDecoder)),
   }),
 })
 

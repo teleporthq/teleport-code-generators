@@ -75,7 +75,9 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const propsUsed: string[] = []
 
     const generateStylesForElementNode = (element: UIDLElement) => {
-      const { style, key, referencedStyles, dependency, attrs = {} } = element
+      const { style, key, referencedStyles, dependency, attrs = {}, dynamicStyleBindings } = element
+      const hasDynamicBindings =
+        dynamicStyleBindings && Object.keys(dynamicStyleBindings).length > 0
 
       const jsxTag = jsxNodesLookup[key]
       if (!jsxTag || !isJSXElement(jsxTag)) {
@@ -92,9 +94,22 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
       if (
         Object.keys(style || {}).length === 0 &&
-        Object.keys(referencedStyles || {}).length === 0
+        Object.keys(referencedStyles || {}).length === 0 &&
+        !hasDynamicBindings
       ) {
         return
+      }
+
+      if (hasDynamicBindings) {
+        const bindingInlineStyles: Record<string, unknown> = {}
+        for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
+          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+            letter.toUpperCase()
+          )
+          bindingInlineStyles[camelCaseProperty] =
+            StyleBuilders.createDynamicBindingExpression(binding)
+        }
+        ASTUtils.addAttributeToJSXTag(jsxTag, 'style', bindingInlineStyles)
       }
 
       const className = getClassName(key)
@@ -221,9 +236,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               const { content } = styleRef
               const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
               if (!referedStyle) {
-                throw new PluginReactJSS(
-                  `Style used from global stylesheet is missing plugin react jss - ${content.referenceId}`
-                )
+                return
               }
 
               classNamesToAppend.add(

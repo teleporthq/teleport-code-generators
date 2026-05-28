@@ -328,7 +328,7 @@ export default async function handler(req, res) {
             const field = labelToIdMap[sort.field] || sort.field
             const aVal = getNestedValue(a, field)
             const bVal = getNestedValue(b, field)
-            const sortOrderValue = sort.order?.toLowerCase() === 'desc' ? -1 : 1
+            const sortOrderValue = (sort.order || '').toLowerCase().startsWith('desc') ? -1 : 1
             
             let comparison = 0
             if (aVal === null || aVal === undefined) {
@@ -357,7 +357,7 @@ export default async function handler(req, res) {
         const field = labelToIdMap[sortBy] || sortBy
         const aVal = getNestedValue(a, field)
         const bVal = getNestedValue(b, field)
-        const sortOrderValue = sortOrder?.toLowerCase() === 'desc' ? -1 : 1
+        const sortOrderValue = (sortOrder || '').toLowerCase().startsWith('desc') ? -1 : 1
         
         let comparison = 0
         if (aVal === null || aVal === undefined) {

@@ -601,11 +601,14 @@ export const useGlobalContext = () => {
     const jsxParams: JSXGenerationParams = {
       stateDefinitions: {},
       propDefinitions: {},
+      globalStateDefinitions: {},
       windowImports: {},
       dependencies: {},
       nodesLookup: {},
       localeReferences: [],
       globalReferences: [],
+      globalStateReferences: [],
+      hoistedConstants: [],
     }
 
     const jsxNodeAst = createJSXSyntax(resolvedUIDL.node, jsxParams, {

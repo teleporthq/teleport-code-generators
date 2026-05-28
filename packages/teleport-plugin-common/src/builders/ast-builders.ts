@@ -316,3 +316,29 @@ export const createDOMInjectionNode = (content: string) => {
     true
   )
 }
+
+export const createDynamicDOMInjectionNode = (
+  dynamicExpression: types.Expression,
+  fallbackContent: string
+) => {
+  const fallbackExpr = types.stringLiteral(fallbackContent)
+  const valueExpr = types.logicalExpression('||', dynamicExpression, fallbackExpr)
+
+  return types.jsxElement(
+    types.jsxOpeningElement(
+      types.jsxIdentifier('span'),
+      [
+        types.jsxAttribute(
+          types.jsxIdentifier('dangerouslySetInnerHTML'),
+          types.jsxExpressionContainer(
+            types.objectExpression([types.objectProperty(types.identifier('__html'), valueExpr)])
+          )
+        ),
+      ],
+      true
+    ),
+    null,
+    [],
+    true
+  )
+}

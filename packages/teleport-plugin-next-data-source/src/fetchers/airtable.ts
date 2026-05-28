@@ -42,12 +42,42 @@ ${generateSafeJSONParseCode()}
 
 ${generateDateFormatterCode()}
 
+// Escape a string literal for Airtable formula grammar. Strings use
+// single quotes; embedded single-quote must be backslash-escaped.
+// Backslash itself also escapes.
+const escapeAirtableString = (s) => {
+  return "'" + String(s).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + "'"
+}
+
+// Escape an Airtable field reference name for use inside curly braces.
+// Only close-brace and backslash are special inside the braces.
+const escapeAirtableFieldRef = (name) => {
+  return String(name).replace(/\\\\/g, '\\\\\\\\').replace(/}/g, '\\\\}')
+}
+
+const buildAirtableSearchFormula = (rawQuery, rawQueryColumns) => {
+  if (typeof rawQuery !== 'string' || rawQuery.trim() === '') return ''
+  let cols = []
+  if (rawQueryColumns) {
+    const parsed = safeJSONParse(rawQueryColumns)
+    cols = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
+  }
+  const validCols = cols.filter((c) => typeof c === 'string' && c.length > 0)
+  if (validCols.length === 0) return ''
+  const literal = escapeAirtableString(rawQuery)
+  const parts = validCols.map(
+    (col) => 'SEARCH(' + literal + ', {' + escapeAirtableFieldRef(col) + '})'
+  )
+  return parts.length === 1 ? parts[0] : 'OR(' + parts.join(',') + ')'
+}
+
 export default async function handler(req, res) {
   try {
-    const { query, view, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
-    
+    const { query, queryColumns, view, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset: offsetParam } = req.query
+
     const queryParams = new URLSearchParams()
-    
+    const formulaParts = []
+
     if (view) {
       queryParams.append('view', view)
     }
@@ -59,12 +89,12 @@ export default async function handler(req, res) {
         parsedSorts.forEach((sort, index) => {
           if (!sort.field) return
           queryParams.append(\`sort[\${index}][field]\`, sort.field)
-          queryParams.append(\`sort[\${index}][direction]\`, sort.order?.toLowerCase() === 'desc' ? 'desc' : 'asc')
+          queryParams.append(\`sort[\${index}][direction]\`, (sort.order || '').toLowerCase().startsWith('desc') ? 'desc' : 'asc')
         })
       }
     } else if (sortBy) {
       queryParams.append('sort[0][field]', sortBy)
-      queryParams.append('sort[0][direction]', sortOrder || 'asc')
+      queryParams.append('sort[0][direction]', (sortOrder || '').toLowerCase().startsWith('desc') ? 'desc' : 'asc')
     }
     
     const perPageValue = limit || perPage || 100
@@ -114,7 +144,7 @@ export default async function handler(req, res) {
         
         if (conditions.length > 0) {
           const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
-          queryParams.append('filterByFormula', filterFormula)
+          formulaParts.push(filterFormula)
         }
       } else {
         const conditions = Object.entries(parsedFilters).map(([field, value]) => {
@@ -127,12 +157,28 @@ export default async function handler(req, res) {
             return \`{\${field}}=\${formatAirtableValue(value)}\`
           }
         })
-        
+
         const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
         if (filterFormula) {
-          queryParams.append('filterByFormula', filterFormula)
+          formulaParts.push(filterFormula)
         }
       }
+    }
+
+    // Apply the { query, queryColumns } search contract via the
+    // Airtable SEARCH() function. Search-term string literal escaping
+    // protects against single-quote injection; field-ref escaping
+    // protects against close-brace or backslash breaking out of the
+    // {field} reference.
+    const searchFormula = buildAirtableSearchFormula(query, queryColumns)
+    if (searchFormula) {
+      formulaParts.push(searchFormula)
+    }
+
+    if (formulaParts.length === 1) {
+      queryParams.append('filterByFormula', formulaParts[0])
+    } else if (formulaParts.length > 1) {
+      queryParams.append('filterByFormula', 'AND(' + formulaParts.join(',') + ')')
     }
     
     let url = \`https://api.airtable.com/v0/${baseId}/\${encodeURIComponent('${tableName}')}\`

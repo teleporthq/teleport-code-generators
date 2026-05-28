@@ -26,6 +26,7 @@ import {
   PropDefaultValueTypes,
   UIDLCMSListRepeaterNode,
   UIDLStaticValue,
+  UIDLRawValue,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -143,8 +144,12 @@ export const generateHtmlSyntax: NodeToHTML<
 ) => {
   switch (node.type) {
     case 'inject':
-    case 'raw':
       return HASTBuilders.createTextNode(node.content.toString())
+
+    case 'raw': {
+      const rawNode = node as UIDLRawValue
+      return HASTBuilders.createTextNode((rawNode.fallback || rawNode.content).toString())
+    }
 
     case 'static':
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
@@ -1106,7 +1111,10 @@ const generateDynamicNode: NodeToHTML<
     return localeTag
   }
 
-  if (node.content.referenceType === 'global') {
+  if (
+    node.content.referenceType === 'global' ||
+    (node.content.referenceType as string) === 'globalState'
+  ) {
     const globalTag = HASTBuilders.createHTMLNode('span')
     const commentNode = HASTBuilders.createComment(`Global reference: ${node.content.id}`)
     HASTUtils.addChildNode(globalTag, commentNode)
@@ -1203,7 +1211,10 @@ const handleStyles = (
         node.content.style[styleKey] = staticNode(resolvedText)
         return
       }
-      if (style.content?.referenceType === 'global') {
+      if (
+        style.content?.referenceType === 'global' ||
+        (style.content?.referenceType as string) === 'globalState'
+      ) {
         node.content.style[styleKey] = staticNode(`[global: ${style.content.id}]`)
         return
       }
@@ -1318,7 +1329,10 @@ const handleAttributes = (
           break
         }
 
-        if (content.referenceType === 'global') {
+        if (
+          content.referenceType === 'global' ||
+          (content.referenceType as string) === 'globalState'
+        ) {
           HASTUtils.addAttributeToNode(htmlNode, attrKey, `[global: ${content.id}]`)
           break
         }
@@ -1352,7 +1366,8 @@ const handleAttributes = (
       }
 
       case 'raw': {
-        HASTUtils.addAttributeToNode(htmlNode, attrKey, content)
+        const rawAttr = attrValue as UIDLRawValue
+        HASTUtils.addAttributeToNode(htmlNode, attrKey, rawAttr.fallback || rawAttr.content)
         break
       }
 
