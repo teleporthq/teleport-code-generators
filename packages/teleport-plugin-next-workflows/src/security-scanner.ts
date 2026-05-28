@@ -45,6 +45,9 @@ export class CodegenSecurityError extends Error {
       }`
     )
     this.name = 'CodegenSecurityError'
+    // ES5 target breaks the prototype chain when extending built-ins like
+    // Error — restore it so `instanceof CodegenSecurityError` works.
+    Object.setPrototypeOf(this, CodegenSecurityError.prototype)
   }
 }
 
