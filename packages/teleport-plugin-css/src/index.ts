@@ -91,6 +91,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       designLanguage: { tokens = {} } = {},
       isRootComponent,
       globalStateDefinitions = {},
+      prefixInlineClasses,
     } = options || {}
     const {
       styleSetDefinitions = {},
@@ -175,7 +176,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         return
       }
 
-      const className = StringUtils.camelCaseToDashCase(key)
+      // Inline (node-key-derived) classes can share a name with a real project
+      // class. When `prefixInlineClasses` is set (AI editor codegen only), tag
+      // every inline class so the consumer can tell fake from real by name.
+      const className = prefixInlineClasses
+        ? `${prefixInlineClasses}${StringUtils.camelCaseToDashCase(key)}`
+        : StringUtils.camelCaseToDashCase(key)
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)

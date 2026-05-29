@@ -135,6 +135,13 @@ export interface GeneratorOptions {
   mapping?: Mapping
   skipValidation?: boolean
   isRootComponent?: boolean
+  /**
+   * When set, the CSS plugin prepends this string to every inline
+   * (node-key-derived) class name so consumers can distinguish generated
+   * inline classes from real project classes that may share the same name.
+   * Used only by the in-product AI editor codegen path.
+   */
+  prefixInlineClasses?: string
   skipNavlinkResolver?: boolean
   skipI18n?: boolean
   internationalization?: {
