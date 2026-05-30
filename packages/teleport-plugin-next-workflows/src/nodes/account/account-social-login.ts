@@ -9,7 +9,15 @@ async function account_social_login(config: any, _context: Record<string, unknow
 
   const callbackUrl = config.callbackUrl || '/'
 
-  const nextAuthReact = require('next-auth/react')
+  // Read signIn off the window bridge session-provider.js publishes instead of
+  // `require('next-auth/react')` — see the account-login handler for the full
+  // rationale (avoids the dangling-module "reading 'call'" crash that a
+  // re-bundled sync require triggers under SWC production chunk-splitting).
+  const nextAuthReact =
+    (typeof window !== 'undefined' && (window as any).__teleportNextAuth) || null
+  if (!nextAuthReact || typeof nextAuthReact.signIn !== 'function') {
+    throw new Error('Authentication is still loading. Please try again in a moment.')
+  }
   const signIn = nextAuthReact.signIn
 
   await signIn(provider, { callbackUrl })

@@ -996,7 +996,22 @@ export const generateSessionProviderWrapper = (): string => {
   // fragile boundary. `SessionProvider` is imported by name (the SWC-safe form
   // even though next-auth/react ships CommonJS).
   return `import React from 'react'
-import { SessionProvider } from 'next-auth/react'
+import { SessionProvider, signIn, signOut } from 'next-auth/react'
+
+// Bridge for the workflow account handlers (account-login / -logout / -signup /
+// -social-login). Those handlers are emitted via fn.toString() and re-bundled
+// inside the generated project, so a sync \`require('next-auth/react')\` inside
+// them resolved to a SEPARATE module instance from this ESM import — and SWC
+// production chunk-splitting could leave that copy in a chunk never loaded on
+// the auth page, a dangling reference that threw "Cannot read properties of
+// undefined (reading 'call')" the moment Sign In ran. This module is rendered
+// in _app on every page, so publishing signIn/signOut here (from the SAME ESM
+// next-auth/react that is reliably bundled into the app shell) guarantees the
+// handlers can read them off \`window\` without any fragile require/import of
+// their own. The assignment runs at module-eval time, before any click.
+if (typeof window !== 'undefined') {
+  window.__teleportNextAuth = { signIn: signIn, signOut: signOut }
+}
 
 export default function AuthSessionProvider(props) {
   return React.createElement(

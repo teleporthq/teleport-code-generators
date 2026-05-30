@@ -8,7 +8,22 @@ async function account_login(config: any, context: Record<string, unknown>) {
     throw new Error('Email and password are required')
   }
 
-  const nextAuthReact = require('next-auth/react')
+  // Read signIn off the window bridge that session-provider.js publishes,
+  // instead of `require('next-auth/react')` here. This handler is emitted via
+  // fn.toString() and re-bundled inside the generated project; a sync CJS
+  // `require('next-auth/react')` resolved to a separate module instance from
+  // the ESM copy session-provider imports, and SWC production chunk-splitting
+  // could leave that CJS module in a chunk not loaded on the auth page —
+  // a dangling reference that threw "Cannot read properties of undefined
+  // (reading 'call')" the moment Sign In ran. `window.__teleportNextAuth` is
+  // populated at module-eval time by session-provider (rendered in _app on
+  // every page) from its already-bundled ESM next-auth/react, so signIn is
+  // always present and no fragile require/import lives in this handler.
+  const nextAuthReact =
+    (typeof window !== 'undefined' && (window as any).__teleportNextAuth) || null
+  if (!nextAuthReact || typeof nextAuthReact.signIn !== 'function') {
+    throw new Error('Authentication is still loading. Please try again in a moment.')
+  }
   const signIn = nextAuthReact.signIn
 
   const result = await signIn('credentials', {
