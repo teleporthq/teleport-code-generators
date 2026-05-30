@@ -309,12 +309,27 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
   },
   webpack: (config, { isServer }) => {
     // Generated data-source modules (utils/data-sources/*.js) import Node-only
-    // packages like 'pg'. When a page only uses them server-side (getStaticProps
-    // / API routes) Next.js normally tree-shakes them from the client bundle,
-    // but if a dead import sneaks into a page the client build tries to resolve
-    // 'fs', 'net', etc. and fails. Stub these on the client so the build
-    // succeeds and the modules remain server-only at runtime.
+    // database drivers like 'pg' at module top level, but those imports are only
+    // ever USED in server data-fetching (getStaticProps / getServerSideProps /
+    // API routes). Two layers of defense:
+    //
+    //   - Client build: alias 'pg' (and variants) to false so webpack resolves
+    //     them to an empty module and never walks into pg/lib/*. The
+    //     resolve.fallback stubs are a safety net for any other stray Node-core
+    //     import reached from a server-only module.
+    //
+    //   - Server build: mark 'pg' (and variants) as commonjs externals so
+    //     webpack does NOT bundle them — it emits a runtime require('pg') that
+    //     Node resolves from node_modules at execution time. Without this,
+    //     webpack tries to bundle pg/lib/utils.js and fails to resolve the
+    //     'util/types' Node-core subpath, which broke the Vercel production
+    //     build.
     if (!isServer) {
+      config.resolve.alias = Object.assign({}, config.resolve.alias, {
+        pg: false,
+        'pg-native': false,
+        'pg-cloudflare': false,
+      })
       config.resolve.fallback = Object.assign({}, config.resolve.fallback, {
         fs: false,
         net: false,
@@ -323,6 +338,22 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
         child_process: false,
         'pg-native': false,
       })
+    } else {
+      const serverExternals = ['pg', 'pg-native', 'pg-cloudflare']
+      const existing = Array.isArray(config.externals)
+        ? config.externals
+        : config.externals
+        ? [config.externals]
+        : []
+      config.externals = [
+        ...existing,
+        ({ request }, callback) => {
+          if (request && serverExternals.indexOf(request) !== -1) {
+            return callback(null, 'commonjs ' + request)
+          }
+          callback()
+        },
+      ]
     }
     return config
   }
