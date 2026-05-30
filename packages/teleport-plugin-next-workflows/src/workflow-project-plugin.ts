@@ -1409,9 +1409,18 @@ module.exports = __customNodeRegistry;
       .map((t) => `    '${t}': ${t.replace(/-/g, '_')}`)
       .join(',\n')
 
+    // NOTE: this module is pulled into the GLOBAL client bundle (every page,
+    // via `useGlobalWorkflows()` in _app). It must use a single module system.
+    // It previously mixed ESM `import`/`export` with a CommonJS
+    // `require('./runtime')` in the same file; under SWC's production
+    // minify+chunk-split that mix can emit a module reference whose factory is
+    // undefined, so `__webpack_require__` hits `undefined.call` — the Vercel-
+    // only "Cannot read properties of undefined (reading 'call')" crash. Using
+    // a static ESM default import of the (CommonJS) runtime keeps the file
+    // pure-ESM; SWC interop resolves the default to `module.exports`.
     return `// Auto-generated global workflow hooks
 import { useEffect } from 'react';
-const workflowRuntime = require('./runtime');
+import workflowRuntime from './runtime';
 const executeWorkflowWithSegments = workflowRuntime.executeWorkflowWithSegments;
 
 export function useGlobalWorkflows() {

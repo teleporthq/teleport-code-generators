@@ -985,18 +985,26 @@ export const config = {
 }
 
 export const generateSessionProviderWrapper = (): string => {
-  return `const React = require('react');
-const SessionProvider = require('next-auth/react').SessionProvider;
+  // Authored as pure ESM. _app.js imports this with an ESM default import
+  // (`import AuthSessionProvider from '.../session-provider'`). When the file
+  // was CommonJS (`module.exports = AuthSessionProvider` + `require('react')`),
+  // SWC's CJS->ESM-default interop on a module with no `__esModule` marker
+  // could resolve the default binding/factory to `undefined` after production
+  // chunk-splitting on Vercel, throwing "Cannot read properties of undefined
+  // (reading 'call')" at the root of every page (dev served it unminified so
+  // it worked locally). Keeping a single, consistent module system removes the
+  // fragile boundary. `SessionProvider` is imported by name (the SWC-safe form
+  // even though next-auth/react ships CommonJS).
+  return `import React from 'react'
+import { SessionProvider } from 'next-auth/react'
 
-function AuthSessionProvider(props) {
+export default function AuthSessionProvider(props) {
   return React.createElement(
     SessionProvider,
     { session: props.pageProps && props.pageProps.session ? props.pageProps.session : undefined },
     props.children
-  );
+  )
 }
-
-module.exports = AuthSessionProvider;
 `
 }
 
