@@ -6,19 +6,36 @@ export const AI_PROVIDER_DEPENDENCIES: Record<string, string> = {
   '@mistralai/mistralai': '^1.0.0',
 }
 
-function wrapWithGuard(fn: (...args: any[]) => any): string {
-  const name = fn.name
-  return `var ${name} = typeof ${name} !== 'undefined' ? ${name} : ${fn.toString()};`
+// `globalName` is the STABLE name the node handlers reference (e.g.
+// `__ai_resolveTextField`). They reference it through a `declare function`
+// type-only declaration, so when the GUI bundles the generators with webpack
+// that reference stays a free global and keeps the literal name. But `fn.name`
+// here is whatever webpack renamed the real function to (e.g.
+// `ai_provider_utils_ai_resolveTextField` after module concatenation). If we
+// emit the definition only under `fn.name`, the handler's `__ai_resolveTextField`
+// call resolves to nothing → "__ai_resolveTextField is not defined" at runtime.
+// So we emit under the (possibly renamed) real name AND alias the stable global
+// name to it. When not bundled (fn.name === globalName) the alias collapses to a
+// harmless self-reference.
+function wrapWithGuard(globalName: string, fn: (...args: any[]) => any): string {
+  const realName = fn.name || globalName
+  if (realName === globalName) {
+    return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${fn.toString()};`
+  }
+  return (
+    `var ${realName} = typeof ${realName} !== 'undefined' ? ${realName} : ${fn.toString()};\n` +
+    `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${realName};`
+  )
 }
 
 export function generateAIProviderUtils(): string {
   return [
-    wrapWithGuard(__ai_resolveTextField),
-    wrapWithGuard(__ai_resolveToken),
-    wrapWithGuard(__ai_detectProvider),
-    wrapWithGuard(__ai_clampTemperature),
-    wrapWithGuard(__ai_parseJSON),
-    wrapWithGuard(__ai_callProvider),
+    wrapWithGuard('__ai_resolveTextField', __ai_resolveTextField),
+    wrapWithGuard('__ai_resolveToken', __ai_resolveToken),
+    wrapWithGuard('__ai_detectProvider', __ai_detectProvider),
+    wrapWithGuard('__ai_clampTemperature', __ai_clampTemperature),
+    wrapWithGuard('__ai_parseJSON', __ai_parseJSON),
+    wrapWithGuard('__ai_callProvider', __ai_callProvider),
   ].join('\n\n')
 }
 

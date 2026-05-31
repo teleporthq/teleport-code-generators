@@ -38,14 +38,29 @@ export function generateMessageRouteCode(chat: UIDLAIAssistantChat): string {
   const authGuard = authProtection?.requiresAuth
     ? generateAuthGuardBlock(authProtection, '../../../utils/auth/auth-options', 'authUserId')
     : ''
-  const userIdSource = authProtection?.requiresAuth ? 'authUserId' : "(body.userId || 'anonymous')"
+  // The id / user_id / conversation_id columns are uuid (the platform forces
+  // every primary key to uuid), so every value written here MUST be a valid
+  // uuid — otherwise Postgres rejects the insert with "invalid input syntax for
+  // type uuid" and the whole chat 500s. body.userId now arrives as a uuid from
+  // the widget; the fallback generates one so an inserted row is never invalid.
+  const userIdSource = authProtection?.requiresAuth ? 'authUserId' : '(body.userId || _newId())'
 
   return `// POST /api/ai-chat/message — RAG pipeline entry point
 var provider = require('../../../lib/ai-chat/provider');
 var db = require('../../../lib/ai-chat/db');
 
+function _newId() {
+  try { return require('crypto').randomUUID(); } catch (e) {}
+  // Fallback uuid v4 (older runtimes without crypto.randomUUID).
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function generateId() {
-  return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+  return _newId();
 }
 
 function cosineSimilarity(a, b) {
@@ -82,7 +97,8 @@ ${authGuard}
   try {
     var body = req.body || {};
     var userMessage = (body.message || '').trim();
-    var conversationId = body.conversationId || 'conv_' + Date.now();
+    var __uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var conversationId = (body.conversationId && __uuidRe.test(body.conversationId)) ? body.conversationId : _newId();
     var userId = ${userIdSource};
 
     if (!userMessage) {
@@ -224,7 +240,7 @@ function generateStreamingResponseBlock(
     await db.insert(${JSON.stringify(tables.messagesTable)}, {
       id: aiMsgId,
       conversation_id: conversationId,
-      user_id: 'ai_assistant',
+      user_id: userId,
       message: fullResponse,
       role: 'assistant',
       message_type: 'assistant_answer',
@@ -274,7 +290,7 @@ function generateNonStreamingResponseBlock(
     await db.insert(${JSON.stringify(tables.messagesTable)}, {
       id: aiMsgId,
       conversation_id: conversationId,
-      user_id: 'ai_assistant',
+      user_id: userId,
       message: aiResponse,
       role: 'assistant',
       message_type: 'assistant_answer',
@@ -311,8 +327,18 @@ export function generateConversationsRouteCode(chat: UIDLAIAssistantChat): strin
 // POST /api/ai-chat/conversations — create a new conversation
 var db = require('../../../../lib/ai-chat/db');
 
+// id / user_id columns are uuid — generate valid uuids, never 'conv_…' strings.
+function _newId() {
+  try { return require('crypto').randomUUID(); } catch (e) {}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function generateConvId() {
-  return 'conv_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+  return _newId();
 }
 
 export default async function handler(req, res) {
@@ -324,6 +350,12 @@ ${authGuard ? authGuard.replace(/^\n/, '') + '\n' : ''}
       var offset = parseInt(req.query.offset || '0', 10);
       if (limit < 1 || limit > 100) limit = 25;
       if (offset < 0) offset = 0;
+
+      // No user id → nothing to list. Avoids 'WHERE user_id = '' ' which throws
+      // on a uuid column.
+      if (!userId) {
+        return res.status(200).json({ conversations: [], limit: limit, offset: offset });
+      }
 
       var rows = await db.selectMany(${JSON.stringify(tables.conversationsTable)}, {
         where: { user_id: userId },
@@ -343,9 +375,7 @@ ${authGuard ? authGuard.replace(/^\n/, '') + '\n' : ''}
       var body = req.body || {};
       var convId = generateConvId();
       var now = new Date().toISOString();
-      var postUserId = ${
-        authProtection?.requiresAuth ? 'authUserId' : "body.userId || 'anonymous'"
-      };
+      var postUserId = ${authProtection?.requiresAuth ? 'authUserId' : 'body.userId || _newId()'};
       var row = await db.insert(${JSON.stringify(tables.conversationsTable)}, {
         id: convId,
         user_id: postUserId,
@@ -392,6 +422,9 @@ ${authGuard ? authGuard.replace(/^\n/, '') : ''}
   var id = req.query.id;
   if (!id) {
     return res.status(400).json({ error: 'Conversation ID is required' });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
+    return res.status(404).json({ error: 'Conversation not found' });
   }
 
   if (req.method === 'GET') {
@@ -480,6 +513,9 @@ ${authGuard}
   var id = req.query.id;
   if (!id) {
     return res.status(400).json({ error: 'Conversation ID is required' });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
+    return res.status(200).json({ messages: [], limit: 0, offset: 0 });
   }
 
   try {

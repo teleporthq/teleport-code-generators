@@ -8,20 +8,37 @@ export function generateHookCode(chat: UIDLAIAssistantChat): string {
 
 var WELCOME_MSG = ${JSON.stringify(welcomeMessage)};
 
+function _newUuid() {
+  try { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); } catch (_) {}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// user_id is a uuid column — persist a uuid (not 'user_…') so inserts succeed.
 function getOrCreateUserId() {
-  if (typeof window === 'undefined') return 'anonymous';
+  if (typeof window === 'undefined') return null;
   var key = '__ai_chat_uid';
   var stored = null;
   try { stored = localStorage.getItem(key); } catch (_) {}
-  if (stored) return stored;
-  var id = 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+  if (stored && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored)) return stored;
+  var id = _newUuid();
   try { localStorage.setItem(key, id); } catch (_) {}
   return id;
 }
 
+var __AI_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function getSessionConversationId() {
   if (typeof window === 'undefined') return null;
-  try { return sessionStorage.getItem('__ai_chat_conv_id') || null; } catch (_) { return null; }
+  try {
+    var v = sessionStorage.getItem('__ai_chat_conv_id');
+    // Ignore a stale non-uuid id (e.g. a 'conv_…' value from before the uuid
+    // migration) — sending it would 500 on a uuid column.
+    return v && __AI_UUID_RE.test(v) ? v : null;
+  } catch (_) { return null; }
 }
 
 function setSessionConversationId(id) {
