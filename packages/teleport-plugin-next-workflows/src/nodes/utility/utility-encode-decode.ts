@@ -12,16 +12,16 @@ async function utility_encode_decode(config: any, context: Record<string, unknow
   try {
     switch (operation) {
       case 'base64-encode':
-        result = Buffer.from(data, 'utf-8').toString('base64')
+        result = (globalThis as any).Buffer.from(data, 'utf-8').toString('base64')
         break
       case 'base64-decode':
-        result = Buffer.from(data, 'base64').toString('utf-8')
+        result = (globalThis as any).Buffer.from(data, 'base64').toString('utf-8')
         break
       case 'base64url-encode':
-        result = Buffer.from(data, 'utf-8').toString('base64url')
+        result = (globalThis as any).Buffer.from(data, 'utf-8').toString('base64url')
         break
       case 'base64url-decode':
-        result = Buffer.from(data, 'base64url').toString('utf-8')
+        result = (globalThis as any).Buffer.from(data, 'base64url').toString('utf-8')
         break
       case 'url-encode':
         result = encodeURIComponent(data)
@@ -52,10 +52,10 @@ async function utility_encode_decode(config: any, context: Record<string, unknow
           .replace(/&amp;/g, '&')
         break
       case 'hex-encode':
-        result = Buffer.from(data, 'utf-8').toString('hex')
+        result = (globalThis as any).Buffer.from(data, 'utf-8').toString('hex')
         break
       case 'hex-decode':
-        result = Buffer.from(data, 'hex').toString('utf-8')
+        result = (globalThis as any).Buffer.from(data, 'hex').toString('utf-8')
         break
       case 'json-encode':
         const jsonInput = config.data

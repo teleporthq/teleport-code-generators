@@ -199,8 +199,8 @@ async function integration_google_drive(config: any, context: Record<string, unk
         typeof content === 'string'
           ? new Blob(
               [
-                typeof Buffer !== 'undefined'
-                  ? Buffer.from(content, 'base64')
+                typeof (globalThis as any).Buffer !== 'undefined'
+                  ? (globalThis as any).Buffer.from(content, 'base64')
                   : Uint8Array.from(atob(content), (c: string) => c.charCodeAt(0)),
               ],
               { type: metadata.mimeType }
@@ -229,8 +229,8 @@ async function integration_google_drive(config: any, context: Record<string, unk
       }
       const buf = await res.arrayBuffer()
       const base64 =
-        typeof Buffer !== 'undefined'
-          ? Buffer.from(buf).toString('base64')
+        typeof (globalThis as any).Buffer !== 'undefined'
+          ? (globalThis as any).Buffer.from(buf).toString('base64')
           : btoa(String.fromCharCode.apply(null, new Uint8Array(buf) as any))
       return { success: true, content: base64, mimeType: res.headers.get('content-type') || '' }
     }

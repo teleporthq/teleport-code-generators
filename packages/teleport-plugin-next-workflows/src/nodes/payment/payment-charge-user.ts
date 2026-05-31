@@ -40,17 +40,24 @@ const STRIPE_THREE_DECIMAL_CURRENCIES = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR
 // primary or numbered fallback is filled, scan every `process.env` key
 // beginning with the prefix so new variants don't require a code change.
 function resolveProviderSecret(candidates: string[], prefixScan?: string): string {
+  // Access `process` via `globalThis` rather than as a bare identifier. When
+  // the GUI generates this project it bundles the code generators through
+  // webpack, and `fn.toString()` captures whatever webpack rewrote a bare
+  // `process` into (e.g. `payment_charge_user_process`, which is undefined on
+  // the Vercel Node runtime). `globalThis.process` is a member access webpack
+  // leaves untouched, so the serialized handler stays valid on the server.
+  const env = (globalThis as any).process.env
   for (const key of candidates) {
-    const value = process.env[key]
+    const value = env[key]
     if (value && String(value).length > 0) {
       return String(value)
     }
   }
   if (prefixScan) {
-    const envKeys = Object.keys(process.env)
+    const envKeys = Object.keys(env)
     for (const key of envKeys) {
       if (key.indexOf(prefixScan) === 0) {
-        const value = process.env[key]
+        const value = env[key]
         if (value && String(value).length > 0) {
           return String(value)
         }
@@ -184,7 +191,13 @@ async function chargeWithStripe(
   }
 
   try {
-    const Stripe = require('stripe')
+    // Use webpack's `__non_webpack_require__` when present (the GUI bundles this
+    // handler through webpack, which rewrites a bare `require` into the
+    // browser-only `__webpack_require__`). Falls back to the real `require` in
+    // the plain tsc/dist build. See webpack-runtime-globals.d.ts.
+    const nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const Stripe = nodeRequire('stripe')
     const stripe = new Stripe(secretKey)
 
     const sessionParams: any = {
@@ -259,7 +272,8 @@ async function paypalAuthenticate(
 ): Promise<{ baseUrl: string; accessToken: string } | { error: string }> {
   const SANDBOX = 'https://api-m.sandbox.paypal.com'
   const LIVE = 'https://api-m.paypal.com'
-  const basicAuth = 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64')
+  const basicAuth =
+    'Basic ' + (globalThis as any).Buffer.from(clientId + ':' + clientSecret).toString('base64')
 
   async function tryAuth(baseUrl: string): Promise<{
     accessToken?: string
@@ -289,7 +303,7 @@ async function paypalAuthenticate(
 
   // Cache hit — try it first. If credentials rotated to the other env the
   // cached URL replies invalid_client and we re-detect.
-  const cached = (global as any).__paypalBaseUrlCache as string | undefined
+  const cached = (globalThis as any).__paypalBaseUrlCache as string | undefined
   if (cached === SANDBOX || cached === LIVE) {
     const r = await tryAuth(cached)
     if (r.accessToken) {
@@ -299,7 +313,7 @@ async function paypalAuthenticate(
       return { error: 'PayPal authentication failed: ' + r.errorMessage }
       // invalid_client on cached env → bust cache, fall through to detection.
     }
-    ;(global as any).__paypalBaseUrlCache = undefined
+    ;(globalThis as any).__paypalBaseUrlCache = undefined
   }
 
   // Detection: sandbox first (safer default — most dev setups). On
@@ -308,7 +322,7 @@ async function paypalAuthenticate(
   // live call against keys that belong to a different sandbox account.
   const sandboxResult = await tryAuth(SANDBOX)
   if (sandboxResult.accessToken) {
-    ;(global as any).__paypalBaseUrlCache = SANDBOX
+    ;(globalThis as any).__paypalBaseUrlCache = SANDBOX
     return { baseUrl: SANDBOX, accessToken: sandboxResult.accessToken }
   }
   if (!sandboxResult.invalidClient) {
@@ -317,7 +331,7 @@ async function paypalAuthenticate(
 
   const liveResult = await tryAuth(LIVE)
   if (liveResult.accessToken) {
-    ;(global as any).__paypalBaseUrlCache = LIVE
+    ;(globalThis as any).__paypalBaseUrlCache = LIVE
     return { baseUrl: LIVE, accessToken: liveResult.accessToken }
   }
 

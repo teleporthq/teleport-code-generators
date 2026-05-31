@@ -11,7 +11,9 @@ async function utility_pdf_generate(config: any, context: Record<string, unknown
   const content = config.content || []
 
   try {
-    const PDFDocument = require('pdfkit')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const PDFDocument = __nodeRequire('pdfkit')
 
     const pageSizes: Record<string, number[]> = {
       A4: [595.28, 841.89],
@@ -43,7 +45,7 @@ async function utility_pdf_generate(config: any, context: Record<string, unknown
 
     const pdfPromise = new Promise<Buffer>(function (resolve) {
       doc.on('end', function () {
-        resolve(Buffer.concat(chunks))
+        resolve((globalThis as any).Buffer.concat(chunks))
       })
     })
 

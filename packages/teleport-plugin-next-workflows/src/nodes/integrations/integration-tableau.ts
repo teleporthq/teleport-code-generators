@@ -120,8 +120,8 @@ async function integration_tableau(config: any, context: Record<string, unknown>
       return {
         success: true,
         content:
-          typeof Buffer !== 'undefined'
-            ? Buffer.from(buf).toString('base64')
+          typeof (globalThis as any).Buffer !== 'undefined'
+            ? (globalThis as any).Buffer.from(buf).toString('base64')
             : btoa(String.fromCharCode.apply(null, new Uint8Array(buf) as any)),
       }
     }

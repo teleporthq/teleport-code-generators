@@ -22,7 +22,9 @@ async function utility_scrape_website(config: any, context: Record<string, unkno
     return { content: null, statusCode: 0, error: 'No URL provided' }
   }
 
-  const cheerio = require('cheerio')
+  const __nodeRequire =
+    typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+  const cheerio = __nodeRequire('cheerio')
 
   function getDomain(u: string) {
     try {

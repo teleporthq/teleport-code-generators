@@ -95,8 +95,9 @@ export const accountSignup: NodeHandlerGenerator = {
     throw new Error('Email and password are required');
   }
 
-  const hashPassword = require('../../../utils/auth/hash-password');
-  const authUtils = require('../../../utils/auth/auth-options');
+  const __nodeRequire = (typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require);
+  const hashPassword = __nodeRequire('../../../utils/auth/hash-password');
+  const authUtils = __nodeRequire('../../../utils/auth/auth-options');
 
   const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
   if (!emailRegex.test(email)) {

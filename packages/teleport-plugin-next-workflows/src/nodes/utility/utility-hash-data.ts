@@ -7,7 +7,9 @@ async function utility_hash_data(config: any, context: Record<string, unknown>) 
   const hmacKey = config.hmacKey || ''
 
   try {
-    const crypto = require('crypto')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const crypto = __nodeRequire('crypto')
 
     const validAlgorithms: Record<string, boolean> = {
       md5: true,

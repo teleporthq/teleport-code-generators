@@ -109,8 +109,8 @@ async function integration_pandadoc(config: any, context: Record<string, unknown
       const blob = await response.blob()
       const buffer = await blob.arrayBuffer()
       const base64 =
-        typeof Buffer !== 'undefined'
-          ? Buffer.from(buffer).toString('base64')
+        typeof (globalThis as any).Buffer !== 'undefined'
+          ? (globalThis as any).Buffer.from(buffer).toString('base64')
           : btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
       return { success: true, content: base64, contentType: response.headers.get('content-type') }
     }

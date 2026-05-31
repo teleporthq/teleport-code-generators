@@ -12,7 +12,9 @@ async function email_mailersend(config: any, context: Record<string, unknown>) {
   const bcc = config.bcc
 
   try {
-    const mailersendPkg = require('mailersend')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const mailersendPkg = __nodeRequire('mailersend')
     const MailerSend = mailersendPkg.MailerSend
     const EmailParams = mailersendPkg.EmailParams
     const Sender = mailersendPkg.Sender

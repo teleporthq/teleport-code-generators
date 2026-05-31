@@ -11,7 +11,9 @@ async function email_resend(config: any, context: Record<string, unknown>) {
   const bcc = config.bcc
 
   try {
-    const Resend = require('resend').Resend
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const Resend = __nodeRequire('resend').Resend
     const resend = new Resend(apiKey)
 
     const payload: Record<string, any> = {

@@ -389,8 +389,8 @@ async function integration_jira(config: any, context: Record<string, unknown>) {
           blob = await (await fetch(fileContent)).blob()
         } else if (typeof fileContent === 'string') {
           const bin =
-            typeof Buffer !== 'undefined'
-              ? Buffer.from(fileContent, 'base64')
+            typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(fileContent, 'base64')
               : Uint8Array.from(atob(fileContent), (c: string) => c.charCodeAt(0))
           blob = new Blob([bin], { type: config.contentType || 'application/octet-stream' })
         } else {

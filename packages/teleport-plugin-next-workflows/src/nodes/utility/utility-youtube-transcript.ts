@@ -38,7 +38,9 @@ async function utility_youtube_transcript(config: any, context: Record<string, u
       }
     }
 
-    const YT = require('youtube-transcript')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const YT = __nodeRequire('youtube-transcript')
     const TranscriptApi = YT.YoutubeTranscript || YT.default || YT
 
     const fetchFn = TranscriptApi.fetchTranscript || TranscriptApi.getTranscript

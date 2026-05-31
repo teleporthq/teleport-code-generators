@@ -39,7 +39,9 @@ async function transform_image(config: any, context: Record<string, unknown>) {
   }
 
   try {
-    const sharp = require('sharp')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const sharp = __nodeRequire('sharp')
 
     let inputBuffer
     if (imageBase64) {
@@ -47,14 +49,14 @@ async function transform_image(config: any, context: Record<string, unknown>) {
       if (b64.indexOf(',') !== -1) {
         b64 = b64.split(',')[1]
       }
-      inputBuffer = Buffer.from(b64, 'base64')
+      inputBuffer = (globalThis as any).Buffer.from(b64, 'base64')
     } else {
       const response = await fetch(imageUrl)
       if (!response.ok) {
         return { result: null, error: 'Failed to fetch image: HTTP ' + response.status }
       }
       const arrayBuffer = await response.arrayBuffer()
-      inputBuffer = Buffer.from(arrayBuffer)
+      inputBuffer = (globalThis as any).Buffer.from(arrayBuffer)
     }
 
     let pipeline
@@ -190,7 +192,7 @@ async function transform_image(config: any, context: Record<string, unknown>) {
           return { result: null, error: 'Failed to fetch watermark: HTTP ' + wmResponse.status }
         }
         const wmArrayBuffer = await wmResponse.arrayBuffer()
-        const wmBuffer = Buffer.from(wmArrayBuffer)
+        const wmBuffer = (globalThis as any).Buffer.from(wmArrayBuffer)
 
         const mainMeta = await sharp(inputBuffer).metadata()
         const maxWmWidth = Math.round((mainMeta.width || 200) * 0.25)
@@ -206,7 +208,7 @@ async function transform_image(config: any, context: Record<string, unknown>) {
           const wmW = wmMeta.width || maxWmWidth
           const wmH = wmMeta.height || maxWmHeight
           const alphaValue = Math.round(watermarkOpacity * 255)
-          const alphaBuffer = Buffer.alloc(wmW * wmH, alphaValue)
+          const alphaBuffer = (globalThis as any).Buffer.alloc(wmW * wmH, alphaValue)
           const alphaImage = await sharp(alphaBuffer, {
             raw: { width: wmW, height: wmH, channels: 1 },
           })

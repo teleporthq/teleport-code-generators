@@ -12,7 +12,9 @@ async function utility_markdown_to_html(config: any, context: Record<string, unk
   }
 
   try {
-    const marked = require('marked')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const marked = __nodeRequire('marked')
     const parse = marked.parse || marked
 
     const options: Record<string, any> = {

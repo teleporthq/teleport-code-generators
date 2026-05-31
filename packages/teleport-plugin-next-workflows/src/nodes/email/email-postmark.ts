@@ -13,7 +13,9 @@ async function email_postmark(config: any, context: Record<string, unknown>) {
   const trackOpens = config.trackOpens
 
   try {
-    const postmark = require('postmark')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const postmark = __nodeRequire('postmark')
     const client = new postmark.ServerClient(serverToken)
 
     const toField = Array.isArray(to) ? to.join(', ') : to

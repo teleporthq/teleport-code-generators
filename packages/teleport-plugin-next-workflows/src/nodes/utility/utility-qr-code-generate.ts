@@ -19,7 +19,9 @@ async function utility_qr_code_generate(config: any, context: Record<string, unk
   }
 
   try {
-    const QRCode = require('qrcode')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const QRCode = __nodeRequire('qrcode')
 
     const opts: Record<string, any> = {
       width: size,
@@ -35,7 +37,8 @@ async function utility_qr_code_generate(config: any, context: Record<string, unk
       const svg = await QRCode.toString(data, { ...opts, type: 'svg' })
       return {
         imageUrl: null,
-        imageData: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'),
+        imageData:
+          'data:image/svg+xml;base64,' + (globalThis as any).Buffer.from(svg).toString('base64'),
         svg,
       }
     }

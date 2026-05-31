@@ -10,7 +10,9 @@ async function utility_pdf_extract_text(config: any, context: Record<string, unk
   }
 
   try {
-    const pdfParse = require('pdf-parse')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const pdfParse = __nodeRequire('pdf-parse')
     let buffer: Buffer
 
     if (fileBase64) {
@@ -18,14 +20,14 @@ async function utility_pdf_extract_text(config: any, context: Record<string, unk
       if (base64Data.indexOf(',') !== -1) {
         base64Data = base64Data.split(',')[1]
       }
-      buffer = Buffer.from(base64Data, 'base64')
+      buffer = (globalThis as any).Buffer.from(base64Data, 'base64')
     } else {
       const response = await fetch(fileUrl)
       if (!response.ok) {
         return { text: null, pages: 0, error: 'Failed to fetch PDF: HTTP ' + response.status }
       }
       const arrayBuffer = await response.arrayBuffer()
-      buffer = Buffer.from(arrayBuffer)
+      buffer = (globalThis as any).Buffer.from(arrayBuffer)
     }
 
     if (buffer.length === 0) {

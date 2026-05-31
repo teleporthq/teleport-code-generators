@@ -15,7 +15,9 @@ async function utility_generate_invoice_pdf(config: any, context: Record<string,
   const paymentTerms = config.paymentTerms || ''
 
   try {
-    const PDFDocument = require('pdfkit')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const PDFDocument = __nodeRequire('pdfkit')
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -29,7 +31,7 @@ async function utility_generate_invoice_pdf(config: any, context: Record<string,
 
     const pdfPromise = new Promise<Buffer>(function (resolve) {
       doc.on('end', function () {
-        resolve(Buffer.concat(chunks))
+        resolve((globalThis as any).Buffer.concat(chunks))
       })
     })
 

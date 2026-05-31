@@ -257,7 +257,9 @@ async function transform_color(config: any, context: Record<string, unknown>) {
           return { result: null, error: 'No image provided for color extraction' }
         }
 
-        const sharp = require('sharp')
+        const __nodeRequire =
+          typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+        const sharp = __nodeRequire('sharp')
 
         let inputBuffer
         if (imageBase64) {
@@ -265,14 +267,14 @@ async function transform_color(config: any, context: Record<string, unknown>) {
           if (b64Data.indexOf(',') !== -1) {
             b64Data = b64Data.split(',')[1]
           }
-          inputBuffer = Buffer.from(b64Data, 'base64')
+          inputBuffer = (globalThis as any).Buffer.from(b64Data, 'base64')
         } else {
           const imgResponse = await fetch(imageUrl)
           if (!imgResponse.ok) {
             return { result: null, error: 'Failed to fetch image: HTTP ' + imgResponse.status }
           }
           const imgArrayBuffer = await imgResponse.arrayBuffer()
-          inputBuffer = Buffer.from(imgArrayBuffer)
+          inputBuffer = (globalThis as any).Buffer.from(imgArrayBuffer)
         }
 
         const pixelResult = await sharp(inputBuffer)

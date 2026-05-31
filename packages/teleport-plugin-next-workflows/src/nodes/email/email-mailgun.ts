@@ -13,8 +13,10 @@ async function email_mailgun(config: any, context: Record<string, unknown>) {
   const bcc = config.bcc
 
   try {
-    const Mailgun = require('mailgun.js')
-    const FormData = require('form-data')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const Mailgun = __nodeRequire('mailgun.js')
+    const FormData = __nodeRequire('form-data')
     const mailgun = new Mailgun(FormData)
 
     const clientOpts: Record<string, any> = { username: 'api', key: apiKey }

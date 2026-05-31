@@ -15,7 +15,9 @@ async function utility_ocr_extract_text(config: any, context: Record<string, unk
   }
 
   try {
-    const Tesseract = require('tesseract.js')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const Tesseract = __nodeRequire('tesseract.js')
 
     let source: string
     if (imageBase64) {

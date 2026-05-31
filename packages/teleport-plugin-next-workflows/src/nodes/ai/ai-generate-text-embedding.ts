@@ -21,7 +21,9 @@ async function ai_generate_text_embedding(config: any, context: Record<string, u
   const encodingFormat = config.encodingFormat || 'float'
 
   try {
-    const _mod = require('openai')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const _mod = __nodeRequire('openai')
     const OpenAI = _mod.default || _mod
     const client = new OpenAI({ apiKey: token })
 

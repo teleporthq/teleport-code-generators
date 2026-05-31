@@ -193,8 +193,8 @@ async function integration_amplitude(config: any, context: Record<string, unknow
         headers: {
           Authorization:
             'Basic ' +
-            (typeof Buffer !== 'undefined'
-              ? Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
+            (typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
               : btoa(apiKey + ':' + config.secretKey)),
         },
       })
@@ -213,8 +213,8 @@ async function integration_amplitude(config: any, context: Record<string, unknow
         headers: {
           Authorization:
             'Basic ' +
-            (typeof Buffer !== 'undefined'
-              ? Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
+            (typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
               : btoa(apiKey + ':' + config.secretKey)),
           'Content-Type': 'application/json',
         },
@@ -234,8 +234,8 @@ async function integration_amplitude(config: any, context: Record<string, unknow
         headers: {
           Authorization:
             'Basic ' +
-            (typeof Buffer !== 'undefined'
-              ? Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
+            (typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
               : btoa(apiKey + ':' + config.secretKey)),
           'Content-Type': 'application/json',
         },
@@ -260,8 +260,8 @@ async function integration_amplitude(config: any, context: Record<string, unknow
         headers: {
           Authorization:
             'Basic ' +
-            (typeof Buffer !== 'undefined'
-              ? Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
+            (typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
               : btoa(apiKey + ':' + config.secretKey)),
         },
       })
@@ -290,8 +290,8 @@ async function integration_amplitude(config: any, context: Record<string, unknow
         headers: {
           Authorization:
             'Basic ' +
-            (typeof Buffer !== 'undefined'
-              ? Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
+            (typeof (globalThis as any).Buffer !== 'undefined'
+              ? (globalThis as any).Buffer.from(apiKey + ':' + config.secretKey).toString('base64')
               : btoa(apiKey + ':' + config.secretKey)),
         },
       })

@@ -77,8 +77,9 @@ export const accountLogin: NodeHandlerGenerator = {
     throw new Error('Email and password are required');
   }
 
-  const { verifyPassword } = require('../../../utils/auth/hash-password');
-  const authUtils = require('../../../utils/auth/auth-options');
+  const __nodeRequire = (typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require);
+  const { verifyPassword } = __nodeRequire('../../../utils/auth/hash-password');
+  const authUtils = __nodeRequire('../../../utils/auth/auth-options');
 
   const user = await authUtils.findUserByEmail(email);
   if (!user) {

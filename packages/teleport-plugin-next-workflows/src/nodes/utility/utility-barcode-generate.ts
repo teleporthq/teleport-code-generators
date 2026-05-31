@@ -44,7 +44,9 @@ async function utility_barcode_generate(config: any, context: Record<string, unk
   }
 
   try {
-    const bwipjs = require('bwip-js')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const bwipjs = __nodeRequire('bwip-js')
     const bcid = formatMap[format] || format.toLowerCase()
 
     const opts: Record<string, any> = {

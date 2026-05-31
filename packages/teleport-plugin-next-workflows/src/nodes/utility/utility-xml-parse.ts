@@ -12,7 +12,9 @@ async function utility_xml_parse(config: any, context: Record<string, unknown>) 
     config.parseTrueNumberOnly !== undefined ? config.parseTrueNumberOnly : false
   const cdataTagName = config.cdataTagName || '__cdata'
 
-  const fxp = require('fast-xml-parser')
+  const __nodeRequire =
+    typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+  const fxp = __nodeRequire('fast-xml-parser')
 
   if (operation === 'generate') {
     const input = config.input

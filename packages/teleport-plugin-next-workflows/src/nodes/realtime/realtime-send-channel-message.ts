@@ -12,10 +12,9 @@ async function realtime_send_channel_message(config: any, context: Record<string
   }
 
   try {
-    const serverUrl =
-      typeof process !== 'undefined' && process.env ? process.env.REALTIME_SERVER_URL : ''
-    const apiKey =
-      typeof process !== 'undefined' && process.env ? process.env.REALTIME_SERVER_API_KEY : ''
+    const __env = (globalThis as any).process && (globalThis as any).process.env
+    const serverUrl = __env ? __env.REALTIME_SERVER_URL : ''
+    const apiKey = __env ? __env.REALTIME_SERVER_API_KEY : ''
 
     if (!serverUrl || !apiKey) {
       return {

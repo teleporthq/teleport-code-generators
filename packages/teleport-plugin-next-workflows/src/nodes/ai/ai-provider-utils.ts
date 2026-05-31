@@ -35,9 +35,10 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   const userMessage = params.userMessage;
   const temperature = params.temperature;
   const maxTokens = params.maxTokens;
+  const __nodeRequire = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require;
 
   if (provider === 'openai') {
-    const _mod = require('openai');
+    const _mod = __nodeRequire('openai');
     const OpenAI = _mod.default || _mod;
     const messages = [];
     if (systemMessage) messages.push({ role: 'system', content: systemMessage });
@@ -57,7 +58,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   }
 
   if (provider === 'anthropic') {
-    const _mod = require('@anthropic-ai/sdk');
+    const _mod = __nodeRequire('@anthropic-ai/sdk');
     const Anthropic = _mod.default || _mod;
     const client = new Anthropic({ apiKey: token });
     const opts = { model: model, messages: [{ role: 'user', content: userMessage }], temperature: temperature, max_tokens: maxTokens || 1024, stream: true };
@@ -89,7 +90,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   }
 
   if (provider === 'google') {
-    const _mod = require('@google/generative-ai');
+    const _mod = __nodeRequire('@google/generative-ai');
     const GoogleGenerativeAI = _mod.GoogleGenerativeAI;
     const ai = new GoogleGenerativeAI(token);
     const genModel = ai.getGenerativeModel({ model: model });
@@ -112,7 +113,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   }
 
   if (provider === 'cohere') {
-    const _mod = require('cohere-ai');
+    const _mod = __nodeRequire('cohere-ai');
     const CohereClient = _mod.CohereClient;
     const client = new CohereClient({ token: token });
     const opts = { model: model, message: userMessage, temperature: temperature, maxTokens: maxTokens };
@@ -132,7 +133,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   }
 
   if (provider === 'mistral') {
-    const _mod = require('@mistralai/mistralai');
+    const _mod = __nodeRequire('@mistralai/mistralai');
     const Mistral = _mod.Mistral || _mod.default || _mod;
     const client = new Mistral({ apiKey: token });
     const messages = [];
@@ -150,7 +151,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
     return { usage: usage };
   }
 
-  const _mod = require('openai');
+  const _mod = __nodeRequire('openai');
   const OpenAI = _mod.default || _mod;
   const baseURL = provider === 'perplexity' ? 'https://api.perplexity.ai' : provider === 'meta' ? 'https://api.together.xyz/v1' : undefined;
   const clientOpts = { apiKey: token };
@@ -213,9 +214,11 @@ function __ai_resolveToken(token: any): string {
     throw new Error('AI node requires an API token')
   }
 
+  const __env = (globalThis as any).process && (globalThis as any).process.env
+
   if (typeof token === 'string') {
     if (token.startsWith('WORKFLOW_SECRET_')) {
-      const envVal = typeof process !== 'undefined' && process.env ? process.env[token] : undefined
+      const envVal = __env ? __env[token] : undefined
       if (!envVal) {
         throw new Error('Secret not found: ' + token)
       }
@@ -223,8 +226,7 @@ function __ai_resolveToken(token: any): string {
     }
     if (token.startsWith('teleporthq.secrets.')) {
       const envKey = token.replace('teleporthq.secrets.', '')
-      const envVal2 =
-        typeof process !== 'undefined' && process.env ? process.env[envKey] : undefined
+      const envVal2 = __env ? __env[envKey] : undefined
       if (!envVal2) {
         throw new Error('Secret not found: ' + envKey)
       }
@@ -236,8 +238,7 @@ function __ai_resolveToken(token: any): string {
   if (typeof token === 'object' && token !== null) {
     if (token.type === 'dynamic' && token.content && token.content.referenceType === 'secret') {
       const secretId = token.content.id
-      const secretVal =
-        typeof process !== 'undefined' && process.env ? process.env[secretId] : undefined
+      const secretVal = __env ? __env[secretId] : undefined
       if (!secretVal) {
         throw new Error('Secret not found: ' + secretId)
       }
@@ -334,10 +335,12 @@ async function __ai_callProvider(params: any): Promise<any> {
   const temperature = params.temperature
   const maxTokens = params.maxTokens
   const jsonMode = params.jsonMode || false
+  const __nodeRequire =
+    typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
 
   if (provider === 'openai') {
     return (async function () {
-      const _mod = require('openai')
+      const _mod = __nodeRequire('openai')
       const OpenAI = _mod.default || _mod
       const messages: any[] = []
       if (systemMessage) {
@@ -373,7 +376,7 @@ async function __ai_callProvider(params: any): Promise<any> {
 
   if (provider === 'anthropic') {
     return (async function () {
-      const _mod = require('@anthropic-ai/sdk')
+      const _mod = __nodeRequire('@anthropic-ai/sdk')
       const Anthropic = _mod.default || _mod
       const client = new Anthropic({ apiKey: token })
       const opts: any = {
@@ -408,7 +411,7 @@ async function __ai_callProvider(params: any): Promise<any> {
 
   if (provider === 'google') {
     return (async function () {
-      const _mod = require('@google/generative-ai')
+      const _mod = __nodeRequire('@google/generative-ai')
       const GoogleGenerativeAI = _mod.GoogleGenerativeAI
       const ai = new GoogleGenerativeAI(token)
       const genModel = ai.getGenerativeModel({ model })
@@ -436,7 +439,7 @@ async function __ai_callProvider(params: any): Promise<any> {
 
   if (provider === 'cohere') {
     return (async function () {
-      const _mod = require('cohere-ai')
+      const _mod = __nodeRequire('cohere-ai')
       const CohereClient = _mod.CohereClient
       const client = new CohereClient({ token })
       const opts: any = {
@@ -463,7 +466,7 @@ async function __ai_callProvider(params: any): Promise<any> {
 
   if (provider === 'mistral') {
     return (async function () {
-      const _mod = require('@mistralai/mistralai')
+      const _mod = __nodeRequire('@mistralai/mistralai')
       const Mistral = _mod.Mistral || _mod.default || _mod
       const client = new Mistral({ apiKey: token })
       const messages: any[] = []
@@ -492,7 +495,7 @@ async function __ai_callProvider(params: any): Promise<any> {
 
   // meta, perplexity, or unknown → OpenAI-compatible
   return (async function () {
-    const _mod = require('openai')
+    const _mod = __nodeRequire('openai')
     const OpenAI = _mod.default || _mod
     const baseURL =
       provider === 'perplexity'

@@ -11,7 +11,9 @@ async function email_sendgrid(config: any, context: Record<string, unknown>) {
   const bcc = config.bcc
 
   try {
-    const MailService = require('@sendgrid/mail').MailService
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const MailService = __nodeRequire('@sendgrid/mail').MailService
     const sgMail = new MailService()
     sgMail.setApiKey(apiKey)
 

@@ -10,7 +10,9 @@ async function sms_twilio(config: any, context: Record<string, unknown>) {
   const statusCallback = config.statusCallback
 
   try {
-    const twilio = require('twilio')
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const twilio = __nodeRequire('twilio')
     const client = twilio(accountSid, authToken)
 
     const msgPayload: Record<string, any> = {
