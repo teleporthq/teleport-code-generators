@@ -125,3 +125,70 @@ export const replaceSecretsInConfig = (
 
   return result
 }
+
+// The builder stores node-config credentials (SMS/AI/integration/email keys,
+// etc.) in the project secret store and replaces the config field with a
+// reference object: { type: 'dynamic', content: { referenceType: 'secret',
+// id: '<STORE_KEY>' } }. `collectSecrets` above only captures inline STRING
+// secrets, so these references are otherwise dropped from the generated .env
+// entirely and never reach Vercel. This walks every node config (recursively,
+// incl. custom nodes and nested objects/arrays) and returns the set of store
+// keys, so the project plugin can pre-register each as a
+// `teleporthq.secrets.<KEY>` placeholder that the deploy step resolves.
+const isSecretReferenceObject = (value: unknown): value is { content: { id: string } } => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const v = value as { type?: unknown; content?: { referenceType?: unknown; id?: unknown } }
+  return (
+    v.type === 'dynamic' &&
+    !!v.content &&
+    v.content.referenceType === 'secret' &&
+    typeof v.content.id === 'string'
+  )
+}
+
+export const collectSecretReferenceEnvNames = (workflows: UIDLWorkflows): string[] => {
+  const names = new Set<string>()
+  if (!workflows || typeof workflows !== 'object') {
+    return []
+  }
+
+  const walk = (value: unknown): void => {
+    if (!value || typeof value !== 'object') {
+      return
+    }
+    if (isSecretReferenceObject(value)) {
+      names.add(value.content.id)
+      return
+    }
+    if (Array.isArray(value)) {
+      value.forEach(walk)
+      return
+    }
+    Object.values(value as Record<string, unknown>).forEach(walk)
+  }
+
+  const processNode = (node: UIDLWorkflowNode) => {
+    if (node && node.config) {
+      walk(node.config)
+    }
+  }
+
+  const allWorkflows = (workflows.workflows || {}) as Record<string, { nodes?: UIDLWorkflowNode[] }>
+  Object.values(allWorkflows).forEach((wf) => {
+    if (wf && Array.isArray(wf.nodes)) {
+      wf.nodes.forEach(processNode)
+    }
+  })
+
+  const customNodes = (workflows.customNodes || {}) as Record<string, UIDLCustomWorkflowNode>
+  Object.values(customNodes).forEach((cn) => {
+    const cnNodes = cn && (cn as unknown as { nodes?: UIDLWorkflowNode[] }).nodes
+    if (Array.isArray(cnNodes)) {
+      cnNodes.forEach(processNode)
+    }
+  })
+
+  return Array.from(names)
+}

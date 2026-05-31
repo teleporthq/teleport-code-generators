@@ -85,10 +85,44 @@ function resolveSecret(value, context) {
     const envKey = value.replace('teleporthq.secrets.', '');
     return typeof process !== 'undefined' && process.env ? process.env[envKey] : value;
   }
+  // Project-secret reference object emitted by the builder for node-config
+  // credentials (SMS/AI/integration/email provider keys, etc.):
+  //   { type: 'dynamic', content: { referenceType: 'secret', id: 'SMS_TWILIO_ACCOUNTSID' } }
+  // The actual value lives in process.env under content.id (the project secret
+  // store key), populated at deploy time. Without this the node handler would
+  // receive the reference object instead of the credential string.
+  if (
+    value && typeof value === 'object' && value.type === 'dynamic' &&
+    value.content && value.content.referenceType === 'secret' &&
+    typeof value.content.id === 'string'
+  ) {
+    if (typeof process === 'undefined' || !process.env) {
+      return '';
+    }
+    var secretVal = process.env[value.content.id];
+    if (secretVal === undefined || secretVal === null) {
+      return '';
+    }
+    // If the deploy step did not replace the placeholder (secret missing from
+    // the store), do not leak the literal 'teleporthq.secrets.<KEY>' as a value.
+    if (typeof secretVal === 'string' && secretVal.indexOf('teleporthq.secrets.') === 0) {
+      return '';
+    }
+    return secretVal;
+  }
   if (typeof value === 'object' && value && value.type === 'workflowContext') {
     return resolveContextRef(value, context);
   }
   return value;
+}
+
+// True when a value is a project-secret reference object (see resolveSecret).
+function isSecretRef(value) {
+  return !!(
+    value && typeof value === 'object' && value.type === 'dynamic' &&
+    value.content && value.content.referenceType === 'secret' &&
+    typeof value.content.id === 'string'
+  );
 }
 
 function resolveConfig(config, context) {
@@ -114,27 +148,35 @@ function resolveConfig(config, context) {
           if (item && typeof item === 'object' && item.type === 'ctx') {
             return resolveCtxRef(item, context);
           }
+          if (isSecretRef(item)) {
+            return resolveSecret(item, context);
+          }
           if (item && typeof item === 'object' && !Array.isArray(item)) {
             return resolveConfig(item, context);
           }
-          return item;
+          return resolveSecret(item, context);
         });
       } else {
         resolved[key] = val.map(function(item) {
+          if (isSecretRef(item)) {
+            return resolveSecret(item, context);
+          }
           if (item && typeof item === 'object' && !Array.isArray(item)) {
             return resolveConfig(item, context);
           }
-          return item;
+          return resolveSecret(item, context);
         });
       }
     } else if (val && typeof val === 'object' && val.type === 'workflowContext') {
       resolved[key] = resolveContextRef(val, context);
     } else if (val && typeof val === 'object' && val.type === 'ctx') {
       resolved[key] = resolveCtxRef(val, context);
+    } else if (isSecretRef(val)) {
+      resolved[key] = resolveSecret(val, context);
     } else if (val && typeof val === 'object' && !Array.isArray(val)) {
       resolved[key] = resolveConfig(val, context);
     } else {
-      resolved[key] = val;
+      resolved[key] = resolveSecret(val, context);
     }
   }
   return resolved;

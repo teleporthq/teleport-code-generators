@@ -653,8 +653,8 @@ ${providerConfig}
       try {
         if (token && token.email && typeof findUserByEmail === 'function') {
           const fresh = await findUserByEmail(String(token.email));
-          if (fresh) {
-            const safe = sanitizeUser(fresh);
+          const safe = fresh && typeof sanitizeUser === 'function' ? sanitizeUser(fresh) : null;
+          if (safe && typeof safe === 'object') {
             const fk = Object.keys(safe);
             for (let i = 0; i < fk.length; i++) {
               token[fk[i]] = safe[fk[i]];
@@ -1002,34 +1002,55 @@ async function middleware(request) {
     return NextResponse.next();
   }
 
-  // Decode the JWT when we can — used for the role check only. A null result is
-  // NOT treated as "logged out" on its own (see hasSessionCookie above), so a
-  // missing/edge-incompatible NEXTAUTH_SECRET no longer false-redirects valid
-  // sessions; it only disables edge-level role enforcement.
-  var token = null;
+  // Resolve the current user for this request. Fast path: decode the session JWT
+  // at the edge with getToken. That can return null in the Edge runtime even for
+  // a valid session (NEXTAUTH_SECRET not identical/available in the Edge runtime,
+  // or the JWE simply failing to decode there) — which previously redirected
+  // logged-in users to sign-in. When getToken yields nothing but a session
+  // cookie IS present, fall back to the Node /api/auth/session endpoint, which is
+  // authoritative. This keeps BOTH the auth gate AND role enforcement correct
+  // regardless of the edge quirk (no role checks are silently skipped).
+  var sessionUser = null;
   var secret = process.env.NEXTAUTH_SECRET;
   if (secret) {
     try {
-      token = await getToken({ req: request, secret: secret });
+      sessionUser = await getToken({ req: request, secret: secret });
     } catch (e) {
-      token = null;
+      sessionUser = null;
     }
   }
 
-  var isAuthenticated = !!token || hasSessionCookie(request);
+  if (!sessionUser && hasSessionCookie(request)) {
+    try {
+      var sessionRes = await fetch(new URL('/api/auth/session', request.url).toString(), {
+        headers: { cookie: request.headers.get('cookie') || '' },
+      });
+      if (sessionRes.ok) {
+        var sessionJson = await sessionRes.json();
+        if (sessionJson && sessionJson.user) {
+          sessionUser = sessionJson.user;
+        }
+      }
+    } catch (e) {}
+  }
 
-  if (matchedProtection.requiresAuth && !isAuthenticated) {
+  if (matchedProtection.requiresAuth && !sessionUser) {
     var signInUrl = new URL('${signInRoute}', request.url);
     signInUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(signInUrl);
   }
 
-  // Enforce roles only when the token actually decoded; otherwise defer to the
-  // page's server-side guard. This avoids false redirects when getToken returns
-  // null in the Edge runtime for an authenticated user.
+  // Role enforcement uses whichever source resolved the user (decoded JWT or the
+  // authoritative session endpoint), so admin/role gates are NEVER silently
+  // bypassed when getToken fails at the edge.
   var allowedRoles = matchedProtection.allowedRoles || [];
-  if (allowedRoles.length > 0 && token) {
-    var userRole = getUserRoleFromToken(token);
+  if (allowedRoles.length > 0) {
+    if (!sessionUser) {
+      var signInUrl2 = new URL('${signInRoute}', request.url);
+      signInUrl2.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(signInUrl2);
+    }
+    var userRole = getUserRoleFromToken(sessionUser);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {
       return NextResponse.redirect(new URL('/', request.url));
     }

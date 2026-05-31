@@ -18,7 +18,7 @@ import {
   getWebhookRoutePath,
   hasStreamingAINode,
 } from './api-route-generator'
-import { collectSecrets } from './secret-collector'
+import { collectSecrets, collectSecretReferenceEnvNames } from './secret-collector'
 import {
   collectUsedNodeTypes,
   projectUsesRealtime,
@@ -484,6 +484,29 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       for (const secret of secrets) {
         uidl.globals.env[secret.envVarName] = secret.value
       }
+    }
+
+    // Node-config credentials stored as project-secret references (SMS/AI/
+    // integration/email keys, etc.) are pre-registered as
+    // `teleporthq.secrets.<KEY>` placeholders so the deploy step resolves each
+    // from the project secret store. The runtime resolves the reference object
+    // to `process.env[<KEY>]` (see resolveSecret in executor-generator.ts).
+    // Wrapped defensively: a malformed workflow must never abort generation.
+    try {
+      const secretReferenceEnvNames = collectSecretReferenceEnvNames(uidl.workflows)
+      if (secretReferenceEnvNames.length > 0) {
+        if (!uidl.globals.env) {
+          uidl.globals.env = {}
+        }
+        for (const envName of secretReferenceEnvNames) {
+          if (envName && !uidl.globals.env[envName]) {
+            uidl.globals.env[envName] = `teleporthq.secrets.${envName}`
+          }
+        }
+      }
+    } catch (_secretRefErr) {
+      // Non-fatal: the project still generates; only the placeholder
+      // pre-registration is skipped if something is unexpectedly shaped.
     }
 
     if (usedNodeTypes.has('payment-charge-user')) {
