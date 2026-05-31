@@ -638,10 +638,31 @@ ${providerConfig}
       const token = params.token;
       const user = params.user;
       if (user) {
+        // Login: seed the token from the freshly-authorized user.
         const keys = Object.keys(user);
         for (let i = 0; i < keys.length; i++) {
           token[keys[i]] = user[keys[i]];
         }
+        return token;
+      }
+      // Subsequent calls (every /api/auth/session): re-read the user from the
+      // database so profile edits — name, image, role, etc. — propagate into the
+      // session. The JWT is otherwise a snapshot captured at login, which is why
+      // the navbar avatar/name reverted to the old value after a refresh: the
+      // navbar reads /api/auth/session, which is derived from this token.
+      try {
+        if (token && token.email && typeof findUserByEmail === 'function') {
+          const fresh = await findUserByEmail(String(token.email));
+          if (fresh) {
+            const safe = sanitizeUser(fresh);
+            const fk = Object.keys(safe);
+            for (let i = 0; i < fk.length; i++) {
+              token[fk[i]] = safe[fk[i]];
+            }
+          }
+        }
+      } catch (e) {
+        // Keep the existing token on any DB hiccup — never sign the user out.
       }
       return token;
     },
@@ -917,6 +938,42 @@ function getUserRoleFromToken(token) {
   return null;
 }
 
+// Reads a single cookie value, tolerating both the Next 12 string shape and the
+// newer { name, value } object shape returned by request.cookies.get().
+function readCookie(request, name) {
+  try {
+    var c = request.cookies.get(name);
+    if (!c) return null;
+    return typeof c === 'string' ? c : (c.value || null);
+  } catch (e) {
+    return null;
+  }
+}
+
+// next-auth stores the session token under a secure-prefixed cookie on https
+// and a plain one on http, and splits large JWTs into ".0"/".1" chunks. The
+// Edge runtime's getToken() can return null for a session the Node runtime
+// considers valid (e.g. NEXTAUTH_SECRET not identical in the Edge runtime, or
+// the JWE simply failing to decode at the edge), which previously redirected
+// logged-in users to sign-in. So cookie PRESENCE is the source of truth for
+// "is there a session"; getToken is only trusted for the optional role check.
+// Server-side (getServerSideProps / API routes) remain the authoritative
+// validators of the session and role.
+function hasSessionCookie(request) {
+  var names = [
+    '__Secure-next-auth.session-token',
+    'next-auth.session-token',
+    '__Secure-authjs.session-token',
+    'authjs.session-token'
+  ];
+  for (var i = 0; i < names.length; i++) {
+    if (readCookie(request, names[i]) || readCookie(request, names[i] + '.0')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function middleware(request) {
   const pathname = request.nextUrl.pathname;
 
@@ -945,29 +1002,33 @@ async function middleware(request) {
     return NextResponse.next();
   }
 
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    console.error('[auth middleware] NEXTAUTH_SECRET is not set; blocking protected route.');
-    var signInUrlMissing = new URL('${signInRoute}', request.url);
-    signInUrlMissing.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(signInUrlMissing);
+  // Decode the JWT when we can — used for the role check only. A null result is
+  // NOT treated as "logged out" on its own (see hasSessionCookie above), so a
+  // missing/edge-incompatible NEXTAUTH_SECRET no longer false-redirects valid
+  // sessions; it only disables edge-level role enforcement.
+  var token = null;
+  var secret = process.env.NEXTAUTH_SECRET;
+  if (secret) {
+    try {
+      token = await getToken({ req: request, secret: secret });
+    } catch (e) {
+      token = null;
+    }
   }
 
-  var token = await getToken({ req: request, secret: secret });
+  var isAuthenticated = !!token || hasSessionCookie(request);
 
-  if (matchedProtection.requiresAuth && !token) {
+  if (matchedProtection.requiresAuth && !isAuthenticated) {
     var signInUrl = new URL('${signInRoute}', request.url);
     signInUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(signInUrl);
   }
 
+  // Enforce roles only when the token actually decoded; otherwise defer to the
+  // page's server-side guard. This avoids false redirects when getToken returns
+  // null in the Edge runtime for an authenticated user.
   var allowedRoles = matchedProtection.allowedRoles || [];
-  if (allowedRoles.length > 0) {
-    if (!token) {
-      var signInUrl2 = new URL('${signInRoute}', request.url);
-      signInUrl2.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(signInUrl2);
-    }
+  if (allowedRoles.length > 0 && token) {
     var userRole = getUserRoleFromToken(token);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {
       return NextResponse.redirect(new URL('/', request.url));
