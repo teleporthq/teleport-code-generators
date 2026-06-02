@@ -699,7 +699,32 @@ export const generateNextAuthRouteFile = (): string => {
 if (NextAuth.default) NextAuth = NextAuth.default;
 const authOptions = require('../../../utils/auth/auth-options');
 
-module.exports = NextAuth(authOptions);
+const authHandler = NextAuth(authOptions);
+
+// NextAuth builds OAuth callback / redirect URLs from process.env.NEXTAUTH_URL.
+// At build time the real deployment domain is unknown, so the generated .env
+// ships a localhost default. Derive the correct origin from the incoming
+// request here so OAuth works on whatever domain the project is published to —
+// WITHOUT hardcoding it. An explicitly-configured (non-local) NEXTAUTH_URL is
+// always respected; local dev (host = localhost) is left untouched.
+module.exports = function nextAuthRoute(req, res) {
+  try {
+    const fwdHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+    const host = Array.isArray(fwdHost) ? fwdHost[0] : fwdHost;
+    const hostIsLocal = host.indexOf('localhost') === 0 || host.indexOf('127.0.0.1') === 0;
+    const current = process.env.NEXTAUTH_URL || '';
+    const currentIsLocalOrEmpty =
+      !current || current.indexOf('localhost') !== -1 || current.indexOf('127.0.0.1') !== -1;
+    if (host && !hostIsLocal && currentIsLocalOrEmpty) {
+      const fwdProto = req.headers['x-forwarded-proto'];
+      const proto = (Array.isArray(fwdProto) ? fwdProto[0] : fwdProto) || 'https';
+      process.env.NEXTAUTH_URL = proto + '://' + host;
+    }
+  } catch (e) {
+    /* fall back to the configured NEXTAUTH_URL */
+  }
+  return authHandler(req, res);
+};
 `
 }
 

@@ -129,8 +129,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     }
 
     if (uidl.globals?.env) {
+      const oauthCredentialKeys = collectOAuthCredentialEnvKeys(uidl.authentication)
       for (const key of Object.keys(uidl.globals.env)) {
-        uidl.globals.env[key] = resolveAuthEnvValue(key, uidl.globals.env[key])
+        uidl.globals.env[key] = resolveAuthEnvValue(key, uidl.globals.env[key], oauthCredentialKeys)
       }
     }
 
@@ -1296,9 +1297,10 @@ module.exports = __customNodeRegistry;
       if (!uidl.globals.env) {
         uidl.globals.env = {}
       }
+      const oauthCredentialKeys = collectOAuthCredentialEnvKeys(auth)
       for (const [key, value] of Object.entries(auth.envKeys)) {
         if (!uidl.globals.env[key]) {
-          uidl.globals.env[key] = resolveAuthEnvValue(key, String(value))
+          uidl.globals.env[key] = resolveAuthEnvValue(key, String(value), oauthCredentialKeys)
         }
       }
     }
@@ -1518,9 +1520,44 @@ const AUTH_ENV_DEFAULTS: Record<string, string> = {
   NEXTAUTH_SECRET: 'CHANGE_ME_TO_A_RANDOM_SECRET',
 }
 
-function resolveAuthEnvValue(key: string, value: string): string {
+// Every env key that holds an OAuth provider credential (e.g. AUTH_GOOGLE_ID,
+// AUTH_GOOGLE_SECRET, AUTH_AUTH0_ISSUER). These are the keys in each configured
+// provider's `credentials` map. The user's typed values are stored in the
+// project secret store; the deployed env must keep the
+// `teleporthq.secrets.<key>` placeholder so the deploy worker can inject the
+// real value. (Everything else here is handled by other plugins / the worker.)
+export function collectOAuthCredentialEnvKeys(auth: UIDLAuthentication | undefined): Set<string> {
+  const keys = new Set<string>()
+  const providers = auth && Array.isArray(auth.providers) ? auth.providers : []
+  for (const provider of providers) {
+    const creds = provider && provider.credentials
+    if (creds && typeof creds === 'object') {
+      for (const k of Object.keys(creds)) {
+        keys.add(k)
+      }
+    }
+  }
+  return keys
+}
+
+export function resolveAuthEnvValue(
+  key: string,
+  value: string,
+  preserveKeys?: Set<string>
+): string {
   if (value.startsWith('teleporthq.secrets.')) {
-    return AUTH_ENV_DEFAULTS[key] || ''
+    // NEXTAUTH_URL / NEXTAUTH_SECRET get a local default (the worker does not
+    // manage them). OAuth provider credential refs are PRESERVED so the deploy
+    // worker resolves them from the project secret store — emptying them (the
+    // old behavior) left the deployed env var blank, so NextAuth could not build
+    // the provider's authorization URL (error=OAuthSignin / "nothing happens").
+    if (Object.prototype.hasOwnProperty.call(AUTH_ENV_DEFAULTS, key)) {
+      return AUTH_ENV_DEFAULTS[key]
+    }
+    if (preserveKeys && preserveKeys.has(key)) {
+      return value
+    }
+    return ''
   }
   return value
 }
