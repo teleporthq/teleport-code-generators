@@ -3,7 +3,13 @@ import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport
 export const generateEcommerceContextFileContent = (
   ecommerceSettings: UIDLEcommerceSettings,
   invoiceSettings?: UIDLInvoiceSettings,
-  dataSourceId?: string | null
+  dataSourceId?: string | null,
+  // When true, the provider layers a best-effort database cart on top of
+  // localStorage (sync on change, hydrate from DB when local is empty) via
+  // the generated /api/cart/[op] route. Only enabled for Postgres datasources
+  // — see NextEcommerceProjectPlugin.generateApiRoutes. When false the output
+  // is byte-identical to the pure-localStorage cart.
+  cartDbEnabled?: boolean
 ): string => {
   const settingsJson = JSON.stringify(buildSettingsObject(ecommerceSettings, invoiceSettings))
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
@@ -72,6 +78,128 @@ export const generateEcommerceContextFileContent = (
 
   const dsConstCode = dataSourceId ? "const PRODUCTS_DATA_SOURCE_ID = '" + dataSourceId + "'" : ''
 
+  // ── Database-backed cart (best-effort, optional) ──────────────────────────
+  // Top-level helpers (session id + DB sync). Emitted only when cartDbEnabled.
+  const cartDbHelpers = cartDbEnabled
+    ? `const CART_SESSION_KEY = 'workflow_cart_session_id'
+
+// Stable per-browser guest id, used to scope a cart for users who aren't
+// logged in. Logged-in carts are keyed server-side by the auth token instead.
+function getOrCreateSessionId() {
+  if (typeof window === 'undefined') return null
+  try {
+    const existing = localStorage.getItem(CART_SESSION_KEY)
+    if (existing) return existing
+    const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          const r = (Math.random() * 16) | 0
+          const v = c === 'x' ? r : (r & 0x3) | 0x8
+          return v.toString(16)
+        })
+    localStorage.setItem(CART_SESSION_KEY, id)
+    return id
+  } catch (e) {
+    return null
+  }
+}
+
+// Local state is the source of truth; the DB is a cross-session backup. This
+// pushes the current cart to the server and never throws or blocks the UI.
+function persistCartToDb(items) {
+  if (typeof window === 'undefined') return
+  try {
+    const payload = (items || []).map(function (i) {
+      return { productId: i.productId, variantId: i.variantId || null, quantity: i.quantity }
+    })
+    fetch('/api/cart/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId() }),
+    }).catch(function () {})
+  } catch (e) {}
+}
+`
+    : ''
+
+  // In-provider reconcile effect: on mount, local cart wins (and is backed up
+  // to the DB); if local is empty, hydrate from the DB.
+  const cartDbMountEffect = cartDbEnabled
+    ? `
+  const cartDbInitRef = useRef(false)
+  useEffect(() => {
+    if (cartDbInitRef.current) return
+    cartDbInitRef.current = true
+    if (typeof window === 'undefined') return
+    const local = loadCartFromStorage()
+    if (local && local.length > 0) {
+      persistCartToDb(local)
+      return
+    }
+    try {
+      fetch('/api/cart/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: getOrCreateSessionId() }),
+      })
+        .then(function (res) { return res.ok ? res.json() : { items: [] } })
+        .then(function (data) {
+          const dbItems = (data && data.items) || []
+          if (!dbItems.length) return
+          const mapped = dbItems.map(function (d) {
+            const vid = d.variantId || null
+            return {
+              id: d.productId + (vid ? '__' + vid : ''),
+              productId: d.productId,
+              variantId: vid,
+              quantity: d.quantity,
+            }
+          })
+          setCartItems(mapped)
+          setCartMeta(computeCartMeta(mapped))
+          saveCartToStorage(mapped)
+          enrichCartItems(mapped).then(function (enriched) {
+            if (enriched !== mapped) {
+              setCartItems(enriched)
+              setCartMeta(computeCartMeta(enriched))
+              saveCartToStorage(enriched)
+            }
+          })
+        })
+        .catch(function () {})
+    } catch (e) {}
+  }, [])
+`
+    : ''
+
+  // In-provider debounced persist effect: mirror every cart change to the DB.
+  const cartDbPersistEffect = cartDbEnabled
+    ? `
+  const cartPersistTimerRef = useRef(null)
+  const cartPersistPrimedRef = useRef(false)
+  useEffect(() => {
+    if (!isHydrated) return
+    // Skip the first post-hydration run: that's the initial load, already
+    // reconciled above — persisting it would just echo it straight back.
+    if (!cartPersistPrimedRef.current) {
+      cartPersistPrimedRef.current = true
+      return
+    }
+    // Persist every change, INCLUDING an emptied cart: after an order the
+    // cart is cleared, and pushing the empty state clears the DB cart too so
+    // a later visit (empty localStorage) doesn't re-hydrate a stale cart.
+    if (cartPersistTimerRef.current) clearTimeout(cartPersistTimerRef.current)
+    const snapshot = cartItems || []
+    cartPersistTimerRef.current = setTimeout(function () {
+      persistCartToDb(snapshot)
+    }, 300)
+    return function () {
+      if (cartPersistTimerRef.current) clearTimeout(cartPersistTimerRef.current)
+    }
+  }, [cartItems, isHydrated])
+`
+    : ''
+
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 const CART_STORAGE_KEY = 'workflow_cart'
@@ -99,6 +227,8 @@ function saveCartToStorage(items) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
   } catch {}
 }
+
+${cartDbHelpers}
 
 function roundMoney(n) {
   return Math.round((Number(n) || 0) * 100) / 100
@@ -189,6 +319,7 @@ export const EcommerceProvider = ({ children }) => {
       window.removeEventListener('storage', onStorageChange)
     }
   }, [])
+${cartDbMountEffect}${cartDbPersistEffect}
 ${
   fetchStoreLocations
     ? `

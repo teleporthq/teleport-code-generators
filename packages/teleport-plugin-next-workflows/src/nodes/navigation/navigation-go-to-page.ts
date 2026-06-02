@@ -39,10 +39,22 @@ async function navigation_go_to_page(config: any, _context: Record<string, unkno
     // workflow step failed), fall back to the static prefix — the user
     // lands on a 404 instead of '/.../undefined'.
   } else {
-    url =
-      typeof config.pageId === 'string' && config.pageId
-        ? config.pageId
-        : (targetPage && targetPage.staticUrl) || '/'
+    // After `runBefore`, `config.pageId` is the real Next.js route (it starts
+    // with '/'). If the route map couldn't resolve the page id — e.g. an auth
+    // page such as sign-in that wasn't in the map — `config.pageId` is still
+    // the raw page id (e.g. 'TQ_oiC1MlnMiO'), and navigating there 404s. The
+    // mapper already stamped the real route on `targetPage.staticUrl`
+    // ('/sign-in', …), so fall back to it whenever `config.pageId` is not
+    // itself a route. We don't ALWAYS prefer staticUrl because the home page
+    // ships `staticUrl: '/home'` while Next.js serves it at '/' — but the home
+    // page's pageId always resolves to '/', so it takes the first branch.
+    if (typeof config.pageId === 'string' && config.pageId.charAt(0) === '/') {
+      url = config.pageId
+    } else if (targetPage && typeof targetPage.staticUrl === 'string' && targetPage.staticUrl) {
+      url = targetPage.staticUrl
+    } else {
+      url = (typeof config.pageId === 'string' && config.pageId) || '/'
+    }
   }
 
   if (queryParams.length > 0) {

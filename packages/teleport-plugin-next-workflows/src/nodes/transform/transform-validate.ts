@@ -20,8 +20,7 @@ async function transform_validate(config: any, context: Record<string, unknown>)
           valid = fieldValue !== undefined && fieldValue !== null && fieldValue !== ''
           break
         case 'email':
-          valid =
-            typeof fieldValue === 'string' && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(fieldValue)
+          valid = typeof fieldValue === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldValue)
           break
         case 'min':
           if (typeof fieldValue === 'number') {

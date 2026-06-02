@@ -79,7 +79,7 @@ export const generateCheckoutApiRoute = (
   }`
     : ''
 
-  return `${dbImport ? dbImport + '\n' : ''}
+  return `${dbImport ? dbImport + "\nconst { getToken } = require('next-auth/jwt')\n" : ''}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -204,7 +204,28 @@ ${
          VALUES ($1,$2,$3,$4,$5,$6)\`,
         [orderId, item.productId, item.variantId || null, item.quantity || 1, item.price || 0, item.name || '']
       )
-    }`
+    }
+
+    // Best-effort: mark this buyer's active cart as ordered. Wrapped so a
+    // failure never aborts the (already successful) order response.
+    try {
+      let __cartUserId = null
+      try {
+        const __tok = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+        if (__tok) __cartUserId = __tok.id || __tok.sub || null
+      } catch (e) { __cartUserId = null }
+      const __cartSessionId = req.body && req.body.sessionId ? String(req.body.sessionId).slice(0, 255) : null
+      const __clauses = []
+      const __params = []
+      if (__cartUserId) { __params.push(__cartUserId); __clauses.push('user_id = $' + __params.length) }
+      if (__cartSessionId) { __params.push(__cartSessionId); __clauses.push('(session_id = $' + __params.length + ' AND user_id IS NULL)') }
+      if (__clauses.length > 0) {
+        await db.query(
+          "UPDATE teleport_cart SET status = 'ordered', updated_at = NOW() WHERE status = 'active' AND (" + __clauses.join(' OR ') + ')',
+          __params
+        )
+      }
+    } catch (e) {}`
     : `    orderId = 'order_' + Date.now()`
 }
 ${stripeBlock}${paypalBlock}${codBlock}
@@ -863,7 +884,7 @@ export default async function handler(req, res) {
 `
 }
 
-function generateDbImport(
+export function generateDbImport(
   dataSourceType: string | null,
   dataSourceConfig: Record<string, unknown> | null
 ): string | null {

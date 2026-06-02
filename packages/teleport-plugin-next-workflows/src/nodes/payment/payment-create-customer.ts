@@ -4,7 +4,19 @@ async function payment_create_customer(config: any, _context: Record<string, unk
   const provider = config.provider || 'stripe'
   const email = config.email
   const name = config.name
-  const metadata = config.metadata || {}
+  // metadata may arrive as a JSON string (as payment-charge-user also handles);
+  // Object.keys on a string would yield numeric index keys and garbage params.
+  let metadata = config.metadata || {}
+  if (typeof metadata === 'string') {
+    try {
+      metadata = JSON.parse(metadata)
+    } catch (e) {
+      metadata = {}
+    }
+  }
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    metadata = {}
+  }
 
   if (!email) {
     return { customerId: '', provider, error: 'Email is required to create a customer' }

@@ -73,7 +73,19 @@ async function account_signup(config: any, context: Record<string, unknown>) {
     window.location.href = '/'
   }
 
-  return { user, success: true }
+  // Contract exposes user fields flat (id, email, name, ...) plus `user`/`success`.
+  // Built without Object.assign/spread — this handler is .toString()'d and
+  // bundled, where down-levelled spread would reference a missing tslib helper.
+  const __out: any = {}
+  if (user) {
+    const __k = Object.keys(user)
+    for (let __i = 0; __i < __k.length; __i++) {
+      __out[__k[__i]] = (user as any)[__k[__i]]
+    }
+  }
+  __out.user = user || null
+  __out.success = true
+  return __out
 }
 
 export const accountSignup: NodeHandlerGenerator = {
@@ -134,10 +146,8 @@ export const accountSignup: NodeHandlerGenerator = {
     throw new Error('Failed to create user');
   }
 
-  return {
-    user: authUtils.sanitizeUser(newUser),
-    success: true,
-  };
+  const __su = authUtils.sanitizeUser(newUser);
+  return Object.assign({}, __su || {}, { user: __su, success: true });
 }`
   },
 }

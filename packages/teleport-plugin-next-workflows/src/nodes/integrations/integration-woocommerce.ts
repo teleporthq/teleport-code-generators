@@ -21,6 +21,9 @@ async function integration_woocommerce(config: any, context: Record<string, unkn
   const consumerSecret = config.consumerSecret
   const storeUrl = config.storeUrl
   const action = config.action
+  if (!storeUrl || typeof storeUrl !== 'string') {
+    return { success: false, error: 'WooCommerce storeUrl is not configured' }
+  }
   const baseUrl = storeUrl.replace(/\/$/, '') + '/wp-json/wc/v3/'
   const headers = {
     'Content-Type': 'application/json',
@@ -104,8 +107,11 @@ async function integration_woocommerce(config: any, context: Record<string, unkn
       return { success: true, product: data }
     }
     case 'delete-product': {
+      // `config.force || true` can never be false; honour an explicit false
+      // (recoverable trash delete) instead of always permanently deleting.
+      const forceDelete = config.force === false ? false : true
       const response = await fetch(
-        baseUrl + 'products/' + config.productId + '?force=' + (config.force || true),
+        baseUrl + 'products/' + config.productId + '?force=' + forceDelete,
         { method: 'DELETE', headers }
       )
       if (!response.ok) {

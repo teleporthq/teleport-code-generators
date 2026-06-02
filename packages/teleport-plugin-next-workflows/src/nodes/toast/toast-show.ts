@@ -1,7 +1,7 @@
 import { NodeHandlerGenerator } from '../types'
 
 const TOAST_HANDLER_CODE = `async function toast_show(config) {
-  var message = config.message || '';
+  var message = config.message == null ? '' : String(config.message);
   var toastType = config.toastType || 'info';
   var position = config.position || 'top-right';
   var duration = Number(config.duration) || 5000;

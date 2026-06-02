@@ -56,7 +56,19 @@ async function account_login(config: any, context: Record<string, unknown>) {
     window.location.href = '/'
   }
 
-  return { user, success: true }
+  // Contract exposes user fields flat (id, email, name, ...) plus `user`/`success`.
+  // Built without Object.assign/spread — this handler is .toString()'d and
+  // bundled, where down-levelled spread would reference a missing tslib helper.
+  const __out: any = {}
+  if (user) {
+    const __k = Object.keys(user)
+    for (let __i = 0; __i < __k.length; __i++) {
+      __out[__k[__i]] = (user as any)[__k[__i]]
+    }
+  }
+  __out.user = user || null
+  __out.success = true
+  return __out
 }
 
 export const accountLogin: NodeHandlerGenerator = {
@@ -90,10 +102,8 @@ export const accountLogin: NodeHandlerGenerator = {
     throw new Error('Invalid email or password');
   }
 
-  return {
-    user: authUtils.sanitizeUser(user),
-    success: true,
-  };
+  const __su = authUtils.sanitizeUser(user);
+  return Object.assign({}, __su || {}, { user: __su, success: true });
 }`
   },
 }

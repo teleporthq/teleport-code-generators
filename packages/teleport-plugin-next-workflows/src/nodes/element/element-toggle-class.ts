@@ -12,10 +12,25 @@ async function element_toggle_class(config: any, context: Record<string, unknown
     return { success: false }
   }
 
-  if (force !== undefined) {
-    el.classList.toggle(className, force)
-  } else {
-    el.classList.toggle(className)
+  // `classList.toggle` accepts only a single token and throws a DOMException on
+  // an empty string or a token containing whitespace. Split a multi-class value
+  // ('is-open active') into tokens, drop empties, and guard so the node can
+  // never throw and break the workflow.
+  const tokens = (Array.isArray(className) ? className : [className])
+    .reduce(function (acc: string[], c: unknown) {
+      return acc.concat(String(c == null ? '' : c).split(/\s+/))
+    }, [])
+    .filter(Boolean)
+  try {
+    for (let i = 0; i < tokens.length; i++) {
+      if (force !== undefined) {
+        el.classList.toggle(tokens[i], force)
+      } else {
+        el.classList.toggle(tokens[i])
+      }
+    }
+  } catch (e) {
+    return { success: false }
   }
 
   return { success: true }

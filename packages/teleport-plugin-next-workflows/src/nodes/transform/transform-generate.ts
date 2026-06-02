@@ -107,12 +107,15 @@ async function transform_generate(config: any, context: Record<string, unknown>)
         result = context.__sequences[sequenceKey]
         break
       default:
-        return { result: null, error: 'Unknown generate type: ' + generateType }
+        return { value: null, result: null, error: 'Unknown generate type: ' + generateType }
     }
 
-    return { result }
+    // The declared output contract (node-context-schemas) is
+    // `{ value, type, timestamp }` — workflow builders and AI-generated
+    // workflows read `.value`. Emit that (plus `result` as a defensive alias).
+    return { value: result, result, type: generateType, timestamp: Date.now() }
   } catch (err: unknown) {
-    return { result: null, error: (err as Error).message }
+    return { value: null, result: null, error: (err as Error).message }
   }
 }
 export const transformGenerate: NodeHandlerGenerator = {

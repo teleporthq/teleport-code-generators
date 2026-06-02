@@ -17,6 +17,7 @@ import {
   generatePaypalCaptureApiRoute,
 } from './ecommerce-api-routes-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
+import { generateCartApiRoute } from './cart-api-routes-generator'
 
 export class NextEcommerceProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
@@ -32,8 +33,31 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
 
     const { dataSourceType, dataSourceConfig, dataSourceId } = this.resolveDataSource(structure)
 
-    this.generateContextFile(ecommerceSettings, uidl.invoiceSettings, files, dataSourceId)
+    // The DB-backed cart route only generates for Postgres datasources;
+    // when it does, the provider layers DB sync on top of localStorage.
+    const cartRoute = generateCartApiRoute(dataSourceType, dataSourceConfig)
+    const cartDbEnabled = cartRoute !== null
+
+    this.generateContextFile(
+      ecommerceSettings,
+      uidl.invoiceSettings,
+      files,
+      dataSourceId,
+      cartDbEnabled
+    )
     this.generateApiRoutes(ecommerceSettings, dataSourceType, dataSourceConfig, files)
+    if (cartRoute) {
+      files.set('ecommerce-api-cart', {
+        path: ['pages', 'api', 'cart'],
+        files: [
+          {
+            name: '[op]',
+            fileType: FileType.JS,
+            content: cartRoute,
+          },
+        ],
+      })
+    }
     this.addDependencies(ecommerceSettings, dependencies)
     this.addEnvVars(ecommerceSettings, uidl)
     this.injectProviderIntoApp(files)
@@ -77,12 +101,14 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     ecommerceSettings: UIDLEcommerceSettings,
     invoiceSettings: UIDLInvoiceSettings | undefined,
     files: Map<string, any>,
-    dataSourceId: string | null
+    dataSourceId: string | null,
+    cartDbEnabled: boolean
   ): void {
     const content = generateEcommerceContextFileContent(
       ecommerceSettings,
       invoiceSettings,
-      dataSourceId
+      dataSourceId,
+      cartDbEnabled
     )
     files.set('ecommerce-context', {
       path: [],

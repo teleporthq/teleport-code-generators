@@ -12,7 +12,16 @@ async function element_set_attribute(config: any, context: Record<string, unknow
     return { success: false }
   }
 
-  el.setAttribute(attribute, value)
+  // setAttribute throws an InvalidCharacterError DOMException on an empty or
+  // syntactically invalid attribute name — guard so the node can never throw.
+  if (!attribute || typeof attribute !== 'string') {
+    return { success: false }
+  }
+  try {
+    el.setAttribute(attribute, value)
+  } catch (e) {
+    return { success: false }
+  }
 
   return { success: true }
 }

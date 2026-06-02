@@ -42,7 +42,9 @@ async function account_compare_passwords(config: any, context: Record<string, un
     .digest('base64')
   const isMatch = bcrypt.compareSync(sha, hashStr)
 
-  return { isMatch }
+  // `isMatch` is the contract key; `match` is a defensive alias for any
+  // workflow that reads `.match` (the delete-account template did).
+  return { isMatch, match: isMatch }
 }
 
 export const accountComparePasswords: NodeHandlerGenerator = {

@@ -19,6 +19,9 @@ async function integration_mailchimp(config: any, context: Record<string, unknow
   }
   const apiKey = config.apiKey
   const action = config.action
+  if (!apiKey || typeof apiKey !== 'string') {
+    return { success: false, error: 'Mailchimp API key is not configured' }
+  }
   const dc = apiKey.split('-').pop()
   const baseUrl = 'https://' + dc + '.api.mailchimp.com/3.0/'
   const headers = {

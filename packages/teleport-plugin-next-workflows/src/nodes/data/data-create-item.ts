@@ -64,6 +64,21 @@ async function data_create_item(config: any, context: any) {
     if (typeof tableName === 'string' && tableName === 'teleport_orders' && data && data.item) {
       const item: any = data.item
 
+      // Best-effort: mark the buyer's active database cart as ordered. This is
+      // a server-to-server call (no auth cookies), so we key by the order's
+      // owner id — the real user_id when logged in, else the guest anon id.
+      // Fire-and-forget: a failure must never affect the placed order.
+      try {
+        const __orderOwnerId = (item && item.user_id) || __anonymousUserId || ''
+        if (__orderOwnerId) {
+          fetch(baseUrl + '/api/cart/mark-ordered', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ anonymousUserId: __orderOwnerId }),
+          }).catch(function () {})
+        }
+      } catch (_e) {}
+
       // Walk the workflow context to find the cart line-items. The
       // order row carries totals + addresses but NOT the line items —
       // those live in cart-get-items output (the same shape the

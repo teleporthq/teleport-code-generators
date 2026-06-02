@@ -245,7 +245,10 @@ async function integration_discord(config: any, context: Record<string, unknown>
       return { success: true }
     }
     case 'create-reaction': {
-      const emoji = encodeURIComponent(config.emoji.startsWith(':') ? config.emoji : config.emoji)
+      if (!config.emoji) {
+        return { success: false, error: 'emoji is required' }
+      }
+      const emoji = encodeURIComponent(config.emoji)
       const response = await fetch(
         baseUrl +
           'channels/' +

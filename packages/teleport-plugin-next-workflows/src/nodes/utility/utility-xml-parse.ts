@@ -12,9 +12,17 @@ async function utility_xml_parse(config: any, context: Record<string, unknown>) 
     config.parseTrueNumberOnly !== undefined ? config.parseTrueNumberOnly : false
   const cdataTagName = config.cdataTagName || '__cdata'
 
-  const __nodeRequire =
-    typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
-  const fxp = __nodeRequire('fast-xml-parser')
+  // Resolve the native dependency defensively: a module-resolution failure on
+  // the deployed project must return an error object, never throw and break the
+  // whole workflow.
+  let fxp: any
+  try {
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    fxp = __nodeRequire('fast-xml-parser')
+  } catch (e) {
+    return { result: null, error: 'fast-xml-parser module is not available' }
+  }
 
   if (operation === 'generate') {
     const input = config.input

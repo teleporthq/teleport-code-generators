@@ -2,7 +2,9 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 
 async function sms_infobip(config: any, context: Record<string, unknown>) {
   const apiKey = config.apiKey
-  const baseUrl = config.baseUrl
+  // Infobip's dashboard gives the base URL WITH the scheme (https://xxx.api.infobip.com).
+  // Strip any existing scheme so we don't build the invalid `https://https://...`.
+  const baseUrl = String(config.baseUrl || '').replace(/^https?:\/\//, '')
   const from = config.from
   const to = config.to
   const message = config.message

@@ -161,13 +161,23 @@ async function integration_amazon_s3(config: any, context: Record<string, unknow
     }
     case 'list-objects': {
       const prefix = config.prefix || ''
-      let qs = 'list-type=2'
+      // SigV4 requires the canonical query string sorted by key name. Build the
+      // params, sort, then use the SAME string for signing and the fetch URL so
+      // the signature matches when prefix + max-keys are combined.
+      const listParams: string[] = ['list-type=2']
       if (prefix) {
-        qs = qs + '&prefix=' + encodeURIComponent(prefix)
+        listParams.push('prefix=' + encodeURIComponent(prefix))
       }
       if (config.maxKeys) {
-        qs = qs + '&max-keys=' + config.maxKeys
+        listParams.push('max-keys=' + encodeURIComponent(String(config.maxKeys)))
       }
+      const qs = listParams
+        .sort(function (a, b) {
+          const ka = a.split('=')[0]
+          const kb = b.split('=')[0]
+          return ka < kb ? -1 : ka > kb ? 1 : 0
+        })
+        .join('&')
       const headers = {}
       const signed = await signRequest('GET', '/', qs, headers, '')
       const response = await fetch('https://' + host + '/?' + qs, {
@@ -212,6 +222,9 @@ async function integration_amazon_s3(config: any, context: Record<string, unknow
     }
     case 'get-presigned-url': {
       const key = config.key
+      if (!key || typeof key !== 'string') {
+        return { success: false, error: 'key is required for get-presigned-url' }
+      }
       const expiresIn = config.expiresIn || 3600
       const now = new Date()
       const amzDate = now
@@ -285,13 +298,16 @@ async function integration_amazon_s3(config: any, context: Record<string, unknow
     case 'set-acl': {
       const key = config.key
       const acl = config.acl || 'private'
-      const qs = 'acl'
+      // SigV4 canonical query string requires key=value form: S3 reconstructs
+      // `?acl` as `acl=`, so we must sign `acl=` (not the bare `acl`) or the
+      // signature won't match (SignatureDoesNotMatch).
+      const qs = 'acl='
       const headers: Record<string, string> = {
         'Content-Type': 'application/octet-stream',
         'x-amz-acl': acl,
       }
       const signed = await signRequest('PUT', '/' + key, qs, headers, '')
-      const response = await fetch('https://' + host + '/' + key + '?acl', {
+      const response = await fetch('https://' + host + '/' + key + '?acl=', {
         method: 'PUT',
         headers: signed,
       })

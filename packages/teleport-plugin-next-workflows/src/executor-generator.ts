@@ -759,6 +759,39 @@ module.exports = {
 export const generateClientRuntimeCode = (): string => {
   return `const utils = require('./runtime-utils');
 
+// A live DOM element (the workflow trigger element) cannot cross the network
+// to a server segment — JSON.stringify throws on its circular references, so it
+// used to prune down to { __serializationError: true }. That dropped the
+// element's dataset, which server nodes rely on (e.g. a cart "+" button whose
+// data-select filters products by trigger.element.dataset.productId, or a
+// cart-update node reading trigger.element.dataset.cartItemId). We replace any
+// DOM node with a serializable snapshot carrying its dataset + form value, so
+// those reads keep resolving on both sides of the round-trip.
+function isDomNode(v) {
+  return !!v && typeof v === 'object' && typeof v.nodeType === 'number' && v.nodeType === 1;
+}
+
+function snapshotDomNode(el) {
+  var snap = { __domSnapshot: true, dataset: {} };
+  try { snap.tagName = el.tagName || null; } catch (e) {}
+  try { snap.id = el.id || ''; } catch (e) {}
+  try { snap.name = el.name || ''; } catch (e) {}
+  try { snap.type = el.type || ''; } catch (e) {}
+  try { snap.className = typeof el.className === 'string' ? el.className : ''; } catch (e) {}
+  try { if ('value' in el) snap.value = el.value; } catch (e) {}
+  try { if ('checked' in el) snap.checked = el.checked; } catch (e) {}
+  try {
+    if (el.dataset) {
+      for (var k in el.dataset) { snap.dataset[k] = el.dataset[k]; }
+    }
+  } catch (e) {}
+  return snap;
+}
+
+function domSerializationReplacer(key, value) {
+  return isDomNode(value) ? snapshotDomNode(value) : value;
+}
+
 function pruneContext(context) {
   const pruned = {};
   const keys = Object.keys(context);
@@ -768,17 +801,51 @@ function pruneContext(context) {
     if (val === undefined || val === null) continue;
     if (typeof val === 'function') continue;
     try {
-      const serialized = JSON.stringify(val);
+      // Replace DOM nodes with serializable snapshots as we stringify, then
+      // re-parse so the request body itself (JSON.stringify(prunedContext) in
+      // callServerSegment, which has no replacer) never sees a live DOM node.
+      const serialized = JSON.stringify(val, domSerializationReplacer);
+      if (serialized === undefined) continue;
       if (serialized.length > 100000) {
         pruned[key] = { __truncated: true, type: typeof val };
       } else {
-        pruned[key] = val;
+        pruned[key] = JSON.parse(serialized);
       }
     } catch(e) {
       pruned[key] = { __serializationError: true };
     }
   }
   return pruned;
+}
+
+// Merge a server segment's returned context back into the live client context.
+// Two rules protect client-only state that cannot survive the round-trip:
+//   1. A server-side placeholder ({ __serializationError } / { __truncated })
+//      must never overwrite a real client value.
+//   2. The trigger element/node is authoritative on the client. The live DOM
+//      element is sent to the server as a snapshot (see pruneContext) and
+//      echoed back as that snapshot; keeping the client's real element means a
+//      post-server client node (cart-update reading
+//      trigger.element.dataset.cartItemId, or any node calling a DOM method)
+//      still works against the genuine element rather than a frozen copy.
+function mergeServerResults(context, serverResults, triggerNodeId) {
+  if (!serverResults || typeof serverResults !== 'object') return;
+  const keys = Object.keys(serverResults);
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const clientVal = context[key];
+    // Keep the client's authoritative live DOM trigger element. The top-level
+    // triggerElement holds the node directly; the trigger node's context holds
+    // it under .element. The generic .element guard also covers the trigger
+    // node id even when it is not passed in (e.g. inside a custom node).
+    if (key === 'triggerElement' && isDomNode(clientVal)) continue;
+    if (triggerNodeId && key === triggerNodeId && clientVal && isDomNode(clientVal.element)) continue;
+    if (clientVal && typeof clientVal === 'object' && isDomNode(clientVal.element)) continue;
+    const val = serverResults[key];
+    // A server-side serialization placeholder must never clobber a real value.
+    if (val && typeof val === 'object' && (val.__serializationError === true || val.__truncated === true)) continue;
+    context[key] = val;
+  }
 }
 
 // Absolutizes a workflow-segment URL for server-side execution.
@@ -939,10 +1006,7 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
         context[data.nodeId] = data.result;
       } else if (data.type === 'done') {
         if (data.results) {
-          const rKeys = Object.keys(data.results);
-          for (let rk = 0; rk < rKeys.length; rk++) {
-            context[rKeys[rk]] = data.results[rKeys[rk]];
-          }
+          mergeServerResults(context, data.results, workflowConfig && workflowConfig.triggerNodeId);
         }
         const streamedKeys = Object.keys(streamedNodeIds);
         for (let sk = 0; sk < streamedKeys.length; sk++) {
@@ -1035,7 +1099,7 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
           const url = serverSegmentUrls[seg.id];
           if (!url) throw new Error('No server URL for segment: ' + seg.id);
           const serverResults = await callServerSegment(url, context);
-          if (serverResults) Object.assign(context, serverResults);
+          mergeServerResults(context, serverResults, workflowConfig.triggerNodeId);
           var segNodes = seg.nodes;
           if (segNodes && segNodes.length > 0 && serverResults) {
             var sortedSeg = segNodes.slice().sort(function(a, b) {
@@ -1144,7 +1208,7 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
   return context;
 }
 
-module.exports = { executeWorkflowWithSegments, callServerSegment, callStreamingServerSegment, findStreamingAINodes };
+module.exports = { executeWorkflowWithSegments, callServerSegment, callStreamingServerSegment, mergeServerResults, findStreamingAINodes };
 `
 }
 

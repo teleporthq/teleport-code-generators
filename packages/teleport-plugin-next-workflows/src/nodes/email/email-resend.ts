@@ -24,7 +24,9 @@ async function email_resend(config: any, context: Record<string, unknown>) {
     }
 
     if (replyTo) {
-      payload.reply_to = replyTo
+      // Resend SDK input uses the camelCase `replyTo` key (it maps to the
+      // on-the-wire `reply_to` internally); a snake_case key is silently dropped.
+      payload.replyTo = replyTo
     }
     if (cc) {
       payload.cc = Array.isArray(cc) ? cc : [cc]

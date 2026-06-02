@@ -83,11 +83,13 @@ async function integration_amplitude(config: any, context: Record<string, unknow
               event_type: 'revenue_amount',
               event_properties: {
                 productId: config.productId || '',
-                quantity: config.quantity || 1,
-                price: config.price,
+                quantity: Number(config.quantity) || 1,
+                price: Number(config.price) || 0,
                 revenueType: config.revenueType || 'purchase',
               },
-              revenue: config.price * (config.quantity || 1),
+              // Coerce numerically so a missing price yields 0, not NaN (which
+              // JSON.stringify turns into null and Amplitude drops).
+              revenue: (Number(config.price) || 0) * (Number(config.quantity) || 1),
             },
           ],
         }),

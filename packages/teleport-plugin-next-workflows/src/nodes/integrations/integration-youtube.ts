@@ -62,7 +62,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
     case 'get-video': {
       const parts = config.parts || ['snippet', 'contentDetails', 'statistics']
       const url =
-        baseUrl + 'videos?key=' + apiKey + '&id=' + config.videoId + '&part=' + parts.join(',')
+        baseUrl + 'videos?' + authParam + '&id=' + config.videoId + '&part=' + parts.join(',')
       const response = await fetch(url, { method: 'GET' })
       const data = await __readJson(response)
       if (data.error) {
@@ -72,7 +72,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
     }
     case 'list-videos': {
       const parts = config.parts || ['snippet', 'contentDetails', 'statistics']
-      let url = baseUrl + 'videos?key=' + apiKey + '&part=' + parts.join(',')
+      let url = baseUrl + 'videos?' + authParam + '&part=' + parts.join(',')
       if (config.chart) {
         url = url + '&chart=' + config.chart
       }
@@ -93,7 +93,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
       return { success: true, items: data.items || [], nextPageToken: data.nextPageToken }
     }
     case 'get-channel': {
-      let url = baseUrl + 'channels?key=' + apiKey + '&part=snippet,statistics'
+      let url = baseUrl + 'channels?' + authParam + '&part=snippet,statistics'
       if (config.id) {
         url += '&id=' + config.id
       }
@@ -108,7 +108,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
       return { success: true, channel: data.items && data.items[0] }
     }
     case 'list-playlists': {
-      let url = baseUrl + 'playlists?key=' + apiKey + '&part=snippet'
+      let url = baseUrl + 'playlists?' + authParam + '&part=snippet'
       if (config.channelId) {
         url += '&channelId=' + config.channelId
       }
@@ -124,7 +124,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
     }
     case 'get-playlist-items': {
       let url =
-        baseUrl + 'playlistItems?key=' + apiKey + '&part=snippet&playlistId=' + config.playlistId
+        baseUrl + 'playlistItems?' + authParam + '&part=snippet&playlistId=' + config.playlistId
       if (config.maxResults) {
         url += '&maxResults=' + config.maxResults
       }
@@ -136,7 +136,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
       return { success: true, items: data.items || [] }
     }
     case 'get-comments': {
-      let url = baseUrl + 'commentThreads?key=' + apiKey + '&part=snippet&videoId=' + config.videoId
+      let url = baseUrl + 'commentThreads?' + authParam + '&part=snippet&videoId=' + config.videoId
       if (config.maxResults) {
         url += '&maxResults=' + config.maxResults
       }
@@ -149,7 +149,7 @@ async function integration_youtube(config: any, context: Record<string, unknown>
     }
     case 'get-video-stats': {
       const response = await fetch(
-        baseUrl + 'videos?key=' + apiKey + '&id=' + config.videoId + '&part=statistics,snippet',
+        baseUrl + 'videos?' + authParam + '&id=' + config.videoId + '&part=statistics,snippet',
         { method: 'GET' }
       )
       const data = await __readJson(response)

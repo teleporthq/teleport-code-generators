@@ -310,6 +310,7 @@ async function transform_date_time(config: any, context: Record<string, unknown>
         }
         result = formatDate(endOf, format)
         break
+      case 'is-weekend':
         const wkDate = parseDate(input)
         if (!wkDate) {
           return { result: null, error: 'Invalid date input' }

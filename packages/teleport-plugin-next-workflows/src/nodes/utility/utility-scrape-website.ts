@@ -22,9 +22,17 @@ async function utility_scrape_website(config: any, context: Record<string, unkno
     return { content: null, statusCode: 0, error: 'No URL provided' }
   }
 
-  const __nodeRequire =
-    typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
-  const cheerio = __nodeRequire('cheerio')
+  // Resolve the native dependency defensively: a module-resolution failure on
+  // the deployed project must return the standard error shape, never throw and
+  // break the whole workflow.
+  let cheerio: any
+  try {
+    const __nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    cheerio = __nodeRequire('cheerio')
+  } catch (e) {
+    return { content: null, statusCode: 0, error: 'cheerio module is not available' }
+  }
 
   function getDomain(u: string) {
     try {

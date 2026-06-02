@@ -36,6 +36,14 @@ async function integration_monday(config: any, context: Record<string, unknown>)
       body: JSON.stringify(body),
     })
     const data = await __readJson(response)
+    // A non-JSON transport error (401/429/5xx) has no `.errors` array — guard on
+    // response.ok so it isn't reported as success with undefined data.
+    if (!response.ok) {
+      return {
+        success: false,
+        error: (data && (data.message || data.error)) || 'HTTP ' + response.status,
+      }
+    }
     if (data.errors && data.errors.length > 0) {
       return { success: false, error: data.errors[0].message }
     }

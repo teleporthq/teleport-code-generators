@@ -1459,6 +1459,16 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
     return value;
   }
 
+  function __defaultValueForType(type) {
+    // Empty default for an unset state-update value, keyed off the state's
+    // declared type: string -> '', array -> [], object -> {}, every other
+    // (number, boolean, ...) -> null.
+    if (type === 'array') return [];
+    if (type === 'object') return {};
+    if (type === 'string') return '';
+    return null;
+  }
+
   function __stateUpdateHandler(config, context) {
     var prop = __resolveName(config.property);
 
@@ -1467,20 +1477,27 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
       return Promise.resolve({ success: true, property: prop, refreshFromDataSource: true });
     }
 
-    const value = __coerceValue(config.value, prop);
     if (config.objectUpdateMode === 'property' && config.objectPropertyPath) {
+      const propValue = __coerceValue(config.value, prop);
       const currentObj = (context && context.__stateValues && context.__stateValues[prop] != null)
         ? context.__stateValues[prop]
         : (stateValuesRef.current[prop] || {});
-      if (currentObj[config.objectPropertyPath] === value) {
+      if (currentObj[config.objectPropertyPath] === propValue) {
         return Promise.resolve({ success: true, property: prop, value: currentObj });
       }
       const newObj = Object.assign({}, currentObj);
-      newObj[config.objectPropertyPath] = value;
+      newObj[config.objectPropertyPath] = propValue;
       if (context && context.__stateValues) context.__stateValues[prop] = newObj;
       if (stateSetters[prop]) stateSetters[prop](newObj);
       return Promise.resolve({ success: true, property: prop, value: newObj });
     }
+    // A node wired without any value (the config has no \`value\` at all) falls
+    // back to the state type's empty default so the setter never receives
+    // undefined (which would flip a controlled input to uncontrolled). An
+    // explicit/resolved null is a real value and is passed through unchanged.
+    const value = config.value === undefined
+      ? __defaultValueForType(stateTypes[prop])
+      : __coerceValue(config.value, prop);
     var prevValue = (context && context.__stateValues) ? context.__stateValues[prop] : stateValuesRef.current[prop];
     if (prevValue === value) {
       return Promise.resolve({ success: true, property: prop, value: value });
@@ -1523,7 +1540,9 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
     for (var i = 0; i < updates.length; i++) {
       var u = updates[i];
       var key = __resolveName(u.key);
-      var val = __coerceValue(u.value, key);
+      var val = u.value === undefined
+        ? __defaultValueForType(stateTypes[key])
+        : __coerceValue(u.value, key);
       if (context && context.__stateValues) context.__stateValues[key] = val;
       if (stateSetters[key]) stateSetters[key](val);
       updatedKeys.push(key);

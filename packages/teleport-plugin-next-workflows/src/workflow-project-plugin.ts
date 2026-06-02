@@ -88,7 +88,17 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
             if (resolved) {
               node.config.pageId = resolved
             } else {
-              unresolvedPageIds.add(node.config.pageId)
+              // The page id isn't in the route map (e.g. an auth page like
+              // sign-in registered outside routeDef/authPages). The mapper
+              // already stamped the real route on `targetPage.staticUrl`, so
+              // prefer that over leaving a raw page id that 404s at runtime.
+              const staticUrl = (node.config.targetPage as { staticUrl?: unknown } | undefined)
+                ?.staticUrl
+              if (typeof staticUrl === 'string' && staticUrl.charAt(0) === '/') {
+                node.config.pageId = staticUrl
+              } else {
+                unresolvedPageIds.add(node.config.pageId)
+              }
             }
           }
         }
@@ -1036,12 +1046,7 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
           Object.assign(handledNodeIds, streamHandled);
         } else {
           var serverResults = await __runtime.callServerSegment(segUrl, context);
-          if (serverResults) {
-            var rKeys = Object.keys(serverResults);
-            for (var rk = 0; rk < rKeys.length; rk++) {
-              context[rKeys[rk]] = serverResults[rKeys[rk]];
-            }
-          }
+          __runtime.mergeServerResults(context, serverResults);
           // Propagate non-taken if-statement branches from this server
           // segment into subsequent segments. Iterate every if-statement
           // in the segment (not just the last node), because mid-segment

@@ -215,20 +215,31 @@ async function integration_slack(config: any, context: Record<string, unknown>) 
       return { success: true, channel: data.channel }
     }
     case 'upload-file': {
-      const body: Record<string, any> = { channels: config.channel, content: config.content }
+      // files.upload does NOT accept a JSON body — it requires form-encoded
+      // parameters. Sending JSON returns ok:false / no_file_data_provided.
+      const form = new URLSearchParams()
+      if (config.channel) {
+        form.append('channels', config.channel)
+      }
+      if (config.content != null) {
+        form.append('content', String(config.content))
+      }
       if (config.filename) {
-        body.filename = config.filename
+        form.append('filename', config.filename)
       }
       if (config.threadTs) {
-        body.thread_ts = config.threadTs
+        form.append('thread_ts', config.threadTs)
       }
       if (config.title) {
-        body.title = config.title
+        form.append('title', config.title)
       }
       const response = await fetch(baseUrl + 'files.upload', {
         method: 'POST',
-        headers,
-        body: JSON.stringify(body),
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: form.toString(),
       })
       const data = await __readJson(response)
       if (!data.ok) {

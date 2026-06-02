@@ -90,6 +90,40 @@ describe('navigation-go-to-page', () => {
       )
       expect(win.location.href).toBe('/about-us')
     })
+
+    // Regression: a guest clicking "add to favourites" was sent to
+    // `/TQ_oiC1MlnMiO` (404) instead of `/sign-in`. The auth sign-in page was
+    // missing from the route map, so runBefore left `pageId` as the raw page
+    // id. The runtime must recognise that a non-route pageId can't be a real
+    // URL and fall back to the mapper's staticUrl.
+    it('falls back to targetPage.staticUrl when pageId is an unresolved page id (not a route)', async () => {
+      await handler(
+        {
+          pageId: 'TQ_oiC1MlnMiO',
+          openInNewTab: false,
+          targetPage: {
+            pageId: 'TQ_oiC1MlnMiO',
+            pageName: 'sign-in',
+            staticUrl: '/sign-in',
+            isDetailsPage: false,
+          },
+        },
+        {}
+      )
+      expect(win.location.href).toBe('/sign-in')
+    })
+
+    it('still uses a raw pageId as a last resort when no staticUrl is available', async () => {
+      await handler(
+        {
+          pageId: 'TQ_oiC1MlnMiO',
+          openInNewTab: false,
+          targetPage: { pageId: 'TQ_oiC1MlnMiO', isDetailsPage: false },
+        },
+        {}
+      )
+      expect(win.location.href).toBe('TQ_oiC1MlnMiO')
+    })
   })
 
   describe('details page differentiator', () => {

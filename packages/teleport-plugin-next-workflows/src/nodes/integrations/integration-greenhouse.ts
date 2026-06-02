@@ -24,6 +24,20 @@ async function integration_greenhouse(config: any, context: Record<string, unkno
     'Content-Type': 'application/json',
     Authorization: 'Basic ' + btoa(apiKey + ':'),
   }
+  // Greenhouse Harvest requires an `On-Behalf-Of: <user_id>` header on every
+  // mutating request (POST/PATCH/DELETE) or it rejects with 422. Apply it to
+  // the write actions when the node supplies an on-behalf-of / user id.
+  const onBehalfOf = config.onBehalfOf || config.userId
+  // Build without Object.assign/spread — this handler is .toString()'d and
+  // bundled, where down-levelled spread would reference a missing tslib helper.
+  let writeHeaders: Record<string, string> = headers
+  if (onBehalfOf) {
+    writeHeaders = { 'On-Behalf-Of': String(onBehalfOf) }
+    const __hk = Object.keys(headers)
+    for (let __i = 0; __i < __hk.length; __i++) {
+      writeHeaders[__hk[__i]] = (headers as any)[__hk[__i]]
+    }
+  }
 
   switch (action) {
     case 'list-candidates': {
@@ -105,7 +119,7 @@ async function integration_greenhouse(config: any, context: Record<string, unkno
       }
       const response = await fetch(baseUrl + 'candidates', {
         method: 'POST',
-        headers,
+        headers: writeHeaders,
         body: JSON.stringify(body),
       })
       const data = await __readJson(response)
@@ -140,7 +154,7 @@ async function integration_greenhouse(config: any, context: Record<string, unkno
     case 'advance-application': {
       const response = await fetch(baseUrl + 'applications/' + config.applicationId + '/advance', {
         method: 'POST',
-        headers,
+        headers: writeHeaders,
         body: JSON.stringify({ from_stage_id: config.fromStageId, to_stage_id: config.toStageId }),
       })
       if (!response.ok) {

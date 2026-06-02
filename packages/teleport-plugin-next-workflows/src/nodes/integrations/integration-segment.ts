@@ -195,7 +195,9 @@ async function integration_segment(config: any, context: Record<string, unknown>
         config.userId
       const response = await fetch(profileUrl, {
         method: 'GET',
-        headers: { Authorization: 'Segment ' + config.personasToken },
+        // Segment Profile API uses HTTP Basic auth: access token as the
+        // username with an empty password (same scheme as the write-key above).
+        headers: { Authorization: 'Basic ' + btoa(config.personasToken + ':') },
       })
       const data = await __readJson(response)
       if (!response.ok) {

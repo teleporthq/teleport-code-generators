@@ -2,6 +2,25 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 
 async function account_get_current(_config: unknown, context: Record<string, unknown>) {
   const baseUrl = (context && (context as any).__baseUrl) || ''
+  // The declared output contract (node-context-schemas) exposes the user's
+  // fields at the TOP LEVEL (id, email, name, image, ...). Workflow builders
+  // read e.g. `wfCtx(node, ['id'])` for a row's user_id, and the AI reads the
+  // flat fields too. Emit the user's fields flat AND keep a `user` object for
+  // anything that reads `.user`.
+  // Copy the user's fields onto a fresh object (no Object.assign/spread — this
+  // handler is .toString()'d and bundled, where down-levelled spread would
+  // reference a tslib helper that doesn't exist at runtime).
+  const __out = (user: any) => {
+    const o: any = {}
+    if (user) {
+      const ks = Object.keys(user)
+      for (let i = 0; i < ks.length; i++) {
+        o[ks[i]] = user[ks[i]]
+      }
+    }
+    o.user = user || null
+    return o
+  }
   try {
     const response = await fetch(baseUrl + '/api/auth/session')
     if (response.ok) {
@@ -18,25 +37,25 @@ async function account_get_current(_config: unknown, context: Record<string, unk
         } catch (_e) {}
       }
 
-      return { user }
+      return __out(user)
     }
 
     if (typeof window !== 'undefined') {
       try {
         const cached = window.localStorage.getItem('teleport_auth_user')
         if (cached) {
-          return { user: JSON.parse(cached) }
+          return __out(JSON.parse(cached))
         }
       } catch (_e) {}
     }
 
-    return { user: null }
+    return __out(null)
   } catch (err: unknown) {
     if (typeof window !== 'undefined') {
       try {
         const fallback = window.localStorage.getItem('teleport_auth_user')
         if (fallback) {
-          return { user: JSON.parse(fallback) }
+          return __out(JSON.parse(fallback))
         }
       } catch (_e) {}
     }

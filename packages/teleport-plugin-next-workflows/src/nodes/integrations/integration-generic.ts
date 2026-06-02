@@ -29,11 +29,18 @@ const AUTH_FIELD_NAMES = [
  * Generic server integration for WorkflowNodeType entries that use IntegrationNodeConfig.
  * Serialized handler embeds nodeType (no closure — required for generateHandler() string output).
  */
-export function createGenericIntegration(nodeType: string): IntegrationHandlerGenerator {
+export function createGenericIntegration(
+  nodeType: string,
+  // Some providers (e.g. Linear, whose personal API keys are sent raw) do NOT
+  // use the `Bearer ` Authorization scheme. Pass 'raw' to send the token
+  // verbatim. Defaults to 'bearer'.
+  authScheme: 'bearer' | 'raw' = 'bearer'
+): IntegrationHandlerGenerator {
   const fnName = nodeType.replace(/-/g, '_')
   const ntLiteral = escapeForJsString(nodeType)
   const authFieldsLiteral = AUTH_FIELD_NAMES.map((f) => `'${f}'`).join(', ')
   const reservedLiteral = AUTH_FIELD_NAMES.map((f) => `${f}: true`).join(', ')
+  const authPrefixLiteral = authScheme === 'raw' ? "''" : "'Bearer '"
 
   return {
     nodeType,
@@ -113,7 +120,7 @@ export function createGenericIntegration(nodeType: string): IntegrationHandlerGe
     if (config[AUTH_FIELDS[ai]]) { tok = config[AUTH_FIELDS[ai]]; break; }
   }
   if (tok && !headers['Authorization'] && !headers['authorization']) {
-    headers['Authorization'] = 'Bearer ' + tok;
+    headers['Authorization'] = ${authPrefixLiteral} + tok;
   }
   var body = undefined;
   var reserved = { action: true, outputVariable: true, url: true, method: true, headers: true, body: true,
