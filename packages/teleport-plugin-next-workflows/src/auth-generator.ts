@@ -4,54 +4,14 @@ import {
   DataSourceType,
 } from '@teleporthq/teleport-types'
 
-const PROVIDER_IMPORT_MAP: Record<string, string> = {
-  google: 'Google',
-  github: 'GitHub',
-  facebook: 'Facebook',
-  auth0: 'Auth0',
-  apple: 'Apple',
-  azure: 'AzureAD',
-  discord: 'Discord',
-  dropbox: 'Dropbox',
-  gitlab: 'GitLab',
-  instagram: 'Instagram',
-  keycloak: 'Keycloak',
-  linkedin: 'LinkedIn',
-  okta: 'Okta',
-  reddit: 'Reddit',
-  slack: 'Slack',
-  spotify: 'Spotify',
-  twitch: 'Twitch',
-  twitter: 'Twitter',
-  zoom: 'Zoom',
-  cognito: 'Cognito',
-  battlenet: 'BattleNet',
-  box: 'Box',
-  bungie: 'Bungie',
-  coinbase: 'Coinbase',
-  figma: 'Figma',
-  foursquare: 'Foursquare',
-  freshbooks: 'Freshbooks',
-  fusionauth: 'FusionAuth',
-  hubspot: 'Hubspot',
-  kakao: 'Kakao',
-  line: 'Line',
-  mailchimp: 'Mailchimp',
-  notion: 'Notion',
-  osso: 'Osso',
-  osu: 'Osu',
-  patreon: 'Patreon',
-  pinterest: 'Pinterest',
-  pipedrive: 'Pipedrive',
-  salesforce: 'Salesforce',
-  strava: 'Strava',
-  tiktok: 'TikTok',
-  todoist: 'Todoist',
-  trakt: 'Trakt',
-  workos: 'WorkOS',
-  wordpress: 'WordPress',
-  yandex: 'Yandex',
-  zitadel: 'Zitadel',
+// GUI provider id → the actual next-auth v4 provider MODULE name, for the few
+// cases where they differ. Everything else uses the id as the module name.
+// (Providers next-auth v4 cannot supply are not offered by the GUI; if one
+// ever slips through, generateProvidersSetup skips it gracefully.)
+const PROVIDER_MODULE_OVERRIDES: Record<string, string> = {
+  boxyhq: 'boxyhq-saml',
+  duende: 'duende-identity-server6',
+  identityserver4: 'identity-server4',
 }
 
 export const getDatabaseDriverDependencies = (
@@ -536,74 +496,81 @@ async function userExistsByEmail() { return false; }`
   }
 }
 
+// Only the CredentialsProvider is imported at module scope (it always exists).
+// OAuth providers are required lazily inside generateProvidersSetup.
 const generateProviderImports = (auth: UIDLAuthentication): string => {
-  const lines: string[] = []
-
-  if (auth.passwordAuthEnabled) {
-    lines.push(
-      `const CredentialsProvider = require('next-auth/providers/credentials').default || require('next-auth/providers/credentials');`
-    )
+  if (!auth.passwordAuthEnabled) {
+    return ''
   }
-
-  for (const provider of auth.providers) {
-    const importName = PROVIDER_IMPORT_MAP[provider.id] || capitalize(provider.id)
-    lines.push(
-      `const ${importName}Provider = require('next-auth/providers/${provider.id}').default || require('next-auth/providers/${provider.id}');`
-    )
-  }
-
-  return lines.join('\n')
+  return `const CredentialsProvider = require('next-auth/providers/credentials').default || require('next-auth/providers/credentials');`
 }
 
-const generateProviderConfig = (auth: UIDLAuthentication): string => {
-  const providers: string[] = []
+// Builds the `providers` array imperatively. Each OAuth provider is required in
+// its own try/catch with a LOCAL binding, so:
+//  - there is never a `const <Name>Provider` whose name could be an invalid JS
+//    identifier (an id with a hyphen / leading digit would be a syntax error), and
+//  - a provider whose module is missing or renamed is SKIPPED instead of
+//    throwing at import time and taking down ALL authentication for the project
+//    (credentials login + every other provider).
+const generateProvidersSetup = (auth: UIDLAuthentication): string => {
+  const lines: string[] = ['const providers = [];']
 
   if (auth.passwordAuthEnabled) {
-    providers.push(`    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
-      },
-      async authorize(credentials) {
-        if (!credentials || !credentials.email || !credentials.password) {
-          return null;
-        }
-        try {
-          const { verifyPassword } = require('./hash-password');
-          const user = await findUserByEmail(String(credentials.email));
-          if (!user) return null;
-          if (!verifyPassword(String(credentials.password), user.password)) return null;
-          return sanitizeUser(user);
-        } catch (err) {
-          console.error('Authorize error:', err);
-          return null;
-        }
-      }
-    })`)
+    lines.push(`providers.push(CredentialsProvider({
+  name: 'Credentials',
+  credentials: {
+    email: { label: 'Email', type: 'email' },
+    password: { label: 'Password', type: 'password' }
+  },
+  async authorize(credentials) {
+    if (!credentials || !credentials.email || !credentials.password) {
+      return null;
+    }
+    try {
+      const { verifyPassword } = require('./hash-password');
+      const user = await findUserByEmail(String(credentials.email));
+      if (!user) return null;
+      if (!verifyPassword(String(credentials.password), user.password)) return null;
+      return sanitizeUser(user);
+    } catch (err) {
+      console.error('Authorize error:', err);
+      return null;
+    }
+  }
+}));`)
   }
 
-  for (const provider of auth.providers) {
-    const importName = PROVIDER_IMPORT_MAP[provider.id] || capitalize(provider.id)
+  auth.providers.forEach((provider, idx) => {
+    const moduleName = PROVIDER_MODULE_OVERRIDES[provider.id] || provider.id
     const credKeys = Object.keys(provider.credentials)
-    const idKey = credKeys.find((k) => k.endsWith('_ID'))
-    const secretKey = credKeys.find((k) => k.endsWith('_SECRET'))
+    const idKey = credKeys.find((k) => k.endsWith('_ID')) || `AUTH_${provider.id.toUpperCase()}_ID`
+    const secretKey =
+      credKeys.find((k) => k.endsWith('_SECRET')) || `AUTH_${provider.id.toUpperCase()}_SECRET`
     const issuerKey = credKeys.find(
       (k) => k.endsWith('_ISSUER') || k.endsWith('_DOMAIN') || k.endsWith('_TENANT_ID')
     )
 
-    let configStr = `      clientId: process.env.${
-      idKey || `AUTH_${provider.id.toUpperCase()}_ID`
-    },\n      clientSecret: process.env.${secretKey || `AUTH_${provider.id.toUpperCase()}_SECRET`}`
-
+    const cfg = [
+      `      clientId: process.env.${idKey}`,
+      `      clientSecret: process.env.${secretKey}`,
+    ]
     if (issuerKey) {
-      configStr += `,\n      issuer: process.env.${issuerKey}`
+      cfg.push(`      issuer: process.env.${issuerKey}`)
     }
 
-    providers.push(`    ${importName}Provider({\n${configStr}\n    })`)
-  }
+    lines.push(`try {
+  var __oauth${idx} = require('next-auth/providers/${moduleName}');
+  providers.push((__oauth${idx}.default || __oauth${idx})({
+${cfg.join(',\n')}
+  }));
+} catch (__oauthErr${idx}) {
+  console.error('OAuth provider "${
+    provider.id
+  }" is unavailable and was skipped:', __oauthErr${idx} && __oauthErr${idx}.message);
+}`)
+  })
 
-  return providers.join(',\n')
+  return lines.join('\n')
 }
 
 export const generateAuthOptionsFile = (
@@ -613,7 +580,7 @@ export const generateAuthOptionsFile = (
   const customProps = auth.customUserProperties || []
   const dbSetupCode = generateDbSetupCode(auth.dataSourceType, dataSourceConfig)
   const providerImports = generateProviderImports(auth)
-  const providerConfig = generateProviderConfig(auth)
+  const providersSetup = generateProvidersSetup(auth)
   const findUserCode = auth.passwordAuthEnabled
     ? generateFindUserFunction(auth.dataSourceType, customProps)
     : ''
@@ -626,10 +593,10 @@ ${sanitizeUserCode}
 
 ${findUserCode}
 
+${providersSetup}
+
 const authOptions = {
-  providers: [
-${providerConfig}
-  ],
+  providers: providers,
   pages: {
     signIn: '${signInRoute}',
   },
@@ -1103,11 +1070,4 @@ export default function AuthSessionProvider(props) {
   )
 }
 `
-}
-
-const capitalize = (str: string): string => {
-  if (!str) {
-    return str
-  }
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }
