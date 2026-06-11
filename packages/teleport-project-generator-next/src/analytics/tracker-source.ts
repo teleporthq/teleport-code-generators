@@ -168,9 +168,14 @@ function sendBatch(events, useBeacon) {
   const body = JSON.stringify({ events: events })
   const url = endpoint('/batch')
 
+  // text/plain is a CORS-safelisted content type, so the request skips the
+  // preflight. That preflight is what makes an application/json beacon fail on
+  // page unload (the browser can't complete OPTIONS while the page is dying),
+  // and it also doubles every normal batch into OPTIONS+POST. The server reads
+  // the JSON body regardless of this content type.
   if (useBeacon && typeof navigator !== 'undefined' && navigator.sendBeacon) {
     try {
-      const blob = new Blob([body], { type: 'application/json' })
+      const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' })
       return Promise.resolve(navigator.sendBeacon(url, blob))
     } catch (e) {
       /* fall through to fetch */
@@ -179,7 +184,7 @@ function sendBatch(events, useBeacon) {
 
   return fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: body,
     keepalive: true,
   })
@@ -301,10 +306,11 @@ function sendHeartbeat() {
     return
   }
 
-  // Heartbeats go direct (never queued) — a stale heartbeat is worthless
+  // Heartbeats go direct (never queued) — a stale heartbeat is worthless.
+  // text/plain keeps this preflight-free too (see sendBatch).
   fetch(endpoint('/heartbeat'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify({
       sessionId: sessionId,
       visitorId: visitorId,

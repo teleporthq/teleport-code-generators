@@ -1,3 +1,4 @@
+import { parse } from '@babel/parser'
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { NextAnalyticsProjectPlugin } from '../src/analytics/project-plugin'
 
@@ -63,6 +64,12 @@ describe('NextAnalyticsProjectPlugin', () => {
     expect(lib.files[0].content).toContain('sendBeacon')
     expect(lib.files[0].content).toContain("localStorage.getItem('cookieConsent')")
 
+    // Beacons/batches must use the CORS-safelisted text/plain content type so
+    // unload sends are preflight-free and survive a closing tab.
+    expect(lib.files[0].content).toContain('text/plain;charset=UTF-8')
+    expect(lib.files[0].content).not.toContain("type: 'application/json'")
+    expect(lib.files[0].content).not.toContain("'Content-Type': 'application/json'")
+
     const tracker = structure.files.get('teleport-analytics-tracker')
     expect(tracker.path).toEqual(['components', 'analytics'])
     expect(tracker.files[0].content).toContain('routeChangeComplete')
@@ -89,6 +96,23 @@ describe('NextAnalyticsProjectPlugin', () => {
     await plugin.runAfter(structure)
     const occurrences = appFile.content.split('<AnalyticsTracker />').length - 1
     expect(occurrences).toBe(1)
+  })
+
+  it('produces a still-parseable _app after the string surgery', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(true)
+
+    await plugin.runAfter(structure)
+
+    const appFile = structure.files.get('_app').files[0]
+    // The fragment wrap is raw string manipulation — guarantee it never emits
+    // invalid JSX that would silently blank the deployed app.
+    expect(() =>
+      parse(appFile.content, {
+        sourceType: 'module',
+        plugins: ['jsx'],
+      })
+    ).not.toThrow()
   })
 
   it('preserves env values already set by the GUI mapper', async () => {
