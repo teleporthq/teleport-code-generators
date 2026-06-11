@@ -1196,6 +1196,12 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
 
   const cmsNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
+  const cmsDataNodeIdAttr = (node.content as { attrs?: { dataNodeId?: { content?: string } } })
+    .attrs?.dataNodeId
+  if (cmsDataNodeIdAttr?.content) {
+    addAttributeToJSXTag(cmsNode, 'dataNodeId', cmsDataNodeIdAttr.content)
+  }
+
   if (node.type === 'cms-item') {
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
@@ -1371,6 +1377,13 @@ const generateDataSourceNode: NodeToJSX<
   }
 
   const dataSourceNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+
+  const dataSourceDataNodeIdAttr = (
+    node.content as { attrs?: { dataNodeId?: { content?: string } } }
+  ).attrs?.dataNodeId
+  if (dataSourceDataNodeIdAttr?.content) {
+    addAttributeToJSXTag(dataSourceNode, 'dataNodeId', dataSourceDataNodeIdAttr.content)
+  }
 
   dataSourceNode.openingElement.attributes.push(
     types.jsxAttribute(
