@@ -153,15 +153,23 @@ ${cases}
     imports.push('useEffect', 'useCallback')
   }
 
+  // Build the `currentUser` source. User-dependent fetches (and their
+  // `useEffect([currentUser])` deps) always reference `currentUser`, so it must
+  // be declared whenever `needsCurrentUser` is true — independently of auth.
   let globalContextImport = ''
-  if (needsCurrentUser && hasAuth) {
-    globalContextImport = `import { useGlobalContext } from './global-context'\n`
-  }
-
-  // Build currentUser destructure
   let currentUserLine = ''
-  if (needsCurrentUser && hasAuth) {
-    currentUserLine = `  const { currentUser } = useGlobalContext()\n`
+  if (needsCurrentUser) {
+    if (hasAuth) {
+      // Auth enabled — read the signed-in user from the global auth context.
+      globalContextImport = `import { useGlobalContext } from './global-context'\n`
+      currentUserLine = `  const { currentUser } = useGlobalContext()\n`
+    } else {
+      // No authentication in this project — there is no signed-in user and no
+      // global auth context to import from. Declare `currentUser` as null so the
+      // user-dependent fetch guards (`if (!currentUser) return`) cleanly no-op
+      // instead of throwing `ReferenceError: currentUser is not defined`.
+      currentUserLine = `  const currentUser = null\n`
+    }
   }
 
   return `import { ${imports.join(', ')} } from 'react'

@@ -126,3 +126,72 @@ describe('NextGlobalStateProjectPlugin — useState initial value normalization'
     expect(content).toContain('useState(true)')
   })
 })
+
+// Regression guard for "ReferenceError: currentUser is not defined" in the
+// generated global-state-context.js.
+//
+// User report: a project with the e-commerce favourites feature (a per-user
+// global state fetch — `fetchTeleportProductFavourites` with a
+// `{{Current User.id}}` query) but WITHOUT authentication enabled crashed at
+// runtime — `useEffect(() => { fetchTeleportProductFavourites() }, [currentUser])`
+// referenced `currentUser`, but the `const { currentUser } = useGlobalContext()`
+// declaration was only emitted when `needsCurrentUser && hasAuth`. With no auth,
+// the reference was emitted but never declared.
+//
+// The generator now always declares `currentUser` whenever a fetch is
+// user-dependent: from the global auth context when auth is on, or as a `null`
+// fallback when it's off (so the fetch's `if (!currentUser) return` guard
+// cleanly no-ops). This test pins both branches.
+
+const buildUserDependentUIDL = (hasAuth: boolean): ProjectUIDL =>
+  ({
+    name: 'fixture',
+    globals: {
+      settings: { language: 'en', title: 'fixture' },
+      meta: [],
+      assets: [],
+      manifest: { icons: [] },
+    },
+    root: {
+      name: 'App',
+      node: { type: 'element', content: { elementType: 'div' } },
+      stateDefinitions: { route: { type: 'string', defaultValue: '/' } },
+    },
+    ...(hasAuth ? { authentication: {} } : {}),
+    dataSources: {
+      ds1: { id: 'ds1', type: 'postgres', config: {} },
+    },
+    globalStateDefinitions: {
+      teleportProductFavourites: {
+        id: 'fav-id',
+        name: 'teleportProductFavourites',
+        type: 'array',
+        defaultValue: [],
+        dataSourceBinding: { dataSourceId: 'ds1', refPath: ['teleport_product_favourites'] },
+        query: "SELECT * FROM teleport_product_favourites WHERE user_id = '{{Current User.id}}'",
+      },
+    },
+  } as any)
+
+describe('NextGlobalStateProjectPlugin — currentUser declaration for user-dependent fetches', () => {
+  it('declares a null currentUser fallback when a user-dependent fetch exists but auth is disabled', async () => {
+    const content = await runPlugin(buildUserDependentUIDL(false))
+    expect(content).toBeDefined()
+    // The user-dependent effect references currentUser...
+    expect(content).toContain('}, [currentUser])')
+    // ...so currentUser MUST be declared — as a null fallback when there's no auth.
+    expect(content).toContain('const currentUser = null')
+    // No auth → must NOT import the (non-existent) global auth context...
+    expect(content).not.toContain("from './global-context'")
+    // ...nor destructure from it.
+    expect(content).not.toContain('const { currentUser } = useGlobalContext()')
+  })
+
+  it('reads currentUser from the global auth context when auth is enabled', async () => {
+    const content = await runPlugin(buildUserDependentUIDL(true))
+    expect(content).toContain("import { useGlobalContext } from './global-context'")
+    expect(content).toContain('const { currentUser } = useGlobalContext()')
+    expect(content).toContain('}, [currentUser])')
+    expect(content).not.toContain('const currentUser = null')
+  })
+})

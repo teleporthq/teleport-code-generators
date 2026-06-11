@@ -34,10 +34,18 @@ import {
 import { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
 import { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 import { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
+import { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
 import { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
+import { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
+import { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
+import { NextKanbanProjectPlugin } from './kanban/project-plugin'
+import {
+  createLocalComponentPathPlugin,
+  INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
+} from './local-component-path-plugin'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -69,9 +77,21 @@ const createNextProjectGenerator = () => {
   const globalStateComponentPlugin = createNextGlobalStateComponentPlugin()
   const globalStateProjectPlugin = new NextGlobalStateProjectPlugin()
   const aiChatProjectPlugin = new NextAIChatProjectPlugin()
+  const analyticsProjectPlugin = new NextAnalyticsProjectPlugin()
   const ecommerceProjectPlugin = new NextEcommerceProjectPlugin()
   const dashboardLayoutPlugin = new NextDashboardLayoutPlugin()
   const richTextEditorProjectPlugin = new NextRichTextEditorProjectPlugin()
+  const calendarKitProjectPlugin = new NextCalendarKitProjectPlugin()
+  const dragDropProjectPlugin = new NextDragDropProjectPlugin()
+  const kanbanProjectPlugin = new NextKanbanProjectPlugin()
+  const localPrimitivesPagePlugin = createLocalComponentPathPlugin({
+    basePath: ['pages'],
+    componentFiles: INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
+  })
+  const localPrimitivesComponentPlugin = createLocalComponentPathPlugin({
+    basePath: ['components'],
+    componentFiles: INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
+  })
   const richTextEditorPagePlugin = createRichTextEditorComponentPlugin({ basePath: ['pages'] })
   const richTextEditorComponentPlugin = createRichTextEditorComponentPlugin({
     basePath: ['components'],
@@ -92,6 +112,7 @@ const createNextProjectGenerator = () => {
         nextComponentWorkflowPlugin,
         globalStateComponentPlugin,
         richTextEditorComponentPlugin,
+        localPrimitivesComponentPlugin,
       ],
       mappings: [NextProjectMapping],
       path: ['components'],
@@ -114,6 +135,7 @@ const createNextProjectGenerator = () => {
         nextPageWorkflowPlugin,
         globalStateComponentPlugin,
         richTextEditorPagePlugin,
+        localPrimitivesPagePlugin,
         importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -164,8 +186,12 @@ const createNextProjectGenerator = () => {
   generator.addPlugin(ecommerceProjectPlugin)
   generator.addPlugin(globalStateProjectPlugin)
   generator.addPlugin(aiChatProjectPlugin)
+  generator.addPlugin(analyticsProjectPlugin)
   generator.addPlugin(dashboardLayoutPlugin)
   generator.addPlugin(richTextEditorProjectPlugin)
+  generator.addPlugin(calendarKitProjectPlugin)
+  generator.addPlugin(dragDropProjectPlugin)
+  generator.addPlugin(kanbanProjectPlugin)
 
   return generator
 }
@@ -174,10 +200,19 @@ export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
 export { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
 export { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
+export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
 export { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
+export { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
+export { CALENDARKIT_CSS, CALENDARKIT_VERSION } from './calendar/calendarkit-css'
+export { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
+export { NextKanbanProjectPlugin } from './kanban/project-plugin'
+export {
+  createLocalComponentPathPlugin,
+  INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
+} from './local-component-path-plugin'
 export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { NextDataSourceDependenciesPlugin } from './data-source-dependencies'

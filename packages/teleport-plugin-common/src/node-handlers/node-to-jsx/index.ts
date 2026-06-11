@@ -277,6 +277,75 @@ const wrapReactChartJs2Element = (
   )
 }
 
+const isCalendarKitScheduler = (
+  dependency: UIDLDependency | undefined,
+  elementType: string
+): boolean => {
+  return dependency?.path === 'calendarkit-basic' && elementType === 'BasicScheduler'
+}
+
+/**
+ * calendarkit-basic's BasicScheduler requires `start`/`end` to be Date objects
+ * (date-fns internals), but UIDL attrs carry them as ISO strings — both for
+ * static event arrays and for state-bound arrays populated by workflows.
+ * Rewrites `events={X}` into:
+ *   events={(Array.isArray(X) ? X : []).map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) }))}
+ * The Array.isArray guard renders zero events instead of crashing when a
+ * binding resolves to a non-array (e.g. an unparsed JSON-string fallback).
+ * A missing `events` attr is left as-is — the component defaults it to [].
+ */
+const wrapCalendarKitEventsAttr = (calendarElement: types.JSXElement): void => {
+  const attr = calendarElement.openingElement.attributes.find(
+    (a): a is types.JSXAttribute =>
+      a.type === 'JSXAttribute' && a.name.type === 'JSXIdentifier' && a.name.name === 'events'
+  )
+
+  if (!attr || attr.value?.type !== 'JSXExpressionContainer') {
+    return
+  }
+  const source = attr.value.expression
+  if (!types.isExpression(source)) {
+    return
+  }
+
+  // A static array literal needs no runtime guard; dynamic references do.
+  const guardedSource = types.isArrayExpression(source)
+    ? source
+    : types.conditionalExpression(
+        types.callExpression(
+          types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+          [source]
+        ),
+        types.cloneNode(source),
+        types.arrayExpression([])
+      )
+
+  const reviveEvent = types.arrowFunctionExpression(
+    [types.identifier('e')],
+    types.objectExpression([
+      types.spreadElement(types.identifier('e')),
+      types.objectProperty(
+        types.identifier('start'),
+        types.newExpression(types.identifier('Date'), [
+          types.memberExpression(types.identifier('e'), types.identifier('start')),
+        ])
+      ),
+      types.objectProperty(
+        types.identifier('end'),
+        types.newExpression(types.identifier('Date'), [
+          types.memberExpression(types.identifier('e'), types.identifier('end')),
+        ])
+      ),
+    ])
+  )
+
+  attr.value = types.jsxExpressionContainer(
+    types.callExpression(types.memberExpression(guardedSource, types.identifier('map')), [
+      reviveEvent,
+    ])
+  )
+}
+
 const reorderChildrenForSearch = (children: UIDLNode[]): UIDLNode[] => {
   const searchNodes: UIDLNode[] = []
   const dataProviderNodes: UIDLNode[] = []
@@ -658,6 +727,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     const wrapped = wrapReactChartJs2Element(elementTag, node)
     nodesLookup[key] = wrapped
     return wrapped
+  }
+
+  if (dependency && isCalendarKitScheduler(dependency, originalElementName)) {
+    wrapCalendarKitEventsAttr(elementTag)
   }
 
   nodesLookup[key] = elementTag

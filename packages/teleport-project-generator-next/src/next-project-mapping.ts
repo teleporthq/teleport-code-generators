@@ -76,6 +76,63 @@ export const NextProjectMapping: Mapping = {
         path: '../components/rich-text-editor',
       },
     },
+    'thq-drag-area': {
+      elementType: 'TqDragArea',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-drag-drop',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'thq-draggable': {
+      elementType: 'TqDraggable',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-drag-drop',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'thq-droppable': {
+      elementType: 'TqDroppable',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-drag-drop',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'thq-sortable': {
+      elementType: 'TqSortable',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-drag-drop',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'thq-sortable-item': {
+      elementType: 'TqSortableItem',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-drag-drop',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'kanban-node': {
+      elementType: 'TqKanban',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-kanban',
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
       dependency: {

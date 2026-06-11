@@ -3,111 +3,13 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
   UIDLElement,
-  UIDLNode,
 } from '@teleporthq/teleport-types'
+import { traverseProjectElements } from '../uidl-element-traversal'
 import { generateRichTextEditorComponentCode } from './component-generator'
 
 interface RichTextEditorUsageInfo {
   themes: Set<string>
   hasFormulaFormat: boolean
-}
-
-/**
- * Traverses a UIDL node tree and calls `fn` for every UIDLElement found.
- * Handles element nodes, conditionals, repeats, slots, CMS nodes, and
- * data-source nodes.
- */
-const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
-  if (!node || !node.type) {
-    return
-  }
-
-  switch (node.type) {
-    case 'element': {
-      const content = node.content as UIDLElement
-      fn(content)
-
-      if (content.children) {
-        for (const child of content.children) {
-          traverseElements(child, fn)
-        }
-      }
-
-      if (content.attrs) {
-        for (const attrKey of Object.keys(content.attrs)) {
-          const attrValue = content.attrs[attrKey]
-          if (attrValue.type === 'element') {
-            traverseElements(attrValue, fn)
-          }
-        }
-      }
-      break
-    }
-
-    case 'repeat':
-      traverseElements((node.content as any).node, fn)
-      break
-
-    case 'conditional':
-      traverseElements((node.content as any).node, fn)
-      if ((node.content as any).fallback) {
-        traverseElements((node.content as any).fallback, fn)
-      }
-      break
-
-    case 'slot':
-      if ((node.content as any).fallback) {
-        traverseElements((node.content as any).fallback, fn)
-      }
-      break
-
-    case 'cms-item':
-    case 'cms-list':
-    case 'cms-mixed-type':
-      if ((node.content as any).nodes?.success) {
-        traverseElements((node.content as any).nodes.success, fn)
-      }
-      if ((node.content as any).nodes?.error) {
-        traverseElements((node.content as any).nodes.error, fn)
-      }
-      if ((node.content as any).nodes?.loading) {
-        traverseElements((node.content as any).nodes.loading, fn)
-      }
-      break
-
-    case 'cms-list-repeater':
-      if ((node.content as any).nodes?.list) {
-        traverseElements((node.content as any).nodes.list, fn)
-      }
-      if ((node.content as any).nodes?.empty) {
-        traverseElements((node.content as any).nodes.empty, fn)
-      }
-      if ((node.content as any).nodes?.loading) {
-        traverseElements((node.content as any).nodes.loading, fn)
-      }
-      break
-
-    case 'data-source-item':
-    case 'data-source-list':
-      if ((node.content as any).nodes?.success) {
-        traverseElements((node.content as any).nodes.success, fn)
-      }
-      if ((node.content as any).nodes?.error) {
-        traverseElements((node.content as any).nodes.error, fn)
-      }
-      if ((node.content as any).nodes?.loading) {
-        traverseElements((node.content as any).nodes.loading, fn)
-      }
-      if ((node.content as any).children) {
-        for (const child of (node.content as any).children) {
-          traverseElements(child, fn)
-        }
-      }
-      break
-
-    default:
-      break
-  }
 }
 
 /**
@@ -157,20 +59,7 @@ const detectRichTextEditorUsage = (
     }
   }
 
-  // Scan root component
-  if (uidl.root?.node) {
-    traverseElements(uidl.root.node, scanElement)
-  }
-
-  // Scan all components (pages are part of the components map)
-  if (uidl.components) {
-    for (const componentName of Object.keys(uidl.components)) {
-      const component = uidl.components[componentName]
-      if (component?.node) {
-        traverseElements(component.node, scanElement)
-      }
-    }
-  }
+  traverseProjectElements(uidl, scanElement)
 
   if (!found) {
     return null
