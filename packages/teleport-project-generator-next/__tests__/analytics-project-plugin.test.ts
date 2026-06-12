@@ -70,6 +70,16 @@ describe('NextAnalyticsProjectPlugin', () => {
     expect(lib.files[0].content).not.toContain("type: 'application/json'")
     expect(lib.files[0].content).not.toContain("'Content-Type': 'application/json'")
 
+    // Fail safe: if the deploy leaves an unresolved placeholder / non-absolute
+    // URL in the build-time vars, the tracker must self-disable rather than
+    // beacon the host site's own origin.
+    expect(lib.files[0].content).toContain("SERVER_URL.indexOf('http') !== 0")
+    expect(lib.files[0].content).toContain("PUBLIC_KEY.indexOf('teleporthq.secrets.') === 0")
+
+    // Heartbeat cadence is 30s (kept in sync with the analytics-worker's 90s
+    // realtime window). Don't regress to a chattier interval.
+    expect(lib.files[0].content).toContain('HEARTBEAT_INTERVAL_MS = 30000')
+
     const tracker = structure.files.get('teleport-analytics-tracker')
     expect(tracker.path).toEqual(['components', 'analytics'])
     expect(tracker.files[0].content).toContain('routeChangeComplete')

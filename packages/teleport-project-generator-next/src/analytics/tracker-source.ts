@@ -12,7 +12,7 @@ export const TRACKER_SOURCE = `/* TeleportHQ first-party analytics tracker. Anon
 const SERVER_URL = process.env.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY
 
-const HEARTBEAT_INTERVAL_MS = 15000
+const HEARTBEAT_INTERVAL_MS = 30000
 const FLUSH_INTERVAL_MS = 5000
 const FLUSH_AT_QUEUE_SIZE = 10
 const MAX_BATCH = 25
@@ -63,6 +63,14 @@ function isTrackingPossible() {
     return false
   }
   if (!SERVER_URL || !PUBLIC_KEY) {
+    return false
+  }
+  // Fail safe: a misconfigured deploy can leave the unresolved
+  // "teleporthq.secrets.*" placeholder (or any non-absolute value) baked into
+  // these build-time vars. Never fire requests at a non-absolute URL — that
+  // would point every beacon at the host site's own origin instead of the
+  // analytics API.
+  if (SERVER_URL.indexOf('http') !== 0 || PUBLIC_KEY.indexOf('teleporthq.secrets.') === 0) {
     return false
   }
   const host = window.location.hostname
