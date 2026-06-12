@@ -1,0 +1,145 @@
+/**
+ * Regenerates packages/teleport-project-generator-next/src/calendar/calendarkit-css.ts
+ *
+ * calendarkit-basic publishes its components styled with raw Tailwind utility
+ * classes and an UNCOMPILED dist/styles.css (it still contains `@tailwind`
+ * directives). Generated projects do not run Tailwind, so we precompile the
+ * exact utility set the library needs and ship it as a static CSS string.
+ *
+ * The output is assembled from:
+ *  1. the :root / .dark CSS-variable blocks from the library's styles.css
+ *  2. the library's custom utility classes (.glass, .gradient-header, ...)
+ *     unwrapped from their `@layer utilities` block
+ *  3. Tailwind utilities compiled against the library's dist bundle with
+ *     preflight DISABLED (no global resets may leak into generated sites)
+ *
+ * The library's global rules (`*`, `body`, `::selection`, scrollbar styling,
+ * `:focus-visible`) are intentionally dropped for the same reason.
+ *
+ * Usage: node scripts/generate-calendarkit-css.mjs
+ * Re-run whenever CALENDARKIT_VERSION changes, then commit the result.
+ */
+import { execSync } from 'child_process'
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const CALENDARKIT_VERSION = '1.1.0'
+const TAILWIND_VERSION = '3.4.17'
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
+const outFile = join(
+  repoRoot,
+  'packages/teleport-project-generator-next/src/calendar/calendarkit-css.ts'
+)
+
+const TAILWIND_CONFIG = `
+const themeColor = (variable) => \`hsl(var(\${variable}) / <alpha-value>)\`
+
+module.exports = {
+  darkMode: 'class',
+  content: ['./node_modules/calendarkit-basic/dist/*.js'],
+  corePlugins: { preflight: false },
+  theme: {
+    extend: {
+      colors: {
+        background: themeColor('--background'),
+        foreground: themeColor('--foreground'),
+        card: { DEFAULT: themeColor('--card'), foreground: themeColor('--card-foreground') },
+        primary: { DEFAULT: themeColor('--primary'), foreground: themeColor('--primary-foreground') },
+        secondary: { DEFAULT: themeColor('--secondary'), foreground: themeColor('--secondary-foreground') },
+        muted: { DEFAULT: themeColor('--muted'), foreground: themeColor('--muted-foreground') },
+        accent: { DEFAULT: themeColor('--accent'), foreground: themeColor('--accent-foreground') },
+        destructive: { DEFAULT: themeColor('--destructive'), foreground: themeColor('--destructive-foreground') },
+        border: themeColor('--border'),
+        ring: themeColor('--ring'),
+      },
+    },
+  },
+}
+`
+
+const extractBlock = (css, selector) => {
+  const start = css.indexOf(selector + '{')
+  if (start === -1) {
+    return ''
+  }
+  let depth = 0
+  for (let i = start + selector.length; i < css.length; i++) {
+    if (css[i] === '{') {
+      depth++
+    }
+    if (css[i] === '}') {
+      depth--
+      if (depth === 0) {
+        return css.slice(start, i + 1)
+      }
+    }
+  }
+  return ''
+}
+
+const workDir = mkdtempSync(join(tmpdir(), 'calendarkit-css-'))
+try {
+  console.log(`Working in ${workDir}`)
+  execSync('npm init -y', { cwd: workDir, stdio: 'pipe' })
+  execSync(
+    `npm install --no-save --silent calendarkit-basic@${CALENDARKIT_VERSION} tailwindcss@${TAILWIND_VERSION}`,
+    { cwd: workDir, stdio: 'inherit' }
+  )
+
+  writeFileSync(join(workDir, 'tailwind.config.js'), TAILWIND_CONFIG)
+  writeFileSync(join(workDir, 'input.css'), '@tailwind utilities;\n')
+  execSync('npx tailwindcss -c tailwind.config.js -i input.css -o utilities.css --minify', {
+    cwd: workDir,
+    stdio: 'inherit',
+  })
+
+  const librarySource = readFileSync(
+    join(workDir, 'node_modules/calendarkit-basic/dist/styles.css'),
+    'utf8'
+  )
+  const rootVars = extractBlock(librarySource, ':root')
+  const darkVars = extractBlock(librarySource, '.dark')
+  const layerBlock = extractBlock(librarySource, '@layer utilities')
+  const customUtilities = layerBlock.replace(/^@layer utilities\{/, '').replace(/\}$/, '')
+  const compiledUtilities = readFileSync(join(workDir, 'utilities.css'), 'utf8').trim()
+
+  if (!rootVars || !darkVars) {
+    throw new Error('Failed to extract :root/.dark variable blocks from calendarkit styles.css')
+  }
+  if (!compiledUtilities || compiledUtilities.includes('@tailwind')) {
+    throw new Error('Tailwind compilation produced no output or left directives behind')
+  }
+
+  const css = [
+    `/* CalendarKit (calendarkit-basic@${CALENDARKIT_VERSION}) theme variables */`,
+    rootVars,
+    darkVars,
+    '/* CalendarKit custom utility classes */',
+    customUtilities,
+    `/* Tailwind utilities precompiled for calendarkit-basic@${CALENDARKIT_VERSION} (preflight disabled) */`,
+    compiledUtilities,
+  ].join('\n')
+
+  if (/(^|\})\*\{/.test(css) || /(^|\})body\{/.test(css)) {
+    throw new Error('Global reset rules leaked into the generated CSS')
+  }
+
+  const moduleSource = [
+    `// AUTO-GENERATED by scripts/generate-calendarkit-css.mjs — do not edit by hand.`,
+    `// Precompiled stylesheet for calendarkit-basic@${CALENDARKIT_VERSION} (Tailwind ${TAILWIND_VERSION}, preflight disabled).`,
+    `// Regenerate with: node scripts/generate-calendarkit-css.mjs`,
+    ``,
+    `export const CALENDARKIT_VERSION = '${CALENDARKIT_VERSION}'`,
+    ``,
+    `export const CALENDARKIT_CSS = ${JSON.stringify(css)}`,
+    ``,
+  ].join('\n')
+
+  writeFileSync(outFile, moduleSource)
+  console.log(`Wrote ${outFile} (${css.length} bytes of CSS)`)
+} finally {
+  rmSync(workDir, { recursive: true, force: true })
+}

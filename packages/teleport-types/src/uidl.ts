@@ -247,6 +247,11 @@ export interface ProjectUIDL {
   invoiceSettings?: UIDLInvoiceSettings
   ecommerceSettings?: UIDLEcommerceSettings
   aiAssistantChat?: UIDLAIAssistantChat
+  analytics?: UIDLAnalytics
+}
+
+export interface UIDLAnalytics {
+  enabled: boolean
 }
 
 export interface UIDLAIAssistantChatAuthProtection {
