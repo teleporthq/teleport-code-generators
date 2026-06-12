@@ -171,6 +171,24 @@ describe('Validate UIDL', () => {
       //         is a DecoderError`
       // )
     })
+
+    // The decoder rebuilds the UIDL from its declared keys, so any plugin-only
+    // top-level field MUST be declared or it is silently stripped before the
+    // generator plugins run. `analytics` gates the growth tracker injection —
+    // if this drops, no published project ever sends analytics events.
+    it('preserves the top-level `analytics` flag through validateProjectSchema', () => {
+      const validator = new Validator()
+      const withAnalytics = {
+        ...(projectUidlSample as Record<string, unknown>),
+        analytics: { enabled: true },
+      }
+
+      const { projectUIDL } = validator.validateProjectSchema(withAnalytics)
+
+      expect((projectUIDL as { analytics?: { enabled?: boolean } }).analytics).toEqual({
+        enabled: true,
+      })
+    })
   })
 
   describe('Project UIDL Content', () => {

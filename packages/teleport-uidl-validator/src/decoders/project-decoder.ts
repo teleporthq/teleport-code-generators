@@ -113,4 +113,8 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   invoiceSettings: optional(anyJson()),
   ecommerceSettings: optional(anyJson()),
   aiAssistantChat: optional(anyJson()),
+  // Growth visitor analytics flag (`{ enabled: true }`). Consumed by
+  // NextAnalyticsProjectPlugin to inject the first-party tracker; must be
+  // declared here or the decoder strips it and the tracker is never injected.
+  analytics: optional(anyJson()),
 }) as Decoder<VProjectUIDL>

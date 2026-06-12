@@ -37,6 +37,7 @@ import {
   NextEcommerceProjectPlugin,
   NextGlobalStateProjectPlugin,
   NextAIChatProjectPlugin,
+  NextAnalyticsProjectPlugin,
   NextDashboardLayoutPlugin,
 } from '@teleporthq/teleport-project-generator-next'
 import {
@@ -194,6 +195,11 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(new NextEcommerceProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextGlobalStateProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextAIChatProjectPlugin())
+    // Growth analytics tracker. Self-gates on `uidl.analytics?.enabled`, so it
+    // is a no-op unless the project has analytics turned on. Must live here
+    // (not only in createNextProjectGenerator) because packProject calls
+    // cleanPlugins() and rebuilds the NEXT plugin list from scratch.
+    projectGeneratorFactory.addPlugin(new NextAnalyticsProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextDashboardLayoutPlugin())
     projectGeneratorFactory.addPlugin(new NextRichTextEditorProjectPlugin())
   }
