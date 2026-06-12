@@ -209,6 +209,8 @@ export { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 export { CALENDARKIT_CSS, CALENDARKIT_VERSION } from './calendar/calendarkit-css'
 export { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
 export { NextKanbanProjectPlugin } from './kanban/project-plugin'
+export { generateDragDropComponentCode } from './drag-drop/component-generator'
+export { generateKanbanComponentCode } from './kanban/component-generator'
 export {
   createLocalComponentPathPlugin,
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,

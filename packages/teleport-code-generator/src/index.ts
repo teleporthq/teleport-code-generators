@@ -39,6 +39,9 @@ import {
   NextAIChatProjectPlugin,
   NextAnalyticsProjectPlugin,
   NextDashboardLayoutPlugin,
+  NextCalendarKitProjectPlugin,
+  NextDragDropProjectPlugin,
+  NextKanbanProjectPlugin,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -202,6 +205,16 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(new NextAnalyticsProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextDashboardLayoutPlugin())
     projectGeneratorFactory.addPlugin(new NextRichTextEditorProjectPlugin())
+    // Interactive-library primitives (calendar / drag-and-drop / kanban). Like
+    // the plugins above, these must be re-added here because packProject runs
+    // cleanPlugins() and rebuilds the NEXT project-plugin list from scratch —
+    // the registrations in createNextProjectGenerator are wiped. Without these,
+    // the wrapper component files, the calendarkit stylesheet, the React-18
+    // bump and the .npmrc are never emitted, so the generated project fails to
+    // install/build ("Module not found: '../components/tq-kanban'", ERESOLVE).
+    projectGeneratorFactory.addPlugin(new NextCalendarKitProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextDragDropProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextKanbanProjectPlugin())
   }
 
   if (projectType === ProjectType.NUXT) {
