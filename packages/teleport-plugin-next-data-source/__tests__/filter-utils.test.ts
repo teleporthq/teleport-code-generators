@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 import generator from '@babel/generator'
-import { appendFiltersParam, buildFiltersStringifyCall } from '../src/filter-utils'
+import {
+  appendFiltersParam,
+  buildFiltersStringifyCall,
+  pushStateIdsAsDeps,
+  pushPropIdsAsDeps,
+} from '../src/filter-utils'
 
 // Mimics `buildFilterDestinationExpression` from pagination-plugin for the
 // shapes that matter here — static literal, state ref, and url-search-params
@@ -144,6 +149,43 @@ describe('filter-utils', () => {
       const b: types.ObjectProperty[] = []
       appendFiltersParam(b, [], fakeDestinationBuilder)
       expect(b).toHaveLength(0)
+    })
+  })
+
+  // Regression for `ReferenceError: <prop> is not defined` during prerender:
+  // a prop-bound filter destination resolves to `props.<id>` on the VALUE side,
+  // so its useMemo dependency MUST be the same `props.<id>` member expression,
+  // never a bare identifier (props are not destructured into component scope).
+  describe('useMemo dependency builders', () => {
+    it('pushStateIdsAsDeps emits bare identifiers for state ids', () => {
+      const deps: types.Expression[] = []
+      pushStateIdsAsDeps(deps, new Set<string>(), ['selectedCategory'])
+      expect(deps).toHaveLength(1)
+      expect(deps[0].type).toBe('Identifier')
+      expect(codeOf(deps[0])).toBe('selectedCategory')
+    })
+
+    it('pushPropIdsAsDeps emits `props.<id>` member expressions, never bare identifiers', () => {
+      const deps: types.Expression[] = []
+      pushPropIdsAsDeps(deps, new Set<string>(), ['tourFilterCode'])
+      expect(deps).toHaveLength(1)
+      expect(deps[0].type).toBe('MemberExpression')
+      expect(codeOf(deps[0])).toBe('props.tourFilterCode')
+    })
+
+    it('dedupes within each builder', () => {
+      const deps: types.Expression[] = []
+      const seen = new Set<string>()
+      pushPropIdsAsDeps(deps, seen, ['tourFilterCode', 'tourFilterCode'])
+      expect(deps).toHaveLength(1)
+    })
+
+    it('a prop and a same-named state both survive a shared seen set (distinct scopes)', () => {
+      const deps: types.Expression[] = []
+      const seen = new Set<string>()
+      pushStateIdsAsDeps(deps, seen, ['code'])
+      pushPropIdsAsDeps(deps, seen, ['code'])
+      expect(deps.map(codeOf)).toEqual(['code', 'props.code'])
     })
   })
 })
