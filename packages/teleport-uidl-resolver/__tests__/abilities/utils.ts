@@ -10,7 +10,12 @@ import {
   linkTypePropDefinitions,
   linkTypePropDynamicReference,
 } from './mocks'
-import { UIDLDynamicReference, UIDLElementNode, UIDLURLLinkNode } from '@teleporthq/teleport-types'
+import {
+  UIDLDynamicReference,
+  UIDLElementNode,
+  UIDLExpressionValue,
+  UIDLURLLinkNode,
+} from '@teleporthq/teleport-types'
 
 describe('insertLink', () => {
   it('wraps a simple element', () => {
@@ -200,12 +205,13 @@ describe('insertLink with link-type prop', () => {
     // The wrapper should be a link (maps to <a> by default, <Link> in Next.js via project mapping)
     expect(result.content.elementType).toBe('prop-link')
 
-    // url should reference the prop's url field via refPath
-    const url = result.content.attrs.url as UIDLDynamicReference
-    expect(url.type).toBe('dynamic')
-    expect(url.content.referenceType).toBe('prop')
-    expect(url.content.id).toBe('cardLink')
-    expect(url.content.refPath).toEqual(['url'])
+    // url is resolved tolerantly: a link prop can be bound to a plain string
+    // (e.g. an Airtable URL column) instead of a `{ url, newTab }` object, so we
+    // use the string directly when it is one and fall back to `.url` otherwise.
+    const url = result.content.attrs.url as UIDLExpressionValue
+    expect(url.type).toBe('expr')
+    expect(url.content).toContain(`typeof props.cardLink === 'string'`)
+    expect(url.content).toContain(`props.cardLink?.['url']`)
 
     // target and rel should be expr ternaries for newTab
     expect(result.content.attrs.target.type).toBe('expr')
@@ -228,9 +234,10 @@ describe('insertLink with link-type prop', () => {
     expect(result.content.elementType).toBe('prop-link')
     expect(result.content.semanticType).toBe('')
 
-    const url = result.content.attrs.url as UIDLDynamicReference
-    expect(url.content.id).toBe('cardLink')
-    expect(url.content.refPath).toEqual(['url'])
+    const url = result.content.attrs.url as UIDLExpressionValue
+    expect(url.type).toBe('expr')
+    expect(url.content).toContain(`typeof props.cardLink === 'string'`)
+    expect(url.content).toContain(`props.cardLink?.['url']`)
   })
 
   it('replaces a text span element inline with link for link-type prop', () => {
@@ -243,9 +250,10 @@ describe('insertLink with link-type prop', () => {
     expect(result.content.elementType).toBe('prop-link')
     expect(result.content.semanticType).toBe('')
 
-    const url = result.content.attrs.url as UIDLDynamicReference
-    expect(url.content.id).toBe('cardLink')
-    expect(url.content.refPath).toEqual(['url'])
+    const url = result.content.attrs.url as UIDLExpressionValue
+    expect(url.type).toBe('expr')
+    expect(url.content).toContain(`typeof props.cardLink === 'string'`)
+    expect(url.content).toContain(`props.cardLink?.['url']`)
   })
 
   it('falls back to existing dynamic link behavior when prop is not link-type', () => {
