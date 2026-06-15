@@ -1,5 +1,9 @@
 import { UIDLConditionalNode, UIDLStateDefinition } from '@teleporthq/teleport-types'
-import { conditionalNodeDecoder, stateDefinitionsDecoder } from '../../src/decoders/utils'
+import {
+  conditionalNodeDecoder,
+  stateDefinitionsDecoder,
+  cmsListRepeaterNodeDecoder,
+} from '../../src/decoders/utils'
 
 test('decode conditional nodes properly when using dynamic and expression reference', () => {
   const node: UIDLConditionalNode = {
@@ -118,4 +122,42 @@ test('stateDefinitionsDecoder rejects urlSearchParamBinding that is missing the 
 
   const result = stateDefinitionsDecoder.run(state)
   expect(result.ok).toBeFalsy()
+})
+
+// Same strict-`object(...)` stripping risk as `urlSearchParamBinding` above:
+// the products-list search-keyword URL sync and combined-sort feature both add
+// new fields to the cms-list-repeater. If they aren't listed in the decoder,
+// `validateProjectSchema` silently drops them and the data-source plugin never
+// emits the URL read-back / write-back or the split sort — the page falls back
+// to an unsynced search input and an unsorted grid.
+test('cmsListRepeaterNodeDecoder preserves searchUrlParamKey, searchDefaultValue and combined-sort exprs', () => {
+  const node = {
+    type: 'cms-list-repeater',
+    content: {
+      elementType: 'cms-list-repeater',
+      renderPropIdentifier: 'productsData',
+      nodes: { list: { type: 'element', content: { elementType: 'container' } } },
+      paginated: true,
+      perPage: 20,
+      searchEnabled: true,
+      searchDebounce: 300,
+      searchDefaultValue: { type: 'static', content: 'shoes' },
+      searchUrlParamKey: 'searchKeyword',
+      sort: { type: 'expr', content: 'sortBy.split("-")[0] || \'\'' },
+      sortDirection: { type: 'expr', content: 'sortBy.split("-")[1] || \'\'' },
+    },
+  }
+
+  const result = cmsListRepeaterNodeDecoder.run(node)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const content = result.result.content as Record<string, unknown>
+    expect(content.searchUrlParamKey).toBe('searchKeyword')
+    expect(content.searchDefaultValue).toEqual({ type: 'static', content: 'shoes' })
+    expect(content.sort).toEqual({ type: 'expr', content: 'sortBy.split("-")[0] || \'\'' })
+    expect(content.sortDirection).toEqual({
+      type: 'expr',
+      content: 'sortBy.split("-")[1] || \'\'',
+    })
+  }
 })

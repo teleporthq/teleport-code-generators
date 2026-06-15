@@ -1,5 +1,6 @@
 import {
   UIDLAuthentication,
+  UIDLAuthProvider,
   UIDLCustomUserProperty,
   DataSourceType,
 } from '@teleporthq/teleport-types'
@@ -12,6 +13,33 @@ const PROVIDER_MODULE_OVERRIDES: Record<string, string> = {
   boxyhq: 'boxyhq-saml',
   duende: 'duende-identity-server6',
   identityserver4: 'identity-server4',
+}
+
+// OAuth providers that guarantee a verified email address. For these we enable
+// `allowDangerousEmailAccountLinking` so a person who first signed up with
+// email/password (or another of these providers) and then signs in with this
+// provider using the SAME email is linked to the existing `users` row instead
+// of hitting NextAuth's `OAuthAccountNotLinked` error. Restricted to
+// email-verifying providers because linking-by-email on a provider that does
+// NOT verify the address is an account-takeover vector. Trivial to edit.
+const TRUSTED_EMAIL_VERIFYING_PROVIDERS = new Set<string>([
+  'google',
+  'apple',
+  'facebook',
+  'github',
+  'gitlab',
+  'azure-ad',
+  'azure-ad-b2c',
+  'discord',
+  'linkedin',
+])
+
+// Extra OAuth `authorization.params` emitted per provider. `access_type:
+// 'offline'` makes Google (and Google-style providers) return a refresh_token
+// on first consent so the short-lived access token can be rotated server-side
+// (see the generated auth-refresh.js + the jwt callback).
+const PROVIDER_AUTHORIZATION_PARAMS: Record<string, Record<string, string>> = {
+  google: { access_type: 'offline' },
 }
 
 export const getDatabaseDriverDependencies = (
@@ -184,12 +212,32 @@ const generateSanitizeUserFunction = (): string => {
   // \`String(rawId)\` would silently turn an integer PK into "1" and make
   // runtime comparisons against a DB-fetched \`user.id\` (still a number
   // on pages that read the row via \`getStaticProps\`) always false.
-  return `function sanitizeUser(user) {
+  //
+  // SENSITIVE_USER_FIELDS are stripped before a user row ever reaches the
+  // client session: the password hash plus every OAuth token column. The
+  // single \`users\` table holds the provider linkage + tokens (see the
+  // adapter), so without this strip the access/refresh tokens would be
+  // serialized into /api/auth/session. \`provider\` itself is harmless and
+  // kept (useful for "you signed in with Google" UI).
+  return `var SENSITIVE_USER_FIELDS = {
+  password: 1,
+  _id: 1,
+  access_token: 1,
+  refresh_token: 1,
+  id_token: 1,
+  session_state: 1,
+  expires_at: 1,
+  token_type: 1,
+  scope: 1,
+  provider_account_id: 1,
+  provider_type: 1
+};
+function sanitizeUser(user) {
   if (!user) return null;
   const safe = {};
   const keys = Object.keys(user);
   for (let i = 0; i < keys.length; i++) {
-    if (keys[i] !== 'password' && keys[i] !== '_id') {
+    if (!SENSITIVE_USER_FIELDS[keys[i]]) {
       safe[keys[i]] = user[keys[i]];
     }
   }
@@ -496,6 +544,617 @@ async function userExistsByEmail() { return false; }`
   }
 }
 
+// Maps a raw DB user row (snake_case, dialect-specific id) into the shape
+// NextAuth's adapter contract expects (camelCase, string id, Date
+// emailVerified). DB-agnostic — the same function works for every dialect.
+const generateToAdapterUserFunction = (): string => {
+  return `function toAdapterUser(row) {
+  if (!row) return null;
+  var rawId = row.id != null ? row.id : row._id;
+  var ev = row.email_verified != null ? row.email_verified : (row.emailVerified != null ? row.emailVerified : null);
+  return {
+    id: rawId != null ? String(rawId) : undefined,
+    name: row.name != null ? row.name : null,
+    email: row.email != null ? row.email : null,
+    image: row.image != null ? row.image : null,
+    emailVerified: ev != null ? new Date(ev) : null,
+    role: row.role != null ? row.role : undefined,
+    provider: row.provider != null ? row.provider : null
+  };
+}`
+}
+
+// OAuth/adapter data-access helpers, backed by the SAME single \`users\`
+// table the credentials flow uses. The provider linkage + tokens live in
+// columns ON the user row (no child \`accounts\` table) — see linkAccount,
+// which is an UPDATE rather than an INSERT into a 1:N table. One OAuth
+// provider linkage is retained per user (sufficient for sign-in; the
+// adapter resolves the same user by email via auto-link when a second
+// provider is used). All token columns are stripped from the client
+// session by sanitizeUser.
+const generateOAuthDbHelpers = (dataSourceType: DataSourceType | null): string => {
+  switch (dataSourceType) {
+    case 'teleport':
+    case 'postgresql':
+    case 'cockroachdb':
+      return `async function oauthGetUserById(id) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('SELECT * FROM users WHERE provider = $1 AND provider_account_id = $2 LIMIT 1', [provider, String(providerAccountId)]);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthCreateUser(profile) {
+  // Insert only the columns the provider gave us so the table defaults
+  // (role, image placeholder, unsubscribe flags) apply; password stays null.
+  const cols = ['name', 'email'];
+  const vals = [profile.name != null ? profile.name : null, profile.email != null ? profile.email : null];
+  if (profile.emailVerified != null) { cols.push('email_verified'); vals.push(profile.emailVerified); }
+  if (profile.image != null) { cols.push('image'); vals.push(profile.image); }
+  const placeholders = vals.map(function (_v, i) { return '$' + (i + 1); });
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('INSERT INTO users (' + cols.join(', ') + ') VALUES (' + placeholders.join(', ') + ') RETURNING *', vals);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthUpdateUser(id, partial) {
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const cols = [];
+  const vals = [];
+  Object.keys(map).forEach(function (k) {
+    if (partial[k] !== undefined) { cols.push(map[k]); vals.push(partial[k]); }
+  });
+  if (cols.length === 0) return await oauthGetUserById(id);
+  const sets = cols.map(function (c, i) { return c + ' = $' + (i + 1); });
+  vals.push(id);
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('UPDATE users SET ' + sets.join(', ') + ' WHERE id = $' + vals.length + ' RETURNING *', vals);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthLinkAccount(account) {
+  // Store the provider linkage + tokens on the user row. Never null out
+  // password/name/role. The provider verified the email, so mark it.
+  const client = getClient();
+  try {
+    await client.connect();
+    await client.query(
+      'UPDATE users SET provider = $1, provider_account_id = $2, provider_type = $3, access_token = $4, refresh_token = $5, expires_at = $6, id_token = $7, scope = $8, session_state = $9, token_type = $10, email_verified = COALESCE(email_verified, NOW()) WHERE id = $11',
+      [account.provider, String(account.providerAccountId), account.type || null, account.access_token || null, account.refresh_token || null, account.expires_at != null ? account.expires_at : null, account.id_token || null, account.scope || null, account.session_state || null, account.token_type || null, account.userId]
+    );
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const cols = [];
+  const vals = [];
+  if (tokens.access_token !== undefined) { cols.push('access_token'); vals.push(tokens.access_token); }
+  if (tokens.refresh_token !== undefined) { cols.push('refresh_token'); vals.push(tokens.refresh_token); }
+  if (tokens.expires_at !== undefined) { cols.push('expires_at'); vals.push(tokens.expires_at); }
+  if (cols.length === 0) return;
+  const sets = cols.map(function (c, i) { return c + ' = $' + (i + 1); });
+  vals.push(id);
+  const client = getClient();
+  try {
+    await client.connect();
+    await client.query('UPDATE users SET ' + sets.join(', ') + ' WHERE id = $' + vals.length, vals);
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function oauthGetTokensByUserId(id) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('SELECT access_token, refresh_token, expires_at, provider FROM users WHERE id = $1 LIMIT 1', [id]);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}`
+    case 'supabase':
+      return `async function oauthGetUserById(id) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').select('*').eq('id', id).single();
+  return result.data || null;
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const client = getSupabaseClient();
+  const result = await client.from('users').select('*').eq('provider', provider).eq('provider_account_id', String(providerAccountId)).single();
+  return result.data || null;
+}
+
+async function oauthCreateUser(profile) {
+  const client = getSupabaseClient();
+  const insertData = { name: profile.name != null ? profile.name : null, email: profile.email != null ? profile.email : null };
+  if (profile.emailVerified != null) insertData.email_verified = profile.emailVerified;
+  if (profile.image != null) insertData.image = profile.image;
+  const result = await client.from('users').insert(insertData).select().single();
+  return result.data || null;
+}
+
+async function oauthUpdateUser(id, partial) {
+  const client = getSupabaseClient();
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const updateData = {};
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) updateData[map[k]] = partial[k]; });
+  if (Object.keys(updateData).length === 0) return await oauthGetUserById(id);
+  const result = await client.from('users').update(updateData).eq('id', id).select().single();
+  return result.data || null;
+}
+
+async function oauthLinkAccount(account) {
+  const client = getSupabaseClient();
+  const updateData = {
+    provider: account.provider,
+    provider_account_id: String(account.providerAccountId),
+    provider_type: account.type || null,
+    access_token: account.access_token || null,
+    refresh_token: account.refresh_token || null,
+    expires_at: account.expires_at != null ? account.expires_at : null,
+    id_token: account.id_token || null,
+    scope: account.scope || null,
+    session_state: account.session_state || null,
+    token_type: account.token_type || null
+  };
+  const existing = await oauthGetUserById(account.userId);
+  if (existing && existing.email_verified == null) updateData.email_verified = new Date().toISOString();
+  await client.from('users').update(updateData).eq('id', account.userId);
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const client = getSupabaseClient();
+  const updateData = {};
+  if (tokens.access_token !== undefined) updateData.access_token = tokens.access_token;
+  if (tokens.refresh_token !== undefined) updateData.refresh_token = tokens.refresh_token;
+  if (tokens.expires_at !== undefined) updateData.expires_at = tokens.expires_at;
+  if (Object.keys(updateData).length === 0) return;
+  await client.from('users').update(updateData).eq('id', id);
+}
+
+async function oauthGetTokensByUserId(id) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').select('access_token, refresh_token, expires_at, provider').eq('id', id).single();
+  return result.data || null;
+}`
+    case 'mysql':
+    case 'mariadb':
+    case 'tidb':
+      return `async function oauthGetUserById(id) {
+  const conn = await getConnection();
+  try {
+    const [rows] = await conn.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const conn = await getConnection();
+  try {
+    const [rows] = await conn.execute('SELECT * FROM users WHERE provider = ? AND provider_account_id = ? LIMIT 1', [provider, String(providerAccountId)]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthCreateUser(profile) {
+  const cols = ['name', 'email'];
+  const vals = [profile.name != null ? profile.name : null, profile.email != null ? profile.email : null];
+  if (profile.emailVerified != null) { cols.push('email_verified'); vals.push(profile.emailVerified); }
+  if (profile.image != null) { cols.push('image'); vals.push(profile.image); }
+  const conn = await getConnection();
+  try {
+    await conn.execute('INSERT INTO users (' + cols.join(', ') + ') VALUES (' + cols.map(function () { return '?'; }).join(', ') + ')', vals);
+    const [rows] = await conn.execute('SELECT * FROM users WHERE email = ? LIMIT 1', [profile.email]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthUpdateUser(id, partial) {
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const cols = [];
+  const vals = [];
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) { cols.push(map[k]); vals.push(partial[k]); } });
+  const conn = await getConnection();
+  try {
+    if (cols.length > 0) {
+      vals.push(id);
+      await conn.execute('UPDATE users SET ' + cols.map(function (c) { return c + ' = ?'; }).join(', ') + ' WHERE id = ?', vals);
+    }
+    const [rows] = await conn.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthLinkAccount(account) {
+  const conn = await getConnection();
+  try {
+    await conn.execute(
+      'UPDATE users SET provider = ?, provider_account_id = ?, provider_type = ?, access_token = ?, refresh_token = ?, expires_at = ?, id_token = ?, scope = ?, session_state = ?, token_type = ?, email_verified = COALESCE(email_verified, NOW()) WHERE id = ?',
+      [account.provider, String(account.providerAccountId), account.type || null, account.access_token || null, account.refresh_token || null, account.expires_at != null ? account.expires_at : null, account.id_token || null, account.scope || null, account.session_state || null, account.token_type || null, account.userId]
+    );
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const cols = [];
+  const vals = [];
+  if (tokens.access_token !== undefined) { cols.push('access_token'); vals.push(tokens.access_token); }
+  if (tokens.refresh_token !== undefined) { cols.push('refresh_token'); vals.push(tokens.refresh_token); }
+  if (tokens.expires_at !== undefined) { cols.push('expires_at'); vals.push(tokens.expires_at); }
+  if (cols.length === 0) return;
+  vals.push(id);
+  const conn = await getConnection();
+  try {
+    await conn.execute('UPDATE users SET ' + cols.map(function (c) { return c + ' = ?'; }).join(', ') + ' WHERE id = ?', vals);
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function oauthGetTokensByUserId(id) {
+  const conn = await getConnection();
+  try {
+    const [rows] = await conn.execute('SELECT access_token, refresh_token, expires_at, provider FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}`
+    case 'turso':
+      return `async function oauthGetUserById(id) {
+  const result = await tursoClient.execute({ sql: 'SELECT * FROM users WHERE id = ? LIMIT 1', args: [id] });
+  return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const result = await tursoClient.execute({ sql: 'SELECT * FROM users WHERE provider = ? AND provider_account_id = ? LIMIT 1', args: [provider, String(providerAccountId)] });
+  return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+}
+
+async function oauthCreateUser(profile) {
+  const cols = ['name', 'email'];
+  const vals = [profile.name != null ? profile.name : null, profile.email != null ? profile.email : null];
+  if (profile.emailVerified != null) { cols.push('email_verified'); vals.push(profile.emailVerified); }
+  if (profile.image != null) { cols.push('image'); vals.push(profile.image); }
+  await tursoClient.execute({ sql: 'INSERT INTO users (' + cols.join(', ') + ') VALUES (' + cols.map(function () { return '?'; }).join(', ') + ')', args: vals });
+  const fetched = await tursoClient.execute({ sql: 'SELECT * FROM users WHERE email = ? LIMIT 1', args: [profile.email] });
+  return fetched.rows && fetched.rows.length > 0 ? fetched.rows[0] : null;
+}
+
+async function oauthUpdateUser(id, partial) {
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const cols = [];
+  const vals = [];
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) { cols.push(map[k]); vals.push(partial[k]); } });
+  if (cols.length > 0) {
+    vals.push(id);
+    await tursoClient.execute({ sql: 'UPDATE users SET ' + cols.map(function (c) { return c + ' = ?'; }).join(', ') + ' WHERE id = ?', args: vals });
+  }
+  return await oauthGetUserById(id);
+}
+
+async function oauthLinkAccount(account) {
+  await tursoClient.execute({
+    sql: 'UPDATE users SET provider = ?, provider_account_id = ?, provider_type = ?, access_token = ?, refresh_token = ?, expires_at = ?, id_token = ?, scope = ?, session_state = ?, token_type = ?, email_verified = COALESCE(email_verified, CURRENT_TIMESTAMP) WHERE id = ?',
+    args: [account.provider, String(account.providerAccountId), account.type || null, account.access_token || null, account.refresh_token || null, account.expires_at != null ? account.expires_at : null, account.id_token || null, account.scope || null, account.session_state || null, account.token_type || null, account.userId]
+  });
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const cols = [];
+  const vals = [];
+  if (tokens.access_token !== undefined) { cols.push('access_token'); vals.push(tokens.access_token); }
+  if (tokens.refresh_token !== undefined) { cols.push('refresh_token'); vals.push(tokens.refresh_token); }
+  if (tokens.expires_at !== undefined) { cols.push('expires_at'); vals.push(tokens.expires_at); }
+  if (cols.length === 0) return;
+  vals.push(id);
+  await tursoClient.execute({ sql: 'UPDATE users SET ' + cols.map(function (c) { return c + ' = ?'; }).join(', ') + ' WHERE id = ?', args: vals });
+}
+
+async function oauthGetTokensByUserId(id) {
+  const result = await tursoClient.execute({ sql: 'SELECT access_token, refresh_token, expires_at, provider FROM users WHERE id = ? LIMIT 1', args: [id] });
+  return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+}`
+    case 'mongodb':
+      return `function toMongoId(id) {
+  try {
+    const ObjectId = require('mongodb').ObjectId;
+    return new ObjectId(String(id));
+  } catch (_e) {
+    return id;
+  }
+}
+
+async function oauthGetUserById(id) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const user = await db.collection('users').findOne({ _id: toMongoId(id) });
+  if (user && user._id != null) user.id = user._id.toString();
+  return user;
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const user = await db.collection('users').findOne({ provider: provider, provider_account_id: String(providerAccountId) });
+  if (user && user._id != null) user.id = user._id.toString();
+  return user;
+}
+
+async function oauthCreateUser(profile) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const doc = {
+    name: profile.name != null ? profile.name : null,
+    email: profile.email != null ? profile.email : null,
+    email_verified: profile.emailVerified != null ? profile.emailVerified : null,
+    image: profile.image != null ? profile.image : null,
+    role: 'user'
+  };
+  const result = await db.collection('users').insertOne(doc);
+  return Object.assign({}, doc, { id: result.insertedId.toString() });
+}
+
+async function oauthUpdateUser(id, partial) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const set = {};
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) set[map[k]] = partial[k]; });
+  if (Object.keys(set).length > 0) {
+    await db.collection('users').updateOne({ _id: toMongoId(id) }, { $set: set });
+  }
+  return await oauthGetUserById(id);
+}
+
+async function oauthLinkAccount(account) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const set = {
+    provider: account.provider,
+    provider_account_id: String(account.providerAccountId),
+    provider_type: account.type || null,
+    access_token: account.access_token || null,
+    refresh_token: account.refresh_token || null,
+    expires_at: account.expires_at != null ? account.expires_at : null,
+    id_token: account.id_token || null,
+    scope: account.scope || null,
+    session_state: account.session_state || null,
+    token_type: account.token_type || null
+  };
+  const existing = await db.collection('users').findOne({ _id: toMongoId(account.userId) }, { projection: { email_verified: 1 } });
+  if (!existing || existing.email_verified == null) set.email_verified = new Date();
+  await db.collection('users').updateOne({ _id: toMongoId(account.userId) }, { $set: set });
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const set = {};
+  if (tokens.access_token !== undefined) set.access_token = tokens.access_token;
+  if (tokens.refresh_token !== undefined) set.refresh_token = tokens.refresh_token;
+  if (tokens.expires_at !== undefined) set.expires_at = tokens.expires_at;
+  if (Object.keys(set).length === 0) return;
+  await db.collection('users').updateOne({ _id: toMongoId(id) }, { $set: set });
+}
+
+async function oauthGetTokensByUserId(id) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  return await db.collection('users').findOne({ _id: toMongoId(id) }, { projection: { access_token: 1, refresh_token: 1, expires_at: 1, provider: 1 } });
+}`
+    case 'firestore':
+      return `async function oauthGetUserById(id) {
+  const doc = await firestoreDb.collection('users').doc(String(id)).get();
+  if (!doc.exists) return null;
+  return Object.assign({ id: doc.id }, doc.data());
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  const snapshot = await firestoreDb.collection('users').where('provider', '==', provider).where('provider_account_id', '==', String(providerAccountId)).limit(1).get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return Object.assign({ id: doc.id }, doc.data());
+}
+
+async function oauthCreateUser(profile) {
+  const doc = {
+    name: profile.name != null ? profile.name : null,
+    email: profile.email != null ? profile.email : null,
+    email_verified: profile.emailVerified != null ? profile.emailVerified : null,
+    image: profile.image != null ? profile.image : null,
+    role: 'user'
+  };
+  const ref = await firestoreDb.collection('users').add(doc);
+  return Object.assign({}, doc, { id: ref.id });
+}
+
+async function oauthUpdateUser(id, partial) {
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const set = {};
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) set[map[k]] = partial[k]; });
+  if (Object.keys(set).length > 0) {
+    await firestoreDb.collection('users').doc(String(id)).update(set);
+  }
+  return await oauthGetUserById(id);
+}
+
+async function oauthLinkAccount(account) {
+  const set = {
+    provider: account.provider,
+    provider_account_id: String(account.providerAccountId),
+    provider_type: account.type || null,
+    access_token: account.access_token || null,
+    refresh_token: account.refresh_token || null,
+    expires_at: account.expires_at != null ? account.expires_at : null,
+    id_token: account.id_token || null,
+    scope: account.scope || null,
+    session_state: account.session_state || null,
+    token_type: account.token_type || null
+  };
+  const existing = await oauthGetUserById(account.userId);
+  if (!existing || existing.email_verified == null) set.email_verified = new Date();
+  await firestoreDb.collection('users').doc(String(account.userId)).update(set);
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const set = {};
+  if (tokens.access_token !== undefined) set.access_token = tokens.access_token;
+  if (tokens.refresh_token !== undefined) set.refresh_token = tokens.refresh_token;
+  if (tokens.expires_at !== undefined) set.expires_at = tokens.expires_at;
+  if (Object.keys(set).length === 0) return;
+  await firestoreDb.collection('users').doc(String(id)).update(set);
+}
+
+async function oauthGetTokensByUserId(id) {
+  return await oauthGetUserById(id);
+}`
+    case 'airtable':
+      return `async function oauthGetUserById(id) {
+  return new Promise(function (resolve, reject) {
+    airtableBase('users').find(String(id), function (err, record) {
+      if (err) { resolve(null); return; }
+      resolve(Object.assign({ id: record.id }, record.fields));
+    });
+  });
+}
+
+async function oauthGetUserByAccount(provider, providerAccountId) {
+  if (!provider || providerAccountId == null) return null;
+  return new Promise(function (resolve, reject) {
+    airtableBase('users').select({
+      filterByFormula: 'AND({provider} = "' + String(provider).replace(/"/g, '\\\\"') + '", {provider_account_id} = "' + String(providerAccountId).replace(/"/g, '\\\\"') + '")',
+      maxRecords: 1
+    }).firstPage(function (err, records) {
+      if (err) { reject(err); return; }
+      if (!records || records.length === 0) { resolve(null); return; }
+      const rec = records[0];
+      resolve(Object.assign({ id: rec.id }, rec.fields));
+    });
+  });
+}
+
+async function oauthCreateUser(profile) {
+  return new Promise(function (resolve, reject) {
+    const fields = { name: profile.name || '', email: profile.email || '', role: 'user' };
+    if (profile.emailVerified != null) fields.email_verified = String(profile.emailVerified);
+    if (profile.image != null) fields.image = profile.image;
+    airtableBase('users').create([{ fields: fields }], function (err, records) {
+      if (err) { reject(err); return; }
+      const rec = records[0];
+      resolve(Object.assign({ id: rec.id }, rec.fields));
+    });
+  });
+}
+
+async function oauthUpdateUser(id, partial) {
+  const map = { name: 'name', email: 'email', emailVerified: 'email_verified', image: 'image' };
+  const fields = {};
+  Object.keys(map).forEach(function (k) { if (partial[k] !== undefined) fields[map[k]] = partial[k]; });
+  if (Object.keys(fields).length === 0) return await oauthGetUserById(id);
+  return new Promise(function (resolve, reject) {
+    airtableBase('users').update([{ id: String(id), fields: fields }], function (err, records) {
+      if (err) { reject(err); return; }
+      const rec = records[0];
+      resolve(Object.assign({ id: rec.id }, rec.fields));
+    });
+  });
+}
+
+async function oauthLinkAccount(account) {
+  const fields = {
+    provider: account.provider,
+    provider_account_id: String(account.providerAccountId),
+    provider_type: account.type || '',
+    access_token: account.access_token || '',
+    refresh_token: account.refresh_token || '',
+    expires_at: account.expires_at != null ? account.expires_at : null,
+    id_token: account.id_token || '',
+    scope: account.scope || '',
+    session_state: account.session_state || '',
+    token_type: account.token_type || ''
+  };
+  return new Promise(function (resolve, reject) {
+    airtableBase('users').update([{ id: String(account.userId), fields: fields }], function (err) {
+      if (err) { reject(err); return; }
+      resolve();
+    });
+  });
+}
+
+async function oauthUpdateTokens(id, tokens) {
+  const fields = {};
+  if (tokens.access_token !== undefined) fields.access_token = tokens.access_token || '';
+  if (tokens.refresh_token !== undefined) fields.refresh_token = tokens.refresh_token || '';
+  if (tokens.expires_at !== undefined) fields.expires_at = tokens.expires_at;
+  if (Object.keys(fields).length === 0) return;
+  return new Promise(function (resolve, reject) {
+    airtableBase('users').update([{ id: String(id), fields: fields }], function (err) {
+      if (err) { reject(err); return; }
+      resolve();
+    });
+  });
+}
+
+async function oauthGetTokensByUserId(id) {
+  return await oauthGetUserById(id);
+}`
+    default:
+      return `async function oauthGetUserById() { return null; }
+async function oauthGetUserByAccount() { return null; }
+async function oauthCreateUser() { return null; }
+async function oauthUpdateUser() { return null; }
+async function oauthLinkAccount() { return; }
+async function oauthUpdateTokens() { return; }
+async function oauthGetTokensByUserId() { return null; }`
+  }
+}
+
 // Only the CredentialsProvider is imported at module scope (it always exists).
 // OAuth providers are required lazily inside generateProvidersSetup.
 const generateProviderImports = (auth: UIDLAuthentication): string => {
@@ -503,6 +1162,22 @@ const generateProviderImports = (auth: UIDLAuthentication): string => {
     return ''
   }
   return `const CredentialsProvider = require('next-auth/providers/credentials').default || require('next-auth/providers/credentials');`
+}
+
+// Resolves the env-var names that hold a provider's client id / secret /
+// issuer. Shared by the provider setup AND the refresh-token env map so both
+// reference identical keys.
+const getProviderEnvKeys = (
+  provider: UIDLAuthProvider
+): { idKey: string; secretKey: string; issuerKey?: string } => {
+  const credKeys = Object.keys(provider.credentials)
+  const idKey = credKeys.find((k) => k.endsWith('_ID')) || `AUTH_${provider.id.toUpperCase()}_ID`
+  const secretKey =
+    credKeys.find((k) => k.endsWith('_SECRET')) || `AUTH_${provider.id.toUpperCase()}_SECRET`
+  const issuerKey = credKeys.find(
+    (k) => k.endsWith('_ISSUER') || k.endsWith('_DOMAIN') || k.endsWith('_TENANT_ID')
+  )
+  return { idKey, secretKey, issuerKey }
 }
 
 // Builds the `providers` array imperatively. Each OAuth provider is required in
@@ -542,13 +1217,7 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
 
   auth.providers.forEach((provider, idx) => {
     const moduleName = PROVIDER_MODULE_OVERRIDES[provider.id] || provider.id
-    const credKeys = Object.keys(provider.credentials)
-    const idKey = credKeys.find((k) => k.endsWith('_ID')) || `AUTH_${provider.id.toUpperCase()}_ID`
-    const secretKey =
-      credKeys.find((k) => k.endsWith('_SECRET')) || `AUTH_${provider.id.toUpperCase()}_SECRET`
-    const issuerKey = credKeys.find(
-      (k) => k.endsWith('_ISSUER') || k.endsWith('_DOMAIN') || k.endsWith('_TENANT_ID')
-    )
+    const { idKey, secretKey, issuerKey } = getProviderEnvKeys(provider)
 
     const cfg = [
       `      clientId: process.env.${idKey}`,
@@ -556,6 +1225,19 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
     ]
     if (issuerKey) {
       cfg.push(`      issuer: process.env.${issuerKey}`)
+    }
+
+    const authParams = PROVIDER_AUTHORIZATION_PARAMS[provider.id]
+    if (authParams) {
+      const paramsStr = Object.entries(authParams)
+        .map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`)
+        .join(', ')
+      cfg.push(`      authorization: { params: { ${paramsStr} } }`)
+    }
+    // Auto-link by verified email for trusted providers so the same email
+    // across credentials + this provider resolves to one user row.
+    if (TRUSTED_EMAIL_VERIFYING_PROVIDERS.has(provider.id)) {
+      cfg.push(`      allowDangerousEmailAccountLinking: true`)
     }
 
     lines.push(`try {
@@ -573,35 +1255,291 @@ ${cfg.join(',\n')}
   return lines.join('\n')
 }
 
-export const generateAuthOptionsFile = (
+// Emits utils/auth/auth-db.js — the single data-access module shared by the
+// credentials flow, the OAuth adapter, and the jwt callback. Extracting it
+// keeps an acyclic require graph: auth-db (leaf) <- auth-adapter <-
+// auth-options; auth-refresh (leaf) <- auth-options.
+export const generateAuthDbFile = (
   auth: UIDLAuthentication,
   dataSourceConfig?: Record<string, unknown> | null
 ): string => {
   const customProps = auth.customUserProperties || []
+  const needsOAuthPersistence = auth.providers.length > 0 && !!auth.dataSourceType
   const dbSetupCode = generateDbSetupCode(auth.dataSourceType, dataSourceConfig)
-  const providerImports = generateProviderImports(auth)
-  const providersSetup = generateProvidersSetup(auth)
-  const findUserCode = auth.passwordAuthEnabled
-    ? generateFindUserFunction(auth.dataSourceType, customProps)
-    : ''
   const sanitizeUserCode = generateSanitizeUserFunction()
-  const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
+  const findUserCode = generateFindUserFunction(auth.dataSourceType, customProps)
+  const oauthCode = needsOAuthPersistence
+    ? `\n${generateToAdapterUserFunction()}\n\n${generateOAuthDbHelpers(auth.dataSourceType)}\n`
+    : ''
 
-  return `${providerImports}
-${dbSetupCode}
+  const exportEntries = [
+    'sanitizeUser: sanitizeUser',
+    'findUserByEmail: findUserByEmail',
+    'createUser: createUser',
+    'userExistsByEmail: userExistsByEmail',
+  ]
+  if (needsOAuthPersistence) {
+    exportEntries.push(
+      'toAdapterUser: toAdapterUser',
+      'oauthGetUserById: oauthGetUserById',
+      'oauthGetUserByAccount: oauthGetUserByAccount',
+      'oauthCreateUser: oauthCreateUser',
+      'oauthUpdateUser: oauthUpdateUser',
+      'oauthLinkAccount: oauthLinkAccount',
+      'oauthUpdateTokens: oauthUpdateTokens',
+      'oauthGetTokensByUserId: oauthGetTokensByUserId'
+    )
+  }
+
+  return `${dbSetupCode}
 ${sanitizeUserCode}
 
 ${findUserCode}
+${oauthCode}
+module.exports = {
+  ${exportEntries.join(',\n  ')}
+};
+`
+}
 
-${providersSetup}
+// Emits utils/auth/auth-adapter.js — a custom NextAuth adapter backed solely by
+// the `users` table (no `accounts`/`sessions` tables). Generated only when
+// OAuth providers and a data source are configured.
+export const generateAuthAdapterFile = (): string => {
+  return `const authDb = require('./auth-db');
 
-const authOptions = {
-  providers: providers,
-  pages: {
-    signIn: '${signInRoute}',
-  },
-  callbacks: {
-    async jwt(params) {
+// Custom NextAuth Adapter over a single \`users\` table. NextAuth does not
+// require an \`accounts\`/\`sessions\` table — only this set of functions. OAuth
+// provider linkage + tokens live in columns on the user row (linkAccount is an
+// UPDATE, not an INSERT into a child table). Trade-off: one provider linkage
+// per user — sufficient for sign-in, and combined with
+// allowDangerousEmailAccountLinking the same email always resolves to one row.
+// The session/verification-token methods are never invoked under the JWT
+// session strategy (and no email provider is configured); they are safe no-ops
+// to satisfy the adapter contract.
+function createAuthAdapter() {
+  return {
+    async createUser(user) {
+      const row = await authDb.oauthCreateUser({
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        image: user.image
+      });
+      return authDb.toAdapterUser(row);
+    },
+    async getUser(id) {
+      const row = await authDb.oauthGetUserById(id);
+      return authDb.toAdapterUser(row);
+    },
+    async getUserByEmail(email) {
+      if (!email) return null;
+      const row = await authDb.findUserByEmail(String(email));
+      return authDb.toAdapterUser(row);
+    },
+    async getUserByAccount(params) {
+      const row = await authDb.oauthGetUserByAccount(params.provider, params.providerAccountId);
+      return authDb.toAdapterUser(row);
+    },
+    async updateUser(user) {
+      const row = await authDb.oauthUpdateUser(user.id, user);
+      return authDb.toAdapterUser(row);
+    },
+    async linkAccount(account) {
+      await authDb.oauthLinkAccount(account);
+      return account;
+    },
+    async unlinkAccount() { return; },
+    async createSession(session) { return session; },
+    async getSessionAndUser() { return null; },
+    async updateSession() { return null; },
+    async deleteSession() { return; },
+    async createVerificationToken(token) { return token; },
+    async useVerificationToken() { return null; },
+    async deleteUser() { return; }
+  };
+}
+
+module.exports = createAuthAdapter;
+`
+}
+
+// Emits utils/auth/auth-refresh.js — OAuth refresh-token rotation. Pure (no DB
+// or adapter deps) so it is a leaf of the require graph. Generated only when
+// OAuth providers + a data source are configured.
+export const generateAuthRefreshFile = (): string => {
+  return `// Token endpoints for refresh-token rotation. Only providers with a stable,
+// well-known token endpoint are listed; others skip refresh (the rolling
+// session JWT keeps the user logged in regardless of provider-token expiry).
+const OAUTH_TOKEN_ENDPOINTS = {
+  google: 'https://oauth2.googleapis.com/token',
+  github: 'https://github.com/login/oauth/access_token',
+  gitlab: 'https://gitlab.com/oauth/token',
+  facebook: 'https://graph.facebook.com/v18.0/oauth/access_token',
+  discord: 'https://discord.com/api/oauth2/token',
+  spotify: 'https://accounts.spotify.com/api/token',
+  twitch: 'https://id.twitch.tv/oauth2/token',
+  reddit: 'https://www.reddit.com/api/v1/access_token',
+  linkedin: 'https://www.linkedin.com/oauth/v2/accessToken',
+  slack: 'https://slack.com/api/oauth.v2.access'
+};
+
+// Exchange a refresh token for a fresh access token. Returns
+// { access_token, expires_at (absolute UNIX seconds), refresh_token? } or null.
+// NEVER throws — the caller keeps the user signed in regardless of the result.
+async function refreshAccessToken(provider, refreshToken, clientId, clientSecret) {
+  try {
+    const endpoint = OAUTH_TOKEN_ENDPOINTS[provider];
+    if (!endpoint || !refreshToken) return null;
+    const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+    const body = new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken });
+    if (clientId) body.set('client_id', clientId);
+    if (clientSecret) body.set('client_secret', clientSecret);
+    const res = await fetchFn(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: body.toString()
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.access_token) return null;
+    const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : parseInt(data.expires_in, 10);
+    return {
+      access_token: data.access_token,
+      expires_at: !isNaN(expiresIn) ? Math.floor(Date.now() / 1000) + expiresIn : undefined,
+      refresh_token: data.refresh_token || undefined
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { refreshAccessToken: refreshAccessToken, OAUTH_TOKEN_ENDPOINTS: OAUTH_TOKEN_ENDPOINTS };
+`
+}
+
+export const generateAuthOptionsFile = (
+  auth: UIDLAuthentication,
+  // dataSourceConfig is consumed by generateAuthDbFile (the DB setup now lives
+  // in auth-db.js); kept here so the public call signature stays stable.
+  _dataSourceConfig?: Record<string, unknown> | null
+): string => {
+  const needsOAuthPersistence = auth.providers.length > 0 && !!auth.dataSourceType
+  const providerImports = generateProviderImports(auth)
+  const providersSetup = generateProvidersSetup(auth)
+  const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
+
+  const requireLines = [
+    `const authDb = require('./auth-db');`,
+    `const sanitizeUser = authDb.sanitizeUser;`,
+    `const findUserByEmail = authDb.findUserByEmail;`,
+  ]
+  if (needsOAuthPersistence) {
+    requireLines.push(
+      `const createAuthAdapter = require('./auth-adapter');`,
+      `const refreshAccessToken = require('./auth-refresh').refreshAccessToken;`,
+      `const oauthUpdateTokens = authDb.oauthUpdateTokens;`,
+      `const oauthGetTokensByUserId = authDb.oauthGetTokensByUserId;`
+    )
+  }
+
+  let providerEnvMap = ''
+  if (needsOAuthPersistence) {
+    const entries = auth.providers.map((p) => {
+      const { idKey, secretKey } = getProviderEnvKeys(p)
+      return `  ${JSON.stringify(p.id)}: { id: ${JSON.stringify(idKey)}, secret: ${JSON.stringify(
+        secretKey
+      )} }`
+    })
+    providerEnvMap = `\nconst OAUTH_PROVIDER_ENV = {\n${entries.join(',\n')}\n};\n`
+  }
+
+  const jwtCallback = needsOAuthPersistence
+    ? `    async jwt(params) {
+      const token = params.token;
+      const user = params.user;
+      const account = params.account;
+      if (user) {
+        // Sign-in: seed the token from the freshly-authorized user.
+        const keys = Object.keys(user);
+        for (let i = 0; i < keys.length; i++) {
+          token[keys[i]] = user[keys[i]];
+        }
+        if (token.id == null && token.sub != null) token.id = token.sub;
+        // OAuth sign-in: capture provider tokens for refresh rotation and keep
+        // the persisted row fresh (NextAuth only calls linkAccount on the FIRST
+        // link). Credentials sign-in has no \`account\`. Best-effort.
+        if (account && account.provider && account.type !== 'credentials') {
+          token.provider = account.provider;
+          if (account.access_token !== undefined) token.access_token = account.access_token;
+          if (account.refresh_token !== undefined) token.refresh_token = account.refresh_token;
+          if (account.expires_at != null) token.expires_at = account.expires_at;
+          try {
+            if (token.id != null) {
+              await oauthUpdateTokens(token.id, {
+                access_token: account.access_token,
+                refresh_token: account.refresh_token,
+                expires_at: account.expires_at
+              });
+            }
+          } catch (e) {}
+        }
+        return token;
+      }
+      // Subsequent calls: re-read the user so profile edits propagate into the
+      // session. sanitizeUser strips the token columns, so they never enter the
+      // token from this DB read — tokens live in the token only via the capture
+      // above and the refresh below.
+      try {
+        if (token && token.email) {
+          const fresh = await findUserByEmail(String(token.email));
+          const safe = fresh ? sanitizeUser(fresh) : null;
+          if (safe && typeof safe === 'object') {
+            const fk = Object.keys(safe);
+            for (let i = 0; i < fk.length; i++) {
+              token[fk[i]] = safe[fk[i]];
+            }
+          }
+        }
+      } catch (e) {
+        // Keep the existing token on any DB hiccup — never sign the user out.
+      }
+      if (token.id == null && token.sub != null) token.id = token.sub;
+      // OAuth access-token refresh rotation: only when expired AND a refresh
+      // token is available. Failure NEVER signs the user out — the rolling
+      // session JWT is the source of truth for being logged in.
+      try {
+        if (token.provider && token.expires_at && Math.floor(Date.now() / 1000) >= Number(token.expires_at)) {
+          let refreshToken = token.refresh_token;
+          if (!refreshToken && token.id != null) {
+            const stored = await oauthGetTokensByUserId(token.id);
+            if (stored && stored.refresh_token) refreshToken = stored.refresh_token;
+          }
+          if (refreshToken) {
+            const envKeys = OAUTH_PROVIDER_ENV[token.provider];
+            const clientId = envKeys && envKeys.id ? process.env[envKeys.id] : undefined;
+            const clientSecret = envKeys && envKeys.secret ? process.env[envKeys.secret] : undefined;
+            const refreshed = await refreshAccessToken(token.provider, refreshToken, clientId, clientSecret);
+            if (refreshed && refreshed.access_token) {
+              token.access_token = refreshed.access_token;
+              if (refreshed.expires_at != null) token.expires_at = refreshed.expires_at;
+              if (refreshed.refresh_token) token.refresh_token = refreshed.refresh_token;
+              if (token.id != null) {
+                try {
+                  await oauthUpdateTokens(token.id, {
+                    access_token: token.access_token,
+                    refresh_token: token.refresh_token,
+                    expires_at: token.expires_at
+                  });
+                } catch (e) {}
+              }
+            }
+          }
+        }
+      } catch (e) {}
+      return token;
+    },`
+    : `    async jwt(params) {
       const token = params.token;
       const user = params.user;
       if (user) {
@@ -632,12 +1570,31 @@ const authOptions = {
         // Keep the existing token on any DB hiccup — never sign the user out.
       }
       return token;
-    },
+    },`
+
+  const sessionSkip = needsOAuthPersistence
+    ? `{ iat: 1, exp: 1, jti: 1, sub: 1, access_token: 1, refresh_token: 1, expires_at: 1, id_token: 1, session_state: 1, token_type: 1, scope: 1, provider_account_id: 1, provider_type: 1 }`
+    : `{ iat: 1, exp: 1, jti: 1, sub: 1 }`
+
+  const adapterLine = needsOAuthPersistence ? `  adapter: createAuthAdapter(),\n` : ''
+
+  return `${providerImports}
+${requireLines.join('\n')}
+${providerEnvMap}
+${providersSetup}
+
+const authOptions = {
+${adapterLine}  providers: providers,
+  pages: {
+    signIn: '${signInRoute}',
+  },
+  callbacks: {
+${jwtCallback}
     async session(params) {
       const session = params.session;
       const token = params.token;
       if (token && session.user) {
-        const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
+        const skip = ${sessionSkip};
         const keys = Object.keys(token);
         for (let i = 0; i < keys.length; i++) {
           if (!skip[keys[i]]) {
@@ -650,17 +1607,17 @@ const authOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 86400,
+    updateAge: 3600,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
 module.exports = authOptions;
-module.exports.sanitizeUser = sanitizeUser;
-${
-  auth.passwordAuthEnabled
-    ? `module.exports.findUserByEmail = findUserByEmail;\nmodule.exports.createUser = createUser;\nmodule.exports.userExistsByEmail = userExistsByEmail;\n`
-    : ''
-}
+module.exports.sanitizeUser = authDb.sanitizeUser;
+module.exports.findUserByEmail = authDb.findUserByEmail;
+module.exports.createUser = authDb.createUser;
+module.exports.userExistsByEmail = authDb.userExistsByEmail;
 `
 }
 

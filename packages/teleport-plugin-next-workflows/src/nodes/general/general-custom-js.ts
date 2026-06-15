@@ -237,6 +237,41 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
     innerParamsList.push(arr)
   }
 
+  // ---- workflowContext / inputs ----
+  // The worker's custom-js contract (custom-js-contract.ts) and the AI
+  // generation prompt (context-builder.ts) document a top-level signature
+  //   function customHandler(params, inputs, workflowContext)
+  // where `workflowContext` is a POSITION-indexed array of prior results:
+  //   workflowContext[0] = trigger result, workflowContext[1] = first node
+  //   after the trigger, workflowContext[2] = second node, ...
+  // The runtime historically never supplied `workflowContext` / `inputs`, so
+  // any handler that declared them received `undefined` and crashed on
+  // `workflowContext[i]`. Build them here from the execution context in
+  // insertion (== step-execution) order. buildContext seeds
+  // `context[triggerNodeId] = triggerContext` first, so the trigger naturally
+  // lands at index 0 and node outputs follow in step order — matching the
+  // documented indexing exactly. We reuse the same reserved / loop-scaffold /
+  // loop-body / current-node filters as `params` so internal scaffolding never
+  // leaks in.
+  const orderedContextOutputs: any[] = []
+  const wcKeys = Object.keys(context)
+  for (let wi = 0; wi < wcKeys.length; wi++) {
+    const wk = wcKeys[wi]
+    if (isReservedKey(wk)) {
+      continue
+    }
+    if (allLoopScaffoldIds[wk]) {
+      continue
+    }
+    if (allLoopBodyIds[wk]) {
+      continue
+    }
+    if (wk === currentNodeId) {
+      continue
+    }
+    orderedContextOutputs.push((context as any)[wk])
+  }
+
   // ---- bind to user-declared signature ----
   // Map declared arg names to their values so signatures with any subset /
   // ordering work. `argValues` keys mirror the names the workflow editor
@@ -244,6 +279,12 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
   const argValues: Record<string, unknown> = {
     previousContext,
     params,
+    // `inputs` / `workflowContext` complete the documented top-level signature
+    // (see the block above). Both are arrays — never undefined — so user code
+    // doing `workflowContext[i]?.value` / `inputs[i]` degrades to `undefined`
+    // instead of throwing a TypeError when the slot is absent.
+    inputs: orderedContextOutputs,
+    workflowContext: orderedContextOutputs,
   }
   for (let i = 0; i < innerParamsList.length; i++) {
     const name = i === 0 ? 'innerParams' : 'innerParams' + (i + 1)

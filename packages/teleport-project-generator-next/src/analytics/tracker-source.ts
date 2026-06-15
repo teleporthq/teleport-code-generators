@@ -30,6 +30,7 @@ let seq = 0
 let currentPath = null
 let initialReferrer = null
 let utm = null
+let excludedPaths = []
 
 let visibleSince = null
 let visibleAccumMs = 0
@@ -277,14 +278,58 @@ function currentScrollPct() {
   }
 }
 
+function normalizeTrackedPath(path) {
+  if (!path) {
+    return '/'
+  }
+  var clean = path.split('?')[0].split('#')[0]
+  if (clean.length > 1) {
+    clean = clean.replace(/\\/+$/, '')
+  }
+  return clean || '/'
+}
+
+function pathMatchesPattern(path, pattern) {
+  var normalizedPattern = normalizeTrackedPath(pattern)
+  // A trailing "*" matches by prefix (dynamic routes such as /products/[id]
+  // are emitted as /products/*); anything else must match exactly.
+  if (normalizedPattern.charAt(normalizedPattern.length - 1) === '*') {
+    return path.indexOf(normalizedPattern.slice(0, -1)) === 0
+  }
+  return path === normalizedPattern
+}
+
+function isPathExcluded(path) {
+  if (!excludedPaths || excludedPaths.length === 0) {
+    return false
+  }
+  var normalized = normalizeTrackedPath(path)
+  for (var i = 0; i < excludedPaths.length; i++) {
+    if (pathMatchesPattern(normalized, excludedPaths[i])) {
+      return true
+    }
+  }
+  return false
+}
+
 function trackPageview(isFirstLoad) {
   if (!isTrackingPossible()) {
     return
   }
 
+  const path = window.location.pathname || '/'
+  if (isPathExcluded(path)) {
+    // Analytics is turned off for this page — clear the page identity so
+    // clicks, scroll, heartbeats and leave events all stay silent (they guard
+    // on pageLoadId) until the visitor reaches a tracked page.
+    currentPath = path
+    pageLoadId = null
+    return
+  }
+
   pageLoadId = uuid()
   seq = 0
-  currentPath = window.location.pathname || '/'
+  currentPath = path
   resetPageMetrics()
 
   const event = baseEvent('pageview')
@@ -338,7 +383,7 @@ function onClickCapture(domEvent) {
 
   try {
     const target = domEvent.target && domEvent.target.closest
-      ? domEvent.target.closest('a, button, [role="button"], input[type="submit"], [data-tp-event]')
+      ? domEvent.target.closest('a, button, [role="button"], input[type="submit"], [data-tp-event], [data-tp-track]')
       : null
     if (!target) {
       return
@@ -364,6 +409,12 @@ function onClickCapture(domEvent) {
     event.click = {
       tag: target.tagName ? target.tagName.toLowerCase().slice(0, 16) : null,
       id: target.id ? target.id.slice(0, 64) : null,
+      // Space-separated class list so a funnel "selector" step can match by
+      // .class (classList covers both HTML and SVG elements).
+      cls:
+        target.classList && target.classList.length
+          ? Array.prototype.slice.call(target.classList).join(' ').slice(0, 255)
+          : null,
       text: target.textContent ? target.textContent.trim().slice(0, 64) : null,
       href: href,
       name: namedAttr && /^[a-zA-Z0-9_-]{1,64}$/.test(namedAttr) ? namedAttr : null,
@@ -374,11 +425,15 @@ function onClickCapture(domEvent) {
   }
 }
 
-export function initTeleportAnalytics() {
+export function initTeleportAnalytics(options) {
   if (initialized || typeof window === 'undefined') {
     return
   }
   initialized = true
+
+  if (options && Array.isArray(options.excludedPaths)) {
+    excludedPaths = options.excludedPaths
+  }
 
   if (!isTrackingPossible()) {
     return

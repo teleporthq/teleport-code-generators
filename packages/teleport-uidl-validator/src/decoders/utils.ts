@@ -1038,6 +1038,8 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     perPage: optional(number()),
     searchEnabled: optional(boolean()),
     searchDebounce: optional(number()),
+    searchDefaultValue: optional(union(staticValueDecoder, expressionValueDecoder)),
+    searchUrlParamKey: optional(string()),
     sort: optional(union(staticValueDecoder, expressionValueDecoder)),
     sortDirection: optional(union(staticValueDecoder, expressionValueDecoder)),
   }),

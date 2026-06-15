@@ -289,7 +289,7 @@ describe('findStockWriteSites — full UIDL walk', () => {
             name: 'Place Order 1',
             nodes: [
               { id: 'n1', type: 'data-update-item', config: { tableName: 'teleport_orders' } },
-              { id: 'n2', type: 'data-create-item', config: { tableName: 'teleport_users' } },
+              { id: 'n2', type: 'data-create-item', config: { tableName: 'users' } },
             ],
           },
         },

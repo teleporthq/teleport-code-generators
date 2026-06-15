@@ -5,6 +5,7 @@ import type {
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import { Constants, StringUtils } from '@teleporthq/teleport-shared'
+import { UrlSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { USE_ROUTER_HOOK } from './internationalization/locale-mapper-component'
 
 // Matches the default name used by `createReactComponentPlugin` when adding
@@ -13,20 +14,6 @@ import { USE_ROUTER_HOOK } from './internationalization/locale-mapper-component'
 const REACT_COMPONENT_CHUNK_NAME = 'jsx-component'
 
 const USE_EFFECT_DEPENDENCY: UIDLDependency = Constants.USE_STATE_DEPENDENCY
-
-// Strict JS identifier (Latin only is fine: UIDL URL keys are limited to the
-// subset Next.js supports as a query param key, which the GUI guarantees to
-// be at minimum URL-safe; but the *generated* code must be valid JS, and
-// `__nextQuery.foo-bar` parses as a subtraction). Anything off-pattern goes
-// through bracket notation: `__nextQuery['foo-bar']`.
-const VALID_JS_IDENTIFIER = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/
-
-const accessKeyOf = (object: types.Expression, paramKey: string): types.MemberExpression => {
-  if (VALID_JS_IDENTIFIER.test(paramKey)) {
-    return types.memberExpression(object, types.identifier(paramKey))
-  }
-  return types.memberExpression(object, types.stringLiteral(paramKey), true)
-}
 
 // Shared by the internationalization plugin — duplicated here as a local
 // helper to avoid an import cycle. Checks whether the component body already
@@ -152,240 +139,6 @@ const hasUseEffectMatching = (
     return matcher(depsArg, fnArg)
   })
 
-// Builds the URL write-back useEffect for a single state def. Emitted shape
-// (for `selectedCategory` bound to URL key `categoryFilter`):
-//
-//   useEffect(() => {
-//     if (typeof window === 'undefined') return
-//     if (!router.isReady) return
-//     const __nextQuery = { ...router.query }
-//     if (selectedCategory === '' || selectedCategory == null) {
-//       delete __nextQuery.categoryFilter
-//     } else {
-//       __nextQuery.categoryFilter = String(selectedCategory)
-//     }
-//     if (__nextQuery.categoryFilter === router.query.categoryFilter) return
-//     router.replace(
-//       { pathname: router.pathname, query: __nextQuery },
-//       undefined,
-//       { shallow: true }
-//     )
-//   }, [selectedCategory, router.isReady])
-//
-// Notes:
-// 1. `router.isReady` gate: on the very first SSG render `router.query` is
-//    empty, so without this gate every state initialized from
-//    `window.location.search` would immediately `router.replace` itself with
-//    the same value, racing with Next's own hydration. `router.isReady`
-//    is also in the deps array — once it flips to true, the effect re-runs
-//    with the now-hydrated `router.query` and decides correctly whether to
-//    replace.
-// 2. The equality check after building `__nextQuery` short-circuits replaces
-//    that would not change the URL — important when the user types the same
-//    value, when the state mounts equal to URL, and when the URL-read effect
-//    fires `setState` with the same value the user just picked.
-// 3. `shallow: true` keeps `getStaticProps` from re-running just because the
-//    URL bar changed; the data-source `useMemo` reacts to the state, not the
-//    URL.
-// 4. Bracket vs dot notation for `paramKey`: identifier-safe keys use dot
-//    notation for readability; anything else (hyphens, dots, leading digits)
-//    goes through `__nextQuery['the-key']` so the emitted code is valid JS.
-const buildUrlWriteBackEffect = (stateKey: string, paramKey: string): types.ExpressionStatement => {
-  const nextQuery = types.identifier('__nextQuery')
-  const stateId = types.identifier(stateKey)
-  const routerQueryParam = accessKeyOf(
-    types.memberExpression(types.identifier('router'), types.identifier('query')),
-    paramKey
-  )
-  const nextQueryParam = accessKeyOf(nextQuery, paramKey)
-
-  const effectBody = types.blockStatement([
-    // if (typeof window === 'undefined') return
-    types.ifStatement(
-      types.binaryExpression(
-        '===',
-        types.unaryExpression('typeof', types.identifier('window')),
-        types.stringLiteral('undefined')
-      ),
-      types.returnStatement(null)
-    ),
-    // if (!router.isReady) return
-    types.ifStatement(
-      types.unaryExpression(
-        '!',
-        types.memberExpression(types.identifier('router'), types.identifier('isReady'))
-      ),
-      types.returnStatement(null)
-    ),
-    // const __nextQuery = { ...router.query }
-    types.variableDeclaration('const', [
-      types.variableDeclarator(
-        nextQuery,
-        types.objectExpression([
-          types.spreadElement(
-            types.memberExpression(types.identifier('router'), types.identifier('query'))
-          ),
-        ])
-      ),
-    ]),
-    // if (state === '' || state == null) { delete __nextQuery.key } else { __nextQuery.key = String(state) }
-    types.ifStatement(
-      types.logicalExpression(
-        '||',
-        types.binaryExpression('===', stateId, types.stringLiteral('')),
-        types.binaryExpression('==', stateId, types.nullLiteral())
-      ),
-      types.blockStatement([
-        types.expressionStatement(
-          types.unaryExpression('delete', nextQueryParam) as unknown as types.Expression
-        ),
-      ]),
-      types.blockStatement([
-        types.expressionStatement(
-          types.assignmentExpression(
-            '=',
-            nextQueryParam,
-            types.callExpression(types.identifier('String'), [stateId])
-          )
-        ),
-      ])
-    ),
-    // if (__nextQuery.key === router.query.key) return
-    types.ifStatement(
-      types.binaryExpression('===', nextQueryParam, routerQueryParam),
-      types.returnStatement(null)
-    ),
-    // router.replace({ pathname: router.pathname, query: __nextQuery }, undefined, { shallow: true })
-    types.expressionStatement(
-      types.callExpression(
-        types.memberExpression(types.identifier('router'), types.identifier('replace')),
-        [
-          types.objectExpression([
-            types.objectProperty(
-              types.identifier('pathname'),
-              types.memberExpression(types.identifier('router'), types.identifier('pathname'))
-            ),
-            types.objectProperty(types.identifier('query'), nextQuery),
-          ]),
-          types.identifier('undefined'),
-          types.objectExpression([
-            types.objectProperty(types.identifier('shallow'), types.booleanLiteral(true)),
-          ]),
-        ]
-      )
-    ),
-  ])
-
-  return types.expressionStatement(
-    types.callExpression(types.identifier('useEffect'), [
-      types.arrowFunctionExpression([], effectBody),
-      types.arrayExpression([
-        stateId,
-        types.memberExpression(types.identifier('router'), types.identifier('isReady')),
-      ]),
-    ])
-  )
-}
-
-// Builds the URL→state read-back useEffect for a single state def. Emitted
-// shape (for `selectedCategory` bound to URL key `categoryFilter`):
-//
-//   useEffect(() => {
-//     if (!router.isReady) return
-//     const __urlValue = router.query.categoryFilter
-//     const __nextValue =
-//       typeof __urlValue === 'string' ? __urlValue : Array.isArray(__urlValue) ? (__urlValue[0] || '') : ''
-//     setSelectedCategory((prev) => (prev === __nextValue ? prev : __nextValue))
-//   }, [router.query.categoryFilter, router.isReady])
-//
-// Why pair this with the write-back effect:
-// - On `<Link>` or `router.push` shallow navigations that land on the same
-//   path with a different query (or browser back/forward, which can change
-//   the query without remounting the page), `router.query` updates but the
-//   state hook does not. Without this effect, the list filter would be
-//   stuck on whatever the user last picked even though the URL has moved on.
-// - The functional `setState((prev) => prev === next ? prev : next)` form
-//   guarantees React bails out when the URL value matches state, which
-//   prevents an infinite write-back ↔ read-back loop: when the user picks a
-//   new category, state→URL fires once, URL→state observes the matching
-//   value and returns `prev`, so React doesn't re-render or fire any deps.
-// - `router.query[key]` can be either `string` (single value) or `string[]`
-//   (when the URL has duplicate keys) per Next.js's typings; the helper
-//   normalizes both to a string before comparing, defaulting to `''` for the
-//   missing-key case so the comparison aligns with the write-back's
-//   `state === ''` empty-check.
-const buildUrlReadBackEffect = (stateKey: string, paramKey: string): types.ExpressionStatement => {
-  const setterName = StringUtils.createStateStoringFunction(stateKey)
-  const urlValueId = types.identifier('__urlValue')
-  const nextValueId = types.identifier('__nextValue')
-  const prevParam = types.identifier('prev')
-  const routerQueryParam = accessKeyOf(
-    types.memberExpression(types.identifier('router'), types.identifier('query')),
-    paramKey
-  )
-
-  const normalizeArg = types.conditionalExpression(
-    // typeof __urlValue === 'string' ? __urlValue
-    types.binaryExpression(
-      '===',
-      types.unaryExpression('typeof', urlValueId),
-      types.stringLiteral('string')
-    ),
-    urlValueId,
-    types.conditionalExpression(
-      // Array.isArray(__urlValue) ? (__urlValue[0] || '') : ''
-      types.callExpression(
-        types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
-        [urlValueId]
-      ),
-      types.logicalExpression(
-        '||',
-        types.memberExpression(urlValueId, types.numericLiteral(0), true),
-        types.stringLiteral('')
-      ),
-      types.stringLiteral('')
-    )
-  )
-
-  const effectBody = types.blockStatement([
-    // if (!router.isReady) return
-    types.ifStatement(
-      types.unaryExpression(
-        '!',
-        types.memberExpression(types.identifier('router'), types.identifier('isReady'))
-      ),
-      types.returnStatement(null)
-    ),
-    // const __urlValue = router.query.<paramKey>
-    types.variableDeclaration('const', [types.variableDeclarator(urlValueId, routerQueryParam)]),
-    // const __nextValue = (normalized)
-    types.variableDeclaration('const', [types.variableDeclarator(nextValueId, normalizeArg)]),
-    // setState((prev) => prev === __nextValue ? prev : __nextValue)
-    types.expressionStatement(
-      types.callExpression(types.identifier(setterName), [
-        types.arrowFunctionExpression(
-          [prevParam],
-          types.conditionalExpression(
-            types.binaryExpression('===', prevParam, nextValueId),
-            prevParam,
-            nextValueId
-          )
-        ),
-      ])
-    ),
-  ])
-
-  return types.expressionStatement(
-    types.callExpression(types.identifier('useEffect'), [
-      types.arrowFunctionExpression([], effectBody),
-      types.arrayExpression([
-        routerQueryParam,
-        types.memberExpression(types.identifier('router'), types.identifier('isReady')),
-      ]),
-    ])
-  )
-}
-
 // Collect state keys that need URL write-back. Accepts the raw
 // stateDefinitions record (page-level state defs are merged into the
 // component UIDL by the project generator before plugins run, so this same
@@ -398,12 +151,12 @@ const buildUrlReadBackEffect = (stateKey: string, paramKey: string): types.Expre
 // every render — far worse than just dropping the second binding.
 const collectUrlBoundStateKeys = (
   stateDefinitions: Record<string, UIDLStateDefinition> | undefined
-): Array<{ stateKey: string; paramKey: string }> => {
+): Array<{ stateKey: string; paramKey: string; defaultValue?: string }> => {
   if (!stateDefinitions) {
     return []
   }
   const seenParamKeys = new Set<string>()
-  const entries: Array<{ stateKey: string; paramKey: string }> = []
+  const entries: Array<{ stateKey: string; paramKey: string; defaultValue?: string }> = []
   for (const [rawKey, def] of Object.entries(stateDefinitions)) {
     const binding = def.urlSearchParamBinding
     if (!binding || typeof binding.key !== 'string' || binding.key === '') {
@@ -418,7 +171,12 @@ const collectUrlBoundStateKeys = (
     // identifier-safe by GUI contract, but normalize to keep parity with the
     // hook emission.
     const stateKey = StringUtils.createStateOrPropStoringValue(rawKey) || rawKey
-    entries.push({ stateKey, paramKey: binding.key })
+    // A non-empty string default is treated as "resting" and kept out of the
+    // URL by the write-back, so a state like `sortBy` (default "name-asc")
+    // doesn't write `?sortBy=name-asc` on first load. Empty defaults keep the
+    // original empty-only delete condition.
+    const defaultValue = typeof def.defaultValue === 'string' ? def.defaultValue : undefined
+    entries.push({ stateKey, paramKey: binding.key, defaultValue })
   }
   return entries
 }
@@ -507,14 +265,16 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
       //   • Read-back match:  deps contain `router.query[paramKey]` AND
       //     body calls the state setter directly.
       const effectsToInsert: types.Statement[] = []
-      for (const { stateKey, paramKey } of urlBoundStateKeys) {
+      for (const { stateKey, paramKey, defaultValue } of urlBoundStateKeys) {
         const setterName = StringUtils.createStateStoringFunction(stateKey)
         const hasWriteBack = hasUseEffectMatching(
           body.body,
           (deps, fn) => effectDepsContainStateId(deps, stateKey) && effectBodyHasRouterReplace(fn)
         )
         if (!hasWriteBack) {
-          effectsToInsert.push(buildUrlWriteBackEffect(stateKey, paramKey))
+          effectsToInsert.push(
+            UrlSearchParamSync.buildUrlWriteBackEffect(stateKey, paramKey, defaultValue)
+          )
         }
 
         const hasReadBack = hasUseEffectMatching(
@@ -523,7 +283,9 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
             effectDepsContainRouterQueryKey(deps, paramKey) && effectBodyCallsSetter(fn, setterName)
         )
         if (!hasReadBack) {
-          effectsToInsert.push(buildUrlReadBackEffect(stateKey, paramKey))
+          effectsToInsert.push(
+            UrlSearchParamSync.buildUrlReadBackEffect(stateKey, paramKey, undefined, defaultValue)
+          )
         }
       }
 

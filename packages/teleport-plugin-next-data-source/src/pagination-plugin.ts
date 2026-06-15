@@ -7,7 +7,7 @@ import {
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, UrlSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
@@ -64,6 +64,20 @@ function searchDefaultValueInitAST(value: SearchDefaultValue | undefined): types
   return types.cloneNode(value.ast, /* deep */ true) as types.Expression
 }
 
+// Initial value for the search-query state(s). When the array-mapper declares
+// a `searchUrlParamKey`, seed from `window.location.search` (falling back to
+// the static / expression default) so a `?searchKeyword=...` deep link
+// pre-fills the input AND runs the search on first paint. Otherwise the plain
+// default. Built fresh on each call so the combined-state and immediate-query
+// `useState`s never share an AST node.
+function searchQueryInitAST(usage: DataSourceUsage): types.Expression {
+  const fallback = searchDefaultValueInitAST(usage.searchDefaultValue)
+  if (usage.searchUrlParamKey) {
+    return UrlSearchParamSync.buildUrlSearchParamInitExpr(usage.searchUrlParamKey, fallback)
+  }
+  return fallback
+}
+
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
 // This module uses a UIDL-first approach: we scan the UIDL FIRST to identify
 // ALL data source usages and assign unique state IDs BEFORE any JSX processing.
@@ -94,6 +108,12 @@ interface DataSourceUsage {
   // component can reference props / state / router-query / URL-param
   // helpers in the initial value.
   searchDefaultValue?: SearchDefaultValue
+  // URL search-param key the search input is two-way bound to (e.g.
+  // `searchKeyword`). When set, the search query state is seeded from
+  // `window.location.search`, kept in sync on browser navigation
+  // (read-back), and the debounced value is pushed back onto the URL via a
+  // shallow `router.replace` (write-back) — debounced and loop-free.
+  searchUrlParamKey?: string
   // Query columns from resource params
   queryColumns: string[]
   // Sorts from resource params (legacy static-array form)
@@ -445,6 +465,10 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
         const effectivePerPage = content.paginated ? content.perPage : limit || content.perPage
 
         const searchDefaultValue = parseSearchDefaultValue(content.searchDefaultValue)
+        const searchUrlParamKey =
+          typeof content.searchUrlParamKey === 'string' && content.searchUrlParamKey.length > 0
+            ? content.searchUrlParamKey
+            : undefined
 
         const usage: DataSourceUsage = {
           index: index++,
@@ -460,6 +484,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           searchEnabled: !!content.searchEnabled,
           searchDebounce: content.searchDebounce || 300,
           searchDefaultValue,
+          searchUrlParamKey,
           queryColumns,
           sorts,
           dynamicSort,
@@ -730,7 +755,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                   types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
                   types.objectProperty(
                     types.identifier('debouncedQuery'),
-                    searchDefaultValueInitAST(usage.searchDefaultValue)
+                    searchQueryInitAST(usage)
                   ),
                 ]),
               ])
@@ -738,8 +763,8 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           ])
         )
 
-        // Immediate search query state — seeded with `searchDefaultValue`
-        // when provided so the input is pre-filled on mount.
+        // Immediate search query state — seeded with `searchDefaultValue` (or
+        // the URL `searchUrlParamKey`) so the input is pre-filled on mount.
         stateDeclarations.push(
           types.variableDeclaration('const', [
             types.variableDeclarator(
@@ -747,9 +772,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [searchQueryInitAST(usage)])
             ),
           ])
         )
@@ -801,6 +824,18 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                                 ]),
                               ])
                             ),
+                            // Debounced URL write-back: mirror the settled search
+                            // value into ?<key>=... (loop-free — the read-back's
+                            // functional setState bails when the value matches).
+                            ...(usage.searchUrlParamKey
+                              ? UrlSearchParamSync.buildUrlWriteBackStatements(
+                                  types.identifier(vars.searchQueryVar),
+                                  usage.searchUrlParamKey,
+                                  usage.searchDefaultValue?.kind === 'static'
+                                    ? usage.searchDefaultValue.value
+                                    : undefined
+                                )
+                              : []),
                           ])
                         ),
                         types.numericLiteral(usage.searchDebounce),
@@ -821,6 +856,23 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             ])
           )
         )
+
+        // URL→input read-back: when the URL `?<key>=` changes without a remount
+        // (deep link, browser back/forward), mirror it into the immediate search
+        // state. The functional setState bail-out keeps this loop-free against
+        // the debounced write-back embedded in the timer above.
+        if (usage.searchUrlParamKey) {
+          effectStatements.push(
+            UrlSearchParamSync.buildUrlReadBackEffect(
+              vars.searchQueryVar,
+              usage.searchUrlParamKey,
+              vars.setSearchQueryVar,
+              usage.searchDefaultValue?.kind === 'static'
+                ? usage.searchDefaultValue.value
+                : undefined
+            )
+          )
+        }
 
         // Count refetch effect
         const fileName = generateSafeFileName(
@@ -1192,9 +1244,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.debouncedSearchQueryVar),
                 types.identifier(vars.setDebouncedSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [searchQueryInitAST(usage)])
             ),
           ])
         )
@@ -1206,9 +1256,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [searchQueryInitAST(usage)])
             ),
           ])
         )
@@ -1252,6 +1300,16 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                                 [types.identifier(vars.searchQueryVar)]
                               )
                             ),
+                            // Debounced URL write-back (loop-free — see read-back).
+                            ...(usage.searchUrlParamKey
+                              ? UrlSearchParamSync.buildUrlWriteBackStatements(
+                                  types.identifier(vars.searchQueryVar),
+                                  usage.searchUrlParamKey,
+                                  usage.searchDefaultValue?.kind === 'static'
+                                    ? usage.searchDefaultValue.value
+                                    : undefined
+                                )
+                              : []),
                           ])
                         ),
                         types.numericLiteral(usage.searchDebounce),
@@ -1272,6 +1330,20 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             ])
           )
         )
+
+        // URL→input read-back (see the paginated+search branch for rationale).
+        if (usage.searchUrlParamKey) {
+          effectStatements.push(
+            UrlSearchParamSync.buildUrlReadBackEffect(
+              vars.searchQueryVar,
+              usage.searchUrlParamKey,
+              vars.setSearchQueryVar,
+              usage.searchDefaultValue?.kind === 'static'
+                ? usage.searchDefaultValue.value
+                : undefined
+            )
+          )
+        }
       }
     })
 
@@ -1292,7 +1364,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // `body.some(isUseRouterDecl)` guard keeps us idempotent with both the
     // search-params plugin and the i18n plugin, both of which may have
     // already unshifted the same declaration.
-    const needsUseRouter = registry.usages.some((u) => hasUrlSearchParamFilters(u))
+    const needsUseRouter = registry.usages.some(
+      (u) => hasUrlSearchParamFilters(u) || !!u.searchUrlParamKey
+    )
     if (needsUseRouter) {
       if (!dependencies.useRouter) {
         // Match the shape the sibling Next.js plugins use (i18n locale mapper,

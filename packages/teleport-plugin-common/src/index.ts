@@ -5,6 +5,7 @@ import * as HASTBuilders from './builders/hast-builders'
 import * as ASTUtils from './utils/ast-utils'
 import * as StyleUtils from './utils/style-utils'
 import * as HASTUtils from './utils/hast-utils'
+import * as UrlSearchParamSync from './utils/url-search-param-sync'
 import ParsedASTNode from './utils/parsed-ast'
 
 import { createBinaryExpression } from './node-handlers/node-to-jsx/utils'
@@ -16,6 +17,7 @@ export {
   ASTUtils,
   StyleUtils,
   HASTUtils,
+  UrlSearchParamSync,
   ParsedASTNode,
   createBinaryExpression,
 }

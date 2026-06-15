@@ -252,6 +252,10 @@ export interface ProjectUIDL {
 
 export interface UIDLAnalytics {
   enabled: boolean
+  // Runtime path patterns the tracker must skip (admin-panel pages by default,
+  // plus any the owner disabled). A trailing "*" matches by prefix; everything
+  // else matches exactly. Empty/absent means "track every page".
+  disabledPaths?: string[]
 }
 
 export interface UIDLAIAssistantChatAuthProtection {
@@ -863,6 +867,13 @@ export interface UIDLCMSListRepeaterNodeContent {
   // Static values are emitted verbatim; dynamic values are expected to
   // reference props / state / URL params and are emitted as expressions.
   searchDefaultValue?: UIDLStaticValue | UIDLExpressionValue
+  // URL search-param key the search input is bound to (e.g. `searchKeyword`).
+  // When set, the data-source plugin seeds the search query from
+  // `window.location.search`, keeps it in sync on browser navigation
+  // (read-back), and pushes the debounced value back onto the URL via a
+  // shallow `router.replace` (write-back) — turning `?searchKeyword=...`
+  // into a shareable, debounced deep link without an infinite loop.
+  searchUrlParamKey?: string
   sort?: UIDLStaticValue | UIDLExpressionValue
   sortDirection?: UIDLStaticValue | UIDLExpressionValue
 }

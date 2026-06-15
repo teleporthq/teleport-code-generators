@@ -43,6 +43,9 @@ import {
 } from './realtime-generator'
 import {
   generateAuthOptionsFile,
+  generateAuthDbFile,
+  generateAuthAdapterFile,
+  generateAuthRefreshFile,
   generateHashPasswordFile,
   generateNextAuthRouteFile,
   generateSignupRouteFile,
@@ -413,10 +416,11 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     }
 
     if (needsDataAPIRoute(usedNodeTypes)) {
-      const authUsersTableName =
-        uidl.authentication?.enabled && uidl.authentication?.tables
-          ? Object.keys(uidl.authentication.tables)[0] || 'users'
-          : undefined
+      // The auth users table is always literally `users`. (Previously this
+      // took Object.keys(tables)[0], which resolved to the WRONG table —
+      // `verification_token`/`password_reset_tokens` depending on schema order
+      // — silently disabling assertSessionOwnsUsersRow.)
+      const authUsersTableName = uidl.authentication?.enabled ? 'users' : undefined
       // Low-stock auto-fire: the data-api wakes up the
       // /api/ecommerce/low-stock-alert endpoint on the place-order
       // workflow's stock-check SELECT. Both flags are sourced from
@@ -1203,6 +1207,22 @@ module.exports = __customNodeRegistry;
 
     const dataSourceConfig =
       (auth.dataSourceId && uidl.dataSources?.[auth.dataSourceId]?.config) || null
+    const needsOAuthPersistence = auth.providers.length > 0 && !!auth.dataSourceType
+
+    // The shared data-access module (DB setup + credentials helpers + OAuth
+    // helpers). auth-options/auth-adapter both require it.
+    const authDbCode = generateAuthDbFile(auth, dataSourceConfig)
+    files.set('auth-db', {
+      path: ['utils', 'auth'],
+      files: [
+        {
+          name: 'auth-db',
+          fileType: FileType.JS,
+          content: authDbCode,
+        },
+      ],
+    })
+
     const authOptionsCode = generateAuthOptionsFile(auth, dataSourceConfig)
     files.set('auth-options', {
       path: ['utils', 'auth'],
@@ -1214,6 +1234,33 @@ module.exports = __customNodeRegistry;
         },
       ],
     })
+
+    // The custom single-table NextAuth adapter + the OAuth refresh helper are
+    // only needed (and only required by auth-options) when OAuth providers and
+    // a data source are configured.
+    if (needsOAuthPersistence) {
+      files.set('auth-adapter', {
+        path: ['utils', 'auth'],
+        files: [
+          {
+            name: 'auth-adapter',
+            fileType: FileType.JS,
+            content: generateAuthAdapterFile(),
+          },
+        ],
+      })
+
+      files.set('auth-refresh', {
+        path: ['utils', 'auth'],
+        files: [
+          {
+            name: 'auth-refresh',
+            fileType: FileType.JS,
+            content: generateAuthRefreshFile(),
+          },
+        ],
+      })
+    }
 
     if (auth.passwordAuthEnabled) {
       const hashPasswordCode = generateHashPasswordFile()

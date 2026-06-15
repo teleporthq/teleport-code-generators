@@ -15,7 +15,10 @@ const MyApp = ({ Component, pageProps }) => {
 export default MyApp
 `
 
-function makeStructure(analyticsEnabled: boolean): ProjectPluginStructure {
+function makeStructure(
+  analyticsEnabled: boolean,
+  disabledPaths?: string[]
+): ProjectPluginStructure {
   const files = new Map()
   files.set('_app', {
     path: ['pages'],
@@ -27,7 +30,9 @@ function makeStructure(analyticsEnabled: boolean): ProjectPluginStructure {
       name: 'test-project',
       globals: { settings: { title: 'Test', language: 'en' }, assets: [] },
       root: {} as never,
-      ...(analyticsEnabled ? { analytics: { enabled: true } } : {}),
+      ...(analyticsEnabled
+        ? { analytics: { enabled: true, ...(disabledPaths ? { disabledPaths } : {}) } }
+        : {}),
     },
     files,
     dependencies: {},
@@ -123,6 +128,35 @@ describe('NextAnalyticsProjectPlugin', () => {
         plugins: ['jsx'],
       })
     ).not.toThrow()
+  })
+
+  it('bakes the disabled paths into the tracker component and ships the gate', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(true, ['/admin-panel/*', '/secret'])
+
+    await plugin.runAfter(structure)
+
+    const tracker = structure.files.get('teleport-analytics-tracker')
+    expect(tracker.files[0].content).toContain(
+      'const EXCLUDED_PATHS = ["/admin-panel/*","/secret"]'
+    )
+    expect(tracker.files[0].content).toContain(
+      'initTeleportAnalytics({ excludedPaths: EXCLUDED_PATHS })'
+    )
+
+    // The lib must carry the matcher that consumes the excluded list.
+    const lib = structure.files.get('teleport-analytics-lib')
+    expect(lib.files[0].content).toContain('function isPathExcluded')
+  })
+
+  it('emits an empty exclusion list when every page is tracked', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(true)
+
+    await plugin.runAfter(structure)
+
+    const tracker = structure.files.get('teleport-analytics-tracker')
+    expect(tracker.files[0].content).toContain('const EXCLUDED_PATHS = []')
   })
 
   it('preserves env values already set by the GUI mapper', async () => {

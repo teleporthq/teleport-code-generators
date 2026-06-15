@@ -16,6 +16,7 @@ import {
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
 import { UnaryOperation, BinaryOperator } from './types'
+import { buildUrlSearchParamInitExpr } from './url-search-param-sync'
 
 /**
  * Converts HTML attribute names to React/JSX camelCase format
@@ -866,25 +867,8 @@ export const createStateHookAST = (
     //       ? new URLSearchParams(window.location.search).get("<key>")
     //       : null) ?? <defaultValueLiteral>
     //   )
-    const paramKey = stateDefinition.urlSearchParamBinding.key
-    const urlSearchParamsExpr = t.newExpression(t.identifier('URLSearchParams'), [
-      t.memberExpression(
-        t.memberExpression(t.identifier('window'), t.identifier('location')),
-        t.identifier('search')
-      ),
-    ])
-    const readParamExpr = t.callExpression(
-      t.memberExpression(urlSearchParamsExpr, t.identifier('get')),
-      [t.stringLiteral(paramKey)]
-    )
-    const browserGuard = t.binaryExpression(
-      '!==',
-      t.unaryExpression('typeof', t.identifier('window')),
-      t.stringLiteral('undefined')
-    )
-    useStateArgument = t.logicalExpression(
-      '??',
-      t.conditionalExpression(browserGuard, readParamExpr, t.nullLiteral()),
+    useStateArgument = buildUrlSearchParamInitExpr(
+      stateDefinition.urlSearchParamBinding.key,
       defaultValueArgument
     )
   }

@@ -58,31 +58,59 @@ export const createNextLocaleFetcherPlugin: ComponentPluginFactory<{}> = () => {
       if (declaration.type !== 'FunctionDeclaration') {
         return structure
       }
-      const tryBlock = declaration.body.body[0]
-      if (tryBlock.type !== 'TryStatement') {
+
+      /*
+        The try-catch block is not guaranteed to be the first statement of the
+        function body. For details pages, `teleport-plugin-next-static-props`
+        prepends a `const { params = {} } = context` destructuring before the
+        try block, so we search the whole body for the try statement instead of
+        assuming it sits at index 0. (Mirrors what the inline-fetch plugin does.)
+      */
+      const tryBlock = declaration.body.body.find(
+        (statement): statement is types.TryStatement => statement.type === 'TryStatement'
+      )
+      if (!tryBlock) {
         return structure
       }
+
+      /*
+        Pick the return statement that actually returns a `props` object. A
+        details-page getStaticProps can also contain early `return { notFound: true }`
+        statements (e.g. inside an `if`), so we can't blindly take the first
+        return or assume `props` is the first property.
+      */
+      const isPropsProperty = (
+        property: types.ObjectExpression['properties'][number]
+      ): property is types.ObjectProperty =>
+        property.type === 'ObjectProperty' &&
+        property.key.type === 'Identifier' &&
+        property.key.name === 'props' &&
+        property.value.type === 'ObjectExpression'
+
       const returnStatement = tryBlock.block.body.find(
-        (item): item is types.ReturnStatement => item.type === 'ReturnStatement'
+        (item): item is types.ReturnStatement =>
+          item.type === 'ReturnStatement' &&
+          item.argument?.type === 'ObjectExpression' &&
+          item.argument.properties.some(isPropsProperty)
       )
       if (!returnStatement || returnStatement.argument?.type !== 'ObjectExpression') {
         return structure
       }
 
-      if (
-        returnStatement.argument.properties[0]?.type === 'ObjectProperty' &&
-        returnStatement.argument.properties[0].value.type === 'ObjectExpression'
-      ) {
-        tryBlock.block.body.unshift(fetcher)
-        returnStatement.argument.properties[0].value.properties.unshift(
-          types.objectProperty(
-            types.identifier('messages'),
-            types.identifier('messages'),
-            false,
-            true
-          )
-        )
+      const propsProperty = returnStatement.argument.properties.find(isPropsProperty)
+      if (!propsProperty) {
+        return structure
       }
+
+      tryBlock.block.body.unshift(fetcher)
+      ;(propsProperty.value as types.ObjectExpression).properties.unshift(
+        types.objectProperty(
+          types.identifier('messages'),
+          types.identifier('messages'),
+          false,
+          true
+        )
+      )
     } else {
       const exportChunk = types.exportNamedDeclaration(
         types.functionDeclaration(

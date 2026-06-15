@@ -160,12 +160,24 @@ function validateFilters(filters) {
 // We pass the original query / params back to the caller as a debug
 // label so log output stays diagnosable.
 var SAFE_COERCION_ERROR_CODES = { '22P02': 1, '22008': 1, '22003': 1, '22023': 1 };
+// Missing-relation / missing-column codes. A READ against a table or column
+// that was never provisioned (e.g. a page-load workflow that fetches from a
+// table the data-infrastructure step never created) should degrade to an empty
+// result instead of a 500 + blocking "Something went wrong" error toast. Scoped
+// to READ modes only (select / count) so writes against a missing table still
+// surface the error and never silently drop data. 42P01 = undefined_table,
+// 42703 = undefined_column.
+var SAFE_MISSING_RELATION_CODES = { '42P01': 1, '42703': 1 };
+var SAFE_READ_MODES = { 'select': 1, 'count': 1 };
 async function safeQuery(client, sql, params, mode) {
   try {
     return await client.query(sql, params);
   } catch (err) {
-    if (err && SAFE_COERCION_ERROR_CODES[err.code]) {
-      console.warn('[data-api] suppressed Postgres coercion error (' + err.code + '): ' + (err.message || err) +
+    var isCoercion = !!(err && SAFE_COERCION_ERROR_CODES[err.code]);
+    var isMissingRelation = !!(err && SAFE_MISSING_RELATION_CODES[err.code] && SAFE_READ_MODES[mode]);
+    if (isCoercion || isMissingRelation) {
+      console.warn('[data-api] suppressed Postgres ' + (isMissingRelation ? 'missing-relation' : 'coercion') +
+        ' error (' + err.code + '): ' + (err.message || err) +
         ' — returning empty result for ' + (mode || 'query') + '. SQL=' + sql + ' params=' + JSON.stringify(params));
       if (mode === 'count') {
         return { rows: [{ count: '0' }], rowCount: 0 };

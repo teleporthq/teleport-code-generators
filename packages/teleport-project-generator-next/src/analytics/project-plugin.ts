@@ -5,7 +5,7 @@ import {
   ProjectPluginStructure,
 } from '@teleporthq/teleport-types'
 import { TRACKER_SOURCE } from './tracker-source'
-import { TRACKER_COMPONENT_SOURCE } from './tracker-component'
+import { buildTrackerComponentSource } from './tracker-component'
 
 const ENV_URL_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_URL'
 const ENV_PUBLIC_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY'
@@ -45,7 +45,7 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
         {
           name: 'AnalyticsTracker',
           fileType: FileType.JS,
-          content: TRACKER_COMPONENT_SOURCE,
+          content: buildTrackerComponentSource(uidl.analytics.disabledPaths),
         },
       ],
     })

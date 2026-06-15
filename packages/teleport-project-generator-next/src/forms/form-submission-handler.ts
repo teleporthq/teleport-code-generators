@@ -13,6 +13,58 @@ const sanitizeFormId = (formId: string): string => {
   return formId.replace(/-/g, '_')
 }
 
+// The forms worker exposes the public submission endpoint at
+// `<forms-server-base>/submissions/submit/<formId>`. The generated client owns
+// this route so it stays correct regardless of how the forms-server base URL is
+// configured (env value, static config, with or without a trailing path/slash).
+const FORMS_SUBMIT_PATH = 'submissions/submit'
+
+// Normalizes a configured forms-server base URL so the canonical submit path can
+// be appended exactly once. Strips a trailing slash and an optional trailing
+// `/submissions/submit` (some deploy pipelines inject the base already suffixed
+// with the submit path, so we tolerate both shapes).
+const normalizeFormsBaseUrl = (baseUrl: string): string =>
+  baseUrl.replace(/\/+$/, '').replace(/\/submissions\/submit$/, '')
+
+// Builds the static submit URL at generation time (used when the forms-server
+// base URL is a static UIDL value).
+const buildStaticFormsSubmitUrl = (baseUrl: string, formId: string): string =>
+  `${normalizeFormsBaseUrl(baseUrl)}/${FORMS_SUBMIT_PATH}/${formId}`
+
+// Builds the runtime expression:
+//   `${(process.env.<envVar> || '')
+//       .replace(/\/+$/, '')
+//       .replace(/\/submissions\/submit$/, '')}/submissions/submit/<formId>`
+// so the deployed client always targets the correct forms-worker route, whether
+// the env value is the bare base origin or already includes the submit path.
+const buildEnvFormsSubmitUrlExpression = (
+  envVar: string,
+  formId: string
+): types.TemplateLiteral => {
+  const t = types
+  const envAccess = t.memberExpression(
+    t.memberExpression(t.identifier('process'), t.identifier('env')),
+    t.identifier(envVar)
+  )
+  const baseOrEmpty = t.logicalExpression('||', envAccess, t.stringLiteral(''))
+  const withoutTrailingSlashes = t.callExpression(
+    t.memberExpression(baseOrEmpty, t.identifier('replace')),
+    [t.regExpLiteral('\\/+$', ''), t.stringLiteral('')]
+  )
+  const normalizedBase = t.callExpression(
+    t.memberExpression(withoutTrailingSlashes, t.identifier('replace')),
+    [t.regExpLiteral('\\/submissions\\/submit$', ''), t.stringLiteral('')]
+  )
+  const suffix = `/${FORMS_SUBMIT_PATH}/${formId}`
+  return t.templateLiteral(
+    [
+      t.templateElement({ raw: '', cooked: '' }, false),
+      t.templateElement({ raw: suffix, cooked: suffix }, true),
+    ],
+    [normalizedBase]
+  )
+}
+
 /**
  * This plugin handles form submissions for Next.js projects.
  * It looks for form elements with a 'data-form-id' attribute and adds:
@@ -1009,58 +1061,24 @@ function createFormSubmitHandler(
     )
   }
 
-  // Determine the API URL (use formsServerUrl if available, otherwise use env variable)
-  // The URL will have the format: ${baseUrl}/${formId}
+  // Build the forms-worker submission endpoint. The worker serves submissions at
+  // `<forms-server-base>/submissions/submit/<formId>`; the generated client owns
+  // that path so it targets the right route no matter how the base URL is
+  // configured. `formsServerUrl` comes from the project config (an env ref on the
+  // GUI/publish path); when it is absent we fall back to the default env variable.
   let apiUrlExpression: types.Expression
   const formsServerUrl = forms.formsServerUrl
 
-  if (formsServerUrl) {
-    if (formsServerUrl.type === 'static') {
-      // For static URL, just concatenate the strings directly
-      apiUrlExpression = t.stringLiteral(`${formsServerUrl.content}/${formId}`)
-    } else if (formsServerUrl.type === 'env') {
-      // For env variable, create a template literal: `${process.env.VAR}/${formId}`
-      apiUrlExpression = t.templateLiteral(
-        [
-          t.templateElement({ raw: '', cooked: '' }, false),
-          t.templateElement({ raw: `/${formId}`, cooked: `/${formId}` }, true),
-        ],
-        [
-          t.memberExpression(
-            t.memberExpression(t.identifier('process'), t.identifier('env')),
-            t.identifier(formsServerUrl.content as string)
-          ),
-        ]
-      )
-    } else {
-      // Fallback to default env variable
-      apiUrlExpression = t.templateLiteral(
-        [
-          t.templateElement({ raw: '', cooked: '' }, false),
-          t.templateElement({ raw: `/${formId}`, cooked: `/${formId}` }, true),
-        ],
-        [
-          t.memberExpression(
-            t.memberExpression(t.identifier('process'), t.identifier('env')),
-            t.identifier('NEXT_PUBLIC_FORMS_API_URL')
-          ),
-        ]
-      )
-    }
-  } else {
-    // Default to env variable with formId appended
-    apiUrlExpression = t.templateLiteral(
-      [
-        t.templateElement({ raw: '', cooked: '' }, false),
-        t.templateElement({ raw: `/${formId}`, cooked: `/${formId}` }, true),
-      ],
-      [
-        t.memberExpression(
-          t.memberExpression(t.identifier('process'), t.identifier('env')),
-          t.identifier('NEXT_PUBLIC_FORMS_API_URL')
-        ),
-      ]
+  if (formsServerUrl && formsServerUrl.type === 'static') {
+    apiUrlExpression = t.stringLiteral(
+      buildStaticFormsSubmitUrl(formsServerUrl.content as string, formId)
     )
+  } else {
+    const envVar =
+      formsServerUrl && formsServerUrl.type === 'env'
+        ? (formsServerUrl.content as string)
+        : 'NEXT_PUBLIC_FORMS_API_URL'
+    apiUrlExpression = buildEnvFormsSubmitUrlExpression(envVar, formId)
   }
 
   // Create fetch request
