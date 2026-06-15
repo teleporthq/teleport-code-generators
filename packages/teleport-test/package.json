@@ -1,7 +1,7 @@
 {
   "name": "teleport-test",
   "private": true,
-  "version": "0.43.17",
+  "version": "0.43.18",
   "description": "A private repo used for testing the entire ecosystem locally",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,7 +27,7 @@
     "bundle": "webpack --config webpack.config.js"
   },
   "dependencies": {
-    "@teleporthq/teleport-code-generator": "^0.43.17",
+    "@teleporthq/teleport-code-generator": "^0.43.18",
     "@teleporthq/teleport-component-generator-html": "^0.43.14",
     "@teleporthq/teleport-project-generator-angular": "^0.43.14",
     "@teleporthq/teleport-project-generator-next": "^0.43.17",
