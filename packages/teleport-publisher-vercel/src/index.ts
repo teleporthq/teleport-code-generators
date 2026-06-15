@@ -93,7 +93,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       domainAlias,
       teamId,
       accessToken: vercelAccessToken,
-      public: publicDeploy,
       version,
       target,
       alias,
@@ -116,7 +115,10 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       files,
       name: projectSlug.toLowerCase(), // to avoid any vercel error
       version,
-      public: publicDeploy,
+      // NOTE: `public` is intentionally NOT sent. Vercel's deployment API now
+      // rejects it ("Invalid request: should NOT have additional property
+      // `public`"). The option is still accepted on PublishOptions for
+      // backwards-compatibility but is no longer forwarded to Vercel.
       target,
       projectSettings: {
         framework: publishOptions?.framework || framework,
