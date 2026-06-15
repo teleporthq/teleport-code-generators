@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-data-source",
-  "version": "0.43.14",
+  "version": "0.43.17",
   "description": "A plugin for managing data sources for Next.js projects.",
   "author": "teleportHQ",
   "license": "MIT",
