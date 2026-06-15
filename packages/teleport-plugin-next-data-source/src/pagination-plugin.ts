@@ -11,7 +11,7 @@ import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
-import { appendFiltersParam, pushStateIdsAsDeps } from './filter-utils'
+import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
 
 // ----- searchDefaultValue support -----
 //
@@ -109,10 +109,17 @@ interface DataSourceUsage {
   // tslint:disable-next-line:no-any
   filters: any[]
   // State IDs from dynamic filter destinations (for useMemo dependencies).
-  // Only state references land here; `urlSearchParams` refs are tracked in
-  // `filterUrlSearchParamKeys` because their dep expression is
-  // `router.query.<key>`, not a bare identifier.
+  // Only `state` references land here; their dep/guard expression is a bare
+  // identifier. `prop` refs go to `filterPropIds` (dep expression `props.<id>`)
+  // and `urlSearchParams` refs to `filterUrlSearchParamKeys` (dep expression
+  // `router.query.<key>`), because each resolves to a different scope.
   filterStateIds: string[]
+  // Prop IDs from dynamic filter destinations. Kept separate from
+  // `filterStateIds` so their dep/guard expression is `props.<id>` (matching the
+  // VALUE side in `convertFilterDestinationToExpression`) rather than a bare
+  // identifier — a bare `<id>` is undefined in the component scope and crashes
+  // prerender with `ReferenceError: <id> is not defined`.
+  filterPropIds: string[]
   // URL search-param keys referenced by filter destinations (e.g.
   // `'categoryFilter'`). Drives `const router = useRouter()` injection and
   // the corresponding `router.query.<key>` entries in `useMemo` deps so the
@@ -249,7 +256,11 @@ function pushUrlSearchParamMemoDeps(memoDeps: types.Expression[], usage: DataSou
 // callers fall back to the existing `props.X` expression unchanged so
 // non-filtered pages still benefit from the SSR prefetch.
 function buildNoUrlFilterGuard(usage: DataSourceUsage): types.Expression | null {
-  if (usage.filterUrlSearchParamKeys.length === 0 && usage.filterStateIds.length === 0) {
+  if (
+    usage.filterUrlSearchParamKeys.length === 0 &&
+    usage.filterStateIds.length === 0 &&
+    usage.filterPropIds.length === 0
+  ) {
     return null
   }
   const guards: types.Expression[] = []
@@ -273,6 +284,18 @@ function buildNoUrlFilterGuard(usage: DataSourceUsage): types.Expression | null 
   // until the user picks a real value.
   for (const id of usage.filterStateIds) {
     guards.push(types.unaryExpression('!', types.identifier(id), true))
+  }
+  // Prop-bound filter destinations read `props.<id>` (a constant per page
+  // instance), so the guard is `!props.<id>` — mirroring the value expression
+  // exactly so the bare-identifier ReferenceError can't reappear here.
+  for (const id of usage.filterPropIds) {
+    guards.push(
+      types.unaryExpression(
+        '!',
+        types.memberExpression(types.identifier('props'), types.identifier(id)),
+        true
+      )
+    )
   }
   return guards.reduce((acc, next) => types.logicalExpression('&&', acc, next))
 }
@@ -417,6 +440,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
         // `urlSearchParams` refs resolve to `router.query.<key>` and need a
         // `useRouter()` declaration injected separately.
         const filterStateIds: string[] = []
+        const filterPropIds: string[] = []
         for (const f of filters) {
           if (!ASTUtils.isUIDLDynamicReference(f.destination)) {
             continue
@@ -428,6 +452,13 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
             continue
           }
           if (destinationContent.referenceType === 'urlSearchParams') {
+            continue
+          }
+          // `prop` destinations resolve to `props.<id>` (see
+          // buildFilterDestinationExpression / convertFilterDestinationToExpression),
+          // so they must NOT be emitted as bare deps. Route them to filterPropIds.
+          if (destinationContent.referenceType === 'prop') {
+            filterPropIds.push(destinationContent.id)
             continue
           }
           filterStateIds.push(destinationContent.id)
@@ -465,6 +496,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           dynamicSort,
           filters,
           filterStateIds,
+          filterPropIds,
           filterUrlSearchParamKeys,
           category: 'plain',
         }
@@ -1010,7 +1042,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         // deps, ds_0_maxPages stays at the original count and the "Next"
         // button stays enabled past the actual last page of the filtered
         // results — letting the user click into empty pages.
-        pushStateIdsAsDeps(countEffectDeps, new Set<string>(), usage.filterStateIds)
+        const countEffectSeen = new Set<string>()
+        pushStateIdsAsDeps(countEffectDeps, countEffectSeen, usage.filterStateIds)
+        pushPropIdsAsDeps(countEffectDeps, countEffectSeen, usage.filterPropIds)
         // Same goes for URL-driven filters (already documented above).
         pushUrlSearchParamMemoDeps(countEffectDeps, usage)
         effectStatements.push(
@@ -1165,7 +1199,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.arrayExpression(
                   ((): types.Expression[] => {
                     const deps: types.Expression[] = []
-                    pushStateIdsAsDeps(deps, new Set<string>(), usage.filterStateIds)
+                    const depsSeen = new Set<string>()
+                    pushStateIdsAsDeps(deps, depsSeen, usage.filterStateIds)
+                    pushPropIdsAsDeps(deps, depsSeen, usage.filterPropIds)
                     pushUrlSearchParamMemoDeps(deps, usage)
                     return deps
                   })()
@@ -1698,6 +1734,7 @@ function updateDataProviderForPaginatedSearch(
   const memoDeps: types.Expression[] = [types.identifier(vars.combinedStateVar)]
   const seenDeps = new Set<string>([vars.combinedStateVar])
   pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  pushPropIdsAsDeps(memoDeps, seenDeps, usage.filterPropIds)
   if (usage.dynamicSort) {
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
@@ -1836,6 +1873,7 @@ function updateDataProviderForPaginationOnly(
   const memoDeps: types.Expression[] = [types.identifier(vars.pageStateVar)]
   const seenDeps = new Set<string>([vars.pageStateVar])
   pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  pushPropIdsAsDeps(memoDeps, seenDeps, usage.filterPropIds)
   if (usage.dynamicSort) {
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
@@ -1954,6 +1992,7 @@ function updateDataProviderForSearchOnly(
   const memoDeps: types.Expression[] = [types.identifier(vars.debouncedSearchQueryVar)]
   const seenDeps = new Set<string>([vars.debouncedSearchQueryVar])
   pushStateIdsAsDeps(memoDeps, seenDeps, usage.filterStateIds)
+  pushPropIdsAsDeps(memoDeps, seenDeps, usage.filterPropIds)
   if (usage.dynamicSort) {
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
@@ -2084,7 +2123,9 @@ function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSource
 
   // Build useMemo dependencies including filter state IDs
   const memoDeps: types.Expression[] = []
-  pushStateIdsAsDeps(memoDeps, new Set<string>(), usage.filterStateIds)
+  const memoSeen = new Set<string>()
+  pushStateIdsAsDeps(memoDeps, memoSeen, usage.filterStateIds)
+  pushPropIdsAsDeps(memoDeps, memoSeen, usage.filterPropIds)
   pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   // Wrap params in useMemo with filter state dependencies

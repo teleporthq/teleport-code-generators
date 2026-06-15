@@ -109,3 +109,29 @@ export const pushStateIdsAsDeps = (
     deps.push(types.identifier(id))
   }
 }
+
+// Appends each id in `propIds` as a `props.<id>` MemberExpression onto `deps`,
+// skipping any already tracked in `seen` (keyed by `props.<id>` so a prop and a
+// same-named state var never collide). Mutates both `deps` and `seen`.
+//
+// Prop-bound filter destinations resolve to `props.<id>` on the VALUE side (see
+// `convertFilterDestinationToExpression` in teleport-plugin-common), so the
+// useMemo/useEffect dependency MUST reference the exact same `props.<id>`
+// member. Emitting a bare `<id>` identifier (as `pushStateIdsAsDeps` does for
+// state) references an undeclared symbol — props are never destructured into
+// the component scope — which crashed prerender with
+// `ReferenceError: <id> is not defined`.
+export const pushPropIdsAsDeps = (
+  deps: types.Expression[],
+  seen: Set<string>,
+  propIds: string[]
+): void => {
+  for (const id of propIds) {
+    const key = `props.${id}`
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    deps.push(types.memberExpression(types.identifier('props'), types.identifier(id)))
+  }
+}
