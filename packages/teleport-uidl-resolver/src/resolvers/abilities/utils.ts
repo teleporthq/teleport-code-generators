@@ -303,14 +303,16 @@ const handleLinkTypeProp = (
   const propId = linkRef.content.id
 
   const linkAttrs: Record<string, UIDLAttributeValue> = {
+    // A `link` prop is normally a `{ url, newTab }` object, but the prop can be
+    // bound to a plain string field (e.g. an Airtable URL column), in which case
+    // `props.<id>.url` is `undefined` and Next's <Link> throws
+    // "The prop `href` expects a string or object … but got undefined". Resolve
+    // the href tolerantly: use the string directly when the prop is a string,
+    // otherwise read `.url`.
     url: {
-      type: 'dynamic',
-      content: {
-        referenceType: 'prop',
-        id: propId,
-        refPath: ['url'],
-      },
-    } as UIDLDynamicReference,
+      type: 'expr',
+      content: `typeof props.${propId} === 'string' ? props.${propId} : props.${propId}?.['url']`,
+    },
     target: {
       type: 'expr',
       content: `props.${propId}?.['newTab'] ? '_blank' : undefined`,
