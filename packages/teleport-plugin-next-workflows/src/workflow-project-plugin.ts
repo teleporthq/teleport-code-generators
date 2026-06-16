@@ -1520,6 +1520,20 @@ const AUTH_ENV_DEFAULTS: Record<string, string> = {
   NEXTAUTH_SECRET: 'CHANGE_ME_TO_A_RANDOM_SECRET',
 }
 
+// Stable alias env keys whose `teleporthq.secrets.<name>` placeholder MUST
+// survive to the deployed env so the deploy worker can resolve it — for the
+// same reason OAuth credential keys are preserved. These are ALIASES: the env
+// KEY differs from the secret name it references (e.g.
+// CMS_ACCESS_TOKEN=teleporthq.secrets.CONTENTFUL_API_TOKEN2). The worker's
+// `replaceSecretsFromEnvFile` empty-value fallback only refills a blank line by
+// looking up a secret named exactly after the KEY (CMS_ACCESS_TOKEN), which
+// does not exist — only the referenced name (CONTENTFUL_API_TOKEN2) does. So
+// emptying an alias is unrecoverable and the CMS access token would ship blank,
+// making every CMS fetch on the deployed site return 401 (the list renders in
+// the GUI but is empty in the deployed project). Keeping the placeholder lets
+// the worker resolve it via its `teleporthq.secrets.*` branch.
+const ALWAYS_PRESERVE_SECRET_ENV_KEYS = new Set(['CMS_ACCESS_TOKEN'])
+
 // Every env key that holds an OAuth provider credential (e.g. AUTH_GOOGLE_ID,
 // AUTH_GOOGLE_SECRET, AUTH_AUTH0_ISSUER). These are the keys in each configured
 // provider's `credentials` map. The user's typed values are stored in the
@@ -1553,6 +1567,9 @@ export function resolveAuthEnvValue(
     // the provider's authorization URL (error=OAuthSignin / "nothing happens").
     if (Object.prototype.hasOwnProperty.call(AUTH_ENV_DEFAULTS, key)) {
       return AUTH_ENV_DEFAULTS[key]
+    }
+    if (ALWAYS_PRESERVE_SECRET_ENV_KEYS.has(key)) {
+      return value
     }
     if (preserveKeys && preserveKeys.has(key)) {
       return value

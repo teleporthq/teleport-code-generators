@@ -60,6 +60,22 @@ describe('resolveAuthEnvValue', () => {
     ).toBe('')
   })
 
+  it('PRESERVES the CMS_ACCESS_TOKEN alias placeholder so the deploy worker can resolve it', () => {
+    // Regression: the CMS access token is stored under a uniquified secret name
+    // (e.g. CONTENTFUL_API_TOKEN2) and exposed via the STABLE alias env key
+    // CMS_ACCESS_TOKEN. Emptying it lost the alias→target mapping: the worker's
+    // empty-value fallback looked up projectSecrets['CMS_ACCESS_TOKEN'] (absent)
+    // instead of projectSecrets['CONTENTFUL_API_TOKEN2'], so the token shipped
+    // blank and every CMS fetch on the deployed site returned 401.
+    expect(
+      resolveAuthEnvValue('CMS_ACCESS_TOKEN', 'teleporthq.secrets.CONTENTFUL_API_TOKEN2', oauthKeys)
+    ).toBe('teleporthq.secrets.CONTENTFUL_API_TOKEN2')
+    // Holds even with no preserveKeys argument (the alias set is unconditional).
+    expect(resolveAuthEnvValue('CMS_ACCESS_TOKEN', 'teleporthq.secrets.CONTENTFUL_API_TOKEN')).toBe(
+      'teleporthq.secrets.CONTENTFUL_API_TOKEN'
+    )
+  })
+
   it('keeps NEXTAUTH defaults and leaves non-auth behavior unchanged', () => {
     expect(
       resolveAuthEnvValue('NEXTAUTH_SECRET', 'teleporthq.secrets.NEXTAUTH_SECRET', oauthKeys)
