@@ -1381,16 +1381,21 @@ const generateParamsAST = (
 }
 
 const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
-  return Object.keys(headers)
-    .filter((header) => header !== 'authToken')
-    .map((header) => {
-      const headerResolved = resolveResourceValue(headers[header])
-      const value =
-        headers[header].type === 'static'
-          ? types.stringLiteral(String(headerResolved))
-          : types.identifier(String(headerResolved))
-      return types.objectProperty(types.stringLiteral(header), value)
-    })
+  return (
+    Object.keys(headers)
+      // `authToken` is rendered as the `Authorization` header; `authScheme` is a
+      // generator-only directive for that header's prefix — neither is emitted as
+      // its own literal HTTP header.
+      .filter((header) => header !== 'authToken' && header !== 'authScheme')
+      .map((header) => {
+        const headerResolved = resolveResourceValue(headers[header])
+        const value =
+          headers[header].type === 'static'
+            ? types.stringLiteral(String(headerResolved))
+            : types.identifier(String(headerResolved))
+        return types.objectProperty(types.stringLiteral(header), value)
+      })
+  )
 }
 
 export const generateMemberExpressionASTFromBase = (
@@ -1529,14 +1534,28 @@ const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => 
 
   const authTokenType = headers.authToken?.type
 
+  // The auth scheme prefix defaults to `Bearer ` (back-compatible with every CMS
+  // and data-source that stores a bare bearer token). A resource may override it
+  // via a `headers.authScheme` static value — e.g. WordPress Basic / Application
+  // Password auth sets `Basic ` so the rendered header is `Basic <base64>`
+  // instead of the wrong `Bearer <base64>`. `authScheme` is consumed here and
+  // filtered out of the emitted REST headers (see generateRESTHeadersAST).
+  const authSchemeValue = headers.authScheme
+  const schemePrefix =
+    authSchemeValue &&
+    authSchemeValue.type === 'static' &&
+    typeof authSchemeValue.content === 'string'
+      ? authSchemeValue.content
+      : 'Bearer '
+
   return types.objectProperty(
     types.identifier('Authorization'),
     types.templateLiteral(
       [
         types.templateElement(
           {
-            cooked: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
-            raw: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+            cooked: authTokenType === 'static' ? `${schemePrefix}${authToken}` : schemePrefix,
+            raw: authTokenType === 'static' ? `${schemePrefix}${authToken}` : schemePrefix,
           },
           false
         ),

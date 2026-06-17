@@ -60,20 +60,46 @@ describe('resolveAuthEnvValue', () => {
     ).toBe('')
   })
 
-  it('PRESERVES the CMS_ACCESS_TOKEN alias placeholder so the deploy worker can resolve it', () => {
-    // Regression: the CMS access token is stored under a uniquified secret name
-    // (e.g. CONTENTFUL_API_TOKEN2) and exposed via the STABLE alias env key
-    // CMS_ACCESS_TOKEN. Emptying it lost the alias→target mapping: the worker's
-    // empty-value fallback looked up projectSecrets['CMS_ACCESS_TOKEN'] (absent)
-    // instead of projectSecrets['CONTENTFUL_API_TOKEN2'], so the token shipped
-    // blank and every CMS fetch on the deployed site returned 401.
-    expect(
-      resolveAuthEnvValue('CMS_ACCESS_TOKEN', 'teleporthq.secrets.CONTENTFUL_API_TOKEN2', oauthKeys)
-    ).toBe('teleporthq.secrets.CONTENTFUL_API_TOKEN2')
-    // Holds even with no preserveKeys argument (the alias set is unconditional).
-    expect(resolveAuthEnvValue('CMS_ACCESS_TOKEN', 'teleporthq.secrets.CONTENTFUL_API_TOKEN')).toBe(
-      'teleporthq.secrets.CONTENTFUL_API_TOKEN'
-    )
+  // Regression: every CMS type in the platform exposes its base URL + access
+  // token through exactly two STABLE env keys — CMS_URL and CMS_ACCESS_TOKEN —
+  // regardless of how the underlying secret is named. Whenever the value is a
+  // `teleporthq.secrets.<name>` alias (env KEY != secret name), emptying it lost
+  // the mapping: the deploy worker's empty-value fallback looked up a secret
+  // named after the KEY (CMS_URL / CMS_ACCESS_TOKEN), which never exists — only
+  // the referenced name (STRAPI_URL, CONTENTFUL_API_TOKEN2, …) does. So the CMS
+  // base URL and/or token shipped blank and every CMS fetch on the deployed site
+  // failed (empty CMS_URL → hostless `/api/...`; empty token → 401). The list
+  // rendered in the GUI but was empty in the deployed project. These must all be
+  // PRESERVED so the worker resolves them via its `teleporthq.secrets.*` branch.
+  // Source of truth for the secret names: each integration's flow.ts
+  // getUniqueNameForSecret(...) + to-uidl-mapper provideBaseUrl/provideAccessToken.
+  describe('PRESERVES CMS alias placeholders for every CMS type', () => {
+    const cmsAliasCases: Array<[string, string, string]> = [
+      // [cmsType, env key, alias value emitted by the GUI mapper]
+      ['contentful (token)', 'CMS_ACCESS_TOKEN', 'teleporthq.secrets.CONTENTFUL_API_TOKEN2'],
+      ['strapi (url)', 'CMS_URL', 'teleporthq.secrets.STRAPI_URL'],
+      ['strapi (token)', 'CMS_ACCESS_TOKEN', 'teleporthq.secrets.STRAPI_ACCESS_TOKEN'],
+      ['flotiq (url)', 'CMS_URL', 'teleporthq.secrets.FLOTIQ_URL'],
+      ['flotiq (token)', 'CMS_ACCESS_TOKEN', 'teleporthq.secrets.FLOTIQ_ACCESS_TOKEN'],
+      ['caisy (token)', 'CMS_ACCESS_TOKEN', 'teleporthq.secrets.CAISY_ACCESS_TOKEN'],
+      ['wordpress (url)', 'CMS_URL', 'teleporthq.secrets.WORDPRESS_URL'],
+    ]
+    it.each(cmsAliasCases)('%s alias survives', (_label, key, value) => {
+      expect(resolveAuthEnvValue(key, value, oauthKeys)).toBe(value)
+      // Holds even with no preserveKeys argument (the CMS set is unconditional).
+      expect(resolveAuthEnvValue(key, value)).toBe(value)
+    })
+
+    // CMS_URL values that are NOT secret refs (Contentful delivery URL, caisy
+    // GraphQL URL) pass through untouched whether or not they're in the preserve
+    // set — listing CMS_URL is a harmless no-op for them.
+    const cmsPlainUrlCases: Array<[string, string]> = [
+      ['contentful', 'https://cdn.contentful.com/spaces/0g5imrx0o9y5/environments/master'],
+      ['caisy', 'https://cloud.caisy.io/api/v3/e/PROJECT_ID/graphql'],
+    ]
+    it.each(cmsPlainUrlCases)('%s plain CMS_URL passes through untouched', (_label, url) => {
+      expect(resolveAuthEnvValue('CMS_URL', url, oauthKeys)).toBe(url)
+    })
   })
 
   it('keeps NEXTAUTH defaults and leaves non-auth behavior unchanged', () => {
