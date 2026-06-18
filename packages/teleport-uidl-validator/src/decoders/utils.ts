@@ -421,6 +421,11 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   title: optional(union(string(), staticValueDecoder, dynamicValueDecoder)),
   metaTags: optional(array(dict(union(string(), staticValueDecoder, dynamicValueDecoder)))),
   assets: optional(array(globalAssetsDecoder)),
+  // JSON-LD blocks: a pre-serialized string or a (recursive) node tree with
+  // dynamic/computed leaves. Produced solely by the GUI mapper, so we only
+  // validate the array shape here and keep entries as-is rather than stripping
+  // them (mirrors how sortConfig/initialData are kept permissive).
+  structuredData: optional(array(anyJson())),
 })
 
 export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({

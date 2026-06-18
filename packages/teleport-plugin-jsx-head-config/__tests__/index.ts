@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import generator from '@babel/generator'
 import { createJSXHeadConfigPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
@@ -409,5 +410,186 @@ describe('plugin-jsx-head-config', () => {
     const titleNode = helmetNode.children[0] as types.JSXElement
     expect((titleNode.openingElement.name as types.JSXIdentifier).name).toBe('title')
     expect(structure.dependencies.useRouter).toBeUndefined()
+  })
+
+  const codeOf = (node: types.Node) => generator(node).code
+
+  it('Should emit a static JSON-LD script verbatim', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    const ld = '{"@context":"https://schema.org","@type":"Organization","name":"Acme"}'
+    uidlSample.seo = { structuredData: [ld] }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    const scriptNode = helmetNode.children[0] as types.JSXElement
+    expect((scriptNode.openingElement.name as types.JSXIdentifier).name).toBe('script')
+
+    const code = codeOf(scriptNode)
+    expect(code).toContain('type="application/ld+json"')
+    expect(code).toContain('dangerouslySetInnerHTML')
+    // emitted as a (quote-escaped) string literal containing the raw JSON
+    expect(code).toContain('@type')
+    expect(code).toContain('Organization')
+    // a static string is emitted verbatim, not wrapped in JSON.stringify
+    expect(code).not.toContain('JSON.stringify')
+  })
+
+  it('Should emit a dynamic Product JSON-LD bound to entity props', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      structuredData: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: {
+            type: 'dynamic',
+            content: { referenceType: 'prop', id: 'root', refPath: ['ecommerceProduct', 'name'] },
+          },
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: {
+              type: 'dynamic',
+              content: {
+                referenceType: 'prop',
+                id: 'root',
+                refPath: ['ecommerceProduct', 'currency'],
+              },
+            },
+            availability: {
+              type: 'computed',
+              kind: 'availability',
+              refPath: ['ecommerceProduct'],
+              column: 'quantity',
+            },
+            itemCondition: {
+              type: 'computed',
+              kind: 'itemCondition',
+              refPath: ['ecommerceProduct'],
+              column: 'condition',
+            },
+          },
+        },
+      ],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    const scriptNode = helmetNode.children[0] as types.JSXElement
+    const code = codeOf(scriptNode)
+
+    expect(code).toContain('JSON.stringify')
+    expect(code).toContain('props?.ecommerceProduct?.name')
+    expect(code).toContain('props?.ecommerceProduct?.currency')
+    // availability ternary
+    expect(code).toContain('props?.ecommerceProduct?.quantity === 0')
+    expect(code).toContain('https://schema.org/OutOfStock')
+    expect(code).toContain('https://schema.org/InStock')
+    // itemCondition map lookup with default
+    expect(code).toContain('https://schema.org/NewCondition')
+    // </script> breakout guard
+    expect(code).toMatch(/\.replace\(\/<\/g/)
+  })
+
+  it('Should emit multiple JSON-LD scripts', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      structuredData: ['{"@type":"WebSite"}', '{"@type":"Organization"}'],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect(helmetNode.children.length).toBe(2)
+    expect((helmetNode.children[0] as types.JSXElement).openingElement.name).toMatchObject({
+      name: 'script',
+    })
+    expect((helmetNode.children[1] as types.JSXElement).openingElement.name).toMatchObject({
+      name: 'script',
+    })
+  })
+
+  it('Should not change output when no structuredData is present', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = { title: 'Plain' }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    // only the title tag — no script tags
+    expect(helmetNode.children.length).toBe(1)
+    expect((helmetNode.children[0] as types.JSXElement).openingElement.name).toMatchObject({
+      name: 'title',
+    })
+  })
+
+  it('Should add the translations hook for a locale-bound JSON-LD leaf', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      structuredData: [
+        {
+          '@type': 'WebSite',
+          name: { type: 'dynamic', content: { referenceType: 'locale', id: 'site.name' } },
+        },
+      ],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    expect(structure.dependencies.useTranslations).toBeDefined()
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    const code = codeOf(helmetNode.children[0] as types.JSXElement)
+    expect(code).toContain('translate.raw("site.name")')
   })
 })
