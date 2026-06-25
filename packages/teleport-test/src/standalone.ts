@@ -1,5 +1,13 @@
 // @ts-nocheck
-import { readFileSync, writeFileSync, mkdirSync, accessSync, rmSync, existsSync } from 'fs'
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  accessSync,
+  rmSync,
+  existsSync,
+  readdirSync,
+} from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -153,6 +161,41 @@ const preserveExistingEnv = (uidl: ProjectUIDL, envPath: string): void => {
   })
 }
 
+// Files/dirs that are NOT produced by the generator and must survive a clean:
+// install artifacts and user-owned config. Everything else in the project dir
+// is regenerated every run.
+const PRESERVE_ON_CLEAN = new Set([
+  'node_modules',
+  '.env',
+  '.env.local',
+  '.git',
+  'package-lock.json',
+  'yarn.lock',
+  '.next',
+])
+
+// Remove previously-generated files before a fresh run so STALE ORPHANS can't
+// linger. The disk publisher only writes the files produced by THIS generation;
+// it never deletes files an earlier generation emitted. So when the UIDL changes
+// — e.g. authentication is turned off, a workflow/widget is removed — the old
+// `middleware.js` / `utils/auth/*` (which import `next-auth`), dead workflow API
+// routes, or an orphan `components/tq-*.js` are left behind, while the
+// regenerated `package.json` no longer lists their npm deps. `next build` then
+// fails with "Module not found: Can't resolve 'next-auth/jwt'" (or framer-motion,
+// etc). Wiping the generated tree — preserving only install + user-owned files —
+// guarantees the output always reflects exactly the current UIDL.
+const cleanGeneratedFiles = (projectDir: string): void => {
+  if (!existsSync(projectDir)) {
+    return
+  }
+  for (const entry of readdirSync(projectDir)) {
+    if (PRESERVE_ON_CLEAN.has(entry)) {
+      continue
+    }
+    rmSync(join(projectDir, entry), { recursive: true, force: true })
+  }
+}
+
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
@@ -161,23 +204,17 @@ const run = async () => {
       } catch {
         mkdirSync('dist')
       }
-      const wfApi = join(
-        __dirname,
-        '..',
-        'dist',
-        'teleport-project-next',
-        'pages',
-        'api',
-        'workflows'
-      )
-      if (existsSync(wfApi)) {
-        rmSync(wfApi, { recursive: true, force: true })
-      }
+      const projectDir = join(__dirname, '..', 'dist', 'teleport-project-next')
       // Preserve the user's existing `.env` values before regeneration so
       // Stripe / PayPal / DB credentials survive the trip through the
-      // generator's secret-placeholder resolver.
-      const existingEnvPath = join(__dirname, '..', 'dist', 'teleport-project-next', '.env')
+      // generator's secret-placeholder resolver. Read it BEFORE the clean
+      // (the clean keeps `.env` on disk anyway, but this also folds the values
+      // back into the UIDL so the regenerated `.env` carries them forward).
+      const existingEnvPath = join(projectDir, '.env')
       preserveExistingEnv(projectUIDL, existingEnvPath)
+      // Wipe stale generated files so orphans from a previous run can't break
+      // the build (this subsumes the old workflows-only cleanup).
+      cleanGeneratedFiles(projectDir)
     }
 
     await Promise.all([

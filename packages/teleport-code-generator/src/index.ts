@@ -30,20 +30,7 @@ import {
   NextTemplate,
   NextProjectPlugini18nConfig,
   NextFormsCaptchaScriptPlugin,
-  NextDataSourceDependenciesPlugin,
-  NextDataSourceUtilityPlugin,
-  NextWorkflowProjectPlugin,
-  NextRichTextEditorProjectPlugin,
-  NextEcommerceProjectPlugin,
-  NextGlobalStateProjectPlugin,
-  NextAIChatProjectPlugin,
-  NextAnalyticsProjectPlugin,
-  NextDashboardLayoutPlugin,
-  NextCalendarKitProjectPlugin,
-  NextDragDropProjectPlugin,
-  NextKanbanProjectPlugin,
-  NextCountdownProjectPlugin,
-  createNextWidgetProjectPlugins,
+  createNextProjectPlugins,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -192,41 +179,21 @@ export const packProject: PackProjectFunction = async (
   }
 
   if (projectType === ProjectType.NEXT) {
+    // packProject calls cleanPlugins() above and rebuilds the NEXT project-plugin
+    // list from scratch, so these two packProject-only plugins (which need the
+    // runtime `generateSitemap` option / inject the forms-captcha script) are
+    // added explicitly here.
     projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig({ generateSitemap }))
     projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
-    projectGeneratorFactory.addPlugin(new NextDataSourceDependenciesPlugin())
-    projectGeneratorFactory.addPlugin(new NextDataSourceUtilityPlugin())
-    projectGeneratorFactory.addPlugin(new NextWorkflowProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextEcommerceProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextGlobalStateProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextAIChatProjectPlugin())
-    // Growth analytics tracker. Self-gates on `uidl.analytics?.enabled`, so it
-    // is a no-op unless the project has analytics turned on. Must live here
-    // (not only in createNextProjectGenerator) because packProject calls
-    // cleanPlugins() and rebuilds the NEXT plugin list from scratch.
-    projectGeneratorFactory.addPlugin(new NextAnalyticsProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextDashboardLayoutPlugin())
-    projectGeneratorFactory.addPlugin(new NextRichTextEditorProjectPlugin())
-    // Interactive-library primitives (calendar / drag-and-drop / kanban). Like
-    // the plugins above, these must be re-added here because packProject runs
-    // cleanPlugins() and rebuilds the NEXT project-plugin list from scratch —
-    // the registrations in createNextProjectGenerator are wiped. Without these,
-    // the wrapper component files, the calendarkit stylesheet, the React-18
-    // bump and the .npmrc are never emitted, so the generated project fails to
-    // install/build ("Module not found: '../components/tq-kanban'", ERESOLVE).
-    projectGeneratorFactory.addPlugin(new NextCalendarKitProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextDragDropProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextKanbanProjectPlugin())
-    projectGeneratorFactory.addPlugin(new NextCountdownProjectPlugin())
-    // The npm-backed widget primitives (qr code, barcode, signature pad, color
-    // picker, emoji picker, motion). Re-added here for the same reason
-    // as the plugins above — packProject's cleanPlugins() wipes the registrations
-    // from createNextProjectGenerator, so without this the wrapper component files
-    // (components/tq-*.js) and their npm deps are never emitted and the project
-    // fails to build ("Module not found: '../components/tq-signature'").
-    createNextWidgetProjectPlugins().forEach((widgetPlugin) =>
-      projectGeneratorFactory.addPlugin(widgetPlugin)
-    )
+    // Everything else — data-source, workflow/auth, ecommerce, analytics, the
+    // interactive-library primitives (calendar / drag-and-drop / kanban /
+    // countdown) and the npm-backed widget primitives (incl. motion) — comes
+    // from the SINGLE shared list so this can never drift from
+    // createNextProjectGenerator. Previously this block duplicated that list by
+    // hand; a plugin missing here (or lost to a stale build) silently dropped
+    // its wrapper file's npm dependency, breaking `next build` with e.g.
+    // "Module not found: Can't resolve 'framer-motion'".
+    createNextProjectPlugins().forEach((plugin) => projectGeneratorFactory.addPlugin(plugin))
   }
 
   if (projectType === ProjectType.NUXT) {

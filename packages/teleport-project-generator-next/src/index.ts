@@ -15,7 +15,7 @@ import {
   createNextPagesDataSourcePlugin,
   createNextComponentDataSourcePlugin,
 } from '@teleporthq/teleport-plugin-next-data-source'
-import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
+import { ReactStyleVariation, FileType, ProjectPlugin } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { createStateDataSourcePlugin } from './state-data-source-plugin'
@@ -49,6 +49,47 @@ import {
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
 } from './local-component-path-plugin'
 
+/**
+ * The ordered list of Next.js PROJECT-level plugins (the ones added via
+ * `generator.addPlugin`). This is the SINGLE SOURCE OF TRUTH shared by
+ * `createNextProjectGenerator` (below) and `packProject` in
+ * `@teleporthq/teleport-code-generator`.
+ *
+ * `packProject` calls `cleanPlugins()` and rebuilds the project's plugin list
+ * from scratch, so historically this list was duplicated there by hand. The two
+ * copies drifted: a plugin registered here but missing from packProject's copy
+ * (or lost to a stale build of that package) was silently dropped at generation
+ * time. The visible symptom was a generated project that imports an npm package —
+ * e.g. `framer-motion` from `components/tq-motion.js`, or the calendar/kanban
+ * wrappers — that was never written into `package.json`, so `next build` failed
+ * with "Module not found: Can't resolve 'framer-motion'".
+ *
+ * Defining the list once here makes that class of bug structurally impossible:
+ * adding a new project plugin in this array automatically reaches BOTH the
+ * standalone generator and packProject. Each call returns fresh plugin instances
+ * (packProject re-invokes it after cleanPlugins()).
+ *
+ * NOTE: this intentionally excludes the few packProject-only plugins that need
+ * runtime options (i18n sitemap config, forms-captcha script, cross-framework
+ * i18n files); those remain in packProject.
+ */
+export const createNextProjectPlugins = (): ProjectPlugin[] => [
+  new NextDataSourceDependenciesPlugin(),
+  new NextDataSourceUtilityPlugin(),
+  new NextWorkflowProjectPlugin(),
+  new NextEcommerceProjectPlugin(),
+  new NextGlobalStateProjectPlugin(),
+  new NextAIChatProjectPlugin(),
+  new NextAnalyticsProjectPlugin(),
+  new NextDashboardLayoutPlugin(),
+  new NextRichTextEditorProjectPlugin(),
+  new NextCalendarKitProjectPlugin(),
+  new NextDragDropProjectPlugin(),
+  new NextKanbanProjectPlugin(),
+  new NextCountdownProjectPlugin(),
+  ...createNextWidgetProjectPlugins(),
+]
+
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
     configTagIdentifier: 'Head',
@@ -71,22 +112,9 @@ const createNextProjectGenerator = () => {
   const nextUrlSearchParamsPlugin = createNextUrlSearchParamsPlugin()
   const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
   const nextFormSubmissionPlugin = createNextFormSubmissionPlugin()
-  const dataSourceDependenciesPlugin = new NextDataSourceDependenciesPlugin()
-  const dataSourceUtilityPlugin = new NextDataSourceUtilityPlugin()
   const nextComponentWorkflowPlugin = createNextWorkflowPlugin({ isPage: false })
   const nextPageWorkflowPlugin = createNextWorkflowPlugin({ isPage: true })
-  const workflowProjectPlugin = new NextWorkflowProjectPlugin()
   const globalStateComponentPlugin = createNextGlobalStateComponentPlugin()
-  const globalStateProjectPlugin = new NextGlobalStateProjectPlugin()
-  const aiChatProjectPlugin = new NextAIChatProjectPlugin()
-  const analyticsProjectPlugin = new NextAnalyticsProjectPlugin()
-  const ecommerceProjectPlugin = new NextEcommerceProjectPlugin()
-  const dashboardLayoutPlugin = new NextDashboardLayoutPlugin()
-  const richTextEditorProjectPlugin = new NextRichTextEditorProjectPlugin()
-  const calendarKitProjectPlugin = new NextCalendarKitProjectPlugin()
-  const dragDropProjectPlugin = new NextDragDropProjectPlugin()
-  const kanbanProjectPlugin = new NextKanbanProjectPlugin()
-  const countdownProjectPlugin = new NextCountdownProjectPlugin()
   const localPrimitivesPagePlugin = createLocalComponentPathPlugin({
     basePath: ['pages'],
     componentFiles: INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
@@ -183,20 +211,10 @@ const createNextProjectGenerator = () => {
     },
   })
 
-  generator.addPlugin(dataSourceDependenciesPlugin)
-  generator.addPlugin(dataSourceUtilityPlugin)
-  generator.addPlugin(workflowProjectPlugin)
-  generator.addPlugin(ecommerceProjectPlugin)
-  generator.addPlugin(globalStateProjectPlugin)
-  generator.addPlugin(aiChatProjectPlugin)
-  generator.addPlugin(analyticsProjectPlugin)
-  generator.addPlugin(dashboardLayoutPlugin)
-  generator.addPlugin(richTextEditorProjectPlugin)
-  generator.addPlugin(calendarKitProjectPlugin)
-  generator.addPlugin(dragDropProjectPlugin)
-  generator.addPlugin(kanbanProjectPlugin)
-  generator.addPlugin(countdownProjectPlugin)
-  createNextWidgetProjectPlugins().forEach((widgetPlugin) => generator.addPlugin(widgetPlugin))
+  // Single source of truth for the Next.js PROJECT-level plugins — see
+  // createNextProjectPlugins. packProject (in @teleporthq/teleport-code-generator)
+  // reuses the exact same list, so the two can never drift.
+  createNextProjectPlugins().forEach((plugin) => generator.addPlugin(plugin))
 
   return generator
 }

@@ -28,6 +28,18 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     const { uidl, files, dependencies } = structure
     const ecommerceSettings = uidl.ecommerceSettings
     if (!ecommerceSettings) {
+      // A component can reference the ecommerce/cart hook — the i18n locale
+      // mapper injects `import { useEcommerce } from '@/ecommerce-context'` for
+      // cart-bound nodes (e.g. a nav cart counter) — even when the project
+      // carries no `ecommerceSettings`. Without the context file those imports
+      // dangle and `next build` fails with "Module not found: Can't resolve
+      // '@/ecommerce-context'". Emit a localStorage-only context (no payment
+      // providers / delivery) and wrap _app, so the references resolve and a
+      // basic cart still works. Projects that never reference it are untouched.
+      if (projectReferencesEcommerceContext(files)) {
+        this.generateContextFile({} as UIDLEcommerceSettings, undefined, files, null, false)
+        this.injectProviderIntoApp(files)
+      }
       return structure
     }
 
@@ -451,6 +463,20 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
 
     appFile.content = content
   }
+}
+
+// True when any already-generated file imports the local `@/ecommerce-context`
+// module. Used to decide whether a settings-less project still needs the
+// context file emitted (so injected cart-hook imports don't dangle).
+function projectReferencesEcommerceContext(files: Map<string, any>): boolean {
+  for (const [, record] of Array.from(files.entries())) {
+    for (const file of record.files || []) {
+      if (typeof file.content === 'string' && file.content.includes('@/ecommerce-context')) {
+        return true
+      }
+    }
+  }
+  return false
 }
 
 function findMatchingClosingParen(str: string): number {
