@@ -17,11 +17,20 @@ const isValidStyleSetKey = (key: string): boolean => {
   if (sanitized === null || sanitized.length === 0) {
     return false
   }
-  // Allow compound CSS selectors like "base-class.modifier" or "base-class.modifier .child-class"
-  // These are valid CSS and used for state-dependent styling (e.g., dashboard-sidebar.collapsed)
-  // Also allow pseudo-selectors like "class:hover" and "class:focus-within"
-  // Reject characters that indicate JS expression fragments or are truly invalid
-  if (/['"{}|()!@#$%^&*+=<>?/\\]/.test(key)) {
+  // Allow real CSS selector syntax used in style-set keys:
+  //  - compound selectors: "base-class.modifier", "base-class.modifier .child-class"
+  //  - combinators: "card > span", "card + span", "card ~ span", "list *"
+  //  - pseudo-selectors / functions: "class:hover", "row:nth-child(2n+1)", "card:not(.active)"
+  //  - id selectors: "#main .card"
+  //  - attribute selectors: 'input-group input[type="number"]'
+  // Attribute-selector brackets can legitimately contain quotes and "=", so they are stripped
+  // before the JS-fragment check below. The remaining blacklist still rejects expression/template
+  // fragments such as "'coin'", "{{", "||", "${x}" or "a && b".
+  const keyWithoutAttributeSelectors = key.replace(/\[[^\]]*\]/g, '')
+  // Reject characters that indicate JS expression fragments or are truly invalid CSS selectors.
+  // Note: ( ) * + > # are intentionally NOT rejected so pseudo-functions, combinators, the
+  // universal selector and id selectors keep working.
+  if (/['"{}|!@$%^&=<?/\\]/.test(keyWithoutAttributeSelectors)) {
     return false
   }
   // Reject keys that start with a digit
