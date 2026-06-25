@@ -6,6 +6,7 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
+import { sanitizeStylesheetSelectors } from './utils'
 
 interface StyleSheetPlugin {
   fileName?: string
@@ -107,7 +108,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       name: fileName,
       type: ChunkType.STRING,
       fileType: FileType.CSS,
-      content: cssMap.join('\n \n'),
+      // Repair unbalanced selector parens before emitting — a stray `)` in a
+      // single AI-authored selector otherwise breaks the consumer's production
+      // `next build` (cssnano selector parser: "Expected an opening parenthesis"),
+      // while `next dev` silently tolerates it.
+      content: sanitizeStylesheetSelectors(cssMap.join('\n \n')),
       linkAfter: [],
     })
 
