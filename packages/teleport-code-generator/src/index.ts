@@ -42,6 +42,8 @@ import {
   NextCalendarKitProjectPlugin,
   NextDragDropProjectPlugin,
   NextKanbanProjectPlugin,
+  NextCountdownProjectPlugin,
+  createNextWidgetProjectPlugins,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -215,6 +217,16 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(new NextCalendarKitProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextDragDropProjectPlugin())
     projectGeneratorFactory.addPlugin(new NextKanbanProjectPlugin())
+    projectGeneratorFactory.addPlugin(new NextCountdownProjectPlugin())
+    // The npm-backed widget primitives (qr code, barcode, signature pad, color
+    // picker, emoji picker, motion). Re-added here for the same reason
+    // as the plugins above — packProject's cleanPlugins() wipes the registrations
+    // from createNextProjectGenerator, so without this the wrapper component files
+    // (components/tq-*.js) and their npm deps are never emitted and the project
+    // fails to build ("Module not found: '../components/tq-signature'").
+    createNextWidgetProjectPlugins().forEach((widgetPlugin) =>
+      projectGeneratorFactory.addPlugin(widgetPlugin)
+    )
   }
 
   if (projectType === ProjectType.NUXT) {

@@ -7,6 +7,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
+import { buildStructuredDataScript } from './structured-data-ast'
 
 interface JSXHeadPluginConfig {
   componentChunkName?: string
@@ -247,6 +248,18 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
             headASTTags.push(ogUrlMeta)
           }
         }
+      })
+    }
+
+    if (uidl.seo.structuredData && uidl.seo.structuredData.length > 0) {
+      uidl.seo.structuredData.forEach((entry) => {
+        const { scriptTag, usesTranslations } = buildStructuredDataScript(entry)
+        if (usesTranslations && !translationsAdded) {
+          structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+          reactHooks.push(getTranslationsAST())
+          translationsAdded = true
+        }
+        headASTTags.push(scriptTag)
       })
     }
 

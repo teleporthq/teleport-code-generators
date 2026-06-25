@@ -277,14 +277,37 @@ function currentScrollPct() {
   }
 }
 
+function pathnameOf(url) {
+  if (typeof url !== 'string' || !url) {
+    return null
+  }
+  return url.split('?')[0].split('#')[0] || '/'
+}
+
+// True when a route event resolves to the page we are already tracking. The
+// pages-router emits routeChangeStart/Complete for the SAME path during initial
+// hydration (and when a link points at the current page), which would otherwise
+// double-count the pageview and emit a bogus 0ms page_leave.
+function samePathAsCurrent(url) {
+  const next = pathnameOf(url)
+  return currentPath !== null && next !== null && next === currentPath
+}
+
 function trackPageview(isFirstLoad) {
   if (!isTrackingPossible()) {
     return
   }
 
+  const newPath = window.location.pathname || '/'
+  // Defensive same-path guard (the route handlers also guard on the router's
+  // destination url): never emit a second pageview for the page already shown.
+  if (!isFirstLoad && currentPath !== null && newPath === currentPath) {
+    return
+  }
+
   pageLoadId = uuid()
   seq = 0
-  currentPath = window.location.pathname || '/'
+  currentPath = newPath
   resetPageMetrics()
 
   const event = baseEvent('pageview')
@@ -427,11 +450,20 @@ export function initTeleportAnalytics() {
   sendHeartbeat()
 }
 
-export function trackRouteLeave() {
+export function trackRouteLeave(url) {
+  // A same-path routeChangeStart (hydration) is not a real leave — skip it so we
+  // don't enqueue a 0ms page_leave. Genuine end-of-visit goes through pagehide
+  // (trackLeave(true)), which is intentionally unconditional.
+  if (samePathAsCurrent(url)) {
+    return
+  }
   trackLeave(false)
 }
 
-export function trackRouteChange() {
+export function trackRouteChange(url) {
+  if (samePathAsCurrent(url)) {
+    return
+  }
   trackPageview(false)
   sendHeartbeat()
 }

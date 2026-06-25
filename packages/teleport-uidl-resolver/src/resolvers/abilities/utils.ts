@@ -7,6 +7,8 @@ import {
   UIDLAttributeValue,
   UIDLPropDefinition,
   UIDLDynamicReference,
+  UIDLStyleValue,
+  UIDLStyleSheetContent,
 } from '@teleporthq/teleport-types'
 
 type NavlinkDifferentiatorValue = NonNullable<UIDLNavLinkNode['content']['differentiatorValue']>
@@ -45,6 +47,50 @@ const isAttributeSafeForAnchor = (attrName: string): boolean => {
     attrName.startsWith('data-') ||
     ANCHOR_SAFE_ARIA_ATTRIBUTES.has(attrName)
   )
+}
+
+// display values that turn a node into a flex/grid container, making its direct
+// children into flex/grid items.
+const FLEX_OR_GRID_DISPLAYS = new Set(['flex', 'inline-flex', 'grid', 'inline-grid'])
+
+const isStaticFlexOrGridDisplay = (
+  display: UIDLStyleValue | UIDLStyleSheetContent | undefined
+): boolean => display?.type === 'static' && FLEX_OR_GRID_DISPLAYS.has(String(display.content))
+
+/* When a styled element also carries a link, the link is realised as a wrapper
+   <a>/navlink around it. If the parent is a flex/grid container, that wrapper
+   would become the flex/grid item instead of the styled child, dropping the
+   child's sizing (e.g. a `flex: 0 0 …` card width). Detecting that here lets the
+   caller mark the wrapper `display: contents` so the styled child stays the real
+   flex/grid item. The parent's display can come from an inline style or, more
+   commonly for generated projects, from a project-referenced style class — and
+   abilities are resolved before referenced styles are flattened, so we read it
+   straight from the project style-set definitions. */
+const parentIsFlexOrGridContainer = (
+  parentNode: UIDLElementNode | undefined,
+  options: GeneratorOptions
+): boolean => {
+  if (!parentNode) {
+    return false
+  }
+
+  if (isStaticFlexOrGridDisplay(parentNode.content.style?.display)) {
+    return true
+  }
+
+  const referencedStyles = parentNode.content.referencedStyles
+  const styleSetDefinitions = options.projectStyleSet?.styleSetDefinitions
+  if (!referencedStyles || !styleSetDefinitions) {
+    return false
+  }
+
+  return Object.values(referencedStyles).some((referencedStyle) => {
+    if (referencedStyle.content.mapType !== 'project-referenced') {
+      return false
+    }
+    const styleSet = styleSetDefinitions[referencedStyle.content.referenceId]
+    return isStaticFlexOrGridDisplay(styleSet?.content?.display)
+  })
 }
 
 export const insertLinks = (
@@ -225,7 +271,7 @@ export const insertLinks = (
       abilities.link.content.referenceType === 'prop' &&
       propDefinitions?.[abilities.link.content.id]?.type === 'link'
     ) {
-      return handleLinkTypeProp(node, abilities.link as UIDLDynamicReference, parentNode)
+      return handleLinkTypeProp(node, abilities.link as UIDLDynamicReference, options, parentNode)
     }
 
     /* We repalce buttons with link to use <a> tag's, to make the generated
@@ -281,7 +327,7 @@ export const insertLinks = (
 
     linkNode.content.children.push(node)
 
-    if (parentNode === undefined || parentNode?.content.style?.display?.content === 'flex') {
+    if (parentNode === undefined || parentIsFlexOrGridContainer(parentNode, options)) {
       linkNode.content.style = {
         ...linkNode.content.style,
         display: { type: 'static', content: 'contents' },
@@ -297,6 +343,7 @@ export const insertLinks = (
 const handleLinkTypeProp = (
   node: UIDLElementNode,
   linkRef: UIDLDynamicReference,
+  options: GeneratorOptions,
   parentNode?: UIDLElementNode
 ): UIDLElementNode => {
   const { elementType, semanticType } = node.content
@@ -374,7 +421,7 @@ const handleLinkTypeProp = (
 
   linkNode.content.children.push(node)
 
-  if (parentNode === undefined || parentNode?.content.style?.display?.content === 'flex') {
+  if (parentNode === undefined || parentIsFlexOrGridContainer(parentNode, options)) {
     linkNode.content.style = {
       ...linkNode.content.style,
       display: { type: 'static', content: 'contents' },

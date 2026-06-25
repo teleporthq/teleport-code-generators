@@ -421,6 +421,11 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   title: optional(union(string(), staticValueDecoder, dynamicValueDecoder)),
   metaTags: optional(array(dict(union(string(), staticValueDecoder, dynamicValueDecoder)))),
   assets: optional(array(globalAssetsDecoder)),
+  // JSON-LD blocks: a pre-serialized string or a (recursive) node tree with
+  // dynamic/computed leaves. Produced solely by the GUI mapper, so we only
+  // validate the array shape here and keep entries as-is rather than stripping
+  // them (mirrors how sortConfig/initialData are kept permissive).
+  structuredData: optional(array(anyJson())),
 })
 
 export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
@@ -1038,6 +1043,12 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     perPage: optional(number()),
     searchEnabled: optional(boolean()),
     searchDebounce: optional(number()),
+    // Two-way URL binding key for the search input. MUST be listed here or the
+    // `object()` decoder silently strips it from the validated UIDL, leaving
+    // the pagination plugin's search → `?key=` sync dead (the original
+    // searchKeyword bug). Mirrors the `searchUrlParamKey` field on
+    // `UIDLCMSListRepeaterNodeContent`.
+    searchUrlParamKey: optional(string()),
     sort: optional(union(staticValueDecoder, expressionValueDecoder)),
     sortDirection: optional(union(staticValueDecoder, expressionValueDecoder)),
   }),

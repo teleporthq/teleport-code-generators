@@ -1,5 +1,9 @@
 import { UIDLConditionalNode, UIDLStateDefinition } from '@teleporthq/teleport-types'
-import { conditionalNodeDecoder, stateDefinitionsDecoder } from '../../src/decoders/utils'
+import {
+  conditionalNodeDecoder,
+  stateDefinitionsDecoder,
+  cmsListRepeaterNodeDecoder,
+} from '../../src/decoders/utils'
 
 test('decode conditional nodes properly when using dynamic and expression reference', () => {
   const node: UIDLConditionalNode = {
@@ -118,4 +122,43 @@ test('stateDefinitionsDecoder rejects urlSearchParamBinding that is missing the 
 
   const result = stateDefinitionsDecoder.run(state)
   expect(result.ok).toBeFalsy()
+})
+
+test('cmsListRepeaterNodeDecoder preserves searchUrlParamKey through validation', () => {
+  // Regression guard for the "searchKeyword in the URL is ignored" bug: the
+  // `object()` decoder silently DROPS any key absent from its schema, so the
+  // products-list search input's `searchUrlParamKey` must stay listed or its
+  // two-way URL sync dies before the pagination plugin ever sees it.
+  const node = {
+    type: 'cms-list-repeater',
+    content: {
+      elementType: 'container',
+      name: 'cms-list-repeater',
+      renderPropIdentifier: 'ecommerceProduct',
+      paginated: true,
+      perPage: 20,
+      searchEnabled: true,
+      searchDebounce: 300,
+      searchUrlParamKey: 'searchKeyword',
+      nodes: {
+        list: { type: 'element', content: { elementType: 'container' } },
+      },
+    },
+  }
+
+  const result = cmsListRepeaterNodeDecoder.run(node)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    // The validated `VCMSListRepeaterElementNode` content type narrows to
+    // `{ nodes }`, so read the preserved scalar fields off the runtime shape.
+    const content = result.result.content as {
+      searchUrlParamKey?: string
+      searchEnabled?: boolean
+      searchDebounce?: number
+    }
+    expect(content.searchUrlParamKey).toBe('searchKeyword')
+    // The sibling search fields still decode alongside it.
+    expect(content.searchEnabled).toBe(true)
+    expect(content.searchDebounce).toBe(300)
+  }
 })

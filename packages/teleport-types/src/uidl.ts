@@ -571,9 +571,51 @@ export interface UIDLComponentSEO {
   title?: string | UIDLStaticValue | UIDLDynamicReference
   metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
+  /**
+   * JSON-LD (`application/ld+json`) structured-data blocks rendered into the
+   * page <head>. Each entry is either a pre-serialized JSON string (fully
+   * static, emitted verbatim) or a node tree whose leaves may be dynamic
+   * prop/locale references or small computed expressions resolved at render
+   * time. See `teleport-plugin-jsx-head-config/src/structured-data-ast.ts`.
+   */
+  structuredData?: UIDLStructuredDataEntry[]
 }
 
 export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicReference>
+
+export type UIDLStructuredDataEntry = string | UIDLStructuredDataObject
+
+export interface UIDLStructuredDataObject {
+  [key: string]: UIDLStructuredDataNode
+}
+
+export type UIDLStructuredDataNode =
+  | string
+  | number
+  | boolean
+  | null
+  | UIDLStaticValue
+  | UIDLDynamicReference
+  | UIDLStructuredDataComputed
+  | UIDLStructuredDataObject
+  | UIDLStructuredDataNode[]
+
+/**
+ * A small set of runtime-computed JSON-LD leaves the head-config plugin knows
+ * how to emit. `refPath` is the prop path to the entity record (e.g.
+ * `['ecommerceProduct']`), `column` the field beneath it the computation uses.
+ * - `availability`: `<entity>.<column> === 0 ? OutOfStock : InStock`
+ * - `itemCondition`: maps `<entity>.<column>` (new/refurbished/used) to the
+ *   matching schema.org condition URL, defaulting to NewCondition.
+ * - `concatUrl`: `` `${urlPrefix}${<entity>.<column>}` `` (e.g. product URL).
+ */
+export interface UIDLStructuredDataComputed {
+  type: 'computed'
+  kind: 'availability' | 'itemCondition' | 'concatUrl'
+  refPath: string[]
+  column: string
+  urlPrefix?: string
+}
 
 export type PropDefaultValueTypes =
   | string
@@ -863,6 +905,12 @@ export interface UIDLCMSListRepeaterNodeContent {
   // Static values are emitted verbatim; dynamic values are expected to
   // reference props / state / URL params and are emitted as expressions.
   searchDefaultValue?: UIDLStaticValue | UIDLExpressionValue
+  // URL query-param key the search input is two-way bound to (e.g.
+  // `'searchKeyword'`). When set, the code generator seeds the query from
+  // `window.location.search`, keeps it in sync on browser navigation
+  // (read-back), and pushes the debounced value back onto the URL
+  // (write-back) — see `URLSearchParamSync` in `teleport-plugin-common`.
+  searchUrlParamKey?: string
   sort?: UIDLStaticValue | UIDLExpressionValue
   sortDirection?: UIDLStaticValue | UIDLExpressionValue
 }

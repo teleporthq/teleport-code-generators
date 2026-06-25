@@ -15,8 +15,8 @@ const AnalyticsTracker = () => {
   useEffect(() => {
     initTeleportAnalytics()
 
-    const handleRouteChangeStart = () => trackRouteLeave()
-    const handleRouteChangeComplete = () => trackRouteChange()
+    const handleRouteChangeStart = (url) => trackRouteLeave(url)
+    const handleRouteChangeComplete = (url) => trackRouteChange(url)
 
     router.events.on('routeChangeStart', handleRouteChangeStart)
     router.events.on('routeChangeComplete', handleRouteChangeComplete)
