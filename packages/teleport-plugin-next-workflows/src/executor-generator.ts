@@ -125,6 +125,102 @@ function isSecretRef(value) {
   );
 }
 
+// Resolve the inline workflow-context placeholders the rich-text email-body
+// editor embeds for every dynamic value:
+//   <span class="context-value-inline" data-ctx-node-id="<id>"
+//         data-ctx-path='["<id>","result"]'>Label</span>
+// resolveConfig leaves plain strings untouched, so without this the literal
+// placeholder label (e.g. "Reset URL") would be delivered in the email instead
+// of the resolved value. Handles both the raw single-quoted attribute form and
+// the Quill-serialized &quot;-escaped form, plus the nested inner <span> Quill
+// wraps the label in.
+function resolveRichTextContext(html, context) {
+  if (typeof html !== 'string' || html.indexOf('context-value-inline') === -1) {
+    return html;
+  }
+  var out = '';
+  var i = 0;
+  while (i < html.length) {
+    var spanStart = html.indexOf('<span', i);
+    if (spanStart === -1) { out += html.slice(i); break; }
+    var openEnd = html.indexOf('>', spanStart);
+    if (openEnd === -1) { out += html.slice(i); break; }
+    var openTag = html.slice(spanStart, openEnd + 1);
+    if (openTag.indexOf('context-value-inline') === -1) {
+      // Unrelated <span> — copy it through verbatim and keep scanning.
+      out += html.slice(i, openEnd + 1);
+      i = openEnd + 1;
+      continue;
+    }
+    // Copy everything before the embed, then replace the whole embed span
+    // (including any nested inner spans) with the resolved value.
+    out += html.slice(i, spanStart);
+    var depth = 1;
+    var j = openEnd + 1;
+    while (j < html.length && depth > 0) {
+      var nextOpen = html.indexOf('<span', j);
+      var nextClose = html.indexOf('</span>', j);
+      if (nextClose === -1) { j = html.length; break; }
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        var innerEnd = html.indexOf('>', nextOpen);
+        j = innerEnd === -1 ? html.length : innerEnd + 1;
+        depth++;
+      } else {
+        j = nextClose + 7; // '</span>'.length
+        depth--;
+      }
+    }
+    out += resolveRichTextContextSpan(openTag, context);
+    i = j;
+  }
+  return out;
+}
+
+function resolveRichTextContextSpan(openTag, context) {
+  var nodeId = extractHtmlAttr(openTag, 'data-ctx-node-id');
+  var pathRaw = extractHtmlAttr(openTag, 'data-ctx-path');
+  var path = null;
+  if (pathRaw) {
+    var decoded = pathRaw.replace(/&quot;/g, '"').replace(/&#34;/g, '"').replace(/&amp;/g, '&');
+    try { path = JSON.parse(decoded); } catch (e) { path = null; }
+  }
+  if (!Array.isArray(path) || path.length === 0) {
+    path = nodeId ? [nodeId] : [];
+  }
+  if (!nodeId && path.length > 0) { nodeId = path[0]; }
+  if (!nodeId) { return ''; }
+  var value = resolveContextRef({ type: 'workflowContext', nodeId: nodeId, path: path }, context);
+  if (value === undefined || value === null) { return ''; }
+  return escapeHtmlText(String(value));
+}
+
+// Read a quoted HTML attribute value (double- or single-quoted) without a regex
+// so the surrounding template literal needs no backslash escaping.
+function extractHtmlAttr(tag, name) {
+  var key = name + '=';
+  var at = tag.indexOf(key);
+  if (at === -1) { return ''; }
+  var quote = tag.charAt(at + key.length);
+  if (quote !== '"' && quote !== "'") { return ''; }
+  var start = at + key.length + 1;
+  var end = tag.indexOf(quote, start);
+  if (end === -1) { return ''; }
+  return tag.slice(start, end);
+}
+
+function escapeHtmlText(value) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Scalar config values are normally just secret-resolved. Rich-text strings
+// (email bodies) additionally need their inline context placeholders resolved.
+function resolveScalarValue(value, context) {
+  if (typeof value === 'string' && value.indexOf('context-value-inline') !== -1) {
+    return resolveRichTextContext(value, context);
+  }
+  return resolveSecret(value, context);
+}
+
 function resolveConfig(config, context) {
   if (!config || typeof config !== 'object') return config;
   const resolved = {};
@@ -154,7 +250,7 @@ function resolveConfig(config, context) {
           if (item && typeof item === 'object' && !Array.isArray(item)) {
             return resolveConfig(item, context);
           }
-          return resolveSecret(item, context);
+          return resolveScalarValue(item, context);
         });
       } else {
         resolved[key] = val.map(function(item) {
@@ -164,7 +260,7 @@ function resolveConfig(config, context) {
           if (item && typeof item === 'object' && !Array.isArray(item)) {
             return resolveConfig(item, context);
           }
-          return resolveSecret(item, context);
+          return resolveScalarValue(item, context);
         });
       }
     } else if (val && typeof val === 'object' && val.type === 'workflowContext') {
@@ -176,7 +272,7 @@ function resolveConfig(config, context) {
     } else if (val && typeof val === 'object' && !Array.isArray(val)) {
       resolved[key] = resolveConfig(val, context);
     } else {
-      resolved[key] = resolveSecret(val, context);
+      resolved[key] = resolveScalarValue(val, context);
     }
   }
   return resolved;
@@ -741,6 +837,7 @@ module.exports = {
   resolveSecret,
   resolveConfig,
   resolveContextRef,
+  resolveRichTextContext,
   unwrapWorkflowCollection,
   evaluateCondition,
   evaluateSingleComparison,

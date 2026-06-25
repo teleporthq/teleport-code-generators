@@ -42,6 +42,8 @@ import { createRichTextEditorComponentPlugin } from './rich-text-editor/componen
 import { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 import { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
 import { NextKanbanProjectPlugin } from './kanban/project-plugin'
+import { NextCountdownProjectPlugin } from './countdown/project-plugin'
+import { createNextWidgetProjectPlugins } from './widgets'
 import {
   createLocalComponentPathPlugin,
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
@@ -84,6 +86,7 @@ const createNextProjectGenerator = () => {
   const calendarKitProjectPlugin = new NextCalendarKitProjectPlugin()
   const dragDropProjectPlugin = new NextDragDropProjectPlugin()
   const kanbanProjectPlugin = new NextKanbanProjectPlugin()
+  const countdownProjectPlugin = new NextCountdownProjectPlugin()
   const localPrimitivesPagePlugin = createLocalComponentPathPlugin({
     basePath: ['pages'],
     componentFiles: INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
@@ -192,6 +195,8 @@ const createNextProjectGenerator = () => {
   generator.addPlugin(calendarKitProjectPlugin)
   generator.addPlugin(dragDropProjectPlugin)
   generator.addPlugin(kanbanProjectPlugin)
+  generator.addPlugin(countdownProjectPlugin)
+  createNextWidgetProjectPlugins().forEach((widgetPlugin) => generator.addPlugin(widgetPlugin))
 
   return generator
 }
@@ -209,8 +214,14 @@ export { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 export { CALENDARKIT_CSS, CALENDARKIT_VERSION } from './calendar/calendarkit-css'
 export { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
 export { NextKanbanProjectPlugin } from './kanban/project-plugin'
+export { NextCountdownProjectPlugin } from './countdown/project-plugin'
+// Re-exported so `packProject` (in @teleporthq/teleport-code-generator) can re-add
+// the npm-backed widget primitives after it calls cleanPlugins(); the plugins
+// registered inside createNextProjectGenerator are wiped by that path.
+export { createNextWidgetProjectPlugins } from './widgets'
 export { generateDragDropComponentCode } from './drag-drop/component-generator'
 export { generateKanbanComponentCode } from './kanban/component-generator'
+export { generateCountdownComponentCode } from './countdown/component-generator'
 export {
   createLocalComponentPathPlugin,
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,

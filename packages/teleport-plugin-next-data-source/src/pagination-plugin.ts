@@ -7,7 +7,7 @@ import {
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
@@ -64,6 +64,53 @@ function searchDefaultValueInitAST(value: SearchDefaultValue | undefined): types
   return types.cloneNode(value.ast, /* deep */ true) as types.Expression
 }
 
+// Builds the `useState(...)` initializer for the search query. When the
+// cms-list-repeater is bound to a URL param (`searchUrlParamKey`), the query is
+// seeded from `window.location.search` on the client so a deep link such as
+// `/products-list?searchKeyword=yoga` arrives pre-filtered on the very first
+// paint; the server render (where `window` is undefined) and any missing param
+// fall back to the `searchDefaultValue` seed (empty string by default). This
+// mirrors the `selectedCategory` / `sortBy` initializer emitted by
+// `createStateHookAST` for state-level `urlSearchParamBinding`, keeping the
+// three products-list controls consistent.
+//
+// Returns a fresh AST on every call (no shared node references) so the same
+// initializer can seed both the immediate `ds_N_searchQuery` state and the
+// debounced `ds_N_state.debouncedQuery` value.
+function buildSearchQueryInitAST(usage: DataSourceUsage): types.Expression {
+  const fallback = searchDefaultValueInitAST(usage.searchDefaultValue)
+  if (!usage.searchUrlParamKey) {
+    return fallback
+  }
+  // (typeof window !== 'undefined'
+  //   ? new URLSearchParams(window.location.search).get('<key>')
+  //   : null) ?? <fallback>
+  return types.logicalExpression(
+    '??',
+    types.conditionalExpression(
+      types.binaryExpression(
+        '!==',
+        types.unaryExpression('typeof', types.identifier('window')),
+        types.stringLiteral('undefined')
+      ),
+      types.callExpression(
+        types.memberExpression(
+          types.newExpression(types.identifier('URLSearchParams'), [
+            types.memberExpression(
+              types.memberExpression(types.identifier('window'), types.identifier('location')),
+              types.identifier('search')
+            ),
+          ]),
+          types.identifier('get')
+        ),
+        [types.stringLiteral(usage.searchUrlParamKey)]
+      ),
+      types.nullLiteral()
+    ),
+    fallback
+  )
+}
+
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
 // This module uses a UIDL-first approach: we scan the UIDL FIRST to identify
 // ALL data source usages and assign unique state IDs BEFORE any JSX processing.
@@ -94,6 +141,13 @@ interface DataSourceUsage {
   // component can reference props / state / router-query / URL-param
   // helpers in the initial value.
   searchDefaultValue?: SearchDefaultValue
+  // URL query-param key the search input is two-way bound to (e.g.
+  // `'searchKeyword'`). When present, the generated component seeds the search
+  // query from `window.location.search`, mirrors browser navigation back into
+  // the input (read-back), and pushes the debounced query onto the URL
+  // (write-back) via the shared `URLSearchParamSync` builders — the same
+  // loop-free mechanism the `selectedCategory` / `sortBy` dropdowns use.
+  searchUrlParamKey?: string
   // Query columns from resource params
   queryColumns: string[]
   // Sorts from resource params (legacy static-array form)
@@ -477,6 +531,15 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
 
         const searchDefaultValue = parseSearchDefaultValue(content.searchDefaultValue)
 
+        // URL two-way binding key for the search input. Only honoured when it
+        // is a non-empty string; blank / non-string values fall back to the
+        // plain (non-URL-synced) search behaviour.
+        const searchUrlParamKey =
+          typeof content.searchUrlParamKey === 'string' &&
+          content.searchUrlParamKey.trim().length > 0
+            ? content.searchUrlParamKey.trim()
+            : undefined
+
         const usage: DataSourceUsage = {
           index: index++,
           dataSourceIdentifier: parentDataSource.identifier,
@@ -491,6 +554,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           searchEnabled: !!content.searchEnabled,
           searchDebounce: content.searchDebounce || 300,
           searchDefaultValue,
+          searchUrlParamKey,
           queryColumns,
           sorts,
           dynamicSort,
@@ -598,6 +662,75 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
     skipCountFetchRefVar: `ds_${idx}_skipCountFetch`,
     propsPrefix: `${usage.dataSourceIdentifier}_ds_${idx}`,
   }
+}
+
+// True when a usage actually emits the search ⇄ URL sync effects: it must carry
+// a non-empty `searchUrlParamKey` AND own a search query state (only the
+// `paginated+search` and `search-only` categories declare `ds_N_searchQuery`).
+// Single source of truth for both the effect emission and the `useRouter`
+// injection, so a `searchUrlParamKey` mistakenly set on a non-search mapper
+// never injects an unused `const router = useRouter()`.
+function usageHasSearchUrlSync(usage: DataSourceUsage): boolean {
+  return (
+    !!usage.searchUrlParamKey &&
+    (usage.category === 'paginated+search' || usage.category === 'search-only')
+  )
+}
+
+// Emits the two URL-sync effects for a search input bound to a URL param
+// (`searchUrlParamKey`), reusing the shared `URLSearchParamSync` builders so the
+// search input behaves exactly like the `selectedCategory` / `sortBy` dropdowns:
+//
+//   • read-back  (URL → input): browser back/forward, shallow `router.push`,
+//     and deep links flow into the immediate `ds_N_searchQuery` input state;
+//     the existing debounce effect then carries the change into the debounced
+//     value and the data fetch.
+//   • write-back (debounced → URL): the DEBOUNCED query is pushed onto the URL
+//     so it survives reloads and is shareable. Keying on the debounced value
+//     (not the raw input) means the URL updates only after the user stops
+//     typing — never on every keystroke — honouring the "search runs after a
+//     debounce" contract and avoiding a flood of `router.replace` history
+//     churn.
+//
+// Loop-free: the write-back skips when the URL already equals the value, and the
+// read-back uses functional `setState(prev => prev === next ? prev : next)`, so
+// a user edit fires write-back once and the echoed read-back bails without a
+// re-render. No-op unless the usage actually has a search query state
+// (paginated+search or search-only) AND a non-empty `searchUrlParamKey`.
+function pushSearchUrlSyncEffects(
+  effectStatements: types.Statement[],
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (!usageHasSearchUrlSync(usage)) {
+    return
+  }
+
+  // The canonical (debounced) query the URL should reflect. For
+  // paginated+search it lives on the combined state object as
+  // `ds_N_state.debouncedQuery`; for search-only it is the standalone
+  // `ds_N_debouncedQuery` state.
+  const buildDebouncedValueExpr = (): types.Expression =>
+    usage.category === 'paginated+search'
+      ? types.memberExpression(
+          types.identifier(vars.combinedStateVar),
+          types.identifier('debouncedQuery')
+        )
+      : types.identifier(vars.debouncedSearchQueryVar)
+
+  // write-back: debounced query → `?<searchUrlParamKey>=`
+  effectStatements.push(
+    URLSearchParamSync.buildUrlWriteBackEffect(
+      usage.searchUrlParamKey,
+      buildDebouncedValueExpr(),
+      buildDebouncedValueExpr()
+    )
+  )
+  // read-back: `?<searchUrlParamKey>=` → input (`setDs_N_searchQuery`). The
+  // debounce effect propagates the change into the debounced value + fetch.
+  effectStatements.push(
+    URLSearchParamSync.buildUrlReadBackEffect(usage.searchUrlParamKey, vars.setSearchQueryVar)
+  )
 }
 
 // ==================== MAIN PLUGIN ====================
@@ -762,7 +895,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                   types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
                   types.objectProperty(
                     types.identifier('debouncedQuery'),
-                    searchDefaultValueInitAST(usage.searchDefaultValue)
+                    buildSearchQueryInitAST(usage)
                   ),
                 ]),
               ])
@@ -770,8 +903,13 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           ])
         )
 
-        // Immediate search query state — seeded with `searchDefaultValue`
-        // when provided so the input is pre-filled on mount.
+        // Immediate search query state — seeded with `searchDefaultValue` (or
+        // the `searchUrlParamKey` URL value when bound) so the input is
+        // pre-filled on mount. The debounced value above is seeded identically
+        // so a deep-linked `?searchKeyword=` fetches filtered results on the
+        // first paint: the paginated+search `initialData` is gated on
+        // `!ds_N_state.debouncedQuery`, so a non-empty seed forces the
+        // DataProvider to fetch instead of reusing the unfiltered SSG prefetch.
         stateDeclarations.push(
           types.variableDeclaration('const', [
             types.variableDeclarator(
@@ -779,9 +917,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [buildSearchQueryInitAST(usage)])
             ),
           ])
         )
@@ -1055,6 +1191,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             ])
           )
         )
+
+        // Two-way URL sync for the search input when bound to a URL param.
+        pushSearchUrlSyncEffects(effectStatements, usage, vars)
       } else if (usage.category === 'paginated-only') {
         // Simple page state
         const maxPagesInit = isPage
@@ -1228,9 +1367,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.debouncedSearchQueryVar),
                 types.identifier(vars.setDebouncedSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [buildSearchQueryInitAST(usage)])
             ),
           ])
         )
@@ -1242,9 +1379,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                 types.identifier(vars.searchQueryVar),
                 types.identifier(vars.setSearchQueryVar),
               ]),
-              types.callExpression(types.identifier('useState'), [
-                searchDefaultValueInitAST(usage.searchDefaultValue),
-              ])
+              types.callExpression(types.identifier('useState'), [buildSearchQueryInitAST(usage)])
             ),
           ])
         )
@@ -1308,6 +1443,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             ])
           )
         )
+
+        // Two-way URL sync for the search input when bound to a URL param.
+        pushSearchUrlSyncEffects(effectStatements, usage, vars)
       }
     })
 
@@ -1328,7 +1466,14 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // `body.some(isUseRouterDecl)` guard keeps us idempotent with both the
     // search-params plugin and the i18n plugin, both of which may have
     // already unshifted the same declaration.
-    const needsUseRouter = registry.usages.some((u) => hasUrlSearchParamFilters(u))
+    // `useRouter` is also required when a search input is two-way bound to a
+    // URL param (`searchUrlParamKey`) — its read-back / write-back effects read
+    // `router.query` / `router.isReady` and call `router.replace`. Gated on the
+    // same predicate as the effects themselves so router is only injected when
+    // it is actually used.
+    const needsUseRouter = registry.usages.some(
+      (u) => hasUrlSearchParamFilters(u) || usageHasSearchUrlSync(u)
+    )
     if (needsUseRouter) {
       if (!dependencies.useRouter) {
         // Match the shape the sibling Next.js plugins use (i18n locale mapper,

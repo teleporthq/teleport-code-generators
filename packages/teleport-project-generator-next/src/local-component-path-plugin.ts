@@ -52,7 +52,7 @@ export const createLocalComponentPathPlugin: ComponentPluginFactory<
   return plugin
 }
 
-/** Local components emitted by the drag-drop and kanban project plugins. */
+/** Local components emitted by the drag-drop, kanban and widget project plugins. */
 export const INTERACTIVE_PRIMITIVE_COMPONENT_FILES: Record<string, string> = {
   TqDragArea: 'tq-drag-drop',
   TqDraggable: 'tq-drag-drop',
@@ -60,4 +60,11 @@ export const INTERACTIVE_PRIMITIVE_COMPONENT_FILES: Record<string, string> = {
   TqSortable: 'tq-drag-drop',
   TqSortableItem: 'tq-drag-drop',
   TqKanban: 'tq-kanban',
+  TqQrCode: 'tq-qrcode',
+  TqBarcode: 'tq-barcode',
+  TqSignature: 'tq-signature',
+  TqColorPicker: 'tq-color-picker',
+  TqEmojiPicker: 'tq-emoji-picker',
+  TqMotion: 'tq-motion',
+  TqCountdown: 'tq-countdown',
 }

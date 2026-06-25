@@ -244,6 +244,20 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
   const argValues: Record<string, unknown> = {
     previousContext,
     params,
+    // The workflow editor + AI generator advertise the top-level regular
+    // signature as `customHandler(params, inputs, workflowContext)` (see
+    // teleport-services-worker custom-js-contract.ts) where `workflowContext`
+    // is documented as "prior node results by node index" and `inputs` is a
+    // reserved positional. At top level that array IS `params` (built above in
+    // execution order: params[0] = trigger, params[1] = first node after the
+    // trigger). Without these aliases a handler that follows the advertised
+    // contract and reads `workflowContext[1]` gets `undefined[1]` → TypeError
+    // at runtime (the 2026-06-19 Sugarpost homepage "Something went wrong"
+    // page-load crash). Aliasing both to `params` honours the documented
+    // contract; the legacy `(params)` form is unaffected since it never names
+    // them, and inside a loop the still-distinct `innerParams*` win below.
+    inputs: params,
+    workflowContext: params,
   }
   for (let i = 0; i < innerParamsList.length; i++) {
     const name = i === 0 ? 'innerParams' : 'innerParams' + (i + 1)

@@ -1043,6 +1043,12 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     perPage: optional(number()),
     searchEnabled: optional(boolean()),
     searchDebounce: optional(number()),
+    // Two-way URL binding key for the search input. MUST be listed here or the
+    // `object()` decoder silently strips it from the validated UIDL, leaving
+    // the pagination plugin's search → `?key=` sync dead (the original
+    // searchKeyword bug). Mirrors the `searchUrlParamKey` field on
+    // `UIDLCMSListRepeaterNodeContent`.
+    searchUrlParamKey: optional(string()),
     sort: optional(union(staticValueDecoder, expressionValueDecoder)),
     sortDirection: optional(union(staticValueDecoder, expressionValueDecoder)),
   }),

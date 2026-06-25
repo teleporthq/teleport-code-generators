@@ -11,11 +11,25 @@ import {
   linkTypePropDynamicReference,
 } from './mocks'
 import {
+  GeneratorOptions,
   UIDLDynamicReference,
   UIDLElementNode,
   UIDLExpressionValue,
   UIDLURLLinkNode,
 } from '@teleporthq/teleport-types'
+
+const flexProjectStyleSetOptions = (display: string): GeneratorOptions => ({
+  projectStyleSet: {
+    styleSetDefinitions: {
+      'tq-scroll-row': {
+        type: 'reusable-project-style-map',
+        content: { display: { type: 'static', content: display } },
+      },
+    },
+    fileName: 'style',
+    path: '.',
+  },
+})
 
 describe('insertLink', () => {
   it('wraps a simple element', () => {
@@ -192,6 +206,54 @@ describe('insertLink', () => {
       type: 'expr',
       content: '`/profile/' + '$' + '{' + 'currentUser?.id}' + '`',
     })
+  })
+
+  it('marks the link wrapper display:contents when the flex parent uses a project-referenced style', () => {
+    const child = elementNode('container')
+    child.content.abilities = { link: navlinkMockedDefinition() }
+    child.content.referencedStyles = {
+      TQ_tile: {
+        id: 'TQ_tile',
+        type: 'style-map',
+        content: { mapType: 'project-referenced', referenceId: 'category-tile' },
+      },
+    }
+    const parent = elementNode('container', {}, [child])
+    parent.content.referencedStyles = {
+      TQ_row: {
+        id: 'TQ_row',
+        type: 'style-map',
+        content: { mapType: 'project-referenced', referenceId: 'tq-scroll-row' },
+      },
+    }
+
+    const result = insertLinks(parent, flexProjectStyleSetOptions('flex'), false)
+    const wrapper = result.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('navlink')
+    expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
+    // the original styled node stays inside the wrapper, keeping its class
+    const styledChild = wrapper.content.children[0] as UIDLElementNode
+    expect(styledChild.content.referencedStyles?.TQ_tile).toBeDefined()
+  })
+
+  it('does not mark the link wrapper display:contents when the referenced parent is not flex/grid', () => {
+    const child = elementNode('container')
+    child.content.abilities = { link: navlinkMockedDefinition() }
+    const parent = elementNode('container', {}, [child])
+    parent.content.referencedStyles = {
+      TQ_row: {
+        id: 'TQ_row',
+        type: 'style-map',
+        content: { mapType: 'project-referenced', referenceId: 'tq-scroll-row' },
+      },
+    }
+
+    const result = insertLinks(parent, flexProjectStyleSetOptions('block'), false)
+    const wrapper = result.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('navlink')
+    expect(wrapper.content.style?.display).toBeUndefined()
   })
 })
 

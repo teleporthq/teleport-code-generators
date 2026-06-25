@@ -133,6 +133,55 @@ export const NextProjectMapping: Mapping = {
         path: '../components/tq-kanban',
       },
     },
+    'qrcode-node': {
+      elementType: 'TqQrCode',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-qrcode',
+      },
+    },
+    'barcode-node': {
+      elementType: 'TqBarcode',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-barcode',
+      },
+    },
+    'signature-node': {
+      elementType: 'TqSignature',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-signature',
+      },
+    },
+    'color-picker-node': {
+      elementType: 'TqColorPicker',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-color-picker',
+      },
+    },
+    'emoji-picker-node': {
+      elementType: 'TqEmojiPicker',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-emoji-picker',
+      },
+    },
+    'motion-node': {
+      elementType: 'TqMotion',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-motion',
+      },
+    },
+    'countdown-node': {
+      elementType: 'TqCountdown',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-countdown',
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
       dependency: {

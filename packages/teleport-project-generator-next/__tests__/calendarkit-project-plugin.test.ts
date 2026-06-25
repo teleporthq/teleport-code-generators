@@ -54,6 +54,11 @@ describe('NextCalendarKitProjectPlugin', () => {
     expect(structure.dependencies.react).toBe('^18.3.1')
     expect(structure.dependencies['react-dom']).toBe('^18.3.1')
 
+    const npmrc = structure.files.get('calendarkit-npmrc')
+    expect(npmrc?.path).toEqual([])
+    expect(npmrc?.files[0].name).toBe('.npmrc')
+    expect(npmrc?.files[0].content).toContain('legacy-peer-deps=true')
+
     const cssRecord = structure.files.get('calendarkit-css')
     expect(cssRecord?.path).toEqual(['pages'])
     expect(cssRecord?.files[0]).toEqual({

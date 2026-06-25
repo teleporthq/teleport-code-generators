@@ -905,6 +905,12 @@ export interface UIDLCMSListRepeaterNodeContent {
   // Static values are emitted verbatim; dynamic values are expected to
   // reference props / state / URL params and are emitted as expressions.
   searchDefaultValue?: UIDLStaticValue | UIDLExpressionValue
+  // URL query-param key the search input is two-way bound to (e.g.
+  // `'searchKeyword'`). When set, the code generator seeds the query from
+  // `window.location.search`, keeps it in sync on browser navigation
+  // (read-back), and pushes the debounced value back onto the URL
+  // (write-back) — see `URLSearchParamSync` in `teleport-plugin-common`.
+  searchUrlParamKey?: string
   sort?: UIDLStaticValue | UIDLExpressionValue
   sortDirection?: UIDLStaticValue | UIDLExpressionValue
 }

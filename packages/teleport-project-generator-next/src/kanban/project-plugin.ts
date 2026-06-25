@@ -1,18 +1,12 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { injectImportIntoApp } from '../app-import-injection'
 import { projectUsesElementTypes } from '../uidl-element-traversal'
+import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
 import { generateKanbanComponentCode } from './component-generator'
 
 const KANBAN_ELEMENT_TYPES = new Set(['kanban-node'])
 
 const KANBAN_CSS_IMPORT = "import '@asseinfo/react-kanban/dist/styles.css'"
-
-// @asseinfo/react-kanban declares react ^16.8 || ^17 peers (via
-// react-beautiful-dnd). Projects that also contain a calendar are bumped to
-// React 18, where npm's strict peer resolution would fail the install even
-// though the library works at runtime. legacy-peer-deps restores the
-// pre-npm-7 behavior for this generated project only.
-const NPMRC_CONTENT = 'legacy-peer-deps=true\n'
 
 /**
  * Activates when a generated project uses the kanban primitive:
@@ -44,15 +38,10 @@ export class NextKanbanProjectPlugin implements ProjectPlugin {
       ],
     })
 
-    files.set('tq-kanban-npmrc', {
-      path: [],
-      files: [
-        {
-          name: '.npmrc',
-          content: NPMRC_CONTENT,
-        },
-      ],
-    })
+    // @asseinfo/react-kanban (via react-beautiful-dnd) declares react ^16.8 ||
+    // ^17 peers; projects that also bump to React 18 would otherwise fail the
+    // install under npm's strict peer resolution. legacy-peer-deps relaxes it.
+    emitLegacyPeerDepsNpmrc(structure, 'tq-kanban-npmrc')
 
     dependencies['@asseinfo/react-kanban'] = '2.2.0'
 

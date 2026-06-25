@@ -89,6 +89,67 @@ describe('general-custom-js — top-level (no loop, no custom node)', () => {
   })
 })
 
+// Regression guard for the 2026-06-19 Sugarpost homepage "Something went wrong"
+// page-load crash. The AI generator + workflow editor advertise the preferred
+// top-level signature `customHandler(params, inputs, workflowContext)` (see
+// teleport-services-worker custom-js-contract.ts) and the prompt teaches the AI
+// to read `workflowContext[N]` for prior node results by node index. The
+// runtime previously only populated `previousContext` / `params` / `innerParams*`,
+// so a handler that followed the advertised contract and read
+// `workflowContext[1]` got `undefined[1]` → TypeError → the page-load workflow
+// threw → the injected error-handler toast fired on the published homepage.
+// The runtime now aliases `inputs` and `workflowContext` to the same array as
+// `params` at top level, so the documented contract works.
+describe('general-custom-js — documented (params, inputs, workflowContext) contract', () => {
+  const handler = loadCustomJsHandler()
+
+  it('populates workflowContext[N] with prior node results by node index', async () => {
+    // The exact shape of the crashing "Initialize Personalized Greeting" node:
+    // a page-load trigger followed by a data node, then this custom-js reads
+    // workflowContext[1] (the node after the trigger).
+    const code = `function customHandler(params, inputs, workflowContext) {
+      const user = workflowContext[1]
+      const firstName = user && user.firstName
+      return { displayName: firstName && firstName.trim().length > 0 ? firstName : 'Friend' }
+    }`
+    const context: Record<string, unknown> = {
+      'trigger-load': { url: 'https://shop.example/' },
+      'get-user': { firstName: 'Ada' },
+    }
+    const out = (await handler({ code, __nodeId: 'compute-greeting' }, context)) as any
+    expect(out).toEqual({ displayName: 'Ada' })
+  })
+
+  it('aliases workflowContext, inputs and params to the same prior-results array', async () => {
+    const code = `function customHandler(params, inputs, workflowContext) {
+      return {
+        viaParams: params[1],
+        viaInputs: inputs[1],
+        viaContext: workflowContext[1],
+        triggerAtZero: workflowContext[0],
+      }
+    }`
+    const context: Record<string, unknown> = {
+      'trigger-load': { kind: 'page-loaded' },
+      'first-node': { value: 42 },
+    }
+    const out = (await handler({ code, __nodeId: 'me' }, context)) as any
+    expect(out.viaParams).toEqual({ value: 42 })
+    expect(out.viaInputs).toEqual({ value: 42 })
+    expect(out.viaContext).toEqual({ value: 42 })
+    expect(out.triggerAtZero).toEqual({ kind: 'page-loaded' })
+  })
+
+  it('does not break the legacy bare (params) signature', async () => {
+    const code = `function customHandler(params) {
+      return { first: params[0], len: params.length }
+    }`
+    const context: Record<string, unknown> = { a: { v: 1 }, b: { v: 2 } }
+    const out = (await handler({ code, __nodeId: 'me' }, context)) as any
+    expect(out).toEqual({ first: { v: 1 }, len: 2 })
+  })
+})
+
 describe('general-custom-js — inside a single loop body', () => {
   const handler = loadCustomJsHandler()
 
