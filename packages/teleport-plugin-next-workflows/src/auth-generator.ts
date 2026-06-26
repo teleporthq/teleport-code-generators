@@ -966,11 +966,28 @@ function hasSessionCookie(request) {
   return false;
 }
 
+// Where to send an authenticated user who lacks the required role. Normally the
+// home page ("you don't have access, here's the public site"). But when "/" is
+// itself a protected page (e.g. an admin dashboard published at the root), a
+// redirect to "/" re-enters this middleware and loops forever — so fall back to
+// the sign-in page (with a callbackUrl) in that case.
+function roleDeniedRedirect(request, pathname) {
+  if (pathname !== '/' && !protectedRoutes['/']) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  var deniedUrl = new URL('${signInRoute}', request.url);
+  deniedUrl.searchParams.set('callbackUrl', pathname);
+  return NextResponse.redirect(deniedUrl);
+}
+
 async function middleware(request) {
   const pathname = request.nextUrl.pathname;
 
   for (let i = 0; i < authRoutes.length; i++) {
-    if (pathname.startsWith(authRoutes[i])) {
+    // Segment-safe: an auth route like "/sign-in" must not bypass protection on
+    // a same-prefix page such as "/sign-in-offers". Mirrors the protectedRoutes
+    // matching below.
+    if (pathname === authRoutes[i] || pathname.startsWith(authRoutes[i] + '/')) {
       return NextResponse.next();
     }
   }
@@ -1044,7 +1061,7 @@ async function middleware(request) {
     }
     var userRole = getUserRoleFromToken(sessionUser);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return roleDeniedRedirect(request, pathname);
     }
   }
 
@@ -1053,7 +1070,12 @@ async function middleware(request) {
 
 export default middleware;
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon\\\\.ico).*)'],
+  // The bare '/' entry is required so middleware also runs on the home page:
+  // Next.js does NOT run the second (negative-lookahead) matcher for the root
+  // path, which would leave a page published at "/" (e.g. a protected dashboard)
+  // publicly reachable. '/' compiles to ^/$ and covers exactly the home route;
+  // the second entry covers every deeper path.
+  matcher: ['/', '/((?!api|_next/static|_next/image|favicon\\\\.ico).*)'],
 };
 `
 }
