@@ -705,7 +705,35 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     )
   }
 
-  if (!selfClosing && children) {
+  // A markdown-node can carry its rich-text content as a dynamic/expr child
+  // (e.g. CMS-bound rich text) rather than as a `raw` attribute. The raw-attribute
+  // path is handled in addAttributesToJSXTag; here we handle the children path so
+  // the content is injected as HTML (dangerouslySetInnerHTML) instead of being
+  // printed as an escaped raw value by the generic expression handler.
+  const isMarkdownNode =
+    node.content.semanticType === 'markdown-node' || originalElementName === 'markdown-node'
+  const hasRawAttr = attrs
+    ? Object.keys(attrs).some((attrKey) => attrs[attrKey]?.type === 'raw')
+    : false
+
+  let markdownChildrenHandled = false
+  if (isMarkdownNode && !selfClosing && !hasRawAttr && children && children.length > 0) {
+    const markdownChild = children.find(
+      (child) => child.type === 'expr' || child.type === 'dynamic'
+    )
+    let markdownExpr: types.Expression | undefined
+    if (markdownChild?.type === 'expr') {
+      markdownExpr = ASTUtils.getExpressionFromUIDLExpressionNode(markdownChild)
+    } else if (markdownChild?.type === 'dynamic') {
+      markdownExpr = resolveDynamicReferenceExpression(markdownChild, childParams, options)
+    }
+    if (markdownExpr) {
+      injectMarkdownExpression(elementTag, markdownExpr, '', childParams)
+      markdownChildrenHandled = true
+    }
+  }
+
+  if (!markdownChildrenHandled && !selfClosing && children) {
     // Reorder children to ensure search nodes appear before DataProvider nodes
     const reorderedChildren = reorderChildrenForSearch(children)
 
@@ -2005,25 +2033,7 @@ const applyStaticMarkdownInjection = (
   rawValue: UIDLRawValue,
   params: JSXGenerationParams
 ) => {
-  const content = rawValue.content || ''
-
-  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'div'
-  elementTag.openingElement.selfClosing = true
-  elementTag.closingElement = null
-  elementTag.children = []
-
-  elementTag.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('dangerouslySetInnerHTML'),
-      types.jsxExpressionContainer(
-        types.objectExpression([
-          types.objectProperty(types.identifier('__html'), types.stringLiteral(content)),
-        ])
-      )
-    )
-  )
-
-  cleanupMarkdownMappingDependencies(params)
+  injectMarkdownExpression(elementTag, types.stringLiteral(rawValue.content || ''), '', params)
 }
 
 const applyDynamicMarkdownInjection = (
@@ -2034,38 +2044,51 @@ const applyDynamicMarkdownInjection = (
 ) => {
   const dynamicExpr = resolveDynamicReferenceExpression(rawValue.dynamic, params, options)
   const fallbackContent = rawValue.fallback || rawValue.content
-
-  const reactMarkdownTag = createJSXTag('ReactMarkdown')
-  addChildJSXTag(reactMarkdownTag, types.jsxExpressionContainer(types.cloneNode(dynamicExpr)))
-
-  const fallbackTag = ASTBuilders.createDOMInjectionNode(fallbackContent)
-
-  const conditionalExpr = types.conditionalExpression(dynamicExpr, reactMarkdownTag, fallbackTag)
-
-  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'div'
-  elementTag.openingElement.selfClosing = false
-  if (!elementTag.closingElement) {
-    elementTag.closingElement = types.jsxClosingElement(types.jsxIdentifier('div'))
-  } else {
-    ;(elementTag.closingElement.name as types.JSXIdentifier).name = 'div'
-  }
-  elementTag.children = [types.jsxExpressionContainer(conditionalExpr)]
-
-  cleanupMarkdownMappingDependencies(params)
-
-  params.dependencies.ReactMarkdown = {
-    type: 'package',
-    path: 'react-markdown',
-    version: '^8.0.7',
-  }
+  injectMarkdownExpression(elementTag, dynamicExpr, fallbackContent, params)
 }
 
-const cleanupMarkdownMappingDependencies = (params: JSXGenerationParams) => {
-  Object.keys(params.dependencies).forEach((key) => {
-    if (params.dependencies[key]?.path?.includes('markdown-to-jsx')) {
-      delete params.dependencies[key]
-    }
-  })
+/**
+ * Renders a markdown-node's rich-text content through the `markdown-to-jsx` <Markdown>
+ * component (the React generator's mapping for markdown-node).
+ *
+ * markdown-to-jsx parses BOTH markdown syntax AND embedded HTML, so it renders correctly
+ * whether the CMS field returns markdown (`# Heading`) or HTML markup (`<p>…</p>`). A raw
+ * HTML approach (dangerouslySetInnerHTML) would ignore markdown, and a markdown-only
+ * renderer (react-markdown) escapes HTML — markdown-to-jsx covers both at once.
+ *
+ * Shared by every way a markdown-node can carry its content:
+ * - a static `raw` attribute (see applyStaticMarkdownInjection)
+ * - a `raw` attribute holding a dynamic reference (see applyDynamicMarkdownInjection)
+ * - a dynamic/expr child, e.g. CMS-bound rich text (see generateElementNode)
+ *
+ * Produces: <Markdown>{expr || fallback}</Markdown>
+ */
+const injectMarkdownExpression = (
+  elementTag: types.JSXElement,
+  expression: types.Expression,
+  fallbackContent: string,
+  params: JSXGenerationParams
+) => {
+  // markdown-to-jsx requires a string child; guard dynamic expressions with a fallback so
+  // a nullish CMS value renders as empty rather than throwing. Static literals need no guard.
+  const childExpr = types.isStringLiteral(expression)
+    ? expression
+    : types.logicalExpression('||', expression, types.stringLiteral(fallbackContent || ''))
+
+  ;(elementTag.openingElement.name as types.JSXIdentifier).name = 'Markdown'
+  elementTag.openingElement.selfClosing = false
+  if (!elementTag.closingElement) {
+    elementTag.closingElement = types.jsxClosingElement(types.jsxIdentifier('Markdown'))
+  } else {
+    ;(elementTag.closingElement.name as types.JSXIdentifier).name = 'Markdown'
+  }
+  elementTag.children = [types.jsxExpressionContainer(childExpr)]
+
+  params.dependencies.Markdown = {
+    type: 'package',
+    path: 'markdown-to-jsx',
+    version: '7.7.12',
+  }
 }
 
 /**
