@@ -5,6 +5,10 @@ import {
   UIDLFormDefinition,
   UIDLFormBehavior,
   UIDLElement,
+  ChunkDefinition,
+  UIDLDependency,
+  UIDLStaticValue,
+  UIDLENVValue,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { UIDLUtils, GenericUtils } from '@teleporthq/teleport-shared'
@@ -763,10 +767,216 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
       }
     }
 
+    // Per-page captcha loading: inject the provider <Script> only into
+    // components that actually contain a form. This replaces the global
+    // injection that NextFormsCaptchaScriptPlugin used to push into
+    // globals.assets → _document.js (which loaded the captcha on every page,
+    // including pages with no forms).
+    injectCaptchaScript(chunks, formsInComponent, forms, structure.dependencies)
+
     return structure
   }
 
   return nextFormSubmissionHandler
+}
+
+/**
+ * Injects the captcha provider's loader <Script> (from next/script) into a
+ * single page/component that contains a form. Because the form ComponentPlugin
+ * only runs on components that actually render a form, this guarantees the
+ * captcha script (and, for reCAPTCHA v3/enterprise, its badge + background
+ * calls) is requested only where a form exists — not on every page.
+ *
+ * Key/provider resolution mirrors the old project-level
+ * NextFormsCaptchaScriptPlugin: a form-specific `security.captchaPublicKey`
+ * wins, otherwise the global `defaultCaptchaPublicKey` (enterprise reCAPTCHA).
+ */
+function injectCaptchaScript(
+  chunks: ChunkDefinition[],
+  formsInComponent: Array<{ formId: string; formElement: UIDLElement }>,
+  forms: UIDLForms,
+  dependencies: Record<string, UIDLDependency>
+): void {
+  // Resolve the captcha key from the forms present on THIS page/component
+  let captchaKey: UIDLStaticValue | UIDLENVValue | null = null
+  let hasFormSpecificCaptcha = false
+
+  for (const { formId } of formsInComponent) {
+    const formDefinition = forms.items[formId]
+    if (formDefinition?.security?.captchaPublicKey) {
+      captchaKey = formDefinition.security.captchaPublicKey
+      hasFormSpecificCaptcha = true
+    }
+  }
+
+  let usingDefaultCaptcha = false
+  if (!hasFormSpecificCaptcha && forms.globalConfig?.defaultCaptchaPublicKey) {
+    captchaKey = forms.globalConfig.defaultCaptchaPublicKey
+    usingDefaultCaptcha = true
+  }
+
+  if (!captchaKey) {
+    return
+  }
+
+  const captchaProvider = forms.globalConfig?.captchaProvider || 'recaptcha'
+
+  // Locate the component's JSX chunk and its return statement
+  const jsxChunk = chunks.find(
+    (chunk) =>
+      chunk.name === 'jsx-component' &&
+      typeof chunk.content === 'object' &&
+      'type' in chunk.content &&
+      chunk.content.type === 'VariableDeclaration'
+  )
+
+  if (!jsxChunk || !jsxChunk.content) {
+    return
+  }
+
+  const componentBody = (
+    ((jsxChunk.content as types.VariableDeclaration).declarations[0] as types.VariableDeclarator)
+      .init as types.ArrowFunctionExpression
+  ).body as types.BlockStatement
+
+  const returnStatement = componentBody.body.find(
+    (statement) =>
+      statement.type === 'ReturnStatement' && statement.argument && 'type' in statement.argument
+  ) as types.ReturnStatement | undefined
+
+  if (!returnStatement || !returnStatement.argument) {
+    return
+  }
+
+  const scriptElement = buildCaptchaScriptElement(captchaProvider, captchaKey, usingDefaultCaptcha)
+
+  // Insert the <Script> as a sibling right after the first <form> on the page
+  let inserted = false
+  const insertAfterForm = (node: types.Node, parent: types.Node | null): void => {
+    if (inserted) {
+      return
+    }
+
+    if (node.type === 'JSXElement') {
+      const openingElement = node.openingElement
+      if (
+        openingElement?.name.type === 'JSXIdentifier' &&
+        openingElement.name.name === 'form' &&
+        parent &&
+        'children' in parent &&
+        Array.isArray(parent.children)
+      ) {
+        const formIndex = parent.children.indexOf(node)
+        if (formIndex >= 0) {
+          parent.children.splice(formIndex + 1, 0, scriptElement)
+          inserted = true
+          return
+        }
+      }
+    }
+
+    if ('children' in node && Array.isArray(node.children)) {
+      for (const child of node.children) {
+        insertAfterForm(child as types.Node, node)
+        if (inserted) {
+          return
+        }
+      }
+    }
+    if ('argument' in node && node.argument) {
+      insertAfterForm(node.argument as types.Node, node)
+    }
+    if ('expression' in node && node.expression) {
+      insertAfterForm(node.expression as types.Node, node)
+    }
+  }
+
+  insertAfterForm(returnStatement.argument, null)
+
+  // Fallback: the <form> is the root returned element (no parent to host a
+  // sibling) — wrap the return value in a fragment alongside the <Script>.
+  if (!inserted) {
+    const original = returnStatement.argument
+    const wrappedChild =
+      original.type === 'JSXElement' || original.type === 'JSXFragment'
+        ? original
+        : types.jsxExpressionContainer(original as types.Expression)
+
+    returnStatement.argument = types.jsxFragment(
+      types.jsxOpeningFragment(),
+      types.jsxClosingFragment(),
+      [scriptElement, wrappedChild]
+    )
+  }
+
+  // import Script from 'next/script'
+  if (!dependencies.Script) {
+    dependencies.Script = {
+      type: 'library',
+      path: 'next/script',
+      version: '^12.1.0',
+    }
+  }
+}
+
+/**
+ * Builds the `<Script ... />` JSX element (next/script) that loads the captcha
+ * provider library. reCAPTCHA needs the site key in the URL (`?render=`); the
+ * enterprise endpoint is used when relying on the global default key. hCaptcha
+ * and Turnstile load a static URL and receive the key at execute() time.
+ */
+function buildCaptchaScriptElement(
+  captchaProvider: string,
+  captchaKey: UIDLStaticValue | UIDLENVValue,
+  usingDefaultCaptcha: boolean
+): types.JSXElement {
+  const t = types
+  let srcValue: types.StringLiteral | types.JSXExpressionContainer
+
+  if (captchaProvider === 'recaptcha') {
+    const baseUrl = usingDefaultCaptcha
+      ? 'https://www.google.com/recaptcha/enterprise.js'
+      : 'https://www.google.com/recaptcha/api.js'
+
+    if (captchaKey.type === 'static') {
+      srcValue = t.stringLiteral(`${baseUrl}?render=${captchaKey.content}`)
+    } else {
+      // src={`${baseUrl}?render=${process.env.ENV_VAR}`}
+      srcValue = t.jsxExpressionContainer(
+        t.templateLiteral(
+          [
+            t.templateElement({ raw: `${baseUrl}?render=`, cooked: `${baseUrl}?render=` }, false),
+            t.templateElement({ raw: '', cooked: '' }, true),
+          ],
+          [
+            t.memberExpression(
+              t.memberExpression(t.identifier('process'), t.identifier('env')),
+              t.identifier(captchaKey.content as string)
+            ),
+          ]
+        )
+      )
+    }
+  } else if (captchaProvider === 'hcaptcha') {
+    srcValue = t.stringLiteral('https://js.hcaptcha.com/1/api.js')
+  } else {
+    // turnstile
+    srcValue = t.stringLiteral('https://challenges.cloudflare.com/turnstile/v0/api.js')
+  }
+
+  const attributes = [
+    t.jsxAttribute(t.jsxIdentifier('src'), srcValue),
+    // afterInteractive (not lazyOnload) so grecaptcha/hcaptcha/turnstile is
+    // ready by the time the form is submitted, avoiding a fast-submit race.
+    t.jsxAttribute(t.jsxIdentifier('strategy'), t.stringLiteral('afterInteractive')),
+  ]
+
+  return t.jsxElement(
+    t.jsxOpeningElement(t.jsxIdentifier('Script'), attributes, true),
+    null,
+    [],
+    true
+  )
 }
 
 function createFormSubmitHandler(
