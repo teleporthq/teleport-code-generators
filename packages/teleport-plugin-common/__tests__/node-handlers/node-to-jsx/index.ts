@@ -2,12 +2,12 @@ import * as types from '@babel/types'
 import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
 
-import { slotNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { slotNode, elementNode, staticNode, dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import {
   JSXGenerationParams,
   JSXGenerationOptions,
 } from '../../../src/node-handlers/node-to-jsx/types'
-import { ComponentUIDL } from '@teleporthq/teleport-types'
+import { ComponentUIDL, UIDLNode } from '@teleporthq/teleport-types'
 
 const uidl = componentUIDLSample as ComponentUIDL
 
@@ -107,6 +107,73 @@ describe('generateJSXSyntax', () => {
       const nameAttr = slotJSXTag.openingElement.attributes[0] as types.JSXAttribute
       expect(nameAttr.name.name).toBe('name')
       expect((nameAttr.value as types.StringLiteral).value).toBe('hole')
+    })
+  })
+
+  describe('markdown-node with dynamic/expr children (CMS rich text)', () => {
+    const buildParams = (): JSXGenerationParams => ({
+      dependencies: {},
+      propDefinitions: {},
+      stateDefinitions: {},
+      globalStateDefinitions: {},
+      nodesLookup: {},
+      windowImports: {},
+      localeReferences: [],
+      globalReferences: [],
+      globalStateReferences: [],
+      hoistedConstants: [],
+    })
+
+    // Asserts the element is a <Markdown>{<expr> || ''}</Markdown> tag from markdown-to-jsx,
+    // which renders both markdown syntax and embedded HTML.
+    const expectMarkdownTag = (result: types.JSXElement, localParams: JSXGenerationParams) => {
+      expect((result.openingElement.name as types.JSXIdentifier).name).toBe('Markdown')
+
+      const container = result.children[0] as types.JSXExpressionContainer
+      expect(container.type).toBe('JSXExpressionContainer')
+      // dynamic content is guarded with `<expr> || ''` so a nullish value renders empty
+      expect((container.expression as types.LogicalExpression).operator).toBe('||')
+
+      expect(localParams.dependencies.Markdown).toEqual({
+        type: 'package',
+        path: 'markdown-to-jsx',
+        version: '7.7.12',
+      })
+    }
+
+    it('renders an expr child through the markdown-to-jsx <Markdown> component', () => {
+      const localParams = buildParams()
+      const node = elementNode('markdown-node', {}, [
+        { type: 'expr', content: 'props.cmsRichtext' } as UIDLNode,
+      ])
+
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+
+      expectMarkdownTag(result, localParams)
+    })
+
+    it('renders a dynamic child through the markdown-to-jsx <Markdown> component', () => {
+      const localParams = buildParams()
+      const node = elementNode('markdown-node', {}, [dynamicNode('prop', 'cmsRichtext')])
+
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+
+      expectMarkdownTag(result, localParams)
+    })
+
+    it('leaves a non-markdown div with an expr child as a plain value', () => {
+      const localParams = buildParams()
+      const node = elementNode('container', {}, [
+        { type: 'expr', content: 'props.cmsRichtext' } as UIDLNode,
+      ])
+
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+
+      // generic expression handling wraps in a typeof/JSON.stringify guard, no markdown render
+      const container = result.children[0] as types.JSXExpressionContainer
+      expect(container.expression.type).toBe('ConditionalExpression')
+      expect((result.openingElement.name as types.JSXIdentifier).name).not.toBe('Markdown')
+      expect(localParams.dependencies.Markdown).toBeUndefined()
     })
   })
 
