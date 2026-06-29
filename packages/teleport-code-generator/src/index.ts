@@ -29,7 +29,6 @@ import {
   createNextProjectGenerator,
   NextTemplate,
   NextProjectPlugini18nConfig,
-  NextFormsCaptchaScriptPlugin,
   createNextProjectPlugins,
 } from '@teleporthq/teleport-project-generator-next'
 import {
@@ -180,11 +179,12 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.NEXT) {
     // packProject calls cleanPlugins() above and rebuilds the NEXT project-plugin
-    // list from scratch, so these two packProject-only plugins (which need the
-    // runtime `generateSitemap` option / inject the forms-captcha script) are
-    // added explicitly here.
+    // list from scratch, so this packProject-only plugin (which needs the
+    // runtime `generateSitemap` option) is added explicitly here.
+    // NOTE: the forms-captcha provider script is no longer injected globally
+    // here — it's loaded per-page by the form ComponentPlugin
+    // (createNextFormSubmissionPlugin), so it only loads on pages with forms.
     projectGeneratorFactory.addPlugin(new NextProjectPlugini18nConfig({ generateSitemap }))
-    projectGeneratorFactory.addPlugin(new NextFormsCaptchaScriptPlugin())
     // Everything else — data-source, workflow/auth, ecommerce, analytics, the
     // interactive-library primitives (calendar / drag-and-drop / kanban /
     // countdown) and the npm-backed widget primitives (incl. motion) — comes
