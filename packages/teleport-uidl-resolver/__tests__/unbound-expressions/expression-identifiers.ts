@@ -1,0 +1,61 @@
+import { extractRootIdentifiers } from '../../src/resolvers/unbound-expressions/expression-identifiers'
+
+const roots = (expression: string): string[] =>
+  Array.from(extractRootIdentifiers(expression)).sort()
+
+describe('extractRootIdentifiers', () => {
+  it('returns the leading identifier of a member expression', () => {
+    expect(roots('cat.name')).toEqual(['cat'])
+    expect(roots('loc.location_id')).toEqual(['loc'])
+  })
+
+  it('ignores property names accessed via dot and optional chaining', () => {
+    expect(roots('item?.id')).toEqual(['item'])
+    expect(roots('props.inventoryItem?.name')).toEqual(['props'])
+    expect(roots('event.target.value')).toEqual(['event'])
+  })
+
+  it('does not treat words inside string literals as identifiers', () => {
+    expect(roots('item?.name || "Item"')).toEqual(['item'])
+    expect(roots("tx?.transaction_type || 'Adjustment'")).toEqual(['tx'])
+  })
+
+  it('handles quoted JSON blobs without leaking string keys/values', () => {
+    const expression =
+      'JSON.stringify([{"type":"condition","source":"id","destination":params[\'id\'],"operand":"="}])'
+    expect(roots(expression)).toEqual(['JSON', 'params'])
+  })
+
+  it('extracts identifiers from template-literal interpolations only', () => {
+    // tslint:disable no-invalid-template-strings
+    expect(roots('`/edit-inventory-item/${item?.id}`')).toEqual(['item'])
+    expect(roots('`/edit-inventory-item/[id]`')).toEqual([])
+    expect(roots('`${cat.name} - ${loc.city}`').sort()).toEqual(['cat', 'loc'])
+    // tslint:enable no-invalid-template-strings
+  })
+
+  it('collects call-argument references but not property method names', () => {
+    expect(roots('Math.max(a, b)').sort()).toEqual(['Math', 'a', 'b'])
+  })
+
+  it('does not treat unquoted object-literal keys as references', () => {
+    expect(roots('{ active: item.active }')).toEqual(['item'])
+    expect(roots('{ a: cat.name, b: loc.id }').sort()).toEqual(['cat', 'loc'])
+  })
+
+  it('keeps ternary branches and object shorthand values as references', () => {
+    expect(roots('flag ? yes : no').sort()).toEqual(['flag', 'no', 'yes'])
+    expect(roots('{ item, index }').sort()).toEqual(['index', 'item'])
+  })
+
+  it('ignores keywords and literals', () => {
+    expect(roots('typeof cat === "object"')).toEqual(['cat'])
+    expect(roots('true')).toEqual([])
+    expect(roots('null')).toEqual([])
+  })
+
+  it('returns an empty set for empty or non-string input', () => {
+    expect(roots('')).toEqual([])
+    expect(Array.from(extractRootIdentifiers(undefined as unknown as string))).toEqual([])
+  })
+})

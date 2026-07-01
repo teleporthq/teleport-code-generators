@@ -11,9 +11,12 @@
  * via useScroll/useTransform), hover (whileHover),
  * tap (whileTap). `stagger` descends through grid/list wrappers to the real
  * repeated items (e.g. <array-mapper> cards) and cascades THOSE with a per-child
- * delay — not the lone grid block — matching the canvas renderer. Honors
- * prefers-reduced-motion. framer-motion requires React 18 — the Next project
- * plugin bumps react/react-dom accordingly.
+ * delay — not the lone grid block — matching the canvas renderer. When the repeated
+ * items come from a runtime <Repeater> (build-time opaque, so they can't be wrapped
+ * individually), it degrades to a single GROUP animation rather than wrapping the
+ * Repeater in a lone block — that block would sit between the grid/flex container and
+ * its items and collapse the layout. Honors prefers-reduced-motion. framer-motion
+ * requires React 18 — the Next project plugin bumps react/react-dom accordingly.
  */
 export const generateMotionComponentCode = (): string => {
   return `import React from 'react'
@@ -79,6 +82,14 @@ const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
 // <TqMotion><div class="grid">{items.map(...)}</div></TqMotion>, so the only child
 // is a grid wrapper. Descend through single-child wrappers to the real repeated
 // items, wrap THOSE (so cards cascade — not the lone block), and keep the wrappers.
+//
+// Returns null when the descent bottoms out at a single, non-cascadable node — most
+// importantly a runtime <Repeater> (array-mapper), which is self-closing at build
+// time (props.children is undefined) yet renders many siblings at runtime. Wrapping
+// that lone block in a motion.div would drop a single block element BETWEEN a
+// grid/flex container and its repeated items and collapse them into one cell. On null
+// the caller animates the whole subtree as one group instead — the wrapper then sits
+// OUTSIDE the layout container, so the repeated items stay its direct layout children.
 const mapStaggerTargets = (nodes, wrap, depth) => {
   const arr = React.Children.toArray(nodes)
   if (arr.length > 1 || depth >= 3) {
@@ -86,9 +97,13 @@ const mapStaggerTargets = (nodes, wrap, depth) => {
   }
   const only = arr[0]
   if (only && React.isValidElement(only) && only.props && only.props.children != null) {
-    return React.cloneElement(only, {}, mapStaggerTargets(only.props.children, wrap, depth + 1))
+    const inner = mapStaggerTargets(only.props.children, wrap, depth + 1)
+    if (inner == null) {
+      return null
+    }
+    return React.cloneElement(only, {}, inner)
   }
-  return arr.map((child, index) => wrap(child, index))
+  return null
 }
 
 const TqMotion = ({
@@ -184,11 +199,18 @@ const TqMotion = ({
         </motion.div>
       )
     }
-    return (
-      <div ref={ref} style={style} {...rest}>
-        {mapStaggerTargets(children, wrapChild, 0)}
-      </div>
-    )
+    const staggerTargets = mapStaggerTargets(children, wrapChild, 0)
+    // staggerTargets is null when there are no real per-item targets to cascade
+    // (e.g. the items render from a runtime <Repeater>). Fall through to the single
+    // group animation below so the wrapper stays OUTSIDE the grid/flex container and
+    // its repeated items remain direct layout children (no collapsed layout).
+    if (staggerTargets != null) {
+      return (
+        <div ref={ref} style={style} {...rest}>
+          {staggerTargets}
+        </div>
+      )
+    }
   }
 
   const animProps = buildAnimProps(trigger, fromVars, toVars, transition, revealed)

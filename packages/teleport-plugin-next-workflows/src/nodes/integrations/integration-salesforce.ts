@@ -246,11 +246,14 @@ async function integration_salesforce(config: any, context: Record<string, unkno
     }
     case 'update-opportunity': {
       const body = config.fields || {}
-      const response = await fetch(baseUrl + 'sobjects/Opportunity/' + config.oppId, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(body),
-      })
+      const response = await fetch(
+        baseUrl + 'sobjects/Opportunity/' + (config.opportunityId || config.oppId),
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(body),
+        }
+      )
       if (!response.ok) {
         const data = await __readJson(response)
         return {
@@ -261,10 +264,13 @@ async function integration_salesforce(config: any, context: Record<string, unkno
       return { success: true }
     }
     case 'get-opportunity': {
-      const response = await fetch(baseUrl + 'sobjects/Opportunity/' + config.oppId, {
-        method: 'GET',
-        headers,
-      })
+      const response = await fetch(
+        baseUrl + 'sobjects/Opportunity/' + (config.opportunityId || config.oppId),
+        {
+          method: 'GET',
+          headers,
+        }
+      )
       const data = await __readJson(response)
       if (!response.ok) {
         return {
@@ -275,10 +281,13 @@ async function integration_salesforce(config: any, context: Record<string, unkno
       return { success: true, opportunity: data }
     }
     case 'delete-opportunity': {
-      const response = await fetch(baseUrl + 'sobjects/Opportunity/' + config.oppId, {
-        method: 'DELETE',
-        headers,
-      })
+      const response = await fetch(
+        baseUrl + 'sobjects/Opportunity/' + (config.opportunityId || config.oppId),
+        {
+          method: 'DELETE',
+          headers,
+        }
+      )
       if (!response.ok) {
         const data = await __readJson(response)
         return {

@@ -700,6 +700,16 @@ async function assertSessionOwnsUsersRow(req, operation, body) {
   if (operation !== 'update' && operation !== 'delete') return;
   if (!body || body.tableName !== AUTH_USERS_TABLE) return;
 
+  // Trusted internal server-side workflow calls (e.g. password reset, which has
+  // NO logged-in session, and server-side profile updates) carry the app's
+  // internal secret in a header. Only server code can read NEXTAUTH_SECRET, so a
+  // browser client cannot forge it — these calls bypass the per-session
+  // ownership check. Direct (non-workflow) client calls have no secret and stay guarded.
+  var internalSecret = req && req.headers && req.headers['x-internal-data-secret'];
+  if (internalSecret && process.env.NEXTAUTH_SECRET && internalSecret === process.env.NEXTAUTH_SECRET) {
+    return;
+  }
+
   var token;
   try {
     token = await getToken({ req: req, secret: process.env.NEXTAUTH_SECRET });

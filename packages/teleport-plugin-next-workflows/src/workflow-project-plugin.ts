@@ -413,10 +413,35 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     }
 
     if (needsDataAPIRoute(usedNodeTypes)) {
-      const authUsersTableName =
-        uidl.authentication?.enabled && uidl.authentication?.tables
-          ? Object.keys(uidl.authentication.tables)[0] || 'users'
-          : undefined
+      // Resolve the actual IDENTITY (users) table, not just the first auth-table
+      // key. Getting this wrong is a security hole: the /api/data guard only
+      // protects AUTH_USERS_TABLE, so if it points at an auxiliary table like
+      // `password_reset_tokens`, the real `users` table is left mutable
+      // unauthenticated. The identity table is the one storing credentials
+      // (an email/login column AND a password column).
+      const authUsersTableName = ((): string | undefined => {
+        if (!uidl.authentication?.enabled || !uidl.authentication?.tables) {
+          return undefined
+        }
+        const tables = uidl.authentication.tables
+        const names = Object.keys(tables)
+        if (names.length === 0) return 'users'
+        const cols = (n: string) => (tables[n] || []).map((c) => (c.name || '').toLowerCase())
+        const has = (n: string, re: RegExp) => cols(n).some((c) => re.test(c))
+        const identity = names.find(
+          (n) =>
+            has(n, /^(email|e_mail|username|user_name|login|user_email)$/) &&
+            has(n, /pass(word)?|pwd|password_hash|hashed_password/)
+        )
+        if (identity) return identity
+        const named = names.find((n) =>
+          /^(app_)?users?$|^members?$|^customers?$|^accounts?$/i.test(n)
+        )
+        if (named) return named
+        const AUX = /token|session|verification|reset|oauth|provider|magic|otp|account_link/i
+        const nonAux = names.find((n) => !AUX.test(n))
+        return nonAux || names[0]
+      })()
       // Low-stock auto-fire: the data-api wakes up the
       // /api/ecommerce/low-stock-alert endpoint on the place-order
       // workflow's stock-check SELECT. Both flags are sourced from

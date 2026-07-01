@@ -36,7 +36,12 @@ async function data_update_item(config: any, context: any) {
     }
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/update', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Trusted internal server-side call — lets the /api/data guard distinguish
+        // this from a direct browser request (see assertSessionOwnsUsersRow).
+        'x-internal-data-secret': (process.env && process.env.NEXTAUTH_SECRET) || '',
+      },
       body: JSON.stringify(reqBody),
     })
 

@@ -11,6 +11,7 @@ import { resolveAbilities } from './resolvers/abilities'
 import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
 import { resolveHtmlNode } from './resolvers/embed-node'
+import { resolveUnboundExpressions } from './resolvers/unbound-expressions'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -62,6 +63,12 @@ export default class Resolver {
 
     utils.resolveNode(uidl.node, newOptions)
     utils.resolveNodeInPropDefinitions(uidl, newOptions)
+
+    // Guard against `expr` nodes that reference an out-of-scope identifier
+    // (e.g. an orphaned `<option>{{ cat.name }}</option>` whose repeater was
+    // never generated). Left untouched they compile to `ReferenceError`s that
+    // fail the static export / `next build`.
+    resolveUnboundExpressions(uidl)
 
     utils.createNodesLookup(uidl, lookup)
     utils.generateUniqueKeys(uidl, lookup)

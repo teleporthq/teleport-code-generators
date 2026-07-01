@@ -81,6 +81,29 @@ const DASHBOARD_CSS = `
   }
 }
 
+/* SELF-MANAGED SIDEBAR NAV — opt out of the platform mobile drawer. A
+   three-mode sidebar nav (state.sidebarMode) ships its own position:fixed
+   hamburger (#sidebar-mobile-open) + overlay. The platform drawer's
+   translateX(-100%) would make .teleport-dashboard-sidebar the containing block
+   for those fixed descendants and shove them off-screen (blank nav on mobile),
+   so make the wrapper inert and hide the redundant platform topbar + scrim. */
+@media (max-width: 767px) {
+  .teleport-dashboard-sidebar:has(#sidebar-mobile-open) {
+    position: static;
+    transform: none;
+    transition: none;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    z-index: auto;
+  }
+
+  :root:has(.teleport-dashboard-sidebar #sidebar-mobile-open) .teleport-dashboard-topbar,
+  :root:has(.teleport-dashboard-sidebar #sidebar-mobile-open) .teleport-sidebar-scrim {
+    display: none !important;
+  }
+}
+
 @media (max-width: 991px) and (min-width: 768px) {
   .teleport-dashboard-sidebar {
     width: 64px !important;
