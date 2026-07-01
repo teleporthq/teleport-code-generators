@@ -6,6 +6,7 @@ async function data_update_item(config: any, context: any) {
   const filters = config.filters || []
   const columnMappings = config.columnMappings || {}
   const baseUrl = (context && context.__baseUrl) || ''
+  const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // Same anonymous-user hint as data-create-item — a workflow that
   // updates a row written by a guest must be able to re-stamp its
@@ -40,7 +41,7 @@ async function data_update_item(config: any, context: any) {
         'Content-Type': 'application/json',
         // Trusted internal server-side call — lets the /api/data guard distinguish
         // this from a direct browser request (see assertSessionOwnsUsersRow).
-        'x-internal-data-secret': (process.env && process.env.NEXTAUTH_SECRET) || '',
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
       },
       body: JSON.stringify(reqBody),
     })
