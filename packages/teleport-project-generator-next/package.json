@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-next",
-  "version": "0.43.28",
+  "version": "0.43.29",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
   "dependencies": {
     "@babel/generator": "^7.5.5",
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-component-generator": "^0.43.23",
-    "@teleporthq/teleport-component-generator-react": "^0.43.27",
+    "@teleporthq/teleport-component-generator": "^0.43.29",
+    "@teleporthq/teleport-component-generator-react": "^0.43.29",
     "@teleporthq/teleport-plugin-common": "^0.43.27",
     "@teleporthq/teleport-plugin-css": "^0.43.27",
     "@teleporthq/teleport-plugin-import-statements": "^0.43.27",
@@ -37,12 +37,12 @@
     "@teleporthq/teleport-plugin-next-inline-fetch": "^0.43.27",
     "@teleporthq/teleport-plugin-next-static-paths": "^0.43.27",
     "@teleporthq/teleport-plugin-next-static-props": "^0.43.27",
-    "@teleporthq/teleport-plugin-next-workflows": "^0.43.26",
+    "@teleporthq/teleport-plugin-next-workflows": "^0.43.29",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.43.22",
-    "@teleporthq/teleport-project-generator": "^0.43.27",
+    "@teleporthq/teleport-project-generator": "^0.43.29",
     "@teleporthq/teleport-shared": "^0.43.22",
     "@teleporthq/teleport-types": "^0.43.22",
-    "@teleporthq/teleport-uidl-resolver": "^0.43.23"
+    "@teleporthq/teleport-uidl-resolver": "^0.43.29"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
