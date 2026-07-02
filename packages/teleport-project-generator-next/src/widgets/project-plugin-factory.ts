@@ -12,10 +12,10 @@ export interface WidgetProjectPluginConfig {
   fileKey: string
   /** Returns the wrapper component source. */
   generateCode: () => string
-  /** npm package the wrapper depends on. */
-  dependencyName: string
-  /** Exact, pinned version. */
-  dependencyVersion: string
+  /** npm package the wrapper depends on. Omit for pure-DOM wrappers (e.g. form-file-input). */
+  dependencyName?: string
+  /** Exact, pinned version. Required when dependencyName is set. */
+  dependencyVersion?: string
   /** Optional global CSS import injected into _app (e.g. a Pickr theme). */
   cssImport?: string
   /**
@@ -59,7 +59,9 @@ export const createNextWidgetProjectPlugin = (config: WidgetProjectPluginConfig)
         ],
       })
 
-      dependencies[config.dependencyName] = config.dependencyVersion
+      if (config.dependencyName && config.dependencyVersion) {
+        dependencies[config.dependencyName] = config.dependencyVersion
+      }
 
       if (config.bumpReact18) {
         dependencies.react = '^18.3.1'

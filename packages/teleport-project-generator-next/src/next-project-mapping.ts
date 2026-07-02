@@ -175,6 +175,13 @@ export const NextProjectMapping: Mapping = {
         path: '../components/tq-motion',
       },
     },
+    'form-file-input-node': {
+      elementType: 'TqFormFileInput',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-form-file-input',
+      },
+    },
     'countdown-node': {
       elementType: 'TqCountdown',
       dependency: {

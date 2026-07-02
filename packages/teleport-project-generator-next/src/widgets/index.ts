@@ -6,12 +6,14 @@ import { generateSignatureComponentCode } from './signature-component'
 import { generateColorPickerComponentCode } from './color-picker-component'
 import { generateEmojiPickerComponentCode } from './emoji-picker-component'
 import { generateMotionComponentCode } from './motion-component'
+import { generateFormFileInputComponentCode } from './form-file-input-component'
 
 const PICKR_CSS_IMPORT = "import '@simonwep/pickr/dist/themes/nano.min.css'"
 
 /**
- * The Next project plugins for the six npm-backed widget primitives. Each emits
- * its local wrapper + npm dependency only when the generated project uses it.
+ * The Next project plugins for the widget primitives. Each emits its local
+ * wrapper (+ npm dependency, when the wrapper needs one) only when the
+ * generated project uses it.
  */
 export const createNextWidgetProjectPlugins = (): ProjectPlugin[] => [
   createNextWidgetProjectPlugin({
@@ -64,5 +66,12 @@ export const createNextWidgetProjectPlugins = (): ProjectPlugin[] => [
     dependencyVersion: '^11.18.0',
     // framer-motion needs React 18 — bump it like the calendar widget does.
     bumpReact18: true,
+  }),
+  createNextWidgetProjectPlugin({
+    elementType: 'form-file-input-node',
+    fileName: 'tq-form-file-input',
+    fileKey: 'tq-form-file-input-component',
+    generateCode: generateFormFileInputComponentCode,
+    // Pure DOM/FileReader wrapper — no npm dependency.
   }),
 ]

@@ -124,6 +124,7 @@ describe('Next widget project plugins', () => {
       expect(structure.files.has(widget.fileKey)).toBe(false)
       expect(structure.dependencies[widget.dependency]).toBeUndefined()
     }
+    expect(structure.files.has('tq-form-file-input-component')).toBe(false)
     expect(structure.files.get('_app')?.files[0].content).toBe(APP_CONTENT)
   })
 
@@ -248,5 +249,63 @@ describe('Next widget project plugins', () => {
     expect(structure.files.get('tq-emoji-picker-component')?.files[0].content).toContain(
       "import('emoji-picker-element')"
     )
+  })
+})
+
+describe('form-file-input widget plugin (dependency-less wrapper)', () => {
+  const buildContent = async (): Promise<{
+    structure: ProjectPluginStructure
+    content: string
+  }> => {
+    const structure = buildStructure([elementNode('form-file-input-node')])
+    await runAll(structure)
+    const content = structure.files.get('tq-form-file-input-component')?.files[0].content as string
+    return { structure, content }
+  }
+
+  it('emits the TqFormFileInput wrapper without adding any npm dependency', async () => {
+    const { structure, content } = await buildContent()
+
+    const record = structure.files.get('tq-form-file-input-component')
+    expect(record?.path).toEqual(['components'])
+    expect(record?.files[0].name).toBe('tq-form-file-input')
+    expect(record?.files[0].fileType).toBe(FileType.JS)
+    expect(content).toContain('const TqFormFileInput =')
+    expect(content).toContain('export default TqFormFileInput')
+    // Pure DOM/FileReader wrapper: nothing lands in package.json and the
+    // react version stays whatever the template ships.
+    expect(Object.keys(structure.dependencies)).toEqual([])
+  })
+
+  it('reads picked files into PickedFile POJOs (browser-pick-files shape) via FileReader', async () => {
+    const { content } = await buildContent()
+
+    expect(content).toContain('readAsDataURL')
+    for (const field of ['name:', 'size:', 'type:', 'lastModified:', 'dataURL:']) {
+      expect(content).toContain(field)
+    }
+    // No upload at pick time — uploads belong to the form-submit workflow.
+    expect(content).not.toContain('fetch(')
+  })
+
+  it('renders dataURL previews with per-item remove and the form-file-input marker', async () => {
+    const { content } = await buildContent()
+
+    expect(content).toContain('data-thq="form-file-input"')
+    expect(content).toContain('src={file.dataURL}')
+    expect(content).toContain('removeAt')
+    expect(content).toContain('aria-label="Remove file"')
+  })
+
+  it('mirrors state into a nameless hidden input so form payloads never see the JSON', async () => {
+    const { content } = await buildContent()
+
+    const mirrorLine = content.split('\n').find((line) => line.includes('type="hidden"')) as string
+    expect(mirrorLine).toBeDefined()
+    expect(mirrorLine).not.toContain('name=')
+    // Commits reach the page state through the generated onChange contract
+    // (event.target.value = JSON array) plus a native change on the mirror.
+    expect(content).toContain('onChange({ target: { value: serialized } })')
+    expect(content).toContain("dispatchEvent(new Event('change', { bubbles: true }))")
   })
 })

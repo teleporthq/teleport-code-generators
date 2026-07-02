@@ -1477,6 +1477,26 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
     ) {
       value = value.value;
     }
+    // Array-typed states must never receive a non-array payload — one
+    // poisoned write (e.g. a ref resolving to a custom-js node's whole
+    // { result: [...] } return object instead of its array property)
+    // bricks every downstream consumer: the mapper renders nothing and
+    // the next add-row spread throws "is not iterable". Mirrors the
+    // GUI-side guard: unwrap an object with a single array-valued
+    // property, otherwise fall back to an empty array.
+    if (type === 'array' && !Array.isArray(value)) {
+      console.warn(
+        '[workflow] non-array value written to array state "' + property + '"; coercing',
+        value
+      );
+      if (value && typeof value === 'object') {
+        var arrayKeys = Object.keys(value);
+        if (arrayKeys.length === 1 && Array.isArray(value[arrayKeys[0]])) {
+          return value[arrayKeys[0]];
+        }
+      }
+      return [];
+    }
     if (type === 'boolean') return value === 'true' || value === true;
     if (type === 'number' && typeof value === 'string') {
       const parsed = Number(value);
@@ -1585,7 +1605,11 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
     if (typeof window !== 'undefined' && Router && Router.router && Router.router.query) {
       triggerContext.__routeParams = Object.assign({}, Router.router.query);
     }
-${dynamicRouteAttribute ? `    triggerContext.__dynamicRouteParam = '${dynamicRouteAttribute}';\n` : ''}
+${
+  dynamicRouteAttribute
+    ? `    triggerContext.__dynamicRouteParam = '${dynamicRouteAttribute}';\n`
+    : ''
+}
     var fullConfig = typeof workflowCustomNodes !== 'undefined'
       ? Object.assign({}, config, { customNodes: workflowCustomNodes })
       : config;

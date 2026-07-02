@@ -67,4 +67,5 @@ export const INTERACTIVE_PRIMITIVE_COMPONENT_FILES: Record<string, string> = {
   TqEmojiPicker: 'tq-emoji-picker',
   TqMotion: 'tq-motion',
   TqCountdown: 'tq-countdown',
+  TqFormFileInput: 'tq-form-file-input',
 }
