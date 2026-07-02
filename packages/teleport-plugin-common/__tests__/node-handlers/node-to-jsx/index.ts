@@ -249,6 +249,76 @@ describe('generateJSXSyntax', () => {
     })
   })
 
+  describe('controlled <textarea> must not render children (React SSR contract)', () => {
+    const buildParams = (): JSXGenerationParams => ({
+      dependencies: {},
+      propDefinitions: {},
+      stateDefinitions: {},
+      globalStateDefinitions: {},
+      nodesLookup: {},
+      windowImports: {},
+      localeReferences: [],
+      globalReferences: [],
+      globalStateReferences: [],
+      hoistedConstants: [],
+    })
+
+    it('drops the children of a textarea that has a value attribute', () => {
+      // The details/entity binder can add value={{ ctx.field }} to a <textarea>
+      // while leaving its original text child in place. React's server renderer
+      // throws "If you supply value on a <textarea> you must not supply children",
+      // aborting static export — so the children must not be attached.
+      const localParams = buildParams()
+      const node = elementNode('textarea', { value: dynamicNode('prop', 'description') }, [
+        elementNode('span', {}, [dynamicNode('prop', 'description')]),
+      ])
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+
+      expect((result.openingElement.name as types.JSXIdentifier).name).toBe('textarea')
+      expect(result.children.length).toBe(0)
+      // The child <span> is still generated into nodesLookup so the later
+      // styled-jsx traversal doesn't fail with "missing from the template chunk".
+      expect(Object.keys(localParams.nodesLookup).length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('drops the children of a textarea that has a defaultValue attribute', () => {
+      const localParams = buildParams()
+      const node = elementNode('textarea', { defaultValue: dynamicNode('prop', 'description') }, [
+        elementNode('span', {}, [staticNode('initial')]),
+      ])
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+      expect(result.children.length).toBe(0)
+    })
+
+    it('keeps the children of an uncontrolled textarea (no value/defaultValue)', () => {
+      const localParams = buildParams()
+      const node = elementNode('textarea', {}, [staticNode('initial content')])
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+      expect(result.children.length).toBeGreaterThan(0)
+    })
+
+    it('drops the children of a named textarea controlled by the form-store binding', () => {
+      // maybeAddFormStoreFieldBinding injects value={formState['field'] ?? ''}
+      // onto named inputs inside a data-store-values-state form AFTER the UIDL
+      // attrs are processed — the textarea has NO value in its UIDL attrs but
+      // ends up controlled all the same, so its children must also be skipped.
+      const localParams = { ...buildParams(), formStoreStateName: 'formValues' }
+      const node = elementNode('textarea', { name: staticNode('description') }, [
+        staticNode('initial content'),
+      ])
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+
+      const hasInjectedValue = result.openingElement.attributes.some(
+        (attr) =>
+          attr.type === 'JSXAttribute' &&
+          attr.name.type === 'JSXIdentifier' &&
+          attr.name.name === 'value'
+      )
+      expect(hasInjectedValue).toBe(true)
+      expect(result.children.length).toBe(0)
+    })
+  })
+
   describe('plan v15 Layer 4 — codegen safety net for junk attrs and corrupt values', () => {
     // Suppress the console.warn that fires when junk attrs are dropped so
     // the test runner output stays clean. Reset between tests.

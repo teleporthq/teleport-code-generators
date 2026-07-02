@@ -368,11 +368,37 @@ interface FetchGroup {
   tableName: string
   fileName: string
   fetcherImportName: string
+  fetchDiscriminator: string
   states: Array<{
     stateKey: string
     definition: UIDLStateDefinition
     binding: UIDLStateDataSourceBinding
   }>
+}
+
+/**
+ * Stable hash of everything buildFetchParams derives from a state definition
+ * (rawQuery + sorts + static filters). Two states may only share a fetch when
+ * this matches — grouping by table alone made every state in the group receive
+ * the FIRST state's query result (e.g. a 1-row aggregate state getting an
+ * N-row JOIN, duplicating the dashboard KPI block N times).
+ */
+const computeFetchDiscriminator = (definition: UIDLStateDefinition): string => {
+  const staticFilters = (definition.filterConfig || []).filter(
+    (f: UIDLFilterConfigEntry) => !f.isDynamic
+  )
+  const fingerprint = JSON.stringify({
+    query: definition.query && definition.query.trim() ? definition.query : '',
+    sorts: definition.sortConfig || [],
+    filters: staticFilters,
+  })
+  let hash = 5381
+  for (let i = 0; i < fingerprint.length; i++) {
+    // tslint:disable-next-line:no-bitwise
+    hash = ((hash << 5) + hash + fingerprint.charCodeAt(i)) | 0
+  }
+  // tslint:disable-next-line:no-bitwise
+  return (hash >>> 0).toString(36)
 }
 
 const groupByDataSourceAndTable = (
@@ -398,7 +424,8 @@ const groupByDataSourceAndTable = (
     }
 
     const tableName = getTableNameFromRefPath(binding.refPath) || 'data'
-    const groupKey = `${binding.dataSourceId}::${tableName}`
+    const fetchDiscriminator = computeFetchDiscriminator(state.definition)
+    const groupKey = `${binding.dataSourceId}::${tableName}::${fetchDiscriminator}`
 
     if (!groupMap.has(groupKey)) {
       const fileName = generateSafeFileName(dataSource.type, tableName, binding.dataSourceId)
@@ -409,6 +436,7 @@ const groupByDataSourceAndTable = (
         tableName,
         fileName,
         fetcherImportName,
+        fetchDiscriminator,
         states: [],
       })
     }
@@ -593,7 +621,9 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
         sanitizeFileName(dataSource.id).substring(0, 8)
       )
       const sanitizedTable = StringUtils.dashCaseToCamelCase(sanitizeFileName(tableName))
-      const rawDataPropKey = `__stateDs_${sanitizedDsId}_${sanitizedTable}_raw`
+      // The discriminator keeps groups with the same table but different
+      // fetch semantics (rawQuery/sorts/filters) on distinct identifiers.
+      const rawDataPropKey = `__stateDs_${sanitizedDsId}_${sanitizedTable}_${group.fetchDiscriminator}_raw`
 
       // Check if this fetch is already registered in the parallel fetch metadata
       const parallelFetchMeta = getStaticPropsChunk.meta?.parallelFetchData as
@@ -602,8 +632,9 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
       const alreadyRegistered = parallelFetchMeta?.names.includes(rawDataPropKey)
 
       if (!alreadyRegistered) {
-        // Build fetch params from the first state's sort/filter config
-        // (all states in the group share the same data source + table)
+        // Every state in the group shares the same data source + table AND the
+        // same fetch discriminator (rawQuery/sorts/static filters), so the
+        // first state's definition is representative of the whole group.
         const fetchParams = buildFetchParams(states[0].definition)
 
         // Create the fetch expression: fetcherImportName.fetchData(params)

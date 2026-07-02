@@ -6,6 +6,25 @@ async function data_create_item(config: any, context: any) {
   const columnMappings = config.columnMappings || {}
   const baseUrl = (context && context.__baseUrl) || ''
 
+  // An unresolved route-param sentinel (see resolveTemplateTokenString in
+  // runtime-utils) in a columnMapping degrades to null so the INSERT itself
+  // survives — only attribution-style columns lose their value.
+  if (Array.isArray(columnMappings)) {
+    for (let __mi = 0; __mi < columnMappings.length; __mi++) {
+      const __m: any = columnMappings[__mi]
+      if (__m && __m.value === '__TQ_UNRESOLVED_ROUTE_PARAM__') {
+        __m.value = null
+      }
+    }
+  } else if (columnMappings && typeof columnMappings === 'object') {
+    const __mKeys = Object.keys(columnMappings)
+    for (let __mi = 0; __mi < __mKeys.length; __mi++) {
+      if ((columnMappings as any)[__mKeys[__mi]] === '__TQ_UNRESOLVED_ROUTE_PARAM__') {
+        ;(columnMappings as any)[__mKeys[__mi]] = null
+      }
+    }
+  }
+
   // Surface the workflow's anonymous-user UUID to the data-api so a
   // guest-checkout INSERT can recover its `user_id` from the
   // resolve-user output instead of being NULL'd by the UUID

@@ -733,12 +733,43 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     }
   }
 
+  // A controlled <textarea> — one carrying a `value` (or `defaultValue`) prop —
+  // must NOT also render children. React's server renderer throws
+  // "If you supply `value` on a <textarea> you must not supply children.", which
+  // aborts static export of the whole page. The details-page / entity binder can
+  // leave the original text content in place when it adds a `value` binding to a
+  // textarea (harmless for <input>, fatal for <textarea>). We still GENERATE the
+  // children below so every UIDL node lands in `nodesLookup` (the styled-jsx pass
+  // requires it), but we do not attach them to the textarea — the value prop is
+  // the single source of truth.
+  const isTextArea =
+    originalElementName.toLowerCase() === 'textarea' || node.content.semanticType === 'textarea'
+  // The check must run against the JSX opening element (not just UIDL attrs):
+  // maybeAddFormStoreFieldBinding injects a `value` attr onto named textareas
+  // inside a data-store-values-state form AFTER UIDL attrs are processed, and
+  // that injected binding makes the textarea controlled all the same.
+  const jsxTagHasControlledValue = elementTag.openingElement.attributes.some(
+    (attr) =>
+      attr.type === 'JSXAttribute' &&
+      attr.name.type === 'JSXIdentifier' &&
+      (attr.name.name === 'value' || attr.name.name === 'defaultValue')
+  )
+  const skipAttachingChildren =
+    isTextArea &&
+    (jsxTagHasControlledValue ||
+      (!!attrs &&
+        (Object.prototype.hasOwnProperty.call(attrs, 'value') ||
+          Object.prototype.hasOwnProperty.call(attrs, 'defaultValue'))))
+
   if (!markdownChildrenHandled && !selfClosing && children) {
     // Reorder children to ensure search nodes appear before DataProvider nodes
     const reorderedChildren = reorderChildrenForSearch(children)
 
     reorderedChildren.forEach((child) => {
       const childTags = generateNode(child, childParams, options)
+      if (skipAttachingChildren) {
+        return
+      }
       childTags.forEach((childTag) => {
         if (typeof childTag === 'string') {
           addChildJSXText(elementTag, childTag)

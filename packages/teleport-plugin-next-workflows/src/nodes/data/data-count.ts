@@ -6,6 +6,26 @@ async function data_count(config: any, context: any) {
   const filters = config.filters || []
   const baseUrl = (context && context.__baseUrl) || ''
 
+  // Unresolved route-param sentinel in a filter → validation error (see
+  // resolveTemplateTokenString in runtime-utils) instead of counting nothing.
+  for (let __fi = 0; __fi < filters.length; __fi++) {
+    const __f: any = filters[__fi]
+    if (
+      __f &&
+      (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
+        __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
+    ) {
+      const __col = __f.column || __f.source || __f.field || 'unknown'
+      return {
+        count: 0,
+        error:
+          'Filter on "' +
+          __col +
+          '" requires the page route parameter, which is not available in this context',
+      }
+    }
+  }
+
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/count', {
       method: 'POST',

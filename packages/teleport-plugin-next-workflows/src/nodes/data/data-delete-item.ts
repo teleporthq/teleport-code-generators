@@ -7,6 +7,29 @@ async function data_delete_item(config: any, context: any) {
   const baseUrl = (context && context.__baseUrl) || ''
   const __env = (globalThis as any).process && (globalThis as any).process.env
 
+  // Unresolved route-param sentinel in a filter → validation error (see
+  // resolveTemplateTokenString in runtime-utils). A DELETE must never run
+  // with a filter that silently matches nothing (or worse, gets dropped).
+  for (let __fi = 0; __fi < filters.length; __fi++) {
+    const __f: any = filters[__fi]
+    if (
+      __f &&
+      (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
+        __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
+    ) {
+      const __col = __f.column || __f.source || __f.field || 'unknown'
+      return {
+        deletedId: null,
+        success: false,
+        deletedCount: 0,
+        error:
+          'Filter on "' +
+          __col +
+          '" requires the page route parameter, which is not available in this context',
+      }
+    }
+  }
+
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/delete', {
       method: 'POST',

@@ -327,7 +327,14 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
     const hasCurrentUserGlobalRefs = activeWorkflows.some((wf) =>
       hasGlobalContextStateRefTransitively(wf.nodes, workflows.customNodes, new Set<string>())
     )
-    const needsGlobalContextBridge = hasAuthNodes || hasCurrentUserGlobalRefs
+    // Node configs may also reference the logged-in user via a literal
+    // {{Current User.id}} template token (resolved at runtime from the
+    // __stateValues.currentUser bridge) — those pages need the same
+    // GlobalContext plumbing even without a state-get/update node.
+    const hasCurrentUserToken = activeWorkflows.some((wf) =>
+      wf.nodes.some((n) => JSON.stringify(n.config || {}).includes('{{Current User.'))
+    )
+    const needsGlobalContextBridge = hasAuthNodes || hasCurrentUserGlobalRefs || hasCurrentUserToken
 
     const hasAudioNodes = activeWorkflows.some((wf) =>
       wf.nodes.some((n) => n.type === 'audio-play' || n.type === 'audio-stop')
@@ -399,6 +406,15 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       (!pageProtection.allowedRoles || pageProtection.allowedRoles.length === 0)
     )
 
+    const dynamicRouteAttributeRaw = (uidl as any).outputOptions?.dynamicRouteAttribute as
+      | string
+      | undefined
+    const dynamicRouteAttribute =
+      typeof dynamicRouteAttributeRaw === 'string' &&
+      /^[A-Za-z_][A-Za-z0-9_-]*$/.test(dynamicRouteAttributeRaw)
+        ? dynamicRouteAttributeRaw
+        : undefined
+
     const moduleCode = generateModuleLevelCode(
       activeWorkflows,
       matchedElementTriggers,
@@ -408,7 +424,8 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       globalStateChangeWorkflows,
       hasAudioNodes,
       needsAdminFormHydration,
-      isRowOwnedSelfGuardedPage
+      isRowOwnedSelfGuardedPage,
+      dynamicRouteAttribute
     )
 
     if (moduleCode) {
@@ -556,6 +573,14 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       dependencies.workflowRuntime = {
         type: 'local',
         path: `${pathPrefix}utils/workflows/runtime`,
+      }
+
+      // Router singleton for {{urlDifferentiator}}-style token resolution in
+      // __execWf (route params are only reachable client-side at call time).
+      dependencies.Router = {
+        type: 'library',
+        path: 'next/router',
+        version: '12.1.0',
       }
 
       dependencies.workflowClientHandlers = {
@@ -1160,7 +1185,8 @@ const generateModuleLevelCode = (
   globalStateChangeWorkflows: UIDLWorkflow[],
   hasAudioNodes?: boolean,
   includeAdminFormHydrationHelper?: boolean,
-  isRowOwnedSelfGuardedPage?: boolean
+  isRowOwnedSelfGuardedPage?: boolean,
+  dynamicRouteAttribute?: string
 ): string => {
   if (allWorkflows.length === 0) {
     return ''
@@ -1552,6 +1578,14 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
 
   function __execWf(config, triggerContext, serverUrls) {
     triggerContext.__stateValues = Object.assign({}, stateValuesRef.current);
+    // Route context for {{urlDifferentiator}} / {{Current Page Entity.id}}
+    // template tokens in node configs — resolved by the shared runtime's
+    // resolveTemplateTokenString. Read at call time (not render time) so the
+    // handlers survive client-side navigation between dynamic routes.
+    if (typeof window !== 'undefined' && Router && Router.router && Router.router.query) {
+      triggerContext.__routeParams = Object.assign({}, Router.router.query);
+    }
+${dynamicRouteAttribute ? `    triggerContext.__dynamicRouteParam = '${dynamicRouteAttribute}';\n` : ''}
     var fullConfig = typeof workflowCustomNodes !== 'undefined'
       ? Object.assign({}, config, { customNodes: workflowCustomNodes })
       : config;

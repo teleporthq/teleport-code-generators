@@ -8,6 +8,44 @@ async function data_update_item(config: any, context: any) {
   const baseUrl = (context && context.__baseUrl) || ''
   const __env = (globalThis as any).process && (globalThis as any).process.env
 
+  // Unresolved route-param sentinel (see resolveTemplateTokenString in
+  // runtime-utils): in a filter it is a validation error — an UPDATE keyed on
+  // it would match 0 rows and report failure with no hint why. In a
+  // columnMapping it degrades to null so the write itself survives.
+  for (let __fi = 0; __fi < filters.length; __fi++) {
+    const __f: any = filters[__fi]
+    if (
+      __f &&
+      (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
+        __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
+    ) {
+      const __col = __f.column || __f.source || __f.field || 'unknown'
+      return {
+        id: null,
+        updatedCount: 0,
+        error:
+          'Filter on "' +
+          __col +
+          '" requires the page route parameter, which is not available in this context',
+      }
+    }
+  }
+  if (Array.isArray(columnMappings)) {
+    for (let __mi = 0; __mi < columnMappings.length; __mi++) {
+      const __m: any = columnMappings[__mi]
+      if (__m && __m.value === '__TQ_UNRESOLVED_ROUTE_PARAM__') {
+        __m.value = null
+      }
+    }
+  } else if (columnMappings && typeof columnMappings === 'object') {
+    const __mKeys = Object.keys(columnMappings)
+    for (let __mi = 0; __mi < __mKeys.length; __mi++) {
+      if ((columnMappings as any)[__mKeys[__mi]] === '__TQ_UNRESOLVED_ROUTE_PARAM__') {
+        ;(columnMappings as any)[__mKeys[__mi]] = null
+      }
+    }
+  }
+
   // Same anonymous-user hint as data-create-item — a workflow that
   // updates a row written by a guest must be able to re-stamp its
   // ownership column with the same anon UUID rather than NULL.

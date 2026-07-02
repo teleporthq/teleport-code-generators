@@ -212,9 +212,99 @@ function escapeHtmlText(value) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Sentinel for a page-context template token ({{urlDifferentiator}} /
+// {{Current Page Entity.id}}) that could not be resolved at execution time
+// (no dynamic-route parameter reachable — e.g. the workflow fired on a
+// non-details page). finalizeResolvedConfig turns this into a validation
+// error on data-node filters and into null everywhere else, so the literal
+// token text never reaches SQL.
+var UNRESOLVED_ROUTE_PARAM = '__TQ_UNRESOLVED_ROUTE_PARAM__';
+
+// Deployed node configs regularly carry literal {{...}} template tokens that
+// only the page runtime can resolve: {{state.X}} (trigger-time state
+// snapshot), {{urlDifferentiator}} / {{Current Page Entity.id}} /
+// {{page.entityId}} (the details page's dynamic-route parameter) and
+// {{Current User.id}} (the GlobalContext-bridged authenticated user). No
+// other substitution site exists in the generated app, so without this the
+// literal token string reaches SQL. Only whole-string tokens are resolved —
+// JS-expression tokens ({{state.a === 'b' ? ...}}) are left untouched.
+function resolveTemplateTokenString(value, context) {
+  if (typeof value !== 'string') return { matched: false };
+  var m = value.match(/^\\{\\{\\s*([^{}]+?)\\s*\\}\\}$/);
+  if (!m) return { matched: false };
+  var token = m[1];
+  if (token.indexOf('state.') === 0) {
+    var statePath = token.slice(6).split('.');
+    for (var si = 0; si < statePath.length; si++) {
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(statePath[si])) return { matched: false };
+    }
+    var stateCursor = context && context.__stateValues;
+    for (var sj = 0; sj < statePath.length && stateCursor !== null && stateCursor !== undefined; sj++) {
+      stateCursor = stateCursor[statePath[sj]];
+    }
+    return { matched: true, value: stateCursor === undefined ? null : stateCursor };
+  }
+  if (token === 'urlDifferentiator' || token === 'Current Page Entity.id' || token === 'page.entityId') {
+    var routeParams = context && context.__routeParams;
+    // The page's declared dynamic-route attribute wins; 'id' is the fallback
+    // for workflows attached to shared components (e.g. Navigation) rendered
+    // on a details page, which have no __dynamicRouteParam of their own.
+    var routeParamKey = (context && context.__dynamicRouteParam) || 'id';
+    if (routeParams && routeParams[routeParamKey] !== undefined && routeParams[routeParamKey] !== null && routeParams[routeParamKey] !== '') {
+      var paramValue = routeParams[routeParamKey];
+      return { matched: true, value: Array.isArray(paramValue) ? paramValue[0] : paramValue };
+    }
+    return { matched: true, value: UNRESOLVED_ROUTE_PARAM };
+  }
+  if (token === 'Current User.id' || token === 'currentUser.id') {
+    var currentUser = context && context.__stateValues && context.__stateValues.currentUser;
+    var userId = currentUser && typeof currentUser === 'object' ? currentUser.id : undefined;
+    return { matched: true, value: userId === undefined ? null : userId };
+  }
+  return { matched: false };
+}
+
+// Post-resolution pass over a node's resolved config. Data-node filters whose
+// value is an unresolved route-param sentinel become a hard validation error
+// (surfaced through the workflow error handler) — sending them on would query
+// 'WHERE id = <literal token>'. Everywhere else the sentinel degrades to null
+// (e.g. a columnMapping loses attribution but the write survives).
+function finalizeResolvedConfig(nodeType, config) {
+  var isDataNode = typeof nodeType === 'string' && nodeType.indexOf('data-') === 0;
+  var error = null;
+  function walk(obj, insideFilters) {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) {
+      for (var ai = 0; ai < obj.length; ai++) walk(obj[ai], insideFilters);
+      return;
+    }
+    var keys = Object.keys(obj);
+    for (var ki = 0; ki < keys.length; ki++) {
+      var k = keys[ki];
+      var v = obj[k];
+      if (v === UNRESOLVED_ROUTE_PARAM) {
+        if (isDataNode && insideFilters && !error) {
+          var column = obj.column || obj.source || obj.field || k;
+          error = 'Filter on "' + column + '" requires the page id ({{urlDifferentiator}}), which is not available in this context';
+        }
+        obj[k] = null;
+      } else if (v && typeof v === 'object') {
+        walk(v, insideFilters || k === 'filters');
+      }
+    }
+  }
+  walk(config, false);
+  return error;
+}
+
 // Scalar config values are normally just secret-resolved. Rich-text strings
-// (email bodies) additionally need their inline context placeholders resolved.
+// (email bodies) additionally need their inline context placeholders resolved,
+// and whole-string {{...}} template tokens resolve against the page context.
 function resolveScalarValue(value, context) {
+  var tokenResolution = resolveTemplateTokenString(value, context);
+  if (tokenResolution.matched) {
+    return tokenResolution.value;
+  }
   if (typeof value === 'string' && value.indexOf('context-value-inline') !== -1) {
     return resolveRichTextContext(value, context);
   }
@@ -314,11 +404,28 @@ function coerceForComparison(a, b) {
   return [a, b];
 }
 
+// The operator vocabulary is written by THREE producers that never agreed on
+// a spelling: the worker canonicalizes to snake_case (is_not_empty,
+// greater_than), the GUI editor emits camelCase named forms (startsWith,
+// notContains), and this runtime historically implemented only the hyphenated
+// forms. Unknown spellings used to fall through to the default 'left == right'
+// branch, which INVERTS unary semantics (is_not_empty compared the value
+// against undefined). Normalizing camelCase and snake_case to the canonical
+// hyphenated form here makes every producer's config executable.
+function normalizeComparisonOperator(op) {
+  if (typeof op !== 'string' || op === '') return 'equals';
+  return op
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
+}
+
 function evaluateSingleComparison(config, context) {
   var rawLeft = resolveValue(config.leftValue, context);
   var rawRight = resolveValue(config.rightValue, context);
-  const op = config.operator || 'equals';
-  var isUnary = op === 'is-empty' || op === 'is-not-empty' || op === 'is-truthy' || op === 'is-falsy';
+  const op = normalizeComparisonOperator(config.operator || 'equals');
+  var isUnary = op === 'is-empty' || op === 'is-not-empty' || op === 'is-truthy' || op === 'is-falsy' ||
+    op === 'is-null' || op === 'is-not-null' || op === 'is-true' || op === 'is-false';
   var pair = isUnary ? [rawLeft, rawRight] : coerceForComparison(rawLeft, rawRight);
   var left = pair[0];
   var right = pair[1];
@@ -332,15 +439,21 @@ function evaluateSingleComparison(config, context) {
     case '>=': case 'greater-than-or-equal': return left >= right;
     case '<=': case 'less-than-or-equal': return left <= right;
     case 'contains': return String(left).includes(String(right));
-    case 'not-contains': return !String(left).includes(String(right));
+    case 'not-contains': case 'does-not-contain': return !String(left).includes(String(right));
     case 'starts-with': return String(left).startsWith(String(right));
     case 'ends-with': return String(left).endsWith(String(right));
     case 'is-empty': return left === '' || left === null || left === undefined || (Array.isArray(left) && left.length === 0);
     case 'is-not-empty': return left !== '' && left !== null && left !== undefined && !(Array.isArray(left) && left.length === 0);
+    case 'is-null': return left === null || left === undefined;
+    case 'is-not-null': return left !== null && left !== undefined;
+    case 'is-true': return left === true || left === 'true';
+    case 'is-false': return left === false || left === 'false';
     case 'is-truthy': return !!left;
     case 'is-falsy': return !left;
     case 'matches-regex': try { return new RegExp(String(right)).test(String(left)); } catch(e) { return false; }
-    default: return left == right;
+    default:
+      console.warn('[workflow] Unknown comparison operator "' + config.operator + '" — falling back to loose equality');
+      return left == right;
   }
 }
 
@@ -351,6 +464,12 @@ async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, opt
   context[workflowConfig.triggerNodeId] = triggerContext;
   if (triggerContext && triggerContext.__stateValues) {
     context.__stateValues = triggerContext.__stateValues;
+  }
+  if (triggerContext && triggerContext.__routeParams) {
+    context.__routeParams = triggerContext.__routeParams;
+  }
+  if (triggerContext && triggerContext.__dynamicRouteParam) {
+    context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
   }
   if (triggerContext && triggerContext.triggerElement) {
     context.triggerElement = triggerContext.triggerElement;
@@ -453,6 +572,11 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
     const resolvedConfig = resolveConfig(node.config, context);
 
     try {
+      const configError = finalizeResolvedConfig(node.type, resolvedConfig);
+      if (configError) {
+        throw new Error(configError);
+      }
+
       if (node.type === 'general-if-statement') {
         const condResult = evaluateCondition(resolvedConfig, context);
         context[node.id] = { result: condResult };
@@ -841,6 +965,9 @@ module.exports = {
   unwrapWorkflowCollection,
   evaluateCondition,
   evaluateSingleComparison,
+  normalizeComparisonOperator,
+  resolveTemplateTokenString,
+  finalizeResolvedConfig,
   executeWorkflow,
   executeNodes,
   executeLoop,
@@ -1002,6 +1129,8 @@ function buildContext(workflowConfig, triggerContext) {
   context[workflowConfig.triggerNodeId] = triggerContext;
   if (triggerContext) {
     if (triggerContext.__stateValues) context.__stateValues = triggerContext.__stateValues;
+    if (triggerContext.__routeParams) context.__routeParams = triggerContext.__routeParams;
+    if (triggerContext.__dynamicRouteParam) context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
     if (triggerContext.triggerElement) context.triggerElement = triggerContext.triggerElement;
   }
   return context;

@@ -127,16 +127,42 @@ const isValidCSSValue = (value: string | number, key?: string): boolean => {
   // Check for values that contain embedded CSS declarations (e.g. "valueproperty-name: other")
   // A colon in a CSS value normally only appears inside url() or var() or similar functions.
   // If a colon appears outside of parentheses, the value is likely corrupted.
+  //
+  // Parentheses and colons inside a quoted string (e.g. a `url("data:...(...)")`
+  // data-URI or a `font-family: "Foo (Bold)"`) are literal text, not syntax, so
+  // the scan tracks the active quote and ignores everything inside it.
   let parenDepth = 0
+  let quote = ''
   for (let i = 0; i < value.length; i++) {
-    if (value[i] === '(') {
+    const char = value[i]
+    if (quote) {
+      if (char === quote && value[i - 1] !== '\\') {
+        quote = ''
+      }
+      continue
+    }
+    if (char === "'" || char === '"') {
+      quote = char
+    } else if (char === '(') {
       parenDepth++
-    } else if (value[i] === ')') {
+    } else if (char === ')') {
       parenDepth--
-    } else if (value[i] === ':' && parenDepth === 0) {
+      // A closing paren with no matching opener means the value is corrupted.
+      if (parenDepth < 0) {
+        return false
+      }
+    } else if (char === ':' && parenDepth === 0) {
       // Colons outside parentheses in a CSS value indicate a corrupted/merged declaration
       return false
     }
+  }
+
+  // Unbalanced parentheses leave an unclosed CSS function — e.g. a stream that
+  // was truncated mid-value (`color-mix(in srgb, var(--color-surface) 50%,`).
+  // Emitting it produces `color: color-mix(...50%,;` which fails the CSS parser
+  // and breaks the whole stylesheet (and the Next.js production build).
+  if (parenDepth !== 0) {
+    return false
   }
 
   return true

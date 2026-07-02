@@ -11,6 +11,28 @@ async function data_select(config: any, context: any) {
   const rawQueryUserPart = config.rawQueryUserPart
   const baseUrl = (context && context.__baseUrl) || ''
 
+  // A filter whose value is the unresolved route-param sentinel (see
+  // resolveTemplateTokenString in runtime-utils) must fail loudly instead of
+  // querying 'WHERE col = <sentinel>' and silently returning 0 rows.
+  for (let __fi = 0; __fi < filters.length; __fi++) {
+    const __f: any = filters[__fi]
+    if (
+      __f &&
+      (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
+        __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
+    ) {
+      const __col = __f.column || __f.source || __f.field || 'unknown'
+      return {
+        rows: [],
+        count: 0,
+        error:
+          'Filter on "' +
+          __col +
+          '" requires the page route parameter, which is not available in this context',
+      }
+    }
+  }
+
   try {
     const payload: any = { tableName, filters, sorts, selectedColumns }
     if (limit !== undefined && limit !== null) {
