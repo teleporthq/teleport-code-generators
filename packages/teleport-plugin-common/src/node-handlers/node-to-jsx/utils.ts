@@ -32,6 +32,71 @@ import { generateIdWithRefPath } from '@teleporthq/teleport-shared/dist/cjs/util
 
 // Adds all the event handlers and all the instructions for each event handler
 // in case there is more than one specified in the UIDL
+/** HTML form controls that React treats as "controlled" when given a value/checked prop. */
+const CONTROLLED_FORM_CONTROL_TAGS = new Set(['input', 'textarea', 'select'])
+
+/**
+ * React FREEZES a controlled form control (`value`/`checked` set) that has no
+ * `onChange` — the user cannot type and a console warning is logged. This is the
+ * classic edit-form failure: entity-bound fields rendered `value={props.item?.x}`
+ * with no state mirror (the worker intentionally does not mirror entity columns
+ * into state). When an `<input>`/`<textarea>`/`<select>` has a `value` (or a
+ * checkbox/radio `checked`) attribute but NO `onChange` handler was attached, and
+ * it is not `readOnly`/`disabled`, convert it to UNCONTROLLED — `value`→
+ * `defaultValue`, `checked`→`defaultChecked`. The control then pre-fills, stays
+ * editable, and its live DOM value is what form-submit workflows read via
+ * `document.getElementById(id).value`. Controls that ARE controlled (an onChange
+ * was already attached — via UIDL events, the form-store binding, or a workflow
+ * trigger) and read-only/disabled display fields are left untouched.
+ *
+ * Must run AFTER all attributes and event handlers have been added to the tag.
+ * Mutates the tag in place; idempotent.
+ */
+export const makeControlUncontrolledWhenNoChangeHandler = (
+  tag: types.JSXElement,
+  elementName: string,
+  t = types
+): void => {
+  if (!CONTROLLED_FORM_CONTROL_TAGS.has(elementName.toLowerCase())) {
+    return
+  }
+  const attributes = tag.openingElement.attributes
+  const hasNamedAttribute = (name: string): boolean =>
+    attributes.some(
+      (attr) =>
+        attr.type === 'JSXAttribute' &&
+        attr.name.type === 'JSXIdentifier' &&
+        attr.name.name === name
+    )
+
+  // An onChange means it is legitimately controlled; readOnly/disabled inputs are
+  // intentionally non-editable display fields (React does not warn on those).
+  if (
+    hasNamedAttribute('onChange') ||
+    hasNamedAttribute('readOnly') ||
+    hasNamedAttribute('disabled')
+  ) {
+    return
+  }
+
+  const controlledToUncontrolled: Array<[string, string]> = [
+    ['value', 'defaultValue'],
+    ['checked', 'defaultChecked'],
+  ]
+  for (const [controlled, uncontrolled] of controlledToUncontrolled) {
+    const index = attributes.findIndex(
+      (attr) =>
+        attr.type === 'JSXAttribute' &&
+        attr.name.type === 'JSXIdentifier' &&
+        attr.name.name === controlled
+    )
+    if (index !== -1) {
+      const attr = attributes[index] as types.JSXAttribute
+      attributes.splice(index, 1, t.jsxAttribute(t.jsxIdentifier(uncontrolled), attr.value))
+    }
+  }
+}
+
 export const addEventHandlerToTag = (
   tag: types.JSXElement,
   eventKey: string,

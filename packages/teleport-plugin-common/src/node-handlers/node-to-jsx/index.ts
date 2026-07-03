@@ -30,6 +30,7 @@ import {
   resolveGlobalStateName,
   createGlobalStateExpression,
   resolveAndRegisterGlobalStateSource,
+  makeControlUncontrolledWhenNoChangeHandler,
 } from './utils'
 import {
   addChildJSXText,
@@ -649,6 +650,20 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       )
     }
   }
+
+  // A controlled form control (`<input>`/`<textarea>`/`<select>` with a `value`,
+  // or a checkbox/radio with `checked`) that has NO change handler is FROZEN by
+  // React — the user cannot type, and a console warning is emitted. This is the
+  // edit-form failure mode: entity-bound fields rendered as
+  // `value={props.item?.title}` with no state mirror (the worker deliberately
+  // does NOT mirror entity columns into state — see crud-edit-form contract).
+  // Render such controls UNCONTROLLED (`defaultValue`/`defaultChecked`) so they
+  // are editable AND the DOM value reflects edits, which is exactly what
+  // form-submit workflows read (`document.getElementById(id).value`). Controls
+  // that ARE controlled (an onChange was attached above — via events, the
+  // form-store binding, or a workflow trigger) keep `value`/`checked`, and
+  // read-only/disabled display fields are left untouched.
+  makeControlUncontrolledWhenNoChangeHandler(elementTag, elementName)
 
   if (dataThqValue === 'thq-autocomplete' && children) {
     const acCtx = extractAutocompleteContext(children, childParams.formStoreStateName)

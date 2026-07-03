@@ -23,6 +23,27 @@ export const getEdgesTo = (nodeId: string, edges: UIDLWorkflowEdge[]): UIDLWorkf
   return edges.filter((e) => e.target === nodeId)
 }
 
+/**
+ * Recursively collect every workflow-context node id a config references, i.e.
+ * the ids inside `{ type: 'workflowContext', nodeId: '<id>', path: [...] }`
+ * objects embedded anywhere in a node's config (filter values, column mappings,
+ * loop collections, custom-js params, …).
+ */
+export const collectWorkflowContextNodeIds = (value: unknown, out: Set<string>): void => {
+  if (!value || typeof value !== 'object') {
+    return
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectWorkflowContextNodeIds(item, out))
+    return
+  }
+  const record = value as Record<string, unknown>
+  if (record.type === 'workflowContext' && typeof record.nodeId === 'string') {
+    out.add(record.nodeId)
+  }
+  Object.values(record).forEach((child) => collectWorkflowContextNodeIds(child, out))
+}
+
 export const getTopologicalOrder = (
   nodes: UIDLWorkflowNode[],
   edges: UIDLWorkflowEdge[]
@@ -42,6 +63,37 @@ export const getTopologicalOrder = (
       adjacency[edge.source].push(edge.target)
       inDegree[edge.target]++
     }
+  })
+
+  // Virtual dependency edges from IMPLICIT data dependencies: a node that
+  // consumes another node's output via a `workflowContext` reference in its
+  // config MUST run after that node, even when no explicit edge wires them.
+  // Without this, a `data-create-item` that reads a `state-get-local-state`
+  // result only through its columnMappings is treated as in-degree 0 and can be
+  // ordered (and segmented) BEFORE the state read — so on the server it writes
+  // null for that column (run 0a5f554e: `titles.type_field` NOT-NULL violation;
+  // the "Add Asset" draft rows came through as "N/A" for the same reason).
+  // Control-flow nodes (loop/if/switch/parallel) are skipped — their outputs
+  // (e.g. a loop's `currentItem`) are scoped by dedicated edge handles, not a
+  // linear data dependency. Edges are added to this LOCAL graph only (never to
+  // `workflow.edges`), so loop/branch extraction elsewhere is unaffected.
+  const nodeTypeById = new Map(nodes.map((n) => [n.id, n.type]))
+  nodes.forEach((node) => {
+    const referencedIds = new Set<string>()
+    collectWorkflowContextNodeIds(node.config, referencedIds)
+    referencedIds.forEach((refId) => {
+      if (refId === node.id || !nodeIds.has(refId)) {
+        return
+      }
+      if (isControlFlowNode(nodeTypeById.get(refId) || '')) {
+        return
+      }
+      if (adjacency[refId].includes(node.id)) {
+        return
+      }
+      adjacency[refId].push(node.id)
+      inDegree[node.id]++
+    })
   })
 
   const queue: string[] = []

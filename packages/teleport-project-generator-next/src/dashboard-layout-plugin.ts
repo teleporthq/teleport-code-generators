@@ -57,6 +57,19 @@ const DASHBOARD_CSS = `
   background: rgba(0, 0, 0, 0.5);
 }
 
+/* COLLAPSED SIDEBAR RAIL — right-side flyout escape. The collapsed variant
+   (state.sidebarMode === 'collapsed') opens grouped submenus as a flyout to the
+   right of the rail (position: absolute; left: 100%). Scrollable ancestors
+   (the AI nav's overflow-y:auto scroll area, this wrapper's overflow-x:hidden)
+   clip that horizontal overflow and hide the panel. Detect the collapsed rail
+   by its mandatory #sidebar-expand-btn (collapsed branch only) and drop the
+   clipping on the rail + its descendants so the flyout is visible. The rail is
+   icon-only and short, so losing its internal scroll is a safe trade. */
+.teleport-dashboard-sidebar:has(#sidebar-expand-btn),
+.teleport-dashboard-sidebar:has(#sidebar-expand-btn) * {
+  overflow: visible;
+}
+
 @media (max-width: 767px) {
   .teleport-mobile-sidebar-toggle {
     display: flex;
@@ -101,19 +114,6 @@ const DASHBOARD_CSS = `
   :root:has(.teleport-dashboard-sidebar #sidebar-mobile-open) .teleport-dashboard-topbar,
   :root:has(.teleport-dashboard-sidebar #sidebar-mobile-open) .teleport-sidebar-scrim {
     display: none !important;
-  }
-}
-
-@media (max-width: 991px) and (min-width: 768px) {
-  .teleport-dashboard-sidebar {
-    width: 64px !important;
-  }
-
-  .teleport-dashboard-sidebar .sidebar-link-text,
-  .teleport-dashboard-sidebar .navigation-brand,
-  .teleport-dashboard-sidebar tq-company-logo,
-  .teleport-dashboard-sidebar .navigation-logo {
-    display: none;
   }
 }
 

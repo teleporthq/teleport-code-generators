@@ -1,8 +1,10 @@
 import generate from '@babel/generator'
+import * as types from '@babel/types'
 import {
   createBinaryExpression,
   createConditionIdentifier,
   createStateChangeStatement,
+  makeControlUncontrolledWhenNoChangeHandler,
 } from '../../../src/node-handlers/node-to-jsx/utils'
 import { UIDLStateDefinition, UIDLStateModifierEvent } from '@teleporthq/teleport-types'
 import { dynamicNode } from '@teleporthq/teleport-uidl-builders'
@@ -394,5 +396,76 @@ describe('createStateChangeStatement — plan v14 type-aware emitter', () => {
     }
     const stmt = createStateChangeStatement(event, stateDefs({}), hooksOptions)
     expect(stmt).toBeNull()
+  })
+})
+
+describe('makeControlUncontrolledWhenNoChangeHandler', () => {
+  const attr = (name: string, value?: string): types.JSXAttribute =>
+    types.jsxAttribute(
+      types.jsxIdentifier(name),
+      value === undefined ? null : types.jsxExpressionContainer(types.identifier(value))
+    )
+
+  const buildTag = (name: string, attrs: types.JSXAttribute[]): types.JSXElement => {
+    const opening = types.jsxOpeningElement(types.jsxIdentifier(name), attrs, true)
+    return types.jsxElement(opening, null, [], true)
+  }
+
+  const attrNames = (tag: types.JSXElement): string[] =>
+    tag.openingElement.attributes
+      .filter((a): a is types.JSXAttribute => a.type === 'JSXAttribute')
+      .map((a) => (a.name.type === 'JSXIdentifier' ? a.name.name : ''))
+
+  it('converts value -> defaultValue on an input with no onChange (frozen edit field)', () => {
+    const tag = buildTag('input', [attr('value', 'props.titleItem?.title')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('defaultValue')
+    expect(attrNames(tag)).not.toContain('value')
+    // the bound expression is preserved
+    expect(generate(tag).code).toContain('defaultValue={props.titleItem?.title}')
+  })
+
+  it('leaves value untouched when an onChange handler is present (controlled)', () => {
+    const tag = buildTag('input', [attr('value', 'title'), attr('onChange', 'handler')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('value')
+    expect(attrNames(tag)).not.toContain('defaultValue')
+  })
+
+  it('leaves readOnly display inputs untouched', () => {
+    const tag = buildTag('input', [attr('value', 'x'), attr('readOnly')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('value')
+    expect(attrNames(tag)).not.toContain('defaultValue')
+  })
+
+  it('leaves disabled inputs untouched', () => {
+    const tag = buildTag('input', [attr('value', 'x'), attr('disabled')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('value')
+  })
+
+  it('converts checked -> defaultChecked on a checkbox with no onChange', () => {
+    const tag = buildTag('input', [attr('type', undefined), attr('checked', 'isSeries')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('defaultChecked')
+    expect(attrNames(tag)).not.toContain('checked')
+  })
+
+  it('converts value on textarea and select', () => {
+    const ta = buildTag('textarea', [attr('value', 'overview')])
+    makeControlUncontrolledWhenNoChangeHandler(ta, 'textarea')
+    expect(attrNames(ta)).toContain('defaultValue')
+
+    const sel = buildTag('select', [attr('value', 'genre')])
+    makeControlUncontrolledWhenNoChangeHandler(sel, 'select')
+    expect(attrNames(sel)).toContain('defaultValue')
+  })
+
+  it('ignores non-form elements (a div keeps value)', () => {
+    const tag = buildTag('div', [attr('value', 'x')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'div')
+    expect(attrNames(tag)).toContain('value')
+    expect(attrNames(tag)).not.toContain('defaultValue')
   })
 })
