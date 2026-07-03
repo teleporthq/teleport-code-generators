@@ -4,6 +4,7 @@ import {
   createBinaryExpression,
   createConditionIdentifier,
   createStateChangeStatement,
+  createDynamicValueExpression,
   makeControlUncontrolledWhenNoChangeHandler,
 } from '../../../src/node-handlers/node-to-jsx/utils'
 import { UIDLStateDefinition, UIDLStateModifierEvent } from '@teleporthq/teleport-types'
@@ -467,5 +468,46 @@ describe('makeControlUncontrolledWhenNoChangeHandler', () => {
     makeControlUncontrolledWhenNoChangeHandler(tag, 'div')
     expect(attrNames(tag)).toContain('value')
     expect(attrNames(tag)).not.toContain('defaultValue')
+  })
+})
+
+describe('createDynamicValueExpression — ctx reference (never emits an undeclared identifier)', () => {
+  const ctxRef = (refPath: string[], fallbackValue?: unknown) =>
+    ({
+      type: 'dynamic',
+      content: { referenceType: 'ctx', id: 'TQ_q-GFGA6h4I', refPath, fallbackValue },
+    } as any)
+
+  const code = (node: ReturnType<typeof createDynamicValueExpression>) => generate(node).code
+
+  it('resolves an unresolvable ctx ref on a details page to props.<exposeAs>.<refPath>', () => {
+    const opts = {
+      dynamicReferencePrefixMap: { prop: 'props', state: '', local: '' },
+      detailsPageExposeAsName: 'webinar',
+    } as any
+    // run 1b6eb5ba: the countdown target — must be props.webinar?.scheduled_at,
+    // NOT the undeclared identifier `tQQGFGA6h4I`.
+    expect(code(createDynamicValueExpression(ctxRef(['scheduled_at'], '2026-12-31'), opts))).toBe(
+      'props.webinar?.scheduled_at'
+    )
+  })
+
+  it('falls back to the declared fallbackValue literal when no context/exposeAs resolves', () => {
+    const opts = { dynamicReferencePrefixMap: { prop: 'props', state: '', local: '' } } as any
+    expect(code(createDynamicValueExpression(ctxRef(['scheduled_at'], '2026-12-31'), opts))).toBe(
+      '"2026-12-31"'
+    )
+  })
+
+  it('falls back to undefined (never a bare identifier) with no exposeAs and no fallbackValue', () => {
+    const opts = { dynamicReferencePrefixMap: { prop: 'props', state: '', local: '' } } as any
+    expect(code(createDynamicValueExpression(ctxRef(['scheduled_at']), opts))).toBe('undefined')
+  })
+
+  it('still resolves via the ctx render-prop prefix when one is configured', () => {
+    const opts = { dynamicReferencePrefixMap: { ctx: 'row', prop: 'props' } } as any
+    expect(code(createDynamicValueExpression(ctxRef(['scheduled_at']), opts))).toBe(
+      'row?.scheduled_at'
+    )
   })
 })

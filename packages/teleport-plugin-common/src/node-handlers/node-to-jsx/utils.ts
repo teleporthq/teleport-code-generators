@@ -571,9 +571,38 @@ const createDynamicValueExpressionRaw = (
       }
       return expr
     }
-    // Fallback: use the id with refPath if no local prefix
-    const ctxFallbackIdWithPath = generateIdWithRefPath(id, refPath)
-    return t.identifier(ctxFallbackIdWithPath)
+    // Details-page fallback: an unresolvable `ctx` reference on a details page
+    // (its ctxId points at no known render-prop context — e.g. a synthetic
+    // `details-page-generic-*` id produced for a widget's `target`) is still a
+    // column on the fetched row exposed as a prop. Resolve it exactly like the
+    // `local` branch below → `props.<exposeAs>.<refPath>` (e.g.
+    // `props.webinar?.scheduled_at`), so the widget binds the real value.
+    if (options.detailsPageExposeAsName && refPath.length > 0) {
+      const propPrefix =
+        (options.dynamicReferencePrefixMap as Record<string, string>).prop || 'props'
+      let expr: types.Expression = t.memberExpression(
+        t.identifier(propPrefix),
+        t.identifier(options.detailsPageExposeAsName)
+      )
+      for (const path of refPath) {
+        expr = t.optionalMemberExpression(expr, t.identifier(path), false, true)
+      }
+      return expr
+    }
+    // Last resort: NEVER emit a bare identifier for an unresolved ctx reference —
+    // `generateIdWithRefPath(id, …)` yields an UNDECLARED variable (e.g.
+    // `tQQGFGA6h4I`), which throws `ReferenceError` during SSR and crashes the
+    // Vercel `next build` export (run 1b6eb5ba: `/webinar-detail/[id]`). Emit the
+    // reference's declared `fallbackValue` literal, or `undefined`.
+    const ctxFallbackValue = (identifierContent as { fallbackValue?: unknown }).fallbackValue
+    if (
+      typeof ctxFallbackValue === 'string' ||
+      typeof ctxFallbackValue === 'number' ||
+      typeof ctxFallbackValue === 'boolean'
+    ) {
+      return convertValueToLiteral(ctxFallbackValue)
+    }
+    return t.identifier('undefined')
   }
 
   // `urlSearchParams` references read a declared key from the URL query string.

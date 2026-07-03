@@ -32,7 +32,7 @@ describe('collectWorkflowContextNodeIds', () => {
     }
     const out = new Set<string>()
     collectWorkflowContextNodeIds(config, out)
-    expect([...out].sort()).toEqual(['get-title', 'get-type'])
+    expect(Array.from(out).sort()).toEqual(['get-title', 'get-type'])
   })
 })
 
