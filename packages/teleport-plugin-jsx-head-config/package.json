@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-jsx-head-config",
-  "version": "0.43.30",
+  "version": "0.43.31",
   "description": "A plugin for generating `<head>` tags inside regular JSX-based components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.43.30",
+    "@teleporthq/teleport-plugin-common": "^0.43.31",
     "@teleporthq/teleport-types": "^0.43.22"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
