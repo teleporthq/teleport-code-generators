@@ -36,6 +36,71 @@ import { generateIdWithRefPath } from '@teleporthq/teleport-shared/dist/cjs/util
 const CONTROLLED_FORM_CONTROL_TAGS = new Set(['input', 'textarea', 'select'])
 
 /**
+ * `<input type=...>` values the browser accepts ONLY in a narrow string format,
+ * mapped to the number of leading ISO-8601 characters that format requires:
+ *   datetime-local → `YYYY-MM-DDTHH:mm` (16)   date → `YYYY-MM-DD` (10)
+ *   month          → `YYYY-MM` (7)
+ * A stored timestamp such as `2026-07-21T20:00:00.000Z` (with seconds/ms and a
+ * `Z`) does NOT conform, so the input renders EMPTY — and when it is `required`
+ * the whole form fails HTML5 validation and can never submit (edit pages could
+ * not be saved). `time` is handled separately because its digits are not a
+ * simple prefix. Slicing the ISO STRING (not `new Date(...)`) keeps the nominal
+ * wall-clock value and avoids server/browser timezone shifts.
+ */
+const DATE_TIME_INPUT_PREFIX_LENGTH: Record<string, number> = {
+  'datetime-local': 16,
+  date: 10,
+  month: 7,
+}
+
+/** Reads a static `type="..."` off a JSX opening tag, lowercased; null if absent/dynamic. */
+const getStaticInputType = (tag: types.JSXElement): string | null => {
+  const typeAttr = tag.openingElement.attributes.find(
+    (attr) =>
+      attr.type === 'JSXAttribute' &&
+      attr.name.type === 'JSXIdentifier' &&
+      attr.name.name === 'type'
+  ) as types.JSXAttribute | undefined
+  if (!typeAttr || !typeAttr.value || typeAttr.value.type !== 'StringLiteral') {
+    return null
+  }
+  return typeAttr.value.value.toLowerCase()
+}
+
+/**
+ * Wrap a bound `<input>` value expression so it renders in the format the input
+ * `type` requires. Returns the original expression untouched for non date/time
+ * types. `E` → `String(E || '').slice(0, N)` (date/datetime-local/month) or, for
+ * `time`, strip an optional leading `YYYY-MM-DD[T| ]` date then take `HH:mm`.
+ */
+const buildDateTimeInputValueExpression = (
+  expression: types.Expression,
+  inputType: string,
+  t = types
+): types.Expression => {
+  const stringified = t.callExpression(t.identifier('String'), [
+    t.logicalExpression('||', expression, t.stringLiteral('')),
+  ])
+
+  if (inputType === 'time') {
+    const dateStripped = t.callExpression(
+      t.memberExpression(stringified, t.identifier('replace')),
+      [t.regExpLiteral('^\\d{4}-\\d{2}-\\d{2}[T ]', ''), t.stringLiteral('')]
+    )
+    return t.callExpression(t.memberExpression(dateStripped, t.identifier('slice')), [
+      t.numericLiteral(0),
+      t.numericLiteral(5),
+    ])
+  }
+
+  const prefixLength = DATE_TIME_INPUT_PREFIX_LENGTH[inputType]
+  return t.callExpression(t.memberExpression(stringified, t.identifier('slice')), [
+    t.numericLiteral(0),
+    t.numericLiteral(prefixLength),
+  ])
+}
+
+/**
  * React FREEZES a controlled form control (`value`/`checked` set) that has no
  * `onChange` — the user cannot type and a console warning is logged. This is the
  * classic edit-form failure: entity-bound fields rendered `value={props.item?.x}`
@@ -79,6 +144,13 @@ export const makeControlUncontrolledWhenNoChangeHandler = (
     return
   }
 
+  // A date/time `<input>` whose value is a dynamic binding (an entity-prefilled
+  // edit field) must have its ISO value reformatted to the input's required
+  // string shape, or the browser drops it and a `required` field blocks submit.
+  const inputType = elementName.toLowerCase() === 'input' ? getStaticInputType(tag) : null
+  const needsDateTimeFormat =
+    inputType !== null && (inputType === 'time' || inputType in DATE_TIME_INPUT_PREFIX_LENGTH)
+
   const controlledToUncontrolled: Array<[string, string]> = [
     ['value', 'defaultValue'],
     ['checked', 'defaultChecked'],
@@ -92,7 +164,23 @@ export const makeControlUncontrolledWhenNoChangeHandler = (
     )
     if (index !== -1) {
       const attr = attributes[index] as types.JSXAttribute
-      attributes.splice(index, 1, t.jsxAttribute(t.jsxIdentifier(uncontrolled), attr.value))
+      let attrValue = attr.value
+      if (
+        controlled === 'value' &&
+        needsDateTimeFormat &&
+        attrValue &&
+        attrValue.type === 'JSXExpressionContainer' &&
+        attrValue.expression.type !== 'JSXEmptyExpression'
+      ) {
+        attrValue = t.jsxExpressionContainer(
+          buildDateTimeInputValueExpression(
+            attrValue.expression as types.Expression,
+            inputType as string,
+            t
+          )
+        )
+      }
+      attributes.splice(index, 1, t.jsxAttribute(t.jsxIdentifier(uncontrolled), attrValue))
     }
   }
 }

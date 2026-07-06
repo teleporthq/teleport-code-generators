@@ -170,29 +170,32 @@ describe('workflow runtime template-token resolution', () => {
   describe('generated data-node handlers reject the sentinel defensively', () => {
     // The API-route segment executor resolves configs without the
     // executeNodes finalize pass, so the handlers themselves must catch a
-    // sentinel that slipped through.
-    it('data-select returns an error result for a sentinel filter', async () => {
+    // sentinel that slipped through — degrade to empty/no-op without `error`
+    // so the workflow is not aborted.
+    it('data-select returns empty rows for a sentinel filter', async () => {
       const handler = loadHandler('data-select')
-      const result = await handler(
+      const result = (await handler(
         { tableName: 'products', filters: [{ field: 'id', value: SENTINEL, operator: '=' }] },
         {}
-      )
-      expect(result.error).toContain('not available')
+      )) as { rows: unknown[]; error?: string; __skippedUnavailableFilter?: boolean }
+      expect(result.error).toBeUndefined()
       expect(result.rows).toEqual([])
+      expect(result.__skippedUnavailableFilter).toBe(true)
     })
 
-    it('data-update-item returns an error result for a sentinel filter', async () => {
+    it('data-update-item no-ops for a sentinel filter', async () => {
       const handler = loadHandler('data-update-item')
-      const result = await handler(
+      const result = (await handler(
         {
           tableName: 'products',
           filters: [{ field: 'id', value: SENTINEL, operator: '=' }],
           columnMappings: [{ column: 'name', value: 'X' }],
         },
         {}
-      )
-      expect(result.error).toContain('not available')
+      )) as { updatedCount: number; error?: string; __skippedUnavailableFilter?: boolean }
+      expect(result.error).toBeUndefined()
       expect(result.updatedCount).toBe(0)
+      expect(result.__skippedUnavailableFilter).toBe(true)
     })
 
     it('data-create-item nulls sentinel columnMappings so the INSERT survives', async () => {

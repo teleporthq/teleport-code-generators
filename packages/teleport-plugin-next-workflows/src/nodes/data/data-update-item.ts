@@ -9,9 +9,12 @@ async function data_update_item(config: any, context: any) {
   const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // Unresolved route-param sentinel (see resolveTemplateTokenString in
-  // runtime-utils): in a filter it is a validation error — an UPDATE keyed on
-  // it would match 0 rows and report failure with no hint why. In a
-  // columnMapping it degrades to null so the write itself survives.
+  // runtime-utils): in a filter, an UPDATE keyed on it cannot identify its row.
+  // DEGRADE to a NO-OP — return updatedCount:0 WITHOUT an `error` so the executor
+  // does not throw and abort the whole workflow. CRITICAL: never drop the filter
+  // and run an UNSCOPED update (that would rewrite every row); no-op is the only
+  // safe degrade. (A columnMapping sentinel still degrades to null below so the
+  // write's VALUES survive.) Observable via the warn + __skippedUnavailableFilter.
   for (let __fi = 0; __fi < filters.length; __fi++) {
     const __f: any = filters[__fi]
     if (
@@ -20,14 +23,14 @@ async function data_update_item(config: any, context: any) {
         __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
     ) {
       const __col = __f.column || __f.source || __f.field || 'unknown'
-      return {
-        id: null,
-        updatedCount: 0,
-        error:
-          'Filter on "' +
-          __col +
-          '" requires the page route parameter, which is not available in this context',
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(
+          '[workflow] data-update-item skipped (no-op) — filter on "' +
+            __col +
+            '" needs a page route param not available here; no rows updated (workflow continues)'
+        )
       }
+      return { id: null, updatedCount: 0, success: true, __skippedUnavailableFilter: true }
     }
   }
   if (Array.isArray(columnMappings)) {

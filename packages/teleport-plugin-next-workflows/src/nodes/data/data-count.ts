@@ -6,8 +6,9 @@ async function data_count(config: any, context: any) {
   const filters = config.filters || []
   const baseUrl = (context && context.__baseUrl) || ''
 
-  // Unresolved route-param sentinel in a filter → validation error (see
-  // resolveTemplateTokenString in runtime-utils) instead of counting nothing.
+  // Unresolved route-param sentinel in a filter (see resolveTemplateTokenString
+  // in runtime-utils). DEGRADE: return count:0 WITHOUT an `error` so the executor
+  // does not throw and abort the whole workflow.
   for (let __fi = 0; __fi < filters.length; __fi++) {
     const __f: any = filters[__fi]
     if (
@@ -16,13 +17,14 @@ async function data_count(config: any, context: any) {
         __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
     ) {
       const __col = __f.column || __f.source || __f.field || 'unknown'
-      return {
-        count: 0,
-        error:
-          'Filter on "' +
-          __col +
-          '" requires the page route parameter, which is not available in this context',
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(
+          '[workflow] data-count skipped — filter on "' +
+            __col +
+            '" needs a page route param not available here; count 0 (workflow continues)'
+        )
       }
+      return { count: 0, __skippedUnavailableFilter: true }
     }
   }
 

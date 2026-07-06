@@ -17,16 +17,19 @@ async function data_delete_item(config: any, context: any) {
       (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
         __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
     ) {
+      // DEGRADE to a NO-OP: return deletedCount:0 WITHOUT `error` and WITHOUT
+      // success:false so the executor does not throw and abort the whole
+      // workflow. A DELETE must NEVER drop the filter and run unscoped (that
+      // would delete every row) — no-op is the only safe degrade.
       const __col = __f.column || __f.source || __f.field || 'unknown'
-      return {
-        deletedId: null,
-        success: false,
-        deletedCount: 0,
-        error:
-          'Filter on "' +
-          __col +
-          '" requires the page route parameter, which is not available in this context',
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(
+          '[workflow] data-delete-item skipped (no-op) — filter on "' +
+            __col +
+            '" needs a page route param not available here; nothing deleted (workflow continues)'
+        )
       }
+      return { deletedId: null, success: true, deletedCount: 0, __skippedUnavailableFilter: true }
     }
   }
 

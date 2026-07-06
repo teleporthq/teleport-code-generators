@@ -469,6 +469,63 @@ describe('makeControlUncontrolledWhenNoChangeHandler', () => {
     expect(attrNames(tag)).toContain('value')
     expect(attrNames(tag)).not.toContain('defaultValue')
   })
+
+  // A `type="..."` attribute carries a StringLiteral value, not an expression.
+  const typeAttr = (value: string): types.JSXAttribute =>
+    types.jsxAttribute(types.jsxIdentifier('type'), types.stringLiteral(value))
+
+  it('formats a datetime-local prefill to YYYY-MM-DDTHH:mm so the value is not rejected', () => {
+    const tag = buildTag('input', [
+      typeAttr('datetime-local'),
+      attr('value', 'props.eventItem?.start_time'),
+    ])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('defaultValue')
+    expect(generate(tag).code).toContain(
+      'defaultValue={String(props.eventItem?.start_time || "").slice(0, 16)}'
+    )
+  })
+
+  it('formats a date prefill to YYYY-MM-DD', () => {
+    const tag = buildTag('input', [typeAttr('date'), attr('value', 'props.item?.day')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(generate(tag).code).toContain(
+      'defaultValue={String(props.item?.day || "").slice(0, 10)}'
+    )
+  })
+
+  it('formats a month prefill to YYYY-MM', () => {
+    const tag = buildTag('input', [typeAttr('month'), attr('value', 'props.item?.period')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(generate(tag).code).toContain(
+      'defaultValue={String(props.item?.period || "").slice(0, 7)}'
+    )
+  })
+
+  it('formats a time prefill to HH:mm, stripping any leading date', () => {
+    const tag = buildTag('input', [typeAttr('time'), attr('value', 'props.item?.opens_at')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    const code = generate(tag).code
+    expect(code).toContain('.replace(')
+    expect(code).toContain('.slice(0, 5)')
+  })
+
+  it('does NOT reformat a plain text input (only date/time types are wrapped)', () => {
+    const tag = buildTag('input', [typeAttr('text'), attr('value', 'props.item?.title')])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(generate(tag).code).toContain('defaultValue={props.item?.title}')
+  })
+
+  it('leaves a controlled datetime-local (with onChange) untouched — no wrap, keeps value', () => {
+    const tag = buildTag('input', [
+      typeAttr('datetime-local'),
+      attr('value', 'props.item?.start_time'),
+      attr('onChange', 'handler'),
+    ])
+    makeControlUncontrolledWhenNoChangeHandler(tag, 'input')
+    expect(attrNames(tag)).toContain('value')
+    expect(attrNames(tag)).not.toContain('defaultValue')
+  })
 })
 
 describe('createDynamicValueExpression — ctx reference (never emits an undeclared identifier)', () => {

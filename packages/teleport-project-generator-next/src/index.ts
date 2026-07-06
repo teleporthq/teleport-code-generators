@@ -35,6 +35,7 @@ import { createNextGlobalStateComponentPlugin } from './global-state/component-p
 import { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 import { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
 import { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
+import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
@@ -81,6 +82,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextGlobalStateProjectPlugin(),
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
+  new NextNavActiveLinkProjectPlugin(),
   new NextDashboardLayoutPlugin(),
   new NextRichTextEditorProjectPlugin(),
   new NextCalendarKitProjectPlugin(),
