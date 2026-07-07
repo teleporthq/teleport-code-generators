@@ -11,6 +11,42 @@ async function data_select(config: any, context: any) {
   const rawQueryUserPart = config.rawQueryUserPart
   const baseUrl = (context && context.__baseUrl) || ''
 
+  function isEmptyFilterValue(value: any) {
+    if (value === undefined || value === null) return true
+    if (typeof value === 'string' && value.trim() === '') return true
+    if (Array.isArray(value) && value.length === 0) return true
+    return false
+  }
+
+  function isAllSentinel(value: any, filter: any) {
+    if (typeof value !== 'string') return false
+    const normalized = value.trim().toLowerCase()
+    const configured = filter && filter.treatAsAll
+    if (typeof configured === 'string' && configured.trim().toLowerCase() === normalized) {
+      return true
+    }
+    return (
+      normalized === 'all' ||
+      normalized === 'any' ||
+      normalized === 'everything' ||
+      normalized === '__all__'
+    )
+  }
+
+  function shouldSkipOptionalFilter(filter: any) {
+    if (!filter) return true
+    const value = filter.destination !== undefined ? filter.destination : filter.value
+    if (isEmptyFilterValue(value)) return true
+    if (isAllSentinel(value, filter)) return true
+    if (Array.isArray(filter.skipIfValue) && filter.skipIfValue.indexOf(value) !== -1) return true
+    if (filter.skipIfEmpty === true && isEmptyFilterValue(value)) return true
+    return false
+  }
+
+  const effectiveFilters = filters.filter(function (filter: any) {
+    return !shouldSkipOptionalFilter(filter)
+  })
+
   // A filter whose value is the unresolved route-param sentinel (see
   // resolveTemplateTokenString in runtime-utils) — e.g. a select scoped to
   // {{Current Page Entity.id}} that runs on a page with no such route param
@@ -19,8 +55,8 @@ async function data_select(config: any, context: any) {
   // WHOLE workflow (a single unresolvable filter must never kill the note-create
   // submit). Never fall through to an unscoped query. Observable via the warn +
   // the __skippedUnavailableFilter marker.
-  for (let __fi = 0; __fi < filters.length; __fi++) {
-    const __f: any = filters[__fi]
+  for (let __fi = 0; __fi < effectiveFilters.length; __fi++) {
+    const __f: any = effectiveFilters[__fi]
     if (
       __f &&
       (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
@@ -39,7 +75,7 @@ async function data_select(config: any, context: any) {
   }
 
   try {
-    const payload: any = { tableName, filters, sorts, selectedColumns }
+    const payload: any = { tableName, filters: effectiveFilters, sorts, selectedColumns }
     if (limit !== undefined && limit !== null) {
       payload.limit = limit
     }

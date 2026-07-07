@@ -148,6 +148,13 @@ const preserveExistingEnv = (uidl: ProjectUIDL, envPath: string): void => {
     return
   }
   const existing = parseDotEnv(raw)
+  // A well-formed ProjectUIDL always has `globals`, but the input fixture may
+  // be a page/component UIDL (no `globals`) or a partially-built project. Guard
+  // rather than crash on `uidl.globals.env` — env preservation is a best-effort
+  // convenience, not a hard requirement of the run.
+  if (!uidl.globals) {
+    return
+  }
   if (!uidl.globals.env) {
     uidl.globals.env = {}
   }

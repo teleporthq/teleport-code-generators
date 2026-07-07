@@ -97,9 +97,45 @@ async function general_extract_form_data(config: any, context: Record<string, un
     }
 
     const fieldKeys = Object.keys(fields)
-    const result: Record<string, any> = { fields }
+    const result: Record<string, any> = { fields, formData: fields }
     for (let fi = 0; fi < fieldKeys.length; fi++) {
       result[fieldKeys[fi]] = fields[fieldKeys[fi]]
+    }
+
+    // Workflows generated/imported from HTML often refer to a form control by
+    // its DOM id (`class-session-select`) while FormData exposes submitted
+    // values by name (`class_session_id`). Preserve the canonical name keys
+    // above, and add non-overwriting aliases for id/data-form-field-id so both
+    // conventions resolve to the same submitted value.
+    try {
+      const addAlias = (alias: string | null | undefined, name: string | undefined) => {
+        if (!alias || !name) return
+        if (fields[name] === undefined) return
+        if (result[alias] === undefined) {
+          result[alias] = fields[name]
+        }
+      }
+      const controls = (formEl as HTMLFormElement).querySelectorAll(
+        'input[name], select[name], textarea[name], button[name]'
+      )
+      for (let ci = 0; ci < controls.length; ci++) {
+        const control = controls[ci] as HTMLInputElement
+        addAlias(control.id, control.name)
+        addAlias(control.getAttribute('data-form-field-id'), control.name)
+      }
+      const outsideControls = document.querySelectorAll(
+        'input[name], select[name], textarea[name], button[name]'
+      )
+      for (let oi = 0; oi < outsideControls.length; oi++) {
+        const control = outsideControls[oi] as HTMLInputElement
+        if (formEl.contains(control)) continue
+        const ownerForm = control.closest('form')
+        if (ownerForm && ownerForm !== formEl) continue
+        addAlias(control.id, control.name)
+        addAlias(control.getAttribute('data-form-field-id'), control.name)
+      }
+    } catch (_aliasErr) {
+      /* aliases are best-effort; canonical name-based fields remain intact */
     }
 
     // Diagnostic: surface any required inputs whose value is empty at extraction

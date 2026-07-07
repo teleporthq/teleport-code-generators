@@ -176,9 +176,26 @@ async function safeQuery(client, sql, params, mode) {
   }
 }
 
-function buildWhereClause(filters, queryParams, startIndex) {
+function isSkippableFilterValue(value) {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string' && value.trim() === '') return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+}
+
+function isAllSentinelFilterValue(value, filter) {
+  if (typeof value !== 'string') return false;
+  var normalized = value.trim().toLowerCase();
+  if (filter && typeof filter.treatAsAll === 'string' && filter.treatAsAll.trim().toLowerCase() === normalized) {
+    return true;
+  }
+  return normalized === 'all' || normalized === 'any' || normalized === 'everything' || normalized === '__all__';
+}
+
+function buildWhereClause(filters, queryParams, startIndex, options) {
   var conditions = [];
   var paramIndex = startIndex;
+  var skipOptionalEmpty = !!(options && options.skipOptionalEmpty);
 
   if (!filters || !Array.isArray(filters) || filters.length === 0) {
     return { clause: '', paramIndex: paramIndex };
@@ -194,6 +211,7 @@ function buildWhereClause(filters, queryParams, startIndex) {
     var operand = f.operand || f.operator || '=';
 
     if (value === undefined) continue;
+    if (skipOptionalEmpty && (isSkippableFilterValue(value) || isAllSentinelFilterValue(value, f))) continue;
 
     if (Array.isArray(value)) {
       if (value.length === 0) continue;
@@ -211,6 +229,37 @@ function buildWhereClause(filters, queryParams, startIndex) {
         conditions.push(field + ' IS NOT NULL');
       }
     } else {
+      var normalizedOperand = String(operand || '=').toLowerCase();
+      if (normalizedOperand === 'contains' || normalizedOperand === 'not_contains' || normalizedOperand === 'not-contains') {
+        if (isSkippableFilterValue(value)) {
+          conditions.push('FALSE');
+          continue;
+        }
+        conditions.push(field + (normalizedOperand === 'contains' ? ' ILIKE ' : ' NOT ILIKE ') + '$' + paramIndex);
+        queryParams.push('%' + String(value) + '%');
+        paramIndex++;
+        continue;
+      }
+      if (normalizedOperand === 'startswith' || normalizedOperand === 'starts_with' || normalizedOperand === 'starts-with') {
+        if (isSkippableFilterValue(value)) {
+          conditions.push('FALSE');
+          continue;
+        }
+        conditions.push(field + ' ILIKE $' + paramIndex);
+        queryParams.push(String(value) + '%');
+        paramIndex++;
+        continue;
+      }
+      if (normalizedOperand === 'endswith' || normalizedOperand === 'ends_with' || normalizedOperand === 'ends-with') {
+        if (isSkippableFilterValue(value)) {
+          conditions.push('FALSE');
+          continue;
+        }
+        conditions.push(field + ' ILIKE $' + paramIndex);
+        queryParams.push('%' + String(value));
+        paramIndex++;
+        continue;
+      }
       var validOps = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'ILIKE'];
       var sqlOp = validOps.indexOf(operand) !== -1 ? operand : '=';
       conditions.push(field + ' ' + sqlOp + ' $' + paramIndex);
@@ -253,7 +302,7 @@ async function handleSelect(client, body) {
   var cols = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
   var sql = 'SELECT ' + cols + ' FROM ' + tableName;
 
-  var where = buildWhereClause(filters, queryParams, 1);
+  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
 
   if (sorts.length > 0) {
@@ -289,7 +338,7 @@ async function handleSelect(client, body) {
 
   var countSql = 'SELECT COUNT(*) FROM ' + tableName;
   var countParams = [];
-  var countWhere = buildWhereClause(filters, countParams, 1);
+  var countWhere = buildWhereClause(filters, countParams, 1, { skipOptionalEmpty: true });
   countSql += countWhere.clause;
   var countResult = await safeQuery(client, countSql, countParams, 'count');
   var count = parseInt(countResult.rows[0].count, 10);
@@ -306,7 +355,7 @@ async function handleCount(client, body) {
 
   var queryParams = [];
   var sql = 'SELECT COUNT(*) FROM ' + tableName;
-  var where = buildWhereClause(filters, queryParams, 1);
+  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
 
   var result = await safeQuery(client, sql, queryParams, 'count');
