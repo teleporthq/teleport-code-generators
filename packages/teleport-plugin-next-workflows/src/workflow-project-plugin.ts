@@ -1467,15 +1467,35 @@ module.exports = __customNodeRegistry;
       }
     }
 
+    // Emit a handler function AND a `clientNodeHandlers` map entry ONLY for node
+    // types that actually have a registry generator. These two lists MUST stay
+    // paired: previously `handlers` was gated on `if (gen)` while `handlerEntries`
+    // mapped over EVERY handlerType, so a client-segment node whose type has no
+    // generator (e.g. a `general-comment`, or a trigger/`event-*` node that got
+    // collected into `handlerTypes`) produced a map entry `'x-y': x_y` with no
+    // `x_y` defined anywhere in the file. That is a bare reference to an
+    // undefined identifier, which throws `ReferenceError: x_y is not defined` at
+    // MODULE-EVAL time — i.e. during Next's "Collecting page data" build step —
+    // crashing the production build (Vercel). It is Vercel/production-only
+    // because global-workflows.js is pulled into the global client bundle for
+    // every page via `useGlobalWorkflows()` in _app, and chunk grouping decides
+    // when the bad module is required. Pairing the lists keeps the map
+    // referencing only functions that were emitted (this mirrors
+    // node-handlers-client's loop above). Dropping a map entry is safe: the
+    // runtime dispatch (`runtime-utils.js`) warns + `continue`s on an unknown
+    // node type, and control-flow nodes (if/switch/loop/parallel) are handled by
+    // the segment executor without ever looking up `clientNodeHandlers`.
     const handlers: string[] = []
+    const emittedHandlerTypes: string[] = []
     handlerTypes.forEach((t) => {
       const gen = nodeRegistry[t]
       if (gen) {
         handlers.push(gen.generateHandler())
+        emittedHandlerTypes.push(t)
       }
     })
 
-    const handlerEntries = Array.from(handlerTypes)
+    const handlerEntries = emittedHandlerTypes
       .map((t) => `    '${t}': ${t.replace(/-/g, '_')}`)
       .join(',\n')
 
