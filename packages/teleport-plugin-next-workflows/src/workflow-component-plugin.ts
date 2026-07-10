@@ -13,7 +13,12 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { splitIntoSegments } from './segment-splitter'
+import {
+  splitIntoSegments,
+  resolveNodeExecutionEnv,
+  redactServerNodeConfig,
+} from './segment-splitter'
+import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
@@ -1268,6 +1273,18 @@ function __normalizeAdminFormRow(row, defaults) {
       neutraliseIsLoggedInGates(wf, segments)
     }
 
+    // SECURITY: map every executed node to its resolved execution env exactly
+    // as the segment walk classified it (which is the same classification the
+    // server route generator uses). Error-handler branch nodes are excluded
+    // from segments, so fall back to the node's intrinsic env for those. This
+    // drives redaction of server-node config out of the client bundle.
+    const nodeEnvById = new Map<string, WorkflowExecutionEnv>()
+    for (const s of segments) {
+      for (const n of s.nodes) {
+        nodeEnvById.set(n.id, s.env)
+      }
+    }
+
     const segmentsJson = JSON.stringify(
       segments.map((s) => ({
         id: s.id,
@@ -1276,7 +1293,7 @@ function __normalizeAdminFormRow(row, defaults) {
         nodes: s.nodes.map((n) => ({
           id: n.id,
           type: n.type,
-          config: n.config,
+          config: redactServerNodeConfig(n.config, s.env),
           stepNumber: n.stepNumber,
           label: n.label,
         })),
@@ -1294,7 +1311,10 @@ function __normalizeAdminFormRow(row, defaults) {
       wf.nodes.map((n: UIDLWorkflowNode) => ({
         id: n.id,
         type: n.type,
-        config: n.config,
+        config: redactServerNodeConfig(
+          n.config,
+          nodeEnvById.get(n.id) ?? resolveNodeExecutionEnv(n)
+        ),
         stepNumber: n.stepNumber,
         label: n.label,
       }))

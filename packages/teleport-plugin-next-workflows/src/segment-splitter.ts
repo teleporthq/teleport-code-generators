@@ -279,6 +279,55 @@ const enforceLoopBodyIntegrity = (
   return { reorderedOrder: working, forcedEnvByNodeId }
 }
 
+/**
+ * Resolve a node's intrinsic execution env using the exact same rules the
+ * segment walk applies, without any surrounding-segment context. Used by the
+ * client-config redactor to classify nodes that never land in a segment (e.g.
+ * error-handler branch nodes). Unknown/universal nodes resolve to 'client',
+ * the conservative default (their config is kept).
+ */
+export const resolveNodeExecutionEnv = (node: UIDLWorkflowNode): WorkflowExecutionEnv =>
+  resolveExecutionEnv(node, null)
+
+// The ONLY field of a server node's config the CLIENT executor ever reads is
+// the AI-streaming flag (findStreamingAINodes / callStreamingServerSegment in
+// executor-generator). Everything else — the raw SQL query, filters, table
+// name, bound params, column mappings, data source id, … — is consumed
+// exclusively inside the server API route (see api-route-generator's
+// SEGMENT_CONFIG, which keeps the full config server-side). None of it may
+// reach the browser bundle.
+export const CLIENT_SAFE_SERVER_CONFIG_KEYS: ReadonlyArray<string> = ['streaming']
+
+/**
+ * Strip a server node's config down to the client-safe whitelist before it is
+ * serialized into any bundle that ships to the browser (the page-level
+ * `__wfConfig_*` constants and the shared custom-nodes file).
+ *
+ * Safety: a server segment executes entirely inside its own API route, and the
+ * generated client node-handler file omits every server node type (see
+ * NextWorkflowProjectPlugin.generateNodeHandlerFile), so the browser has no
+ * handler to execute a server node with — it only needs a server node's
+ * { id, type, stepNumber, edges } for branch-skip bookkeeping plus
+ * `config.streaming` for streaming detection. Dropping the rest can therefore
+ * only remove data the client never acts on. Client and universal node configs
+ * are returned untouched.
+ */
+export const redactServerNodeConfig = (
+  config: Record<string, unknown>,
+  env: WorkflowExecutionEnv
+): Record<string, unknown> => {
+  if (env !== 'server' || !config || typeof config !== 'object') {
+    return config
+  }
+  const safe: Record<string, unknown> = {}
+  for (const key of CLIENT_SAFE_SERVER_CONFIG_KEYS) {
+    if (config[key] !== undefined) {
+      safe[key] = config[key]
+    }
+  }
+  return safe
+}
+
 export const getServerSegments = (segments: WorkflowSegment[]): WorkflowSegment[] => {
   return segments.filter((s) => s.env === 'server')
 }

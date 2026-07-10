@@ -6,7 +6,11 @@ import {
   FileType,
   UIDLAuthentication,
 } from '@teleporthq/teleport-types'
-import { splitIntoSegments } from './segment-splitter'
+import {
+  splitIntoSegments,
+  resolveNodeExecutionEnv,
+  redactServerNodeConfig,
+} from './segment-splitter'
 import {
   generateServerSegmentAPIRoute,
   generateStreamingServerSegmentAPIRoute,
@@ -958,7 +962,18 @@ ${exports}
 
     for (const [id, cn] of Object.entries(customNodes)) {
       const safeId = id.replace(/[^a-zA-Z0-9]/g, '_')
-      const nodesJson = JSON.stringify(cn.nodes)
+      // SECURITY: the custom-nodes file ships to the browser (imported as
+      // `utils/workflows/custom-nodes`). Redact each server node's config down
+      // to the client-safe whitelist so raw SQL / data-source config never
+      // reaches the page bundle. The intrinsic node env is used here (the full
+      // node list is env-agnostic); the segment loop below redacts per its own
+      // resolved segment env.
+      const nodesJson = JSON.stringify(
+        (cn.nodes || []).map((n: any) => ({
+          ...n,
+          config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n)),
+        }))
+      )
       const edgesJson = JSON.stringify(cn.edges)
       const params = (cn.parameters || []).map((p: any) => p.key)
 
@@ -993,7 +1008,7 @@ ${exports}
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
-              config: n.config,
+              config: redactServerNodeConfig(n.config, s.env),
               stepNumber: n.stepNumber,
               label: n.label,
             })),

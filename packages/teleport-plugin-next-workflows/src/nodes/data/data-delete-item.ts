@@ -29,7 +29,13 @@ async function data_delete_item(config: any, context: any) {
             '" needs a page route param not available here; nothing deleted (workflow continues)'
         )
       }
-      return { deletedId: null, success: true, deletedCount: 0, __skippedUnavailableFilter: true }
+      return {
+        deletedId: null,
+        success: true,
+        deletedCount: 0,
+        affected: 0,
+        __skippedUnavailableFilter: true,
+      }
     }
   }
 
@@ -52,16 +58,21 @@ async function data_delete_item(config: any, context: any) {
         deletedId: null,
         success: false,
         deletedCount: 0,
+        affected: 0,
         error: data.error || 'Delete item failed',
       }
     }
+    // `affected` mirrors `deletedCount` so a success gate authored against either
+    // synonym resolves (the AI schema historically advertised `affected`).
+    const __deleted = data.deletedCount || 0
     return {
       deletedId: data.deletedId || null,
-      success: (data.deletedCount || 0) > 0,
-      deletedCount: data.deletedCount || 0,
+      success: __deleted > 0,
+      deletedCount: __deleted,
+      affected: __deleted,
     }
   } catch (err: unknown) {
-    return { deletedId: null, success: false, error: (err as Error).message }
+    return { deletedId: null, success: false, affected: 0, error: (err as Error).message }
   }
 }
 export const dataDeleteItem: NodeHandlerGenerator = {

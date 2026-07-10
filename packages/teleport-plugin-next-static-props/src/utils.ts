@@ -7,7 +7,19 @@ export const generateInitialPropsAST = (
   initialPropsData: UIDLInitialPropsData,
   resourceImportName: string,
   globalCache: UIDLResources['cache'],
-  skipI18n?: boolean
+  skipI18n?: boolean,
+  /**
+   * Dashboard-layout admin CRUD pages (entity-bound, dynamic-route pages
+   * like edit-item/[id]) render with getServerSideProps instead of
+   * getStaticProps+ISR: an admin who just saved a row must see the fresh
+   * value on the very next request, not after the cache.revalidate window
+   * elapses (the "Edit Press Item" staleness bug — a real DB write that
+   * looked like it "didn't save" because ISR kept serving the pre-save
+   * snapshot for up to 60s). Admin panels are low-traffic and already
+   * auth-gated per request, so there is no real CDN-caching upside being
+   * traded away. See `createStaticPropsPlugin` for the selection logic.
+   */
+  useServerSideProps?: boolean
 ) => {
   // Destructure params from context so expr-type resource params can reference `params` directly
   const paramsDestructureAST = types.variableDeclaration('const', [
@@ -28,7 +40,13 @@ export const generateInitialPropsAST = (
     paramsDestructureAST,
     types.tryStatement(
       types.blockStatement([
-        ...computePropsAST(initialPropsData, resourceImportName, globalCache, skipI18n),
+        ...computePropsAST(
+          initialPropsData,
+          resourceImportName,
+          globalCache,
+          skipI18n,
+          useServerSideProps
+        ),
       ]),
       types.catchClause(
         types.identifier('error'),
@@ -52,7 +70,7 @@ export const generateInitialPropsAST = (
   return types.exportNamedDeclaration(
     (() => {
       const node = types.functionDeclaration(
-        types.identifier('getStaticProps'),
+        types.identifier(useServerSideProps ? 'getServerSideProps' : 'getStaticProps'),
         [types.identifier('context')],
         functionContentAST,
         false,
@@ -69,7 +87,8 @@ const computePropsAST = (
   initialPropsData: UIDLInitialPropsData,
   resourceImportName: string,
   globalCache: UIDLResources['cache'],
-  skipI18n?: boolean
+  skipI18n?: boolean,
+  useServerSideProps?: boolean
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(
     initialPropsData.resource?.params || {}
@@ -95,18 +114,22 @@ const computePropsAST = (
   const perPageCache = initialPropsData.cache
   let cachePropertyAST: types.ObjectProperty | null = null
 
-  if (globalCache?.revalidate && !perPageCache?.revalidate) {
-    cachePropertyAST = types.objectProperty(
-      types.identifier('revalidate'),
-      types.numericLiteral(globalCache.revalidate)
-    )
-  }
+  // getServerSideProps re-runs on every request — there is no revalidate
+  // window to configure, and Next.js errors if the prop is present.
+  if (!useServerSideProps) {
+    if (globalCache?.revalidate && !perPageCache?.revalidate) {
+      cachePropertyAST = types.objectProperty(
+        types.identifier('revalidate'),
+        types.numericLiteral(globalCache.revalidate)
+      )
+    }
 
-  if (perPageCache?.revalidate) {
-    cachePropertyAST = types.objectProperty(
-      types.identifier('revalidate'),
-      types.numericLiteral(perPageCache.revalidate)
-    )
+    if (perPageCache?.revalidate) {
+      cachePropertyAST = types.objectProperty(
+        types.identifier('revalidate'),
+        types.numericLiteral(perPageCache.revalidate)
+      )
+    }
   }
 
   const localeAST = skipI18n

@@ -9,6 +9,12 @@ async function data_select(config: any, context: any) {
   const limit = config.limit
   const skip = config.skip
   const rawQueryUserPart = config.rawQueryUserPart
+  // SECURITY: bound values that back the raw override's $N placeholders. The
+  // generation net emitted them alongside rawQueryUserPart; resolveConfig has
+  // already substituted the {{…}} tokens to concrete values here.
+  const rawQueryUserPartParams = Array.isArray(config.rawQueryUserPartParams)
+    ? config.rawQueryUserPartParams
+    : []
   const baseUrl = (context && context.__baseUrl) || ''
 
   function isEmptyFilterValue(value: any) {
@@ -84,6 +90,9 @@ async function data_select(config: any, context: any) {
     }
     if (rawQueryUserPart) {
       payload.rawQueryUserPart = rawQueryUserPart
+      if (rawQueryUserPartParams.length > 0) {
+        payload.rawQueryUserPartParams = rawQueryUserPartParams
+      }
     }
 
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/select', {

@@ -9,20 +9,14 @@ import {
 } from '@teleporthq/teleport-types'
 import { join, relative } from 'path'
 import { StringUtils } from '@teleporthq/teleport-shared'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPathsAST } from './utils'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
-const isDynamicRoute = (uidl: {
-  outputOptions?: { folderPath?: string[]; fileName?: string }
-}): boolean => {
-  const { folderPath = [], fileName = '' } = uidl.outputOptions || {}
-  return [...folderPath, fileName].some(
-    (segment) => segment.startsWith('[') && segment.endsWith(']')
-  )
-}
+const { isDynamicRoute, pageHasSameTableMutationWorkflow } = RouteUtils
 
 export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -32,6 +26,16 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const staticPathsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
+
+    // Entity-bound dynamic-route pages with a same-page mutation workflow
+    // render with getServerSideProps instead (see `createStaticPropsPlugin` /
+    // `pageHasSameTableMutationWorkflow`'s doc in
+    // `teleport-plugin-common/src/utils/route-utils.ts`), which resolves
+    // params per-request — Next.js does not allow (and does not need) a
+    // getStaticPaths alongside getServerSideProps on the same page.
+    if (isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)) {
+      return structure
+    }
 
     if (!uidl.outputOptions?.initialPathsData) {
       // For dynamic routes without initialPathsData,

@@ -6,12 +6,15 @@ import {
   TeleportError,
 } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPropsAST } from './utils'
 import { join, relative } from 'path'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
+
+const { isDynamicRoute, pageHasSameTableMutationWorkflow } = RouteUtils
 
 export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -25,6 +28,18 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     if (!uidl.outputOptions?.initialPropsData) {
       return structure
     }
+
+    // Entity-bound dynamic-route pages (edit-item/[id], view-item/[id], ...)
+    // that ALSO have a same-page workflow writing to the same table render
+    // with getServerSideProps instead of getStaticProps+ISR — see
+    // `pageHasSameTableMutationWorkflow`'s doc in
+    // `teleport-plugin-common/src/utils/route-utils.ts` and
+    // `generateInitialPropsAST`'s `useServerSideProps` doc for the rationale.
+    // Pages with no such mutation (a read-only details page) or no dynamic
+    // route (a static "Add Item" create form) keep getStaticProps: they
+    // carry no per-row staleness risk.
+    const useServerSideProps =
+      isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)
 
     const { resource } = uidl?.outputOptions?.initialPropsData
 
@@ -65,15 +80,29 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       uidl.outputOptions.initialPropsData,
       resourceImportName,
       resources.cache,
-      options.skipI18n
+      options.skipI18n,
+      useServerSideProps
     )
 
+    // NOTE: the chunk is always registered under the 'getStaticProps' name
+    // (regardless of useServerSideProps) — several other page plugins that
+    // run LATER in the pipeline (data-source, inline-fetch, pagination) look
+    // up / merge additional fetches into this chunk by that literal name.
+    // Only the emitted FUNCTION IDENTIFIER inside `getStaticPropsAST` differs
+    // (getServerSideProps vs getStaticProps, see generateInitialPropsAST) —
+    // renaming the chunk itself would make every later plugin's lookup miss
+    // and spawn a second, conflicting getStaticProps function on the same
+    // page. `entity-mutation-ssr-finalize-plugin.ts` (registered last in the
+    // page pipeline) renames this chunk's name/identifier to
+    // getServerSideProps and strips any revalidate the later plugins added,
+    // once no further plugin needs to find it by its original name.
     chunks.push({
       name: 'getStaticProps',
       type: ChunkType.AST,
       fileType: FileType.JS,
       content: getStaticPropsAST,
       linkAfter: [componentChunkName],
+      meta: useServerSideProps ? { useServerSideProps: true } : undefined,
     })
 
     return structure

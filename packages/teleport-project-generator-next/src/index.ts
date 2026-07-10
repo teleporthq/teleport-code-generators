@@ -38,6 +38,7 @@ import { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
+import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
 import { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
 import { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
@@ -129,6 +130,7 @@ const createNextProjectGenerator = () => {
   const richTextEditorComponentPlugin = createRichTextEditorComponentPlugin({
     basePath: ['components'],
   })
+  const entityMutationSsrFinalizerPlugin = createEntityMutationSsrFinalizerPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
@@ -169,6 +171,12 @@ const createNextProjectGenerator = () => {
         globalStateComponentPlugin,
         richTextEditorPagePlugin,
         localPrimitivesPagePlugin,
+        // Must run AFTER every plugin above that fetches/merges data into the
+        // 'getStaticProps' chunk by that literal name (inline-fetch,
+        // data-source, state-data-source, locale-fetcher already ran by this
+        // point) — see entity-mutation-ssr-finalize-plugin.ts for why the
+        // rename can't happen any earlier.
+        entityMutationSsrFinalizerPlugin,
         importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -228,6 +236,7 @@ export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
+export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
 export { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
 export { NextCalendarKitProjectPlugin } from './calendar/project-plugin'

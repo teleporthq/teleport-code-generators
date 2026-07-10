@@ -75,7 +75,9 @@ describe('data-api safeQuery wrapper — defends against Postgres type-coercion 
   })
 
   it('handleRawQuery routes through safeQuery so workflow-level raw SELECTs also degrade gracefully', () => {
-    expect(code).toMatch(/safeQuery\(client,\s*query,\s*\[\s*\],\s*'raw-query'\)/)
+    // Now binds the resolved `params` array (positional $N binds) rather than a
+    // hardcoded empty array — see raw-query-param-binding.test.ts.
+    expect(code).toMatch(/safeQuery\(client,\s*query,\s*params,\s*'raw-query'\)/)
   })
 
   it('handleCreate is NOT wrapped (an INSERT failing on a bad UUID is a real error, not "no match")', () => {

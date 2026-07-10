@@ -30,7 +30,13 @@ async function data_update_item(config: any, context: any) {
             '" needs a page route param not available here; no rows updated (workflow continues)'
         )
       }
-      return { id: null, updatedCount: 0, success: true, __skippedUnavailableFilter: true }
+      return {
+        id: null,
+        updatedCount: 0,
+        affected: 0,
+        success: true,
+        __skippedUnavailableFilter: true,
+      }
     }
   }
   if (Array.isArray(columnMappings)) {
@@ -46,6 +52,43 @@ async function data_update_item(config: any, context: any) {
       if ((columnMappings as any)[__mKeys[__mi]] === '__TQ_UNRESOLVED_ROUTE_PARAM__') {
         ;(columnMappings as any)[__mKeys[__mi]] = null
       }
+    }
+  }
+
+  // A columnMapping whose resolved value is `undefined` means its binding never
+  // produced a value: an unread page-entity column, or (most commonly) an empty
+  // form field that general-extract-form-data omits by default. Sending it would
+  // write NULL and break a NOT NULL column — run d9a24741 blanked
+  // guests.full_name from an un-prefilled guest_name input. OMIT such mappings so
+  // the column keeps its stored value. (An intentional null — e.g. a route-param
+  // sentinel degraded above — is preserved: only `undefined` is dropped.)
+  let effectiveColumnMappings: any = columnMappings
+  if (Array.isArray(columnMappings)) {
+    effectiveColumnMappings = columnMappings.filter(function (__m: any) {
+      return !(__m && typeof __m === 'object' && __m.value === undefined)
+    })
+  } else if (columnMappings && typeof columnMappings === 'object') {
+    effectiveColumnMappings = {}
+    const __ck = Object.keys(columnMappings)
+    for (let __ci = 0; __ci < __ck.length; __ci++) {
+      if ((columnMappings as any)[__ck[__ci]] !== undefined) {
+        ;(effectiveColumnMappings as any)[__ck[__ci]] = (columnMappings as any)[__ck[__ci]]
+      }
+    }
+  }
+  const __hasWrites = Array.isArray(effectiveColumnMappings)
+    ? effectiveColumnMappings.length > 0
+    : !!effectiveColumnMappings && Object.keys(effectiveColumnMappings).length > 0
+  if (!__hasWrites) {
+    // Nothing resolvable to write — never send an empty UPDATE (the DB would
+    // reject it / touch nothing). Report a clean zero-row no-op so a downstream
+    // updatedCount/affected gate takes its "no change" branch.
+    return {
+      id: null,
+      updatedCount: 0,
+      affected: 0,
+      success: true,
+      __skippedEmptyUpdate: true,
     }
   }
 
@@ -72,7 +115,12 @@ async function data_update_item(config: any, context: any) {
   }
 
   try {
-    const reqBody: any = { tableName, filters, columnMappings, returnUpdated: true }
+    const reqBody: any = {
+      tableName,
+      filters,
+      columnMappings: effectiveColumnMappings,
+      returnUpdated: true,
+    }
     if (__anonymousUserId) {
       reqBody.__anonymousUserId = __anonymousUserId
     }
@@ -90,11 +138,20 @@ async function data_update_item(config: any, context: any) {
     const data = await response.json()
 
     if (!response.ok) {
-      return { id: null, updatedCount: 0, error: data.error || 'Update item failed' }
+      return { id: null, updatedCount: 0, affected: 0, error: data.error || 'Update item failed' }
     }
-    return { id: data.id || null, ...(data.item || {}), updatedCount: data.updatedCount || 0 }
+    // `affected` mirrors `updatedCount` — a success gate authored against either
+    // synonym (the AI schema historically advertised `affected`) must resolve.
+    // Placed after the row spread so it can't be shadowed by a table column.
+    const __updated = data.updatedCount || 0
+    return {
+      id: data.id || null,
+      ...(data.item || {}),
+      updatedCount: __updated,
+      affected: __updated,
+    }
   } catch (err: unknown) {
-    return { id: null, updatedCount: 0, error: (err as Error).message }
+    return { id: null, updatedCount: 0, affected: 0, error: (err as Error).message }
   }
 }
 export const dataUpdateItem: NodeHandlerGenerator = {

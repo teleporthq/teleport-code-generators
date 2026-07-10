@@ -185,6 +185,14 @@ export interface GeneratorOptions {
   // is emitting is self-guarded by SQL or relies on a framework-level
   // auth gate.
   auth?: UIDLAuthentication
+  // Project-level layout mode ('dashboard' | 'standard' | ...), plumbed down
+  // so page-level plugins can render the correct nav chrome (top bar vs.
+  // left sidebar). Purely a visual/structural choice — it has no bearing on
+  // whether a given page's data can go stale under ISR; that's decided per
+  // page by whether it has a same-page mutation workflow (see
+  // `pageHasSameTableMutationWorkflow` in teleport-plugin-next-static-props /
+  // teleport-plugin-next-static-paths), independent of layout mode.
+  pageLayoutMode?: string
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

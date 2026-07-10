@@ -294,6 +294,37 @@ function finalizeResolvedConfig(nodeType, config) {
     }
   }
   walk(config, false);
+
+  // BACKSTOP: a data-node FILTER value that STILL holds a literal {{…}} token
+  // after resolution is an unresolvable template — a JS expression, an embedded
+  // token, or an unknown root the runtime never substitutes (run d9a24741:
+  // "{{state.filterDateEnd || '2099-12-31'}} 23:59:59" and
+  // "{{Current Page Entity.guest_id}}"). Left alone it reaches SQL as literal
+  // text and breaks the query. For a READ (data-select / data-count) DROP the
+  // clause — the optional-filter idiom degrades to "no filter" (more rows, never
+  // a crash). For a WRITE the filter scopes the mutation, so an unscoped/partial
+  // filter is unsafe → surface a validation error (same posture as the
+  // route-param sentinel above).
+  if (isDataNode && config && Array.isArray(config.filters)) {
+    var isReadNode = nodeType === 'data-select' || nodeType === 'data-count';
+    var keptFilters = [];
+    for (var fi = 0; fi < config.filters.length; fi++) {
+      var filt = config.filters[fi];
+      var fval = filt && typeof filt === 'object'
+        ? (filt.value !== undefined ? filt.value : filt.destination)
+        : undefined;
+      if (typeof fval === 'string' && /\\{\\{[\\s\\S]*?\\}\\}/.test(fval)) {
+        if (!isReadNode && !error) {
+          var fcol = (filt && (filt.column || filt.field || filt.source)) || 'filter';
+          error = 'Filter on "' + fcol + '" carries an unresolved template ({{…}}) and cannot safely scope this write';
+        }
+        continue; // drop the unresolvable clause
+      }
+      keptFilters.push(filt);
+    }
+    config.filters = keptFilters;
+  }
+
   return error;
 }
 

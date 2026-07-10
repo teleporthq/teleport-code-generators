@@ -55,6 +55,7 @@ const createPageUIDL = (
     initialPropsData,
     initialPathsData,
     dynamicRouteAttribute,
+    detailsPageInfo,
     navLink,
   } = pageOptions
 
@@ -108,6 +109,12 @@ const createPageUIDL = (
       initialPropsData,
       initialPathsData,
       dynamicRouteAttribute,
+      // Table/data-source metadata for the row this page reads — the only
+      // reliable, layout-agnostic signal for whether a same-page mutation
+      // workflow can invalidate what this page's own getStaticProps just
+      // fetched (see `pageHasSameTableMutationWorkflow` in
+      // teleport-plugin-next-static-props / -static-paths).
+      detailsPageInfo,
       pagination,
       pageId: pageDefinition?.pageId,
     },

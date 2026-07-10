@@ -144,6 +144,7 @@ export const splitProjectUIDL = (
     ...(uidl.dataSources &&
       Object.keys(uidl.dataSources).length > 0 && { dataSources: uidl.dataSources }),
     ...(uidl.forms && { forms: uidl.forms }),
+    ...(uidl.workflows && { workflows: uidl.workflows }),
     ...(uidl.resources && {
       resources: {
         items: uidl.resources.items,
@@ -248,7 +249,9 @@ const buildPageUIDL = (
       folderPath: [...pageOptions.navLink.split('/').slice(1, -1)],
       initialPropsData: pageOptions.initialPropsData,
       initialPathsData: pageOptions.initialPathsData,
+      detailsPageInfo: pageOptions.detailsPageInfo,
       pagination: pageOptions.pagination,
+      pageId: pageDefinition?.pageId,
     },
     propDefinitions: pageOptions.propDefinitions,
     stateDefinitions: pageOptions.stateDefinitions,

@@ -11,6 +11,16 @@
  * input (no `name`, so it never leaks into form payloads) that dispatches
  * a native `change` for the platform's element-trigger machinery — the
  * same bridge the signature widget uses.
+ *
+ * Bug 6 (encode race): `readAsDataURL` is async, so a form-submit workflow's
+ * synchronous "is state.<key> empty?" gate — evaluated the instant Submit is
+ * clicked — used to read the OLD (empty) state if the user clicked Submit
+ * before a large file's encode resolved. `handlePick` now commits an
+ * IMMEDIATE placeholder entry (same shape, `dataURL: ''`) synchronously, in
+ * the SAME native `change` event as the pick, so `.length` reflects "a file
+ * is selected" before any later, separate click could possibly fire. The
+ * placeholder is replaced with the fully-encoded entry once the async read
+ * resolves (or rolled back to the pre-pick selection if every read fails).
  */
 export const generateFormFileInputComponentCode = (): string => {
   return `import React, { useRef } from 'react'
@@ -73,8 +83,22 @@ const TqFormFileInput = ({
     if (picked.length === 0) {
       return
     }
+    // Commit a placeholder SYNCHRONOUSLY (dataURL: '' — never uploaded as-is;
+    // file-storage-upload only ever sees the resolved entries below) so
+    // state.<key>.length is already non-zero in this same event, closing the
+    // async-encode race a fast Submit click could otherwise win.
+    const placeholders = picked.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified,
+      dataURL: '',
+    }))
+    commit(isMultiple ? files.concat(placeholders).slice(0, fileCap) : placeholders.slice(0, 1))
+
     const read = (await Promise.all(picked.map(readPickedFile))).filter(Boolean)
     if (read.length === 0) {
+      commit(files) // every read failed — roll back to the pre-pick selection
       return
     }
     const next = isMultiple ? files.concat(read).slice(0, fileCap) : read.slice(0, 1)

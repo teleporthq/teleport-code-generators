@@ -53,6 +53,7 @@ import { NextProjectMapping } from './next-project-mapping'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
+import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 
 const DATA_SOURCE_DEPENDENCIES: Record<string, string> = {
   postgresql: 'pg@^8.11.0',
@@ -85,6 +86,8 @@ export interface NextPartialGeneratorOptions {
   dataSources?: GeneratorOptions['dataSources']
   forms?: GeneratorOptions['forms']
   resources?: GeneratorOptions['resources']
+  pageLayoutMode?: GeneratorOptions['pageLayoutMode']
+  workflows?: GeneratorOptions['workflows']
 }
 
 export interface PartialGenerationResult {
@@ -152,6 +155,7 @@ class NextPartialGenerator {
         createNextPagesDataSourcePlugin(),
         createNextLocaleFetcherPlugin(),
         createNextFormSubmissionPlugin(),
+        createEntityMutationSsrFinalizerPlugin(),
         importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -586,6 +590,10 @@ export const useGlobalContext = () => {
       ...(this.sharedOptions.dataSources && { dataSources: this.sharedOptions.dataSources }),
       ...(this.sharedOptions.forms && { forms: this.sharedOptions.forms }),
       ...(this.sharedOptions.resources && { resources: this.sharedOptions.resources }),
+      ...(this.sharedOptions.pageLayoutMode && {
+        pageLayoutMode: this.sharedOptions.pageLayoutMode,
+      }),
+      ...(this.sharedOptions.workflows && { workflows: this.sharedOptions.workflows }),
       ...overrides,
     }
   }

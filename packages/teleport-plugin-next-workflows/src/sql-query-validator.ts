@@ -694,6 +694,70 @@ export const validateSQLQuery = (query: string): SQLValidationResult => {
 }
 
 // ---------------------------------------------------------------------------
+// Raw-query parameterization safety
+// ---------------------------------------------------------------------------
+
+/**
+ * Matches a single `{{ … }}` workflow-context template token anywhere in a
+ * string (non-greedy to the first `}}`). A token surviving in the SQL TEXT is
+ * the SQL-injection signal — the workflow executor substitutes it TEXTUALLY
+ * into the query. Parameterized binds use `$1` / `$2` placeholders instead.
+ */
+export const RAW_QUERY_TEMPLATE_TOKEN_RE = /\{\{[\s\S]+?\}\}/
+
+export interface RawQuerySafetyWarning {
+  /** Stable id, aligned with the design-time security rule catalogue. */
+  ruleId: 'sql-unparameterized-context'
+  message: string
+}
+
+export interface RawQuerySafetyResult {
+  /** True when no `{{ … }}` token remains in the SQL text (safe / parameterized). */
+  isSafe: boolean
+  /** Informational security warnings — empty for a correctly-parameterized query. */
+  warnings: RawQuerySafetyWarning[]
+}
+
+/**
+ * Assess whether a raw-SQL string is safely PARAMETERIZED.
+ *
+ * SAFE (zero warnings): the SQL text carries only positional `$N` placeholders
+ * and every workflow-context/state value lives in the sibling `params`
+ * (`rawQueryUserPartParams`) array, bound at runtime via
+ * `client.query(sql, params)`. A bound value can never terminate a string
+ * literal or alter query structure, so injection is impossible for that class.
+ * A `{{ … }}` token appearing in the `params` array is the CORRECT, safe home
+ * for it and is intentionally NOT inspected here — only the SQL text is scanned.
+ *
+ * UNSAFE (one warning): a `{{ … }}` template token still appears in the SQL
+ * TEXT. The executor substitutes it textually, so an attacker-controlled value
+ * (e.g. a search term containing `'`) can break out and inject SQL. Post-net
+ * this should never happen — the generation-time net rewrites every value
+ * interpolation into `$N` and fails loud on anything it cannot bind — but the
+ * check stays as a runtime/publish-time backstop.
+ *
+ * @param query - The raw SQL text (e.g. `data-raw-query.query` /
+ *                `data-select.rawQueryUserPart`).
+ */
+export const analyzeRawQueryParameterization = (query: unknown): RawQuerySafetyResult => {
+  if (typeof query !== 'string' || !RAW_QUERY_TEMPLATE_TOKEN_RE.test(query)) {
+    return { isSafe: true, warnings: [] }
+  }
+  return {
+    isSafe: false,
+    warnings: [
+      {
+        ruleId: 'sql-unparameterized-context',
+        message:
+          'Raw SQL interpolates a workflow context value with `{{...}}` directly into the ' +
+          'query text. If that value is influenced by external input it could be used for ' +
+          'SQL injection. Bind the value via the query parameter list (e.g. `$1`) instead.',
+      },
+    ],
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Context value risk assessment
 // ---------------------------------------------------------------------------
 

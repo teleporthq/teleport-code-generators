@@ -327,7 +327,11 @@ async function handleSelect(client, body) {
     // Validate the raw user-provided query for forbidden operations
     assertQuerySafe(rawQueryUserPart);
     sql = rawQueryUserPart;
-    queryParams = [];
+    // SECURITY: the raw override fully replaces the assembled SELECT, so bind the
+    // security net's $N params for it, never inline text. rawQueryUserPartParams
+    // carries the workflow values (already resolved by the executor) that back the
+    // $1, $2, … placeholders the net emitted into rawQueryUserPart.
+    queryParams = Array.isArray(body.rawQueryUserPartParams) ? body.rawQueryUserPartParams : [];
   }
 
   // Final validation of the assembled query
@@ -389,8 +393,31 @@ function splitCommaOrPgArrayString(val) {
   return s.split(',').map(function(x) { return x.trim(); }).filter(Boolean);
 }
 
+// HTML checkbox convention: a checked box submits a truthy string value
+// ('on' by default, or the input's own value attribute); an UNCHECKED box
+// is omitted from FormData entirely, which general-extract-form-data (the
+// client-side node that builds the workflow payload) represents as '' /
+// undefined - never false. Without this branch that '' fell through to
+// the generic empty-string-to-null guard below and was written as SQL
+// NULL instead of false: a silent "not featured" -> NULL data corruption
+// in the common case (breaks any WHERE is_featured = true/false filter,
+// since NULL fails three-valued-logic equality), and a hard 23502
+// not-null-violation whenever the boolean column itself is NOT NULL - the
+// exact "update failed" error reported for an unchecked "feature this item"
+// checkbox. "Not submitted" always means unchecked/false for an HTML
+// checkbox, so this mapping is unambiguous and safe for every boolean
+// column, not just one page's flag.
+var BOOLEAN_TRUE_STRINGS = { 'on': 1, 'true': 1, '1': 1 };
+
 function coerceValueForPgColumn(col, val, colTypes) {
   var dt = colTypes[col];
+  if (dt === 'boolean') {
+    if (typeof val === 'boolean') return val;
+    if (val === undefined || val === null) return false;
+    if (typeof val === 'number') return val !== 0;
+    if (typeof val === 'string') return !!BOOLEAN_TRUE_STRINGS[val.trim().toLowerCase()];
+    return false;
+  }
   if (dt !== 'ARRAY') return val;
   if (val == null) return val;
   if (Array.isArray(val)) return val;
@@ -719,6 +746,16 @@ async function handleRawQuery(client, body, req) {
     return { rows: [], error: 'No query provided' };
   }
 
+  // SECURITY: bind the workflow's context/state values as POSITIONAL parameters
+  // ($1, $2, …) instead of interpolating them into the SQL text. The generation
+  // net rewrites every {{state.X}}/{{Current User.id}}/… value interpolation into
+  // a $N placeholder and moves the {{…}} token into this sibling params array; the
+  // executor resolves those tokens to concrete values before POSTing, so here they
+  // arrive as plain bound values. A bound value can never terminate a string literal
+  // or alter query structure — SQL injection is impossible for the value class.
+  // Legacy raw queries carry no params array and run unparameterized (backward-compat).
+  var params = Array.isArray(body.params) ? body.params : [];
+
   // Validate the raw query for forbidden operations before execution
   assertQuerySafe(query);
 
@@ -726,7 +763,7 @@ async function handleRawQuery(client, body, req) {
     await ensurePgVector(client);
   }
 
-  var result = await safeQuery(client, query, [], 'raw-query');
+  var result = await safeQuery(client, query, params, 'raw-query');
   var rows = Array.isArray(result.rows) ? result.rows : [];
 
   // Auto-fire the low-stock alert when the workflow runs the post-

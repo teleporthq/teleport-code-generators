@@ -5,18 +5,39 @@ import { generateEcommerceProductTransformationCode } from './ecommerce-product'
 export type TransformationType = 'blog-post' | 'ecommerce-product' | null
 
 /**
+ * Strips a leading `schema.` qualifier from a table name so that only the
+ * bare table identifier remains (e.g. `public.teleport_products` ->
+ * `teleport_products`). Returns the lowercased, unquoted bare table name.
+ */
+const stripSchemaQualifier = (tableName: string): string => {
+  const lower = tableName.toLowerCase().trim()
+  const lastDot = lower.lastIndexOf('.')
+  const bare = lastDot >= 0 ? lower.slice(lastDot + 1) : lower
+  // Remove any surrounding quoting/backticks a qualifier may carry.
+  return bare.replace(/["'`]/g, '')
+}
+
+/**
  * Detects which transformation type to apply based on the table name.
  * Returns null if no transformation is needed.
+ *
+ * IMPORTANT: Only the real platform-managed tables (`teleport_products`,
+ * `teleport_blog_posts`) are routed through the e-commerce/blog view-model
+ * transforms. A previous loose substring match (`lower.includes('products')`)
+ * incorrectly routed CUSTOM tables such as `products`, `store_products` or
+ * `wholesale_products` through `buildEcommerceProduct`, which emits a fixed set
+ * of platform product fields and silently drops all custom columns. Matching the
+ * exact platform table name prevents that data loss.
  */
 export const detectTransformationType = (tableName: string): TransformationType => {
   if (!tableName) {
     return null
   }
-  const lower = tableName.toLowerCase()
-  if (lower.includes('blog_posts') || lower.includes('blog-posts')) {
+  const bare = stripSchemaQualifier(tableName)
+  if (bare === 'teleport_blog_posts') {
     return 'blog-post'
   }
-  if (lower.includes('products')) {
+  if (bare === 'teleport_products') {
     return 'ecommerce-product'
   }
   return null

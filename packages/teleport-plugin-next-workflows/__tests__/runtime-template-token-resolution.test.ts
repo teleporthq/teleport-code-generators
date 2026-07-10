@@ -137,6 +137,44 @@ describe('workflow runtime template-token resolution', () => {
       expect(utils.finalizeResolvedConfig('data-select', cfg)).toBeNull()
       expect(cfg.filters[0].value).toBeNull()
     })
+
+    // An unresolvable {{…}} template EXPRESSION/embedded token left in a filter
+    // value would otherwise reach SQL as literal text (run d9a24741 reservations
+    // filter: "{{state.filterDateEnd || '2099-12-31'}} 23:59:59").
+    it('DROPS a data-select filter whose value still holds an unresolved {{…}} (optional-filter degrade)', () => {
+      const cfg = {
+        filters: [
+          { field: 'status', value: 'active', operator: '=' },
+          {
+            field: 'start_time',
+            value: "{{state.filterDateEnd || '2099-12-31'}} 23:59:59",
+            operator: '<=',
+          },
+        ],
+      }
+      const error = utils.finalizeResolvedConfig('data-select', cfg)
+      expect(error).toBeNull()
+      expect(cfg.filters).toHaveLength(1)
+      expect(cfg.filters[0].field).toBe('status')
+    })
+
+    it('ERRORS on an unresolved {{…}} filter for a WRITE (never an unscoped mutation)', () => {
+      const cfg = {
+        tableName: 'guests',
+        filters: [{ field: 'id', value: '{{Current Page Entity.guest_id}}', operator: '=' }],
+      }
+      const error = utils.finalizeResolvedConfig('data-update-item', cfg)
+      expect(error).toContain('unresolved template')
+      expect(cfg.filters).toHaveLength(0)
+    })
+
+    it('keeps a fully-resolved filter value untouched', () => {
+      const cfg = {
+        filters: [{ field: 'start_time', value: '2026-07-08 23:59:59', operator: '<=' }],
+      }
+      expect(utils.finalizeResolvedConfig('data-select', cfg)).toBeNull()
+      expect(cfg.filters).toHaveLength(1)
+    })
   })
 
   describe('executeNodes routes the validation error to the workflow error handler', () => {

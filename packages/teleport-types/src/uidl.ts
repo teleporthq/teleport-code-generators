@@ -564,6 +564,7 @@ export interface UIDLComponentOutputOptions {
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
+  detailsPageInfo?: UIDLDetailsPageInfo
   pageId?: string
 }
 
