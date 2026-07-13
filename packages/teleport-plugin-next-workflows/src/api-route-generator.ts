@@ -7,18 +7,30 @@ import {
 } from '@teleporthq/teleport-types'
 import { WorkflowSegment } from './types'
 import { nodeRegistry } from './nodes'
+import { resolveHandlerEntryName } from './nodes/types'
 import { AI_NODE_TYPES } from './graph-utils'
 import {
   generateGetRawBodyCode,
   generateAllSignatureVerificationCode,
 } from './webhook-signature-verification'
 
+// Workflow/segment names, cron schedules, and webhook paths are free-form
+// UIDL data — never guaranteed not to contain `*/`. Every generated route
+// file opens with a `/** ... */` JSDoc header interpolating these values
+// directly; an ORDINARY cron schedule like `*/5 * * * *` contains `*/` and
+// would prematurely close that comment block, corrupting the rest of the
+// generated file's syntax (the very first statement after the header would
+// silently become live code instead of a comment, or a dangling `*` token
+// breaks parsing outright). Breaking up any `*/` sequence keeps the comment
+// intact; this is purely cosmetic (header text only, never evaluated).
+const sanitizeForBlockComment = (value: string): string => value.replace(/\*\//g, '* /')
+
 export const generateServerSegmentAPIRoute = (
   segment: WorkflowSegment,
   workflowName?: string
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
-  const handlerCode = generateNodeHandlersForSegment(usedNodeTypes, true)
+  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
 
   const segmentConfig = JSON.stringify(
@@ -46,13 +58,13 @@ export const generateServerSegmentAPIRoute = (
   const header = workflowName
     ? `/**
  * Workflow Server Segment API Route
- * Workflow: ${workflowName}
- * Segment ID: ${segment.id}
+ * Workflow: ${sanitizeForBlockComment(workflowName)}
+ * Segment ID: ${sanitizeForBlockComment(segment.id)}
  */
 `
     : `/**
  * Workflow Server Segment API Route
- * Segment ID: ${segment.id}
+ * Segment ID: ${sanitizeForBlockComment(segment.id)}
  */
 `
 
@@ -64,16 +76,10 @@ export const generateServerSegmentAPIRoute = (
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 
-${handlerCode}
-
 const SEGMENT_CONFIG = ${segmentConfig};
 
-const nodeHandlers = {${Array.from(usedNodeTypes)
-    .map(
-      (nt: string) => `
-  '${nt}': ${nt.replace(/-/g, '_')}`
-    )
-    .join(',')}
+const nodeHandlers = {
+${nodeHandlersEntries}
 };
 
 module.exports = async function handler(req, res) {
@@ -357,7 +363,7 @@ export const generateStreamingServerSegmentAPIRoute = (
   workflowName?: string
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
-  const handlerCode = generateNodeHandlersForSegment(usedNodeTypes, true)
+  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
 
   const segmentConfig = JSON.stringify(
@@ -385,8 +391,12 @@ export const generateStreamingServerSegmentAPIRoute = (
   const aiNodeTypes = JSON.stringify(Array.from(AI_NODE_TYPES))
 
   const header = workflowName
-    ? `/**\n * Workflow Streaming Server Segment API Route\n * Workflow: ${workflowName}\n * Segment ID: ${segment.id}\n */\n`
-    : `/**\n * Workflow Streaming Server Segment API Route\n * Segment ID: ${segment.id}\n */\n`
+    ? `/**\n * Workflow Streaming Server Segment API Route\n * Workflow: ${sanitizeForBlockComment(
+        workflowName
+      )}\n * Segment ID: ${sanitizeForBlockComment(segment.id)}\n */\n`
+    : `/**\n * Workflow Streaming Server Segment API Route\n * Segment ID: ${sanitizeForBlockComment(
+        segment.id
+      )}\n */\n`
 
   const requestInjection = hasRateLimiter
     ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
@@ -396,16 +406,10 @@ export const generateStreamingServerSegmentAPIRoute = (
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 
-${handlerCode}
-
 const SEGMENT_CONFIG = ${segmentConfig};
 
-const nodeHandlers = {${Array.from(usedNodeTypes)
-    .map(
-      (nt: string) => `
-  '${nt}': ${nt.replace(/-/g, '_')}`
-    )
-    .join(',')}
+const nodeHandlers = {
+${nodeHandlersEntries}
 };
 
 const __streamingAITypes = ${aiNodeTypes};
@@ -760,28 +764,57 @@ const generateClientOnlyServerStub = (nodeType: string): string => {
 }`
 }
 
+// Returns the BODY of a `nodeHandlers = {...}` object literal — one entry per
+// used node type, e.g. `  'general-if-statement': (function () { ... })()`.
+//
+// Each handler is isolated in its own IIFE rather than declared as a bare
+// sibling statement in a shared scope (which is what this used to do, joined
+// with the outer `nodeHandlers` map built separately from a statically
+// computed `nodeType.replace(/-/g, '_')` name). Two problems, both closed by
+// this shape:
+//   1. A handler built from `handlerToString(fn)` on a real function embeds
+//      `fn.toString()` — a snapshot of whatever `fn` was actually named at
+//      that moment. When this package is bundled/minified by a consumer
+//      (e.g. teleport-gui's browser packer worker), the minifier freely
+//      renames `fn`'s declaration, since nothing in the bundle calls it by
+//      name — only this runtime `.toString()` read does, which is invisible
+//      to the minifier. A statically computed reference name would then be
+//      undefined — resolveHandlerEntryName reads the name the source
+//      ACTUALLY declares instead.
+//   2. Two DIFFERENT node types are minified independently (each in its own
+//      source file), so their real declared names can coincidentally
+//      collide — e.g. state-update-local-state and payment-cancel-plan can
+//      both legitimately mangle down to the same short name. Declared as
+//      bare siblings in one shared scope, the second declaration would
+//      silently shadow the first, so BOTH map entries end up pointing at the
+//      SAME (wrong-for-one-of-them) function — a silent wrong-handler-
+//      executes bug, not even a crash. An IIFE per entry gives every handler
+//      its own scope, so a same-named collision between two unrelated
+//      handlers can never shadow each other.
 const generateNodeHandlersForSegment = (usedNodeTypes: Set<string>, forServer = false): string => {
-  const handlers: string[] = []
-
-  usedNodeTypes.forEach((nodeType) => {
-    const generator = nodeRegistry[nodeType]
-    if (generator) {
-      if (forServer && generator.generateServerHandler) {
-        handlers.push(generator.generateServerHandler())
-      } else if (forServer && generator.executionEnv === 'client') {
-        handlers.push(generateClientOnlyServerStub(nodeType))
+  return Array.from(usedNodeTypes)
+    .map((nodeType) => {
+      const generator = nodeRegistry[nodeType]
+      let source: string
+      if (generator) {
+        if (forServer && generator.generateServerHandler) {
+          source = generator.generateServerHandler()
+        } else if (forServer && generator.executionEnv === 'client') {
+          source = generateClientOnlyServerStub(nodeType)
+        } else {
+          source = generator.generateHandler()
+        }
       } else {
-        handlers.push(generator.generateHandler())
-      }
-    } else {
-      handlers.push(`
+        source = `
 async function ${nodeType.replace(/-/g, '_')}(config, context) {
   throw new Error('No implementation for node type: ${nodeType}');
-}`)
-    }
-  })
-
-  return handlers.join('\n')
+}`
+      }
+      const trimmed = source.trim()
+      const entryFn = resolveHandlerEntryName(trimmed, nodeType)
+      return `  '${nodeType}': (function () {\n${trimmed}\nreturn ${entryFn};\n})()`
+    })
+    .join(',\n')
 }
 
 const CLIENT_ONLY_NODES = new Set([
@@ -845,7 +878,7 @@ const CLIENT_ONLY_NODES = new Set([
 export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
   const serverNodes = workflow.nodes.filter((n: UIDLWorkflowNode) => !CLIENT_ONLY_NODES.has(n.type))
   const allNodeTypes = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.type))
-  const handlerCode = generateNodeHandlersForSegment(allNodeTypes, true)
+  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true)
   const hasRateLimiter = allNodeTypes.has('general-rate-limiter')
 
   const serverNodeIds = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.id))
@@ -875,23 +908,17 @@ export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
 
   return `/**
  * Workflow Cron API Route
- * Workflow: ${workflow.name || workflow.id}
- * Trigger: ${workflow.trigger.config.schedule || 'cron'}
+ * Workflow: ${sanitizeForBlockComment(workflow.name || workflow.id)}
+ * Trigger: ${sanitizeForBlockComment(String(workflow.trigger.config.schedule || 'cron'))}
  */
 
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 
-${handlerCode}
-
 const WORKFLOW_CONFIG = ${workflowConfig};
 
-const nodeHandlers = {${Array.from(allNodeTypes)
-    .map(
-      (nt: string) => `
-  '${nt}': ${nt.replace(/-/g, '_')}`
-    )
-    .join(',')}
+const nodeHandlers = {
+${nodeHandlersEntries}
 };
 
 module.exports = async function handler(req, res) {
@@ -1246,7 +1273,7 @@ export const generateWebhookWorkflowAPIRoute = (
   const webhookConfig = workflow.webhookConfig as UIDLWebhookConfig
   const serverNodes = workflow.nodes.filter((n: UIDLWorkflowNode) => !CLIENT_ONLY_NODES.has(n.type))
   const allNodeTypes = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.type))
-  const handlerCode = generateNodeHandlersForSegment(allNodeTypes, true)
+  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true)
   const hasRateLimiter = allNodeTypes.has('general-rate-limiter')
 
   const serverNodeIds = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.id))
@@ -1342,9 +1369,9 @@ export const generateWebhookWorkflowAPIRoute = (
 
   return `/**
  * Webhook API Route
- * Workflow: ${workflow.name || workflow.id}
- * Path: ${webhookConfig.urlPath}
- * Method: ${webhookConfig.httpMethod}
+ * Workflow: ${sanitizeForBlockComment(workflow.name || workflow.id)}
+ * Path: ${sanitizeForBlockComment(webhookConfig.urlPath)}
+ * Method: ${sanitizeForBlockComment(webhookConfig.httpMethod)}
  */
 if (typeof globalThis.fetch === 'undefined') {
   globalThis.fetch = require('node-fetch');
@@ -1353,8 +1380,6 @@ if (typeof globalThis.fetch === 'undefined') {
 const utils = require('${relativePrefix}/utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 ${customNodesImport}
-${handlerCode}
-
 ${getRawBodyCode}
 
 ${signatureVerificationCode}
@@ -1365,12 +1390,8 @@ const WORKFLOW_CONFIG = ${workflowConfig};
 
 var ERROR_HANDLER_NODES = ${errorHandlerNodesJson};
 
-const nodeHandlers = {${Array.from(allNodeTypes)
-    .map(
-      (nt: string) => `
-  '${nt}': ${nt.replace(/-/g, '_')}`
-    )
-    .join(',')}
+const nodeHandlers = {
+${nodeHandlersEntries}
 };
 
 module.exports = async function handler(req, res) {

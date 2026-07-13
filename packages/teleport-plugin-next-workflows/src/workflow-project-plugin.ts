@@ -29,6 +29,7 @@ import {
   collectUsedRealtimeActionTypes,
 } from './graph-utils'
 import { nodeRegistry } from './nodes'
+import { resolveHandlerEntryName } from './nodes/types'
 import {
   generateClientRuntimeCode,
   generateServerRuntimeCode,
@@ -933,7 +934,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     const entries = exportNames
       .map((t, index) => {
         const source = handlers[index].trim()
-        const entryFn = this.resolveHandlerEntryName(source, t)
+        const entryFn = resolveHandlerEntryName(source, t)
         return `  '${t}': (function () {\n${source}\nreturn ${entryFn};\n})()`
       })
       .join(',\n')
@@ -944,38 +945,6 @@ module.exports = {
 ${entries}
 };
 `
-  }
-
-  // Resolves the name a handler's entry function is ACTUALLY declared with in
-  // `source`, rather than assuming it always equals the
-  // `nodeType.replace(/-/g, '_')` convention name (see the comment above
-  // `generateNodeHandlerFile`'s `entries` for why that assumption can break
-  // under minification).
-  //
-  // Handlers composed from string-literal templates (not `fn.toString()`) are
-  // immune to that class of breakage — a minifier never rewrites the contents
-  // of a string literal — so the convention name is still correct for those;
-  // this only needs to look further when it's genuinely absent from `source`.
-  private resolveHandlerEntryName(source: string, nodeType: string): string {
-    const conventionName = nodeType.replace(/-/g, '_')
-    const conventionNameUsed = new RegExp(`(?:^|[^\\w$])${conventionName}\\s*\\(`).test(source)
-    if (conventionNameUsed) {
-      return conventionName
-    }
-
-    // `source` came from `handlerToString(fn)` on a real, possibly-minified
-    // function — its ENTIRE text is that one function's declaration, so
-    // whatever name follows the leading `function`/`async function` keyword
-    // is the name it was actually assigned at runtime.
-    const leadingDeclaration = source.match(/^(?:async\s+)?function\s*([A-Za-z0-9_$]+)\s*\(/)
-    if (leadingDeclaration) {
-      return leadingDeclaration[1]
-    }
-
-    throw new Error(
-      `generateNodeHandlerFile: could not resolve the entry function for workflow node type "${nodeType}" — ` +
-        `expected a "${conventionName}" declaration or a single toString()'d function, found neither.`
-    )
   }
 
   private getDefaultRouteUrl(uidl: ProjectUIDL, strategy: ProjectStrategy): string | null {
@@ -1578,8 +1547,31 @@ module.exports = __customNodeRegistry;
       }
     })
 
+    // See resolveHandlerEntryName: handlers built from `handlerToString(fn)`
+    // on a real function (e.g. general-if-statement) can have `fn` renamed by
+    // a consumer's own minifier (nothing in the bundle calls it by name, only
+    // this runtime `.toString()` read does) — so the reference below must
+    // match whatever `handlers[index]` actually declares, not the
+    // `t.replace(/-/g, '_')` convention name.
+    //
+    // Each entry is ALSO isolated in its own IIFE, rather than declaring every
+    // handler as a bare sibling statement inside `useGlobalWorkflows()`. Two
+    // DIFFERENT node types are minified independently (each in its own
+    // source file), so their real declared names can coincidentally collide —
+    // e.g. state-update-local-state and payment-cancel-plan can both
+    // legitimately mangle down to the same short name. Declared as siblings
+    // in one shared function body, the second declaration would silently
+    // shadow the first, so BOTH map entries end up pointing at the SAME
+    // (wrong-for-one-of-them) function — a silent wrong-handler-executes bug,
+    // not even a crash. An IIFE per entry gives every handler its own scope,
+    // exactly like generateNodeHandlerFile already does, so a same-named
+    // collision between two unrelated handlers can never shadow each other.
     const handlerEntries = emittedHandlerTypes
-      .map((t) => `    '${t}': ${t.replace(/-/g, '_')}`)
+      .map((t, index) => {
+        const source = handlers[index].trim()
+        const entryFn = resolveHandlerEntryName(source, t)
+        return `    '${t}': (function () {\n${source}\nreturn ${entryFn};\n})()`
+      })
       .join(',\n')
 
     // NOTE: this module is pulled into the GLOBAL client bundle (every page,
@@ -1597,8 +1589,6 @@ import workflowRuntime from './runtime';
 const executeWorkflowWithSegments = workflowRuntime.executeWorkflowWithSegments;
 
 export function useGlobalWorkflows() {
-${handlers.join('\n')}
-
   const clientNodeHandlers = {
 ${handlerEntries}
   };
