@@ -72,9 +72,22 @@ describe('generateGlobalWorkflowsHook — clientNodeHandlers map integrity', () 
     expect(dangling).toEqual([])
   })
 
-  it('keeps the registered handler in the map with its definition', () => {
-    expect(code).toContain("'state-update-local-state': state_update_local_state")
+  it('keeps the registered handler in the map, isolated in its own IIFE', () => {
+    // Each map entry is an IIFE that declares AND returns its own handler,
+    // rather than a bare reference to a handler declared elsewhere in the
+    // shared useGlobalWorkflows() body. Two DIFFERENT node types are
+    // minified independently by a consumer's own build (e.g. teleport-gui's
+    // browser packer worker), so their real declared names can
+    // coincidentally collide post-minification even though they never do
+    // pre-minification — declared as bare siblings in one shared scope, the
+    // second declaration would silently shadow the first, so two unrelated
+    // node types could end up executing the SAME (wrong-for-one-of-them)
+    // handler. An IIFE per entry gives every handler its own scope, so a
+    // same-named collision between two unrelated handlers can never shadow
+    // each other.
+    expect(code).toContain("'state-update-local-state': (function () {")
     expect(code).toMatch(/(?:async\s+)?function state_update_local_state\s*\(/)
+    expect(code).toMatch(/return state_update_local_state;\s*\}\)\(\)/)
   })
 
   it('omits an unregistered node type (general-comment) entirely — no dangling reference', () => {
