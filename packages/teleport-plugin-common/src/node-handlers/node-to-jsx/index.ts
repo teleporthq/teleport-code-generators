@@ -789,6 +789,19 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
         if (typeof childTag === 'string') {
           addChildJSXText(elementTag, childTag)
         } else if (childTag.type === 'JSXExpressionContainer' || childTag.type === 'JSXElement') {
+          // Backstop for an UNCONTROLLED <textarea> whose value binding arrived
+          // as a child (we only reach here when skipAttachingChildren is false —
+          // the textarea has NO value/defaultValue attr). A <textarea> has no
+          // value attribute in HTML, so React stringifies an element/expression
+          // CHILD to the literal "[object Object]" inside the field (run 97ac2650
+          // Add Note). The primary fix hoists the binding to a value= attribute at
+          // import time (ai-state-binding-preprocessor.hoistTextareaChildBindingToValue);
+          // this net drops any stray dynamic child so it can never render
+          // "[object Object]". Static text children (the typeof-string branch
+          // above) are untouched.
+          if (isTextArea) {
+            return
+          }
           addChildJSXTag(elementTag, childTag)
         } else {
           addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))

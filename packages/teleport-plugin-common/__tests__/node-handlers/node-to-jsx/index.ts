@@ -297,6 +297,22 @@ describe('generateJSXSyntax', () => {
       expect(result.children.length).toBeGreaterThan(0)
     })
 
+    it('drops a stray dynamic (element/expression) child of an uncontrolled textarea', () => {
+      // Run 97ac2650 "Add Note": a textarea whose value binding arrived as a
+      // {{ }} CHILD (no value attr) was demoted to an element child — React
+      // stringifies it to the literal "[object Object]". The backstop drops the
+      // dynamic child so it can never render "[object Object]". (The primary fix
+      // hoists the binding to a value= attr at import time.)
+      const localParams = buildParams()
+      const node = elementNode('textarea', {}, [
+        elementNode('span', {}, [dynamicNode('prop', 'noteBody')]),
+      ])
+      const result = generateJSXSyntax(node, localParams, options) as types.JSXElement
+      expect(result.children.length).toBe(0)
+      // The dropped child is still generated into nodesLookup (styled-jsx pass).
+      expect(Object.keys(localParams.nodesLookup).length).toBeGreaterThanOrEqual(2)
+    })
+
     it('drops the children of a named textarea controlled by the form-store binding', () => {
       // maybeAddFormStoreFieldBinding injects value={formState['field'] ?? ''}
       // onto named inputs inside a data-store-values-state form AFTER the UIDL
