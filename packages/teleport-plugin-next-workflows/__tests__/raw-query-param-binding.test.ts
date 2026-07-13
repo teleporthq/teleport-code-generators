@@ -144,27 +144,28 @@ describe('raw-query param binding — generated data-API route binds, never inte
   })
 
   it('handleRawQuery actually passes params to a parameterized client.query at runtime', async () => {
-    // Eval just the safeQuery helper (as data-api-safe-query.test.ts does) and
-    // confirm it forwards (sql, params) to client.query verbatim.
-    const start = code.indexOf('async function safeQuery')
-    let depth = 0
-    let i = code.indexOf('{', start)
-    for (; i < code.length; i++) {
-      if (code[i] === '{') {
-        depth++
-      } else if (code[i] === '}') {
-        depth--
-        if (depth === 0) {
-          break
+    const extractFunctionBlock = (src: string, tag: string): string => {
+      const start = src.indexOf(tag)
+      let depth = 0
+      let i = src.indexOf('{', start)
+      for (; i < src.length; i++) {
+        if (src[i] === '{') {
+          depth++
+        } else if (src[i] === '}') {
+          depth--
+          if (depth === 0) {
+            break
+          }
         }
       }
+      return src.slice(start, i + 1)
     }
-    const fnSrc = code.slice(start, i + 1)
-    const codesStart = code.indexOf('var SAFE_COERCION_ERROR_CODES')
-    const codesEnd = code.indexOf(';', codesStart)
-    const codesSrc = code.slice(codesStart, codesEnd + 1)
+    const blockStart = code.indexOf('var SAFE_COERCION_ERROR_CODES')
+    const safeQueryStart = code.indexOf('async function safeQuery')
+    const preamble = code.slice(blockStart, safeQueryStart)
+    const safeQueryFn = extractFunctionBlock(code, 'async function safeQuery')
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const safeQuery = new Function(codesSrc + '\n' + fnSrc + '\nreturn safeQuery;')() as any
+    const safeQuery = new Function(preamble + safeQueryFn + '\nreturn safeQuery;')() as any
 
     const calls: Array<{ sql: string; params: unknown[] }> = []
     const fakeClient = {

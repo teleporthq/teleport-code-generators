@@ -98,30 +98,30 @@ describe('data-api safeQuery wrapper — defends against Postgres type-coercion 
 
 describe('data-api safeQuery — runtime semantics', () => {
   const code = generateDataAPIRoute()
-  // Eval the safeQuery helper out of the emitted file and verify it
-  // behaves as we expect against a fake client.
-  const evalFn = () => {
-    const startTag = 'async function safeQuery'
-    const start = code.indexOf(startTag)
-    // Find the matching closing brace via depth counting
+  const extractFunctionBlock = (src: string, tag: string): string => {
+    const start = src.indexOf(tag)
     let depth = 0
-    let i = code.indexOf('{', start)
-    for (; i < code.length; i++) {
-      if (code[i] === '{') {
+    let i = src.indexOf('{', start)
+    for (; i < src.length; i++) {
+      if (src[i] === '{') {
         depth++
-      } else if (code[i] === '}') {
+      } else if (src[i] === '}') {
         depth--
         if (depth === 0) {
           break
         }
       }
     }
-    const fnSrc = code.slice(start, i + 1)
-    // Also extract the SAFE_COERCION_ERROR_CODES constant
-    const codesStart = code.indexOf('var SAFE_COERCION_ERROR_CODES')
-    const codesEnd = code.indexOf(';', codesStart)
-    const codesSrc = code.slice(codesStart, codesEnd + 1)
-    return new Function(codesSrc + '\n' + fnSrc + '\nreturn safeQuery;')() as any
+    return src.slice(start, i + 1)
+  }
+  // Eval the safeQuery helper out of the emitted file and verify it
+  // behaves as we expect against a fake client.
+  const evalFn = () => {
+    const blockStart = code.indexOf('var SAFE_COERCION_ERROR_CODES')
+    const safeQueryStart = code.indexOf('async function safeQuery')
+    const preamble = code.slice(blockStart, safeQueryStart)
+    const safeQueryFn = extractFunctionBlock(code, 'async function safeQuery')
+    return new Function(preamble + safeQueryFn + '\nreturn safeQuery;')() as any
   }
   const safeQuery = evalFn()
 
