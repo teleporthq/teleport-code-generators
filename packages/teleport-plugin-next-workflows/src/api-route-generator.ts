@@ -331,8 +331,8 @@ module.exports = async function handler(req, res) {
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }
-      if (result && (result.success === false || (typeof result.error === 'string' && result.error))) {
-        throw new Error(result.error || 'Node execution failed');
+      if (utils.isFatalNodeResult(result)) {
+        throw new Error(utils.fatalNodeResultMessage(result));
       }
       context[node.id] = result;
       if (result && result.__terminal) break;
@@ -680,6 +680,12 @@ module.exports = async function handler(req, res) {
             res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: sn.id, result: snResult }) + '\\n\\n');
           }
         });
+        // A provider/auth failure surfaces as { error: true, message, code }.
+        // Without this gate the on-end branch would run against a failed AI
+        // result (e.g. persist a NULL chat answer → NOT NULL 500 downstream).
+        if (utils.isFatalNodeResult(result)) {
+          throw new Error(utils.fatalNodeResultMessage(result));
+        }
         context[node.id] = result;
         res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: result }) + '\\n\\n');
 
@@ -712,8 +718,8 @@ module.exports = async function handler(req, res) {
           }
           return;
         }
-        if (result && (result.success === false || (typeof result.error === 'string' && result.error))) {
-          throw new Error(result.error || 'Node execution failed');
+        if (utils.isFatalNodeResult(result)) {
+          throw new Error(utils.fatalNodeResultMessage(result));
         }
         context[node.id] = result;
         if (streamStarted) {
@@ -925,8 +931,8 @@ module.exports = async function handler(req, res) {
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }
-      if (result && (result.success === false || (typeof result.error === 'string' && result.error))) {
-        throw new Error(result.error || 'Node execution failed');
+      if (utils.isFatalNodeResult(result)) {
+        throw new Error(utils.fatalNodeResultMessage(result));
       }
       context[node.id] = result;
       if (result && result.__terminal) break;
@@ -1225,8 +1231,8 @@ const generateNodeExecutionLoop = (
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }${customNodeBlock}
-      if (result && (result.success === false || (typeof result.error === 'string' && result.error))) {
-        throw new Error(result.error || 'Node execution failed');
+      if (utils.isFatalNodeResult(result)) {
+        throw new Error(utils.fatalNodeResultMessage(result));
       }
       context[node.id] = result;
       if (result && result.__terminal) break;

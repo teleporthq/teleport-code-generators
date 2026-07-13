@@ -586,6 +586,24 @@ function topoSortNodes(nodes, edges) {
   return sorted;
 }
 
+// A node result signals failure either through the legacy string contract
+// ({ error: '...' } / { success: false }) or through the AI-node contract
+// ({ error: true, message, code } — provider/auth failures). Both must halt
+// the workflow; treating error:true as success used to let the pipeline limp
+// into downstream NOT NULL violations.
+function isFatalNodeResult(result) {
+  if (!result) return false;
+  return result.success === false ||
+    (typeof result.error === 'string' && result.error) ||
+    result.error === true;
+}
+
+function fatalNodeResultMessage(result) {
+  if (typeof result.error === 'string' && result.error) return result.error;
+  if (typeof result.message === 'string' && result.message) return result.message;
+  return 'Node execution failed';
+}
+
 async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig, callServerSegment, executionId) {
   const executed = {};
   const sortedNodes = topoSortNodes(nodes, edges);
@@ -684,6 +702,9 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
               await executeNodes(onStreamNodes, edges, context, nodeHandlers, workflowConfig, callServerSegment, executionId);
             }
           });
+          if (isFatalNodeResult(streamResult)) {
+            throw new Error(fatalNodeResultMessage(streamResult));
+          }
           context[node.id] = streamResult;
 
           if (onEndNodes.length > 0) {
@@ -726,8 +747,8 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
         throw earlyErr;
       }
 
-      if (result && (result.success === false || (typeof result.error === 'string' && result.error))) {
-        throw new Error(result.error || 'Node execution failed');
+      if (isFatalNodeResult(result)) {
+        throw new Error(fatalNodeResultMessage(result));
       }
 
       context[node.id] = result;
@@ -1006,7 +1027,9 @@ module.exports = {
   executeParallel,
   collectBranchNodes,
   markAllBranchNodes,
-  isStreamingAINode
+  isStreamingAINode,
+  isFatalNodeResult,
+  fatalNodeResultMessage
 };
 `
 }
@@ -1200,6 +1223,19 @@ function findStreamingAINodes(allNodes, allEdges) {
   return map;
 }
 
+// A streaming AI node's on-stream / on-end branches are collected from the
+// FULL workflow node list, so they may contain server nodes (e.g. the SQL
+// insert persisting a chat answer). Those already execute inside their own
+// server segments with full configs; the browser bundle only ships their
+// config redacted down to the client-safe whitelist (segment-splitter's
+// redactServerNodeConfig), so executing them here with CLIENT handlers both
+// double-executes them and crashes on the missing config. Emitted nodes carry
+// executionEnv for exactly this filter; nodes without the marker (older
+// bundles) keep executing client-side as before.
+function clientExecutableBranchNodes(branchNodes) {
+  return branchNodes.filter(function(n) { return !n || n.executionEnv !== 'server'; });
+}
+
 async function callStreamingServerSegment(segmentUrl, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId) {
   const prunedContext = pruneContext(context);
   const handledNodeIds = {};
@@ -1254,7 +1290,10 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
         context[data.nodeId] = { chunk: data.chunk, fullResponse: data.fullResponse, model: data.model };
         const info = streamingInfo[data.nodeId];
         if (info && info.onStreamNodes.length > 0) {
-          await utils.executeNodes(info.onStreamNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
+          const runnableStreamNodes = clientExecutableBranchNodes(info.onStreamNodes);
+          if (runnableStreamNodes.length > 0) {
+            await utils.executeNodes(runnableStreamNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
+          }
           for (let sni = 0; sni < info.onStreamNodes.length; sni++) {
             handledNodeIds[info.onStreamNodes[sni].id] = true;
           }
@@ -1269,7 +1308,10 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
         for (let sk = 0; sk < streamedKeys.length; sk++) {
           const endInfo = streamingInfo[streamedKeys[sk]];
           if (endInfo && endInfo.onEndNodes.length > 0) {
-            await utils.executeNodes(endInfo.onEndNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
+            const runnableEndNodes = clientExecutableBranchNodes(endInfo.onEndNodes);
+            if (runnableEndNodes.length > 0) {
+              await utils.executeNodes(runnableEndNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
+            }
             for (let eni = 0; eni < endInfo.onEndNodes.length; eni++) {
               handledNodeIds[endInfo.onEndNodes[eni].id] = true;
             }

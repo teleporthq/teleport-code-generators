@@ -159,12 +159,23 @@ function validateFilters(filters) {
 // 22003 (numeric value out of range), 22023 (invalid parameter value).
 // We pass the original query / params back to the caller as a debug
 // label so log output stays diagnosable.
-var SAFE_COERCION_ERROR_CODES = { '22P02': 1, '22008': 1, '22003': 1, '22023': 1 };
+// Also covers 22007 (invalid_datetime_format — an empty "Filter by date" value
+// hitting a date column: invalid input syntax for type date). Beyond the code
+// list we ALSO suppress ANY "invalid input syntax for type" message: every one
+// means the bound value could never coerce to the column type, so no row can
+// match and an empty result is the correct semantics — never a 500 the user sees
+// as "Failed to update. Please try again".
+var SAFE_COERCION_ERROR_CODES = { '22P02': 1, '22007': 1, '22008': 1, '22003': 1, '22023': 1 };
+function isSafeCoercionError(err) {
+  if (!err) return false;
+  if (SAFE_COERCION_ERROR_CODES[err.code]) return true;
+  return typeof err.message === 'string' && /invalid input syntax for type/i.test(err.message);
+}
 async function safeQuery(client, sql, params, mode) {
   try {
     return await client.query(sql, params);
   } catch (err) {
-    if (err && SAFE_COERCION_ERROR_CODES[err.code]) {
+    if (isSafeCoercionError(err)) {
       console.warn('[data-api] suppressed Postgres coercion error (' + err.code + '): ' + (err.message || err) +
         ' — returning empty result for ' + (mode || 'query') + '. SQL=' + sql + ' params=' + JSON.stringify(params));
       if (mode === 'count') {

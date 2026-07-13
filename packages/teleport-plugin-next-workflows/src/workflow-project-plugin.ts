@@ -887,14 +887,45 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       return ''
     }
 
-    const exports = exportNames.map((t) => `  '${t}': ${t.replace(/-/g, '_')}`).join(',\n')
+    // Inline each handler as its `module.exports` map value inside a
+    // self-invoking function that returns the handler's entry-point, rather
+    // than emitting separate top-level `async function <name>` declarations
+    // plus a map that references them by name. `handlers` and `exportNames`
+    // are populated together in the loop above, so `handlers[index]` is
+    // exactly the handler for `exportNames[index]`.
+    //
+    // Why the IIFE (not a bare inline expression): a handler is NOT always a
+    // single function expression. AI nodes emit shared provider utils
+    // (`var __ai_… = …`) BEFORE their entry function, and payment/rate-limiter
+    // nodes append helper functions AFTER it. Splicing such a multi-statement
+    // string directly as an object-literal value (`'ai-custom-prompt': var … `)
+    // is a SyntaxError. Wrapping in `(function () { <handler>; return <fn>; })()`
+    // runs every statement in an isolated scope and yields the entry function as
+    // the value — so single- AND multi-statement handlers are both valid.
+    //
+    // Why not top-level declarations + a name reference: that forward-reference
+    // shape is fragile in production. If a bundler/minifier drops a single-use
+    // declaration (or a handler's emitted name ever drifts from its
+    // `nodeType`-derived key), the map is left referencing an undefined
+    // identifier — `ReferenceError: <name> is not defined` at MODULE-EVAL time,
+    // which fails the Next.js/Vercel build during "Collecting page data". The
+    // returned identifier is derived from the same `t` that keys the map and is
+    // defined by the handler string right above the `return`, so there is no
+    // cross-statement forward reference to dangle. The entry-function naming
+    // contract (`handlerToString(fn)` preserves `fn.name`, and every handler
+    // names its entry `nodeType.replace(/-/g, '_')`) is enforced by
+    // node-handler-file-inline-map.test.ts across the whole node registry.
+    const entries = exportNames
+      .map((t, index) => {
+        const entryFn = t.replace(/-/g, '_')
+        return `  '${t}': (function () {\n${handlers[index].trim()}\nreturn ${entryFn};\n})()`
+      })
+      .join(',\n')
 
     return `// Auto-generated workflow node handlers (${env})
 
-${handlers.join('\n\n')}
-
 module.exports = {
-${exports}
+${entries}
 };
 `
   }
@@ -972,6 +1003,10 @@ ${exports}
         (cn.nodes || []).map((n: any) => ({
           ...n,
           config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n)),
+          // Runtime marker consumed by clientExecutableBranchNodes (client
+          // runtime) so streaming on-stream/on-end branches never execute
+          // server nodes (whose config was just redacted) client-side.
+          executionEnv: resolveNodeExecutionEnv(n),
         }))
       )
       const edgesJson = JSON.stringify(cn.edges)

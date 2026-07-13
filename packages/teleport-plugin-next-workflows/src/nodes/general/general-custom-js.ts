@@ -23,6 +23,14 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 async function general_custom_js(config: any, context: Record<string, unknown>) {
   const code = config.code
 
+  // A server-classified custom-js node's config is redacted to the client-safe
+  // whitelist ({} here) before it ships to the browser. If such a node ever
+  // reaches a client handler (defense-in-depth — the runtime filters them),
+  // no-op cleanly instead of crashing the whole workflow on `code.length`.
+  if (typeof code !== 'string' || code.length === 0) {
+    return {}
+  }
+
   // Reserved context keys that must never leak into params / innerParams.
   // Anything starting with "__" is internal scaffolding; these named entries
   // are existing well-known runtime keys.

@@ -1308,16 +1308,21 @@ function __normalizeAdminFormRow(row, defaults) {
       }))
     )
     const nodesJson = JSON.stringify(
-      wf.nodes.map((n: UIDLWorkflowNode) => ({
-        id: n.id,
-        type: n.type,
-        config: redactServerNodeConfig(
-          n.config,
-          nodeEnvById.get(n.id) ?? resolveNodeExecutionEnv(n)
-        ),
-        stepNumber: n.stepNumber,
-        label: n.label,
-      }))
+      wf.nodes.map((n: UIDLWorkflowNode) => {
+        // Runtime marker consumed by clientExecutableBranchNodes (client
+        // runtime): a streaming AI node's on-stream/on-end branches are
+        // collected from this full node list, and server nodes in them must
+        // never execute with client handlers (their config is redacted below).
+        const env = nodeEnvById.get(n.id) ?? resolveNodeExecutionEnv(n)
+        return {
+          id: n.id,
+          type: n.type,
+          config: redactServerNodeConfig(n.config, env),
+          stepNumber: n.stepNumber,
+          label: n.label,
+          executionEnv: env,
+        }
+      })
     )
     const edgesJson = JSON.stringify(
       wf.edges.map((e: UIDLWorkflowEdge) => ({
