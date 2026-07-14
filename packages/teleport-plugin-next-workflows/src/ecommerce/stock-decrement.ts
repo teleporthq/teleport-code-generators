@@ -58,6 +58,21 @@ export const looksLikeStockDecrementBuilder = (code: string): boolean => {
     return false
   }
   if (code.indexOf(STOCK_DECREMENT_MARKER) >= 0) {
+    // Already our rewrite. A prior rewriter version (the
+    // `GREATEST(0, COALESCE(quantity, 0) - …)` shape below) permanently
+    // floored an unlimited-stock (NULL quantity) product to 0 the first
+    // time an order touched it — turning "infinite stock" into
+    // "out of stock" forever. Re-match that legacy shape so the next
+    // regeneration upgrades already-rewritten projects to the current,
+    // NULL-preserving SQL (`buildStockDecrementBuilder` below). A rewrite
+    // that already carries the NULL guard is up to date — leave it alone.
+    if (
+      code.indexOf('teleport_products') >= 0 &&
+      /quantity\s*=\s*GREATEST\s*\(\s*\d+\s*,\s*COALESCE\s*\(\s*quantity/i.test(code) &&
+      code.indexOf('WHEN quantity IS NULL THEN NULL') < 0
+    ) {
+      return true
+    }
     return false
   }
   if (code.indexOf('teleport_products') < 0) {
@@ -188,31 +203,27 @@ ${STOCK_DECREMENT_HELPERS}
   //    the row AFTER the SET clause runs (so bare \`quantity\` would
   //    be the new value, not the old).
   //
-  //    Two SQL helpers do the heavy lifting:
-  //
-  //    1. \`COALESCE(quantity, 0)\` — every new project starts with
-  //       \`teleport_products.quantity\` seeded NULL, and the
-  //       cart-availability pre-flight tolerates NULL as "unlimited"
-  //       so those orders reach this UPDATE. Without COALESCE the
-  //       NULL row's arithmetic would be NULL (no decrement) and the
-  //       merchant would see "order placed, stock unchanged" and
-  //       assume the workflow is broken.
-  //    2. \`GREATEST(0, …)\` — clamps the post-update value at zero so
-  //       we never persist a negative quantity. Negative stock is a
-  //       confusing signal in the admin panel ("we sold more than we
-  //       have?"); the same "set your initial stock" feedback is
-  //       achieved by the row sitting at exactly 0 — subsequent
-  //       orders are then blocked by the cart-availability check
-  //       (which compares against 0 and finds insufficient stock).
-  var setClause = "quantity = GREATEST(0, COALESCE(quantity, 0) - CASE id" + caseExpr + " ELSE 0 END), updated_at = NOW()";
-  // \`old_quantity\` in RETURNING reconstructs the pre-update value.
-  // After the GREATEST clamp the SET value is no longer
-  // "old - delta" — it might be 0 because of the floor. So we can't
+  //    \`teleport_products.quantity\` is NULL for every product the
+  //    merchant hasn't given a finite count — that NULL means
+  //    "unlimited stock", not "zero stock waiting to be bootstrapped".
+  //    The SET clause's \`CASE WHEN quantity IS NULL THEN NULL …\` guard
+  //    leaves those rows untouched forever: an unlimited product must
+  //    stay unlimited across every order, not silently become
+  //    out-of-stock (0) the first time someone buys it. Only a row
+  //    that already carries a real, finite count is decremented, and
+  //    \`GREATEST(0, …)\` floors THAT arithmetic at zero so we never
+  //    persist a negative quantity for a tracked product.
+  var setClause = "quantity = CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id" + caseExpr + " ELSE 0 END)) END, updated_at = NOW()";
+  // \`old_quantity\` in RETURNING reconstructs the pre-update value. A
+  // row whose (post-update) \`new_quantity\` is NULL was NULL before too
+  // (the SET clause never changes a NULL row), so \`old_quantity\` is
+  // NULL as well. For a tracked row, the GREATEST clamp means the SET
+  // value is no longer "old - delta" once it floors at 0, so we can't
   // just invert the SET expression; instead we expose 0 as a
   // conservative lower bound for what was there before. Downstream
   // (low-stock SELECT) only uses \`new_quantity\` for the threshold
   // comparison, so this approximation is fine.
-  var returningClause = "RETURNING id, quantity AS new_quantity, GREATEST(0, COALESCE(quantity, 0) + (CASE id" + caseExpr + " ELSE 0 END)) AS old_quantity";
+  var returningClause = "RETURNING id, quantity AS new_quantity, (CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity + (CASE id" + caseExpr + " ELSE 0 END)) END) AS old_quantity";
 
   // When backorders are DISALLOWED we add a per-row guard:
   //   AND (quantity IS NULL OR quantity >= CASE id ... END)
@@ -223,17 +234,12 @@ ${STOCK_DECREMENT_HELPERS}
   // would otherwise allow two simultaneous orders to drive stock
   // below zero.
   //
-  // The "quantity IS NULL OR" clause is the new-project bootstrap:
-  // a freshly-seeded products table has NULL quantity everywhere,
-  // and the cart-availability pre-flight (which also tolerates NULL
-  // as "unlimited") lets those orders through. We MUST decrement
-  // those rows too, otherwise the user sees "order placed but stock
-  // unchanged" and concludes the workflow is broken. After the first
-  // decrement the row holds an integer (now floored at 0 by the
-  // GREATEST clamp in the SET clause) and from then on the normal
-  // \`quantity >= delta\` guard is enforced — so the merchant sees
-  // the zero value in the admin panel and gets a clear "set initial
-  // stock for this product" signal.
+  // The "quantity IS NULL OR" clause lets unlimited-stock products
+  // through the guard so the row is still touched (its RETURNING row
+  // still surfaces to the caller, e.g. for the low-stock SELECT) — the
+  // SET clause above then leaves the value itself untouched, so an
+  // unlimited product stays unlimited no matter how many orders are
+  // placed against it, with or without backorders enabled.
   var whereClause;
   if (ALLOW_BACKORDERS) {
     whereClause = "WHERE id IN (" + quotedIds + ")";
@@ -328,15 +334,24 @@ const looksLikeOrderDecrementCustomHandler = (code: string): boolean => {
     // Belt-and-braces: even when the marker is present, the code must
     // actually be a stock-decrement (not, say, an unrelated rewritten
     // node that happens to live next to teleport_products references).
-    // Accept BOTH the legacy concat shape (`quantity = quantity - CASE
-    // id …`) AND the current safety-wrapped shape (`quantity =
-    // GREATEST(0, COALESCE(quantity, 0) - CASE id …)`) — they're both
-    // emitted by `buildStockDecrementBuilder` across time.
+    // Accept every shape `buildStockDecrementBuilder` has emitted over
+    // time: the legacy concat shape (`quantity = quantity - CASE id …`),
+    // the COALESCE safety-wrapped shape (`quantity = GREATEST(0,
+    // COALESCE(quantity, 0) - CASE id …)`), and the current
+    // NULL-preserving shape (`quantity = CASE WHEN quantity IS NULL
+    // THEN NULL ELSE GREATEST(0, quantity - CASE id …) END`).
     if (code.indexOf('teleport_products') >= 0) {
       if (/quantity\s*=\s*quantity\s*-/.test(code)) {
         return true
       }
       if (/quantity\s*=\s*GREATEST\s*\(\s*\d+\s*,\s*COALESCE\s*\(\s*quantity/i.test(code)) {
+        return true
+      }
+      if (
+        /quantity\s*=\s*CASE\s+WHEN\s+quantity\s+IS\s+NULL\s+THEN\s+NULL\s+ELSE\s+GREATEST/i.test(
+          code
+        )
+      ) {
         return true
       }
     }

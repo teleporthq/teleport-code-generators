@@ -1,4 +1,5 @@
 import { rewriteLowStockCustomHandlers, __testables } from '../src/ecommerce-customhandler-rewriter'
+import { STOCK_DECREMENT_MARKER } from '../src/ecommerce/stock-decrement'
 
 const {
   looksLikeLowStockSelectBuilder,
@@ -508,6 +509,22 @@ describe('looksLikeStockDecrementBuilder — pattern detection', () => {
     const rewritten = buildStockDecrementBuilder(false)
     expect(looksLikeStockDecrementBuilder(rewritten)).toBe(false)
   })
+
+  it('self-heals a legacy rewrite that permanently zeroes NULL (unlimited) stock', () => {
+    // A project generated before the NULL-preserving fix already carries
+    // the marker, so the marker check alone can't distinguish "already
+    // correct" from "already rewritten but still buggy". Detect the old
+    // `GREATEST(0, COALESCE(quantity, 0) - …)` shape specifically so the
+    // NEXT regeneration upgrades it to the NULL-preserving SQL instead of
+    // leaving an existing project's unlimited-stock products stuck at 0
+    // forever.
+    const legacyRewrite = `${STOCK_DECREMENT_MARKER}
+      function customHandler() {
+        var setClause = "quantity = GREATEST(0, COALESCE(quantity, 0) - CASE id" + caseExpr + " ELSE 0 END)";
+        return { query: "UPDATE teleport_products SET " + setClause, affected: ['a'] };
+      }`
+    expect(looksLikeStockDecrementBuilder(legacyRewrite)).toBe(true)
+  })
 })
 
 describe('buildStockDecrementBuilder — semantic behaviour', () => {
@@ -528,16 +545,19 @@ describe('buildStockDecrementBuilder — semantic behaviour', () => {
         },
       ])
       // Two semantic guards in the SET clause:
-      //   * \`COALESCE(quantity, 0)\` bootstraps NULL-quantity rows from
-      //     0 so freshly-seeded products in a new project decrement on
-      //     first order (instead of being silently skipped by the
-      //     legacy \`WHERE quantity IS NOT NULL\` filter).
-      //   * \`GREATEST(0, …)\` floors the post-decrement value at 0 so
-      //     we never persist a negative stock value — that would be a
-      //     confusing signal in the admin panel ("we sold more than we
-      //     have?"). Once a row sits at exactly 0 the cart-availability
-      //     pre-flight refuses further orders against it.
-      expect(r.query).toContain('SET quantity = GREATEST(0, COALESCE(quantity, 0) - CASE id')
+      //   * \`CASE WHEN quantity IS NULL THEN NULL …\` leaves an
+      //     unlimited-stock product (quantity never set by the
+      //     merchant) untouched forever — an order must never turn
+      //     "infinite stock" into a finite, trackable 0.
+      //   * \`GREATEST(0, …)\` floors a TRACKED row's post-decrement
+      //     value at 0 so we never persist a negative stock value —
+      //     that would be a confusing signal in the admin panel ("we
+      //     sold more than we have?"). Once a row sits at exactly 0
+      //     the cart-availability pre-flight refuses further orders
+      //     against it.
+      expect(r.query).toContain(
+        'SET quantity = CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id'
+      )
       expect(r.query).toContain("WHEN 'a' THEN 2")
       expect(r.query).toContain("WHEN 'b' THEN 3")
       expect(r.query).toContain('ELSE 0')
@@ -589,14 +609,16 @@ describe('buildStockDecrementBuilder — semantic behaviour', () => {
       const r = fn({}, [{ items: [{ productId: 'a', quantity: 2 }] }])
       expect(r.query).toContain('RETURNING id')
       expect(r.query).toContain('quantity AS new_quantity')
-      // \`old_quantity\` reconstructs an approximate pre-SET value. With
-      // the GREATEST(0, …) clamp in SET we can't perfectly invert the
-      // arithmetic (a row that decremented from 1 → 0 with delta 2 also
-      // would have shown 0 with delta 1), but for the downstream
+      // \`old_quantity\` reconstructs an approximate pre-SET value. A row
+      // whose (post-update) \`new_quantity\` is NULL was NULL before too
+      // (the SET clause never touches a NULL row); for a tracked row,
+      // the GREATEST(0, …) clamp in SET means we can't perfectly invert
+      // the arithmetic (a row that decremented from 1 → 0 with delta 2
+      // also would have shown 0 with delta 1), but for the downstream
       // low-stock SELECT only \`new_quantity\` matters, so a conservative
       // floored approximation is fine.
       expect(r.query).toMatch(
-        /GREATEST\(0,\s*COALESCE\(quantity, 0\)\s*\+\s*\(CASE id[\s\S]*?\)\)\s*AS old_quantity/
+        /\(CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST\(0,\s*quantity\s*\+\s*\(CASE id[\s\S]*?\)\)\s*END\)\s*AS old_quantity/
       )
     })
 
@@ -629,22 +651,30 @@ describe('buildStockDecrementBuilder — semantic behaviour', () => {
       expect(/(?<!')';/.test(r.query)).toBe(false)
     })
 
-    it('tolerates NULL quantity rows so freshly-seeded products still decrement', () => {
+    it('lets orders proceed against NULL-quantity (unlimited stock) rows WITHOUT ever making them finite', () => {
       // A new project's products table is seeded with NULL quantity
-      // everywhere; the cart-availability pre-flight lets those orders
-      // through as "unlimited", so the UPDATE MUST decrement them too
-      // — otherwise the buyer sees the order placed and the merchant
-      // sees stock standing still. The "quantity IS NULL OR quantity
-      // >= delta" guard lets NULL rows through; the SET-clause's
-      // \`GREATEST(0, COALESCE(quantity, 0) - delta)\` arithmetic
-      // bootstraps the row from 0 so subsequent reads see an integer,
-      // floored at 0 (never negative).
+      // everywhere, and the cart-availability pre-flight treats NULL as
+      // "unlimited stock" — so those orders reach this UPDATE. The
+      // WHERE guard's "quantity IS NULL OR …" lets the row through, but
+      // the SET clause's "CASE WHEN quantity IS NULL THEN NULL …" must
+      // leave the value untouched: an unlimited product decrementing on
+      // its first order would otherwise floor to 0 and become
+      // permanently out-of-stock, even though the merchant never set a
+      // finite count. Only rows that already carry a real, finite
+      // quantity are actually decremented.
       const r = fn({}, [{ items: [{ productId: 'a', quantity: 1 }] }])
       expect(r.query).toContain('quantity IS NULL OR quantity >=')
-      expect(r.query).toContain('GREATEST(0, COALESCE(quantity, 0) - CASE id')
+      expect(r.query).toContain(
+        'CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id'
+      )
       // The legacy "quantity IS NOT NULL" filter that used to skip NULL
-      // rows must be gone — otherwise the bootstrap can't happen.
+      // rows entirely must stay gone — the row still needs to be
+      // touched (so its RETURNING row is available to callers), just
+      // without changing its value.
       expect(r.query).not.toContain('quantity IS NOT NULL')
+      // The old (buggy) shape unconditionally bootstrapped a NULL row
+      // to 0 via COALESCE — that must be gone entirely now.
+      expect(r.query).not.toContain('COALESCE(quantity, 0)')
     })
 
     it('accepts a bare cart-items array (legacy callers pass [items] directly)', () => {
@@ -664,13 +694,16 @@ describe('buildStockDecrementBuilder — semantic behaviour', () => {
       const r = fn({}, [{ items: [{ productId: 'a', quantity: 3 }] }])
       expect(r.query).not.toContain('quantity >=')
       // The legacy "quantity IS NOT NULL" filter has been removed; the
-      // SET clause now uses GREATEST(0, COALESCE(...)) so NULL-quantity
-      // rows bootstrap from 0 (never negative) instead of being silently
-      // skipped. Even with backorders allowed we floor at 0 — backorders
-      // semantically mean "let the order through even if stock is short",
-      // not "let the stock counter go negative".
+      // SET clause now uses "CASE WHEN quantity IS NULL THEN NULL …" so
+      // NULL-quantity (unlimited-stock) rows stay untouched — even with
+      // backorders allowed, an unlimited product is never turned into a
+      // finite, trackable one. Tracked rows still floor at 0 —
+      // backorders semantically mean "let the order through even if
+      // stock is short", not "let the stock counter go negative".
       expect(r.query).not.toContain('quantity IS NOT NULL')
-      expect(r.query).toContain('GREATEST(0, COALESCE(quantity, 0) - CASE id')
+      expect(r.query).toContain(
+        'CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id'
+      )
     })
 
     it('still uses RETURNING so the low-stock SELECT sees what changed', () => {

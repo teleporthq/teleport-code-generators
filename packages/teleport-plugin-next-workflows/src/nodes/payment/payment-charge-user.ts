@@ -1,31 +1,5 @@
 import { NodeHandlerGenerator, handlerToString } from '../types'
 
-// Stripe treats these currencies as zero-decimal (no fractional units). The
-// amount passed to the Stripe API must be the whole-currency integer, not
-// multiplied by 100. See https://stripe.com/docs/currencies#zero-decimal
-const STRIPE_ZERO_DECIMAL_CURRENCIES = [
-  'BIF',
-  'CLP',
-  'DJF',
-  'GNF',
-  'JPY',
-  'KMF',
-  'KRW',
-  'MGA',
-  'PYG',
-  'RWF',
-  'UGX',
-  'VND',
-  'VUV',
-  'XAF',
-  'XOF',
-  'XPF',
-]
-
-// Currencies where the smallest unit is 1/1000 of the major unit. Stripe
-// expects amounts in the smallest unit (e.g. 1.500 JOD -> 1500).
-const STRIPE_THREE_DECIMAL_CURRENCIES = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND']
-
 // Contract for the `amount` config field:
 //   A floating-point number in the MAJOR currency unit (e.g. 99.99 USD,
 //   9999 JPY). Individual line items use the same `unitAmount` semantics.
@@ -157,16 +131,54 @@ async function payment_charge_user(config: any, _context: Record<string, unknown
 // smallest-unit integer. Zero-decimal currencies pass through rounded;
 // three-decimal currencies multiply by 1000; everything else multiplies by
 // 100. Always returns a safe non-negative integer.
+//
+// The currency lists are declared LOCAL to this function rather than as
+// shared top-level consts. `generateHandler()` below assembles the final
+// handler by calling `.toString()` on several functions independently and
+// concatenating the source; a top-level const is fine in an unminified
+// build, but when this package itself is bundled + minified by a consumer
+// (e.g. teleport-gui's browser packer, built with webpack/Terser), the
+// minifier is free to rename the top-level const's declaration — nothing
+// in the bundle calls it by name, only this runtime `.toString()` read
+// does, which is invisible to the minifier. `toStripeMinorUnits.toString()`
+// would then embed a reference to a name (e.g. a mangled `Oo`) that is
+// never declared anywhere in the generated workflow segment file, throwing
+// "<mangled name> is not defined" the first time a Stripe charge runs.
+// Declaring the lists inside the function keeps the declaration and every
+// reference to it in the SAME `.toString()` snapshot, so a consistent
+// rename by the minifier can never separate them. See `resolveProviderSecret`
+// above for the same class of bug with the `process` global.
 function toStripeMinorUnits(major: any, currency: string): number {
+  const zeroDecimalCurrencies = [
+    'BIF',
+    'CLP',
+    'DJF',
+    'GNF',
+    'JPY',
+    'KMF',
+    'KRW',
+    'MGA',
+    'PYG',
+    'RWF',
+    'UGX',
+    'VND',
+    'VUV',
+    'XAF',
+    'XOF',
+    'XPF',
+  ]
+  // Currencies where the smallest unit is 1/1000 of the major unit. Stripe
+  // expects amounts in the smallest unit (e.g. 1.500 JOD -> 1500).
+  const threeDecimalCurrencies = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND']
   const amt = Number(major)
   if (!isFinite(amt) || amt <= 0) {
     return 0
   }
   const upper = String(currency || '').toUpperCase()
-  if (STRIPE_ZERO_DECIMAL_CURRENCIES.indexOf(upper) >= 0) {
+  if (zeroDecimalCurrencies.indexOf(upper) >= 0) {
     return Math.round(amt)
   }
-  if (STRIPE_THREE_DECIMAL_CURRENCIES.indexOf(upper) >= 0) {
+  if (threeDecimalCurrencies.indexOf(upper) >= 0) {
     return Math.round(amt * 1000)
   }
   return Math.round(amt * 100)
@@ -470,12 +482,6 @@ export const paymentChargeUser: NodeHandlerGenerator = {
   generateHandler(): string {
     return (
       handlerToString(payment_charge_user) +
-      '\nvar STRIPE_ZERO_DECIMAL_CURRENCIES = ' +
-      JSON.stringify(STRIPE_ZERO_DECIMAL_CURRENCIES) +
-      ';' +
-      '\nvar STRIPE_THREE_DECIMAL_CURRENCIES = ' +
-      JSON.stringify(STRIPE_THREE_DECIMAL_CURRENCIES) +
-      ';' +
       '\n' +
       resolveProviderSecret.toString() +
       '\n' +

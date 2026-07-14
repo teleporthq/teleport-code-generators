@@ -82,6 +82,25 @@ describe('classifyStockWriteSite — single-node categorisation', () => {
     expect(result.category).toBe('order-decrement')
   })
 
+  it('categorises the current NULL-preserving rewritten decrement as order-decrement', () => {
+    // This is the exact shape buildStockDecrementBuilder emits today —
+    // the SET clause guards NULL (unlimited-stock) rows with a CASE
+    // instead of the old COALESCE-based bootstrap. The auditor must not
+    // regress this to "unknown" and start spamming console.warn on
+    // every generation of a correctly-behaving project.
+    const currentRewrite = `${STOCK_DECREMENT_MARKER}
+      function customHandler() {
+        var setClause = "quantity = CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id" + caseExpr + " ELSE 0 END)) END";
+        var query = "UPDATE teleport_products SET " + setClause + " WHERE id IN ('a')";
+        return { query: query, affected: ['a'] };
+      }`
+    const result = classifyStockWriteSite('Place Order 1', {
+      type: 'general-custom-js',
+      config: { code: currentRewrite },
+    })
+    expect(result.category).toBe('order-decrement')
+  })
+
   it('categorises our REWRITTEN decrement EVEN WHEN the SQL is split across string concatenation', () => {
     // This is the exact shape our buildStockDecrementBuilder emits:
     // the SQL is built up via "UPDATE teleport_products SET " + setClause
