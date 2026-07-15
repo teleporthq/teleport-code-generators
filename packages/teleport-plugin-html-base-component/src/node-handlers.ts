@@ -28,7 +28,7 @@ import {
   UIDLStaticValue,
   UIDLRawValue,
 } from '@teleporthq/teleport-types'
-import { join, relative } from 'path'
+import { join } from 'path'
 import { HASTBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
@@ -1269,9 +1269,9 @@ const handleAttributes = (
           }
 
           const currentPageRoute = join(...(outputOptions?.folderPath || []), './')
-          const localPrefix = relative(
-            `/${currentPageRoute}`,
-            `/${targetLink === '/' ? 'index' : targetLink}`
+          const localPrefix = GenericUtils.localRelativePath(
+            currentPageRoute,
+            targetLink === '/' ? 'index' : targetLink
           )
 
           HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
@@ -1310,7 +1310,10 @@ const handleAttributes = (
 
               ../public/playground_assets/..image.. etc depending on the dept the file is in.
             */
-            value = join(relative(join(...outputOptions.folderPath), './'), value)
+            value = join(
+              GenericUtils.localRelativePath(join(...outputOptions.folderPath), './'),
+              value
+            )
           }
 
           HASTUtils.addAttributeToNode(htmlNode, attrKey, value)
@@ -1356,7 +1359,10 @@ const handleAttributes = (
           attrKey === 'src' &&
           !extractedValue.startsWith('http')
         ) {
-          const path = join(relative(join(...outputOptions.folderPath), './'), extractedValue)
+          const path = join(
+            GenericUtils.localRelativePath(join(...outputOptions.folderPath), './'),
+            extractedValue
+          )
           HASTUtils.addAttributeToNode(htmlNode, attrKey, path)
           break
         }

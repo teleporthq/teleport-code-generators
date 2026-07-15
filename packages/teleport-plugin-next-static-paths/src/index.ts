@@ -7,8 +7,8 @@ import {
   TeleportError,
   UIDLLocalResource,
 } from '@teleporthq/teleport-types'
-import { join, relative } from 'path'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { join } from 'path'
+import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPathsAST } from './utils'
 
@@ -137,7 +137,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
       dependencies[resourceImportName] = {
         type: 'local',
-        path: relative(
+        path: GenericUtils.localRelativePath(
           join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
           join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
         ),

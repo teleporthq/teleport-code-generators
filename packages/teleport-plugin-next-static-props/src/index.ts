@@ -5,10 +5,10 @@ import {
   FileType,
   TeleportError,
 } from '@teleporthq/teleport-types'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPropsAST } from './utils'
-import { join, relative } from 'path'
+import { join } from 'path'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
@@ -64,7 +64,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
       dependencies[resourceImportName] = {
         type: 'local',
-        path: relative(
+        path: GenericUtils.localRelativePath(
           join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
           join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
         ),

@@ -5,7 +5,8 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { join, relative } from 'path'
+import { join } from 'path'
+import { GenericUtils } from '@teleporthq/teleport-shared'
 import { sanitizeStylesheetSelectors } from './utils'
 
 interface StyleSheetPlugin {
@@ -65,7 +66,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
         const fontPath = relativeFontPath
           ? join(
-              relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
+              GenericUtils.localRelativePath(join(...(uidl.outputOptions?.folderPath || [])), './'),
               join(fontsFolder || '', font.path)
             )
           : join('/', assetIdentifier || '', 'fonts', font.path)

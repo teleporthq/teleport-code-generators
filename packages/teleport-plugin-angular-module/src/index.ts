@@ -8,7 +8,6 @@ import {
   UIDLDependency,
   UIDLRootComponent,
 } from '@teleporthq/teleport-types'
-import { relative, join } from 'path'
 
 import {
   createRoutesAST,
@@ -80,7 +79,9 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
       case 'page':
         {
           dependencies.ComponentsModule = constructRouteForComponentsModule(
-            relative(join(...outputOptions.folderPath), '../')
+            Array((outputOptions.folderPath || []).length + 1)
+              .fill('..')
+              .join('/')
           )
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
           dependencies.CUSTOM_ELEMENTS_SCHEMA = ANGULAR_CORE_DEPENDENCY

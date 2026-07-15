@@ -5,8 +5,9 @@ import {
   ProjectPluginStructure,
 } from '@teleporthq/teleport-types'
 import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
+import { GenericUtils } from '@teleporthq/teleport-shared'
 import { load } from 'cheerio'
-import { relative, join } from 'path'
+import { join } from 'path'
 
 interface ProjectPluginCloneGlobalsProps {
   excludeGlobalsFromComponents?: boolean
@@ -74,7 +75,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
 
             if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
               const relativePath = join(
-                relative(
+                GenericUtils.localRelativePath(
                   join(...fileId.path.filter(Boolean)),
                   join(...structure.strategy.projectStyleSheet?.path)
                 ),

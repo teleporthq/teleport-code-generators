@@ -1,4 +1,37 @@
+import { relative } from 'path'
 import { UIDLPropDefinition, UIDLStateDefinition } from '@teleporthq/teleport-types'
+
+/**
+ * `path.relative()`-equivalent that is correct regardless of which `path`
+ * implementation the runtime substitutes for Node's 'path' module.
+ *
+ * When this package's code runs inside a browser context (e.g. teleport-gui's
+ * packProject() Web Worker), webpack/Next.js swap Node's 'path' for Next's own
+ * internally vendored/compiled copy of `path-browserify`
+ * (`next/dist/compiled/path-browserify`) — and THAT copy has its `resolve()`'s
+ * `process.cwd()` fallback stripped out (replaced with an empty string, likely
+ * so it also works in the Edge Runtime), so `resolve()` silently returns a
+ * NON-absolute string for relative inputs. `relative()`'s internal index
+ * bookkeeping assumes `resolve()` always returns an absolute (leading-'/')
+ * path, so it unconditionally treats the first character as that root '/' —
+ * dropping one real character from the result once `from`/`to` are 3+
+ * segments deep. Confirmed: `relative('a/b/c', 'resources/x')` returns
+ * `'../..resources/x'` under Next's compiled polyfill instead of the correct
+ * `'../../../resources/x'` — this exact corruption shipped broken import
+ * paths (`Module not found`) into real Next.js builds on Vercel, while every
+ * local test passed, because local tests always run under real Node's 'path'.
+ *
+ * Fix: pre-root both arguments with a literal '/'. `resolve()` short-circuits
+ * the instant it sees an already-absolute argument, so `process.cwd()` (or
+ * its broken stand-in) is never consulted — this produces byte-identical,
+ * correct output under both real Node 'path' and Next's compiled polyfill.
+ *
+ * Any local-dependency relative path computed from code that might run
+ * inside teleport-gui's packer Web Worker MUST go through this helper
+ * instead of calling `relative()` directly.
+ */
+export const localRelativePath = (from: string, to: string): string =>
+  relative(`/${from}`, `/${to}`)
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
   /*

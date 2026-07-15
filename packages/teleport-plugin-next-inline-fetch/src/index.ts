@@ -5,11 +5,11 @@ import {
   FileType,
   UIDLStaticValue,
 } from '@teleporthq/teleport-types'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { extractResourceIntoNextAPIFolder } from './utils'
-import { join, relative } from 'path'
+import { join } from 'path'
 
 /*
   When defining a cms-item or cms-list in the UIDL, the user can specify a resource associated with the node.
@@ -93,7 +93,7 @@ export const createNextPagesInlineFetchPlugin: ComponentPluginFactory<{}> = () =
           )
           dependencies[resourceName] = {
             type: 'local',
-            path: relative(
+            path: GenericUtils.localRelativePath(
               join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
               join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
             ),

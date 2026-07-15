@@ -9,8 +9,7 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
-import { relative } from 'path'
+import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 
 export const extractResourceIntoNextAPIFolder = (
   node: UIDLCMSItemNode | UIDLCMSListNode,
@@ -41,7 +40,10 @@ export const extractResourceIntoNextAPIFolder = (
       StringUtils.camelize(`${usedResource.name}-resource`)
     )
     const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-    importPath = relative(['pages', 'api'].join('/'), [...resources.path, importName].join('/'))
+    importPath = GenericUtils.localRelativePath(
+      ['pages', 'api'].join('/'),
+      [...resources.path, importName].join('/')
+    )
 
     resourceFileName = StringUtils.camelCaseToDashCase(`${resourceImportVariable}-${importName}`)
 

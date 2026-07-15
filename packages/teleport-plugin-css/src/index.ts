@@ -1,5 +1,5 @@
-import { join, relative } from 'path'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { join } from 'path'
+import { StringUtils, UIDLUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import {
   StyleUtils,
   StyleBuilders,
@@ -46,7 +46,7 @@ interface CSSPluginConfig {
 }
 
 const prefixUrlPathsInCss = (css: string, folderPath: string[]): string => {
-  const relativePrefix = relative(join(...folderPath), './')
+  const relativePrefix = GenericUtils.localRelativePath(join(...folderPath), './')
   if (!relativePrefix) {
     return css
   }
