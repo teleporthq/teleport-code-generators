@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-i18n-files",
-  "version": "0.43.37",
+  "version": "0.43.41",
   "description": "Project generator for a generating i18n files for all frameworks",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "@babel/generator": "^7.5.5",
-    "@teleporthq/teleport-component-generator-react": "^0.43.37",
-    "@teleporthq/teleport-plugin-common": "^0.43.37",
+    "@teleporthq/teleport-component-generator-react": "^0.43.41",
+    "@teleporthq/teleport-plugin-common": "^0.43.41",
     "@teleporthq/teleport-types": "^0.43.34",
-    "@teleporthq/teleport-uidl-resolver": "^0.43.34"
+    "@teleporthq/teleport-uidl-resolver": "^0.43.41"
   }
 }
