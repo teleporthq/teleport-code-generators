@@ -30,8 +30,12 @@ import { UIDLPropDefinition, UIDLStateDefinition } from '@teleporthq/teleport-ty
  * inside teleport-gui's packer Web Worker MUST go through this helper
  * instead of calling `relative()` directly.
  */
+// The backslash normalization matters when generating on Windows under real
+// Node: win32 `relative()` returns '..\\..\\resources\\x', and module
+// specifiers must always use forward slashes or webpack treats them as bare
+// package names ("Module not found: Can't resolve '..\\..\\resources\\x'").
 export const localRelativePath = (from: string, to: string): string =>
-  relative(`/${from}`, `/${to}`)
+  relative(`/${from}`, `/${to}`).replace(/\\/g, '/')
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
   /*

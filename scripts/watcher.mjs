@@ -15,7 +15,7 @@ const watcher = chokidar.watch(['packages/**/src/**/*.ts', 'packages/**/src/**/*
 log(chalk.yellow.bold('Watching all files... 👀'))
 
 watcher.on('change', async (filePath) => {
-  const splitPath = filePath.split('/')
+  const splitPath = filePath.split(/[\\/]/)
   const location = `${splitPath[0]}/${splitPath[1]}/`
   const fileName = splitPath[1]
 

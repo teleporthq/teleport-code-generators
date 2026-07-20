@@ -568,6 +568,36 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       // payment-charge-user.ts) and caches the result.
     }
 
+    // Generation-time diagnostics for workflows that will be silently dropped
+    // by the per-page/per-component routing (getRelevantWorkflows).
+    ;(Object.values(allWorkflows) as any[]).forEach((wf: any) => {
+      const trigger = wf?.trigger
+      if (!trigger) {
+        return
+      }
+      if (trigger.type === 'event-page-loaded' && trigger.scope === 'page') {
+        const cfg = trigger.config || {}
+        const hasSelectedPages = Array.isArray(cfg.selectedPages) && cfg.selectedPages.length > 0
+        if (cfg.allPages !== true && !cfg.pageId && !hasSelectedPages) {
+          console.warn(
+            `[teleport-plugin-next-workflows] Workflow "${
+              wf.name || wf.id
+            }" (event-page-loaded) has no page scoping (pageId / selectedPages / allPages) - skipping code generation for it. Re-save the trigger and pick a page or "All pages".`
+          )
+        }
+      }
+      if (trigger.scope === 'component') {
+        const cfg = trigger.config || {}
+        if (!cfg.componentId && !cfg.componentName) {
+          console.warn(
+            `[teleport-plugin-next-workflows] Workflow "${wf.name || wf.id}" (${
+              trigger.type
+            }) is component-scoped but has no componentId/componentName - it will not match any component and is skipped. Re-save the trigger binding in the editor.`
+          )
+        }
+      }
+    })
+
     const globalWorkflows = (Object.values(allWorkflows) as any[]).filter(
       (wf: any) =>
         wf.trigger.scope === 'global' &&
@@ -1516,8 +1546,20 @@ module.exports = __customNodeRegistry;
     };
     window.addEventListener('workflow:user-logged-out', handler_${safeId});
     cleanups.push(function() { window.removeEventListener('workflow:user-logged-out', handler_${safeId}); });`)
+      } else if (trigger.type === 'event-route-changed') {
+        registrations.push(`
+    const prevUrl_${safeId} = { current: typeof window !== 'undefined' ? window.location.href : '' };
+    const handler_${safeId} = function(url) {
+      const ctx = { url: url, previousUrl: prevUrl_${safeId}.current, pathname: window.location.pathname, timestamp: Date.now() };
+      prevUrl_${safeId}.current = window.location.href;
+      executeWorkflow_${safeId}(ctx).catch(function() {});
+    };
+    Router.events.on('routeChangeComplete', handler_${safeId});
+    cleanups.push(function() { Router.events.off('routeChangeComplete', handler_${safeId}); });`)
       }
     }
+
+    const needsRouter = workflows.some((wf) => wf.trigger?.type === 'event-route-changed')
 
     // Emit a handler function AND a `clientNodeHandlers` map entry ONLY for node
     // types that actually have a registry generator. These two lists MUST stay
@@ -1585,7 +1627,7 @@ module.exports = __customNodeRegistry;
     // pure-ESM; SWC interop resolves the default to `module.exports`.
     return `// Auto-generated global workflow hooks
 import { useEffect } from 'react';
-import workflowRuntime from './runtime';
+${needsRouter ? `import Router from 'next/router';\n` : ''}import workflowRuntime from './runtime';
 const executeWorkflowWithSegments = workflowRuntime.executeWorkflowWithSegments;
 
 export function useGlobalWorkflows() {
