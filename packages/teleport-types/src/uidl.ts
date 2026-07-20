@@ -369,7 +369,7 @@ export interface UIDLWorkflowTrigger {
   nodeId: string
   type: string
   config: Record<string, unknown>
-  scope: 'global' | 'page' | 'element'
+  scope: 'global' | 'page' | 'element' | 'component'
 }
 
 export interface UIDLWorkflowErrorHandler {

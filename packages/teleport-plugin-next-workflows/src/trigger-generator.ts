@@ -43,6 +43,10 @@ export const generateTriggerCode = (workflow: UIDLWorkflow, workflowVarName: str
       return generateFormSubmittedTrigger(config, executionCall, workflow.id)
     case 'event-page-loaded':
       return generatePageLoadedTrigger(config, executionCall, workflow.id)
+    case 'event-component-loaded':
+      return generateComponentLoadedTrigger(config, executionCall, workflow.id)
+    case 'event-route-changed':
+      return generateRouteChangedTrigger(executionCall, workflow.id)
     case 'event-user-logged-in':
       return generateCustomEventTrigger('workflow:user-logged-in', executionCall, workflow.id)
     case 'event-user-logged-out':
@@ -297,6 +301,37 @@ const generatePageLoadedTrigger = (
       const triggerContext = { url: window.location.href, timestamp: Date.now(), referrer: document.referrer };
       ${delay ? `setTimeout(function() { ${executionCall}; }, ${delay});` : `${executionCall};`}
     }`
+}
+
+const generateComponentLoadedTrigger = (
+  config: Record<string, unknown>,
+  executionCall: string,
+  workflowId: string
+): string => {
+  const delay = config.delay as number | undefined
+  const componentId = (config.componentId as string) || ''
+  const componentName = (config.componentName as string) || ''
+  return `
+    // Workflow trigger: component loaded (${workflowId})
+    {
+      const triggerContext = { componentId: '${componentId}', componentName: '${componentName}', url: window.location.href, timestamp: Date.now() };
+      ${delay ? `setTimeout(function() { ${executionCall}; }, ${delay});` : `${executionCall};`}
+    }`
+}
+
+// NOTE: the consumer must have \`Router\` from 'next/router' in scope.
+const generateRouteChangedTrigger = (executionCall: string, workflowId: string): string => {
+  const safeId = workflowId.replace(/[^a-zA-Z0-9]/g, '_')
+  return `
+    // Workflow trigger: route changed (${workflowId})
+    let __prevUrl_${safeId} = window.location.href;
+    const __rc_${safeId} = function(url) {
+      const triggerContext = { url: url, previousUrl: __prevUrl_${safeId}, pathname: window.location.pathname, timestamp: Date.now() };
+      __prevUrl_${safeId} = window.location.href;
+      ${executionCall};
+    };
+    Router.events.on('routeChangeComplete', __rc_${safeId});
+    return function() { Router.events.off('routeChangeComplete', __rc_${safeId}); };`
 }
 
 const generateCustomEventTrigger = (
