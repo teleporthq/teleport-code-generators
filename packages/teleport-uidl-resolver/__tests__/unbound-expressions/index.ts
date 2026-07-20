@@ -146,4 +146,34 @@ describe('resolveUnboundExpressions', () => {
       { type: 'static', content: '' },
     ])
   })
+
+  it('keeps a navlink transitionTo that references a global-context identifier', () => {
+    // Regression: the abilities resolver emits transitionTo exprs like
+    // `/profile/${currentUser?.id}` for details navlinks bound to
+    // "Current User > id". These identifiers are destructured from
+    // useGlobalContext() by the JSX emitter, so they must not be blanked.
+    const link: UIDLElementNode = {
+      type: 'element',
+      content: {
+        elementType: 'navlink',
+        attrs: {
+          // tslint:disable-next-line no-invalid-template-strings
+          transitionTo: { type: 'expr', content: '`/profile/${currentUser?.id}`' },
+        },
+        children: [],
+      },
+    }
+    const uidl = buildComponent({
+      type: 'element',
+      content: { elementType: 'container', children: [link] },
+    })
+
+    resolveUnboundExpressions(uidl)
+
+    expect(link.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      // tslint:disable-next-line no-invalid-template-strings
+      content: '`/profile/${currentUser?.id}`',
+    })
+  })
 })

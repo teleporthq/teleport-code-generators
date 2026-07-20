@@ -19,6 +19,17 @@ export const AMBIENT_IDENTIFIERS = new Set<string>([
   'ctx',
   'metadata',
   'record',
+  // Global-context values: the JSX emitter scans expressions for these
+  // (GLOBAL_EXPRESSION_IDENTIFIERS in teleport-plugin-common node-to-jsx) and
+  // injects the matching `useGlobalContext()` destructuring, so they are
+  // always bound in the generated component — e.g. a navlink transitionTo of
+  // `/profile/${currentUser?.id}` must not be blanked as unbound.
+  'currentUser',
+  'userIsLoggedIn',
+  'ecommerce',
+  'cart',
+  'locale',
+  'locales',
   // Event handler / map callback parameters
   'event',
   'evt',
