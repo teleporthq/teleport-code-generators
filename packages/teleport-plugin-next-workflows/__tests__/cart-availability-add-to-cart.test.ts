@@ -352,6 +352,53 @@ describe('buildAddToCartLimitCheck — runtime semantics', () => {
     expect(result.existingItemId).toBe('cart-1')
   })
 
+  // Variant-aware de-dup: a cart line is identified by product AND variant.
+  const buildParamsV = (
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+    settings: any,
+    product: any,
+    cartItems: any[]
+  ): any[] => {
+    const arr: any[] = new Array(14).fill(null)
+    arr[0] = { productId, variantId, quantity }
+    arr[2] = settings
+    arr[6] = product ? { found: true, product } : { found: false, product: null }
+    arr[13] = cartItems
+    return arr
+  }
+
+  it('same product, DIFFERENT variant already in cart → treated as a NEW line (no increment)', () => {
+    const params = buildParamsV('a', 'a__blue', 1, baseSettings(), { name: 'Tee', quantity: 5 }, [
+      { id: 'cart-red', productId: 'a', variantId: 'a__red', quantity: 1 },
+    ])
+    const result = fn({}, params)
+    expect(result.canAdd).toBe(true)
+    expect(result.shouldIncrement).toBe(false)
+    expect(result.existingItemId).toBe(null)
+  })
+
+  it('same product, SAME variant already in cart → increments THAT line', () => {
+    const params = buildParamsV('a', 'a__red', 1, baseSettings(), { name: 'Tee', quantity: 5 }, [
+      { id: 'cart-red', productId: 'a', variantId: 'a__red', quantity: 1 },
+      { id: 'cart-blue', productId: 'a', variantId: 'a__blue', quantity: 1 },
+    ])
+    const result = fn({}, params)
+    expect(result.canAdd).toBe(true)
+    expect(result.shouldIncrement).toBe(true)
+    expect(result.existingItemId).toBe('cart-red')
+  })
+
+  it('flat product (no variantId) matches the flat cart line', () => {
+    const params = buildParamsV('a', null, 1, baseSettings(), { name: 'Mug', quantity: 5 }, [
+      { id: 'cart-flat', productId: 'a', quantity: 2 },
+    ])
+    const result = fn({}, params)
+    expect(result.shouldIncrement).toBe(true)
+    expect(result.existingItemId).toBe('cart-flat')
+  })
+
   it('new item would exceed maxQuantityPerProduct → canAdd:false, names product', () => {
     const params = buildParams(
       'a',

@@ -309,3 +309,57 @@ describe('form-file-input widget plugin (dependency-less wrapper)', () => {
     expect(content).toContain("dispatchEvent(new Event('change', { bubbles: true }))")
   })
 })
+
+describe('category widget plugins (dependency-less, data-driven wrappers)', () => {
+  const contentFor = async (elementType: string, fileKey: string): Promise<string> => {
+    const structure = buildStructure([elementNode(elementType)])
+    await runAll(structure)
+    return structure.files.get(fileKey)?.files[0].content as string
+  }
+
+  it('emits the Category Menu wrapper with real products-list links, no npm dependency', async () => {
+    const structure = buildStructure([elementNode('categories-megamenu-node')])
+    await runAll(structure)
+    const content = structure.files.get('tq-categories-megamenu-component')?.files[0]
+      .content as string
+
+    expect(content).toContain('const TqCategoriesMegamenu =')
+    expect(content).toContain('export default TqCategoriesMegamenu')
+    expect(content).toContain('data-thq="categories-megamenu-node"')
+    // Every category is a real crawlable <a> to products-list?<paramKey>=<id>.
+    expect(content).toContain('productsListHref')
+    expect(content).toContain("'?' + paramKey + '=' + encodeURIComponent")
+    expect(content).toContain('buildCategoryTree')
+    expect(content).toContain('sanitizeSvg')
+    // Pure wrapper — nothing lands in package.json.
+    expect(Object.keys(structure.dependencies)).toEqual([])
+  })
+
+  it('emits the Category Filter wrapper with multi-select + shallow URL routing, no npm dependency', async () => {
+    const structure = buildStructure([elementNode('categories-filter-node')])
+    await runAll(structure)
+    const content = structure.files.get('tq-categories-filter-component')?.files[0]
+      .content as string
+
+    expect(content).toContain('const TqCategoriesFilter =')
+    expect(content).toContain('export default TqCategoriesFilter')
+    expect(content).toContain('data-thq="categories-filter-node"')
+    expect(content).toContain("import { useRouter } from 'next/router'")
+    // Multi-select: parent selects subtree, minimal antichain to the URL.
+    expect(content).toContain('toggleSelection')
+    expect(content).toContain('computeMinimalSelectedIds')
+    expect(content).toContain('expandSelection')
+    // Selection is written comma-joined to the URL via shallow routing.
+    expect(content).toContain('{ shallow: true }')
+    expect(content).toContain('router.replace')
+    expect(content).toContain('type="checkbox"')
+    expect(Object.keys(structure.dependencies)).toEqual([])
+  })
+
+  it('does not emit either category wrapper when the project omits it', async () => {
+    const structure = buildStructure([elementNode('container')])
+    await runAll(structure)
+    expect(structure.files.has('tq-categories-megamenu-component')).toBe(false)
+    expect(structure.files.has('tq-categories-filter-component')).toBe(false)
+  })
+})

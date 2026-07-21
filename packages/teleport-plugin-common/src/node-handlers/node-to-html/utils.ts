@@ -230,6 +230,18 @@ const stringifyOperandValue = (
   return String(value)
 }
 
+/**
+ * Collection operators dereference `.length` / `.includes` on the bound value,
+ * which is nullish far more often than it looks (an optional CMS column, a
+ * category without an image, a not-yet-hydrated state). Coercing to an empty
+ * collection first keeps a hide-this-node condition from throwing
+ * `Cannot read properties of null` mid-render. A non-empty string stays
+ * truthy, so string semantics are preserved. Mirrors `createNullSafeCollection`
+ * in the JSX handler — keep the two in sync.
+ */
+const nullSafeCollection = (identifier: string, empty: '[]' | '{}' = '[]') =>
+  `(${identifier} || ${empty})`
+
 const stringifyConditionalExpression = (
   identifier: string,
   operation: string,
@@ -238,39 +250,49 @@ const stringifyConditionalExpression = (
 ) => {
   // Array/object operators
   if (operation === 'isEmpty') {
-    return `${identifier}.length === 0`
+    return `${nullSafeCollection(identifier)}.length === 0`
   }
   if (operation === 'isNotEmpty') {
-    return `${identifier}.length > 0`
+    return `${nullSafeCollection(identifier)}.length > 0`
   }
   if (operation === 'lengthEquals') {
-    return `${identifier}.length === ${stringifyOperandValue(value)}`
+    return `${nullSafeCollection(identifier)}.length === ${stringifyOperandValue(value)}`
   }
   if (operation === 'lengthGreaterThan') {
-    return `${identifier}.length > ${stringifyOperandValue(value)}`
+    return `${nullSafeCollection(identifier)}.length > ${stringifyOperandValue(value)}`
   }
   if (operation === 'lengthLessThan') {
-    return `${identifier}.length < ${stringifyOperandValue(value)}`
+    return `${nullSafeCollection(identifier)}.length < ${stringifyOperandValue(value)}`
   }
   if (operation === 'contains') {
     const operandStr = stringifyOperandValue(value)
     if (containsField) {
-      return `${identifier}.some(item => item.${containsField} === ${operandStr})`
+      return `${nullSafeCollection(
+        identifier
+      )}.some(item => item.${containsField} === ${operandStr})`
     }
-    return `${identifier}.includes(${operandStr})`
+    return `${nullSafeCollection(identifier)}.includes(${operandStr})`
   }
   if (operation === 'notContains') {
     const operandStr = stringifyOperandValue(value)
     if (containsField) {
-      return `!${identifier}.some(item => item.${containsField} === ${operandStr})`
+      return `!${nullSafeCollection(
+        identifier
+      )}.some(item => item.${containsField} === ${operandStr})`
     }
-    return `!${identifier}.includes(${operandStr})`
+    return `!${nullSafeCollection(identifier)}.includes(${operandStr})`
   }
   if (operation === 'hasKey') {
-    return `Object.prototype.hasOwnProperty.call(${identifier}, ${stringifyOperandValue(value)})`
+    return `Object.prototype.hasOwnProperty.call(${nullSafeCollection(
+      identifier,
+      '{}'
+    )}, ${stringifyOperandValue(value)})`
   }
   if (operation === 'notHasKey') {
-    return `!Object.prototype.hasOwnProperty.call(${identifier}, ${stringifyOperandValue(value)})`
+    return `!Object.prototype.hasOwnProperty.call(${nullSafeCollection(
+      identifier,
+      '{}'
+    )}, ${stringifyOperandValue(value)})`
   }
 
   // Standard operators

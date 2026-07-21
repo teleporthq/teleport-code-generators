@@ -575,10 +575,19 @@ async function handleCreate(client, body) {
 
   var placeholders = values.map(function(_, i) { return '$' + (i + 1); });
 
-  var sql = 'INSERT INTO ' + tableName + ' (' + columns.join(', ') + ') VALUES (' + placeholders.join(', ') + ') RETURNING *';
+  // Opt-in idempotent insert. ON CONFLICT DO NOTHING turns a duplicate-key
+  // insert into a safe no-op instead of a 23505 error, so callers that
+  // re-ensure a known row (e.g. the resolve-user node re-persisting a guest's
+  // anonymous users record on every resolution) don't fail when it already
+  // exists. On a conflict the RETURNING clause yields no row, so fall back to
+  // the id the caller supplied so the response still carries a usable id.
+  var onConflictClause = body.onConflictDoNothing ? ' ON CONFLICT DO NOTHING' : '';
+  var sql = 'INSERT INTO ' + tableName + ' (' + columns.join(', ') + ') VALUES (' + placeholders.join(', ') + ')' + onConflictClause + ' RETURNING *';
   var result = await client.query(sql, values);
   var item = result.rows && result.rows[0] ? result.rows[0] : null;
-  return { item: item, id: item ? (item.id || null) : null };
+  var idIdx = columns.indexOf('id');
+  var resolvedId = item ? (item.id || null) : (idIdx >= 0 ? values[idIdx] : null);
+  return { item: item, id: resolvedId };
 }
 
 async function handleUpdate(client, body) {

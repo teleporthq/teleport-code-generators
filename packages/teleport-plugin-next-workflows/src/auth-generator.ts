@@ -3,6 +3,12 @@ import {
   UIDLCustomUserProperty,
   DataSourceType,
 } from '@teleporthq/teleport-types'
+import {
+  SUPPORTED_EMAIL_PROVIDERS,
+  generateProviderSendFunction,
+  generateFillTemplateFn,
+  WELCOME_EMAIL_CONFIG_KEYS,
+} from './transactional-email-code'
 
 // GUI provider id → the actual next-auth v4 provider MODULE name, for the few
 // cases where they differ. Everything else uses the id as the module name.
@@ -728,16 +734,71 @@ module.exports = function nextAuthRoute(req, res) {
 `
 }
 
-export const generateSignupRouteFile = (auth: UIDLAuthentication): string => {
+// The optional WELCOME email sent from the signup route after the user is
+// created. Baked from the account-signup node config by the plugin. `emailProvider`
+// is the id WITHOUT the `email-` prefix (e.g. `resend`); `emailSecretEnvName` is
+// the env var the credential lives under (resolved from the node's secret ref).
+export interface WelcomeEmailOptions {
+  emailProvider?: string | null
+  fromEmail?: string
+  emailSecretEnvName?: string | null
+  emailSubject?: string
+  emailBodyHtml?: string
+  siteName?: string
+}
+
+export const generateSignupRouteFile = (
+  auth: UIDLAuthentication,
+  welcome: WelcomeEmailOptions = {}
+): string => {
   const needsDb = !!auth.dataSourceType
+  const welcomeProvider =
+    welcome.emailProvider && SUPPORTED_EMAIL_PROVIDERS.has(welcome.emailProvider)
+      ? welcome.emailProvider
+      : null
+  // Reserved keys that must NOT be copied from the request body onto the new
+  // user row — the auth fields plus every welcome-email config key (a stale
+  // client could otherwise inject them as bogus user columns).
+  const reservedKeysObj: Record<string, number> = { email: 1, password: 1, name: 1, role: 1 }
+  for (const key of WELCOME_EMAIL_CONFIG_KEYS) {
+    reservedKeysObj[key] = 1
+  }
   let dbImport = ''
   let createUserCall = ''
+  let welcomeHelpers = ''
 
   if (needsDb) {
     dbImport = `const authUtils = require('../../../utils/auth/auth-options');
 const createUser = authUtils.createUser;
 const userExistsByEmail = authUtils.userExistsByEmail;
 const sanitizeUser = authUtils.sanitizeUser;`
+
+    // Baked welcome-email helpers + config (no-op send when no provider set).
+    welcomeHelpers = `
+const WELCOME_EMAIL_PROVIDER = ${JSON.stringify(welcomeProvider)};
+const WELCOME_EMAIL_FROM = ${JSON.stringify(welcome.fromEmail || '')};
+const WELCOME_EMAIL_SECRET_ENV_NAME = ${JSON.stringify(welcome.emailSecretEnvName || '')};
+const WELCOME_EMAIL_SUBJECT = ${JSON.stringify(welcome.emailSubject || 'Welcome')};
+const WELCOME_EMAIL_BODY_HTML = ${JSON.stringify(welcome.emailBodyHtml || '')};
+const WELCOME_EMAIL_SITE_NAME = ${JSON.stringify(welcome.siteName || '')};
+
+${generateFillTemplateFn()}
+
+${generateProviderSendFunction(welcomeProvider)}
+
+async function sendWelcomeEmail(toEmail, tokenValues) {
+  if (!WELCOME_EMAIL_PROVIDER || !WELCOME_EMAIL_BODY_HTML || !toEmail) { return; }
+  var apiKey = WELCOME_EMAIL_SECRET_ENV_NAME ? process.env[WELCOME_EMAIL_SECRET_ENV_NAME] : '';
+  if (apiKey && String(apiKey).indexOf('teleporthq.secrets.') === 0) { apiKey = ''; }
+  if (!apiKey) { console.warn('[account-signup] welcome email skipped: credential not set'); return; }
+  var from = WELCOME_EMAIL_FROM || process.env.EMAIL_FROM || '';
+  if (!from) { console.warn('[account-signup] welcome email skipped: sender not configured'); return; }
+  var subject = fillTemplate(WELCOME_EMAIL_SUBJECT, tokenValues);
+  var html = fillTemplate(WELCOME_EMAIL_BODY_HTML, tokenValues);
+  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey });
+}
+`
+
     createUserCall = `    const exists = await userExistsByEmail(email);
     if (exists) {
       res.status(409).json({ error: 'User with this email already exists' });
@@ -750,7 +811,7 @@ const sanitizeUser = authUtils.sanitizeUser;`
       password: hashedPassword,
       role: 'user',
     };
-    const reservedKeys = { email: 1, password: 1, name: 1, role: 1 };
+    const reservedKeys = ${JSON.stringify(reservedKeysObj)};
     const bodyKeys = Object.keys(body);
     for (let i = 0; i < bodyKeys.length; i++) {
       if (!reservedKeys[bodyKeys[i]]) {
@@ -765,6 +826,19 @@ const sanitizeUser = authUtils.sanitizeUser;`
       return;
     }
 
+    // Best-effort welcome email — a failed send must never fail the signup.
+    try {
+      const __welcomeSiteName = WELCOME_EMAIL_SITE_NAME ||
+        (req.headers && req.headers.host ? String(req.headers.host).replace(/^www\\./, '').split(':')[0] : '');
+      await sendWelcomeEmail(email, {
+        userName: name || (newUser && newUser.name) || 'there',
+        userEmail: email,
+        siteName: __welcomeSiteName,
+      });
+    } catch (welcomeErr) {
+      console.error('[account-signup] welcome email failed:', welcomeErr && welcomeErr.message ? welcomeErr.message : welcomeErr);
+    }
+
     res.status(201).json({ user: sanitizeUser(newUser) });`
   } else {
     createUserCall = `    res.status(501).json({ error: 'No data source configured for user storage' });`
@@ -772,6 +846,7 @@ const sanitizeUser = authUtils.sanitizeUser;`
 
   return `const hashPassword = require('../../../utils/auth/hash-password');
 ${dbImport}
+${welcomeHelpers}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {

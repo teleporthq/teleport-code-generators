@@ -1,4 +1,4 @@
-import { DataSourceType, UIDLDataSource } from '@teleporthq/teleport-types'
+import { DataSourceType, UIDLDataSource, UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import {
   generatePostgreSQLFetcher,
   generateMySQLFetcher,
@@ -78,7 +78,11 @@ export const getDataSourceDependencies = (
   return dependencyMap[type]
 }
 
-export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName: string): string {
+export function generateDataSourceFetcher(
+  dataSource: UIDLDataSource,
+  tableName: string,
+  categories?: UIDLEcommerceCategory[]
+): string {
   if (!dataSource || typeof dataSource !== 'object') {
     throw new Error('Invalid data source: data source must be a valid object')
   }
@@ -233,7 +237,7 @@ export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName:
         if (!validation.isValid) {
           throw new Error(`Teleport config validation failed: ${validation.error}`)
         }
-        return generateTeleportFetcher(config, tableName)
+        return generateTeleportFetcher(config, tableName, categories)
       }
 
       default:
@@ -253,9 +257,10 @@ export function generateDataSourceFetcher(dataSource: UIDLDataSource, tableName:
 export function generateDataSourceFetcherWithCore(
   dataSource: UIDLDataSource,
   tableName: string,
-  isApiRoute: boolean = false
+  isApiRoute: boolean = false,
+  categories?: UIDLEcommerceCategory[]
 ): string {
-  const apiHandler = generateDataSourceFetcher(dataSource, tableName)
+  const apiHandler = generateDataSourceFetcher(dataSource, tableName, categories)
 
   // Extract the handler function body from the API route
   // The API route is structured as: export default async function handler(req, res) { ... }

@@ -10,6 +10,7 @@ import {
   generateCheckoutApiRoute,
   generateStockCheckApiRoute,
   generateStoreLocationsApiRoute,
+  generateProductVariantsApiRoute,
   generateDeliveryPriceApiRoute,
   generateOrderNotificationApiRoute,
   generateLowStockAlertApiRoute,
@@ -187,6 +188,20 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
         ],
       })
     }
+
+    // Product-variants endpoint — always emitted when e-commerce is on so the
+    // variant-picker widget can fetch a product's combinations. Inert (returns
+    // []) for products/stores without variants, so it's harmless when unused.
+    files.set('ecommerce-api-variants', {
+      path: ['pages', 'api', 'ecommerce'],
+      files: [
+        {
+          name: 'variants',
+          fileType: FileType.JS,
+          content: generateProductVariantsApiRoute(dataSourceType, dataSourceConfig),
+        },
+      ],
+    })
 
     // PayPal capture endpoint — only emitted when the project actually
     // offers PayPal. PayPal Orders v2 with `intent: 'CAPTURE'` requires the

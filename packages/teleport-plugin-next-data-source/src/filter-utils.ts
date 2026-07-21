@@ -12,27 +12,54 @@ const buildFilterEntry = (
     types.objectProperty(types.identifier('operand'), types.stringLiteral(operand)),
   ])
 
-// Predicate `(__f) => __f.destination !== '' && __f.destination !== null && __f.destination !== undefined`
+// Predicate:
+//   (__f) => __f.destination !== '' && __f.destination !== null &&
+//            __f.destination !== undefined &&
+//            !(Array.isArray(__f.destination) && __f.destination.filter(Boolean).length === 0)
 // Used at runtime to drop filter conditions whose destination resolves to an
 // empty value. Keeps the page generic: state-bound filters (e.g.
 // `selectedCategory === ''` after picking "All Categories") and url-bound
 // filters (e.g. no `?categoryFilter=` in URL → `router?.query?.categoryFilter`
 // is `undefined`) both fall away cleanly instead of being sent to the API as
 // `destination: ''`, which the SQL backend interprets as a literal empty
-// string and returns zero rows.
+// string and returns zero rows. The array clause covers array-overlap filters
+// (e.g. category `CATEGORY_DESCENDANTS[selectedCategory] || []`) whose "All"
+// reset resolves to `[]` — an empty overlap set must mean "no filter", not
+// "match nothing".
 const buildNonEmptyDestinationPredicate = (): types.ArrowFunctionExpression => {
   const f = types.identifier('__f')
   const dest = types.memberExpression(f, types.identifier('destination'))
+  const isEmptyArray = types.logicalExpression(
+    '&&',
+    types.callExpression(
+      types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+      [dest]
+    ),
+    types.binaryExpression(
+      '===',
+      types.memberExpression(
+        types.callExpression(types.memberExpression(dest, types.identifier('filter')), [
+          types.identifier('Boolean'),
+        ]),
+        types.identifier('length')
+      ),
+      types.numericLiteral(0)
+    )
+  )
   return types.arrowFunctionExpression(
     [f],
     types.logicalExpression(
       '&&',
       types.logicalExpression(
         '&&',
-        types.binaryExpression('!==', dest, types.stringLiteral('')),
-        types.binaryExpression('!==', dest, types.nullLiteral())
+        types.logicalExpression(
+          '&&',
+          types.binaryExpression('!==', dest, types.stringLiteral('')),
+          types.binaryExpression('!==', dest, types.nullLiteral())
+        ),
+        types.binaryExpression('!==', dest, types.identifier('undefined'))
       ),
-      types.binaryExpression('!==', dest, types.identifier('undefined'))
+      types.unaryExpression('!', isEmptyArray)
     )
   )
 }

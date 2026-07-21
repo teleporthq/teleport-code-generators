@@ -20,6 +20,7 @@ import {
   UIDLStaticValue,
   UIDLWorkflows,
   UIDLAuthentication,
+  UIDLEcommerceSettings,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -185,6 +186,11 @@ export interface GeneratorOptions {
   // is emitting is self-guarded by SQL or relies on a framework-level
   // auth gate.
   auth?: UIDLAuthentication
+  // Project-level e-commerce settings, plumbed down so the `teleport` data
+  // source fetcher can resolve a product's `category_ids` to display names
+  // (the category taxonomy lives only in `ecommerceSettings.categories`,
+  // baked at export time — there is no DB table for it).
+  ecommerceSettings?: UIDLEcommerceSettings
   // Project-level layout mode ('dashboard' | 'standard' | ...), plumbed down
   // so page-level plugins can render the correct nav chrome (top bar vs.
   // left sidebar). Purely a visual/structural choice — it has no bearing on

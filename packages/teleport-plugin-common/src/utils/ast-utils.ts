@@ -477,6 +477,45 @@ export const addAttributeToJSXTag = (
     return
   }
 
+  // An object-valued attribute (e.g. `style={{ ... }}`) can be contributed by
+  // more than one independent code path — e.g. a ctx-scoped dynamic style value
+  // resolved at JSX-build time, and a `dynamicStyleBindings` inline style added
+  // later by a style plugin. Pushing a second `style` JSXAttribute would silently
+  // drop one of the two (JS keeps only the last of duplicate object keys once
+  // transpiled), so merge into the existing ObjectExpression instead, replacing
+  // any property with a matching key so the newer value wins.
+  if (
+    attribute &&
+    attribute.value?.type === 'JSXExpressionContainer' &&
+    attribute.value.expression.type === 'ObjectExpression' &&
+    attributeDefinition.value?.type === 'JSXExpressionContainer' &&
+    attributeDefinition.value.expression.type === 'ObjectExpression'
+  ) {
+    const existingProps = attribute.value.expression.properties
+    attributeDefinition.value.expression.properties.forEach((newProp) => {
+      if (newProp.type !== 'ObjectProperty' || newProp.key.type === 'PrivateName') {
+        existingProps.push(newProp)
+        return
+      }
+      const newKeyName =
+        newProp.key.type === 'Identifier' ? newProp.key.name : String((newProp.key as any).value)
+      const existingIndex = existingProps.findIndex((prop) => {
+        if (prop.type !== 'ObjectProperty' || prop.key.type === 'PrivateName') {
+          return false
+        }
+        const existingKeyName =
+          prop.key.type === 'Identifier' ? prop.key.name : String((prop.key as any).value)
+        return existingKeyName === newKeyName
+      })
+      if (existingIndex >= 0) {
+        existingProps[existingIndex] = newProp
+      } else {
+        existingProps.push(newProp)
+      }
+    })
+    return
+  }
+
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 

@@ -189,6 +189,10 @@ module.exports = async function handler(req, res) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
             bResolved.__nodeId = bNode.id;
+            if (bResolved && Array.isArray(bResolved.templateParams)) {
+              if (typeof bResolved.body === 'string') { bResolved.body = utils.applyTemplateParams(bResolved.body, bResolved.templateParams); }
+              if (typeof bResolved.subject === 'string') { bResolved.subject = utils.applyTemplateParams(bResolved.subject, bResolved.templateParams); }
+            }
             if (bNode.type === 'general-if-statement') {
               context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
               continue;
@@ -875,7 +879,10 @@ const CLIENT_ONLY_NODES = new Set([
   'realtime-list-channel-members',
 ])
 
-export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
+export const generateCronAPIRoute = (
+  workflow: UIDLWorkflow,
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
+): string => {
   const serverNodes = workflow.nodes.filter((n: UIDLWorkflowNode) => !CLIENT_ONLY_NODES.has(n.type))
   const allNodeTypes = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true)
@@ -885,6 +892,10 @@ export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
   const serverEdges = workflow.edges.filter(
     (e: UIDLWorkflowEdge) => serverNodeIds.has(e.source) || serverNodeIds.has(e.target)
   )
+
+  const hasCustomNodeUsage = serverNodes.some((n) => n.type === 'general-custom-node')
+  const hasCustomNodeDefs = !!customNodes && Object.keys(customNodes).length > 0
+  const useCustomNodes = hasCustomNodeUsage && hasCustomNodeDefs
 
   const workflowConfig = JSON.stringify(
     {
@@ -906,6 +917,19 @@ export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
     ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
     : ''
 
+  // Cron routes live at pages/api/workflows/<file>.js → three levels up to root.
+  const customNodesImport = useCustomNodes
+    ? `var __customNodes;\ntry { __customNodes = require('../../../utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n`
+    : ''
+
+  // Reuse the shared execution loop (the same one webhook routes use) so cron
+  // workflows support loops, if/switch branching, and per-node templateParams
+  // merging (component-bodied emails). Its earlyResponse/terminal handling and
+  // sortedNodes declaration are self-contained.
+  const executionLoop = generateNodeExecutionLoop('WORKFLOW_CONFIG', {
+    hasCustomNodes: useCustomNodes,
+  })
+
   return `/**
  * Workflow Cron API Route
  * Workflow: ${sanitizeForBlockComment(workflow.name || workflow.id)}
@@ -914,7 +938,7 @@ export const generateCronAPIRoute = (workflow: UIDLWorkflow): string => {
 
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
-
+${customNodesImport}
 const WORKFLOW_CONFIG = ${workflowConfig};
 
 const nodeHandlers = {
@@ -933,37 +957,7 @@ module.exports = async function handler(req, res) {
     const context = {};
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;${requestInjection}
 
-    const sortedNodes = WORKFLOW_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
-
-    for (let i = 0; i < sortedNodes.length; i++) {
-      const node = sortedNodes[i];
-      const resolved = resolveConfig(node.config, context);
-      resolved.__nodeId = node.id;
-
-      if (node.type === 'general-if-statement') {
-        const condResult = utils.evaluateCondition(resolved, context);
-        context[node.id] = { result: condResult };
-        continue;
-      }
-
-      const handler = nodeHandlers[node.type];
-      if (!handler) continue;
-      const result = await handler(resolved, context);
-      if (result && result.__earlyResponse) {
-        var earlyRes = result.__earlyResponse;
-        var hKeys = Object.keys(earlyRes.headers || {});
-        for (var h = 0; h < hKeys.length; h++) {
-          res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
-        }
-        res.status(earlyRes.status || 500).json(earlyRes.body || {});
-        return;
-      }
-      if (utils.isFatalNodeResult(result)) {
-        throw new Error(utils.fatalNodeResultMessage(result));
-      }
-      context[node.id] = result;
-      if (result && result.__terminal) break;
-    }
+${executionLoop}
 
     res.status(200).json({ success: true, timestamp: Date.now() });
   } catch (error) {
@@ -1044,6 +1038,10 @@ const generateNodeExecutionLoop = (
       var node = sortedNodes[i];
       var resolved = resolveConfig(node.config, context);
       resolved.__nodeId = node.id;
+      if (resolved && Array.isArray(resolved.templateParams)) {
+        if (typeof resolved.body === 'string') { resolved.body = utils.applyTemplateParams(resolved.body, resolved.templateParams); }
+        if (typeof resolved.subject === 'string') { resolved.subject = utils.applyTemplateParams(resolved.subject, resolved.templateParams); }
+      }
 
       if (node.type === 'general-if-statement') {
         var condResult = utils.evaluateCondition(resolved, context);
@@ -1114,6 +1112,10 @@ const generateNodeExecutionLoop = (
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
             bResolved.__nodeId = bNode.id;
+            if (bResolved && Array.isArray(bResolved.templateParams)) {
+              if (typeof bResolved.body === 'string') { bResolved.body = utils.applyTemplateParams(bResolved.body, bResolved.templateParams); }
+              if (typeof bResolved.subject === 'string') { bResolved.subject = utils.applyTemplateParams(bResolved.subject, bResolved.templateParams); }
+            }
             if (bNode.type === 'general-if-statement') {
               context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
               continue;

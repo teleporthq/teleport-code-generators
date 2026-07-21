@@ -350,6 +350,17 @@ describe('generateDataSourceFetcher', () => {
     expect(code).toContain('FROM')
   })
 
+  it('splits a comma-joined array_overlap destination into multiple ids (multi-category filter)', () => {
+    const dataSource = createPostgreSQLDataSource('ds-1')
+    const code = generateDataSourceFetcher(dataSource, 'teleport_products')
+
+    // The multi-select Category Filter writes ?categoryFilter=a,b,c; the scalar
+    // array_overlap branch splits it so jsonb_exists_any matches the union.
+    expect(code).toContain('array_overlap')
+    expect(code).toContain('jsonb_exists_any')
+    expect(code).toContain("String(value).split(',')")
+  })
+
   it('generates MongoDB fetcher', () => {
     const dataSource = createMongoDBDataSource('ds-1')
     const code = generateDataSourceFetcher(dataSource, 'orders')

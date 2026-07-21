@@ -311,6 +311,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.authentication && {
         auth: uidl.authentication,
       }),
+      ...(uidl.ecommerceSettings && {
+        ecommerceSettings: uidl.ecommerceSettings,
+      }),
       ...((uidl as unknown as Record<string, unknown>).pageLayoutMode && {
         pageLayoutMode: (uidl as unknown as Record<string, unknown>).pageLayoutMode as string,
       }),

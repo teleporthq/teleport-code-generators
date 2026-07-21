@@ -7,6 +7,7 @@ import {
   UIDLDataSource,
   DataSourceType,
   ChunkType,
+  UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -189,7 +190,8 @@ export const extractDataSourceIntoNextAPIFolder = (
   node: UIDLDataSourceItemNode | UIDLDataSourceListNode,
   dataSources: Record<string, UIDLDataSource>,
   componentChunk: ChunkDefinition,
-  extractedResources: GeneratorOptions['extractedResources']
+  extractedResources: GeneratorOptions['extractedResources'],
+  categories?: UIDLEcommerceCategory[]
 ) => {
   try {
     // Validate node content structure
@@ -443,7 +445,7 @@ export default dataSourceModule.handler
     // Generate fetcher code for API route (exports just the handler)
     let fetcherCode: string
     try {
-      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '', true)
+      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '', true, categories)
     } catch (error) {
       return
     }
@@ -892,7 +894,8 @@ export const extractDataSourceIntoGetStaticProps = (
   extractedResources: GeneratorOptions['extractedResources'],
   dependencies: Record<string, any>,
   dynamicRouteAttr?: string,
-  folderPath?: string[]
+  folderPath?: string[],
+  categories?: UIDLEcommerceCategory[]
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -1216,7 +1219,12 @@ export const extractDataSourceIntoGetStaticProps = (
     // Generate fetcher code with core function
     let fetcherCode: string
     try {
-      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '')
+      fetcherCode = generateDataSourceFetcherWithCore(
+        dataSource,
+        tableName || '',
+        false,
+        categories
+      )
     } catch (error) {
       // tslint:disable-next-line:no-console
       console.error(`Failed to generate fetcher for ${dataSourceType} (${dataSourceId}):`, error)

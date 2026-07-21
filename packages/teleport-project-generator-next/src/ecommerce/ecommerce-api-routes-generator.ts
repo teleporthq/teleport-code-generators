@@ -38,8 +38,9 @@ export const generateCheckoutApiRoute = (
     ? `
   if (paymentMethod === 'stripe') {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+    // No payment_method_types — Stripe Dynamic Payment Methods surface every
+    // method enabled in the merchant's Dashboard (card, Apple Pay, Google Pay…).
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       line_items: cartItems.map((item) => ({
         price_data: {
           currency: currency || 'usd',
@@ -313,6 +314,57 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('Stock check error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+`
+}
+
+// Read-only endpoint the storefront variant-picker widget calls to load a
+// product's purchasable combinations (teleport_product_variants). Modeled on
+// the store-locations route: `db` via generateDbImport, graceful inert fallback
+// for non-DB sources. Accepts `?productId=<id>` or `?productIds=a,b,c` (batched
+// for a products-list page). Returns rows verbatim; the widget resolves the
+// selected combination + effective price/stock/image client-side.
+export const generateProductVariantsApiRoute = (
+  dataSourceType: string | null,
+  dataSourceConfig: Record<string, unknown> | null
+): string => {
+  const dbImport = generateDbImport(dataSourceType, dataSourceConfig)
+  if (!dbImport) {
+    return `export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  return res.status(200).json({ variants: [] })
+}
+`
+  }
+
+  return `${dbImport}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  try {
+    var idsParam = req.query.productIds || req.query.productId || ''
+    var ids = String(idsParam)
+      .split(',')
+      .map(function (s) { return s.trim() })
+      .filter(function (s) { return s.length > 0 })
+    if (ids.length === 0) {
+      return res.status(200).json({ variants: [] })
+    }
+
+    const result = await db.query(
+      'SELECT id, product_id, options, price, sku, image_url, gallery_images, quantity, position FROM teleport_product_variants WHERE product_id = ANY($1) ORDER BY position ASC',
+      [ids]
+    )
+    return res.status(200).json({ variants: result.rows })
+  } catch (error) {
+    console.error('Product variants fetch error:', error)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }

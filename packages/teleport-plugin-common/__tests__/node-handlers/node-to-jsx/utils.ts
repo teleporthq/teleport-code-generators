@@ -110,6 +110,61 @@ describe('createBinaryExpression', () => {
       prefix: true,
     })
   })
+
+  // A rendering condition exists to HIDE a node — it must never be able to throw.
+  // The bound value is nullish far more often than it looks (an optional CMS
+  // column, a category with no image, an unhydrated state), and a bare
+  // `x.length` / `x.includes(...)` took whole pages down with
+  // "Cannot read properties of null (reading 'length')".
+  describe('collection operators are null-safe', () => {
+    const codeOf = (
+      condition: { operation: string; operand?: string; containsField?: string },
+      type = 'array'
+    ) => generate(createBinaryExpression(condition, { key: 'imageUrl', type }) as types.Node).code
+
+    it('isNotEmpty / isEmpty coerce a nullish value to an empty collection', () => {
+      expect(codeOf({ operation: 'isNotEmpty' })).toBe('(imageUrl || []).length > 0')
+      expect(codeOf({ operation: 'isEmpty' })).toBe('(imageUrl || []).length === 0')
+    })
+
+    it('objects go through Object.keys on a non-null target', () => {
+      expect(codeOf({ operation: 'isNotEmpty' }, 'object')).toBe(
+        'Object.keys(imageUrl || {}).length > 0'
+      )
+    })
+
+    it('length comparisons guard the same way', () => {
+      expect(codeOf({ operation: 'lengthGreaterThan', operand: '2' })).toBe(
+        '(imageUrl || []).length > 2'
+      )
+    })
+
+    it('contains / notContains guard the receiver of includes()', () => {
+      expect(codeOf({ operation: 'contains', operand: 'a' })).toBe('(imageUrl || []).includes("a")')
+      expect(codeOf({ operation: 'notContains', operand: 'a' })).toBe(
+        '!(imageUrl || []).includes("a")'
+      )
+    })
+
+    it('hasKey passes a non-null receiver to hasOwnProperty', () => {
+      expect(codeOf({ operation: 'hasKey', operand: 'a' }, 'object')).toBe(
+        'Object.prototype.hasOwnProperty.call(imageUrl || {}, "a")'
+      )
+    })
+
+    it('a non-empty string still reads as non-empty (string semantics preserved)', () => {
+      // eslint-disable-next-line no-eval
+      const evaluate = (expr: string, imageUrl: unknown) =>
+        // tslint:disable-next-line function-constructor
+        new Function('imageUrl', `return ${expr}`)(imageUrl)
+
+      const expression = codeOf({ operation: 'isNotEmpty' })
+      expect(evaluate(expression, 'https://cdn/x.png')).toBe(true)
+      expect(evaluate(expression, '')).toBe(false)
+      expect(evaluate(expression, null)).toBe(false)
+      expect(evaluate(expression, undefined)).toBe(false)
+    })
+  })
 })
 
 describe('createConditionIdentifier', () => {

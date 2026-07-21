@@ -347,8 +347,28 @@ function buildInvoiceDataScope(invoiceData) {
     var unitGross = unitNet + unitVat;
     var lineGross = lineNet + lineVat;
 
+    // Append the purchased variant to the item name so it appears on the PDF
+    // (e.g. "Cotton Tee — Red / XL"). Empty for flat products.
+    var baseName = it.name || it.product_name || '';
+    var variantLabel = it.variantLabel || it.variant_label || '';
+    var displayName = variantLabel ? (baseName + ' — ' + variantLabel) : baseName;
+
+    // Colour swatch hex(es) for the variant's colour-type axes (JSON array of
+    // { color }), for the GUI template's swatch mapper + the fallback HTML row.
+    var variantSwatches = [];
+    try {
+      var swRaw = it.variantSwatches || it.variant_swatches;
+      if (swRaw) { var swArr = typeof swRaw === 'string' ? JSON.parse(swRaw) : swRaw; if (Array.isArray(swArr)) variantSwatches = swArr; }
+    } catch (e) { variantSwatches = []; }
+    var variantSwatchesHtml = variantSwatches.map(function (sw) {
+      return '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,0.2);margin-right:4px;vertical-align:middle;background:' + (sw && sw.color ? sw.color : 'transparent') + ';"></span>';
+    }).join('');
+
     return {
-      name: it.name || it.product_name || '',
+      name: displayName,
+      variant: variantLabel,
+      variantSwatches: variantSwatches,
+      variantSwatchesHtml: variantSwatchesHtml,
       description: it.description || '',
       quantity: String(qty),
       // Original fields kept for backward compatibility with templates
@@ -886,7 +906,7 @@ function buildFallbackInvoiceHtml(scope) {
     '</tr></thead><tbody>');
   products.forEach(function (p) {
     parts.push('<tr>' +
-      '<td style="border-bottom:1px solid #eee;padding:6px;">' + escapeHtml(p.name) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;">' + (p.variantSwatchesHtml || '') + escapeHtml(p.name) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.quantity) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.unitPrice) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineTotal) + '</td>' +

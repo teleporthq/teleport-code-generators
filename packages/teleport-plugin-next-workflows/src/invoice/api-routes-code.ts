@@ -172,6 +172,8 @@ module.exports = async function handler(req, res) {
           return {
             productId: row.product_id || row.productId || null,
             name: row.product_name || row.name || 'Item',
+            variantLabel: row.variant_label || row.variantLabel || null,
+            variantSwatches: row.variant_swatches || row.variantSwatches || null,
             quantity: Number(row.quantity) || 1,
             unitPrice: Number(row.unit_price || row.unitPrice || row.price) || 0,
             totalPrice: Number(row.total_price || row.totalPrice) || 0,

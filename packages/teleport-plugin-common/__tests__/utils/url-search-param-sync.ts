@@ -65,6 +65,30 @@ describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
     expect(code).toContain('__nextQuery["search-keyword"] = String(q)')
     expect(code).not.toContain('__nextQuery.search-keyword')
   })
+
+  it('also deletes the key when the value equals a non-empty default (clean canonical URL)', () => {
+    const effect = buildUrlWriteBackEffect(
+      'sortBy',
+      types.identifier('sortBy'),
+      types.identifier('sortBy'),
+      types.stringLiteral('name-asc')
+    )
+    const code = codeOf(effect)
+
+    // The default now also routes to the delete branch, so loading the page at
+    // its default sort never writes a sticky `?sortBy=name-asc`.
+    expect(code).toContain('if (sortBy === "" || sortBy == null || sortBy === "name-asc")')
+    expect(code).toContain('delete __nextQuery.sortBy')
+    expect(code).toContain('__nextQuery.sortBy = String(sortBy)')
+  })
+
+  it('omits the default clause when no default is supplied (byte-identical fallback)', () => {
+    const withoutDefault = codeOf(
+      buildUrlWriteBackEffect('sortBy', types.identifier('sortBy'), types.identifier('sortBy'))
+    )
+    expect(withoutDefault).toContain('if (sortBy === "" || sortBy == null)')
+    expect(withoutDefault).not.toContain('=== "name-asc"')
+  })
 })
 
 describe('URLSearchParamSync.buildUrlReadBackEffect', () => {
@@ -88,5 +112,23 @@ describe('URLSearchParamSync.buildUrlReadBackEffect', () => {
 
     expect(code).toContain('const __urlValue = router.query["search-keyword"]')
     expect(code).toContain('}, [router.query["search-keyword"], router.isReady])')
+  })
+
+  it('resolves an absent/empty URL value to a non-empty default rather than ""', () => {
+    const effect = buildUrlReadBackEffect('sortBy', 'setSortBy', types.stringLiteral('name-asc'))
+    const code = codeOf(effect)
+
+    // The normalized (string | string[] | undefined) value falls through to the
+    // default when empty — this is what stops the default from being clobbered
+    // to "" on first load (which forced an extra unsorted fetch).
+    expect(code).toContain('|| "name-asc"')
+    expect(code).toContain('setSortBy(prev => prev === __nextValue ? prev : __nextValue)')
+  })
+
+  it('emits no default fallback when none is supplied (byte-identical fallback)', () => {
+    const code = codeOf(buildUrlReadBackEffect('sortBy', 'setSortBy'))
+    expect(code).not.toContain('name-asc')
+    // The bare normalized expression still ends in the "" missing-key fallback.
+    expect(code).toContain('const __nextValue =')
   })
 })

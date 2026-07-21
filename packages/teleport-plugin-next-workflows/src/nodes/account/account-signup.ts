@@ -10,7 +10,26 @@ async function account_signup(config: any, context: Record<string, unknown>) {
   }
 
   const bodyObj: any = { email, password, name }
-  const skipKeys: any = { email: true, password: true, name: true }
+  // Skip auth fields AND the welcome-email config (emailProvider/from/apiKey/
+  // subject/body/…): those are consumed by the generated signup route to send
+  // the welcome email — they must never be forwarded (they'd be inserted as
+  // bogus user columns) nor shipped/echoed from the client.
+  const skipKeys: any = {
+    email: true,
+    password: true,
+    name: true,
+    emailProvider: true,
+    from: true,
+    fromName: true,
+    apiKey: true,
+    serverToken: true,
+    subject: true,
+    body: true,
+    bodySource: true,
+    bodyComponentId: true,
+    bodyTemplatePurpose: true,
+    templateParams: true,
+  }
   const configKeys = Object.keys(config)
   for (let i = 0; i < configKeys.length; i++) {
     if (!skipKeys[configKeys[i]]) {

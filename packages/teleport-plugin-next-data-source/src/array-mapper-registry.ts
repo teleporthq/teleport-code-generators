@@ -38,7 +38,6 @@ export interface ArrayMapperRegistryEntry {
   debouncedSearchQueryVar?: string
   setDebouncedSearchQueryVar?: string
   skipDebounceRefVar?: string
-  skipCountFetchRefVar?: string
 
   getStaticPropsDataVar: string
   getStaticPropsMaxPagesVar: string
@@ -272,10 +271,6 @@ export class ArrayMapperRegistry {
       result.debouncedSearchQueryVar = `debouncedSearch_${prefix}_query`
       result.setDebouncedSearchQueryVar = `setDebouncedSearch_${prefix}_query`
       result.skipDebounceRefVar = `skipDebounceOnMount_${prefix}`
-
-      if (paginated) {
-        result.skipCountFetchRefVar = `skipCountFetchOnMount_${prefix}`
-      }
     }
 
     return result

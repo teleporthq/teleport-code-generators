@@ -1,3 +1,4 @@
+import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import {
   replaceSecretReference,
   generateDateFormatterCode,
@@ -50,7 +51,8 @@ export const validateTeleportConfig = (
 
 export const generateTeleportFetcher = (
   config: Record<string, unknown>,
-  tableName: string
+  tableName: string,
+  categories?: UIDLEcommerceCategory[]
 ): string => {
   const dbConfig = config as TeleportDBConfig
   const schema = dbConfig.options?.schema
@@ -140,7 +142,7 @@ const getClient = () => {
 ${generateSafeJSONParseCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${getTransformationCode(tableName)}
+${getTransformationCode(tableName, categories)}
 ${getTransformWrapperCode(tableName)}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
@@ -157,6 +159,15 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       
       if (Array.isArray(value)) {
         if (value.length === 0) return
+        if (operand === 'array_overlap') {
+          // Row column is a JSON array (e.g. category_ids). Match when it
+          // shares any element with the destination set. jsonb ?| (function
+          // form) avoids the '?' placeholder-token ambiguity some drivers hit.
+          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
+          queryParams.push(value.map((entry) => String(entry)))
+          paramIndex++
+          return
+        }
         const placeholders = value.map(() => \`$\${paramIndex++}\`)
         queryParams.push(...value)
         if (operand === '!=') {
@@ -165,6 +176,17 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
           conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
         }
       } else {
+        if (operand === 'array_overlap') {
+          if (value === '' || value === null || value === undefined) return
+          // A single comma-joined string (the multi-select Category Filter's
+          // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
+          const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
+          if (overlapValues.length === 0) return
+          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
+          queryParams.push(overlapValues)
+          paramIndex++
+          return
+        }
         if (value === null) {
           if (operand === '=') {
             conditions.push(\`\${field} IS NULL\`)
@@ -364,9 +386,22 @@ export default async function handler(req, res) {
         : ''
     }
 
+    // Stamp each row with a globally-correct 1-based \`__rowNumber\` (the page
+    // offset is applied server-side above), so list index columns keep counting
+    // across pages instead of restarting at 1. Renderer-internal field — it is
+    // filtered from ordinary field bindings and only read by the index column.
+    const __finalData = ${getTransformExpression(tableName) ? 'transformedData' : 'safeData'}
+    const __rowNumberStart = (typeof offsetValue === 'number' && !isNaN(offsetValue)) ? offsetValue : 0
+    const __numberedData = Array.isArray(__finalData)
+      ? __finalData.map((__row, __i) =>
+          __row && typeof __row === 'object' && !Array.isArray(__row)
+            ? Object.assign({}, __row, { __rowNumber: __rowNumberStart + __i + 1 })
+            : __row)
+      : __finalData
+
     return res.status(200).json({
       success: true,
-      data: ${getTransformExpression(tableName) ? 'transformedData' : 'safeData'},
+      data: __numberedData,
       timestamp: Date.now()
     })
   } catch (error) {

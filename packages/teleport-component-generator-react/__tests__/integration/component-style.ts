@@ -121,18 +121,16 @@ describe('React Styles in Component', () => {
       expect(jsFile?.content).toContain(`align-self: center`)
     })
 
-    it('should throw error when a state is being refered in generated StyledJSX ', async () => {
+    it('should resolve a state reference in StyledJSX to an inline style', async () => {
       const styledJSXGenerator = createReactComponentGenerator({
         variation: ReactStyleVariation.StyledJSX,
       })
-      try {
-        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
-        expect(true).toBe(false)
-      } catch (e) {
-        expect(e.message).toContain(
-          'Error running transformDynamicStyles in reactStyledJSXChunkPlugin'
-        )
-      }
+      const result = await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+      const jsFile = findFileByType(result.files, FileType.JS)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile?.content).toContain('backgroundColor: active')
+      expect(jsFile?.content).toContain(`height: \${props.config.height}`)
     })
 
     it('should explicitly send prop if style is using one prop variable', async () => {
@@ -159,18 +157,18 @@ describe('React Styles in Component', () => {
       expect(jsFile?.content).toContain('<ComponentWithAttrPropContainer {...props}')
     })
 
-    it('should throw error when a state is being refered in generated StyledComponents ', async () => {
+    it('should resolve a state reference in StyledComponents to an inline style', async () => {
       const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactStyleVariation.StyledComponents,
       })
-      try {
-        await styledComponentsGenerator.generateComponent(ComponentWithInvalidStateStyles)
-        expect(true).toBe(false)
-      } catch (e) {
-        expect(e.message).toContain(
-          'Error running transformDynamicStyles in reactStyledComponentsPlugin'
-        )
-      }
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithInvalidStateStyles
+      )
+      const jsFile = findFileByType(result.files, FileType.JS)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile?.content).toContain('backgroundColor: active')
+      expect(jsFile?.content).toContain('height: props.config.height')
     })
   })
 

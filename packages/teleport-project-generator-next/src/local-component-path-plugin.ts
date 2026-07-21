@@ -68,4 +68,6 @@ export const INTERACTIVE_PRIMITIVE_COMPONENT_FILES: Record<string, string> = {
   TqMotion: 'tq-motion',
   TqCountdown: 'tq-countdown',
   TqFormFileInput: 'tq-form-file-input',
+  TqCategoriesMegamenu: 'tq-categories-megamenu',
+  TqCategoriesFilter: 'tq-categories-filter',
 }

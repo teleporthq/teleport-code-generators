@@ -264,6 +264,54 @@ function resolveTemplateTokenString(value, context) {
   return { matched: false };
 }
 
+// Fills flat {{key}} merge tokens in a component-bodied email node's body/subject
+// from its (already-resolved) templateParams. Unknown tokens are left verbatim so
+// unrelated {{...}} (e.g. a campaign CustomerData {{name}}) is never blanked.
+// Values are injected unescaped, matching the e-commerce email fillers.
+// Expands each \`<!--tq:each KEY-->…{{field}}…<!--/tq:each-->\` block (emitted by
+// the email serializer for a builder array mapper) by repeating the inner body
+// once per row of lists[KEY], substituting each row's {{field}} with the
+// HTML-escaped item value. Unknown per-row tokens are left verbatim so the flat
+// page-level fill can still resolve them (e.g. {{companyName}} inside a row). Runs
+// BEFORE the flat token replace. No-op when there is no such block.
+// PAIRED EDIT: GUI order-side-effects-helper.ts EXPAND_LIST_BLOCKS_JS + worker
+// adapters/email/_bridge.ts. Keep in sync.
+function expandListBlocks(text, lists) {
+  if (typeof text !== 'string' || text.indexOf('<!--tq:each') === -1) return text;
+  function escRow(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  return text.replace(/<!--tq:each\\s+([\\w.-]+)\\s*-->([\\s\\S]*?)<!--\\/tq:each-->/g, function(m, key, body) {
+    var rows = lists && lists[key];
+    if (!Array.isArray(rows)) return '';
+    var out = '';
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r] || {};
+      out += body.replace(/\\{\\{\\s*([\\w.-]+)\\s*\\}\\}/g, function(mm, field) {
+        return (row && Object.prototype.hasOwnProperty.call(row, field) && row[field] != null) ? escRow(row[field]) : mm;
+      });
+    }
+    return out;
+  });
+}
+
+function applyTemplateParams(text, params) {
+  if (typeof text !== 'string' || !Array.isArray(params)) return text;
+  var map = {};
+  for (var i = 0; i < params.length; i++) {
+    var p = params[i];
+    if (p && typeof p.key === 'string') {
+      // Keep the raw value type: array values feed expandListBlocks (loop rows);
+      // scalars are stringified in the flat replace below.
+      map[p.key] = p.value;
+    }
+  }
+  var expanded = expandListBlocks(text, map);
+  return expanded.replace(/\\{\\{\\s*([\\w.-]+)\\s*\\}\\}/g, function(m, key) {
+    if (!Object.prototype.hasOwnProperty.call(map, key)) return m;
+    var v = map[key];
+    return (v === null || v === undefined) ? '' : String(v);
+  });
+}
+
 // Post-resolution pass over a node's resolved config. Data-node filters whose
 // value is an unresolved route-param sentinel become a hard validation error
 // (surfaced through the workflow error handler) — sending them on would query
@@ -624,6 +672,18 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
       const configError = finalizeResolvedConfig(node.type, resolvedConfig);
       if (configError) {
         throw new Error(configError);
+      }
+
+      // Component-bodied send-email node: fill {{token}} merge fields in the
+      // serialized template body/subject from the resolved templateParams
+      // (resolveConfig already resolved each param value against context).
+      if (resolvedConfig && Array.isArray(resolvedConfig.templateParams)) {
+        if (typeof resolvedConfig.body === 'string') {
+          resolvedConfig.body = applyTemplateParams(resolvedConfig.body, resolvedConfig.templateParams);
+        }
+        if (typeof resolvedConfig.subject === 'string') {
+          resolvedConfig.subject = applyTemplateParams(resolvedConfig.subject, resolvedConfig.templateParams);
+        }
       }
 
       if (node.type === 'general-if-statement') {
@@ -1019,6 +1079,8 @@ module.exports = {
   evaluateSingleComparison,
   normalizeComparisonOperator,
   resolveTemplateTokenString,
+  applyTemplateParams,
+  expandListBlocks,
   finalizeResolvedConfig,
   executeWorkflow,
   executeNodes,

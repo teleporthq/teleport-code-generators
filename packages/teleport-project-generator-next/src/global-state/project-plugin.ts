@@ -411,7 +411,8 @@ export class NextGlobalStateProjectPlugin implements ProjectPlugin {
           apiRouteContent = generateDataSourceFetcherWithCore(
             config.dataSource,
             config.tableName,
-            true // isApiRoute
+            true, // isApiRoute
+            structure.uidl.ecommerceSettings?.categories
           )
         } catch {
           continue

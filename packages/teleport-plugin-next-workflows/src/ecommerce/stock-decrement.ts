@@ -108,19 +108,34 @@ export const looksLikeStockDecrementBuilder = (code: string): boolean => {
 // customHandler, the runtime would invoke the helper with the wrong
 // arguments and the workflow would crash.
 export const AGGREGATE_CART_DELTAS_HELPER = `  function aggregateCartDeltas(cartItems) {
-    // Sum quantities per-id so a cart with the same product twice
-    // ("clicked Add To Cart, then clicked Add again") decrements
-    // by the TOTAL number ordered, not just the last entry's qty.
-    // Returns { idToDelta: { '<safeId>': <qty> }, idList: ['<safeId>',…] }.
+    // Sum quantities so a cart with the same item twice ("clicked Add To Cart,
+    // then clicked Add again") decrements by the TOTAL ordered. Lines are keyed
+    // by product id (variantless) OR variant id (variant lines), so two variants
+    // of one product decrement their own stock and never collide. Product-level
+    // decrements hit teleport_products.quantity; variant-level decrements hit
+    // teleport_product_variants.quantity.
+    // Returns { idToDelta, idList } for products AND { variantToDelta, variantList }.
     var idToDelta = {};
     var idList = [];
+    var variantToDelta = {};
+    var variantList = [];
     for (var i = 0; i < cartItems.length; i++) {
       var it = cartItems[i];
       if (!it) continue;
-      var pid = it.productId || it.product_id;
-      if (!pid) continue;
       var qty = parseInt(it.quantity, 10);
       if (isNaN(qty) || qty <= 0) qty = 1;
+      var vid = it.variantId || it.variant_id || null;
+      if (vid) {
+        var safeVid = String(vid).replace(/'/g, "''");
+        if (variantToDelta[safeVid] == null) {
+          variantToDelta[safeVid] = 0;
+          variantList.push(safeVid);
+        }
+        variantToDelta[safeVid] += qty;
+        continue;
+      }
+      var pid = it.productId || it.product_id;
+      if (!pid) continue;
       var safeId = String(pid).replace(/'/g, "''");
       if (idToDelta[safeId] == null) {
         idToDelta[safeId] = 0;
@@ -128,7 +143,7 @@ export const AGGREGATE_CART_DELTAS_HELPER = `  function aggregateCartDeltas(cart
       }
       idToDelta[safeId] += qty;
     }
-    return { idToDelta: idToDelta, idList: idList };
+    return { idToDelta: idToDelta, idList: idList, variantToDelta: variantToDelta, variantList: variantList };
   }`
 
 // Stock-decrement-only helper: builds the `WHEN 'id' THEN qty` CASE
@@ -188,9 +203,9 @@ ${STOCK_DECREMENT_HELPERS}
   }
 
   // 2. Aggregate duplicate cart lines so the CASE expression has
-  //    one branch per distinct product id with the SUM of its qtys.
+  //    one branch per distinct product/variant id with the SUM of its qtys.
   var agg = aggregateCartDeltas(cartItems);
-  if (agg.idList.length === 0) {
+  if (agg.idList.length === 0 && agg.variantList.length === 0) {
     return { query: "SELECT 1", affected: [], expectedAffected: 0, deltasById: {}, allowBackorders: ALLOW_BACKORDERS };
   }
   var caseExpr = buildCaseExpr(agg.idToDelta, agg.idList);
@@ -248,7 +263,30 @@ ${STOCK_DECREMENT_HELPERS}
       + " AND (quantity IS NULL OR quantity >= (CASE id" + caseExpr + " ELSE 0 END))";
   }
 
-  var query = "UPDATE teleport_products SET " + setClause + " " + whereClause + " " + returningClause;
+  // Assemble the statement(s). Variant lines decrement teleport_product_variants
+  // by variant id (same NULL-preserving / GREATEST(0) / backorder-guard shape as
+  // the product path). The product UPDATE is emitted LAST so its RETURNING (used
+  // by the downstream low-stock SELECT) survives node-postgres multi-statement
+  // simple-query semantics. Mixed carts run BOTH; a variant-only cart runs just
+  // the variant UPDATE.
+  var statements = [];
+  if (agg.variantList.length > 0) {
+    var variantCaseExpr = buildCaseExpr(agg.variantToDelta, agg.variantList);
+    var quotedVariantIds = agg.variantList.map(function(k) { return "'" + k + "'"; }).join(',');
+    var variantSetClause = "quantity = CASE WHEN quantity IS NULL THEN NULL ELSE GREATEST(0, quantity - (CASE id" + variantCaseExpr + " ELSE 0 END)) END, updated_at = NOW()";
+    var variantWhere;
+    if (ALLOW_BACKORDERS) {
+      variantWhere = "WHERE id IN (" + quotedVariantIds + ")";
+    } else {
+      variantWhere = "WHERE id IN (" + quotedVariantIds + ")"
+        + " AND (quantity IS NULL OR quantity >= (CASE id" + variantCaseExpr + " ELSE 0 END))";
+    }
+    statements.push("UPDATE teleport_product_variants SET " + variantSetClause + " " + variantWhere);
+  }
+  if (agg.idList.length > 0) {
+    statements.push("UPDATE teleport_products SET " + setClause + " " + whereClause + " " + returningClause);
+  }
+  var query = statements.join('; ');
 
   return {
     query: query,

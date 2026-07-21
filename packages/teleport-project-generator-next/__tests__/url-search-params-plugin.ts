@@ -113,6 +113,39 @@ describe('createNextUrlSearchParamsPlugin', () => {
     expect(code).toContain('setSelectedCategory')
   })
 
+  it('threads a non-empty state default into both effects (sort dropdown case)', async () => {
+    // A binding whose default is a non-empty value (the products-list sort
+    // dropdown defaults to `name-asc`) must NOT be clobbered to `''` when the
+    // router hydrates with no `?sortBy` key — otherwise the DataProvider
+    // re-fetches unsorted. The read-back resolves a missing key back to the
+    // default; the write-back treats the default as a clean/param-free URL.
+    const chunk = makeJsxComponentChunk()
+    const structure: ComponentStructure = {
+      uidl: {
+        name: 'Products',
+        node: { type: 'element', content: { elementType: 'container' } },
+        stateDefinitions: {
+          sortBy: {
+            type: 'string',
+            defaultValue: 'name-asc',
+            urlSearchParamBinding: { key: 'sortBy' },
+          },
+        },
+      } as never,
+      options: {},
+      chunks: [chunk],
+      dependencies: {},
+    }
+    await plugin(structure)
+
+    const code = codeOfChunk(chunk)
+    // Write-back: the default value routes to the delete branch (clean URL).
+    expect(code).toContain('sortBy === "" || sortBy == null || sortBy === "name-asc"')
+    // Read-back: an absent/empty URL value falls through to the default.
+    expect(code).toContain('|| "name-asc"')
+    expect(code).toContain('setSortBy')
+  })
+
   it('is idempotent — running twice does not double-emit write-back or read-back', async () => {
     const chunk = makeJsxComponentChunk()
     const structure: ComponentStructure = {

@@ -2,6 +2,7 @@ import { NodeHandlerGenerator } from './types'
 import { integrationRegistry } from './integrations'
 
 import { accountComparePasswords } from './account/account-compare-passwords'
+import { accountDeleteCurrent } from './account/account-delete-current'
 import { accountGetCurrent } from './account/account-get-current'
 import { accountHashPassword } from './account/account-hash-password'
 import { accountLogin } from './account/account-login'
@@ -164,6 +165,7 @@ import { utilityYoutubeTranscript } from './utility/utility-youtube-transcript'
 
 export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'account-compare-passwords': accountComparePasswords,
+  'account-delete-current': accountDeleteCurrent,
   'account-get-current': accountGetCurrent,
   'account-hash-password': accountHashPassword,
   'account-login': accountLogin,

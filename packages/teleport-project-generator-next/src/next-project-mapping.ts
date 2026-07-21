@@ -182,6 +182,20 @@ export const NextProjectMapping: Mapping = {
         path: '../components/tq-form-file-input',
       },
     },
+    'categories-megamenu-node': {
+      elementType: 'TqCategoriesMegamenu',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-categories-megamenu',
+      },
+    },
+    'categories-filter-node': {
+      elementType: 'TqCategoriesFilter',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-categories-filter',
+      },
+    },
     'countdown-node': {
       elementType: 'TqCountdown',
       dependency: {

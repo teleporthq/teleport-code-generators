@@ -19,6 +19,8 @@ import { generateSharedRuntimeUtilsCode } from '../src'
 type SharedUtils = {
   resolveConfig: (cfg: unknown, ctx: Record<string, unknown>) => any
   resolveRichTextContext: (html: string, ctx: Record<string, unknown>) => string
+  applyTemplateParams: (text: string, params: unknown) => string
+  expandListBlocks: (text: string, lists: Record<string, unknown>) => string
 }
 
 function loadSharedRuntime(): SharedUtils {
@@ -119,5 +121,129 @@ describe('email body inline-context resolution', () => {
     })
     expect(out).toContain(computedUrl)
     expect(out).not.toContain('Reset URL</span>')
+  })
+})
+
+// Guards the component-body path: a send-email node whose body is a serialized
+// email-template component carries flat {{token}} merge fields filled at runtime
+// from templateParams (resolveConfig resolves each param's context ref first,
+// then executeNodes calls applyTemplateParams on body + subject).
+describe('email template params substitution', () => {
+  const utils = loadSharedRuntime()
+
+  it('exposes applyTemplateParams from the generated runtime', () => {
+    expect(typeof utils.applyTemplateParams).toBe('function')
+  })
+
+  it('fills {{token}} in body + subject from resolved templateParams (executeNodes flow)', () => {
+    const config = {
+      subject: 'Reset {{recipientEmail}}',
+      body: '<a href="{{resetUrl}}">Reset</a> for {{recipientEmail}}',
+      templateParams: [
+        {
+          key: 'resetUrl',
+          value: { type: 'workflowContext', nodeId: 'N1', path: ['N1', 'result'] },
+        },
+        { key: 'recipientEmail', value: 'jane@example.com' },
+      ],
+    }
+    // Step 1: resolveConfig resolves each param's context ref (as executeNodes does).
+    const resolved = utils.resolveConfig(config, {
+      N1: { result: 'https://app.example.com/reset-password?token=abc' },
+    })
+    // Step 2: executeNodes applies the params to body + subject.
+    const body = utils.applyTemplateParams(resolved.body, resolved.templateParams)
+    const subject = utils.applyTemplateParams(resolved.subject, resolved.templateParams)
+    expect(body).toBe(
+      '<a href="https://app.example.com/reset-password?token=abc">Reset</a> for jane@example.com'
+    )
+    expect(subject).toBe('Reset jane@example.com')
+  })
+
+  it('leaves unknown tokens verbatim (never blanks a campaign {{name}})', () => {
+    const out = utils.applyTemplateParams('Hi {{name}}, reset: {{resetUrl}}', [
+      { key: 'resetUrl', value: 'https://x/reset?token=1' },
+    ])
+    expect(out).toBe('Hi {{name}}, reset: https://x/reset?token=1')
+  })
+
+  it('does not partial-match longer tokens ({{total}} vs {{totalAmount}})', () => {
+    const out = utils.applyTemplateParams('{{total}} of {{totalAmount}}', [
+      { key: 'total', value: '5' },
+      { key: 'totalAmount', value: '$99' },
+    ])
+    expect(out).toBe('5 of $99')
+  })
+
+  it('is a no-op when there are no params or body is not a string', () => {
+    expect(utils.applyTemplateParams('{{x}}', [])).toBe('{{x}}')
+    expect(utils.applyTemplateParams('{{x}}', undefined)).toBe('{{x}}')
+  })
+
+  // ── Array-mapper loop-block expansion (builder array mapper → email list) ──
+
+  it('expands a <!--tq:each--> block from an array templateParam, once per row', () => {
+    const body =
+      'Items:<!--tq:each products--><li>{{quantity}}x <strong>{{product_name}}</strong> — {{companyName}}</li><!--/tq:each-->end'
+    const out = utils.applyTemplateParams(body, [
+      {
+        key: 'products',
+        value: [
+          { product_name: 'Espresso Beans', quantity: 2 },
+          { product_name: 'Ceramic Mug', quantity: 1 },
+        ],
+      },
+      { key: 'companyName', value: 'Acme Inc.' },
+    ])
+    // one <li> per row, row tokens filled from the row object
+    expect(out).toContain('<li>2x <strong>Espresso Beans</strong> — Acme Inc.</li>')
+    expect(out).toContain('<li>1x <strong>Ceramic Mug</strong> — Acme Inc.</li>')
+    // the {{companyName}} inside the row (not a row field) resolved via the flat fill
+    expect(out).not.toContain('{{companyName}}')
+    // no leftover sentinels or tokens
+    expect(out).not.toContain('<!--tq:each')
+    expect(out).not.toContain('<!--/tq:each-->')
+    expect(out).not.toContain('{{product_name}}')
+  })
+
+  it('HTML-escapes per-row values (no markup injection from item data)', () => {
+    const out = utils.expandListBlocks('<!--tq:each products-->[{{name}}]<!--/tq:each-->', {
+      products: [{ name: '<b>x</b> & "y"' }],
+    })
+    expect(out).toBe('[&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;]')
+  })
+
+  it('renders an empty string for a missing/non-array list key', () => {
+    const body = 'a<!--tq:each products-->{{name}}<!--/tq:each-->b'
+    expect(utils.applyTemplateParams(body, [])).toBe('ab')
+    expect(utils.applyTemplateParams(body, [{ key: 'products', value: 'not-an-array' }])).toBe('ab')
+  })
+
+  it('resolveConfig preserves an array-valued templateParam so the block expands', () => {
+    // Mirrors the withdrawal send node: templateParams is an array of {key,value}
+    // where value is a workflowContext ref that resolves to the items array.
+    const config = {
+      body: 'X<!--tq:each products--><li>{{quantity}}x {{product_name}}</li><!--/tq:each-->Y',
+      templateParams: [
+        {
+          key: 'products',
+          value: {
+            type: 'workflowContext',
+            nodeId: 'assemble',
+            path: ['assemble', 'selectedItems'],
+          },
+        },
+        { key: 'companyName', value: 'Acme Inc.' },
+      ],
+    }
+    const ctx = {
+      assemble: { selectedItems: [{ product_name: 'Espresso Beans', quantity: 3 }] },
+    }
+    const resolved = utils.resolveConfig(config, ctx)
+    // the array survived resolution (was not String()-joined)
+    expect(Array.isArray(resolved.templateParams[0].value)).toBe(true)
+    const out = utils.applyTemplateParams(resolved.body, resolved.templateParams)
+    expect(out).toContain('<li>3x Espresso Beans</li>')
+    expect(out).not.toContain('<!--tq:each')
   })
 })

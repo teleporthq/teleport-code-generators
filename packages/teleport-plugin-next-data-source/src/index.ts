@@ -606,7 +606,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           options.extractedResources,
           dependencies,
           dynamicRouteAttr,
-          uidl.outputOptions?.folderPath
+          uidl.outputOptions?.folderPath,
+          options.ecommerceSettings?.categories
         )
 
         if (result.success && result.chunk) {
@@ -643,7 +644,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dataSourceNode,
           dataSources,
           componentChunk,
-          options.extractedResources
+          options.extractedResources,
+          options.ecommerceSettings?.categories
         )
       }
     })
@@ -1253,7 +1255,8 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
         dataSourceNode,
         dataSources,
         componentChunk,
-        options.extractedResources
+        options.extractedResources,
+        options.ecommerceSettings?.categories
       )
     })
 
@@ -1337,7 +1340,9 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
           try {
             const fetcherCode = generateDataSourceFetcherWithCore(
               dataSource,
-              firstDataSourceInfo.tableName
+              firstDataSourceInfo.tableName,
+              false,
+              options.ecommerceSettings?.categories
             )
             options.extractedResources[`utils/${fileName}`] = {
               fileName,
