@@ -149,6 +149,20 @@ ${AGGREGATE_CART_DELTAS_HELPER}
     }
     return '';
   }
+  function findCartNameForVariant(vid) {
+    for (var cv = 0; cv < cartItems.length; cv++) {
+      var cc = cartItems[cv];
+      if (!cc) continue;
+      var vvid = cc.variantId || cc.variant_id;
+      if (vvid && String(vvid).replace(/'/g, "''") === vid) {
+        var base = cc.name || cc.productName || cc.product_name || '';
+        var vlabel = cc.variant || cc.variantLabel || cc.variant_label || '';
+        if (base && vlabel) return base + ' — ' + vlabel;
+        return base || vlabel || '';
+      }
+    }
+    return '';
+  }
   function truncate(s, n) {
     if (typeof s !== 'string') return '';
     if (s.length <= n) return s;
@@ -176,6 +190,30 @@ ${AGGREGATE_CART_DELTAS_HELPER}
         name: name,
         requested: requested,
         available: available,
+      });
+    }
+  }
+
+  // 5b. Same check for variant lines, against per-variant stock rows fetched
+  //     from teleport_product_variants (UNION'd into the same query). Variant
+  //     and product ids are disjoint uuid spaces so stockById holds both.
+  for (var kv = 0; kv < agg.variantList.length; kv++) {
+    var vid2 = agg.variantList[kv];
+    var vrequested = agg.variantToDelta[vid2];
+    var vrow = stockById[vid2];
+    // Missing variant row → variant deleted/stale cart entry; skip.
+    if (!vrow) continue;
+    // NULL variant stock = unlimited for this variant; always available.
+    if (vrow.stock == null) continue;
+    var vavailable = parseInt(vrow.stock, 10);
+    if (isNaN(vavailable)) continue;
+    if (vrequested > vavailable) {
+      var vname = truncate(findCartNameForVariant(vid2) || vrow.name || ('Variant ' + vid2.slice(0, 8)), 80);
+      outOfStockItems.push({
+        productId: vid2,
+        name: vname,
+        requested: vrequested,
+        available: vavailable,
       });
     }
   }
@@ -372,14 +410,23 @@ function customHandler(previousContext, params) {
   }
 
   var productId = extractCtx ? extractCtx.productId : '';
+  // A cart line is identified by product AND variant: two different variants of
+  // the same product are DISTINCT lines (must not merge/increment each other).
+  // Mirrors the runtime cart-add-item node, the React provider, and the DB cart
+  // route, all of which key by productId + variantId.
+  var variantId = extractCtx && extractCtx.variantId ? extractCtx.variantId : null;
   var requestedQty = parseInt(extractCtx && extractCtx.quantity, 10);
   if (isNaN(requestedQty) || requestedQty <= 0) requestedQty = 1;
 
-  // Find the existing cart entry for this product (if any).
+  // Find the existing cart entry for this product + variant (if any).
   var existingItem = null;
   var existingQuantity = 0;
   for (var k = 0; k < cartItems.length; k++) {
-    if (cartItems[k] && cartItems[k].productId === productId) {
+    if (
+      cartItems[k] &&
+      cartItems[k].productId === productId &&
+      (cartItems[k].variantId || null) === variantId
+    ) {
       existingItem = cartItems[k];
       existingQuantity = Number(cartItems[k].quantity) || 0;
       break;

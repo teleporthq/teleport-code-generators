@@ -1,3 +1,4 @@
+import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateEcommerceProductTransformationCode } from './ecommerce-product'
@@ -48,7 +49,10 @@ export const detectTransformationType = (tableName: string): TransformationType 
  * to be included in the generated data source fetcher file.
  * Returns empty string if no transformation is needed for this table.
  */
-export const getTransformationCode = (tableName: string): string => {
+export const getTransformationCode = (
+  tableName: string,
+  categories?: UIDLEcommerceCategory[]
+): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
     return ''
@@ -60,7 +64,7 @@ export const getTransformationCode = (tableName: string): string => {
     case 'blog-post':
       return shared + generateBlogPostTransformationCode()
     case 'ecommerce-product':
-      return shared + generateEcommerceProductTransformationCode()
+      return shared + generateEcommerceProductTransformationCode(categories)
     default:
       return ''
   }
@@ -101,6 +105,26 @@ export const getTransformWrapperCode = (tableName: string): string => {
 
   const transformFn = type === 'blog-post' ? 'transformBlogPosts' : 'transformEcommerceProducts'
 
+  // Products additionally get their purchasable variant combinations attached in
+  // ONE batched query (keyed by product id). Blog posts have no such enrichment.
+  const variantEnrichment =
+    type === 'ecommerce-product'
+      ? `
+  var variantsByProductId = {}
+  try {
+    var __variantPids = []
+    for (var __i = 0; __i < records.length; __i++) {
+      if (records[__i] && records[__i].id != null) __variantPids.push(records[__i].id)
+    }
+    variantsByProductId = await getVariantsMap(getClientFn, __variantPids)
+  } catch (e) {
+    // Variant enrichment is best-effort; flat products keep variants: [].
+  }`
+      : ''
+
+  const variantOption =
+    type === 'ecommerce-product' ? ', variantsByProductId: variantsByProductId' : ''
+
   return `
 async function transformRecords(records, getClientFn, reqQuery) {
   var assetMap = {}
@@ -108,10 +132,10 @@ async function transformRecords(records, getClientFn, reqQuery) {
     assetMap = await getAssetMap(getClientFn)
   } catch (e) {
     // Asset resolution is best-effort; continue without it
-  }
+  }${variantEnrichment}
   var currentLanguage = (reqQuery && reqQuery.lang) || null
   var mainLanguage = (reqQuery && reqQuery.mainLang) || null
-  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage }
+  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption} }
   return ${transformFn}(records, options)
 }
 `

@@ -3,6 +3,7 @@ import {
   ComponentPluginFactory,
   ChunkType,
   FileType,
+  UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
@@ -642,7 +643,6 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
   combinedStateVar: string
   setCombinedStateVar: string
   skipDebounceRefVar: string
-  skipCountFetchRefVar: string
   propsPrefix: string
 } {
   const idx = usage.index
@@ -659,7 +659,6 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
     combinedStateVar: `ds_${idx}_state`,
     setCombinedStateVar: `setDs_${idx}_state`,
     skipDebounceRefVar: `ds_${idx}_skipDebounce`,
-    skipCountFetchRefVar: `ds_${idx}_skipCountFetch`,
     propsPrefix: `${usage.dataSourceIdentifier}_ds_${idx}`,
   }
 }
@@ -842,19 +841,6 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             ),
           ])
         )
-
-        // Only add skipCountFetchRef for pages (where we have server-side count)
-        // For components, we need to fetch count on mount
-        if (isPage) {
-          stateDeclarations.push(
-            types.variableDeclaration('const', [
-              types.variableDeclarator(
-                types.identifier(vars.skipCountFetchRefVar),
-                types.callExpression(types.identifier('useRef'), [types.booleanLiteral(true)])
-              ),
-            ])
-          )
-        }
 
         // maxPages state
         const maxPagesInit = isPage
@@ -1049,30 +1035,14 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         // Build the count fetch effect body
         const countFetchEffectBody: types.Statement[] = []
 
-        // Only add skip-on-mount check for pages (where we have server-side count)
-        if (isPage) {
-          countFetchEffectBody.push(
-            types.ifStatement(
-              types.memberExpression(
-                types.identifier(vars.skipCountFetchRefVar),
-                types.identifier('current')
-              ),
-              types.blockStatement([
-                types.expressionStatement(
-                  types.assignmentExpression(
-                    '=',
-                    types.memberExpression(
-                      types.identifier(vars.skipCountFetchRefVar),
-                      types.identifier('current')
-                    ),
-                    types.booleanLiteral(false)
-                  )
-                ),
-                types.returnStatement(),
-              ])
-            )
-          )
-        }
+        // Refresh the count on mount (no skip-on-mount guard). Pages seed maxPages
+        // from the build-time `getStaticProps` count, but that snapshot goes stale:
+        // rows added AFTER the build (e.g. the normalized product_variants table,
+        // which is seeded/grows past one page during store generation) are not
+        // reflected, so a frozen maxPages of 0/1 leaves "Next" permanently disabled
+        // on data-heavy tables. Re-fetching the live count on mount corrects
+        // maxPages so pagination tracks the real row count. The effect still runs
+        // when the search query or a filter changes (see deps below).
 
         // Add the fetch call
         countFetchEffectBody.push(
@@ -1568,7 +1538,12 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       }
 
       // Create API route for all categories (including 'plain' for components)
-      ensureAPIRouteExists(options.extractedResources, usage, options.dataSources)
+      ensureAPIRouteExists(
+        options.extractedResources,
+        usage,
+        options.dataSources,
+        options.ecommerceSettings?.categories
+      )
     })
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
@@ -2700,7 +2675,8 @@ function wirePaginationButtons(
 function ensureAPIRouteExists(
   extractedResources: any,
   usage: DataSourceUsage,
-  dataSources: Record<string, any>
+  dataSources: Record<string, any>,
+  categories?: UIDLEcommerceCategory[]
 ): void {
   // Generate file name for the API route
   const fileName = generateSafeFileName(
@@ -2718,7 +2694,9 @@ function ensureAPIRouteExists(
         // Generate the utils file with fetchData, fetchCount, handler, and getCount
         const fetcherCode = generateDataSourceFetcherWithCore(
           dataSource,
-          usage.resourceDefinition.tableName || 'data'
+          usage.resourceDefinition.tableName || 'data',
+          false,
+          categories
         )
 
         extractedResources[`utils/${fileName}`] = {

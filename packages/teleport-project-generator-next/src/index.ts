@@ -36,6 +36,7 @@ import { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 import { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
 import { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin'
+import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
@@ -84,6 +85,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
   new NextNavActiveLinkProjectPlugin(),
+  new NextCollapsibleTextProjectPlugin(),
   new NextDashboardLayoutPlugin(),
   new NextRichTextEditorProjectPlugin(),
   new NextCalendarKitProjectPlugin(),

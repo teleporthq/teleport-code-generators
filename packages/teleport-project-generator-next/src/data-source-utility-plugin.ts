@@ -61,7 +61,12 @@ export class NextDataSourceUtilityPlugin implements ProjectPlugin {
 
       let fetcherCode: string
       try {
-        fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName)
+        fetcherCode = generateDataSourceFetcherWithCore(
+          dataSource,
+          tableName,
+          false,
+          uidl.ecommerceSettings?.categories
+        )
       } catch {
         continue
       }

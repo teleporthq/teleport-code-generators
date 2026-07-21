@@ -516,6 +516,8 @@ function mapInvoiceItemToRecord(invoiceId, item, sortOrder) {
     invoice_id: invoiceId,
     product_id: item.productId || item.product_id || null,
     name: item.name || '',
+    variant_label: item.variantLabel || item.variant_label || null,
+    variant_swatches: item.variantSwatches || item.variant_swatches || null,
     description: item.description || null,
     quantity: Number(item.quantity) || 1,
     unit_price: Number(item.unitPrice || item.unit_price || item.price) || 0,

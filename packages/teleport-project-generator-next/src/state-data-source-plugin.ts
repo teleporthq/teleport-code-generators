@@ -586,7 +586,12 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
       if (extractedResources && !extractedResources[`utils/${fileName}`]) {
         let fetcherCode: string
         try {
-          fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName)
+          fetcherCode = generateDataSourceFetcherWithCore(
+            dataSource,
+            tableName,
+            false,
+            options.ecommerceSettings?.categories
+          )
         } catch (error) {
           // Skip this group if fetcher generation fails
           continue

@@ -58,6 +58,13 @@ async function data_create_item(config: any, context: any) {
     if (__anonymousUserId) {
       reqBody.__anonymousUserId = __anonymousUserId
     }
+    // Idempotent insert: when the node opts in, the data-api emits
+    // `INSERT ... ON CONFLICT DO NOTHING`. Used by the "Resolve Current User"
+    // custom node to re-ensure a guest's `users` row on every resolution
+    // without a PK-violation error when the row already exists.
+    if (config.onConflictDoNothing === true) {
+      reqBody.onConflictDoNothing = true
+    }
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

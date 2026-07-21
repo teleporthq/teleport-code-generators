@@ -7,6 +7,8 @@ import { generateColorPickerComponentCode } from './color-picker-component'
 import { generateEmojiPickerComponentCode } from './emoji-picker-component'
 import { generateMotionComponentCode } from './motion-component'
 import { generateFormFileInputComponentCode } from './form-file-input-component'
+import { generateCategoriesMegamenuComponentCode } from './categories-megamenu-component'
+import { generateCategoriesFilterComponentCode } from './categories-filter-component'
 
 const PICKR_CSS_IMPORT = "import '@simonwep/pickr/dist/themes/nano.min.css'"
 
@@ -73,5 +75,19 @@ export const createNextWidgetProjectPlugins = (): ProjectPlugin[] => [
     fileKey: 'tq-form-file-input-component',
     generateCode: generateFormFileInputComponentCode,
     // Pure DOM/FileReader wrapper — no npm dependency.
+  }),
+  createNextWidgetProjectPlugin({
+    elementType: 'categories-megamenu-node',
+    fileName: 'tq-categories-megamenu',
+    fileKey: 'tq-categories-megamenu-component',
+    generateCode: generateCategoriesMegamenuComponentCode,
+    // Pure, data-driven wrapper — no npm dependency.
+  }),
+  createNextWidgetProjectPlugin({
+    elementType: 'categories-filter-node',
+    fileName: 'tq-categories-filter',
+    fileKey: 'tq-categories-filter-component',
+    generateCode: generateCategoriesFilterComponentCode,
+    // Pure, data-driven wrapper (next/router only) — no npm dependency.
   }),
 ]

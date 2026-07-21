@@ -1612,6 +1612,33 @@ export interface UIDLEcommercePaymentProvider {
   name: string
 }
 
+// A node in the nested category tree baked into the generated store. The GUI
+// stores a flat adjacency list (`doc.ecommerceCategories`); it is baked as a
+// nested tree so the storefront category-filter array mapper iterates roots and
+// a nested mapper binds `item.children`. Exposed at runtime as
+// `useEcommerce().ecommerceCategories` (the `E-Commerce Categories` global).
+/** Per-language override for a category's `name`/`description`, keyed by language short (e.g. `fr`). */
+export interface UIDLEcommerceCategoryTranslation {
+  name?: string
+  description?: string
+}
+
+export interface UIDLEcommerceCategory {
+  id: string
+  name: string
+  slug: string
+  parentId: string | null
+  order: number
+  image?: string | null
+  /** Resolved public image URL (asset ids resolved at bake time). */
+  imageUrl?: string | null
+  icon?: string | null
+  description?: string | null
+  /** Per-language overrides for `name`/`description`; missing fields fall back to the main-language values above. */
+  translations?: Record<string, UIDLEcommerceCategoryTranslation>
+  children: UIDLEcommerceCategory[]
+}
+
 export interface UIDLEcommerceSettings {
   cashOnDelivery: boolean
   deliveryEnabled: boolean
@@ -1624,6 +1651,8 @@ export interface UIDLEcommerceSettings {
   orderNotificationConfig: UIDLEcommerceOrderNotificationConfig | null
   paymentProviders: UIDLEcommercePaymentProvider[]
   allowFavourites?: boolean
+  // Nested category tree for the storefront category filter (see above).
+  categories?: UIDLEcommerceCategory[]
 }
 
 export interface UIDLInvoiceSettings {

@@ -21,6 +21,7 @@ import {
   generateGlobalCSSCode,
 } from './widget-generator'
 import { generateAuthWrapperCode } from './auth-wrapper-generator'
+import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
 
 export class NextAIChatProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
@@ -56,6 +57,15 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
       this.generateStylesFile(files)
     }
     this.addDependencies(dependencies, chat, dataSource)
+    // react-markdown@9 (added by addDependencies for rendering assistant replies)
+    // declares `peer react@>=18`, so a project that enables AI chat but uses none
+    // of the other React-18 widgets (calendar/kanban/motion) would keep the
+    // template's react@^17 and fail `npm i` with ERESOLVE. Bump react/react-dom to
+    // ^18 and emit the legacy-peer-deps .npmrc — mirroring the calendar/kanban
+    // plugins so all React-18 bump sites stay consistent.
+    dependencies.react = '^18.3.1'
+    dependencies['react-dom'] = '^18.3.1'
+    emitLegacyPeerDepsNpmrc(structure, 'ai-chat-npmrc')
     this.addEnvVariables(uidl, chat)
     if (!hasUIDLChatComponent) {
       this.injectWidgetIntoApp(structure)

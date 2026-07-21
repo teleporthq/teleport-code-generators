@@ -1029,11 +1029,15 @@ export const transformStylesAssignmentsToJson = (
         return acc
       }
 
-      if (
-        type === 'dynamic' &&
-        content.referenceType !== 'global' &&
-        content.referenceType !== 'globalState'
-      ) {
+      if (type === 'dynamic') {
+        // 'global'/'globalState' ids are already meaningful identifiers (or get
+        // normalized later from `refPath` — see `normalizeGlobalRef`), so only
+        // 'state'/'prop' need their raw UIDL id rewritten via
+        // `generateIdWithRefPath` here. Every other reference type (including
+        // 'global'/'globalState'/'ctx') must still pass through unchanged —
+        // dropping the key here silently deletes the style property (it was
+        // previously excluded from this branch and never re-added anywhere,
+        // e.g. a `global`-referenced dynamic width would vanish entirely).
         if (['state', 'prop'].includes(content?.referenceType)) {
           acc[key] = {
             type,
@@ -1041,14 +1045,10 @@ export const transformStylesAssignmentsToJson = (
               ...content,
               id: generateIdWithRefPath(content.id, content.refPath),
             },
-          }
+          } as UIDLDynamicReference
         } else {
           acc[key] = styleContentAtKey as UIDLDynamicReference
         }
-      }
-
-      if (type === 'dynamic' && content.referenceType === 'globalState') {
-        acc[key] = styleContentAtKey as UIDLDynamicReference
       }
 
       return acc

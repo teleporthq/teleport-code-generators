@@ -45,12 +45,58 @@ import {
   parseStringWithTemplateExpressions,
   parseJSExpressionAsAST,
   convertToReactAttributeName,
+  convertValueToLiteral,
   GLOBAL_REF_ID_MAP,
   sanitizeExprContent,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
 import { ASTBuilders, ASTUtils } from '../..'
+import ParsedASTNode from '../../utils/parsed-ast'
+
+// Runtime predicate that drops a DataProvider filter whose destination
+// resolves to an empty value: `''` / `null` / `undefined`, or an empty
+// array-overlap set (`[]` / `['']`). Selecting a "show all" reset must mean
+// "no filter", not a query that matches zero rows. Kept in sync with the
+// Next.js pages plugin's `buildNonEmptyDestinationPredicate` (duplicated here
+// because teleport-plugin-common must not depend on teleport-plugin-next-data-source).
+const buildNonEmptyFilterDestinationPredicate = (): types.ArrowFunctionExpression => {
+  const f = types.identifier('__f')
+  const dest = types.memberExpression(f, types.identifier('destination'))
+  const isEmptyArray = types.logicalExpression(
+    '&&',
+    types.callExpression(
+      types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+      [dest]
+    ),
+    types.binaryExpression(
+      '===',
+      types.memberExpression(
+        types.callExpression(types.memberExpression(dest, types.identifier('filter')), [
+          types.identifier('Boolean'),
+        ]),
+        types.identifier('length')
+      ),
+      types.numericLiteral(0)
+    )
+  )
+  return types.arrowFunctionExpression(
+    [f],
+    types.logicalExpression(
+      '&&',
+      types.logicalExpression(
+        '&&',
+        types.logicalExpression(
+          '&&',
+          types.binaryExpression('!==', dest, types.stringLiteral('')),
+          types.binaryExpression('!==', dest, types.nullLiteral())
+        ),
+        types.binaryExpression('!==', dest, types.identifier('undefined'))
+      ),
+      types.unaryExpression('!', isEmptyArray)
+    )
+  )
+}
 
 // Global references in the UIDL come in two shapes:
 // Shape A: { id: "ecommerce", refPath: ["Cart", "total"] }
@@ -147,12 +193,29 @@ const trackGlobalRefsInExpression = (expression: string, params: JSXGenerationPa
   }
 }
 
+// The recognised runtime identifiers a `global` reference's `id` can legitimately
+// already hold (Shape A). Anything else — notably the opaque `TQ_...` node id every
+// dynamic UIDL reference carries for editor bookkeeping — is not a real identifier
+// and must be re-derived from `refPath` (Shape B/C), or code generation would emit
+// an undeclared variable that throws at runtime.
+const KNOWN_GLOBAL_REF_IDS = new Set([
+  'locale',
+  'locales',
+  'currentUser',
+  'userIsLoggedIn',
+  'ecommerce',
+  'cart',
+])
+
 const normalizeGlobalRef = <
   T extends { content: { id: string; refPath?: string[]; referenceType: string } }
 >(
   node: T
 ): T => {
-  if (node.content.id || !node.content.refPath || node.content.refPath.length === 0) {
+  if (!node.content.refPath || node.content.refPath.length === 0) {
+    return node
+  }
+  if (node.content.id && KNOWN_GLOBAL_REF_IDS.has(node.content.id)) {
     return node
   }
   const firstSeg = node.content.refPath[0]
@@ -528,6 +591,85 @@ const maybeAddFormStoreFieldBinding = (
   }
 }
 
+// Style plugins (styled-jsx, css-modules, styled-components, react-jss, plugin-css)
+// emit ONE flat, component-scope CSS block/class-map from `element.style`, so a
+// dynamic style value only resolves correctly there when the identifier it needs
+// is reachable from that top-level scope (e.g. `token`/`prop`). A `ctx` reference
+// resolves to the render-prop identifier of the enclosing repeater/data-source —
+// only in scope inside that repeater's own render callback — and other reference
+// types (`state`, `local`, `global`, `globalState`, ...) are never routed through
+// `element.style` by any known UIDL producer either. When one shows up anyway, the
+// only place that still knows the correct enclosing scope is here, while building
+// this exact JSX node, so resolve it into an inline `style` attribute (mirroring
+// how `dynamicStyleBindings` already handles ctx/state-bound styles) and strip it
+// out of `element.style` so no downstream style plugin re-processes — and chokes
+// on — the same entry.
+const resolveScopedDynamicStyleValues = (
+  style: UIDLElement['style'],
+  elementTag: types.JSXElement,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+): void => {
+  if (!style) {
+    return
+  }
+
+  const inlineStyleOverrides: Record<string, ParsedASTNode> = {}
+  for (const cssProperty of Object.keys(style)) {
+    const styleValue = style[cssProperty]
+    const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
+      letter.toUpperCase()
+    )
+
+    // A pre-resolved expression style value (e.g. a data-source-bound style whose
+    // mapper already produced the full member-access expression). The UIDL style
+    // type is narrowed to static|dynamic, so read the discriminator via a cast.
+    // Inline the parsed expression and strip it so no CSS/styled-jsx plugin sees it.
+    const rawStyleValue = styleValue as { type?: string; content?: unknown }
+    if (rawStyleValue.type === 'expr') {
+      const exprContent = rawStyleValue.content
+      if (typeof exprContent === 'string' && exprContent.length > 0) {
+        inlineStyleOverrides[camelCaseProperty] = new ParsedASTNode(
+          parseJSExpressionAsAST(exprContent)
+        )
+        delete style[cssProperty]
+      }
+      continue
+    }
+
+    // Skip: `token` → CSS variable (handled by the style plugin); a SIMPLE `prop`
+    // (no refPath) → the style plugin's `${props.x}` interpolation. A prop WITH a
+    // refPath (an object prop's field, e.g. `product.color`) MUST be inlined here
+    // instead — styled-jsx's prop case emits only `props.<id>` and would drop the
+    // refPath, producing `props.product` instead of `props.product.color`.
+    const isSimpleProp =
+      styleValue.type === 'dynamic' &&
+      styleValue.content.referenceType === 'prop' &&
+      !(styleValue.content.refPath && styleValue.content.refPath.length > 0)
+    if (
+      styleValue.type !== 'dynamic' ||
+      styleValue.content.referenceType === 'token' ||
+      isSimpleProp
+    ) {
+      continue
+    }
+
+    const resolvedExpr = resolveDynamicReferenceExpression(styleValue, params, options)
+    const fallback = (styleValue.content as { fallback?: string | number | boolean }).fallback
+    const finalExpr =
+      fallback !== undefined && fallback !== ''
+        ? types.logicalExpression('||', resolvedExpr, convertValueToLiteral(fallback))
+        : resolvedExpr
+    inlineStyleOverrides[camelCaseProperty] = new ParsedASTNode(finalExpr)
+
+    delete style[cssProperty]
+  }
+
+  if (Object.keys(inlineStyleOverrides).length > 0) {
+    addAttributeToJSXTag(elementTag, 'style', inlineStyleOverrides)
+  }
+}
+
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
   params,
@@ -535,7 +677,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 ) => {
   const { dependencies, nodesLookup } = params
   const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
-  const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
+  const { elementType, selfClosing, children, key, attrs, dependency, events, style } = node.content
 
   const originalElementName = elementType || 'component'
   let tagName = originalElementName
@@ -603,6 +745,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       node.content.semanticType || elementType
     )
   }
+
+  resolveScopedDynamicStyleValues(style, elementTag, params, options)
 
   if (events) {
     Object.keys(events).forEach((eventKey) => {
@@ -1645,29 +1789,41 @@ const generateDataSourceNode: NodeToJSX<
         if (property.type === 'static') {
           // Special handling for filters array - convert dynamic destinations
           if (attrKey === 'filters' && Array.isArray(property.content)) {
+            const filterEntries = property.content.map(
+              (filter: { source?: string; destination?: unknown; operand?: string }) =>
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('source'),
+                    types.stringLiteral(filter.source || '')
+                  ),
+                  types.objectProperty(
+                    types.identifier('destination'),
+                    ASTUtils.convertFilterDestinationToExpression(filter.destination, {
+                      dynamicReferencePrefixMap: options.dynamicReferencePrefixMap,
+                    })
+                  ),
+                  types.objectProperty(
+                    types.identifier('operand'),
+                    types.stringLiteral(filter.operand || '')
+                  ),
+                ])
+            )
+            // Drop conditions whose destination resolves to an empty value at
+            // runtime (empty string / null / undefined, or an empty
+            // array-overlap set) so a "show all" reset means no filter rather
+            // than a query that matches zero rows. Mirrors the Next.js pages
+            // path's `buildNonEmptyDestinationPredicate` (kept inline here
+            // because teleport-plugin-common must not depend on the
+            // next-data-source plugin).
             acc.push(
               types.objectProperty(
                 types.stringLiteral(attrKey),
-                types.arrayExpression(
-                  property.content.map(
-                    (filter: { source?: string; destination?: unknown; operand?: string }) =>
-                      types.objectExpression([
-                        types.objectProperty(
-                          types.identifier('source'),
-                          types.stringLiteral(filter.source || '')
-                        ),
-                        types.objectProperty(
-                          types.identifier('destination'),
-                          ASTUtils.convertFilterDestinationToExpression(filter.destination, {
-                            dynamicReferencePrefixMap: options.dynamicReferencePrefixMap,
-                          })
-                        ),
-                        types.objectProperty(
-                          types.identifier('operand'),
-                          types.stringLiteral(filter.operand || '')
-                        ),
-                      ])
-                  )
+                types.callExpression(
+                  types.memberExpression(
+                    types.arrayExpression(filterEntries),
+                    types.identifier('filter')
+                  ),
+                  [buildNonEmptyFilterDestinationPredicate()]
                 )
               )
             )
@@ -1870,6 +2026,18 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
     for (const seg of path) {
       expr = types.optionalMemberExpression(expr, types.identifier(seg), false, true)
     }
+    repeaterItemsExpr = types.logicalExpression('||', expr, types.arrayExpression([]))
+    params.globalReferences.push('ecommerce' as Parameters<typeof params.globalReferences.push>[0])
+  } else if (source === 'ecommerceCategories') {
+    // The `E-Commerce Categories` global (the nested category tree) is baked
+    // onto the ecommerce context as `ecommerce.ecommerceCategories`. Fixed
+    // one-segment path (independent of the item name) → `ecommerce?.ecommerceCategories || []`.
+    const expr = types.optionalMemberExpression(
+      types.identifier('ecommerce'),
+      types.identifier('ecommerceCategories'),
+      false,
+      true
+    )
     repeaterItemsExpr = types.logicalExpression('||', expr, types.arrayExpression([]))
     params.globalReferences.push('ecommerce' as Parameters<typeof params.globalReferences.push>[0])
   } else {

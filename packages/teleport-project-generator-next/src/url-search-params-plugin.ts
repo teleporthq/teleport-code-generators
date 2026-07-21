@@ -151,12 +151,12 @@ const hasUseEffectMatching = (
 // every render — far worse than just dropping the second binding.
 const collectUrlBoundStateKeys = (
   stateDefinitions: Record<string, UIDLStateDefinition> | undefined
-): Array<{ stateKey: string; paramKey: string }> => {
+): Array<{ stateKey: string; paramKey: string; defaultValue: string }> => {
   if (!stateDefinitions) {
     return []
   }
   const seenParamKeys = new Set<string>()
-  const entries: Array<{ stateKey: string; paramKey: string }> = []
+  const entries: Array<{ stateKey: string; paramKey: string; defaultValue: string }> = []
   for (const [rawKey, def] of Object.entries(stateDefinitions)) {
     const binding = def.urlSearchParamBinding
     if (!binding || typeof binding.key !== 'string' || binding.key === '') {
@@ -171,7 +171,15 @@ const collectUrlBoundStateKeys = (
     // identifier-safe by GUI contract, but normalize to keep parity with the
     // hook emission.
     const stateKey = StringUtils.createStateOrPropStoringValue(rawKey) || rawKey
-    entries.push({ stateKey, paramKey: binding.key })
+    // A non-empty STRING default (e.g. the sort dropdown's `name-asc`) is the
+    // canonical value for a missing `?key=`. Threading it into the effects
+    // makes the read-back resolve an absent key back to this default instead
+    // of `''` — otherwise the default state is clobbered to `''` the instant
+    // the router hydrates, causing an extra (unsorted) data fetch. Numbers /
+    // booleans / arrays are never URL-bound defaults in practice and stay
+    // empty here, preserving the pre-default byte-for-byte output.
+    const defaultValue = typeof def.defaultValue === 'string' ? def.defaultValue : ''
+    entries.push({ stateKey, paramKey: binding.key, defaultValue })
   }
   return entries
 }
@@ -260,8 +268,11 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
       //   • Read-back match:  deps contain `router.query[paramKey]` AND
       //     body calls the state setter directly.
       const effectsToInsert: types.Statement[] = []
-      for (const { stateKey, paramKey } of urlBoundStateKeys) {
+      for (const { stateKey, paramKey, defaultValue } of urlBoundStateKeys) {
         const setterName = StringUtils.createStateStoringFunction(stateKey)
+        // Only a non-empty default changes behavior; an empty default keeps
+        // the effects byte-identical to the pre-default builder.
+        const defaultValueExpr = defaultValue !== '' ? types.stringLiteral(defaultValue) : undefined
         const hasWriteBack = hasUseEffectMatching(
           body.body,
           (deps, fn) => effectDepsContainStateId(deps, stateKey) && effectBodyHasRouterReplace(fn)
@@ -274,7 +285,8 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
             URLSearchParamSync.buildUrlWriteBackEffect(
               paramKey,
               types.identifier(stateKey),
-              types.identifier(stateKey)
+              types.identifier(stateKey),
+              defaultValueExpr
             )
           )
         }
@@ -285,7 +297,9 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
             effectDepsContainRouterQueryKey(deps, paramKey) && effectBodyCallsSetter(fn, setterName)
         )
         if (!hasReadBack) {
-          effectsToInsert.push(URLSearchParamSync.buildUrlReadBackEffect(paramKey, setterName))
+          effectsToInsert.push(
+            URLSearchParamSync.buildUrlReadBackEffect(paramKey, setterName, defaultValueExpr)
+          )
         }
       }
 

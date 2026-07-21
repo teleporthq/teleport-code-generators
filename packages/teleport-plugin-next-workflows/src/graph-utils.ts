@@ -286,6 +286,7 @@ export const isTerminalNode = (nodeType: string): boolean => {
     'account-login',
     'account-social-login',
     'account-logout',
+    'account-delete-current',
     'payment-charge-user',
   ].includes(nodeType)
 }

@@ -96,6 +96,9 @@ async function payment_charge_user(config: any, _context: Record<string, unknown
       parsedMetadata
     )
   } else {
+    // Everything that isn't PayPal charges through Stripe. Apple Pay / Google
+    // Pay are surfaced automatically by Stripe's hosted checkout (Dynamic
+    // Payment Methods) — they aren't separate providers here.
     result = await chargeWithStripe(
       config,
       currency,
@@ -212,8 +215,13 @@ async function chargeWithStripe(
     const Stripe = nodeRequire('stripe')
     const stripe = new Stripe(secretKey)
 
+    // `payment_method_types` is intentionally omitted so Stripe uses Dynamic
+    // Payment Methods — the checkout surfaces every method the merchant enabled
+    // in their Stripe Dashboard (card, Apple Pay, Google Pay, Link, …) based on
+    // the shopper's device/eligibility. Pinning `['card']` would suppress that.
+    // (Stripe Checkout Sessions don't accept `automatic_payment_methods`; the
+    // documented way to opt into Dynamic Payment Methods is to omit the list.)
     const sessionParams: any = {
-      payment_method_types: ['card'],
       mode: 'payment',
       success_url: successUrl || undefined,
       cancel_url: cancelUrl || undefined,

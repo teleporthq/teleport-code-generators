@@ -15,6 +15,14 @@ export const generateEcommerceContextFileContent = (
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
   const paymentProvidersJson = JSON.stringify(ecommerceSettings.paymentProviders || [])
   const hasPaymentProviders = (ecommerceSettings.paymentProviders || []).length > 0
+  // Static nested category tree for the storefront category filter, exposed as
+  // `useEcommerce().ecommerceCategories` (the `E-Commerce Categories` global).
+  // Each node's `name`/`description` are the main-language values; per-language
+  // overrides live in `node.translations[locale]` (see
+  // `resolveCategoryTranslations` below) and are resolved client-side by
+  // `router.locale` — no per-locale re-fetch needed, the whole tree (every
+  // language) is baked into this one JSON blob at export time.
+  const ecommerceCategoriesJson = JSON.stringify(ecommerceSettings.categories || [])
   const fetchStoreLocations = ecommerceSettings.storePickupEnabled === true
 
   // Snapshot the delivery config at build time so the persist-cart-settings
@@ -32,9 +40,53 @@ export const generateEcommerceContextFileContent = (
 
   const enrichFnCode = dataSourceId
     ? [
+        // Build a human-readable variant label ("Red / XL") from the product's
+        // (language-resolved) variant_options axes + a variant row's option map.
+        'function tqBuildVariantLabel(variantOptionsRaw, optionsMap) {',
+        '  var axes = variantOptionsRaw',
+        "  if (typeof axes === 'string') { try { axes = JSON.parse(axes) } catch (e) { axes = [] } }",
+        '  if (!Array.isArray(axes)) return ""',
+        '  var opts = optionsMap',
+        "  if (typeof opts === 'string') { try { opts = JSON.parse(opts) } catch (e) { opts = {} } }",
+        '  if (!opts) opts = {}',
+        '  var parts = []',
+        '  for (var a = 0; a < axes.length; a++) {',
+        '    var axis = axes[a]',
+        '    if (!axis || !axis.key) continue',
+        '    var valueKey = opts[axis.key]',
+        '    if (valueKey == null) continue',
+        '    var label = valueKey',
+        '    var values = Array.isArray(axis.values) ? axis.values : []',
+        '    for (var v = 0; v < values.length; v++) { if (values[v] && values[v].value === valueKey) { label = values[v].label || valueKey; break } }',
+        '    parts.push(label)',
+        '  }',
+        '  return parts.join(" / ")',
+        '}',
+        // Colour hex(es) for the selected value(s) of any COLOUR-type axis, so the
+        // cart/checkout can render a colour circle next to the variant label.
+        'function tqBuildVariantSwatches(variantOptionsRaw, optionsMap) {',
+        '  var axes = variantOptionsRaw',
+        "  if (typeof axes === 'string') { try { axes = JSON.parse(axes) } catch (e) { axes = [] } }",
+        '  if (!Array.isArray(axes)) return []',
+        '  var opts = optionsMap',
+        "  if (typeof opts === 'string') { try { opts = JSON.parse(opts) } catch (e) { opts = {} } }",
+        '  if (!opts) opts = {}',
+        '  var swatches = []',
+        '  for (var a = 0; a < axes.length; a++) {',
+        '    var axis = axes[a]',
+        "    if (!axis || !axis.key || axis.type !== 'color') continue",
+        '    var valueKey = opts[axis.key]',
+        '    if (valueKey == null) continue',
+        '    var values = Array.isArray(axis.values) ? axis.values : []',
+        '    for (var v = 0; v < values.length; v++) { if (values[v] && values[v].value === valueKey && values[v].color) { swatches.push({ color: values[v].color }); break } }',
+        '  }',
+        '  return swatches',
+        '}',
         'async function enrichCartItems(items) {',
         '  if (!items || items.length === 0) return items',
-        '  var needsEnrichment = items.filter(function(i) { return i.productId && !i.name })',
+        // Enrich a line when it lacks a name OR carries a variant (variant lines
+        // need per-variant price/image/label even if the product name is set).
+        '  var needsEnrichment = items.filter(function(i) { return i.productId && (!i.name || i.variantId) })',
         '  if (needsEnrichment.length === 0) return items',
         '  var productIds = [], seen = {}',
         '  for (var k = 0; k < needsEnrichment.length; k++) {',
@@ -58,17 +110,45 @@ export const generateEcommerceContextFileContent = (
         '    var rows = data.rows || []',
         '    var productMap = {}',
         '    for (var r = 0; r < rows.length; r++) { productMap[rows[r].id] = rows[r] }',
+        // Fetch the purchasable variant rows for these products so variant lines
+        // can show the correct price/image/label. Best-effort — a failure just
+        // falls back to product-level values.
+        '    var variantMap = {}',
+        '    var hasVariantLines = items.some(function(i) { return i.variantId })',
+        '    if (hasVariantLines) {',
+        '      try {',
+        "        var vres = await fetch('/api/ecommerce/variants?productIds=' + productIds.map(encodeURIComponent).join(','))",
+        '        if (vres.ok) {',
+        '          var vbody = await vres.json()',
+        '          var vrows = (vbody && vbody.variants) || []',
+        '          for (var vr = 0; vr < vrows.length; vr++) { variantMap[vrows[vr].id] = vrows[vr] }',
+        '        }',
+        '      } catch (ve) {}',
+        '    }',
         '    return items.map(function(item) {',
-        '      if (item.name) return item',
         '      var product = productMap[item.productId]',
+        '      if (!product && item.name) return item',
         '      if (!product) return item',
+        '      var variant = item.variantId ? variantMap[item.variantId] : null',
+        '      var price = product.price != null ? Number(product.price) : 0',
+        '      var image = product.image_url || product.imageUrl || null',
+        '      var variantLabel = item.variant || ""',
+        '      var variantSwatches = item.variantSwatches || []',
+        '      if (variant) {',
+        '        if (variant.price != null) price = Number(variant.price)',
+        '        if (variant.image_url) image = variant.image_url',
+        '        variantLabel = tqBuildVariantLabel(product.variant_options, variant.options)',
+        '        variantSwatches = tqBuildVariantSwatches(product.variant_options, variant.options)',
+        '      }',
         '      return Object.assign({}, item, {',
-        "        name: product.name || '',",
-        '        price: product.price != null ? Number(product.price) : 0,',
-        '        image: product.image_url || product.imageUrl || null,',
-        '        currency: product.currency || null,',
-        '        currencySymbol: product.currency_symbol || product.currencySymbol || null,',
-        '        slug: product.slug || null',
+        "        name: product.name || item.name || '',",
+        '        price: price,',
+        '        image: image,',
+        '        variant: variantLabel,',
+        '        variantSwatches: variantSwatches,',
+        '        currency: product.currency || item.currency || null,',
+        '        currencySymbol: product.currency_symbol || product.currencySymbol || item.currencySymbol || null,',
+        '        slug: product.slug || item.slug || null',
         '      })',
         '    })',
         '  } catch(e) { return items }',
@@ -201,6 +281,7 @@ function persistCartToDb(items) {
     : ''
 
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useRouter } from 'next/router'
 
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'
@@ -244,6 +325,22 @@ function computeCartMeta(items) {
   return { total: roundMoney(total), itemCount }
 }
 
+// Resolve each category's name/description to \`locale\` from its
+// \`translations\` map, falling back to the main-language (top-level) fields
+// when there's no override yet, or no locale is active. Recurses into
+// \`children\` — every node in the tree carries its own translations.
+function resolveCategoryTranslations(categories, locale) {
+  if (!Array.isArray(categories) || !categories.length) return categories
+  return categories.map(function (category) {
+    var override = locale && category.translations ? category.translations[locale] : null
+    return Object.assign({}, category, {
+      name: (override && override.name) || category.name,
+      description: (override && override.description) || category.description,
+      children: resolveCategoryTranslations(category.children, locale),
+    })
+  })
+}
+
 function computeShippingMeta(cartTotal, deliveryConfig) {
   const cart = roundMoney(cartTotal)
   const freeDeliveryEnabled = deliveryConfig?.freeDeliveryEnabled ?? false
@@ -271,6 +368,7 @@ function computeShippingMeta(cartTotal, deliveryConfig) {
 }
 
 export const EcommerceProvider = ({ children }) => {
+  const router = useRouter()
   const [cartItems, setCartItems] = useState([])
   const [cartMeta, setCartMeta] = useState({ total: 0, itemCount: 0 })
   const [isHydrated, setIsHydrated] = useState(false)
@@ -513,6 +611,11 @@ ${
 
   const settings = useMemo(() => (${settingsJson}), [])
   const paymentProviders = useMemo(() => (${paymentProvidersJson}), [])
+  const ecommerceCategoriesRaw = useMemo(() => (${ecommerceCategoriesJson}), [])
+  const ecommerceCategories = useMemo(
+    () => resolveCategoryTranslations(ecommerceCategoriesRaw, router.locale),
+    [ecommerceCategoriesRaw, router.locale]
+  )
 
   const shippingMeta = useMemo(
     () => computeShippingMeta(cartMeta.total, settings.Delivery),
@@ -558,7 +661,8 @@ ${
     hasPaymentProviders: ${hasPaymentProviders},
     storeLocations,
     defaultPickupStoreId,
-  }), [cartItems, cartMeta, shippingMeta, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId])
+    ecommerceCategories,
+  }), [cartItems, cartMeta, shippingMeta, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
 
   return (
     <EcommerceContext.Provider value={value}>

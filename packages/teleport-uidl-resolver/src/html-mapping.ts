@@ -39,6 +39,14 @@ export const HTMLMapping: Mapping = {
     'rich-text-editor-node': {
       elementType: 'div',
     },
+    // The Collapsible Text primitive decomposes to plain elements; its root is a
+    // generic block wrapper. Without this mapping the codegen would emit a literal
+    // `<collapsible-text>` custom element, which renders inline (dropping the
+    // authored width/box styles) and breaks the `-webkit-line-clamp` overflow
+    // measurement the shipped `TqCollapsibleTextOverflow` helper relies on.
+    'collapsible-text': {
+      elementType: 'div',
+    },
     'date-time-node': {
       elementType: 'date-time-primitive',
       dependency: {

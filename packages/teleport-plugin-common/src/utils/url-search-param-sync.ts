@@ -68,6 +68,17 @@ const clone = (expr: types.Expression): types.Expression =>
 // input). `depExpr` is the effect dependency that re-triggers the write-back
 // when that value changes — usually the same expression as `valueExpr`.
 //
+// `defaultValueExpr` (optional) is the state's default value. When supplied
+// (only for bindings whose default is a non-empty value, e.g. the sort
+// dropdown's `name-asc`), the current value being EQUAL TO THE DEFAULT also
+// deletes the key — so the canonical/default view keeps a clean, param-free
+// URL instead of stickily writing `?sortBy=name-asc` on first load. This is
+// the write-back half of the default-aware pairing that keeps the URL⇄state
+// sync loop-free: the read-back below resolves a missing key back to the same
+// default, so the two never disagree. Omitting it (empty-default bindings like
+// `selectedCategory` / the search input) yields byte-identical output to the
+// pre-default builder.
+//
 // Notes:
 // 1. `router.isReady` gate: on the very first SSG render `router.query` is
 //    empty, so without this gate any value initialized from
@@ -87,8 +98,23 @@ const clone = (expr: types.Expression): types.Expression =>
 export const buildUrlWriteBackEffect = (
   paramKey: string,
   valueExpr: types.Expression,
-  depExpr: types.Expression
+  depExpr: types.Expression,
+  defaultValueExpr?: types.Expression
 ): types.ExpressionStatement => {
+  // value === '' || value == null  [|| value === <default>]
+  let deleteCondition: types.Expression = types.logicalExpression(
+    '||',
+    types.binaryExpression('===', clone(valueExpr), types.stringLiteral('')),
+    types.binaryExpression('==', clone(valueExpr), types.nullLiteral())
+  )
+  if (defaultValueExpr) {
+    deleteCondition = types.logicalExpression(
+      '||',
+      deleteCondition,
+      types.binaryExpression('===', clone(valueExpr), clone(defaultValueExpr))
+    )
+  }
+
   const effectBody = types.blockStatement([
     // if (typeof window === 'undefined') return
     types.ifStatement(
@@ -118,14 +144,10 @@ export const buildUrlWriteBackEffect = (
         ])
       ),
     ]),
-    // if (value === '' || value == null) { delete __nextQuery.key }
+    // if (value === '' || value == null [|| value === <default>]) { delete __nextQuery.key }
     // else { __nextQuery.key = String(value) }
     types.ifStatement(
-      types.logicalExpression(
-        '||',
-        types.binaryExpression('===', clone(valueExpr), types.stringLiteral('')),
-        types.binaryExpression('==', clone(valueExpr), types.nullLiteral())
-      ),
+      deleteCondition,
       types.blockStatement([
         types.expressionStatement(
           types.unaryExpression(
@@ -211,9 +233,20 @@ export const buildUrlWriteBackEffect = (
 //   (duplicate keys) per Next.js's typings; the helper normalizes both to a
 //   string before comparing, defaulting to `''` for the missing-key case so the
 //   comparison aligns with the write-back's `value === ''` empty-check.
+//
+// `defaultValueExpr` (optional) is the state's default value. When supplied
+// (bindings with a non-empty default such as the sort dropdown's `name-asc`),
+// an ABSENT or EMPTY URL value resolves to the default rather than `''` — via a
+// trailing `(<normalized>) || <default>`. This is what makes the default sort
+// "stick" on first load: without it the read-back would clobber the default
+// state (`name-asc`) with `''` the instant the router hydrates with no `?sortBy`
+// key, forcing an extra unsorted fetch and losing the ordering. It also keeps
+// browser back/forward to the param-free URL restoring the default view.
+// Omitting it reproduces the pre-default `''` fallback byte-for-byte.
 export const buildUrlReadBackEffect = (
   paramKey: string,
-  setterName: string
+  setterName: string,
+  defaultValueExpr?: types.Expression
 ): types.ExpressionStatement => {
   const normalizeArg = types.conditionalExpression(
     // typeof __urlValue === 'string' ? __urlValue
@@ -238,6 +271,13 @@ export const buildUrlReadBackEffect = (
     )
   )
 
+  // With a default, an absent/empty normalized value (falsy `''`) falls through
+  // to the default: `(<normalized>) || <default>`. Without one, the bare
+  // normalized expression is emitted unchanged.
+  const nextValueExpr: types.Expression = defaultValueExpr
+    ? types.logicalExpression('||', normalizeArg, clone(defaultValueExpr))
+    : normalizeArg
+
   const effectBody = types.blockStatement([
     // if (!router.isReady) return
     types.ifStatement(
@@ -251,9 +291,9 @@ export const buildUrlReadBackEffect = (
     types.variableDeclaration('const', [
       types.variableDeclarator(types.identifier('__urlValue'), routerQueryAccess(paramKey)),
     ]),
-    // const __nextValue = (normalized)
+    // const __nextValue = (normalized) [|| <default>]
     types.variableDeclaration('const', [
-      types.variableDeclarator(types.identifier('__nextValue'), normalizeArg),
+      types.variableDeclarator(types.identifier('__nextValue'), nextValueExpr),
     ]),
     // setState((prev) => prev === __nextValue ? prev : __nextValue)
     types.expressionStatement(

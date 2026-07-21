@@ -59,11 +59,103 @@ import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { generateWebhookFiles } from './webhook-generator'
 import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
 import {
+  generateAccountDeleteRoute,
+  accountDeleteRouteDependencies,
+} from './account-delete-route-generator'
+import { transactionalEmailDependencies } from './transactional-email-code'
+import {
   needsRuntimeStorageRoute,
   generateRuntimeStorageUploadRoute,
 } from './runtime-storage-generator'
 import { rewriteLowStockCustomHandlers } from './ecommerce-customhandler-rewriter'
 import { assertWorkflowsAreSecure } from './security-scanner'
+import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
+
+// Resolves the auth IDENTITY (users) table from the UIDL auth tables. Getting
+// this wrong is a security hole (the /api/data guard only protects this table),
+// so it prefers the table that stores credentials (an email/login column AND a
+// password column), then a conventionally-named users table, then the first
+// non-auxiliary table.
+const resolveAuthUsersTableName = (
+  authentication:
+    | { enabled?: boolean; tables?: Record<string, Array<{ name?: string }>> }
+    | undefined
+): string | undefined => {
+  if (!authentication?.enabled || !authentication?.tables) {
+    return undefined
+  }
+  const tables = authentication.tables
+  const names = Object.keys(tables)
+  if (names.length === 0) {
+    return 'users'
+  }
+  const cols = (n: string) => (tables[n] || []).map((c) => (c.name || '').toLowerCase())
+  const has = (n: string, re: RegExp) => cols(n).some((c) => re.test(c))
+  const identity = names.find(
+    (n) =>
+      has(n, /^(email|e_mail|username|user_name|login|user_email)$/) &&
+      has(n, /pass(word)?|pwd|password_hash|hashed_password/)
+  )
+  if (identity) {
+    return identity
+  }
+  const named = names.find((n) => /^(app_)?users?$|^members?$|^customers?$|^accounts?$/i.test(n))
+  if (named) {
+    return named
+  }
+  const AUX = /token|session|verification|reset|oauth|provider|magic|otp|account_link/i
+  const nonAux = names.find((n) => !AUX.test(n))
+  return nonAux || names[0]
+}
+
+// The first node of the given type's config across all workflows + custom nodes
+// (there is one per project in practice — e.g. the profile page's delete
+// workflow, or the sign-up workflow). Used to bake a node's email
+// provider/sender/body into a generated route.
+const findWorkflowNodeConfigByType = (
+  workflows: { workflows?: unknown; customNodes?: unknown } | undefined,
+  nodeType: string
+): Record<string, unknown> | null => {
+  if (!workflows) {
+    return null
+  }
+  const scan = (nodes: unknown): Record<string, unknown> | null => {
+    if (!Array.isArray(nodes)) {
+      return null
+    }
+    for (const node of nodes as Array<{ type?: string; config?: Record<string, unknown> }>) {
+      if (node && node.type === nodeType) {
+        return node.config || {}
+      }
+    }
+    return null
+  }
+  const groups = [workflows.workflows, workflows.customNodes]
+  for (const group of groups) {
+    if (group && typeof group === 'object') {
+      for (const entry of Object.values(group as Record<string, { nodes?: unknown }>)) {
+        const found = scan(entry?.nodes)
+        if (found) {
+          return found
+        }
+      }
+    }
+  }
+  return null
+}
+
+// The env-var name behind a node-config credential, whether it is stored as a
+// bare env-var string or a project-secret reference object.
+const extractSecretEnvName = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value
+  }
+  const ref = value as { content?: { referenceType?: string; id?: string } } | null
+  if (ref && ref.content && ref.content.referenceType === 'secret' && ref.content.id) {
+    return ref.content.id
+  }
+  return ''
+}
 
 export class NextWorkflowProjectPlugin implements ProjectPlugin {
   private static INLINE_HANDLED_NODE_TYPES = new Set([
@@ -74,6 +166,15 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
   ])
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, strategy } = structure
+
+    // SECURITY NET — parameterize raw-SQL interpolations before ANY config is
+    // emitted. Rewrites each `{{ name }}` value token in a data-node's `query` /
+    // `rawQueryUserPart` into a positional `$N` placeholder and moves the bound
+    // value into the sibling params array, so the value binds via
+    // `client.query(sql, params)` and never reaches the SQL text. Throws (aborts
+    // generation) on an interpolation that cannot be safely bound — refusing to
+    // ship injectable SQL. Runs FIRST so the security gate below sees final SQL.
+    parameterizeAllWorkflowRawSql(uidl.workflows)
 
     // Codegen-time security gate. Throws CodegenSecurityError if any
     // `general-custom-js` body references a protected platform secret
@@ -286,7 +387,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
     for (const workflow of Object.values(allWorkflows) as any[]) {
       if (workflow.trigger.type === 'event-cron-triggered') {
-        const cronContent = generateCronAPIRoute(workflow)
+        const cronContent = generateCronAPIRoute(workflow, customNodes)
         const cronFileName = getCronRouteFileName(workflow)
         files.set(`workflow-cron-${workflow.id}`, {
           path: ['pages', 'api', 'workflows'],
@@ -424,29 +525,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       // `password_reset_tokens`, the real `users` table is left mutable
       // unauthenticated. The identity table is the one storing credentials
       // (an email/login column AND a password column).
-      const authUsersTableName = ((): string | undefined => {
-        if (!uidl.authentication?.enabled || !uidl.authentication?.tables) {
-          return undefined
-        }
-        const tables = uidl.authentication.tables
-        const names = Object.keys(tables)
-        if (names.length === 0) return 'users'
-        const cols = (n: string) => (tables[n] || []).map((c) => (c.name || '').toLowerCase())
-        const has = (n: string, re: RegExp) => cols(n).some((c) => re.test(c))
-        const identity = names.find(
-          (n) =>
-            has(n, /^(email|e_mail|username|user_name|login|user_email)$/) &&
-            has(n, /pass(word)?|pwd|password_hash|hashed_password/)
-        )
-        if (identity) return identity
-        const named = names.find((n) =>
-          /^(app_)?users?$|^members?$|^customers?$|^accounts?$/i.test(n)
-        )
-        if (named) return named
-        const AUX = /token|session|verification|reset|oauth|provider|magic|otp|account_link/i
-        const nonAux = names.find((n) => !AUX.test(n))
-        return nonAux || names[0]
-      })()
+      const authUsersTableName = resolveAuthUsersTableName(uidl.authentication)
       // Low-stock auto-fire: the data-api wakes up the
       // /api/ecommerce/low-stock-alert endpoint on the place-order
       // workflow's stock-check SELECT. Both flags are sourced from
@@ -478,6 +557,53 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           },
         ],
       })
+    }
+
+    // Dedicated route backing the terminal `account-delete-current` node: it runs
+    // the account-deletion DB transaction + farewell email server-side. The
+    // farewell email's provider/sender/body are baked from the node config (the
+    // credential is read from env at runtime; its placeholder is registered by the
+    // generic secret-reference walk above).
+    if (uidl.authentication?.enabled && usedNodeTypes.has('account-delete-current')) {
+      const deleteConfig =
+        findWorkflowNodeConfigByType(uidl.workflows, 'account-delete-current') || {}
+      const providerNodeType =
+        typeof deleteConfig.emailProvider === 'string' ? deleteConfig.emailProvider : ''
+      const emailProvider = providerNodeType.startsWith('email-')
+        ? providerNodeType.slice('email-'.length)
+        : ''
+      const emailSecretEnvName =
+        extractSecretEnvName(deleteConfig.apiKey) || extractSecretEnvName(deleteConfig.serverToken)
+
+      files.set('account-delete-current-route', {
+        path: ['pages', 'api', 'account'],
+        files: [
+          {
+            name: 'delete-current',
+            fileType: FileType.JS,
+            content: generateAccountDeleteRoute({
+              authUsersTableName: resolveAuthUsersTableName(uidl.authentication),
+              emailProvider,
+              fromEmail: typeof deleteConfig.from === 'string' ? deleteConfig.from : '',
+              emailSecretEnvName,
+              emailSubject: typeof deleteConfig.subject === 'string' ? deleteConfig.subject : '',
+              emailBodyHtml: typeof deleteConfig.body === 'string' ? deleteConfig.body : '',
+              siteName: uidl.name || '',
+              deletedEmailPattern:
+                typeof deleteConfig.deletedEmailPattern === 'string'
+                  ? deleteConfig.deletedEmailPattern
+                  : undefined,
+            }),
+          },
+        ],
+      })
+
+      const providerDeps = accountDeleteRouteDependencies(emailProvider)
+      for (const [pkg, version] of Object.entries(providerDeps)) {
+        if (!dependencies[pkg]) {
+          dependencies[pkg] = version
+        }
+      }
     }
 
     if (needsRuntimeStorageRoute(usedNodeTypes)) {
@@ -1350,7 +1476,27 @@ module.exports = __customNodeRegistry;
         ],
       })
 
-      const signupRouteCode = generateSignupRouteFile(auth)
+      // Bake the WELCOME email (if configured on the account-signup node) into
+      // the signup route so it sends after the user is created. The credential
+      // is read from env at runtime; its placeholder is registered by the
+      // generic secret-reference walk in runAfter.
+      const signupConfig = findWorkflowNodeConfigByType(uidl.workflows, 'account-signup') || {}
+      const welcomeProviderNodeType =
+        typeof signupConfig.emailProvider === 'string' ? signupConfig.emailProvider : ''
+      const welcomeProvider = welcomeProviderNodeType.startsWith('email-')
+        ? welcomeProviderNodeType.slice('email-'.length)
+        : ''
+      const welcomeSecretEnvName =
+        extractSecretEnvName(signupConfig.apiKey) || extractSecretEnvName(signupConfig.serverToken)
+
+      const signupRouteCode = generateSignupRouteFile(auth, {
+        emailProvider: welcomeProvider,
+        fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
+        emailSecretEnvName: welcomeSecretEnvName,
+        emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
+        emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',
+        siteName: uidl.name || '',
+      })
       files.set('auth-signup-route', {
         path: ['pages', 'api', 'auth'],
         files: [
@@ -1361,6 +1507,13 @@ module.exports = __customNodeRegistry;
           },
         ],
       })
+
+      const welcomeProviderDeps = transactionalEmailDependencies(welcomeProvider)
+      for (const [pkg, version] of Object.entries(welcomeProviderDeps)) {
+        if (!dependencies[pkg]) {
+          dependencies[pkg] = version
+        }
+      }
     }
 
     const nextAuthRouteCode = generateNextAuthRouteFile()

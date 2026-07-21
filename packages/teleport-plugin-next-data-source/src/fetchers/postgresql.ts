@@ -75,6 +75,12 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       
       if (Array.isArray(value)) {
         if (value.length === 0) return
+        if (operand === 'array_overlap') {
+          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
+          queryParams.push(value.map((entry) => String(entry)))
+          paramIndex++
+          return
+        }
         const placeholders = value.map(() => \`$\${paramIndex++}\`)
         queryParams.push(...value)
         if (operand === '!=') {
@@ -83,6 +89,17 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
           conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
         }
       } else {
+        if (operand === 'array_overlap') {
+          if (value === '' || value === null || value === undefined) return
+          // A single comma-joined string (the multi-select Category Filter's
+          // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
+          const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
+          if (overlapValues.length === 0) return
+          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
+          queryParams.push(overlapValues)
+          paramIndex++
+          return
+        }
         if (value === null) {
           if (operand === '=') {
             conditions.push(\`\${field} IS NULL\`)

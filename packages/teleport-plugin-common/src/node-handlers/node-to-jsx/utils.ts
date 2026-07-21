@@ -985,6 +985,48 @@ const resolveOperandExpression = (
   return convertValueToLiteral(operand, conditionalIdentifier.type)
 }
 
+/**
+ * Coerce a conditional identifier to an empty collection when it is null or
+ * undefined, so the collection operators below can dereference it safely.
+ *
+ * The bound value is absent far more often than it looks: an optional CMS
+ * column, a category without an image, a state that has not hydrated yet. A
+ * bare `x.length` / `x.includes(...)` then throws `Cannot read properties of
+ * null` during render and takes the whole page down with an unhandled runtime
+ * error — a condition whose entire job is to HIDE a node must never be able to
+ * do that. `x || []` keeps string semantics intact (a non-empty string is
+ * truthy and carries both `.length` and `.includes`) while turning nullish
+ * values into a harmless empty collection; objects get `{}` for `Object.keys`
+ * / `hasOwnProperty`, which reject `null` outright.
+ */
+const createNullSafeCollection = (
+  identifier: types.Expression,
+  conditionalIdentifier: ConditionalIdentifier,
+  t = types
+): types.Expression =>
+  t.logicalExpression(
+    '||',
+    identifier,
+    conditionalIdentifier.type === 'object' ? t.objectExpression([]) : t.arrayExpression([])
+  )
+
+/** `x.length` — via `Object.keys(x).length` for objects — on a nullish-safe target. */
+const createLengthExpression = (
+  identifier: types.Expression,
+  conditionalIdentifier: ConditionalIdentifier,
+  t = types
+): types.Expression => {
+  const target = createNullSafeCollection(identifier, conditionalIdentifier, t)
+  return conditionalIdentifier.type === 'object'
+    ? t.memberExpression(
+        t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [
+          target,
+        ]),
+        t.identifier('length')
+      )
+    : t.memberExpression(target, t.identifier('length'))
+}
+
 export const createBinaryExpression = (
   condition: {
     operation: string
@@ -1005,36 +1047,25 @@ export const createBinaryExpression = (
 
   // Array/Object operators
   if (operation === 'isEmpty') {
-    // For objects, use Object.keys(x).length; for arrays (or unknown), use x.length
-    const lengthExpr =
-      conditionalIdentifier.type === 'object'
-        ? t.memberExpression(
-            t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [
-              identifier,
-            ]),
-            t.identifier('length')
-          )
-        : t.memberExpression(identifier, t.identifier('length'))
-    return t.binaryExpression('===', lengthExpr, t.numericLiteral(0))
+    return t.binaryExpression(
+      '===',
+      createLengthExpression(identifier, conditionalIdentifier, t),
+      t.numericLiteral(0)
+    )
   }
 
   if (operation === 'isNotEmpty') {
-    const lengthExpr =
-      conditionalIdentifier.type === 'object'
-        ? t.memberExpression(
-            t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [
-              identifier,
-            ]),
-            t.identifier('length')
-          )
-        : t.memberExpression(identifier, t.identifier('length'))
-    return t.binaryExpression('>', lengthExpr, t.numericLiteral(0))
+    return t.binaryExpression(
+      '>',
+      createLengthExpression(identifier, conditionalIdentifier, t),
+      t.numericLiteral(0)
+    )
   }
 
   if (operation === 'lengthEquals' && operand !== undefined) {
     return t.binaryExpression(
       '===',
-      t.memberExpression(identifier, t.identifier('length')),
+      createLengthExpression(identifier, conditionalIdentifier, t),
       resolveOperandExpression(operand, conditionalIdentifier, options)
     )
   }
@@ -1042,7 +1073,7 @@ export const createBinaryExpression = (
   if (operation === 'lengthGreaterThan' && operand !== undefined) {
     return t.binaryExpression(
       '>',
-      t.memberExpression(identifier, t.identifier('length')),
+      createLengthExpression(identifier, conditionalIdentifier, t),
       resolveOperandExpression(operand, conditionalIdentifier, options)
     )
   }
@@ -1050,17 +1081,18 @@ export const createBinaryExpression = (
   if (operation === 'lengthLessThan' && operand !== undefined) {
     return t.binaryExpression(
       '<',
-      t.memberExpression(identifier, t.identifier('length')),
+      createLengthExpression(identifier, conditionalIdentifier, t),
       resolveOperandExpression(operand, conditionalIdentifier, options)
     )
   }
 
   if (operation === 'contains' && operand !== undefined) {
     const operandExpr = resolveOperandExpression(operand, conditionalIdentifier, options)
+    const target = createNullSafeCollection(identifier, conditionalIdentifier, t)
 
     if (containsField) {
       const itemParam = t.identifier('__item')
-      return t.callExpression(t.memberExpression(identifier, t.identifier('some')), [
+      return t.callExpression(t.memberExpression(target, t.identifier('some')), [
         t.arrowFunctionExpression(
           [itemParam],
           t.binaryExpression(
@@ -1072,17 +1104,18 @@ export const createBinaryExpression = (
       ])
     }
 
-    return t.callExpression(t.memberExpression(identifier, t.identifier('includes')), [operandExpr])
+    return t.callExpression(t.memberExpression(target, t.identifier('includes')), [operandExpr])
   }
 
   if (operation === 'notContains' && operand !== undefined) {
     const operandExpr = resolveOperandExpression(operand, conditionalIdentifier, options)
+    const target = createNullSafeCollection(identifier, conditionalIdentifier, t)
 
     if (containsField) {
       const itemParam = t.identifier('__item')
       return t.unaryExpression(
         '!',
-        t.callExpression(t.memberExpression(identifier, t.identifier('some')), [
+        t.callExpression(t.memberExpression(target, t.identifier('some')), [
           t.arrowFunctionExpression(
             [itemParam],
             t.binaryExpression(
@@ -1097,7 +1130,7 @@ export const createBinaryExpression = (
 
     return t.unaryExpression(
       '!',
-      t.callExpression(t.memberExpression(identifier, t.identifier('includes')), [operandExpr])
+      t.callExpression(t.memberExpression(target, t.identifier('includes')), [operandExpr])
     )
   }
 
@@ -1111,7 +1144,7 @@ export const createBinaryExpression = (
         ),
         t.identifier('call')
       ),
-      [identifier, operandExpr]
+      [createNullSafeCollection(identifier, conditionalIdentifier, t), operandExpr]
     )
   }
 
@@ -1127,7 +1160,7 @@ export const createBinaryExpression = (
           ),
           t.identifier('call')
         ),
-        [identifier, operandExpr]
+        [createNullSafeCollection(identifier, conditionalIdentifier, t), operandExpr]
       )
     )
   }
