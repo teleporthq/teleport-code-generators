@@ -37,8 +37,33 @@ function resolveContextRef(ref, context) {
   let result = nodeOutput;
   const startIdx = (ref.path.length > 0 && ref.path[0] === ref.nodeId) ? 1 : 0;
   for (let i = startIdx; i < ref.path.length; i++) {
-    if (result === undefined || result === null) return undefined;
+    if (result === undefined || result === null) { result = undefined; break; }
     result = result[ref.path[i]];
+  }
+  // Fallback for form-submit trigger bindings authored without the formData
+  // level: the trigger's runtime output nests submitted fields under formData
+  // ({ formData: { field: value }, formId, ... }), but the editor/AI has
+  // historically emitted paths that read the field directly off the trigger
+  // ([triggerId, 'class']). When the direct walk misses AND the node output
+  // carries a formData object that holds the first path segment, resolve
+  // through it instead of returning undefined — otherwise data-create-item
+  // INSERTs NULL for the column and violates not-null constraints. The
+  // hasOwnProperty gate keeps this from inventing values for genuinely
+  // missing keys.
+  if (result === undefined && startIdx < ref.path.length) {
+    const formDataBag = nodeOutput.formData;
+    if (
+      formDataBag &&
+      typeof formDataBag === 'object' &&
+      Object.prototype.hasOwnProperty.call(formDataBag, ref.path[startIdx])
+    ) {
+      let fallback = formDataBag;
+      for (let j = startIdx; j < ref.path.length; j++) {
+        if (fallback === undefined || fallback === null) return undefined;
+        fallback = fallback[ref.path[j]];
+      }
+      return fallback;
+    }
   }
   return result;
 }

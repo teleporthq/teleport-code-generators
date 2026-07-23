@@ -255,7 +255,20 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
         if (elementId) {
           elementTriggers.push({ workflow: wf, elementId, reactProp, triggerConfig })
         } else {
-          lifecycleWorkflows.push(wf)
+          // An element-event trigger (click/change/submit/…) with NO bound
+          // element cannot fire — the author detached it or never wired it.
+          // It used to fall through to lifecycleWorkflows, where the trigger
+          // switch has no case for element events: the workflow never
+          // executed but its full __wfConfig_* blob still shipped in every
+          // page bundle (element scope with no selectedPages matches ALL
+          // pages). Skip it entirely — an unbound workflow stays a draft in
+          // the project without leaking into the generated app.
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[workflow-plugin] Skipping workflow "${wf.name || wf.id}" on "${uidl.name}" — its ${
+              trigger.type
+            } trigger has no bound element.`
+          )
         }
       } else {
         lifecycleWorkflows.push(wf)

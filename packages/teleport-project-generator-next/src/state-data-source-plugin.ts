@@ -13,10 +13,12 @@ import { StringUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import {
   generateDataSourceFetcherWithCore,
+  generateRawQueryFetcher,
   generateSafeFileName,
   sanitizeFileName,
   validateDataSourceConfig,
 } from '@teleporthq/teleport-plugin-next-data-source'
+import { isSelectOnlyQuery } from './global-state/data-source-utils'
 
 interface ParallelFetchMeta {
   names: string[]
@@ -306,6 +308,14 @@ const addPropToGetStaticPropsReturn = (
  * `invalid input syntax for type uuid: "{{Current User.id}}"`.
  */
 const UNRESOLVED_TEMPLATE_PLACEHOLDER = /\{\{[^}]+\}\}/
+// A placeholder that is NOT runtime-resolvable: anything other than
+// {{Current User.<field>}} (signed-in user, from the global auth context) or
+// {{Current Page Entity.id}} (the details-page row — its id IS the dynamic
+// route param, so it can be read from the router without loading the entity).
+// Other Current Page Entity columns are excluded: resolving them requires the
+// fetched entity row, whose prop shape isn't known to this plugin.
+const NON_RUNTIME_RESOLVABLE_PLACEHOLDER =
+  /\{\{(?!Current User\.\w+\}\})(?!Current Page Entity\.id\}\})[^}]+\}\}/
 
 const queryHasUnresolvedPlaceholder = (definition: UIDLStateDefinition): boolean => {
   if (typeof definition.query !== 'string' || definition.query.length === 0) {
@@ -315,48 +325,121 @@ const queryHasUnresolvedPlaceholder = (definition: UIDLStateDefinition): boolean
 }
 
 /**
- * Collects all state definitions that have a dataSourceBinding AND whose
- * query is safe to execute at build time.
- *
- * States whose `query` contains an unresolved `{{...}}` placeholder are
- * intentionally skipped — we refuse to emit a broken `getStaticProps`
- * fetch that would send the literal placeholder text to the database.
- * Those states are expected to be populated at runtime by a lifecycle
- * workflow (e.g. `event-page-loaded`) that has access to the real
- * session and can interpolate the placeholder properly.
+ * True when every `{{...}}` placeholder in the query is resolvable on the
+ * client at runtime, so the state can be populated through a generated API
+ * route + client-side fetch instead of being dropped.
  */
-const collectBoundStates = (
-  stateDefinitions: Record<string, UIDLStateDefinition>
-): Array<{
+const queryPlaceholdersAreRuntimeResolvable = (definition: UIDLStateDefinition): boolean => {
+  if (!queryHasUnresolvedPlaceholder(definition)) {
+    return false
+  }
+  return !NON_RUNTIME_RESOLVABLE_PLACEHOLDER.test(definition.query)
+}
+
+interface RuntimeQueryToken {
+  kind: 'user' | 'entity'
+  field: string
+  paramName: string
+}
+
+/**
+ * Parses the runtime-resolvable `{{…}}` tokens out of a query, replacing each
+ * distinct token with a `$N` placeholder (in order of first appearance —
+ * matching the query-param order the generated API route destructures).
+ * Handles both quoted (`'{{…}}'`) and bare occurrences, like the global-state
+ * parser does.
+ */
+const parseRuntimeQueryTokens = (
+  query: string
+): { parameterizedQuery: string; tokens: RuntimeQueryToken[] } => {
+  const tokens: RuntimeQueryToken[] = []
+  const orderedRawTokens: string[] = []
+
+  const tokenRe = /\{\{(Current User\.(\w+)|Current Page Entity\.id)\}\}/g
+  let match = tokenRe.exec(query)
+  while (match !== null) {
+    const raw = match[0]
+    if (!orderedRawTokens.includes(raw)) {
+      orderedRawTokens.push(raw)
+      if (match[2]) {
+        const field = match[2]
+        tokens.push({
+          kind: 'user',
+          field,
+          paramName: `currentUser${field.charAt(0).toUpperCase()}${field.slice(1)}`,
+        })
+      } else {
+        tokens.push({ kind: 'entity', field: 'id', paramName: 'currentPageEntityId' })
+      }
+    }
+    match = tokenRe.exec(query)
+  }
+
+  let parameterizedQuery = query
+  orderedRawTokens.forEach((raw, index) => {
+    const quoted = `'${raw}'`
+    if (parameterizedQuery.includes(quoted)) {
+      parameterizedQuery = parameterizedQuery.split(quoted).join(`$${index + 1}`)
+    } else {
+      parameterizedQuery = parameterizedQuery.split(raw).join(`$${index + 1}`)
+    }
+  })
+
+  return { parameterizedQuery, tokens }
+}
+
+interface BoundState {
   stateKey: string
   definition: UIDLStateDefinition
   binding: UIDLStateDataSourceBinding
-}> => {
-  const result: Array<{
-    stateKey: string
-    definition: UIDLStateDefinition
-    binding: UIDLStateDataSourceBinding
-  }> = []
+}
+
+/**
+ * Collects all state definitions that have a dataSourceBinding, split by how
+ * their data can be resolved:
+ *
+ * - `buildTime`: no `{{...}}` placeholder in the query — fetched once inside
+ *   `getStaticProps`. Emitting a build-time fetch for a placeholder query
+ *   would send the literal placeholder text to the database, crashing
+ *   Postgres with `invalid input syntax for type uuid: "{{Current User.id}}"`.
+ * - `runtimeUser`: every placeholder is `{{Current User.<field>}}` or
+ *   `{{Current Page Entity.id}}` — fetched at runtime through a generated
+ *   API route once the signed-in user / dynamic route param is available on
+ *   the client.
+ *
+ * States with any other placeholder (e.g. `{{urlDifferentiator}}`) are
+ * skipped: they are expected to be populated by a lifecycle workflow that
+ * has the full trigger context.
+ */
+const collectBoundStates = (
+  stateDefinitions: Record<string, UIDLStateDefinition>
+): { buildTime: BoundState[]; runtimeUser: BoundState[] } => {
+  const buildTime: BoundState[] = []
+  const runtimeUser: BoundState[] = []
 
   for (const [stateKey, definition] of Object.entries(stateDefinitions)) {
     if (!definition.dataSourceBinding) {
       continue
     }
     if (queryHasUnresolvedPlaceholder(definition)) {
+      if (queryPlaceholdersAreRuntimeResolvable(definition)) {
+        runtimeUser.push({ stateKey, definition, binding: definition.dataSourceBinding })
+        continue
+      }
       // eslint-disable-next-line no-console
       console.warn(
         `[state-data-source-plugin] Skipping getStaticProps fetch for state "${stateKey}" — query contains unresolved {{...}} placeholder (only resolvable at runtime). Populate this state via a page-load workflow instead.`
       )
       continue
     }
-    result.push({
+    buildTime.push({
       stateKey,
       definition,
       binding: definition.dataSourceBinding,
     })
   }
 
-  return result
+  return { buildTime, runtimeUser }
 }
 
 /**
@@ -369,11 +452,7 @@ interface FetchGroup {
   fileName: string
   fetcherImportName: string
   fetchDiscriminator: string
-  states: Array<{
-    stateKey: string
-    definition: UIDLStateDefinition
-    binding: UIDLStateDataSourceBinding
-  }>
+  states: BoundState[]
 }
 
 /**
@@ -402,11 +481,7 @@ const computeFetchDiscriminator = (definition: UIDLStateDefinition): string => {
 }
 
 const groupByDataSourceAndTable = (
-  boundStates: Array<{
-    stateKey: string
-    definition: UIDLStateDefinition
-    binding: UIDLStateDataSourceBinding
-  }>,
+  boundStates: BoundState[],
   dataSources: Record<string, UIDLDataSource>
 ): FetchGroup[] => {
   const groupMap = new Map<string, FetchGroup>()
@@ -540,6 +615,417 @@ const wrapWithMappingFunction = (
   return iife
 }
 
+/**
+ * Finds the page component's function body inside the jsx-component chunk so
+ * hooks can be injected before its return statement. Mirrors the lookup the
+ * workflows plugin performs.
+ */
+const findComponentBody = (chunks: ChunkDefinition[]): types.BlockStatement | null => {
+  const jsxComponent = chunks.find(
+    (chunk) =>
+      chunk.name === 'jsx-component' &&
+      typeof chunk.content === 'object' &&
+      chunk.content !== null &&
+      'type' in (chunk.content as object) &&
+      (chunk.content as types.Node).type === 'VariableDeclaration'
+  )
+  if (!jsxComponent) {
+    return null
+  }
+
+  const declarator = (jsxComponent.content as types.VariableDeclaration).declarations[0]
+  const init = declarator?.init
+  if (!init || (init.type !== 'ArrowFunctionExpression' && init.type !== 'FunctionExpression')) {
+    return null
+  }
+  const body = (init as types.ArrowFunctionExpression).body
+  return body.type === 'BlockStatement' ? body : null
+}
+
+/**
+ * Builds the `setter(<value>)` statement for one runtime-fetched state, where
+ * `__data` holds the API route's `result.data` (the query's rows array).
+ */
+const buildRuntimeSetterStatement = (state: BoundState): types.ExpressionStatement => {
+  const { stateKey, definition, binding } = state
+  const dataIdentifier = types.identifier('__data')
+  const accessPath = binding.refPath.slice(1)
+
+  let valueExpr: types.Expression
+  if (accessPath.length > 0) {
+    valueExpr = types.logicalExpression(
+      '??',
+      buildRefPathExtraction(dataIdentifier, binding.refPath),
+      getTypeFallbackExpression(definition)
+    )
+  } else if (definition.type === 'array') {
+    // The route returns the rows array directly, but never let a malformed
+    // payload poison an array-typed state (mirrors the workflow runtime guard).
+    valueExpr = types.conditionalExpression(
+      types.callExpression(
+        types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+        [dataIdentifier]
+      ),
+      dataIdentifier,
+      types.arrayExpression([])
+    )
+  } else {
+    valueExpr = dataIdentifier
+  }
+
+  valueExpr = wrapWithMappingFunction(valueExpr, definition)
+
+  const setterName = `set${stateKey.charAt(0).toUpperCase()}${stateKey.slice(1)}`
+  return types.expressionStatement(types.callExpression(types.identifier(setterName), [valueExpr]))
+}
+
+/**
+ * Builds the client-side fetch effect for one runtime fetch group:
+ *
+ *   useEffect(() => {
+ *     const __user = __pageStateCtx?.currentUser
+ *     if (!__user) return
+ *     fetch('/api/page-state/<route>?currentUserId=' + encodeURIComponent(__user.id ?? ''))
+ *       .then((__res) => __res.json())
+ *       .then((__result) => {
+ *         if (!__result || __result.success !== true) return
+ *         const __data = __result.data
+ *         set<State>(...)
+ *       })
+ *       .catch((__err) => console.error(...))
+ *   }, [__pageStateCtx?.currentUser])
+ */
+const buildRuntimeTokenFetchEffect = (
+  group: FetchGroup,
+  routeName: string,
+  tokens: RuntimeQueryToken[],
+  dynamicRouteAttribute?: string
+): types.ExpressionStatement => {
+  const needsUser = tokens.some((t) => t.kind === 'user')
+  const needsEntity = tokens.some((t) => t.kind === 'entity')
+
+  const setup: types.Statement[] = []
+  const deps: types.Expression[] = []
+
+  if (needsUser) {
+    setup.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('__user'),
+          types.optionalMemberExpression(
+            types.identifier('__pageStateCtx'),
+            types.identifier('currentUser'),
+            false,
+            true
+          )
+        ),
+      ]),
+      types.ifStatement(
+        types.unaryExpression('!', types.identifier('__user')),
+        types.returnStatement()
+      )
+    )
+    deps.push(
+      types.optionalMemberExpression(
+        types.identifier('__pageStateCtx'),
+        types.identifier('currentUser'),
+        false,
+        true
+      )
+    )
+  }
+
+  const buildEntityIdAccess = () =>
+    types.optionalMemberExpression(
+      types.memberExpression(types.identifier('__pageStateRouter'), types.identifier('query')),
+      types.stringLiteral(dynamicRouteAttribute || 'id'),
+      true,
+      true
+    )
+
+  if (needsEntity) {
+    // The dynamic route param IS the entity id (getStaticPaths/getServerSideProps
+    // resolve the page by `id = params[<attr>]`), so no entity fetch is needed.
+    setup.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('__entityId'), buildEntityIdAccess()),
+      ]),
+      types.ifStatement(
+        types.unaryExpression('!', types.identifier('__entityId')),
+        types.returnStatement()
+      )
+    )
+    deps.push(buildEntityIdAccess())
+  }
+
+  // Build the URL: literal prefix + encodeURIComponent(<value>) per token
+  let urlExpr: types.Expression = types.stringLiteral(
+    `/api/page-state/${routeName}${tokens.length > 0 ? '?' : ''}`
+  )
+  tokens.forEach((token, index) => {
+    const prefix = `${index > 0 ? '&' : ''}${token.paramName}=`
+    const valueExpr: types.Expression =
+      token.kind === 'user'
+        ? types.logicalExpression(
+            '??',
+            types.optionalMemberExpression(
+              types.identifier('__user'),
+              types.identifier(token.field),
+              false,
+              true
+            ),
+            types.stringLiteral('')
+          )
+        : types.identifier('__entityId')
+    urlExpr = types.binaryExpression(
+      '+',
+      types.binaryExpression('+', urlExpr, types.stringLiteral(prefix)),
+      types.callExpression(types.identifier('encodeURIComponent'), [valueExpr])
+    )
+  })
+
+  const resultChecks: types.Statement[] = [
+    types.ifStatement(
+      types.logicalExpression(
+        '||',
+        types.unaryExpression('!', types.identifier('__result')),
+        types.binaryExpression(
+          '!==',
+          types.memberExpression(types.identifier('__result'), types.identifier('success')),
+          types.booleanLiteral(true)
+        )
+      ),
+      types.returnStatement()
+    ),
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier('__data'),
+        types.memberExpression(types.identifier('__result'), types.identifier('data'))
+      ),
+    ]),
+    ...group.states.map(buildRuntimeSetterStatement),
+  ]
+
+  const fetchChain = types.callExpression(
+    types.memberExpression(
+      types.callExpression(
+        types.memberExpression(
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(types.identifier('fetch'), [urlExpr]),
+              types.identifier('then')
+            ),
+            [
+              types.arrowFunctionExpression(
+                [types.identifier('__res')],
+                types.callExpression(
+                  types.memberExpression(types.identifier('__res'), types.identifier('json')),
+                  []
+                )
+              ),
+            ]
+          ),
+          types.identifier('then')
+        ),
+        [
+          types.arrowFunctionExpression(
+            [types.identifier('__result')],
+            types.blockStatement(resultChecks)
+          ),
+        ]
+      ),
+      types.identifier('catch')
+    ),
+    [
+      types.arrowFunctionExpression(
+        [types.identifier('__err')],
+        types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(
+              types.memberExpression(types.identifier('console'), types.identifier('error')),
+              [
+                types.stringLiteral(
+                  `Error fetching page state (${group.states.map((s) => s.stateKey).join(', ')}):`
+                ),
+                types.identifier('__err'),
+              ]
+            )
+          ),
+        ])
+      ),
+    ]
+  )
+
+  const effectBody = types.blockStatement([...setup, types.expressionStatement(fetchChain)])
+
+  return types.expressionStatement(
+    types.callExpression(types.identifier('useEffect'), [
+      types.arrowFunctionExpression([], effectBody),
+      types.arrayExpression(deps),
+    ])
+  )
+}
+
+/**
+ * Emits, for page states whose query references only runtime-resolvable
+ * placeholders ({{Current User.<field>}} and/or {{Current Page Entity.id}}):
+ *   1. a parameterized API route (pages/api/page-state/<route>.js) that runs
+ *      the raw query with the placeholder(s) bound to query params, and
+ *   2. a useEffect in the page component that calls the route once the
+ *      signed-in user / dynamic route param is available and writes the rows
+ *      into local state.
+ *
+ * Without this, such states were silently dropped (no getStaticProps fetch is
+ * possible — the placeholder only resolves at runtime) and any list bound to
+ * them rendered empty forever unless a page-load workflow happened to exist —
+ * while the SAME binding populated fine inside the GUI editor, which resolves
+ * it through its own emulation (GuildForge run 801a60b6: guild-details
+ * memberships list).
+ */
+const generateRuntimeTokenStateFetches = (
+  structure: Parameters<ComponentPlugin>[0],
+  runtimeStates: BoundState[],
+  dataSources: Record<string, UIDLDataSource>
+): void => {
+  const { uidl, chunks, dependencies, options } = structure
+
+  const extractedResources = options.extractedResources
+  if (!extractedResources) {
+    return
+  }
+
+  const componentBody = findComponentBody(chunks)
+  if (!componentBody) {
+    return
+  }
+
+  const dynamicRouteAttribute = uidl.outputOptions?.dynamicRouteAttribute
+
+  const validStates = runtimeStates.filter((s) => isSelectOnlyQuery(s.definition.query))
+  const fetchGroups = groupByDataSourceAndTable(validStates, dataSources)
+  if (fetchGroups.length === 0) {
+    return
+  }
+
+  const pageSlug = StringUtils.camelCaseToDashCase(sanitizeFileName(uidl.name || 'page'))
+
+  const effects: types.Statement[] = []
+  let anyGroupNeedsUser = false
+  let anyGroupNeedsEntity = false
+
+  for (const group of fetchGroups) {
+    const query = group.states[0].definition.query
+    const { parameterizedQuery, tokens } = parseRuntimeQueryTokens(query)
+    const needsUser = tokens.some((t) => t.kind === 'user')
+    const needsEntity = tokens.some((t) => t.kind === 'entity')
+    const stateNames = group.states.map((s) => `"${s.stateKey}"`).join(', ')
+
+    if (needsUser && !options.auth) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[state-data-source-plugin] Skipping runtime fetch for state(s) ${stateNames} — the query references {{Current User.*}} but the project has no authentication, so there is no signed-in user to resolve it with.`
+      )
+      continue
+    }
+    if (needsEntity && !dynamicRouteAttribute) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[state-data-source-plugin] Skipping runtime fetch for state(s) ${stateNames} — the query references {{Current Page Entity.id}} but page "${uidl.name}" is not a dynamic details page (no dynamicRouteAttribute), so there is no route param to resolve it with.`
+      )
+      continue
+    }
+
+    const routeName = `${pageSlug}-${sanitizeFileName(group.tableName)}-${group.fetchDiscriminator}`
+    const resourceKey = `pages/api/page-state/${routeName}`
+
+    if (!extractedResources[resourceKey]) {
+      let routeContent: string
+      try {
+        routeContent = generateRawQueryFetcher(
+          group.dataSource.config as Record<string, unknown>,
+          parameterizedQuery,
+          tokens.map((t) => t.paramName)
+        )
+      } catch {
+        continue
+      }
+      extractedResources[resourceKey] = {
+        fileName: routeName,
+        fileType: FileType.JS,
+        path: ['pages', 'api', 'page-state'],
+        content: routeContent,
+      }
+    }
+
+    effects.push(buildRuntimeTokenFetchEffect(group, routeName, tokens, dynamicRouteAttribute))
+    anyGroupNeedsUser = anyGroupNeedsUser || needsUser
+    anyGroupNeedsEntity = anyGroupNeedsEntity || needsEntity
+  }
+
+  if (effects.length === 0) {
+    return
+  }
+
+  const returnIdx = componentBody.body.findIndex((stmt) => types.isReturnStatement(stmt))
+  const insertIdx = returnIdx === -1 ? componentBody.body.length : returnIdx
+
+  const hasDeclaration = (name: string) =>
+    componentBody.body.some(
+      (stmt) =>
+        stmt.type === 'VariableDeclaration' &&
+        stmt.declarations.some(
+          (d) => d.id.type === 'Identifier' && (d.id as types.Identifier).name === name
+        )
+    )
+
+  const statements: types.Statement[] = []
+  if (anyGroupNeedsUser && !hasDeclaration('__pageStateCtx')) {
+    statements.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('__pageStateCtx'),
+          types.callExpression(types.identifier('useGlobalContext'), [])
+        ),
+      ])
+    )
+  }
+  if (anyGroupNeedsEntity && !hasDeclaration('__pageStateRouter')) {
+    statements.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('__pageStateRouter'),
+          types.callExpression(types.identifier('useRouter'), [])
+        ),
+      ])
+    )
+  }
+  statements.push(...effects)
+
+  componentBody.body.splice(insertIdx, 0, ...statements)
+
+  dependencies.useEffect = {
+    type: 'library',
+    path: 'react',
+    version: '>=16.8.0',
+    meta: { namedImport: true },
+  }
+  if (anyGroupNeedsUser) {
+    dependencies.useGlobalContext = {
+      type: 'local',
+      path: '@/global-context',
+      meta: { namedImport: true },
+    }
+  }
+  if (anyGroupNeedsEntity) {
+    dependencies.useRouter = {
+      type: 'library',
+      path: 'next/router',
+      version: '^12.1.10',
+      meta: { namedImport: true },
+    }
+  }
+}
+
 export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
   const stateDataSourcePlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
@@ -551,7 +1037,16 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
     }
 
     // Collect states with dataSourceBinding
-    const boundStates = collectBoundStates(stateDefinitions)
+    const { buildTime: boundStates, runtimeUser: runtimeUserStates } =
+      collectBoundStates(stateDefinitions)
+
+    // States whose query references {{Current User.*}} / {{Current Page
+    // Entity.id}} cannot be fetched at build time — emit an API route +
+    // client-side fetch effect instead.
+    if (runtimeUserStates.length > 0) {
+      generateRuntimeTokenStateFetches(structure, runtimeUserStates, dataSources)
+    }
+
     if (boundStates.length === 0) {
       return structure
     }
