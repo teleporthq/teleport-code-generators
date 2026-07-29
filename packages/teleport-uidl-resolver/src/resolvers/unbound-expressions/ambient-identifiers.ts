@@ -1,24 +1,41 @@
 /**
- * Root identifiers that are always in scope inside a generated component and
- * therefore can never be an "unbound" reference:
+ * Root identifiers that are always in scope where a UIDL `expr` node is
+ * rendered — i.e. in the component's RENDER BODY, which is the only place this
+ * resolver inspects (element children, element attributes and the link ability
+ * the abilities resolver has not yet folded into attributes).
  *
- *  - values the code generator injects into the render scope (`props`, `state`,
- *    `event`, `params`, `context`, `metadata`, and common map callback vars),
- *  - standard JavaScript globals / built-ins.
+ * Membership here is a promise that the code generator declares the name. It is
+ * therefore limited to:
  *
- * Iterator variables introduced by repeaters (`item`, `kpi`, ...) are NOT
- * listed here — they are tracked positionally as the walker descends into a
- * repeater's subtree, so an iterator reference that escapes its repeater is
- * still correctly flagged as unbound.
+ *  - `props`, the render function's own parameter,
+ *  - the global-context values the JSX emitter destructures from
+ *    `useGlobalContext()` whenever it sees them in an expression
+ *    (`GLOBAL_EXPRESSION_IDENTIFIERS` in teleport-plugin-common node-to-jsx),
+ *  - standard JavaScript / browser globals.
+ *
+ * Deliberately NOT here:
+ *
+ *  - `state` — React state is destructured into bare variables
+ *    (`dynamicReferencePrefixMap.state` is `''`), so there is no `state` object
+ *    at runtime and `state` / `state.x` in an expression is always a
+ *    `ReferenceError`. Individual state names come from `stateDefinitions`.
+ *  - `params`, `index` and render-prop names — these ARE bound, but only inside
+ *    the subtree of the node that introduces them (a repeater's `.map()`
+ *    callback, a CMS/data-source `renderSuccess` prop). The walker tracks them
+ *    positionally so a reference that escapes its owner is still caught.
+ *  - `event` / `evt` / `e` — bound only inside event handlers, which this
+ *    resolver does not visit. When one appears in a render-scope expression it
+ *    is either an inline callback parameter (the scope analyser sees the
+ *    binding) or genuinely undeclared.
+ *  - `context`, `ctx`, `metadata`, `record`, `idx`, `key`, `i` — no generator
+ *    ever declares these names in a render body.
+ *
+ * Reserved words and literals (`true`, `null`, `undefined`, …) are filtered out
+ * by the lexer itself and need no entry here.
  */
-export const AMBIENT_IDENTIFIERS = new Set<string>([
-  // Code-generator provided render-scope values
+export const RENDER_SCOPE_IDENTIFIERS = new Set<string>([
+  // The render function's own parameter
   'props',
-  'state',
-  'context',
-  'ctx',
-  'metadata',
-  'record',
   // Global-context values: the JSX emitter scans expressions for these
   // (GLOBAL_EXPRESSION_IDENTIFIERS in teleport-plugin-common node-to-jsx) and
   // injects the matching `useGlobalContext()` destructuring, so they are
@@ -30,15 +47,6 @@ export const AMBIENT_IDENTIFIERS = new Set<string>([
   'cart',
   'locale',
   'locales',
-  // Event handler / map callback parameters
-  'event',
-  'evt',
-  'e',
-  'params',
-  'index',
-  'idx',
-  'key',
-  'i',
   // Browser globals
   'window',
   'document',
@@ -54,7 +62,6 @@ export const AMBIENT_IDENTIFIERS = new Set<string>([
   'URLSearchParams',
   // Language built-ins
   'globalThis',
-  'undefined',
   'NaN',
   'Infinity',
   'JSON',

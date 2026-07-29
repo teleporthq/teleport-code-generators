@@ -281,7 +281,13 @@ const generateFormSubmittedTrigger = (
         const formData = {};
         const fd = new FormData(form_${safeId});
         fd.forEach(function(v, k) { formData[k] = v; });
-        const triggerContext = { formData: formData, formId: '${formId}', timestamp: Date.now() };
+        // Fields spread FLAT as well as under \`formData\` — a top-level
+        // custom-js node reads the trigger as \`params[0]\`, and generated
+        // validators index it directly (\`params[0].name\`). Keeping the fields
+        // one level down is what made Edit Guild report "Guild Name is
+        // required" for a name that was filled in. The spread comes first so a
+        // field named \`formData\`/\`formId\`/\`timestamp\` cannot shadow them.
+        const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${formId}', timestamp: Date.now() });
         ${executionCall};
       };
       form_${safeId}.addEventListener('submit', handler_${safeId});

@@ -168,7 +168,13 @@ const TqMotion = ({
     repeatType,
   }
 
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  // Scroll-linked parallax is one trigger out of five, but the hook has to run on
+  // every render. Passing a target when we are not going to use it makes framer
+  // measure this element against the scroll container on every scroll frame — and
+  // warn about the container being position:static — once per motion node on the
+  // page. Targetless useScroll shares one window listener and measures nothing.
+  const scrollOptions = trigger === 'scroll' ? { target: ref, offset: ['start end', 'end start'] } : {}
+  const { scrollYProgress } = useScroll(scrollOptions)
   const yFrom = typeof fromVars.y === 'number' ? fromVars.y : dist
   const yTo = typeof toVars.y === 'number' ? toVars.y : -dist
   const parallaxY = useTransform(scrollYProgress, [0, 1], [yFrom, yTo])

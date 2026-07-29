@@ -135,7 +135,18 @@ export interface UIDLAuthPageProtection {
   requiresAuth: boolean
   allowedRoles: string[]
   pageName: string
+  // The STATIC route prefix the page is served from: `/about` for a plain
+  // page, `/orders` for a details page emitted as `/orders/[order_number]`.
+  // The generated middleware treats a match on this value — exact or as a
+  // `<route>/…` prefix — as "protected".
   route: string
+  // Full route INCLUDING the dynamic segment (`/orders/[order_number]`).
+  // Emitted only for details pages. `generateMiddlewareFile` uses it to know
+  // exactly which requests a row-owned self-guarded page serves, so a sibling
+  // listing page's protection on the shared static base (`/orders`) cannot
+  // bounce a guest buyer away from `/orders/ORD-42`. Optional: UIDLs produced
+  // before this field existed fall back to `route` + `rowOwnerDifferentiator`.
+  routePattern?: string
   // Row-level ownership metadata for self-guarding details pages.
   // When set, the page's page-load SQL fetch enforces ownership
   // per-row (typically matching both the logged-in user_id and the

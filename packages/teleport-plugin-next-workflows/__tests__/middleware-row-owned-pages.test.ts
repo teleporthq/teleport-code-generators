@@ -1,4 +1,8 @@
 import { generateMiddlewareFile } from '../src/auth-generator'
+import {
+  extractProtectedRoutes,
+  extractSelfGuardedRoutes,
+} from './_helpers/run-generated-middleware'
 
 // Guarding the regression where a guest checkout buyer lands on
 // `/order-details/<order_number>` after Stripe redirect and the
@@ -51,8 +55,11 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
 
     // /order-details must NOT appear in protectedRoutes — the
     // page-load SQL `user_id = userId OR user_id = anonymousUserId`
-    // is the source of truth for ownership.
-    expect(code).not.toContain('"/order-details"')
+    // is the source of truth for ownership. It DOES appear in
+    // selfGuardedRoutes, which is how the middleware recognises the
+    // requests it must let through when an ancestor route is protected.
+    expect(extractProtectedRoutes(code)).toEqual({})
+    expect(extractSelfGuardedRoutes(code)).toEqual(['/order-details/[order_number]'])
   })
 
   it('still protects a row-owned page that requires a specific role', () => {
@@ -74,8 +81,11 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
       },
     } as any)
 
-    expect(code).toContain('"/admin/orders/[id]"')
-    expect(code).toContain('"admin"')
+    expect(extractProtectedRoutes(code)['/admin/orders/[id]']).toEqual({
+      requiresAuth: true,
+      allowedRoles: ['admin'],
+    })
+    expect(extractSelfGuardedRoutes(code)).toEqual([])
   })
 
   it('keeps non-row-owned pages protected as before', () => {
@@ -94,7 +104,11 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
       },
     } as any)
 
-    expect(code).toContain('"/orders-list"')
+    expect(extractProtectedRoutes(code)['/orders-list']).toEqual({
+      requiresAuth: true,
+      allowedRoles: [],
+    })
+    expect(extractSelfGuardedRoutes(code)).toEqual([])
   })
 
   it('honours folder-level role gating even when a child page is row-owned', () => {
@@ -124,8 +138,12 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
       },
     } as any)
 
-    expect(code).toContain('"/tickets/[id]"')
-    expect(code).toContain('"staff"')
+    expect(extractProtectedRoutes(code)['/tickets/[id]']).toEqual({
+      requiresAuth: true,
+      allowedRoles: ['staff'],
+    })
+    // The folder's role gate is absolute, so the page loses its waiver.
+    expect(extractSelfGuardedRoutes(code)).toEqual([])
   })
 
   it('skips a row-owned page even when wrapped in a role-less folder', () => {
@@ -156,7 +174,8 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
       },
     } as any)
 
-    expect(code).not.toContain('"/order-details"')
+    expect(extractProtectedRoutes(code)).toEqual({})
+    expect(extractSelfGuardedRoutes(code)).toEqual(['/order-details'])
   })
 
   it('treats `rowOwnerColumn` as the sole signal — pages without it stay protected', () => {
@@ -176,6 +195,10 @@ describe('generateMiddlewareFile: row-owned self-guarded pages', () => {
       },
     } as any)
 
-    expect(code).toContain('"/something"')
+    expect(extractProtectedRoutes(code)['/something']).toEqual({
+      requiresAuth: true,
+      allowedRoles: [],
+    })
+    expect(extractSelfGuardedRoutes(code)).toEqual([])
   })
 })

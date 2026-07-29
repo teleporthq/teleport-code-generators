@@ -111,6 +111,13 @@ const TqCountdown = ({
 
   const resolvedUnits = useMemo(() => resolveUnits(units), [units])
   const resolvedLabels = useMemo(() => resolveLabels(resolvedUnits, labels), [resolvedUnits, labels])
+  // Every hook must run on EVERY render: the mounted-guard and the numeric-mode
+  // branch below both return early, so a hook placed after them would only run
+  // on some renders ("Rendered more hooks than during the previous render").
+  const targetDate = useMemo(() => {
+    const d = new Date(target)
+    return isNaN(d.getTime()) ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : d
+  }, [target])
 
   // Deterministic placeholder (zeros) for SSR + first paint, so hydration matches.
   if (!mounted) {
@@ -150,11 +157,6 @@ const TqCountdown = ({
     const segments = dateSegments({ days, hours, minutes, seconds }, resolvedUnits, resolvedLabels)
     return renderSegments(segments, format)
   }
-
-  const targetDate = useMemo(() => {
-    const d = new Date(target)
-    return isNaN(d.getTime()) ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : d
-  }, [target])
 
   return (
     <div {...rest}>

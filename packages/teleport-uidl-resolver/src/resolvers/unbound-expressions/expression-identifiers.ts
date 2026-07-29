@@ -1,77 +1,66 @@
 /**
- * Extracts the "root" reference identifiers used by a UIDL `expr` node so the
- * resolver can tell whether an expression references a variable that is not in
- * scope (and would therefore throw a `ReferenceError` at render time).
+ * Scope analysis for the JavaScript carried by a UIDL `expr` node.
  *
- * A root reference is an identifier that is READ as a variable — e.g. `cat` in
- * `cat.name`, `item` in `` `/edit/${item?.id}` ``, or `params` in
- * `params['id']`. Property names (the `name` in `cat.name`), string-literal
- * contents, and language keywords are NOT roots.
+ * The resolver needs to know which identifiers an expression READS from the
+ * scope that surrounds it, because those are the only ones that can throw
+ * `ReferenceError` at render time. Member access can never throw on its own:
+ * `props.a.b.c` only fails if `props` itself is undeclared, so we look at the
+ * ROOT of every reference — `cat` in `cat.name`, `item` in `` `/e/${item?.id}` ``,
+ * `params` in `params['id']`. Property names, string-literal contents and
+ * language keywords are not roots.
  *
- * The extractor is a small hand-written lexer rather than a full parser so the
- * resolver package stays dependency-free. It only needs to be correct enough to
- * find the leading identifier of every member/call/index expression while
- * ignoring string and template-literal text — which is exactly what
- * distinguishes a genuine unbound reference from an incidental word inside a
- * quoted JSON blob such as
- * `JSON.stringify([{ "type": "condition", "source": "id" }])`.
+ * Identifiers the expression BINDS itself are subtracted from that set, so an
+ * inline callback such as `(event) => event.target.value` is understood to be
+ * self-contained rather than a reference to an undeclared `event`.
+ *
+ * Some constructs introduce bindings a lexer cannot place reliably — a
+ * block-scoped declaration (`var` / `let` / `const`) or a `class` body, both of
+ * which can only appear inside an IIFE here. When one of those shows up the
+ * analysis reports `resolvable: false` and the caller must leave the expression
+ * alone: this resolver only ever removes PROVABLY broken expressions.
  */
 
-const IDENTIFIER_START = /[A-Za-z_$]/
-const IDENTIFIER_PART = /[A-Za-z0-9_$]/
+import {
+  IDENTIFIER_START,
+  RESERVED_WORDS,
+  isWhitespace,
+  readIdentifier,
+  skipStringLiteral,
+  skipTemplateLiteral,
+} from './expression-lexer'
+
+export interface ExpressionScopeAnalysis {
+  /** Root identifiers the expression reads from the enclosing scope. */
+  freeIdentifiers: Set<string>
+  /**
+   * `false` when the expression contains a construct whose bindings this lexer
+   * cannot resolve. `freeIdentifiers` is then not trustworthy and callers must
+   * treat the expression as bound.
+   */
+  resolvable: boolean
+}
 
 /**
- * Words that are valid identifiers to the lexer but are language keywords or
- * literals, never a variable reference we could neutralise.
+ * Keywords that declare a name outside of a parameter list. They can only reach
+ * a UIDL expression inside a function body (the generator emits `expr` nodes as
+ * a single expression statement), and tracking their bindings would require a
+ * real parser — so they switch the analysis off instead.
  */
-const RESERVED_WORDS = new Set([
-  'true',
-  'false',
-  'null',
-  'undefined',
-  'this',
-  'super',
-  'new',
-  'delete',
-  'void',
-  'typeof',
-  'instanceof',
-  'in',
-  'of',
-  'do',
-  'if',
-  'else',
-  'for',
-  'while',
-  'switch',
-  'case',
-  'default',
-  'break',
-  'continue',
-  'return',
-  'function',
-  'var',
-  'let',
-  'const',
-  'class',
-  'extends',
-  'yield',
-  'await',
-  'async',
-  'throw',
-  'try',
-  'catch',
-  'finally',
-  'import',
-  'export',
-  'from',
-  'as',
-  'with',
-  'debugger',
-])
+const OPAQUE_SCOPE_KEYWORDS = new Set(['var', 'let', 'const', 'class'])
 
-const isWhitespace = (char: string): boolean =>
-  char === ' ' || char === '\t' || char === '\n' || char === '\r' || char === '\f' || char === '\v'
+/** Marker stored in `previousSignificant` for "the last token was an identifier". */
+const IDENTIFIER_TOKEN = 'a'
+
+interface ScanState {
+  roots: Set<string>
+  declared: Set<string>
+  resolvable: boolean
+}
+
+interface ParenGroup {
+  start: number
+  end: number
+}
 
 /**
  * True when the next non-whitespace character starting at `from` is a single
@@ -86,73 +75,53 @@ const nextNonWhitespaceIsColon = (code: string, from: number): boolean => {
   return code[index] === ':' && code[index + 1] !== ':'
 }
 
-const skipStringLiteral = (code: string, start: number): number => {
-  const quote = code[start]
-  let index = start + 1
-  while (index < code.length) {
-    const char = code[index]
-    if (char === '\\') {
-      index += 2
-      continue
-    }
-    if (char === quote) {
-      return index + 1
-    }
-    index += 1
-  }
-  return index
-}
-
 /**
- * Reads a template literal starting at the backtick under `start`. Static text
- * is ignored; every `${ ... }` interpolation is recursively scanned for roots.
- * Returns the index just past the closing backtick.
+ * Registers every identifier inside a parameter list as a binding.
+ *
+ * Parameter lists can hold defaults that reference outer values
+ * (`(a = outer) => …`), and those get collected as bindings too. That
+ * over-collection is deliberate: declaring too much only makes the caller more
+ * conservative (it keeps an expression it might have been able to neutralise),
+ * whereas declaring too little would blank a perfectly valid expression.
  */
-const scanTemplateLiteral = (code: string, start: number, roots: Set<string>): number => {
-  let index = start + 1
-  while (index < code.length) {
-    const char = code[index]
-    if (char === '\\') {
-      index += 2
+const declareIdentifiersIn = (fragment: string, state: ScanState): void => {
+  let index = 0
+  while (index < fragment.length) {
+    const char = fragment[index]
+    if (char === "'" || char === '"') {
+      index = skipStringLiteral(fragment, index)
       continue
     }
     if (char === '`') {
-      return index + 1
+      index = skipTemplateLiteral(fragment, index)
+      continue
     }
-    if (char === '$' && code[index + 1] === '{') {
-      const interpolationStart = index + 2
-      let depth = 1
-      let cursor = interpolationStart
-      while (cursor < code.length && depth > 0) {
-        const inner = code[cursor]
-        if (inner === '{') {
-          depth += 1
-        } else if (inner === '}') {
-          depth -= 1
-          if (depth === 0) {
-            break
-          }
-        } else if (inner === '`') {
-          cursor = scanTemplateLiteral(code, cursor, roots) - 1
-        } else if (inner === "'" || inner === '"') {
-          cursor = skipStringLiteral(code, cursor) - 1
-        }
-        cursor += 1
+    if (IDENTIFIER_START.test(char)) {
+      const identifier = readIdentifier(fragment, index)
+      if (!RESERVED_WORDS.has(identifier)) {
+        state.declared.add(identifier)
       }
-      collectRootIdentifiers(code.slice(interpolationStart, cursor), roots)
-      index = cursor + 1
+      index += identifier.length
       continue
     }
     index += 1
   }
-  return index
 }
 
-const collectRootIdentifiers = (code: string, roots: Set<string>): void => {
-  let index = 0
-  // Last non-whitespace character seen — used to tell a member access
-  // (`.name`, `?.name`) apart from a root reference.
+const scanExpression = (code: string, state: ScanState): void => {
+  // Open-paren indices, so a `)` can be paired back to its group. `=>` needs
+  // that group: an arrow's parameters sit BEFORE the token that identifies it
+  // as a function.
+  const openParens: number[] = []
+  let lastParenGroup: ParenGroup | undefined
+  // Paren nesting level at which a `function` keyword was seen, so the very
+  // next group closing at that level is recognised as its parameter list.
+  let functionParenDepth = -1
+  // Last non-whitespace character seen — `.` marks a member access, `)` an
+  // arrow's parameter list, `IDENTIFIER_TOKEN` a bare identifier.
   let previousSignificant = ''
+  let previousIdentifier = ''
+  let index = 0
 
   while (index < code.length) {
     const char = code[index]
@@ -169,29 +138,68 @@ const collectRootIdentifiers = (code: string, roots: Set<string>): void => {
     }
 
     if (char === '`') {
-      index = scanTemplateLiteral(code, index, roots)
+      index = skipTemplateLiteral(code, index, (fragment) => scanExpression(fragment, state))
       previousSignificant = '`'
       continue
     }
 
-    if (IDENTIFIER_START.test(char)) {
-      let end = index + 1
-      while (end < code.length && IDENTIFIER_PART.test(code[end])) {
-        end += 1
+    // `=>` — everything the parameter list binds belongs to the arrow's own scope.
+    if (char === '=' && code[index + 1] === '>') {
+      if (previousSignificant === ')' && lastParenGroup) {
+        declareIdentifiersIn(code.slice(lastParenGroup.start + 1, lastParenGroup.end), state)
+      } else if (previousSignificant === IDENTIFIER_TOKEN && previousIdentifier) {
+        // Single parameter without parentheses: `item => item.id`.
+        state.declared.add(previousIdentifier)
       }
-      const identifier = code.slice(index, end)
-      const isMemberAccess = previousSignificant === '.'
-      // An unquoted object-literal key (`{ key: ... }` / `, key: ...`) is a
-      // property name, not a variable read.
-      const isObjectKey =
-        (previousSignificant === '{' || previousSignificant === ',') &&
-        nextNonWhitespaceIsColon(code, end)
-      if (!isMemberAccess && !isObjectKey && !RESERVED_WORDS.has(identifier)) {
-        roots.add(identifier)
-      }
-      index = end
-      previousSignificant = 'a'
+      index += 2
+      previousSignificant = '>'
       continue
+    }
+
+    if (IDENTIFIER_START.test(char)) {
+      const identifier = readIdentifier(code, index)
+      const end = index + identifier.length
+      // A property name is never a keyword occurrence nor a variable read —
+      // `props.const` and `props.function` are plain member accesses.
+      const isMemberAccess = previousSignificant === '.'
+
+      if (!isMemberAccess && OPAQUE_SCOPE_KEYWORDS.has(identifier)) {
+        state.resolvable = false
+      }
+
+      if (!isMemberAccess && identifier === 'function') {
+        functionParenDepth = openParens.length
+      } else if (previousIdentifier === 'function' && previousSignificant === IDENTIFIER_TOKEN) {
+        // A named function expression binds its own name: `function fn(a) { … }`.
+        state.declared.add(identifier)
+      } else if (!isMemberAccess && !RESERVED_WORDS.has(identifier)) {
+        // An unquoted object-literal key (`{ key: ... }` / `, key: ...`) is a
+        // property name, not a variable read.
+        const isObjectKey =
+          (previousSignificant === '{' || previousSignificant === ',') &&
+          nextNonWhitespaceIsColon(code, end)
+        if (!isObjectKey) {
+          state.roots.add(identifier)
+        }
+      }
+
+      index = end
+      previousSignificant = IDENTIFIER_TOKEN
+      previousIdentifier = identifier
+      continue
+    }
+
+    if (char === '(') {
+      openParens.push(index)
+    } else if (char === ')') {
+      const start = openParens.pop()
+      if (start !== undefined) {
+        lastParenGroup = { start, end: index }
+        if (functionParenDepth >= 0 && openParens.length === functionParenDepth) {
+          declareIdentifiersIn(code.slice(start + 1, index), state)
+          functionParenDepth = -1
+        }
+      }
     }
 
     previousSignificant = char
@@ -200,12 +208,26 @@ const collectRootIdentifiers = (code: string, roots: Set<string>): void => {
 }
 
 /**
- * Returns the set of root reference identifiers read by an expression string.
+ * Returns the identifiers an expression reads from the surrounding scope,
+ * together with whether the analysis could account for every binding it saw.
  */
-export const extractRootIdentifiers = (expression: string): Set<string> => {
-  const roots = new Set<string>()
-  if (typeof expression === 'string' && expression.length > 0) {
-    collectRootIdentifiers(expression, roots)
+export const analyzeExpressionScope = (expression: string): ExpressionScopeAnalysis => {
+  const state: ScanState = {
+    roots: new Set<string>(),
+    declared: new Set<string>(),
+    resolvable: true,
   }
-  return roots
+
+  if (typeof expression === 'string' && expression.length > 0) {
+    scanExpression(expression, state)
+  }
+
+  const freeIdentifiers = new Set<string>()
+  state.roots.forEach((root) => {
+    if (!state.declared.has(root)) {
+      freeIdentifiers.add(root)
+    }
+  })
+
+  return { freeIdentifiers, resolvable: state.resolvable }
 }

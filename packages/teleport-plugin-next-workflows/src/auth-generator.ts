@@ -912,17 +912,59 @@ const isRowOwnedSelfGuardedPage = (
   return roles.length === 0
 }
 
+// The exact route pattern a self-guarded page serves, e.g.
+// `/orders/[order_number]`. Skipping the page from `protectedRoutes` is not
+// enough on its own: platform list/details pairs deliberately share a static
+// base (`/orders` listing + `/orders/[order_number]` details) so the protected
+// LISTING route prefix-matches — and bounces — every details request. Knowing
+// the details pattern lets the middleware waive that inherited protection for
+// exactly the paths the self-guarded page owns.
+//
+// `routePattern` is the authoritative value; UIDLs emitted before that field
+// existed are reconstructed from `route` + `rowOwnerDifferentiator`.
+const selfGuardedRoutePatternOf = (protection: {
+  route?: string
+  routePattern?: string
+  rowOwnerDifferentiator?: string
+}): string => {
+  if (protection.routePattern) {
+    return protection.routePattern
+  }
+  const base = protection.route || ''
+  const differentiator = protection.rowOwnerDifferentiator
+  if (!base || !differentiator) {
+    return base
+  }
+  return base === '/' ? `/[${differentiator}]` : `${base}/[${differentiator}]`
+}
+
 export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
   const protectedRoutes: Record<string, { requiresAuth: boolean; allowedRoles: string[] }> = {}
+  // Page ids skipped from `protectedRoutes` because their page-load SQL is the
+  // access control. Tracked by id (not by route) so the folder pass below can
+  // revoke the waiver for a page that a role-gated folder pulls back under
+  // middleware protection.
+  const selfGuardedPageIds = new Set<string>()
 
   if (auth.pageProtection) {
-    for (const protection of Object.values(auth.pageProtection) as any[]) {
+    for (const [pageId, protection] of Object.entries(auth.pageProtection) as Array<
+      [string, any]
+    >) {
       if (isRowOwnedSelfGuardedPage(protection)) {
+        selfGuardedPageIds.add(pageId)
         continue
       }
+      // A route key can be claimed by more than one page — a list/details pair
+      // deliberately shares its static base (`/orders` + `/orders/[id]`), and a
+      // user can point two pages at the same custom URL. One prefix key gates
+      // the whole subtree, so merge instead of letting document order decide
+      // which page's rules survive.
+      const existing = protectedRoutes[protection.route]
       protectedRoutes[protection.route] = {
-        requiresAuth: protection.requiresAuth,
-        allowedRoles: protection.allowedRoles || [],
+        requiresAuth: !!existing?.requiresAuth || protection.requiresAuth,
+        allowedRoles: Array.from(
+          new Set([...(existing?.allowedRoles || []), ...(protection.allowedRoles || [])])
+        ),
       }
     }
   }
@@ -942,6 +984,10 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
               if (isRowOwnedSelfGuardedPage(pageProt) && folderRoles.length === 0) {
                 continue
               }
+              // The folder imposes a role the row-level SQL cannot reproduce,
+              // so this page is back under middleware protection and must not
+              // keep its self-guarded waiver.
+              selfGuardedPageIds.delete(childId)
               const existingRoles = protectedRoutes[pageProt.route]?.allowedRoles || []
               const mergedRoles = Array.from(new Set([...existingRoles, ...folderRoles]))
               protectedRoutes[pageProt.route] = {
@@ -954,6 +1000,14 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
       }
     }
   }
+
+  const selfGuardedRoutes = Array.from(
+    new Set(
+      Array.from(selfGuardedPageIds)
+        .map((pageId) => selfGuardedRoutePatternOf((auth.pageProtection as any)[pageId]))
+        .filter((pattern) => !!pattern)
+    )
+  )
 
   const authRoutes: string[] = []
   if (auth.authPages.signIn) {
@@ -985,6 +1039,7 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
 
   const protectedRoutesJson = JSON.stringify(protectedRoutes, null, 2)
   const authRoutesJson = JSON.stringify(authRoutes)
+  const selfGuardedRoutesJson = JSON.stringify(selfGuardedRoutes)
   const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
 
   return `import { NextResponse } from 'next/server';
@@ -993,6 +1048,15 @@ import { getToken } from 'next-auth/jwt';
 const protectedRoutes = ${protectedRoutesJson};
 
 const authRoutes = ${authRoutesJson};
+
+// Routes whose page-load SQL is the access control: the query filters rows by
+// the visitor's user id OR the persistent anonymous-localStorage UUID, so a
+// guest buyer must be allowed to reach the row they own. These pages are
+// already absent from protectedRoutes, but a platform list/details pair shares
+// its static base ("/orders" listing + "/orders/[order_number]" details), so
+// without this list the protected LISTING route prefix-matches every details
+// request and redirects the guest to sign-in.
+const selfGuardedRoutes = ${selfGuardedRoutesJson};
 
 function getUserRoleFromToken(token) {
   if (!token || typeof token !== 'object') return null;
@@ -1041,6 +1105,31 @@ function hasSessionCookie(request) {
   return false;
 }
 
+// Turns a Next.js route pattern into an anchored matcher: "[param]" matches a
+// single path segment, "[...param]" / "[[...param]]" match one or more. Every
+// other character is escaped so a literal "." or "+" in a slug can never widen
+// the match. Brackets are deliberately NOT escaped in the first pass — they are
+// the placeholder syntax the second pass rewrites.
+function compileRoutePattern(pattern) {
+  var escaped = String(pattern).replace(/[.*+?^\${}()|\\\\]/g, '\\\\$&');
+  var source = escaped
+    .replace(/\\[\\[\\.\\.\\.[^\\]]*\\]\\]/g, '.+')
+    .replace(/\\[\\.\\.\\.[^\\]]*\\]/g, '.+')
+    .replace(/\\[[^\\]]*\\]/g, '[^/]+');
+  return new RegExp('^' + source + '$');
+}
+
+const selfGuardedRouteMatchers = selfGuardedRoutes.map(compileRoutePattern);
+
+function isSelfGuardedPath(pathname) {
+  for (var i = 0; i < selfGuardedRouteMatchers.length; i++) {
+    if (selfGuardedRouteMatchers[i].test(pathname)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Where to send an authenticated user who lacks the required role. Normally the
 // home page ("you don't have access, here's the public site"). But when "/" is
 // itself a protected page (e.g. an admin dashboard published at the root), a
@@ -1071,18 +1160,47 @@ async function middleware(request) {
     return NextResponse.next();
   }
 
-  let matchedProtection = null;
-  const routes = Object.keys(protectedRoutes).sort(function(a, b) {
-    return b.length - a.length;
-  });
-  for (let r = 0; r < routes.length; r++) {
-    if (pathname === routes[r] || pathname.startsWith(routes[r] + '/')) {
-      matchedProtection = protectedRoutes[routes[r]];
-      break;
+  // Route keys carry no trailing slash, so neither may the path we match with.
+  // Next.js serves "/orders/ORD-42/" and "/orders/ORD-42" as the same route;
+  // matching the raw pathname would let the slashed form miss every exact key
+  // (and every self-guarded pattern) and fall back to the ancestor prefix.
+  // The ORIGINAL pathname is what goes into the sign-in callbackUrl.
+  const matchPath =
+    pathname.length > 1 && pathname.endsWith('/') ? pathname.replace(/\\/+$/, '') : pathname;
+
+  // An exact hit is the page's OWN protection and always wins. Anything else is
+  // inherited from an ancestor route (a listing page, an "/admin" subtree, …).
+  const exactProtection = Object.prototype.hasOwnProperty.call(protectedRoutes, matchPath)
+    ? protectedRoutes[matchPath]
+    : null;
+  let matchedProtection = exactProtection;
+  if (!matchedProtection) {
+    const routes = Object.keys(protectedRoutes).sort(function(a, b) {
+      return b.length - a.length;
+    });
+    for (let r = 0; r < routes.length; r++) {
+      if (matchPath.startsWith(routes[r] + '/')) {
+        matchedProtection = protectedRoutes[routes[r]];
+        break;
+      }
     }
   }
 
   if (!matchedProtection) {
+    return NextResponse.next();
+  }
+
+  // Self-guarded details route reached through an ancestor's protection: let it
+  // through so the page-load SQL can decide, using the visitor's user id OR
+  // their anonymous UUID. Deliberately narrow — the waiver never applies to the
+  // page's own exact protection, and never to an ancestor that demands a role,
+  // because role membership is an absolute gate no row-level WHERE clause can
+  // reproduce.
+  if (
+    !exactProtection &&
+    (matchedProtection.allowedRoles || []).length === 0 &&
+    isSelfGuardedPath(matchPath)
+  ) {
     return NextResponse.next();
   }
 

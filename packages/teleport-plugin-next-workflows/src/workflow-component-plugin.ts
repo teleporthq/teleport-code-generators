@@ -1773,13 +1773,29 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
 
     case 'event-form-submitted': {
       const preventDefault = config.preventDefault !== false
+      // The submitted fields are spread FLAT onto the trigger context as well as
+      // being available under `formData`.
+      //
+      // WHY: `params[0]` of a top-level custom-js node is the TRIGGER (the
+      // executor writes `context[triggerNodeId]` first), and generated
+      // validators read the form off it directly. Run 4b049fe6's Edit Guild did
+      // `const form = params[0] || {}; … if (!form["name"]) return "Guild Name
+      // is required"` — `params[0].name` was undefined because the fields lived
+      // one level down, so saving a guild whose name was filled in reported the
+      // name as missing. `general-extract-form-data` already returns its fields
+      // flat for exactly this reason; the trigger now matches it, so both
+      // `params[0].name` and `params[0].formData.name` resolve.
+      //
+      // The spread comes FIRST so a field literally named `formData`, `formId`,
+      // `element` or `timestamp` can never shadow the reserved keys the runtime
+      // and the workflow editor depend on.
       return (
         `async function(event) {\n` +
         (preventDefault ? '    event.preventDefault();\n' : '') +
         `    const formData = {};\n` +
         `    const fd = new FormData(event.target);\n` +
         `    fd.forEach(function(v, k) { formData[k] = v; });\n` +
-        `    const triggerContext = { formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n` +
+        `    const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() });\n` +
         `    return __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});\n` +
         `  }`
       )

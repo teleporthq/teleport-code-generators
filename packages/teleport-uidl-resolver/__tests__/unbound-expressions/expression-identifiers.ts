@@ -1,9 +1,11 @@
-import { extractRootIdentifiers } from '../../src/resolvers/unbound-expressions/expression-identifiers'
+import { analyzeExpressionScope } from '../../src/resolvers/unbound-expressions/expression-identifiers'
 
 const roots = (expression: string): string[] =>
-  Array.from(extractRootIdentifiers(expression)).sort()
+  Array.from(analyzeExpressionScope(expression).freeIdentifiers).sort()
 
-describe('extractRootIdentifiers', () => {
+const isResolvable = (expression: string): boolean => analyzeExpressionScope(expression).resolvable
+
+describe('analyzeExpressionScope', () => {
   it('returns the leading identifier of a member expression', () => {
     expect(roots('cat.name')).toEqual(['cat'])
     expect(roots('loc.location_id')).toEqual(['loc'])
@@ -56,6 +58,47 @@ describe('extractRootIdentifiers', () => {
 
   it('returns an empty set for empty or non-string input', () => {
     expect(roots('')).toEqual([])
-    expect(Array.from(extractRootIdentifiers(undefined as unknown as string))).toEqual([])
+    expect(
+      Array.from(analyzeExpressionScope(undefined as unknown as string).freeIdentifiers)
+    ).toEqual([])
+  })
+
+  it('subtracts identifiers bound by an arrow function parameter list', () => {
+    expect(roots('(event) => event.target.value')).toEqual([])
+    expect(roots('item => item.id')).toEqual([])
+    expect(roots('rows.map((row, i) => row.name + i)').sort()).toEqual(['rows'])
+    expect(roots('(a, b) => a + b + outer').sort()).toEqual(['outer'])
+  })
+
+  it('subtracts identifiers bound by a function expression', () => {
+    expect(roots('(function (a) { return a })')).toEqual([])
+    expect(roots('(function total(a) { return total(a) })')).toEqual([])
+    expect(roots('(function (a) { return a + outer })')).toEqual(['outer'])
+  })
+
+  it('keeps nested arrow scopes independent of the outer expression', () => {
+    // tslint:disable-next-line no-invalid-template-strings
+    expect(roots('groups.map((group) => group.items.map((entry) => entry.id))')).toEqual(['groups'])
+  })
+
+  it('still sees references that only appear outside a callback', () => {
+    expect(roots('outer.list.filter((x) => x.ok)').sort()).toEqual(['outer'])
+  })
+
+  it('reports block-scoped declarations as unresolvable rather than guessing', () => {
+    expect(isResolvable('(() => { const total = 1; return total })()')).toBe(false)
+    expect(isResolvable('(() => { let total = 1; return total })()')).toBe(false)
+    expect(isResolvable('(() => { var total = 1; return total })()')).toBe(false)
+    expect(isResolvable('props.value')).toBe(true)
+    expect(isResolvable('(event) => event.target.value')).toBe(true)
+  })
+
+  it('does not mistake a property named like a keyword for a declaration', () => {
+    expect(isResolvable('props.constant')).toBe(true)
+    expect(roots('props.constant')).toEqual(['props'])
+    // Reserved words are legal property names.
+    expect(isResolvable('props.const')).toBe(true)
+    expect(roots('props.const')).toEqual(['props'])
+    expect(roots('props.function + Math.max(a, b)').sort()).toEqual(['Math', 'a', 'b', 'props'])
   })
 })
