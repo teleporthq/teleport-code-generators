@@ -171,6 +171,9 @@ const preserveExistingEnv = (uidl: ProjectUIDL, envPath: string): void => {
 // Files/dirs that are NOT produced by the generator and must survive a clean:
 // install artifacts and user-owned config. Everything else in the project dir
 // is regenerated every run.
+// `.vscode`, `.claude` and `CLAUDE.md` are editor/agent scaffolding dropped into
+// the generated project by tooling (or by hand) — the generator never emits
+// them, so wiping them would only cost the developer their setup.
 const PRESERVE_ON_CLEAN = new Set([
   'node_modules',
   '.env',
@@ -179,6 +182,9 @@ const PRESERVE_ON_CLEAN = new Set([
   'package-lock.json',
   'yarn.lock',
   '.next',
+  '.vscode',
+  '.claude',
+  'CLAUDE.md',
 ])
 
 // Remove previously-generated files before a fresh run so STALE ORPHANS can't
