@@ -1117,6 +1117,15 @@ const injectWorkflowCode = (
           ) {
             existingExpr = existingAttr.value.expression
           } else {
+            // A non-expression event prop (e.g. a stray `onClick=""` authored as a
+            // static attr) was never a callable listener — React throws
+            // `func.apply is not a function` on dispatch. Replace it with the
+            // workflow handler instead of skipping, which used to drop the
+            // trigger wiring silently AND ship the crashing prop.
+            openingElement.attributes[existingAttrIndex] = types.jSXAttribute(
+              types.jSXIdentifier(reactProp),
+              types.jSXExpressionContainer(wfHandlerExpr)
+            )
             continue
           }
 

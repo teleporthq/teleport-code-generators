@@ -6,6 +6,15 @@ module.exports = {
     'ts-jest': {
       'diagnostics': {
         'warnOnly': true
+      },
+      // The packages build with target ES2017 (see packages/*/tsconfig.json),
+      // but the root tsconfig ts-jest picks up targets ES5 — under which
+      // `for (const [k, v] of someMap)` compiles (warnOnly hides TS2802) into
+      // code that silently iterates NOTHING. Tests exercising Map/Set
+      // iteration paths passed vacuously or failed mysteriously. Compile tests
+      // the way the packages actually ship.
+      'tsconfig': {
+        'target': 'ES2017'
       }
     }
   },

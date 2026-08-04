@@ -107,6 +107,88 @@ describe('parameterizeWorkflowRawSqlInterpolations', () => {
   })
 })
 
+describe('CASE/WHEN/THEN/ELSE and TRIM(... FROM ...) value positions', () => {
+  it('binds tokens after WHEN as positional parameters', () => {
+    const res = parameterizeRawSqlInterpolations(
+      "SELECT * FROM events WHERE (CASE WHEN {{ dateRange }} = 'today' THEN start_time < CURRENT_DATE WHEN {{ dateRange }} = '7d' THEN start_time < NOW() ELSE TRUE END)",
+      [{ name: 'dateRange', value: ref('get-range', 'value') }]
+    )
+    expect(res.residuals).toEqual([])
+    expect(res.query).toContain('CASE WHEN $1 =')
+    expect(res.query).toContain('WHEN $2 =')
+    expect(res.params).toHaveLength(2)
+  })
+
+  it('binds the operand of TRIM(BOTH FROM {{ token }})', () => {
+    const value = ref('get-status', 'value')
+    const res = parameterizeRawSqlInterpolations(
+      "SELECT * FROM t WHERE TRIM(BOTH FROM {{ status }}) IN ('', 'All')",
+      [{ name: 'status', value }]
+    )
+    expect(res.query).toBe("SELECT * FROM t WHERE TRIM(BOTH FROM $1) IN ('', 'All')")
+    expect(res.params).toEqual([value])
+    expect(res.residuals).toEqual([])
+  })
+
+  it('binds TRIM(LEADING/TRAILING ... FROM {{ token }}) variants', () => {
+    const value = ref('n', 'v')
+    for (const sql of [
+      "SELECT TRIM(LEADING '0' FROM {{ v }})",
+      'SELECT TRIM(TRAILING FROM {{ v }})',
+      'SELECT TRIM(FROM {{ v }})',
+    ]) {
+      const res = parameterizeRawSqlInterpolations(sql, [{ name: 'v', value }])
+      expect(res.residuals).toEqual([])
+      expect(res.params).toEqual([value])
+    }
+  })
+
+  it('still refuses a plain FROM {{ table }} identifier position', () => {
+    const res = parameterizeRawSqlInterpolations('SELECT * FROM {{ table }}', [
+      { name: 'table', value: ref('n', 't') },
+    ])
+    expect(res.residuals).toEqual(['{{ table }}'])
+  })
+
+  it('parameterizes the full alerts-filter fixture query with zero residuals', () => {
+    // Verbatim from examples/uidl-samples/project.json node `query-alerts` — the
+    // query this guard refused (8 residuals) before CASE/WHEN and TRIM(... FROM ...)
+    // were recognised as value positions.
+    const query =
+      "SELECT a.id, a.vehicle_id, a.driver_id, a.type_field, a.severity, a.occurred_at, a.resolved FROM alerts a WHERE (TRIM(BOTH FROM {{statusFilterSegment}}) IN ('', 'All') OR (CASE WHEN {{statusFilterSegment}} = 'Active' THEN a.resolved = false WHEN {{statusFilterSegment}} = 'Resolved' THEN a.resolved = true WHEN {{statusFilterSegment}} = 'Acknowledged' THEN EXISTS (SELECT 1 FROM alert_actions aa WHERE aa.alert_id = a.id AND aa.action_field = 'Acknowledged') ELSE false END)) AND ({{severityFilterSelect}} = 'All' OR a.severity = {{severityFilterSelect}}) AND (TRIM(BOTH FROM {{searchAlertsInput}}) = '' OR a.type_field ILIKE '%' || {{searchAlertsInput}} || '%') AND ({{timeRangeSelect}} = 'All Time' OR a.occurred_at >= CASE WHEN {{timeRangeSelect}} = 'Last 24h' THEN NOW() - INTERVAL '24 hours' WHEN {{timeRangeSelect}} = 'Last 7d' THEN NOW() - INTERVAL '7 days' WHEN {{timeRangeSelect}} = 'Last 30d' THEN NOW() - INTERVAL '30 days' ELSE a.occurred_at END) ORDER BY a.occurred_at DESC"
+    const status = ref('get-status', 'value')
+    const severity = ref('get-severity', 'value')
+    const search = ref('get-search', 'value')
+    const time = ref('get-time', 'value')
+    const res = parameterizeRawSqlInterpolations(query, [
+      { name: 'statusFilterSegment', value: status },
+      { name: 'severityFilterSelect', value: severity },
+      { name: 'searchAlertsInput', value: search },
+      { name: 'timeRangeSelect', value: time },
+    ])
+    expect(res.residuals).toEqual([])
+    expect(res.query).not.toContain('{{')
+    expect(res.params).toEqual([
+      status,
+      status,
+      status,
+      status,
+      severity,
+      severity,
+      search,
+      search,
+      time,
+      time,
+      time,
+      time,
+    ])
+    expect(res.query).toContain('TRIM(BOTH FROM $1)')
+    expect(res.query).toContain('CASE WHEN $2 =')
+    expect(res.query).toContain("ILIKE '%' || $8 || '%'")
+    expect(res.query).toContain('$12')
+  })
+})
+
 describe('parameterizeAllWorkflowRawSql', () => {
   it('walks both workflows and customNodes (id-keyed records)', () => {
     const value = ref('n', 'ids')
