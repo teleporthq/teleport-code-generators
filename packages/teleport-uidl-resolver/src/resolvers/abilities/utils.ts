@@ -1,4 +1,4 @@
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, RoutePaths } from '@teleporthq/teleport-shared'
 import {
   GeneratorOptions,
   UIDLLinkNode,
@@ -509,6 +509,18 @@ const createLinkAttributes = (
           transitionTo: buildDifferentiatorTransitionTo(baseRoute, differentiatorValue),
         }
       }
+      // No differentiator + a dynamic destination = nothing navigable. See
+      // UNRESOLVABLE_NAVLINK_HREF. Checked HERE rather than inside
+      // `resolveNavlink` so the differentiator branch above still receives the
+      // real `/prefix/[id]` template it needs to substitute the row id into.
+      if (
+        baseRoute.type === 'static' &&
+        RoutePaths.pathHasDynamicSegment(String(baseRoute.content))
+      ) {
+        return {
+          transitionTo: { type: 'static', content: UNRESOLVABLE_NAVLINK_HREF },
+        }
+      }
       return {
         transitionTo: baseRoute,
       }
@@ -538,6 +550,49 @@ const createLinkAttributes = (
   }
 }
 
+/**
+ * A route whose `value` is folder-qualified (`add-character/Add-Character`)
+ * still answers to its bare page name in a navlink's `routeName`
+ * (`Add-Character`) — the folder prefix is part of the ROUTE, not of the page's
+ * identity. Matching only on the whole value made every such lookup miss and
+ * fall through to the fabricated `/${friendlyURL}` below.
+ *
+ * Resolved only when the last segment identifies the route UNAMBIGUOUSLY; with
+ * two pages of the same name in different folders there is no way to tell which
+ * one was meant, so we keep the old miss rather than guess.
+ */
+const findRouteByName = (
+  values: GeneratorOptions['projectRouteDefinition']['values'],
+  routeName: string
+) => {
+  const exact = values.find((routeItem) => routeItem.value === routeName)
+  if (exact) {
+    return exact
+  }
+  // `value` is typed `string | number | boolean` — only a string route can carry
+  // a folder prefix, so anything else can never match by last segment.
+  const byLastSegment = values.filter(
+    (routeItem) =>
+      typeof routeItem.value === 'string' && routeItem.value.split('/').pop() === routeName
+  )
+  return byLastSegment.length === 1 ? byLastSegment[0] : undefined
+}
+
+/**
+ * A DYNAMIC route (`/rsvp-event/[id]`) is not a URL — it is a template that
+ * needs one record's id. A navlink with no `differentiatorValue` has no id to
+ * put there, so neither spelling is navigable: the template ships a literal
+ * `[id]` in the address bar, and the bare prefix (`/rsvp-event`) matches no file
+ * and 404s. `#` is the platform's existing representation for a link that
+ * cannot be resolved — the element still renders, it just does not navigate,
+ * which is strictly better than a link that provably fails.
+ *
+ * This is the last line of defence, not the fix: a nav or CTA link pointing at a
+ * single-record page is a planning defect, and the generator that produced the
+ * UIDL is where it should be prevented.
+ */
+const UNRESOLVABLE_NAVLINK_HREF = '#'
+
 const resolveNavlink = (
   route: UIDLAttributeValue,
   options: GeneratorOptions
@@ -562,7 +617,7 @@ const resolveNavlink = (
   )
 
   const transitionRoute = options.projectRouteDefinition
-    ? options.projectRouteDefinition.values.find((routeItem) => routeItem.value === routeName)
+    ? findRouteByName(options.projectRouteDefinition.values, routeName.toString())
     : null
 
   if (!transitionRoute) {

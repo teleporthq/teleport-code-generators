@@ -398,6 +398,38 @@ function finalizeResolvedConfig(nodeType, config) {
     config.filters = keptFilters;
   }
 
+  // BACKSTOP for WRITES: a columnMapping whose resolved value is STILL a whole
+  // {{…}} token would insert the literal token text into the column. Run
+  // 02783f65 declared state defaults of '{{url.character_id}}' and
+  // '{{url.event_id}}' — a token vocabulary that does not exist — and both fed
+  // event_responses.event_id / .character_id (both uuid) through a state-get,
+  // so every Accept / Decline / Tentative died on Postgres 22P02.
+  //
+  // Deliberately stricter than the filters rule above: only a WHOLE-string
+  // token counts. An embedded '{{' inside longer prose is text a user may have
+  // legitimately typed into a form; a value that is nothing but a moustache is
+  // unambiguously an unresolved token.
+  //
+  // Erroring (rather than nulling) matches the write posture above: the column
+  // may be a NOT NULL foreign key, so dropping it trades 22P02 for a constraint
+  // violation. The error surfaces through the workflow error handler with the
+  // column named, instead of a driver-level failure nobody can attribute.
+  if (isDataNode && config && Array.isArray(config.columnMappings)) {
+    for (var ci = 0; ci < config.columnMappings.length; ci++) {
+      var mapping = config.columnMappings[ci];
+      if (!mapping || typeof mapping !== 'object') continue;
+      var mval = mapping.value;
+      if (typeof mval === 'string' && /^\\s*\\{\\{[\\s\\S]*\\}\\}\\s*$/.test(mval)) {
+        if (!error) {
+          error =
+            'Column "' + (mapping.column || 'unknown') +
+            '" would be written the unresolved template ' + mval.trim() +
+            ' as literal text. That token resolves nowhere at runtime.';
+        }
+      }
+    }
+  }
+
   return error;
 }
 
@@ -564,6 +596,8 @@ function evaluateSingleComparison(config, context) {
 async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, options) {
   options = options || {};
   const context = {};
+  // See buildContext — one shared fire-and-forget queue for the whole run.
+  context.__pendingNodePromises = [];
   const executionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   context[workflowConfig.triggerNodeId] = triggerContext;
   if (triggerContext && triggerContext.__stateValues) {
@@ -657,6 +691,72 @@ function topoSortNodes(nodes, edges) {
     sorted = sorted.concat(remaining);
   }
   return sorted;
+}
+
+// Data-category node types. Mirrors DATA_NODE_TYPES in await-result.ts (and in
+// teleport-gui's workflow-schema) — PAIRED EDIT.
+var __DATA_NODE_TYPES = {
+  'data-select': true,
+  'data-count': true,
+  'data-raw-query': true,
+  'data-create-item': true,
+  'data-update-item': true,
+  'data-delete-item': true
+};
+
+// A data node the author opted out of awaiting. Only an explicit \`false\` opts
+// out, so a config written before the option existed keeps awaiting.
+function isFireAndForgetNode(node) {
+  if (!node || !__DATA_NODE_TYPES[node.type]) return false;
+  return !!node.config && node.config.awaitResult === false;
+}
+
+// Starts a fire-and-forget node and returns a promise that ALWAYS resolves.
+// The workflow has already moved on, so a failure here can neither abort it nor
+// reach the error handler — it is reported to the console and swallowed, which
+// is exactly what "do not await" means.
+function startFireAndForgetNode(node, handler, resolvedConfig, context) {
+  var label = (node && (node.label || node.type)) || 'node';
+  var started;
+  try {
+    started = Promise.resolve(handler(resolvedConfig, context));
+  } catch (syncErr) {
+    started = Promise.reject(syncErr);
+  }
+  return started.then(function(result) {
+    if (isFatalNodeResult(result)) {
+      console.error('[workflow] "' + label + '" failed (not awaited): ' + fatalNodeResultMessage(result));
+    }
+  }).catch(function(err) {
+    console.error('[workflow] "' + label + '" threw (not awaited):', err);
+  });
+}
+
+// Keeps every in-flight fire-and-forget promise on the execution context so a
+// server route can settle them BEFORE it responds. A serverless function may be
+// frozen the moment its response is sent, which would silently drop an
+// in-flight write; the visitor still never waits for it, because the client
+// dispatches such a segment without awaiting the round trip.
+function registerPendingNodePromise(context, promise) {
+  if (!context || !promise) return promise;
+  if (!context.__pendingNodePromises) context.__pendingNodePromises = [];
+  context.__pendingNodePromises.push(promise);
+  return promise;
+}
+
+async function settlePendingNodePromises(context) {
+  if (!context) return;
+  // Bounded drain: a settled promise can only enqueue more work through a
+  // nested custom node, so a handful of passes is always enough and a runaway
+  // producer can never hang the response.
+  for (var pass = 0; pass < 5; pass++) {
+    var pending = context.__pendingNodePromises;
+    if (!pending || pending.length === 0) return;
+    context.__pendingNodePromises = [];
+    // Every entry swallows its own rejection (see startFireAndForgetNode), so
+    // this can never reject.
+    await Promise.all(pending);
+  }
 }
 
 // A node result signals failure either through the legacy string contract
@@ -806,6 +906,20 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
       const handler = nodeHandlers[node.type];
       if (!handler) {
         console.warn('No handler for node type: ' + node.type);
+        continue;
+      }
+
+      if (isFireAndForgetNode(node)) {
+        registerPendingNodePromise(
+          context,
+          startFireAndForgetNode(node, handler, resolvedConfig, context)
+        );
+        // The workflow never waits for this query, so it has no value to
+        // publish: downstream references resolve to null rather than to a
+        // half-finished or stale result.
+        context[node.id] = null;
+        executed[node.id] = true;
+        context.__previousNodeResult = null;
         continue;
       }
 
@@ -1116,7 +1230,11 @@ module.exports = {
   markAllBranchNodes,
   isStreamingAINode,
   isFatalNodeResult,
-  fatalNodeResultMessage
+  fatalNodeResultMessage,
+  isFireAndForgetNode,
+  startFireAndForgetNode,
+  registerPendingNodePromise,
+  settlePendingNodePromises
 };
 `
 }
@@ -1165,6 +1283,10 @@ function pruneContext(context) {
     const val = context[key];
     if (val === undefined || val === null) continue;
     if (typeof val === 'function') continue;
+    // In-flight fire-and-forget promises are local to whichever runtime started
+    // them; serializing them would ship a list of empty objects and let a
+    // server response overwrite the client's live list.
+    if (key === '__pendingNodePromises') continue;
     try {
       // Replace DOM nodes with serializable snapshots as we stringify, then
       // re-parse so the request body itself (JSON.stringify(prunedContext) in
@@ -1267,6 +1389,9 @@ async function callServerSegment(segmentUrl, context) {
 
 function buildContext(workflowConfig, triggerContext) {
   const context = {};
+  // Created eagerly so every nested custom node (which shallow-copies this
+  // object) pushes into the SAME fire-and-forget queue instead of its own.
+  context.__pendingNodePromises = [];
   context[workflowConfig.triggerNodeId] = triggerContext;
   if (triggerContext) {
     if (triggerContext.__stateValues) context.__stateValues = triggerContext.__stateValues;
@@ -1471,6 +1596,30 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
         if (context.__skippedNodes && seg.nodes.length > 0) {
           var allSkipped = seg.nodes.every(function(n) { return context.__skippedNodes[n.id]; });
           if (allSkipped) continue;
+        }
+        // Every node in this segment is fire-and-forget, so nothing downstream
+        // can read anything it produces — dispatch it and keep going instead of
+        // making the visitor wait for the database round trip. The route itself
+        // still awaits each query before it responds; we simply ignore the
+        // response. Errors are logged, never routed to the error handler:
+        // the workflow already moved past this point.
+        if (seg.fireAndForget) {
+          const ffUrl = serverSegmentUrls[seg.id];
+          if (!ffUrl) throw new Error('No server URL for segment: ' + seg.id);
+          utils.registerPendingNodePromise(
+            context,
+            callServerSegment(ffUrl, context).catch(function(err) {
+              console.error('[workflow] Segment "' + seg.id + '" failed (not awaited):', err);
+            })
+          );
+          for (var ffi = 0; ffi < seg.nodes.length; ffi++) {
+            // A node on a branch that was not taken must stay absent from the
+            // context, exactly as it would if the segment had been awaited.
+            if (context.__skippedNodes && context.__skippedNodes[seg.nodes[ffi].id]) continue;
+            context[seg.nodes[ffi].id] = null;
+          }
+          context.__previousNodeResult = null;
+          continue;
         }
         const hasStreaming = seg.hasStreamingAI || seg.nodes.some(function(n) {
           return streamingInfo[n.id];

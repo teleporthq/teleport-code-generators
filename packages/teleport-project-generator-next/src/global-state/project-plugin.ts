@@ -6,6 +6,7 @@ import {
   UIDLDataSource,
 } from '@teleporthq/teleport-types'
 import { generateDataSourceFetcherWithCore } from '@teleporthq/teleport-plugin-next-data-source'
+import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 import {
   collectGlobalStateFetchConfigs,
   buildRefPathAccessCode,
@@ -17,6 +18,32 @@ import {
 } from './data-source-utils'
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * Local binding for a global state inside `GlobalStateProvider`.
+ *
+ * The context still publishes the entry under its DECLARED name (see
+ * `buildContextValueEntry`) — only the `useState` binding is sanitised, because
+ * a global state may legally be called `class`, which cannot be bound.
+ */
+const localBindingFor = (name: string): string => JSIdentifiers.createSafeJSIdentifier(name)
+
+/** `fetchX` helper name for a data-source-bound global state. */
+const fetchFunctionName = (name: string): string =>
+  JSIdentifiers.createSafeJSIdentifier(`fetch${capitalize(name)}`)
+
+/**
+ * One `key: value` line of the context object. Emitted as shorthand whenever
+ * the published key and the local binding are the same string, which keeps the
+ * output byte-identical for every ordinary name.
+ */
+const buildContextValueEntry = (contextKey: string): string => {
+  const local = localBindingFor(contextKey)
+  if (local === contextKey) {
+    return `    ${contextKey},`
+  }
+  return `    ${JSON.stringify(contextKey)}: ${local},`
+}
 
 const serializeDefaultValue = (
   value: string | number | boolean | Record<string, unknown> | unknown[]
@@ -91,14 +118,16 @@ const generateGlobalStateContextFileContent = (
 
   for (const def of defs) {
     const { name, defaultValue, type } = def
-    const setterName = `set${capitalize(name)}`
+    const setterKey = StringUtils.createGlobalStateSetterName(name)
     const normalized = normalizeDefaultValueForType(defaultValue, type)
     const serialized = serializeDefaultValue(normalized)
 
-    stateLines.push(`  const [${name}, ${setterName}] = useState(${serialized})`)
-    valueEntries.push(`    ${name},`)
-    valueEntries.push(`    ${setterName},`)
-    memoDepEntries.push(name)
+    stateLines.push(
+      `  const [${localBindingFor(name)}, ${localBindingFor(setterKey)}] = useState(${serialized})`
+    )
+    valueEntries.push(buildContextValueEntry(name))
+    valueEntries.push(buildContextValueEntry(setterKey))
+    memoDepEntries.push(localBindingFor(name))
   }
 
   // Build useEffect blocks and fetch functions for data-source-bound states
@@ -117,19 +146,22 @@ const generateGlobalStateContextFileContent = (
     const userDependentFetches = fetchConfigs.filter((c) => c.needsCurrentUser)
 
     if (independentFetches.length > 0) {
-      const calls = independentFetches.map((c) => `    fetch${capitalize(c.name)}()`).join('\n')
+      const calls = independentFetches.map((c) => `    ${fetchFunctionName(c.name)}()`).join('\n')
       effectBlocks.push(`  useEffect(() => {\n${calls}\n  }, [])`)
     }
 
     if (userDependentFetches.length > 0) {
-      const calls = userDependentFetches.map((c) => `    fetch${capitalize(c.name)}()`).join('\n')
+      const calls = userDependentFetches.map((c) => `    ${fetchFunctionName(c.name)}()`).join('\n')
       effectBlocks.push(`  useEffect(() => {\n${calls}\n  }, [currentUser])`)
     }
 
-    // Build refreshGlobalState switch
+    // Build refreshGlobalState switch. The `case` label is the state's DECLARED
+    // name — that is what `refreshGlobalState('<name>')` is called with.
     const cases = fetchConfigs
       .map((c) => {
-        return `      case '${c.name}':\n        fetch${capitalize(c.name)}()\n        break`
+        return `      case ${JSON.stringify(c.name)}:\n        ${fetchFunctionName(
+          c.name
+        )}()\n        break`
       })
       .join('\n')
 
@@ -207,7 +239,7 @@ export const useGlobalState = () => {
  */
 const generateFetchFunctionForState = (config: GlobalStateFetchConfig): string => {
   const { name, definition } = config
-  const setterName = `set${capitalize(name)}`
+  const setterName = localBindingFor(StringUtils.createGlobalStateSetterName(name))
   const refPath = definition.dataSourceBinding?.refPath || []
   const filterResult = definition.filterConfig
     ? separateFilters(definition.filterConfig)
@@ -215,7 +247,7 @@ const generateFetchFunctionForState = (config: GlobalStateFetchConfig): string =
   const staticFilters = filterResult.staticFilters
 
   const lines: string[] = []
-  lines.push(`  const fetch${capitalize(name)} = async () => {`)
+  lines.push(`  const ${fetchFunctionName(name)} = async () => {`)
   lines.push(`    try {`)
 
   if (config.hasQuery) {

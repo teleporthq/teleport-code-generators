@@ -11,6 +11,7 @@ import {
   resolveNodeExecutionEnv,
   redactServerNodeConfig,
 } from './segment-splitter'
+import { isFireAndForgetSegment } from './await-result'
 import {
   generateServerSegmentAPIRoute,
   generateStreamingServerSegmentAPIRoute,
@@ -22,6 +23,7 @@ import {
   getWebhookRoutePath,
   hasStreamingAINode,
 } from './api-route-generator'
+import { generateWorkflowAuthHelperFile } from './workflow-auth-generator'
 import { collectSecrets, collectSecretReferenceEnvNames } from './secret-collector'
 import {
   collectUsedNodeTypes,
@@ -47,12 +49,15 @@ import {
   generateRealtimeChannelsMembersRoute,
 } from './realtime-generator'
 import {
+  generateAuthDbHealthFile,
+  generateAuthErrorMessagesFile,
   generateAuthOptionsFile,
   generateHashPasswordFile,
   generateNextAuthRouteFile,
   generateSignupRouteFile,
   generateMiddlewareFile,
   generateSessionProviderWrapper,
+  generateNextAuthUrlGuardModule,
   getDatabaseDriverDependencies,
 } from './auth-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
@@ -331,6 +336,11 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       })
     }
 
+    // Set true the moment we emit ANY route that bakes an auth policy, so the
+    // shared guard file is emitted iff at least one route actually imports it.
+    const routeHasPolicy = (p: any): boolean => !!p && (p.requiresAuth || p.userScoped)
+    let anyGuardedRouteEmitted = false
+
     // Build server segment info for custom nodes so they can call server-side API routes
     const customNodeServerUrls: Record<string, Record<string, string>> = {}
     if (Object.keys(customNodes).length > 0) {
@@ -346,9 +356,12 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           customNodeServerUrls[cnId] = {}
           for (const seg of cnServerSegments) {
             const isStreaming = hasStreamingAINode(seg)
+            if (routeHasPolicy(cn.protection)) {
+              anyGuardedRouteEmitted = true
+            }
             const apiContent = isStreaming
-              ? generateStreamingServerSegmentAPIRoute(seg, cn.name || cnId)
-              : generateServerSegmentAPIRoute(seg, cn.name || cnId)
+              ? generateStreamingServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
+              : generateServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
             const fileName = getAPIRouteFileName(cnId, seg.id, cn.name || cnId)
             customNodeServerUrls[cnId][seg.id] = `/api/workflows/${fileName}`
             files.set(`workflow-api-cn-${cnId}-${seg.id}`, {
@@ -473,9 +486,12 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       for (const serverSeg of serverSegments) {
         hasServerSegments = true
         const isStreaming = hasStreamingAINode(serverSeg)
+        if (routeHasPolicy(workflow.protection)) {
+          anyGuardedRouteEmitted = true
+        }
         const apiContent = isStreaming
-          ? generateStreamingServerSegmentAPIRoute(serverSeg, workflow.name)
-          : generateServerSegmentAPIRoute(serverSeg, workflow.name)
+          ? generateStreamingServerSegmentAPIRoute(serverSeg, workflow.name, workflow.protection)
+          : generateServerSegmentAPIRoute(serverSeg, workflow.name, workflow.protection)
         const fileName = getAPIRouteFileName(workflow.id, serverSeg.id, workflow.name)
 
         files.set(`workflow-api-${workflow.id}-${serverSeg.id}`, {
@@ -502,6 +518,23 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           },
         ],
       })
+
+      // Shared stateless auth guard, emitted only when at least one emitted
+      // route actually bakes a protection policy (so the file is never orphaned).
+      // Enforcement is baked per-route as `const __WF_AUTH`; this file is the one
+      // runtime that reads the session cookie via getToken.
+      if (anyGuardedRouteEmitted) {
+        files.set('workflow-auth-guard', {
+          path: ['utils', 'workflows'],
+          files: [
+            {
+              name: 'workflow-auth',
+              fileType: FileType.JS,
+              content: generateWorkflowAuthHelperFile(),
+            },
+          ],
+        })
+      }
 
       const serverHandlerCode = this.generateNodeHandlerFile(usedNodeTypes, 'server')
       if (serverHandlerCode) {
@@ -1213,6 +1246,9 @@ ${entries}
             id: s.id,
             env: s.env,
             hasStreamingAI: hasStreamingAINode(s),
+            // Every node in this segment runs fire-and-forget — dispatch it and
+            // carry on instead of waiting for the database round trip.
+            fireAndForget: isFireAndForgetSegment(s),
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
@@ -1290,6 +1326,27 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
       }
       var segUrl = serverUrls[seg.id];
       if (segUrl) {
+        if (seg.fireAndForget) {
+          // Nothing downstream can read this segment's output, so the visitor
+          // never waits for it. The route still awaits each query before it
+          // responds; we just ignore the response. A failure is logged and
+          // cannot reach the custom node's error chain — the workflow has
+          // already moved past this point.
+          __utils.registerPendingNodePromise(
+            context,
+            __runtime.callServerSegment(segUrl, context).catch(function(__ffErr) {
+              console.error('[workflow] Segment "' + seg.id + '" failed (not awaited):', __ffErr);
+            })
+          );
+          for (var __ffi = 0; __ffi < seg.nodes.length; __ffi++) {
+            // A node on a branch that was not taken must stay absent from the
+            // context, exactly as it would if the segment had been awaited.
+            if (context.__skippedNodes && context.__skippedNodes[seg.nodes[__ffi].id]) continue;
+            context[seg.nodes[__ffi].id] = null;
+          }
+          context.__previousNodeResult = null;
+          continue;
+        }
         if (seg.hasStreamingAI) {
           var streamHandled = await __runtime.callStreamingServerSegment(segUrl, context, streamingInfo, nodes, edges, nodeHandlers, wfConfig, executionId);
           Object.assign(handledNodeIds, streamHandled);
@@ -1356,10 +1413,16 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
     }
   }
 
-  var sortedNodeIds = nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; }).map(function(n) { return n.id; });
+  // The custom node returns its last executed node's output. A fire-and-forget
+  // node is excluded: it always stores \`null\`, so if it happens to be last it
+  // would turn the whole custom node's result into null for every caller.
+  var __returnableNodes = nodes
+    .slice()
+    .sort(function(a, b) { return a.stepNumber - b.stepNumber; })
+    .filter(function(n) { return !__utils.isFireAndForgetNode(n); });
   var lastNodeId = null;
-  for (var __ri = sortedNodeIds.length - 1; __ri >= 0; __ri--) {
-    if (context[sortedNodeIds[__ri]] !== undefined) { lastNodeId = sortedNodeIds[__ri]; break; }
+  for (var __ri = __returnableNodes.length - 1; __ri >= 0; __ri--) {
+    if (context[__returnableNodes[__ri].id] !== undefined) { lastNodeId = __returnableNodes[__ri].id; break; }
   }
   return lastNodeId ? context[lastNodeId] : {};
 }`)
@@ -1416,10 +1479,16 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
     }
   }
 
-  var sortedNodeIds = nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; }).map(function(n) { return n.id; });
+  // The custom node returns its last executed node's output. A fire-and-forget
+  // node is excluded: it always stores \`null\`, so if it happens to be last it
+  // would turn the whole custom node's result into null for every caller.
+  var __returnableNodes = nodes
+    .slice()
+    .sort(function(a, b) { return a.stepNumber - b.stepNumber; })
+    .filter(function(n) { return !__utils.isFireAndForgetNode(n); });
   var lastNodeId = null;
-  for (var __ri = sortedNodeIds.length - 1; __ri >= 0; __ri--) {
-    if (context[sortedNodeIds[__ri]] !== undefined) { lastNodeId = sortedNodeIds[__ri]; break; }
+  for (var __ri = __returnableNodes.length - 1; __ri >= 0; __ri--) {
+    if (context[__returnableNodes[__ri].id] !== undefined) { lastNodeId = __returnableNodes[__ri].id; break; }
   }
   return lastNodeId ? context[lastNodeId] : {};
 }`)
@@ -1459,6 +1528,30 @@ module.exports = __customNodeRegistry;
           name: 'auth-options',
           fileType: FileType.JS,
           content: authOptionsCode,
+        },
+      ],
+    })
+
+    // Shared by the NextAuth route (which uses it to reject an unresolved
+    // NEXTAUTH_URL placeholder) and, when credentials are on, by `authorize`.
+    // Emitted unconditionally because the route always exists.
+    files.set('auth-db-health', {
+      path: ['utils', 'auth'],
+      files: [
+        {
+          name: 'db-health',
+          fileType: FileType.JS,
+          content: generateAuthDbHealthFile(),
+        },
+      ],
+    })
+    files.set('auth-error-messages', {
+      path: ['utils', 'auth'],
+      files: [
+        {
+          name: 'auth-error-messages',
+          fileType: FileType.JS,
+          content: generateAuthErrorMessagesFile(),
         },
       ],
     })
@@ -1545,6 +1638,22 @@ module.exports = __customNodeRegistry;
         ],
       })
     }
+
+    // Emitted BEFORE session-provider so its file lands next to it. session-provider
+    // imports it first (`import './nextauth-url-guard'`) to strip an empty
+    // NEXTAUTH_URL out of process.env before next-auth/react's module-load
+    // `parseUrl('')` throws "Invalid URL" and crashes SSR. See
+    // generateNextAuthUrlGuardModule.
+    files.set('auth-nextauth-url-guard', {
+      path: ['utils', 'auth'],
+      files: [
+        {
+          name: 'nextauth-url-guard',
+          fileType: FileType.JS,
+          content: generateNextAuthUrlGuardModule(),
+        },
+      ],
+    })
 
     const sessionProviderCode = generateSessionProviderWrapper()
     files.set('auth-session-provider', {
@@ -1895,15 +2004,34 @@ export function resolveAuthEnvValue(
   value: string,
   preserveKeys?: Set<string>
 ): string {
-  if (value.startsWith('teleporthq.secrets.')) {
-    // NEXTAUTH_URL / NEXTAUTH_SECRET get a local default (the worker does not
-    // manage them). OAuth provider credential refs are PRESERVED so the deploy
-    // worker resolves them from the project secret store — emptying them (the
-    // old behavior) left the deployed env var blank, so NextAuth could not build
-    // the provider's authorization URL (error=OAuthSignin / "nothing happens").
-    if (Object.prototype.hasOwnProperty.call(AUTH_ENV_DEFAULTS, key)) {
-      return AUTH_ENV_DEFAULTS[key]
-    }
+  const isSecretPlaceholder = typeof value === 'string' && value.startsWith('teleporthq.secrets.')
+  const isBlank = typeof value !== 'string' || value.trim() === ''
+
+  // NEXTAUTH_URL / NEXTAUTH_SECRET must never reach the generated `.env` as an
+  // EMPTY assignment. next-auth v4's `react/index.js` runs
+  // `parseUrl(process.env.NEXTAUTH_URL)` at MODULE LOAD, and `new URL('')`
+  // throws "Invalid URL" — which crashes server-side rendering for every page
+  // that mounts SessionProvider through `_app` (an UNSET var is fine, because
+  // parseUrl defaults it, but `createEnvFiles` writes every key, so a blank
+  // value serializes as the crashing `NEXTAUTH_URL=`). The blank case is real
+  // and self-perpetuating: once an older generation left `NEXTAUTH_URL=` on
+  // disk, the standalone harness's `preserveExistingEnv` re-injects that empty
+  // string, and this resolver used to pass it straight through. Healing a blank
+  // (or still-unresolved placeholder) auth key to its local default keeps the
+  // value a valid origin; the deploy worker and the runtime request-derivation
+  // (`absolutizeNextAuthUrl`) override it with the real one in production.
+  if (
+    Object.prototype.hasOwnProperty.call(AUTH_ENV_DEFAULTS, key) &&
+    (isSecretPlaceholder || isBlank)
+  ) {
+    return AUTH_ENV_DEFAULTS[key]
+  }
+
+  if (isSecretPlaceholder) {
+    // OAuth provider credential refs are PRESERVED so the deploy worker resolves
+    // them from the project secret store — emptying them (the old behavior) left
+    // the deployed env var blank, so NextAuth could not build the provider's
+    // authorization URL (error=OAuthSignin / "nothing happens").
     if (ALWAYS_PRESERVE_SECRET_ENV_KEYS.has(key)) {
       return value
     }

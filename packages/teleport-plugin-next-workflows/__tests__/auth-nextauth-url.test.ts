@@ -56,4 +56,32 @@ describe('generated NextAuth route — dynamic NEXTAUTH_URL', () => {
     handler({ headers: { host: 'localhost:3000' } }, {})
     expect(process.env.NEXTAUTH_URL).toBe('http://localhost:3000')
   })
+
+  // Project a62338f9 published with `NEXTAUTH_URL=teleporthq.secrets.NEXTAUTH_URL`.
+  // The old check saw a non-empty, non-localhost string and treated it as
+  // explicitly configured, so NextAuth normalised it to
+  // `https://teleporthq.secrets.nextauth_url`, advertised that as the sign-in
+  // origin and issued `__Host-`/`__Secure-` cookies against it. Sign-in failed
+  // with a bare `credentialsSignin`. An unresolved placeholder is now treated
+  // as unset, so an already-published site self-heals on its next request.
+  it('overrides an unresolved secret placeholder on a published domain', () => {
+    process.env.NEXTAUTH_URL = 'teleporthq.secrets.NEXTAUTH_URL'
+    handler(
+      { headers: { host: 'rare-last-dunlin.teleporthq.dev', 'x-forwarded-proto': 'https' } },
+      {}
+    )
+    expect(process.env.NEXTAUTH_URL).toBe('https://rare-last-dunlin.teleporthq.dev')
+  })
+
+  it('falls back to an http origin locally, so cookies are not Secure-prefixed', () => {
+    process.env.NEXTAUTH_URL = 'teleporthq.secrets.NEXTAUTH_URL'
+    handler({ headers: { host: 'localhost:3001' } }, {})
+    expect(process.env.NEXTAUTH_URL).toBe('http://localhost:3001')
+  })
+
+  it('overrides any value that is not an absolute http(s) origin', () => {
+    process.env.NEXTAUTH_URL = 'my-app.teleporthq.dev'
+    handler({ headers: { host: 'my-app.teleporthq.dev', 'x-forwarded-proto': 'https' } }, {})
+    expect(process.env.NEXTAUTH_URL).toBe('https://my-app.teleporthq.dev')
+  })
 })

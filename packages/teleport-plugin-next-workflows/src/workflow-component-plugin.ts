@@ -12,12 +12,13 @@ import {
   UIDLCustomWorkflowNode,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
   redactServerNodeConfig,
 } from './segment-splitter'
+import { isFireAndForgetSegment } from './await-result'
 import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
@@ -72,6 +73,25 @@ const DOM_TO_REACT_EVENT: Record<string, string> = {
   dragstart: 'onDragStart',
   dragend: 'onDragEnd',
   drag: 'onDrag',
+}
+
+/**
+ * Trigger types that run as LIFECYCLE code (no React event prop) but are still
+ * bound to ONE element, so the workflow only belongs on the page that renders
+ * it. Returns the DOM id to prune against, or null when the trigger is not
+ * element-scoped.
+ *
+ * Same fallback chain as the element-trigger branch: the HTML id first, the
+ * project-document node id only as a last resort.
+ */
+const resolveLifecycleTriggerElementId = (
+  triggerType: string,
+  config: Record<string, unknown>
+): string | null => {
+  if (triggerType !== 'event-element-visible') {
+    return null
+  }
+  return ((config.elementHtmlId || config.nodeId) as string) || null
 }
 
 const getReactEventProp = (triggerType: string, config: Record<string, unknown>): string | null => {
@@ -219,6 +239,8 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
     // Classify triggers into element-bound vs lifecycle
     const elementTriggers: ElementTriggerInfo[] = []
     const lifecycleWorkflows: UIDLWorkflow[] = []
+    /** Lifecycle workflows bound to one element, for the per-page JSX prune. */
+    const lifecycleElementTargets: Array<{ workflowId: string; elementId: string }> = []
     const stateChangeWorkflows: UIDLWorkflow[] = []
     const globalStateChangeWorkflows: UIDLWorkflow[] = []
 
@@ -272,6 +294,17 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
         }
       } else {
         lifecycleWorkflows.push(wf)
+        // An element-scoped LIFECYCLE trigger (element-visible) has no React
+        // prop, so it lands here — and `lifecycleWorkflows` was activated
+        // unconditionally, bypassing the JSX-presence prune below that is the
+        // only thing scoping element workflows to one page. One cookie-consent
+        // check therefore shipped into EVERY generated file (17 per page in run
+        // a15472af, including 404.js and logo.js, which have no banner at all).
+        // Record its target so it is pruned like any other element trigger.
+        const lifecycleElementId = resolveLifecycleTriggerElementId(trigger.type, triggerConfig)
+        if (lifecycleElementId) {
+          lifecycleElementTargets.push({ workflowId: wf.id, elementId: lifecycleElementId })
+        }
       }
     }
 
@@ -291,8 +324,15 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
     const matchedElementTriggers: ElementTriggerInfo[] = []
     const unmatchedElementTriggers: ElementTriggerInfo[] = []
 
-    if (returnStatement && returnStatement.argument && elementTriggers.length > 0) {
-      const targetIds = new Set(elementTriggers.map((t) => t.elementId))
+    if (
+      returnStatement &&
+      returnStatement.argument &&
+      (elementTriggers.length > 0 || lifecycleElementTargets.length > 0)
+    ) {
+      const targetIds = new Set([
+        ...elementTriggers.map((t) => t.elementId),
+        ...lifecycleElementTargets.map((t) => t.elementId),
+      ])
       matchedElements = findJSXElementsById(returnStatement.argument, targetIds)
 
       for (const et of elementTriggers) {
@@ -315,6 +355,13 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       activeWorkflowIds.add(et.workflow.id)
     }
     for (const wf of lifecycleWorkflows) {
+      // A lifecycle workflow bound to a specific element is only active on the
+      // page that actually renders that element. One with no element target
+      // (page-loaded, interval, …) stays unconditionally active.
+      const target = lifecycleElementTargets.find((t) => t.workflowId === wf.id)
+      if (target && !matchedElements.has(target.elementId)) {
+        continue
+      }
       activeWorkflowIds.add(wf.id)
     }
     for (const wf of stateChangeWorkflows) {
@@ -670,7 +717,15 @@ const defaultValueToLiteral = (val: unknown): types.Expression => {
   return types.nullLiteral()
 }
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/**
+ * Object key for a state/global-state map that the workflow runtime looks up by
+ * the name written in the node config (`config.property`). The key therefore
+ * keeps the UIDL spelling ALWAYS — only the value beside it is a binding and
+ * gets sanitised. Reserved words are legal unquoted keys (`{ class: ... }`);
+ * anything that is not identifier syntax at all is quoted.
+ */
+const stateMapKey = (name: string): types.Identifier | types.StringLiteral =>
+  JSIdentifiers.isValidPropertyKeyName(name) ? types.identifier(name) : types.stringLiteral(name)
 
 const resolveStateDefinitionKey = (
   rawName: string,
@@ -703,39 +758,56 @@ const injectWorkflowCode = (
 
   for (const [key, def] of Object.entries(stateDefinitions)) {
     const setterName = StringUtils.createStateStoringFunction(key)
-    stateSetterProperties.push(
-      types.objectProperty(types.identifier(key), types.identifier(setterName))
-    )
+    // KEY: the name a workflow node's `config.property` is written against —
+    // never renamed. VALUE: the React binding declared by `createStateHookAST`,
+    // which is sanitised because a UIDL state may legally be called `class`.
+    stateSetterProperties.push(types.objectProperty(stateMapKey(key), types.identifier(setterName)))
     stateTypeProperties.push(
-      types.objectProperty(types.identifier(key), types.stringLiteral(def.type || 'string'))
+      types.objectProperty(stateMapKey(key), types.stringLiteral(def.type || 'string'))
     )
-    stateValueProperties.push(types.objectProperty(types.identifier(key), types.identifier(key)))
+    stateValueProperties.push(
+      types.objectProperty(
+        stateMapKey(key),
+        types.identifier(JSIdentifiers.createSafeJSIdentifier(key))
+      )
+    )
   }
 
   const globalStateStatements: types.Statement[] = []
   if (globalStateDefinitions && Object.keys(globalStateDefinitions).length > 0) {
     const destructuredProps: types.ObjectProperty[] = []
     for (const def of Object.values(globalStateDefinitions)) {
-      const setterName = `set${capitalize(def.name)}`
+      // `GlobalStateProvider` exposes every entry under its DECLARED name, so
+      // the context keys stay raw and only the locals we bind are sanitised.
+      // The pattern then reads `{ class: class_ }` — shorthand only when the
+      // two coincide, which is the case for every ordinary name.
+      const setterKey = StringUtils.createGlobalStateSetterName(def.name)
+      const setterName = JSIdentifiers.createSafeJSIdentifier(setterKey)
+      const localName = JSIdentifiers.createSafeJSIdentifier(def.name)
       destructuredProps.push(
-        types.objectProperty(types.identifier(def.name), types.identifier(def.name), false, true)
+        types.objectProperty(
+          stateMapKey(def.name),
+          types.identifier(localName),
+          false,
+          localName === def.name
+        )
       )
       destructuredProps.push(
         types.objectProperty(
-          types.identifier(setterName),
+          stateMapKey(setterKey),
           types.identifier(setterName),
           false,
-          true
+          setterName === setterKey
         )
       )
       stateSetterProperties.push(
-        types.objectProperty(types.identifier(def.name), types.identifier(setterName))
+        types.objectProperty(stateMapKey(def.name), types.identifier(setterName))
       )
       stateTypeProperties.push(
-        types.objectProperty(types.identifier(def.name), types.stringLiteral(def.type || 'string'))
+        types.objectProperty(stateMapKey(def.name), types.stringLiteral(def.type || 'string'))
       )
       stateValueProperties.push(
-        types.objectProperty(types.identifier(def.name), types.identifier(def.name))
+        types.objectProperty(stateMapKey(def.name), types.identifier(localName))
       )
     }
 
@@ -1303,6 +1375,9 @@ function __normalizeAdminFormRow(row, defaults) {
         id: s.id,
         env: s.env,
         hasStreamingAI: hasStreamingAINode(s),
+        // Every node in this segment runs fire-and-forget, so the browser
+        // dispatches it and carries on instead of waiting for the round trip.
+        fireAndForget: isFireAndForgetSegment(s),
         nodes: s.nodes.map((n) => ({
           id: n.id,
           type: n.type,
@@ -1414,8 +1489,26 @@ function __normalizeAdminFormRow(row, defaults) {
     }
   }
 
-  // Lifecycle triggers
+  // Lifecycle triggers.
+  //
+  // `allWorkflows` here is the already-pruned `activeWorkflows`: a lifecycle
+  // element-visible trigger whose target element is NOT in this component's own
+  // JSX was excluded from it (its `__wfConfig_*` was therefore never declared).
+  // But `generateLifecycleTrigger` emits an IntersectionObserver that resolves
+  // its target at runtime with `document.getElementById(target)` — a
+  // DOCUMENT-WIDE lookup that happily matches an element ANOTHER component
+  // rendered (e.g. the shared "Cookie Consent" banner, which is attached to
+  // ~23 element-visible workflows and would otherwise ship into every product
+  // card). When it fires it calls `__execWf(__wfConfig_<id>, …)` for a config
+  // that was never emitted, throwing `ReferenceError: __wfConfig_… is not
+  // defined` the moment the element scrolls into view. Pruning the handler in
+  // lockstep with the config keeps the two in sync: the workflow still runs in
+  // the component/page that actually renders its target element.
+  const emittedConfigIds = new Set(allWorkflows.map((wf) => wf.id))
   for (const wf of lifecycleWorkflows) {
+    if (!emittedConfigIds.has(wf.id)) {
+      continue
+    }
     const safeId = wf.id.replace(/[^a-zA-Z0-9]/g, '_')
     const code = generateLifecycleTrigger(wf, safeId)
     if (code) {
@@ -1999,17 +2092,24 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
     }
 
     case 'event-element-visible': {
-      const nodeId = config.nodeId as string
+      // `config.nodeId` is the PROJECT-DOCUMENT node id (`TQ_…`); no element in
+      // the generated app ever carries it. `elementHtmlId` is the real DOM id
+      // (`thq_container_…`), already stamped by `ensure-element-ids` and mapped
+      // into the trigger config — the same fallback chain every other element
+      // trigger uses above. Reading `nodeId` made `getElementById` return null,
+      // so the observer was never constructed and the cookie-consent banner
+      // could never appear on any page (run a15472af: 408 dead lookups).
+      const elementId = (config.elementHtmlId || config.nodeId) as string
       const threshold = (config.threshold as number) || 0
       const once = config.once as boolean
       return (
         `    // Element visible (${wf.name || wf.id})\n` +
-        `    const __visEl_${safeId} = document.getElementById('${nodeId}');\n` +
+        `    const __visEl_${safeId} = document.getElementById('${elementId}');\n` +
         `    if (__visEl_${safeId}) {\n` +
         `      const __obs_${safeId} = new IntersectionObserver(function(entries) {\n` +
         `        entries.forEach(function(entry) {\n` +
         `          if (entry.isIntersecting) {\n` +
-        `            const triggerContext = { elementId: '${nodeId}', timestamp: Date.now(), intersectionRatio: entry.intersectionRatio };\n` +
+        `            const triggerContext = { elementId: '${elementId}', timestamp: Date.now(), intersectionRatio: entry.intersectionRatio };\n` +
         `            ${execCall};\n` +
         (once ? `            __obs_${safeId}.disconnect();\n` : '') +
         `          }\n` +

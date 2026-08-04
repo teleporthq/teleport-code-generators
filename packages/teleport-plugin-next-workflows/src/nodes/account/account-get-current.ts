@@ -21,21 +21,56 @@ async function account_get_current(_config: unknown, context: Record<string, unk
     o.user = user || null
     return o
   }
+  // Mirror of the last known user, read when the session endpoint is
+  // unreachable so an offline click still knows who is signed in.
+  const __cache = (user: any) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    try {
+      if (user) {
+        window.localStorage.setItem('teleport_auth_user', JSON.stringify(user))
+      } else {
+        window.localStorage.removeItem('teleport_auth_user')
+      }
+    } catch (_e) {}
+  }
+
+  // `_app` renders NextAuth's SessionProvider on every page, so the browser has
+  // already fetched and is holding the session in memory; session-provider.js
+  // republishes it on `window.__teleportNextAuth`. Re-fetching it over HTTP cost
+  // a full round trip (~925ms on a published deployment, because the jwt
+  // callback re-reads the `users` row) BEFORE the workflow's own request could
+  // start — for data the page had since it mounted.
+  //
+  // Only 'authenticated' short-circuits. 'loading' means the provider's first
+  // fetch has not settled; 'unauthenticated' is also what next-auth reports when
+  // that fetch FAILED, and treating a transient error as "signed out" would send
+  // a signed-in visitor down the guest branch. Both fall through to the fetch —
+  // which for a guest is the cheap case anyway, since the jwt callback returns
+  // before touching the database when there is no token.
+  if (typeof window !== 'undefined') {
+    try {
+      const bridge = (window as any).__teleportNextAuth
+      const snapshot =
+        bridge && typeof bridge.getSession === 'function' ? bridge.getSession() : null
+      if (snapshot && snapshot.status === 'authenticated') {
+        const liveUser = snapshot.session && snapshot.session.user ? snapshot.session.user : null
+        if (liveUser) {
+          __cache(liveUser)
+          return __out(liveUser)
+        }
+      }
+    } catch (_e) {}
+  }
+
   try {
     const response = await fetch(baseUrl + '/api/auth/session')
     if (response.ok) {
       const session = await response.json()
       const user = session && session.user ? session.user : null
 
-      if (typeof window !== 'undefined') {
-        try {
-          if (user) {
-            window.localStorage.setItem('teleport_auth_user', JSON.stringify(user))
-          } else {
-            window.localStorage.removeItem('teleport_auth_user')
-          }
-        } catch (_e) {}
-      }
+      __cache(user)
 
       return __out(user)
     }

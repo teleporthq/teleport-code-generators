@@ -5,7 +5,7 @@ import {
   UIDLStaticValue,
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
-import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTBuilders, ASTUtils, RouteUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import { buildStructuredDataScript } from './structured-data-ast'
 
@@ -56,6 +56,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     const reactHooks: types.VariableDeclaration[] = []
     const headASTTags = []
     let translationsAdded = false
+    // Shared by the canonical/og:url branch and the structured-data branch —
+    // both may interpolate a route parameter, and the hook is declared once.
+    let routerAdded = false
 
     if (uidl.seo.title) {
       const { titleAST, hasTranslation } = generateTitleAST(uidl.seo.title)
@@ -86,7 +89,6 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     if (uidl.seo.assets) {
       const i18n = structure.options.internationalization
       const hasMultipleLocales = i18n && Object.keys(i18n.languages).length > 1
-      let routerAdded = false
 
       uidl.seo.assets.forEach((asset) => {
         if (asset.type === 'canonical') {
@@ -253,11 +255,25 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
     if (uidl.seo.structuredData && uidl.seo.structuredData.length > 0) {
       uidl.seo.structuredData.forEach((entry) => {
-        const { scriptTag, usesTranslations } = buildStructuredDataScript(entry)
+        const { scriptTag, usesTranslations, usesRouter } = buildStructuredDataScript(entry)
         if (usesTranslations && !translationsAdded) {
           structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
           reactHooks.push(getTranslationsAST())
           translationsAdded = true
+        }
+        // The script interpolated a route parameter (a details page's own URL in
+        // a BreadcrumbList), so it needs the same `useRouter` hook the dynamic
+        // canonical uses. `routerAdded` is shared with the canonical branch
+        // above so the hook is declared exactly once.
+        if (usesRouter && !routerAdded) {
+          structure.dependencies.useRouter = {
+            type: 'library',
+            path: 'next/router',
+            version: '^12.1.10',
+            meta: { namedImport: true },
+          }
+          reactHooks.push(getRouterAST())
+          routerAdded = true
         }
         headASTTags.push(scriptTag)
       })
@@ -355,26 +371,12 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
   }
 
   /**
-   * Splits a string by ${paramName} patterns into static parts and param names.
-   * e.g. "/news/${slug}" => { staticParts: ["/news/", ""], paramNames: ["slug"] }
+   * Splits a string into the literal text around its route parameters.
+   * Understands both `${slug}` and the Next.js `/[id]` form a details page's
+   * canonical URL actually carries — see `RouteUtils.parseDynamicPathSegments`.
+   * e.g. "/news/[slug]" => { staticParts: ["/news/", ""], paramNames: ["slug"] }
    */
-  const parseDynamicSegments = (str: string): { staticParts: string[]; paramNames: string[] } => {
-    const regex = /\$\{([^}]+)\}/g
-    const staticParts: string[] = []
-    const paramNames: string[] = []
-    let lastIndex = 0
-    let match: RegExpExecArray | null = regex.exec(str)
-
-    while (match !== null) {
-      staticParts.push(str.slice(lastIndex, match.index))
-      paramNames.push(match[1])
-      lastIndex = regex.lastIndex
-      match = regex.exec(str)
-    }
-    staticParts.push(str.slice(lastIndex))
-
-    return { staticParts, paramNames }
-  }
+  const parseDynamicSegments = RouteUtils.parseDynamicPathSegments
 
   const buildRouterQueryParam = (paramName: string): types.MemberExpression => {
     return types.memberExpression(

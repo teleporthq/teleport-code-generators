@@ -2,6 +2,7 @@ import { UIDLWorkflow, UIDLWorkflowNode, UIDLWorkflowEdge } from '@teleporthq/te
 import { WorkflowSegment, WorkflowExecutionEnv } from './types'
 import { getLoopBodyNodes, getNodeById, getTopologicalOrder } from './graph-utils'
 import { nodeRegistry } from './nodes'
+import { AWAIT_RESULT_CONFIG_KEY } from './await-result'
 
 const CLIENT_ONLY_NODE_TYPES = new Set([
   'account-login',
@@ -289,14 +290,21 @@ const enforceLoopBodyIntegrity = (
 export const resolveNodeExecutionEnv = (node: UIDLWorkflowNode): WorkflowExecutionEnv =>
   resolveExecutionEnv(node, null)
 
-// The ONLY field of a server node's config the CLIENT executor ever reads is
+// The ONLY fields of a server node's config the CLIENT executor ever reads are
 // the AI-streaming flag (findStreamingAINodes / callStreamingServerSegment in
-// executor-generator). Everything else — the raw SQL query, filters, table
-// name, bound params, column mappings, data source id, … — is consumed
-// exclusively inside the server API route (see api-route-generator's
-// SEGMENT_CONFIG, which keeps the full config server-side). None of it may
-// reach the browser bundle.
-export const CLIENT_SAFE_SERVER_CONFIG_KEYS: ReadonlyArray<string> = ['streaming']
+// executor-generator) and the data-node await flag (the custom-node runtime
+// skips a fire-and-forget node when picking its return value). Everything else
+// — the raw SQL query, filters, table name, bound params, column mappings,
+// data source id, … — is consumed exclusively inside the server API route (see
+// api-route-generator's SEGMENT_CONFIG, which keeps the full config
+// server-side). None of it may reach the browser bundle.
+//
+// `awaitResult` is a plain boolean choice, never a value or an identifier, so
+// exposing it leaks nothing about the schema or the query.
+export const CLIENT_SAFE_SERVER_CONFIG_KEYS: ReadonlyArray<string> = [
+  'streaming',
+  AWAIT_RESULT_CONFIG_KEY,
+]
 
 /**
  * Strip a server node's config down to the client-safe whitelist before it is

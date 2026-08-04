@@ -1,5 +1,6 @@
 import {
   UIDLAuthentication,
+  UIDLAuthTableColumn,
   UIDLCustomUserProperty,
   DataSourceType,
 } from '@teleporthq/teleport-types'
@@ -184,19 +185,123 @@ const airtableBase = new Airtable({
   }
 }
 
-const generateSanitizeUserFunction = (): string => {
+/**
+ * How long (ms) a JWT may serve the profile fields it already carries before
+ * the next session request re-reads the `users` row. See the generated
+ * comment in `generateAuthOptionsFile` for the measurements behind it.
+ */
+export const USER_REFRESH_INTERVAL_MS = 60000
+
+/**
+ * Profile fields the session may always carry, even for a UIDL that ships no
+ * `users` schema at all.
+ *
+ * `id`/`name`/`email`/`image`/`role` are the fields the `account-get-current`
+ * output contract declares (workflow-schema's node-context-schemas), i.e. the
+ * ones every workflow and binding addresses. `roleName`/`roles` are the two
+ * alternate spellings `getUserRoleFromToken` in the generated middleware falls
+ * back to, so dropping them would silently disable role-based route protection
+ * for projects that use them.
+ */
+export const SESSION_SAFE_USER_FIELDS: readonly string[] = [
+  'id',
+  'name',
+  'email',
+  'image',
+  'role',
+  'roleName',
+  'roles',
+]
+
+/**
+ * Credentials that must never leave the server, whatever the `users` table
+ * happens to declare: the OAuth single-table adapter's provider tokens plus the
+ * password hash. `findUserByEmail` does `SELECT *`, so without this list they
+ * ride the JWT into `session.user` and become readable by any script on the
+ * page through /api/auth/session.
+ *
+ * Denied unconditionally, so a custom user property whose key collides with one
+ * of these names cannot re-open the hole. `provider` itself is NOT here — it is
+ * just the provider's name ("google"), and `account-social-login` declares it
+ * as part of its output contract.
+ */
+export const SENSITIVE_USER_FIELDS: readonly string[] = [
+  'password',
+  'password_hash',
+  'passwordHash',
+  'access_token',
+  'refresh_token',
+  'id_token',
+  'expires_at',
+  'session_state',
+  'scope',
+  'token_type',
+  'provider_account_id',
+  'provider_type',
+]
+
+/**
+ * Mongo's primary key. NOT a secret — it is excluded because `sanitizeUser`
+ * already folds it into `id` (`rawId = user.id != null ? user.id : user._id`),
+ * so passing it through as well would put the same value on the session twice
+ * under two different names. A shape concern, not a security one, which is why
+ * it is kept out of `SENSITIVE_USER_FIELDS`.
+ */
+const ID_ALIAS_FIELD = '_id'
+
+/**
+ * The exact set of `users` columns this project allows into the session.
+ *
+ * Derived from the DECLARED schema (`auth.tables.users`), which the GUI
+ * composes as the canonical auth columns PLUS one column per custom account
+ * property — so every property the user configured is included by
+ * construction, while a column that exists in the database but not in the UIDL
+ * never is. `customUserProperties` is unioned in directly rather than relied on
+ * transitively, so the list stays complete for a UIDL that carries the
+ * properties without a matching `tables` entry.
+ */
+export const buildSessionUserFields = (
+  tables: Record<string, UIDLAuthTableColumn[]> | undefined,
+  customProps: UIDLCustomUserProperty[]
+): string[] => {
+  const declared = (tables?.users || []).map((column) => column.name)
+  const custom = customProps.map((prop) => prop.key)
+  const denied = new Set<string>(SENSITIVE_USER_FIELDS)
+
+  return Array.from(new Set([...SESSION_SAFE_USER_FIELDS, ...declared, ...custom])).filter(
+    (field) => Boolean(field) && field !== ID_ALIAS_FIELD && !denied.has(field)
+  )
+}
+
+const generateSanitizeUserFunction = (
+  tables: Record<string, UIDLAuthTableColumn[]> | undefined,
+  customProps: UIDLCustomUserProperty[]
+): string => {
+  // ALLOW-list, not a deny-list. `sanitizeUser` feeds the JWT, and the session
+  // callback copies the whole token onto `session.user`, so every column the
+  // `SELECT *` returned used to be readable by any script on the page. A
+  // two-entry deny-list (`password`, `_id`) could never keep up with a table
+  // whose shape the project controls; enumerating what the project actually
+  // DECLARED is the version that stays correct as columns are added.
+  //
   // Preserve the native type of the id (integer vs UUID-string) — NextAuth
   // will JSON-serialize the session payload either way. Coercing with
   // \`String(rawId)\` would silently turn an integer PK into "1" and make
   // runtime comparisons against a DB-fetched \`user.id\` (still a number
   // on pages that read the row via \`getStaticProps\`) always false.
-  return `function sanitizeUser(user) {
+  return `// The only \`users\` columns that may reach the browser: this project's declared
+// user schema — canonical profile columns plus every custom account property —
+// minus the credentials (password hash, OAuth access/refresh/id tokens), which
+// stay server-side. Anything else the row carries never reaches the session.
+const SESSION_USER_FIELDS = ${JSON.stringify(buildSessionUserFields(tables, customProps))};
+
+function sanitizeUser(user) {
   if (!user) return null;
   const safe = {};
-  const keys = Object.keys(user);
-  for (let i = 0; i < keys.length; i++) {
-    if (keys[i] !== 'password' && keys[i] !== '_id') {
-      safe[keys[i]] = user[keys[i]];
+  for (let i = 0; i < SESSION_USER_FIELDS.length; i++) {
+    const key = SESSION_USER_FIELDS[i];
+    if (user[key] !== undefined) {
+      safe[key] = user[key];
     }
   }
   const rawId = user.id != null ? user.id : user._id;
@@ -528,19 +633,46 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
     email: { label: 'Email', type: 'email' },
     password: { label: 'Password', type: 'password' }
   },
+  // Every failure used to \`return null\`, which NextAuth reports as the single
+  // opaque code \`CredentialsSignin\` — the same answer for a wrong password, an
+  // unknown email, and a database the app cannot reach. Project a62338f9 shipped
+  // with a DB credential Postgres rejected, and the only thing the user (or the
+  // sign-in form) ever saw was "credentialsSignin".
+  //
+  // NextAuth v4 surfaces a THROWN error's message as the \`error\` value, so each
+  // cause now gets its own code. \`describeAuthError\` in
+  // utils/auth/auth-error-messages turns them into copy; the raw cause is logged
+  // server-side only.
+  //
+  // Unknown email and wrong password deliberately share one code: telling them
+  // apart is a user-enumeration oracle.
   async authorize(credentials) {
     if (!credentials || !credentials.email || !credentials.password) {
-      return null;
+      throw new Error('MissingCredentials');
+    }
+    const { verifyPassword } = require('./hash-password');
+    const { classifyAuthInfrastructureError } = require('./db-health');
+    let user;
+    try {
+      user = await findUserByEmail(String(credentials.email));
+    } catch (err) {
+      const kind = classifyAuthInfrastructureError(err);
+      console.error('[auth] Could not reach the user store (' + kind + '):', err && err.message ? err.message : err);
+      throw new Error('ServiceUnavailable');
     }
     try {
-      const { verifyPassword } = require('./hash-password');
-      const user = await findUserByEmail(String(credentials.email));
-      if (!user) return null;
-      if (!verifyPassword(String(credentials.password), user.password)) return null;
+      if (!user) throw new Error('InvalidCredentials');
+      if (!verifyPassword(String(credentials.password), user.password)) {
+        throw new Error('InvalidCredentials');
+      }
       return sanitizeUser(user);
     } catch (err) {
-      console.error('Authorize error:', err);
-      return null;
+      if (err && err.message === 'InvalidCredentials') throw err;
+      // A hashing/serialisation fault is an infrastructure problem, not a
+      // wrong password — saying "check your details" would send the user
+      // round in circles.
+      console.error('[auth] Credential check failed:', err && err.message ? err.message : err);
+      throw new Error('ServiceUnavailable');
     }
   }
 }));`)
@@ -590,7 +722,7 @@ export const generateAuthOptionsFile = (
   const findUserCode = auth.passwordAuthEnabled
     ? generateFindUserFunction(auth.dataSourceType, customProps)
     : ''
-  const sanitizeUserCode = generateSanitizeUserFunction()
+  const sanitizeUserCode = generateSanitizeUserFunction(auth.tables, customProps)
   const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
 
   return `${providerImports}
@@ -600,6 +732,23 @@ ${sanitizeUserCode}
 ${findUserCode}
 
 ${providersSetup}
+
+// How long a JWT may serve profile fields before the next /api/auth/session
+// request re-reads the \`users\` row. \`strategy: 'jwt'\` exists precisely so a
+// session costs no database round trip; refreshing on EVERY request threw that
+// away — each one opened a fresh unpooled pg connection (TCP + TLS handshake)
+// for a single indexed SELECT, which measured ~715ms of the ~925ms that
+// /api/auth/session took on a published Vercel deployment, against ~210ms for
+// the same route when the token carried no email. Profile edits still land
+// immediately whenever the app calls \`useSession().update()\` (NextAuth passes
+// \`trigger === 'update'\`, which bypasses the interval); the interval is the
+// backstop for changes made outside this browser, e.g. an admin editing a role.
+const USER_REFRESH_INTERVAL_MS = ${USER_REFRESH_INTERVAL_MS};
+
+// Bookkeeping the refresh policy writes onto the token. It must never be copied
+// onto \`session.user\` — it is not a profile field, and leaking it would put an
+// internal timestamp on every binding that enumerates the user object.
+const TOKEN_REFRESH_STAMP = '__userRefreshedAt';
 
 const authOptions = {
   providers: providers,
@@ -616,6 +765,13 @@ const authOptions = {
         for (let i = 0; i < keys.length; i++) {
           token[keys[i]] = user[keys[i]];
         }
+        // Deliberately NOT stamped. An OAuth \`user\` is the PROVIDER's profile
+        // (id/name/email/image) — it carries no \`role\`, which only exists on
+        // the \`users\` row. Stamping here would make the first session request
+        // after an OAuth sign-in skip the database and leave the visitor
+        // role-less for a whole interval, silently failing role-protected
+        // routes. Leaving it unstamped means the next session request refreshes
+        // exactly as it does today, and the interval applies from there on.
         return token;
       }
       // Subsequent calls (every /api/auth/session): re-read the user from the
@@ -623,6 +779,22 @@ const authOptions = {
       // session. The JWT is otherwise a snapshot captured at login, which is why
       // the navbar avatar/name reverted to the old value after a refresh: the
       // navbar reads /api/auth/session, which is derived from this token.
+      //
+      // Rate-limited to USER_REFRESH_INTERVAL_MS, because that read is by far
+      // the most expensive thing a session request does. \`trigger === 'update'\`
+      // (fired by \`useSession().update()\`, which the auth bridge re-publishes
+      // as \`window.__teleportNextAuth.refreshSession\`) always refreshes, so a
+      // profile save is reflected at once rather than up to an interval later.
+      const now = Date.now();
+      const lastRefresh = token && typeof token[TOKEN_REFRESH_STAMP] === 'number'
+        ? token[TOKEN_REFRESH_STAMP]
+        : 0;
+      // \`now - lastRefresh < 0\` covers a clock that moved backwards: treat the
+      // stamp as stale rather than trusting it until the clock catches up.
+      const isFresh = now - lastRefresh >= 0 && now - lastRefresh < USER_REFRESH_INTERVAL_MS;
+      if (params.trigger !== 'update' && isFresh) {
+        return token;
+      }
       try {
         if (token && token.email && typeof findUserByEmail === 'function') {
           const fresh = await findUserByEmail(String(token.email));
@@ -637,6 +809,11 @@ const authOptions = {
       } catch (e) {
         // Keep the existing token on any DB hiccup — never sign the user out.
       }
+      // Stamped even when the read threw, so an unreachable database costs one
+      // attempt per interval instead of one per request.
+      if (token) {
+        token[TOKEN_REFRESH_STAMP] = now;
+      }
       return token;
     },
     async session(params) {
@@ -644,6 +821,7 @@ const authOptions = {
       const token = params.token;
       if (token && session.user) {
         const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
+        skip[TOKEN_REFRESH_STAMP] = 1;
         const keys = Object.keys(token);
         for (let i = 0; i < keys.length; i++) {
           if (!skip[keys[i]]) {
@@ -667,6 +845,125 @@ ${
     ? `module.exports.findUserByEmail = findUserByEmail;\nmodule.exports.createUser = createUser;\nmodule.exports.userExistsByEmail = userExistsByEmail;\n`
     : ''
 }
+`
+}
+
+/**
+ * Why a sign-in failed, in words, plus the one-line codes `authorize` throws.
+ *
+ * Project a62338f9 could not sign in on the published site OR in the exported
+ * project, and the only signal anywhere was NextAuth's generic
+ * `CredentialsSignin`. The real cause was that Postgres rejected the DB
+ * credential baked into `TELEPORT_DB_CONNECTION_STRING` — a configuration
+ * failure the form reported as if the user had mistyped their password.
+ *
+ * Every code NextAuth can produce is mapped, not just the new ones, so the form
+ * never shows a machine token again.
+ */
+export const generateAuthErrorMessagesFile = (): string => {
+  return `// Codes thrown by the credentials provider's authorize().
+const AUTH_ERROR_MESSAGES = {
+  // Ours.
+  MissingCredentials: 'Please enter both your email and your password.',
+  InvalidCredentials: 'That email and password do not match an account.',
+  ServiceUnavailable:
+    'We could not reach the account service. Please try again in a moment — if it keeps happening, the site owner needs to check its database configuration.',
+
+  // NextAuth's own.
+  CredentialsSignin: 'That email and password do not match an account.',
+  SessionRequired: 'Please sign in to continue.',
+  AccessDenied: 'This account is not allowed to sign in.',
+  Verification: 'That sign-in link is no longer valid. Please request a new one.',
+  Configuration:
+    'Sign-in is not configured correctly for this site. The site owner needs to check its authentication settings.',
+  OAuthSignin: 'We could not start sign-in with that provider. Please try again.',
+  OAuthCallback: 'That provider could not complete sign-in. Please try again.',
+  OAuthCreateAccount: 'We could not create an account from that provider.',
+  OAuthAccountNotLinked:
+    'An account with this email already exists. Sign in the way you did originally, then link this provider from your profile.',
+  EmailCreateAccount: 'We could not create an account with that email address.',
+  EmailSignin: 'We could not send the sign-in email. Please try again.',
+  Callback: 'Sign-in could not be completed. Please try again.',
+  Default: 'Something went wrong while signing in. Please try again.',
+};
+
+/**
+ * Human copy for a NextAuth error code. Anything unrecognised — including a
+ * message a future provider invents — falls back to the generic line rather
+ * than being shown raw.
+ */
+function describeAuthError(code) {
+  if (!code) { return ''; }
+  var key = String(code);
+  if (Object.prototype.hasOwnProperty.call(AUTH_ERROR_MESSAGES, key)) {
+    return AUTH_ERROR_MESSAGES[key];
+  }
+  return AUTH_ERROR_MESSAGES.Default;
+}
+
+module.exports = describeAuthError;
+module.exports.describeAuthError = describeAuthError;
+module.exports.AUTH_ERROR_MESSAGES = AUTH_ERROR_MESSAGES;
+`
+}
+
+/**
+ * Tells a database that is UNREACHABLE from one that REFUSED the credential.
+ *
+ * Both surface to the user as "we could not reach the account service", but the
+ * server log has to name which one: run a62338f9's published site and its
+ * exported project both failed with `password authentication failed for user
+ * "p_<project>_usr"`, and nothing in the app ever said so.
+ */
+export const generateAuthDbHealthFile = (): string => {
+  return `var AUTH_DB_ERROR_KINDS = {
+  AUTH_FAILED: 'db-auth-failed',
+  UNREACHABLE: 'db-unreachable',
+  MISCONFIGURED: 'db-misconfigured',
+  UNKNOWN: 'db-unknown',
+};
+
+/** Postgres SQLSTATEs for "the server said no to these credentials". */
+var AUTH_REJECTION_CODES = ['28P01', '28000', '3D000'];
+
+function classifyAuthInfrastructureError(err) {
+  if (!err) { return AUTH_DB_ERROR_KINDS.UNKNOWN; }
+  var code = err.code ? String(err.code) : '';
+  var message = err.message ? String(err.message).toLowerCase() : '';
+  if (AUTH_REJECTION_CODES.indexOf(code) !== -1 || message.indexOf('password authentication failed') !== -1) {
+    return AUTH_DB_ERROR_KINDS.AUTH_FAILED;
+  }
+  if (code === 'ENOTFOUND' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'EAI_AGAIN') {
+    return AUTH_DB_ERROR_KINDS.UNREACHABLE;
+  }
+  if (message.indexOf('connection string') !== -1 || message.indexOf('client password must be a string') !== -1) {
+    return AUTH_DB_ERROR_KINDS.MISCONFIGURED;
+  }
+  return AUTH_DB_ERROR_KINDS.UNKNOWN;
+}
+
+/**
+ * True when a value is still the build-time placeholder the deploy step was
+ * supposed to replace. A placeholder is WORSE than an empty value: code that
+ * treats "set" as "configured" then trusts a string that means nothing.
+ */
+function isUnresolvedSecretPlaceholder(value) {
+  return typeof value === 'string' && value.indexOf('teleporthq.secrets.') === 0;
+}
+
+/** \`NEXTAUTH_URL\` is only usable when it is an absolute http(s) origin. */
+function isUsableNextAuthUrl(value) {
+  if (typeof value !== 'string' || !value) { return false; }
+  if (isUnresolvedSecretPlaceholder(value)) { return false; }
+  return /^https?:\\/\\//i.test(value);
+}
+
+module.exports = {
+  AUTH_DB_ERROR_KINDS: AUTH_DB_ERROR_KINDS,
+  classifyAuthInfrastructureError: classifyAuthInfrastructureError,
+  isUnresolvedSecretPlaceholder: isUnresolvedSecretPlaceholder,
+  isUsableNextAuthUrl: isUsableNextAuthUrl,
+};
 `
 }
 
@@ -707,24 +1004,54 @@ const authOptions = require('../../../utils/auth/auth-options');
 
 const authHandler = NextAuth(authOptions);
 
+// Inlined rather than required from utils/auth/db-health: this route is the
+// entry point for ALL authentication, so it must not depend on a sibling module
+// resolving. Three lines, and the shared copy still backs authorize().
+function isUsableNextAuthUrl(value) {
+  if (typeof value !== 'string' || !value) { return false; }
+  if (value.indexOf('teleporthq.secrets.') === 0) { return false; }
+  return /^https?:\\/\\//i.test(value);
+}
+
 // NextAuth builds OAuth callback / redirect URLs from process.env.NEXTAUTH_URL.
 // At build time the real deployment domain is unknown, so the generated .env
 // ships a localhost default. Derive the correct origin from the incoming
 // request here so OAuth works on whatever domain the project is published to —
 // WITHOUT hardcoding it. An explicitly-configured (non-local) NEXTAUTH_URL is
 // always respected; local dev (host = localhost) is left untouched.
+//
+// "Explicitly configured" means a REAL absolute http(s) origin. Project
+// a62338f9 shipped \`NEXTAUTH_URL=teleporthq.secrets.NEXTAUTH_URL\` — an
+// unresolved placeholder — and the old check saw a non-empty, non-localhost
+// string and refused to override it. NextAuth then normalised it to
+// \`https://teleporthq.secrets.nextauth_url\`, advertised that as the sign-in
+// origin and issued \`__Host-\`/\`__Secure-\` cookies against it. Treating anything
+// that is not a usable URL as unset lets an already-published site self-heal on
+// its next request.
 module.exports = function nextAuthRoute(req, res) {
   try {
     const fwdHost = req.headers['x-forwarded-host'] || req.headers.host || '';
     const host = Array.isArray(fwdHost) ? fwdHost[0] : fwdHost;
     const hostIsLocal = host.indexOf('localhost') === 0 || host.indexOf('127.0.0.1') === 0;
     const current = process.env.NEXTAUTH_URL || '';
+    if (current && !isUsableNextAuthUrl(current)) {
+      console.error(
+        '[auth] NEXTAUTH_URL is not a usable origin (' + current + ') — deriving it from the request instead.'
+      );
+    }
     const currentIsLocalOrEmpty =
-      !current || current.indexOf('localhost') !== -1 || current.indexOf('127.0.0.1') !== -1;
+      !isUsableNextAuthUrl(current) ||
+      current.indexOf('localhost') !== -1 ||
+      current.indexOf('127.0.0.1') !== -1;
     if (host && !hostIsLocal && currentIsLocalOrEmpty) {
       const fwdProto = req.headers['x-forwarded-proto'];
       const proto = (Array.isArray(fwdProto) ? fwdProto[0] : fwdProto) || 'https';
       process.env.NEXTAUTH_URL = proto + '://' + host;
+    } else if (hostIsLocal && !isUsableNextAuthUrl(current)) {
+      // Local dev with an unusable value would otherwise leave NextAuth
+      // deriving \`https://…\` from the placeholder, so its cookies get the
+      // \`Secure\` prefix and the browser drops them over plain http.
+      process.env.NEXTAUTH_URL = 'http://' + (host || 'localhost:3000');
     }
   } catch (e) {
     /* fall back to the configured NEXTAUTH_URL */
@@ -1273,6 +1600,55 @@ export const config = {
 `
 }
 
+// A side-effect-only module that MUST evaluate before `next-auth/react` is
+// imported. It is emitted at utils/auth/nextauth-url-guard.js and imported as the
+// FIRST import of session-provider.js (the only module that imports
+// next-auth/react). ES module imports evaluate in source order, so this runs
+// first.
+//
+// Why it exists: next-auth v4's `next-auth/react` builds its `__NEXTAUTH` config
+// at MODULE LOAD by calling `parseUrl(process.env.NEXTAUTH_URL)` (and the
+// NEXTAUTH_URL_INTERNAL / VERCEL_URL variants). `parseUrl('')` runs `new URL('')`,
+// which throws "Invalid URL" — so an EMPTY-STRING env value crashes the import
+// and, with it, server-side rendering for every page that mounts SessionProvider
+// (the terminal shows `TypeError: Invalid URL … input: '' … page: '/products'`).
+// An UNSET var is safe: next-auth defaults it to http://localhost:3000. But a
+// generated `.env` can ship `NEXTAUTH_URL=` (empty), which Next.js loads into
+// process.env as "" rather than undefined — the crashing case. Deleting an
+// empty/whitespace value restores the safe "unset" state; a real configured
+// value is left untouched. On the browser these are already undefined, so this
+// is a no-op there.
+export const generateNextAuthUrlGuardModule = (): string => {
+  return `// GENERATED — see generateNextAuthUrlGuardModule in
+// @teleporthq/teleport-plugin-next-workflows/src/auth-generator.ts.
+//
+// next-auth v4's \`next-auth/react\` reads \`parseUrl(process.env.NEXTAUTH_URL)\` at
+// MODULE LOAD. \`new URL('')\` throws "Invalid URL", so an EMPTY-STRING value
+// crashes the import — and server-side rendering for every page that mounts
+// SessionProvider. An UNSET var is fine (next-auth defaults it to
+// http://localhost:3000); only an empty string is fatal. A generated \`.env\` may
+// ship \`NEXTAUTH_URL=\` (empty), which Next.js loads as "", not undefined.
+//
+// This is the FIRST import of session-provider.js — the only module that imports
+// next-auth/react — and ES module imports evaluate in source order, so this runs
+// before next-auth reads the value. It removes an empty / whitespace value from
+// the server's process.env so next-auth falls back to its default. On the client
+// these are already undefined, so it is a no-op.
+if (typeof process !== 'undefined' && process && process.env) {
+  var __TQ_NEXTAUTH_URL_KEYS = ['NEXTAUTH_URL', 'NEXTAUTH_URL_INTERNAL', 'VERCEL_URL']
+  for (var __i = 0; __i < __TQ_NEXTAUTH_URL_KEYS.length; __i++) {
+    var __k = __TQ_NEXTAUTH_URL_KEYS[__i]
+    var __v = process.env[__k]
+    if (typeof __v === 'string' && __v.trim() === '') {
+      delete process.env[__k]
+    }
+  }
+}
+
+export {}
+`
+}
+
 export const generateSessionProviderWrapper = (): string => {
   // Authored as pure ESM. _app.js imports this with an ESM default import
   // (`import AuthSessionProvider from '.../session-provider'`). When the file
@@ -1284,8 +1660,15 @@ export const generateSessionProviderWrapper = (): string => {
   // it worked locally). Keeping a single, consistent module system removes the
   // fragile boundary. `SessionProvider` is imported by name (the SWC-safe form
   // even though next-auth/react ships CommonJS).
-  return `import React from 'react'
-import { SessionProvider, signIn, signOut } from 'next-auth/react'
+  //
+  // The `nextauth-url-guard` import MUST stay first: it normalizes an empty
+  // NEXTAUTH_URL out of process.env before `next-auth/react` evaluates and calls
+  // `parseUrl('')`, which would otherwise throw "Invalid URL" at module load and
+  // crash SSR. ES imports run in source order, so first = before next-auth/react.
+  return `import './nextauth-url-guard'
+import React from 'react'
+import { SessionProvider, signIn, signOut, useSession } from 'next-auth/react'
+import describeAuthError from './auth-error-messages'
 
 // Bridge for the workflow account handlers (account-login / -logout / -signup /
 // -social-login). Those handlers are emitted via fn.toString() and re-bundled
@@ -1298,14 +1681,83 @@ import { SessionProvider, signIn, signOut } from 'next-auth/react'
 // next-auth/react that is reliably bundled into the app shell) guarantees the
 // handlers can read them off \`window\` without any fragile require/import of
 // their own. The assignment runs at module-eval time, before any click.
+// \`describeAuthError\` rides the same bridge for the same reason. The sign-in
+// handler used to surface NextAuth's raw code — project a62338f9's users were
+// shown the literal string "credentialsSignin" — and it cannot require the
+// message table itself without reintroducing exactly the fragile require this
+// bridge exists to avoid. Published from here, where a normal module import is
+// safe, so there is ONE table rather than a copy inlined per handler.
+// A stable object, assigned to \`window\` exactly once at module-eval time.
+// \`SessionSnapshotBridge\` below mutates it in place, so a handler that grabbed
+// \`window.__teleportNextAuth\` earlier always observes the current session.
+const teleportNextAuth = {
+  signIn: signIn,
+  signOut: signOut,
+  describeAuthError: describeAuthError,
+  // The session SessionProvider is ALREADY holding in memory, republished so
+  // that workflow handlers can read it synchronously instead of paying an HTTP
+  // round trip to /api/auth/session for something the page has had since it
+  // mounted. On a published deployment that request measured ~925ms — the
+  // \`account-get-current\` node fired one on every click that resolves the
+  // current user (favourites, cart, reviews, ...), strictly serial with the
+  // workflow's own request. \`status\` is next-auth's: 'loading' until the
+  // provider's first fetch settles, then 'authenticated' / 'unauthenticated'.
+  session: null,
+  status: 'loading',
+  getSession: function () {
+    return { status: teleportNextAuth.status, session: teleportNextAuth.session }
+  },
+  // \`useSession().update()\`. Calling it re-reads the user server-side (NextAuth
+  // passes \`trigger: 'update'\` to the jwt callback, which bypasses the refresh
+  // interval) and updates the in-memory session. This is how a profile save
+  // makes its change visible immediately rather than at the next interval.
+  refreshSession: function () {
+    return Promise.resolve(null)
+  },
+}
+
 if (typeof window !== 'undefined') {
-  window.__teleportNextAuth = { signIn: signIn, signOut: signOut }
+  window.__teleportNextAuth = teleportNextAuth
+}
+
+// Renders nothing; it exists only to subscribe to the session context and mirror
+// it onto the bridge. It must live INSIDE SessionProvider for useSession() to
+// resolve. Mirroring happens in an effect (never during render, which React may
+// discard or replay) — effects flush on the commit that follows the provider's
+// fetch, long before any user click.
+function SessionSnapshotBridge() {
+  const sessionContext = useSession()
+  const status = sessionContext ? sessionContext.status : 'loading'
+  const data = sessionContext ? sessionContext.data : null
+  const update = sessionContext ? sessionContext.update : null
+
+  React.useEffect(
+    function () {
+      teleportNextAuth.status = status
+      teleportNextAuth.session = data || null
+      if (typeof update === 'function') {
+        teleportNextAuth.refreshSession = update
+      }
+    },
+    [status, data, update]
+  )
+
+  return null
 }
 
 export default function AuthSessionProvider(props) {
   return React.createElement(
     SessionProvider,
-    { session: props.pageProps && props.pageProps.session ? props.pageProps.session : undefined },
+    {
+      session: props.pageProps && props.pageProps.session ? props.pageProps.session : undefined,
+      // Every regained window focus re-fetched /api/auth/session, and each of
+      // those is a server round trip for a session the page already has. Tabbing
+      // away and back was enough to trigger one. Cross-tab sign-in/sign-out
+      // still propagates: next-auth broadcasts those over its storage channel,
+      // which is independent of this flag.
+      refetchOnWindowFocus: false,
+    },
+    React.createElement(SessionSnapshotBridge, { key: 'teleport-session-bridge' }),
     props.children
   )
 }
