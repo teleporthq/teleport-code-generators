@@ -44,9 +44,11 @@ describe('payment-charge-user handler serialization survives minification-style 
     expect(fnStart).toBeGreaterThan(-1)
     // The next function declaration marks the end of toStripeMinorUnits's
     // body (functions are concatenated back-to-back by generateHandler()).
-    const nextFnStart = handlerSource.indexOf('function chargeWithStripe', fnStart)
-    expect(nextFnStart).toBeGreaterThan(fnStart)
-    const body = handlerSource.slice(fnStart, nextFnStart)
+    // chargeWithStripe is `async function …` — the slice must stop BEFORE the
+    // `async` keyword or the extracted body ends with a dangling `async`.
+    const nextFn = /(?:async\s+)?function chargeWithStripe/.exec(handlerSource.slice(fnStart))
+    expect(nextFn).not.toBeNull()
+    const body = handlerSource.slice(fnStart, fnStart + nextFn!.index)
     expect(body).toContain('JPY')
     expect(body).toContain('BHD')
   })
@@ -62,8 +64,8 @@ describe('payment-charge-user handler serialization survives minification-style 
   describe('toStripeMinorUnits — extracted from the serialized handler source', () => {
     const toStripeMinorUnits = (() => {
       const fnStart = handlerSource.indexOf('function toStripeMinorUnits')
-      const nextFnStart = handlerSource.indexOf('function chargeWithStripe', fnStart)
-      const body = handlerSource.slice(fnStart, nextFnStart)
+      const nextFn = /(?:async\s+)?function chargeWithStripe/.exec(handlerSource.slice(fnStart))
+      const body = handlerSource.slice(fnStart, fnStart + (nextFn as RegExpExecArray).index)
       return new Function(body + '\nreturn toStripeMinorUnits;')() as (
         major: unknown,
         currency: string

@@ -6,6 +6,7 @@ import {
   FileType,
   UIDLAuthentication,
 } from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
@@ -157,6 +158,42 @@ const extractSecretEnvName = (value: unknown): string => {
   return ''
 }
 
+const EVENT_HANDLER_ATTR_RE = /^on[A-Z]/
+
+// UIDL `attrs` can only hold data, never functions, so an `on*`-named attr
+// (e.g. a stray `onClick: ""` authored by the element generator) can never be a
+// valid listener. Emitted verbatim it becomes `onClick=""` in JSX and React
+// throws `func.apply is not a function` on the first click — and its presence
+// used to block the workflow trigger from being wired onto the element.
+// Behavior belongs in `events` and workflow triggers; strip these attrs before
+// any component is emitted.
+export const stripEventHandlerAttrs = (uidl: ProjectUIDL): void => {
+  const scrubComponent = (component: ProjectUIDL['root'] | undefined) => {
+    if (!component?.node) {
+      return
+    }
+    UIDLUtils.traverseElements(component.node, (element) => {
+      if (!element.attrs) {
+        return
+      }
+      for (const attrName of Object.keys(element.attrs)) {
+        if (EVENT_HANDLER_ATTR_RE.test(attrName)) {
+          console.warn(
+            `[event-attr] ${component.name || 'component'}: attr \`${attrName}\` on element ` +
+              `\`${
+                element.name || element.elementType
+              }\` is not a valid listener and was removed. ` +
+              'Element behavior must use `events` or a workflow trigger.'
+          )
+          delete element.attrs[attrName]
+        }
+      }
+    })
+  }
+  scrubComponent(uidl.root)
+  Object.values(uidl.components || {}).forEach(scrubComponent)
+}
+
 export class NextWorkflowProjectPlugin implements ProjectPlugin {
   private static INLINE_HANDLED_NODE_TYPES = new Set([
     'general-if-statement',
@@ -166,6 +203,8 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
   ])
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, strategy } = structure
+
+    stripEventHandlerAttrs(uidl)
 
     // SECURITY NET — parameterize raw-SQL interpolations before ANY config is
     // emitted. Rewrites each `{{ name }}` value token in a data-node's `query` /

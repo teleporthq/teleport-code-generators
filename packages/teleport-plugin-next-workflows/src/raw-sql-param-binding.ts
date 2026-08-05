@@ -50,6 +50,14 @@ const SENTINEL_EXPAND_RE = new RegExp(
 )
 
 const VALUE_OPERATOR_CHARS = '=<>(,+-*/%|~'
+// CASE/WHEN/THEN/ELSE are value positions: the sanctioned sort idiom the
+// raw-sql node spec itself prescribes ("ORDER BY CASE {{ sortKey }} WHEN
+// 'name' THEN name …" / "CASE WHEN {{ sortKey }} = 'x' THEN col") puts the
+// bound token right after them. Round-7 run 3d75cfa9 refused three {{sortKey}}
+// tokens in exactly that shape — the model had followed the spec verbatim and
+// every sortable list's workflow was dropped. A bound parameter in these
+// positions is valid SQL; a model that MEANT a dynamic identifier there gets a
+// harmless value comparison, never SQL text.
 const VALUE_KEYWORDS: ReadonlySet<string> = new Set([
   'LIKE',
   'ILIKE',
@@ -60,7 +68,29 @@ const VALUE_KEYWORDS: ReadonlySet<string> = new Set([
   'AND',
   'OR',
   'BETWEEN',
+  // A token directly after CASE/WHEN/THEN/ELSE is a VALUE being compared or
+  // produced — never an identifier — so it binds as `$N` like any other value.
+  //
+  // Run d27cd823: the Dashboard's date-range filter wrote
+  //   CASE WHEN {{ dateRange }} = 'today' THEN … WHEN {{ dateRange }} = '7d' THEN … END
+  // Without `WHEN` here, `isValueContext` said "not a value", the token stayed
+  // literal, and the whole workflow was REJECTED as un-parameterisable — three
+  // Dashboard filter workflows were dropped and the quick date filters shipped
+  // dead. Binding them is also the SAFER outcome: a bound parameter can never be
+  // interpreted as an identifier, which is exactly what the guard protects against.
+  'CASE',
+  'WHEN',
+  'THEN',
+  'ELSE',
 ])
+
+// `FROM` normally introduces a table name, so it is deliberately absent from
+// VALUE_KEYWORDS — but inside `TRIM([BOTH|LEADING|TRAILING] [chars] FROM expr)`
+// the word after FROM is the VALUE being trimmed, not an identifier. The alerts
+// filter fixture wrote `TRIM(BOTH FROM {{statusFilterSegment}})` and the whole
+// project generation was refused. Matching the trim-function prefix keeps
+// `SELECT * FROM {{table}}` rejected while binding the trim operand.
+const TRIM_FROM_VALUE_RE = /\bTRIM\s*\(\s*(?:(?:BOTH|LEADING|TRAILING)\b[^()]*?)?FROM$/i
 
 function isValueContext(prefix: string): boolean {
   const trimmed = prefix.replace(/\s+$/, '')
@@ -73,6 +103,9 @@ function isValueContext(prefix: string): boolean {
   }
   const wordMatch = /([A-Za-z_]+)$/.exec(trimmed)
   if (wordMatch && VALUE_KEYWORDS.has(wordMatch[1].toUpperCase())) {
+    return true
+  }
+  if (wordMatch && wordMatch[1].toUpperCase() === 'FROM' && TRIM_FROM_VALUE_RE.test(trimmed)) {
     return true
   }
   return false

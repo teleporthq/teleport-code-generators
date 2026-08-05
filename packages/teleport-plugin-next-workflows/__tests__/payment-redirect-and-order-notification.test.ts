@@ -51,10 +51,12 @@ describe('payment-charge-user emits __redirectUrl alongside __terminal', () => {
     // reset-isPlacingOrder) are NOT executed before the buyer
     // leaves for Stripe — the cart should only clear on the
     // payment-success return URL.
-    const stripeBlock = handlerSource.slice(
-      handlerSource.indexOf('checkoutUrl: checkoutUrl'),
-      handlerSource.indexOf('checkoutUrl: checkoutUrl') + 300
-    )
+    // The source uses object shorthand (`{ checkoutUrl, ... }`), so anchor on
+    // the explicit __redirectUrl entry and assert __terminal sits in the same
+    // return object.
+    const anchor = handlerSource.indexOf('__redirectUrl: checkoutUrl')
+    expect(anchor).toBeGreaterThan(-1)
+    const stripeBlock = handlerSource.slice(Math.max(0, anchor - 300), anchor + 300)
     expect(stripeBlock).toContain('__terminal: true')
     expect(stripeBlock).toContain('__redirectUrl: checkoutUrl')
   })
