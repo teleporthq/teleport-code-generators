@@ -208,6 +208,114 @@ describe('insertLink', () => {
     })
   })
 
+  it('resolves a navlink whose route value carries a folder prefix', () => {
+    // A details page's route value is folder-qualified (`add-event/Add-Event`)
+    // while the navlink still names the page (`Add-Event`). Matching only on
+    // the whole value missed every one of them and silently fabricated
+    // `/add-event` — a path with no file behind it.
+    const node = elementNode('container')
+    const navlink = navlinkMockedDefinition()
+    navlink.content.routeName = { type: 'static', content: 'Guild-Details' }
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [{ value: 'guild-details/Guild-Details', pageOptions: { navLink: '/guilds' } }],
+        },
+      },
+      false
+    )
+
+    expect(result.content.attrs.transitionTo.content).toBe('/guilds')
+  })
+
+  it('does not guess when two folders hold a page of the same name', () => {
+    const node = elementNode('container')
+    const navlink = navlinkMockedDefinition()
+    navlink.content.routeName = { type: 'static', content: 'Details' }
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [
+            { value: 'events/Details', pageOptions: { navLink: '/events/detail' } },
+            { value: 'guilds/Details', pageOptions: { navLink: '/guilds/detail' } },
+          ],
+        },
+      },
+      false
+    )
+
+    // Ambiguous → the pre-existing fallback, not an arbitrary pick.
+    expect(result.content.attrs.transitionTo.content).toBe('/details')
+  })
+
+  it('refuses to link a dynamic route that has no record id to fill it', () => {
+    // `/rsvp-event/[id]` is a TEMPLATE. Without a differentiator there is no id
+    // to substitute, so neither the template (a literal `[id]` in the address
+    // bar) nor the bare prefix (`/rsvp-event`, which matches no file) is
+    // navigable. Run 798e2775 shipped the bare prefix in the global footer of
+    // all 17 pages.
+    const node = elementNode('container')
+    const navlink = navlinkMockedDefinition()
+    navlink.content.routeName = { type: 'static', content: 'Add-Event' }
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [{ value: 'add-event/Add-Event', pageOptions: { navLink: '/add-event/[id]' } }],
+        },
+      },
+      false
+    )
+
+    expect(result.content.attrs.transitionTo.content).toBe('#')
+  })
+
+  it('still builds the record URL for a dynamic route WITH a differentiator', () => {
+    // The row-scoped case must keep working — it is the reason dynamic routes
+    // exist, and it is what the guard above must not touch.
+    const node = elementNode('container')
+    const navlink = navlinkMockedDefinition()
+    navlink.content.routeName = { type: 'static', content: 'Event-Details' }
+    navlink.content.differentiatorValue = {
+      type: 'dynamic',
+      content: { referenceType: 'global', refPath: ['Current User', 'id'] },
+    } as never
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [
+            { value: 'event-details/Event-Details', pageOptions: { navLink: '/event-details' } },
+          ],
+        },
+      },
+      false
+    )
+
+    expect(result.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      content: '`/event-details/' + '$' + '{' + 'currentUser?.id}' + '`',
+    })
+  })
+
   it('marks the link wrapper display:contents when the flex parent uses a project-referenced style', () => {
     const child = elementNode('container')
     child.content.abilities = { link: navlinkMockedDefinition() }

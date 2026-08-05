@@ -13,6 +13,11 @@ import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
+import {
+  applyLoadingStateToDataProvider,
+  buildLoadingStateDeclarations,
+  getLoadingStateVars,
+} from './loading-state'
 
 // ----- searchDefaultValue support -----
 //
@@ -1498,6 +1503,12 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // We use pure order-based matching - the order of DataProviders in JSX should match UIDL order
     const usageIndexByDataSourceId = new Map<string, number>()
 
+    // `useRef` / `useState` pairs backing the refetch loading state of every
+    // DataProvider that ended up wired below. Collected here because whether a
+    // provider can use one depends on its JSX (it needs a `renderLoading` slot),
+    // which is only known once the category updaters above have run.
+    const loadingStateDeclarations: types.Statement[] = []
+
     dataProvidersWithRepeaters.forEach((dp) => {
       const nameAttr = dp.openingElement.attributes.find(
         (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'name'
@@ -1537,6 +1548,15 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         updateDataProviderForPlain(dp, fileName, usage)
       }
 
+      // Show the array mapper's loading state while a category/sort/search
+      // change refetches, instead of leaving the previous rows on screen with
+      // no feedback. Runs last so it sees the `fetchData` and
+      // `persistDataDuringLoading` attributes the updaters above just wrote.
+      const loadingVars = getLoadingStateVars(usage.index)
+      if (applyLoadingStateToDataProvider(dp, loadingVars)) {
+        loadingStateDeclarations.push(...buildLoadingStateDeclarations(loadingVars))
+      }
+
       // Create API route for all categories (including 'plain' for components)
       ensureAPIRouteExists(
         options.extractedResources,
@@ -1545,6 +1565,11 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         options.ecommerceSettings?.categories
       )
     })
+
+    // Declare the loading-state hooks alongside the other data-source state, at
+    // the top of the component body. Unconditional and in a fixed order, so the
+    // hook order stays stable across renders.
+    loadingStateDeclarations.reverse().forEach((s) => blockStatement.body.unshift(s))
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
     // These access single items like data[0].name and should not re-render on state changes

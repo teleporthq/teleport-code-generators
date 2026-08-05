@@ -4,7 +4,7 @@ import type {
   UIDLDependency,
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
-import { Constants, StringUtils } from '@teleporthq/teleport-shared'
+import { Constants, JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 import { URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { USE_ROUTER_HOOK } from './internationalization/locale-mapper-component'
 
@@ -270,12 +270,17 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
       const effectsToInsert: types.Statement[] = []
       for (const { stateKey, paramKey, defaultValue } of urlBoundStateKeys) {
         const setterName = StringUtils.createStateStoringFunction(stateKey)
+        // The effects READ the state, so they must use the same binding
+        // `createStateHookAST` declared — sanitised, because a UIDL state may
+        // legally be named `class`. A no-op for every ordinary name.
+        const stateBinding = JSIdentifiers.createSafeJSIdentifier(stateKey)
         // Only a non-empty default changes behavior; an empty default keeps
         // the effects byte-identical to the pre-default builder.
         const defaultValueExpr = defaultValue !== '' ? types.stringLiteral(defaultValue) : undefined
         const hasWriteBack = hasUseEffectMatching(
           body.body,
-          (deps, fn) => effectDepsContainStateId(deps, stateKey) && effectBodyHasRouterReplace(fn)
+          (deps, fn) =>
+            effectDepsContainStateId(deps, stateBinding) && effectBodyHasRouterReplace(fn)
         )
         if (!hasWriteBack) {
           // State dropdowns read AND depend on the same bare state identifier
@@ -284,8 +289,8 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
           effectsToInsert.push(
             URLSearchParamSync.buildUrlWriteBackEffect(
               paramKey,
-              types.identifier(stateKey),
-              types.identifier(stateKey),
+              types.identifier(stateBinding),
+              types.identifier(stateBinding),
               defaultValueExpr
             )
           )

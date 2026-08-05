@@ -6,7 +6,7 @@ import {
   convertValueToLiteral,
   getExpressionFromUIDLExpressionNode,
 } from '../../utils/ast-utils'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { JSIdentifiers, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,
@@ -261,10 +261,14 @@ const createPropCallStatement = (
   const prefix = options.dynamicReferencePrefixMap.prop
     ? options.dynamicReferencePrefixMap.prop + '.'
     : ''
+  // Un-prefixed the prop name is called as a bare binding, so it must be
+  // identifier-safe; prefixed it is `props.<name>`, where the UIDL spelling is
+  // both legal and load-bearing.
+  const calleeName = prefix
+    ? prefix + propFunctionKey
+    : JSIdentifiers.createSafeJSIdentifier(propFunctionKey)
   return t.expressionStatement(
-    t.callExpression(t.identifier(prefix + propFunctionKey), [
-      ...args.map((arg) => convertValueToLiteral(arg)),
-    ])
+    t.callExpression(t.identifier(calleeName), [...args.map((arg) => convertValueToLiteral(arg))])
   )
 }
 
@@ -310,6 +314,12 @@ export const createStateChangeStatement = (
   const statePrefix = options.dynamicReferencePrefixMap.state
     ? options.dynamicReferencePrefixMap.state + '.'
     : ''
+  // Reading/writing the state through a prefix (`this.class`) is a member
+  // access and keeps the UIDL spelling; without one the name IS the binding
+  // and has to match what `createStateHookAST` declared.
+  const stateReadName = statePrefix
+    ? statePrefix + stateKey
+    : JSIdentifiers.createSafeJSIdentifier(stateKey)
 
   const declaredType = stateDefinition.type
   const newState = eventHandlerStatement.newState
@@ -326,7 +336,7 @@ export const createStateChangeStatement = (
       )
       return null
     }
-    newStateValue = t.unaryExpression('!', t.identifier(statePrefix + stateKey))
+    newStateValue = t.unaryExpression('!', t.identifier(stateReadName))
   } else if (typeof newState === 'object' && newState !== null) {
     const obj = newState as
       | UIDLDynamicReference
@@ -473,7 +483,7 @@ export const createStateChangeStatement = (
         return null
       }
       return t.expressionStatement(
-        t.assignmentExpression('=', t.identifier(statePrefix + stateKey), newStateValue)
+        t.assignmentExpression('=', t.identifier(stateReadName), newStateValue)
       )
     }
   }
@@ -540,7 +550,12 @@ export const resolveAndRegisterGlobalStateSource = (
     for (const def of Object.values(definitions)) {
       if (def.id === id) {
         params.globalStateReferences.push({ id: def.id, name: def.name })
-        return original.replace(LEGACY_GLOBAL_STATE_RE, def.name)
+        // The rewritten source is embedded as code, so the placeholder becomes
+        // the LOCAL binding — the sanitised name the destructuring declares.
+        return original.replace(
+          LEGACY_GLOBAL_STATE_RE,
+          JSIdentifiers.createSafeJSIdentifier(def.name)
+        )
       }
     }
     // Legacy prefix found but no matching definition (orphaned reference).
@@ -568,7 +583,11 @@ export const createGlobalStateExpression = (
   definitions?: Record<string, UIDLGlobalStateDefinition>,
   t = types
 ): types.Identifier | types.OptionalMemberExpression => {
-  const name = resolveGlobalStateName(ref.content.id, definitions)
+  // The global-state name is destructured out of `useGlobalState()` as a local
+  // binding, so it goes through the same sanitiser the destructuring site uses.
+  const name = JSIdentifiers.createSafeJSIdentifier(
+    resolveGlobalStateName(ref.content.id, definitions)
+  )
   const refPath = ref.content.refPath || []
 
   if (refPath.length === 0) {
@@ -765,8 +784,12 @@ const createDynamicValueExpressionRaw = (
   const prefix =
     options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
 
+  // With no prefix the id IS the binding (React hooks: `class`), so it has to
+  // be sanitised exactly the way the declaration was. With a prefix it is a
+  // MEMBER (`props.class`, `this.class`), where a reserved word is perfectly
+  // legal and renaming it would point at a property that does not exist.
   return prefix === ''
-    ? t.identifier(idWithPath)
+    ? t.identifier(JSIdentifiers.createSafeJSIdentifierPath(idWithPath))
     : t.memberExpression(t.identifier(prefix), t.identifier(idWithPath))
 }
 
@@ -1038,12 +1061,15 @@ export const createBinaryExpression = (
   t = types
 ) => {
   const { operand, operation, containsField } = condition
+  // Same rule as `createDynamicValueExpression`: an un-prefixed key is the
+  // binding itself and must be identifier-safe; a prefixed one is a member
+  // access that has to keep the UIDL's original spelling.
   const identifier = conditionalIdentifier.prefix
     ? t.memberExpression(
         t.identifier(conditionalIdentifier.prefix),
         t.identifier(conditionalIdentifier.key)
       )
-    : t.identifier(conditionalIdentifier.key)
+    : t.identifier(JSIdentifiers.createSafeJSIdentifierPath(conditionalIdentifier.key))
 
   // Array/Object operators
   if (operation === 'isEmpty') {

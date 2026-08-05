@@ -33,7 +33,18 @@ async function account_login(config: any, context: Record<string, unknown>) {
   })
 
   if (result && result.error) {
-    throw new Error(result.error)
+    // NextAuth hands back a CODE (`CredentialsSignin`, `Configuration`, or one
+    // of the codes the credentials provider throws). It used to be rethrown
+    // verbatim, so the sign-in form showed users the literal string
+    // "credentialsSignin" with no idea whether they had mistyped a password or
+    // the site could not reach its database. `describeAuthError` rides the same
+    // window bridge as `signIn` — see session-provider — so this handler needs
+    // no require of its own; the raw code is the fallback if an older bridge is
+    // on the page.
+    const describe = nextAuthReact.describeAuthError
+    throw new Error(
+      typeof describe === 'function' ? describe(result.error) || result.error : result.error
+    )
   }
 
   let user = null

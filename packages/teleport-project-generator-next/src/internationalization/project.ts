@@ -8,6 +8,7 @@ import {
   ProjectUIDL,
   UIDLCustomUserProperty,
 } from '@teleporthq/teleport-types'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const findFileInBuild = (
   name: string,
@@ -206,6 +207,14 @@ const generateSitemapContent = (
         tag.name === 'robots' && tag.content === 'noindex'
     )
     if (hasNoIndex) {
+      return false
+    }
+    // A dynamic route has no single URL to list. Its `navLink` is a TEMPLATE
+    // (`/event-details/[id]`), and emitting that verbatim publishes a URL that
+    // 404s for every crawler that follows it. The concrete per-record URLs are
+    // not knowable here — they come from the rows getStaticPaths resolves — so
+    // the honest sitemap omits the page rather than advertising a placeholder.
+    if (RouteUtils.pathHasDynamicSegment(route.pageOptions?.navLink || '')) {
       return false
     }
     return true

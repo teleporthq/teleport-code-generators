@@ -345,6 +345,56 @@ export interface UIDLWorkflow {
   edges: UIDLWorkflowEdge[]
   errorHandler?: UIDLWorkflowErrorHandler
   usedInNodes: Record<string, boolean | number>
+  // The auth requirement of this workflow's generated API route(s), computed by
+  // the GUI mapper from the protection of the page(s) that trigger it plus a
+  // scan of the workflow graph for user-owned writes. The code generators emit
+  // a stateless (getToken-based) in-handler guard from it. Absent = no guard
+  // (a purely public workflow, or auth is disabled). See UIDLWorkflowProtection.
+  protection?: UIDLWorkflowProtection
+}
+
+/**
+ * The auth policy the generated workflow API route enforces, baked at build
+ * time so the runtime check is a single stateless JWT decode (no DB, no fetch).
+ *
+ * Two orthogonal concerns:
+ *  - `requiresAuth` / `allowedRoles` — coarse "who may call this route", derived
+ *    from the protection of the page(s) that trigger the workflow (most-
+ *    restrictive union across them). `allowedRoles: []` with `requiresAuth`
+ *    means "any authenticated user".
+ *  - `userScoped` — row-level "this call may only act on the caller's own rows".
+ *    Derived from the workflow graph (a resolve-current-user node feeding a
+ *    user-owned column on a data write). The route overrides that column with
+ *    the session user id, which closes the "act as another user" hole WITHOUT
+ *    forcing a login — so a guest-capable public page (favourites/cart) keeps
+ *    working while nobody can forge another user's id.
+ */
+export interface UIDLWorkflowProtection {
+  requiresAuth: boolean
+  allowedRoles: string[]
+  userScoped?: UIDLWorkflowUserScope
+  // Provenance, for debuggability and codegen decisions (never a security input):
+  //  - 'page'           — exactly one triggering page supplied the requirement
+  //  - 'multiple-pages' — union across several triggering pages
+  //  - 'graph'          — no page requirement applied; userScoped came from the graph
+  //  - 'default'        — fail-closed default for an unresolved data-mutating workflow
+  derivedFrom: 'page' | 'multiple-pages' | 'graph' | 'default'
+}
+
+export interface UIDLWorkflowUserScope {
+  // The user-owned column the write targets (e.g. `user_id`, `follower_id`),
+  // representative for logging/debug when several are bound.
+  ownerColumn: string
+  // Exact context locations the route overwrites with the authenticated session
+  // user id before executing the write, so a user-owned column can never be
+  // forged. Each is `context[nodeId]` drilled down `path` (e.g. ['userId'] or
+  // ['user','id']) — the same reference the write's column mapping/filter reads.
+  bindings: UIDLWorkflowUserScopeBinding[]
+}
+
+export interface UIDLWorkflowUserScopeBinding {
+  nodeId: string
+  path: string[]
 }
 
 export interface UIDLWebhookConfig {
@@ -397,6 +447,11 @@ export interface UIDLCustomWorkflowNode {
   nodes: UIDLWorkflowNode[]
   edges: UIDLWorkflowEdge[]
   parameters: Array<{ key: string; defaultValue?: unknown }>
+  // A custom node's server segment is emitted as its own API route, shared by
+  // every workflow that invokes it. Its policy is the most-restrictive union of
+  // the protection of those workflows, plus identity binding from the custom
+  // node's own graph. Same shape/enforcement as UIDLWorkflow.protection.
+  protection?: UIDLWorkflowProtection
 }
 
 export interface WorkflowContextValue {

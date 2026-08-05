@@ -4,6 +4,7 @@ import {
   UIDLWorkflowEdge,
   UIDLWebhookConfig,
   UIDLCustomWorkflowNode,
+  UIDLWorkflowProtection,
 } from '@teleporthq/teleport-types'
 import { WorkflowSegment } from './types'
 import { nodeRegistry } from './nodes'
@@ -13,6 +14,7 @@ import {
   generateGetRawBodyCode,
   generateAllSignatureVerificationCode,
 } from './webhook-signature-verification'
+import { buildWorkflowAuthInjection } from './workflow-auth-generator'
 
 // Workflow/segment names, cron schedules, and webhook paths are free-form
 // UIDL data — never guaranteed not to contain `*/`. Every generated route
@@ -27,11 +29,13 @@ const sanitizeForBlockComment = (value: string): string => value.replace(/\*\//g
 
 export const generateServerSegmentAPIRoute = (
   segment: WorkflowSegment,
-  workflowName?: string
+  workflowName?: string,
+  protection?: UIDLWorkflowProtection
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
+  const auth = buildWorkflowAuthInjection(protection)
 
   const segmentConfig = JSON.stringify(
     {
@@ -74,10 +78,10 @@ export const generateServerSegmentAPIRoute = (
 
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
-const resolveConfig = utils.resolveConfig;
+${auth.requireLine}const resolveConfig = utils.resolveConfig;
 
 const SEGMENT_CONFIG = ${segmentConfig};
-
+${auth.policyConst}
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
@@ -87,18 +91,32 @@ module.exports = async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  // Kept outside the try so the catch below can still drain any fire-and-forget
+  // query this segment started before it failed.
+  var __wfContext = null;
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const incomingContext = body.context || {};
 
-    const context = Object.assign({}, incomingContext);${requestInjection}
+    const context = Object.assign({}, incomingContext);
+    __wfContext = context;
+    // Created eagerly so a custom node invoked from here shares the SAME
+    // fire-and-forget queue (it shallow-copies this context) and its queries
+    // are drained by the settle below rather than being lost when we reply.
+    context.__pendingNodePromises = [];${requestInjection}
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;
+    context.__baseUrl = __proto + '://' + req.headers.host;${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
 
     for (let i = 0; i < sortedNodes.length; i++) {
       const node = sortedNodes[i];
       const resolved = resolveConfig(node.config, context);
+      // Every data node lives in a SERVER segment, so this guard — which turns an
+      // unresolved {{…}} into a validation error instead of letting the literal
+      // token reach SQL — was doing nothing at all: it ran only in the CLIENT
+      // executor. Run 02783f65 shipped 55 route files, none of which called it.
+      const __configError = utils.finalizeResolvedConfig(node.type, resolved);
+      if (__configError) { throw new Error(__configError); }
       resolved.__nodeId = node.id;
 
       // If-statement nodes must be evaluated using the runtime's evaluateCondition
@@ -199,6 +217,11 @@ module.exports = async function handler(req, res) {
             }
             var bHandler = nodeHandlers[bNode.type];
             if (!bHandler) continue;
+            if (utils.isFireAndForgetNode(bNode)) {
+              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
+              context[bNode.id] = null;
+              continue;
+            }
             var bResult = await bHandler(bResolved, context);
             if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
               throw new Error(bResult.error || 'Loop body node execution failed');
@@ -284,6 +307,13 @@ module.exports = async function handler(req, res) {
               pRes.__nodeId = pNode.id;
               var pHandler = nodeHandlers[pNode.type];
               if (!pHandler) continue;
+              if (utils.isFireAndForgetNode(pNode)) {
+                // Registered on the ROUTE context (not the branch copy) so the
+                // response still waits for the query to land.
+                utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(pNode, pHandler, pRes, branchCtx));
+                branchCtx[pNode.id] = null;
+                continue;
+              }
               var pResult = await pHandler(pRes, branchCtx);
               branchCtx[pNode.id] = pResult;
             }
@@ -331,6 +361,11 @@ module.exports = async function handler(req, res) {
         console.warn('No handler for node type: ' + node.type);
         continue;
       }
+      if (utils.isFireAndForgetNode(node)) {
+        utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(node, handler, resolved, context));
+        context[node.id] = null;
+        continue;
+      }
       const result = await handler(resolved, context);
       if (result && result.__earlyResponse) {
         var earlyRes = result.__earlyResponse;
@@ -338,6 +373,7 @@ module.exports = async function handler(req, res) {
         for (var h = 0; h < hKeys.length; h++) {
           res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
         }
+        await utils.settlePendingNodePromises(context);
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }
@@ -348,10 +384,17 @@ module.exports = async function handler(req, res) {
       if (result && result.__terminal) break;
     }
 
+    // Land every fire-and-forget query BEFORE replying: the platform may freeze
+    // this function the moment the response is sent, which would drop the write.
+    // The visitor does not pay for this — the client dispatched this segment
+    // without awaiting it (see seg.fireAndForget in the client runtime).
+    await utils.settlePendingNodePromises(context);
     delete context.__request;
+    delete context.__pendingNodePromises;
     res.status(200).json({ success: true, results: context });
   } catch (error) {
     console.error('Workflow segment error:', error);
+    if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 };
@@ -364,11 +407,13 @@ export const hasStreamingAINode = (segment: WorkflowSegment): boolean => {
 
 export const generateStreamingServerSegmentAPIRoute = (
   segment: WorkflowSegment,
-  workflowName?: string
+  workflowName?: string,
+  protection?: UIDLWorkflowProtection
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
+  const auth = buildWorkflowAuthInjection(protection)
 
   const segmentConfig = JSON.stringify(
     {
@@ -408,10 +453,10 @@ export const generateStreamingServerSegmentAPIRoute = (
 
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
-const resolveConfig = utils.resolveConfig;
+${auth.requireLine}const resolveConfig = utils.resolveConfig;
 
 const SEGMENT_CONFIG = ${segmentConfig};
-
+${auth.policyConst}
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
@@ -457,11 +502,17 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // Kept outside the try so the catch below can still drain any fire-and-forget
+  // query this segment started before it failed.
+  var __wfContext = null;
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const context = Object.assign({}, body.context || {});${requestInjection}
+    const context = Object.assign({}, body.context || {});
+    __wfContext = context;
+    // See the non-streaming segment route — shared queue for nested custom nodes.
+    context.__pendingNodePromises = [];${requestInjection}
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;
+    context.__baseUrl = __proto + '://' + req.headers.host;${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
     const executed = {};
 
@@ -469,6 +520,10 @@ module.exports = async function handler(req, res) {
       const node = sortedNodes[i];
       if (executed[node.id]) continue;
       const resolved = resolveConfig(node.config, context);
+      // See the non-streaming segment above — without this the unresolved-token
+      // guard never runs on the server, which is where every data node executes.
+      const __configError = utils.finalizeResolvedConfig(node.type, resolved);
+      if (__configError) { throw new Error(__configError); }
       resolved.__nodeId = node.id;
 
       // If-statement nodes must be evaluated using the runtime's evaluateCondition
@@ -527,6 +582,11 @@ module.exports = async function handler(req, res) {
             }
             var ssbHandler = nodeHandlers[ssbNode.type];
             if (!ssbHandler) continue;
+            if (utils.isFireAndForgetNode(ssbNode)) {
+              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(ssbNode, ssbHandler, ssbRes, context));
+              context[ssbNode.id] = null;
+              continue;
+            }
             var ssbResult = await ssbHandler(ssbRes, context);
             context[ssbNode.id] = ssbResult;
           }
@@ -610,6 +670,13 @@ module.exports = async function handler(req, res) {
               sspRes.__nodeId = sspNode.id;
               var sspHandler = nodeHandlers[sspNode.type];
               if (!sspHandler) continue;
+              if (utils.isFireAndForgetNode(sspNode)) {
+                // Registered on the ROUTE context (not the branch copy) so the
+                // response still waits for the query to land.
+                utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(sspNode, sspHandler, sspRes, ssPBranchCtx));
+                ssPBranchCtx[sspNode.id] = null;
+                continue;
+              }
               var sspResult = await sspHandler(sspRes, ssPBranchCtx);
               ssPBranchCtx[sspNode.id] = sspResult;
             }
@@ -683,6 +750,11 @@ module.exports = async function handler(req, res) {
             const snHandler = nodeHandlers[sn.type];
             if (!snHandler) continue;
             const snResolved = resolveConfig(sn.config, context);
+            if (utils.isFireAndForgetNode(sn)) {
+              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(sn, snHandler, snResolved, context));
+              context[sn.id] = null;
+              continue;
+            }
             const snResult = await snHandler(snResolved, context);
             context[sn.id] = snResult;
             res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: sn.id, result: snResult }) + '\\n\\n');
@@ -702,6 +774,12 @@ module.exports = async function handler(req, res) {
           const enHandler = nodeHandlers[en.type];
           if (!enHandler) continue;
           const enResolved = resolveConfig(en.config, context);
+          if (utils.isFireAndForgetNode(en)) {
+            utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(en, enHandler, enResolved, context));
+            context[en.id] = null;
+            executed[en.id] = true;
+            continue;
+          }
           const enResult = await enHandler(enResolved, context);
           context[en.id] = enResult;
           res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: en.id, result: enResult }) + '\\n\\n');
@@ -711,8 +789,14 @@ module.exports = async function handler(req, res) {
           executed[onStreamNodes[si2].id] = true;
         }
       } else {
+        if (utils.isFireAndForgetNode(node)) {
+          utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(node, nodeHandler, resolved, context));
+          context[node.id] = null;
+          continue;
+        }
         const result = await nodeHandler(resolved, context);
         if (result && result.__earlyResponse) {
+          await utils.settlePendingNodePromises(context);
           if (streamStarted) {
             res.write('data: ' + JSON.stringify({ type: 'error', error: (result.__earlyResponse.body && result.__earlyResponse.body.message) || 'Request rejected' }) + '\\n\\n');
             res.end();
@@ -737,7 +821,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // See the non-streaming segment route: land every fire-and-forget query
+    // before the response completes, or the platform may freeze this function
+    // with the write still in flight.
+    await utils.settlePendingNodePromises(context);
     delete context.__request;
+    delete context.__pendingNodePromises;
     if (streamStarted) {
       res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: context }) + '\\n\\n');
       res.end();
@@ -746,6 +835,7 @@ module.exports = async function handler(req, res) {
     }
   } catch (error) {
     console.error('Streaming workflow segment error:', error);
+    if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
     if (streamStarted) {
       try {
         res.write('data: ' + JSON.stringify({ type: 'error', error: error.message || 'Internal server error' }) + '\\n\\n');
@@ -955,6 +1045,9 @@ module.exports = async function handler(req, res) {
       (workflow.trigger.config.schedule as string) || ''
     }' };
     const context = {};
+    // Shared fire-and-forget queue (see the segment routes) — drained by the
+    // execution loop before this route responds.
+    context.__pendingNodePromises = [];
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;${requestInjection}
 
 ${executionLoop}
@@ -1037,6 +1130,10 @@ const generateNodeExecutionLoop = (
     for (var i = 0; i < sortedNodes.length; i++) {
       var node = sortedNodes[i];
       var resolved = resolveConfig(node.config, context);
+      // See the other segment executors — the unresolved-token guard must run
+      // wherever data nodes execute, and they all execute on the server.
+      var __configError = utils.finalizeResolvedConfig(node.type, resolved);
+      if (__configError) { throw new Error(__configError); }
       resolved.__nodeId = node.id;
       if (resolved && Array.isArray(resolved.templateParams)) {
         if (typeof resolved.body === 'string') { resolved.body = utils.applyTemplateParams(resolved.body, resolved.templateParams); }
@@ -1122,6 +1219,11 @@ const generateNodeExecutionLoop = (
             }
             var bHandler = nodeHandlers[bNode.type];
             if (!bHandler) continue;
+            if (utils.isFireAndForgetNode(bNode)) {
+              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
+              context[bNode.id] = null;
+              continue;
+            }
             var bResult = await bHandler(bResolved, context);
             if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
               throw new Error(bResult.error || 'Loop body node execution failed');
@@ -1203,6 +1305,13 @@ const generateNodeExecutionLoop = (
               wlpRes.__nodeId = wlpNode.id;
               var wlpHandler = nodeHandlers[wlpNode.type];
               if (!wlpHandler) continue;
+              if (utils.isFireAndForgetNode(wlpNode)) {
+                // Registered on the ROUTE context (not the branch copy) so the
+                // response still waits for the query to land.
+                utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(wlpNode, wlpHandler, wlpRes, wlBranchCtx));
+                wlBranchCtx[wlpNode.id] = null;
+                continue;
+              }
               var wlpResult = await wlpHandler(wlpRes, wlBranchCtx);
               wlBranchCtx[wlpNode.id] = wlpResult;
             }
@@ -1250,6 +1359,11 @@ const generateNodeExecutionLoop = (
         console.warn('No handler for node type: ' + node.type);
         continue;
       }
+      if (utils.isFireAndForgetNode(node)) {
+        utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(node, handler, resolved, context));
+        context[node.id] = null;
+        continue;
+      }
       var result = await handler(resolved, context);
       if (result && result.__earlyResponse) {
         var earlyRes = result.__earlyResponse;
@@ -1257,6 +1371,7 @@ const generateNodeExecutionLoop = (
         for (var h = 0; h < hKeys.length; h++) {
           res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
         }
+        await utils.settlePendingNodePromises(context);
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }${customNodeBlock}
@@ -1265,7 +1380,11 @@ const generateNodeExecutionLoop = (
       }
       context[node.id] = result;
       if (result && result.__terminal) break;
-    }`
+    }
+
+    // Land every fire-and-forget query before this route responds — a
+    // serverless function can be frozen the instant it replies.
+    await utils.settlePendingNodePromises(context);`
 }
 
 export const generateWebhookWorkflowAPIRoute = (
@@ -1422,6 +1541,9 @@ ${generateSignatureVerificationBlock(webhookConfig)}
     };
 
     var context = {};
+    // Shared fire-and-forget queue (see the segment routes) — drained by the
+    // execution loop before this route responds.
+    context.__pendingNodePromises = [];
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
     context.__baseUrl = __proto + '://' + req.headers.host;${requestInjection}
@@ -1446,10 +1568,16 @@ ${executionLoop}
           eResolved.__nodeId = eNode.id;
           var eHandler = nodeHandlers[eNode.type];
           if (eHandler) {
+            if (utils.isFireAndForgetNode(eNode)) {
+              utils.registerPendingNodePromise(errCtx, utils.startFireAndForgetNode(eNode, eHandler, eResolved, errCtx));
+              errCtx[eNode.id] = null;
+              continue;
+            }
             var eResult = await eHandler(eResolved, errCtx);
             errCtx[eNode.id] = eResult;
           }
         }
+        await utils.settlePendingNodePromises(errCtx);
       } catch (innerErr) {
         console.error('Webhook error handler failed:', innerErr);
       }

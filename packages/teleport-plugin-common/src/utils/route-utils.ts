@@ -1,4 +1,5 @@
 import { UIDLWorkflows } from '@teleporthq/teleport-types'
+import { RoutePaths } from '@teleporthq/teleport-shared'
 
 /**
  * True when this UIDL component's output route contains a Next.js dynamic
@@ -12,6 +13,14 @@ export const isDynamicRoute = (uidl: {
     (segment) => segment.startsWith('[') && segment.endsWith(']')
   )
 }
+
+/**
+ * Reading a route TEMPLATE (`/event-details/[id]`) rather than a URL. Defined in
+ * teleport-shared because the navlink resolver needs the same two functions and
+ * lives in a package that does not depend on this one; re-exported here so
+ * `RouteUtils` stays the single import for route questions in the plugins.
+ */
+export const { pathHasDynamicSegment, parseDynamicPathSegments } = RoutePaths
 
 const MUTATION_NODE_TYPES = new Set(['data-create-item', 'data-update-item'])
 

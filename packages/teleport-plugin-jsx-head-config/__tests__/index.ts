@@ -350,6 +350,56 @@ describe('plugin-jsx-head-config', () => {
     expect(structure.dependencies.useRouter).toBeUndefined()
   })
 
+  it('Should interpolate a Next.js [id] segment in the canonical and og:url', async () => {
+    // A details page's canonical path is the ROUTE TEMPLATE (`/rsvp-event/[id]`).
+    // Emitted verbatim it publishes a URL that 404s for every crawler and every
+    // shared link, so it has to become `${router.query.id}`.
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      assets: [
+        {
+          type: 'canonical',
+          path: 'https://example.com/rsvp-event/[id]',
+        },
+      ],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect(helmetNode.children.length).toBe(2)
+
+    const canonicalNode = helmetNode.children[0] as types.JSXElement
+    const canonicalHref = canonicalNode.openingElement.attributes[1] as types.JSXAttribute
+    expect(canonicalHref.value.type).toBe('JSXExpressionContainer')
+    const canonicalCode = generator(
+      (canonicalHref.value as types.JSXExpressionContainer).expression as types.Expression
+    ).code
+    expect(canonicalCode).toContain('router.query.id')
+    expect(canonicalCode).not.toContain('[id]')
+
+    const ogUrlMeta = helmetNode.children[1] as types.JSXElement
+    const ogContent = ogUrlMeta.openingElement.attributes[1] as types.JSXAttribute
+    expect(ogContent.value.type).toBe('JSXExpressionContainer')
+    const ogCode = generator(
+      (ogContent.value as types.JSXExpressionContainer).expression as types.Expression
+    ).code
+    expect(ogCode).toContain('router.query.id')
+    expect(ogCode).not.toContain('[id]')
+
+    expect(structure.dependencies.useRouter).toBeDefined()
+  })
+
   it('Should keep static canonical when i18n has only one language', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
@@ -413,6 +463,38 @@ describe('plugin-jsx-head-config', () => {
   })
 
   const codeOf = (node: types.Node) => generator(node).code
+
+  it('Should interpolate a route parameter inside a pre-serialized JSON-LD document', async () => {
+    // A BreadcrumbList's last `item` is the page's own URL. For a details page
+    // that URL is the ROUTE TEMPLATE, so shipping the document verbatim
+    // published `https://example.com/event-details/[id]` — a URL no crawler can
+    // follow — inside structured data search engines actually parse.
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      structuredData: [
+        '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"item":"https://example.com/event-details/[id]"}]}',
+      ],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    const code = generator(helmetNode).code
+
+    expect(code).toContain('router.query.id')
+    expect(code).not.toContain('[id]')
+    expect(structure.dependencies.useRouter).toBeDefined()
+  })
 
   it('Should emit a static JSON-LD script verbatim', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))

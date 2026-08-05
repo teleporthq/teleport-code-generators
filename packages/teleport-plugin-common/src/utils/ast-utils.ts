@@ -1,7 +1,7 @@
 import * as types from '@babel/types'
 import { parse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { JSIdentifiers, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLStateDefinition,
   UIDLPropDefinition,
@@ -16,6 +16,7 @@ import {
 } from '@teleporthq/teleport-types'
 import babelPresetReact from '@babel/preset-react'
 import { UnaryOperation, BinaryOperator } from './types'
+import { balanceExpression, countUnclosedStaticParens } from './template-expression-balance'
 
 /**
  * Converts HTML attribute names to React/JSX camelCase format
@@ -140,9 +141,14 @@ export const addDynamicAttributeToJSXTag = (
   t = types
 ) => {
   const reactName = convertToReactAttributeName(name)
+  // Same rule as `createDynamicValueExpression`: with no prefix the value IS the
+  // binding (React hooks state), so it must match the sanitised name
+  // `createStateHookAST` declared — `value={class}` does not parse. With a
+  // prefix it is `props.class` / `this.class`, where the UIDL spelling is legal
+  // AND load-bearing, so it is left alone.
   const content =
     prefix === ''
-      ? t.identifier(value)
+      ? t.identifier(JSIdentifiers.createSafeJSIdentifierPath(value))
       : t.memberExpression(t.identifier(prefix), t.identifier(value))
 
   jsxASTNode.openingElement.attributes.push(
@@ -354,9 +360,15 @@ export const parseStringWithTemplateExpressions = (str: string): types.TemplateL
   const normalized = str.replace(/state\.(\w+)/g, '$1')
 
   // Step 2: Convert well-formed {{ expr }} to ${expr}
+  //
+  // The expression is BALANCED on the way in. A binding that lost a closing
+  // paren upstream (`-(cameraX || ''`) produces source Babel cannot parse, and
+  // no amount of patching the static text around it can help — the repair has
+  // to happen inside the interpolation, which is the only place the bracket is
+  // actually missing.
   let templateStr = normalized.replace(
     /\{\{\s*(.+?)\s*\}\}/g,
-    (_, expr: string) => '${' + expr.trim() + '}'
+    (_, expr: string) => '${' + balanceExpression(expr.trim()) + '}'
   )
 
   // Step 3: Handle unclosed {{ expr (no closing }})
@@ -364,16 +376,20 @@ export const parseStringWithTemplateExpressions = (str: string): types.TemplateL
   if (/\{\{/.test(templateStr)) {
     templateStr = templateStr.replace(
       /\{\{\s*(.+?)$/gm,
-      (_, expr: string) => '${' + expr.trim() + '}'
+      (_, expr: string) => '${' + balanceExpression(expr.trim()) + '}'
     )
   }
 
   // Step 4: Detect and fix incomplete CSS function calls
   // If the original string contained a CSS function like translateX(...) or translate(...)
   // but the template expression consumed the closing, we need to re-close it.
-  const openParens = (templateStr.match(/\(/g) || []).length
-  const closeParens = (templateStr.match(/\)/g) || []).length
-  if (openParens > closeParens) {
+  //
+  // Counted over the STATIC text only. Including the parentheses inside `${…}`
+  // made an imbalance in the expression look like an unclosed CSS function, so
+  // this step appended a unit and a `)` to the end of a string whose real fault
+  // was several characters earlier and inside the interpolation.
+  const missingStaticCloses = countUnclosedStaticParens(templateStr)
+  if (missingStaticCloses > 0) {
     // Determine the CSS unit by:
     // 1. Looking for existing units already in the string (e.g. "translate(${x}px, ${y" → px)
     // 2. Inferring from the CSS function name
@@ -393,21 +409,52 @@ export const parseStringWithTemplateExpressions = (str: string): types.TemplateL
       }
     }
 
-    const missingCloses = openParens - closeParens
-    templateStr += unit + ')'.repeat(missingCloses)
+    templateStr += unit + ')'.repeat(missingStaticCloses)
   }
 
-  const ast = parse('const x = `' + templateStr + '`', {
-    sourceType: 'module',
+  // Step 5: Parse — and NEVER let a single malformed binding abort the build.
+  //
+  // The inline-style caller has no error handling of its own, so an
+  // unparseable template used to escape as a raw Babel SyntaxError and take the
+  // whole project generation down with it. A UIDL can always carry a binding
+  // this module cannot rescue (hand-edited, produced by an older pipeline, or
+  // broken in a way `balanceExpression` refuses to guess at), and the right
+  // answer is to degrade that ONE value: emit the original text as a plain
+  // string so the property still renders and the other 99 pages still build.
+  try {
+    const ast = parse('const x = `' + templateStr + '`', {
+      sourceType: 'module',
+    })
+
+    if (ast && 'program' in ast) {
+      const decl = ast.program.body[0] as types.VariableDeclaration
+      return decl.declarations[0].init as types.TemplateLiteral
+    }
+  } catch {
+    // Fall through to the static fallback below.
+  }
+
+  return staticTemplateLiteral(stripTemplateExpressions(str))
+}
+
+/**
+ * Drop every `{{ … }}` binding from a string, keeping any `'literal'` fallback
+ * it declared. `translateX({{ -(x || 0) }}px)` → `translateX(px)` is useless as
+ * a style value, but `{{ name || 'Guest' }}` → `Guest` keeps the text the
+ * author intended. Used only when the expression could not be parsed at all.
+ */
+const stripTemplateExpressions = (value: string): string =>
+  value.replace(/\{\{\s*([\s\S]*?)\s*\}\}/g, (_, expr: string) => {
+    const literalFallback = /\|\|\s*(['"])([\s\S]*?)\1\s*$/.exec(expr)
+    return literalFallback ? literalFallback[2] : ''
   })
 
-  if (!ast || !('program' in ast)) {
-    throw new Error(`Failed to parse template expression: ${str}`)
-  }
-
-  const decl = ast.program.body[0] as types.VariableDeclaration
-  return decl.declarations[0].init as types.TemplateLiteral
-}
+/** A TemplateLiteral with no interpolations, holding `value` verbatim. */
+const staticTemplateLiteral = (value: string): types.TemplateLiteral =>
+  types.templateLiteral(
+    [types.templateElement({ raw: value.replace(/[\\`]/g, '\\$&'), cooked: value }, true)],
+    []
+  )
 
 const REACT_BOOLEAN_DOM_PROPS = new Set([
   'disabled',
@@ -931,7 +978,11 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(stateKey),
+        // The state NAME comes from the UIDL and may be a reserved word (a
+        // character sheet has a column called `class`), which is fatal in
+        // binding position. Reads go through the same sanitiser, so the
+        // declaration and every reference stay in sync.
+        t.identifier(JSIdentifiers.createSafeJSIdentifier(stateKey)),
         t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [useStateArgument])

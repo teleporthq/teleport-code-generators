@@ -1,5 +1,6 @@
 import { ComponentPlugin, ComponentPluginFactory, UIDLDependency } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 
 export const USE_GLOBAL_STATE_HOOK: UIDLDependency = {
   type: 'local',
@@ -9,7 +10,26 @@ export const USE_GLOBAL_STATE_HOOK: UIDLDependency = {
   },
 }
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/**
+ * One entry of the `useGlobalState()` destructuring pattern.
+ *
+ * The KEY is the context property the provider published — always the declared
+ * name, never rewritten. The VALUE is a local binding, so it is sanitised: a
+ * global state may legally be named `class`, which cannot be bound directly.
+ * Shorthand is kept whenever the two coincide, which is every ordinary name, so
+ * the emitted output is unchanged for existing projects.
+ */
+const destructuredEntry = (contextKey: string): types.ObjectProperty => {
+  const localName = JSIdentifiers.createSafeJSIdentifier(contextKey)
+  return types.objectProperty(
+    JSIdentifiers.isValidPropertyKeyName(contextKey)
+      ? types.identifier(contextKey)
+      : types.stringLiteral(contextKey),
+    types.identifier(localName),
+    false,
+    localName === contextKey
+  )
+}
 
 export const createNextGlobalStateComponentPlugin: ComponentPluginFactory<{}> = () => {
   const globalStatePlugin: ComponentPlugin = async (structure) => {
@@ -41,18 +61,8 @@ export const createNextGlobalStateComponentPlugin: ComponentPluginFactory<{}> = 
 
     const destructuredProps: types.ObjectProperty[] = []
     for (const [, name] of Array.from(uniqueNames)) {
-      destructuredProps.push(
-        types.objectProperty(types.identifier(name), types.identifier(name), false, true)
-      )
-      const setterName = `set${capitalize(name)}`
-      destructuredProps.push(
-        types.objectProperty(
-          types.identifier(setterName),
-          types.identifier(setterName),
-          false,
-          true
-        )
-      )
+      destructuredProps.push(destructuredEntry(name))
+      destructuredProps.push(destructuredEntry(StringUtils.createGlobalStateSetterName(name)))
     }
 
     const hookCall = types.variableDeclaration('const', [

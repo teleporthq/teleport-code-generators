@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { RoutePaths } from '@teleporthq/teleport-shared'
 import {
   UIDLStructuredDataEntry,
   UIDLStructuredDataNode,
@@ -22,6 +23,11 @@ export interface StructuredDataScript {
   scriptTag: types.JSXElement
   /** True when any leaf resolved to a `translate.raw(...)` (locale) reference. */
   usesTranslations: boolean
+  /**
+   * True when a route parameter was interpolated, so the caller must add the
+   * `useRouter` hook this script now depends on.
+   */
+  usesRouter: boolean
 }
 
 /**
@@ -184,9 +190,31 @@ const buildObject = (
 export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): StructuredDataScript => {
   let htmlExpression: types.Expression
   let usesTranslations = false
+  let usesRouter = false
 
   if (typeof entry === 'string') {
-    htmlExpression = types.stringLiteral(entry)
+    // A pre-serialized document can still embed the page's own ROUTE TEMPLATE:
+    // the BreadcrumbList's last `item` is the current page's URL, which for a
+    // details page is `https://host/event-details/[id]`. Shipped verbatim that
+    // is a URL no crawler can follow, so the literal `[id]` becomes
+    // `${router.query.id}` exactly as the canonical link does.
+    const { staticParts, paramNames } = RoutePaths.parseDynamicPathSegments(entry)
+    if (paramNames.length === 0) {
+      htmlExpression = types.stringLiteral(entry)
+    } else {
+      usesRouter = true
+      htmlExpression = types.templateLiteral(
+        staticParts.map((part, index) =>
+          types.templateElement({ raw: part, cooked: part }, index === staticParts.length - 1)
+        ),
+        paramNames.map((name) =>
+          types.memberExpression(
+            types.memberExpression(types.identifier('router'), types.identifier('query')),
+            types.identifier(name)
+          )
+        )
+      )
+    }
   } else {
     const built = buildObject(entry)
     usesTranslations = built.usesTranslations
@@ -211,5 +239,5 @@ export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): Struc
     )
   )
 
-  return { scriptTag, usesTranslations }
+  return { scriptTag, usesTranslations, usesRouter }
 }

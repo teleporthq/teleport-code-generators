@@ -118,4 +118,39 @@ describe('resolveAuthEnvValue', () => {
     expect(resolveAuthEnvValue('TELEPORT_DB_SSL', 'true', oauthKeys)).toBe('true')
     expect(resolveAuthEnvValue('AUTH_CREDENTIALS_ENABLED', 'true', oauthKeys)).toBe('true')
   })
+
+  // Regression: next-auth v4 `react/index.js` runs `parseUrl(process.env.NEXTAUTH_URL)`
+  // at module load, and `new URL('')` throws "Invalid URL" — crashing SSR for
+  // every page that mounts SessionProvider. `createEnvFiles` writes every key,
+  // so a BLANK NEXTAUTH_URL serializes as the crashing `NEXTAUTH_URL=`. The
+  // blank case is self-perpetuating (the standalone harness re-injects the
+  // on-disk empty value), so the resolver must heal it, not pass it through.
+  describe('blank auth-critical keys heal to their local default', () => {
+    it.each(['', '   ', undefined as unknown as string])(
+      'NEXTAUTH_URL=%p becomes the localhost default rather than an empty assignment',
+      (blank) => {
+        expect(resolveAuthEnvValue('NEXTAUTH_URL', blank, oauthKeys)).toBe('http://localhost:3000')
+      }
+    )
+
+    it('a blank NEXTAUTH_SECRET heals to the placeholder default', () => {
+      expect(resolveAuthEnvValue('NEXTAUTH_SECRET', '', oauthKeys)).toBe(
+        'CHANGE_ME_TO_A_RANDOM_SECRET'
+      )
+    })
+
+    it('a real configured NEXTAUTH_URL / NEXTAUTH_SECRET is left untouched', () => {
+      expect(resolveAuthEnvValue('NEXTAUTH_URL', 'https://shop.example.com', oauthKeys)).toBe(
+        'https://shop.example.com'
+      )
+      expect(
+        resolveAuthEnvValue('NEXTAUTH_SECRET', 'a-real-32-char-secret-value-xxxxx', oauthKeys)
+      ).toBe('a-real-32-char-secret-value-xxxxx')
+    })
+
+    it('a blank NON-auth key still serializes blank — no behavior change outside the two auth keys', () => {
+      expect(resolveAuthEnvValue('TELEPORT_DB_SSL', '', oauthKeys)).toBe('')
+      expect(resolveAuthEnvValue('SOME_OTHER_KEY', '', oauthKeys)).toBe('')
+    })
+  })
 })

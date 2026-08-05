@@ -311,7 +311,14 @@ const run = async () => {
       // }),
     ])
   } catch (e) {
-    console.info(e)
+    // A generation failure wipes the whole output (the clean above already ran),
+    // so swallowing it here made `npm run standalone` print a SyntaxError and
+    // still exit 0 — a silent build break that no CI check could catch. Report
+    // it and fail the process. `console.info` rather than `console.error`
+    // because the repo's tslint config bans the latter — the non-zero exit code
+    // below is what CI actually reads, and chalk keeps it loud for a human.
+    console.info(chalk.red((e as Error)?.stack ?? String(e)))
+    process.exitCode = 1
   }
 }
 
