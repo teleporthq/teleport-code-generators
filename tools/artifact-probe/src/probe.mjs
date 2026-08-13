@@ -10,6 +10,7 @@ import {
 } from './process.mjs'
 import { discoverRoutes, findUnusedDependencies, parseBuildOutput } from './routes.mjs'
 import { auditVisibility } from './visibility-audit.mjs'
+import { establishSession, isAuthPath, resolveCredentials } from './auth.mjs'
 
 /**
  * Build → boot → drive a browser → report. See ../README.md for what and why.
@@ -55,8 +56,28 @@ const emptyRouteReport = (route, extra = {}) => ({
   hiddenOnLoad: 0,
   revealedByScroll: 0,
   screenshot: null,
+  finalUrl: null,
+  /* Set when the browser ended up somewhere else — an auth guard, a locale
+     rewrite, any redirect. Such a route was NOT observed and must never be
+     reported as clean. */
+  redirectedTo: null,
   ...extra,
 })
+
+/* A locale prefix is a rewrite of the same page, not a redirect away from it. */
+const LOCALE_PREFIX = /^\/[a-z]{2}(-[A-Z]{2})?(?=\/|$)/
+
+const normalizePath = (pathname) => {
+  const withoutLocale = pathname.replace(LOCALE_PREFIX, '') || '/'
+  return withoutLocale.length > 1 ? withoutLocale.replace(/\/+$/, '') : withoutLocale
+}
+
+const AUTH_PATHS = ['/sign-in', '/signin', '/login', '/auth']
+
+const describeRedirect = (finalPath) =>
+  AUTH_PATHS.some((authPath) => normalizePath(finalPath).startsWith(authPath))
+    ? `requires authentication — served ${finalPath}`
+    : `redirected to ${finalPath}`
 
 /**
  * Next's build log ends with the error block when it fails; the useful part is
@@ -84,7 +105,10 @@ const extractBuildErrors = (stdout, stderr) => {
     .filter(Boolean)
 }
 
-const probeRoute = async (browser, { baseUrl, route, firstLoadKb, screenshotDir }) => {
+const probeRoute = async (
+  browser,
+  { baseUrl, route, firstLoadKb, screenshotDir, storageState }
+) => {
   const report = emptyRouteReport(route, { firstLoadKb })
 
   // Opening the context/page has to be inside the guarded section too. A browser
@@ -95,7 +119,10 @@ const probeRoute = async (browser, { baseUrl, route, firstLoadKb, screenshotDir 
   let context
   let page
   try {
-    context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      ...(storageState ? { storageState } : {}),
+    })
     page = await context.newPage()
   } catch (error) {
     report.error = `could not open a browser page: ${error.message}`
@@ -138,6 +165,18 @@ const probeRoute = async (browser, { baseUrl, route, firstLoadKb, screenshotDir 
     report.status = response?.status() ?? null
     report.loadMs = Date.now() - startedAt
 
+    // Where the browser ACTUALLY ended up. `page.goto` follows redirects
+    // silently and reports the final 200, so without this an auth-guarded route
+    // looked indistinguishable from a healthy one: the probe measured the
+    // sign-in page — its DOM, its visibility, its screenshot — and called the
+    // admin route clean. A whole sweep read as full coverage while a third of it
+    // was the same login screen over and over.
+    report.finalUrl = page.url()
+    const finalPath = new URL(report.finalUrl).pathname
+    if (normalizePath(finalPath) !== normalizePath(route.path)) {
+      report.redirectedTo = finalPath
+    }
+
     // Long enough for a reveal animation AND its failsafe to have run. The
     // generated TqMotion in-view failsafe fires at duration * 1000 + 600ms.
     await page.waitForTimeout(2500)
@@ -178,10 +217,11 @@ export const probeArtifact = async ({
   buildTimeoutMs = 900000,
   bootTimeoutMs = 120000,
   maxRoutes = 25,
+  auth = null,
   onProgress = () => undefined,
 }) => {
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     projectDir,
     generatedAt: new Date().toISOString(),
     ok: false,
@@ -189,10 +229,13 @@ export const probeArtifact = async ({
     install: { ran: false, ok: true, durationMs: 0 },
     build: { ok: false, durationMs: 0, errors: [], sharedJsKb: null, routeBundles: [] },
     boot: { ok: false, port },
+    auth: { attempted: false, ok: false, method: null, identity: null, error: null },
     routes: [],
     unusedDependencies: [],
     totals: {
       routesProbed: 0,
+      routesRedirected: 0,
+      routesNotVerified: 0,
       routesWithErrors: 0,
       routesWithHiddenContent: 0,
       hiddenRegions: 0,
@@ -301,6 +344,30 @@ export const probeArtifact = async ({
       })
       const bundleByPath = new Map(routeBundles.map((entry) => [entry.path, entry.firstLoadKb]))
 
+      // Establish a session BEFORE probing, so protected routes are seen rather
+      // than measured as the sign-in page.
+      let storageState
+      if (auth) {
+        report.auth.attempted = true
+        report.auth.identity = auth.email
+        const session = await establishSession(browser, {
+          baseUrl: `http://127.0.0.1:${port}`,
+          credentials: auth,
+          onProgress,
+        })
+        report.auth.ok = session.ok
+        report.auth.method = session.method
+        report.auth.error = session.error
+        storageState = session.storageState
+        if (!session.ok) {
+          // Loud, because the consequence is silent otherwise: every protected
+          // route would come back "not verified" looking entirely normal.
+          report.verdicts.push(
+            `Authentication FAILED for ${auth.email} — ${session.error}. Every protected route below is unchecked for that reason, not because it is healthy.`
+          )
+        }
+      }
+
       const probeable = discovered.filter((route) => !route.dynamic).slice(0, maxRoutes)
       const staticTotal = discovered.filter((route) => !route.dynamic).length
       if (staticTotal > probeable.length) {
@@ -317,6 +384,7 @@ export const probeArtifact = async ({
             route,
             firstLoadKb: bundleByPath.get(route.path) ?? null,
             screenshotDir,
+            storageState,
           })
         )
       }
@@ -346,8 +414,16 @@ export const probeArtifact = async ({
 
   report.unusedDependencies = findUnusedDependencies(projectDir)
 
-  const probed = report.routes.filter((route) => !route.skipped && !route.error)
+  const loaded = report.routes.filter((route) => !route.skipped && !route.error)
+  // Only routes that rendered THEMSELVES count as observed. A redirected route
+  // was loaded but never seen, and folding it into the clean tally is how a
+  // sweep comes to claim coverage it does not have.
+  const redirected = loaded.filter((route) => route.redirectedTo)
+  const probed = loaded.filter((route) => !route.redirectedTo)
   report.totals.routesProbed = probed.length
+  report.totals.routesRedirected = redirected.length
+  report.totals.routesNotVerified =
+    redirected.length + report.routes.filter((route) => route.skipped).length
   report.totals.routesWithErrors = probed.filter(
     (route) =>
       isUnexpectedStatus(route) || route.pageErrors.length > 0 || route.hydrationErrors.length > 0
@@ -359,6 +435,42 @@ export const probeArtifact = async ({
     (total, route) => total + route.hiddenContent.length,
     0
   )
+
+  if (redirected.length > 0) {
+    // Being bounced WHILE HOLDING a valid session is a different fact from being
+    // bounced without one: the account authenticated fine and was refused
+    // anyway, so the gate is permission, not identity. Note the destination is
+    // NOT the tell — the generated middleware sends an authenticated user who
+    // lacks the role to `/`, not back to /sign-in, so keying on "redirected to
+    // an auth page" missed every one of these. Having a session is the tell.
+    const forbidden = report.auth.ok ? redirected : []
+    forbidden.forEach((route) => {
+      route.forbidden = true
+    })
+
+    if (forbidden.length > 0) {
+      report.verdicts.push(
+        `${forbidden.length} route(s) refused the signed-in account ${
+          report.auth.identity
+        } — it authenticated fine and was still turned away, so this is a permission gate, not a login problem. The generated middleware gates routes by role and sign-up creates role "user"; promote that account to "admin" in the database to check them: ${forbidden
+          .map((route) => `${route.path} → ${route.redirectedTo}`)
+          .join(', ')}.`
+      )
+    }
+
+    const plainlyUnverified = redirected.filter((route) => !route.forbidden)
+    if (plainlyUnverified.length > 0) {
+      report.verdicts.push(
+        `${plainlyUnverified.length} route(s) never rendered themselves and are NOT verified` +
+          (!report.auth.ok && plainlyUnverified.some((route) => isAuthPath(route.redirectedTo))
+            ? ' — they need a signed-in session (the probe has none, so it measured the sign-in page instead)'
+            : '') +
+          `: ${plainlyUnverified
+            .map((route) => `${route.path} → ${route.redirectedTo}`)
+            .join(', ')}.`
+      )
+    }
+  }
 
   for (const route of probed) {
     if (isUnexpectedStatus(route)) {
