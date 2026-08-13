@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-parse-embed",
-  "version": "0.43.47",
+  "version": "0.43.48",
   "description": "A plugin for extracting the html embeds into seperate files",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --moduleResolution node16 --outDir dist/cjs "
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.43.47",
+    "@teleporthq/teleport-shared": "^0.43.48",
     "@teleporthq/teleport-types": "^0.43.47",
     "hast-util-from-html": "^1.0.1",
     "hast-util-to-html": "^8.0.4",

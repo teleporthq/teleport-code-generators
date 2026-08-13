@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-common",
-  "version": "0.43.47",
+  "version": "0.43.48",
   "description": "Common building and modelating functions for ASTs and HASTs",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,7 +27,7 @@
     "@babel/core": "^7.5.5",
     "@babel/preset-react": "^7.22.5",
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.43.47",
+    "@teleporthq/teleport-shared": "^0.43.48",
     "@teleporthq/teleport-types": "^0.43.47",
     "jss": "^10.0.0",
     "jss-preset-default": "^10.0.0"
