@@ -363,6 +363,58 @@ describe('insertLink', () => {
     expect(wrapper.content.elementType).toBe('navlink')
     expect(wrapper.content.style?.display).toBeUndefined()
   })
+
+  it('sees through box-less ancestors to the real flex parent', () => {
+    /* The regression this exists for. A linked card almost never sits directly
+       inside its grid — it sits inside a repeater, inside a data provider,
+       inside a fragment, none of which draw a box. Asking the IMMEDIATE parent
+       "are you a flex container?" answered no, the wrapper was left as a normal
+       box, and it became the flex item instead of the card: every card lost its
+       `flex: 0 0 <width>` and collapsed to content width. The published grid
+       stopped matching the editor, which renders no wrapper at all. */
+    const card = elementNode('container')
+    card.content.abilities = { link: navlinkMockedDefinition() }
+
+    const fragment = elementNode('fragment', {}, [card])
+    const grid = elementNode('container', {}, [fragment])
+    grid.content.referencedStyles = {
+      TQ_row: {
+        id: 'TQ_row',
+        type: 'style-map',
+        content: { mapType: 'project-referenced', referenceId: 'tq-scroll-row' },
+      },
+    }
+
+    const result = insertLinks(grid, flexProjectStyleSetOptions('flex'), false)
+    const resolvedFragment = result.content.children[0] as UIDLElementNode
+    const wrapper = resolvedFragment.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('navlink')
+    expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
+  })
+
+  it('still ignores box-less ancestors when the real parent is not flex/grid', () => {
+    // The transparency walk must not manufacture a flex parent that isn't there.
+    const card = elementNode('container')
+    card.content.abilities = { link: navlinkMockedDefinition() }
+
+    const fragment = elementNode('fragment', {}, [card])
+    const block = elementNode('container', {}, [fragment])
+    block.content.referencedStyles = {
+      TQ_row: {
+        id: 'TQ_row',
+        type: 'style-map',
+        content: { mapType: 'project-referenced', referenceId: 'tq-scroll-row' },
+      },
+    }
+
+    const result = insertLinks(block, flexProjectStyleSetOptions('block'), false)
+    const resolvedFragment = result.content.children[0] as UIDLElementNode
+    const wrapper = resolvedFragment.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('navlink')
+    expect(wrapper.content.style?.display).toBeUndefined()
+  })
 })
 
 describe('insertLink with link-type prop', () => {

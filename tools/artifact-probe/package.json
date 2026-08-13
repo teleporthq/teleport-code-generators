@@ -1,0 +1,16 @@
+{
+  "name": "artifact-probe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds a generated project, boots it, drives a real browser over every route, and reports what a visitor actually gets.",
+  "bin": {
+    "artifact-probe": "./probe.mjs"
+  },
+  "scripts": {
+    "probe": "node ./probe.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

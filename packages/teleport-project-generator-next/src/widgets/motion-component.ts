@@ -5,9 +5,10 @@
  * (see packages/renderer motion-runtime) — preset/easing/keyframe logic is kept
  * identical so the published site matches the canvas.
  *
- * Triggers: on-load (initial/animate), in-view (useInView-driven + a timed
- * in-viewport failsafe so content is never trapped at opacity:0 — a top hero that
- * misses the IntersectionObserver still reveals), scroll (scroll-linked parallax
+ * Triggers: on-load (initial/animate), in-view (useInView-driven + a standing
+ * in-viewport failsafe so content is never trapped at opacity:0 — any element
+ * that is genuinely on screen reveals even if the IntersectionObserver never
+ * reports it), scroll (scroll-linked parallax
  * via useScroll/useTransform), hover (whileHover),
  * tap (whileTap). `stagger` descends through grid/list wrappers to the real
  * repeated items (e.g. <array-mapper> cards) and cascades THOSE with a per-child
@@ -58,6 +59,33 @@ const presetStates = (preset, distance) => {
     default:
       return { from: { opacity: 0 }, to: { opacity: 1 } }
   }
+}
+
+// How much of the element is inside the viewport right now, as a 0..1 fraction
+// of its own area — the same quantity IntersectionObserver thresholds on, so the
+// failsafe below can apply exactly the threshold useInView was given.
+const visibleFraction = (rect, vh, vw) => {
+  const height = rect.bottom - rect.top
+  const width = rect.right - rect.left
+  if (height <= 0 || width <= 0) {
+    return 0
+  }
+  const visibleHeight = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0))
+  const visibleWidth = Math.max(0, Math.min(rect.right, vw) - Math.max(rect.left, 0))
+  return (visibleHeight * visibleWidth) / (height * width)
+}
+
+// The largest fraction this element could EVER have on screen. An element taller
+// than the viewport can never be 60% visible, so an inViewAmount above that is
+// unsatisfiable and would hold the content at opacity 0 permanently. Clamping to
+// what is physically reachable turns "impossible" into "as visible as it gets".
+const reachableFraction = (rect, vh, vw) => {
+  const height = rect.bottom - rect.top
+  const width = rect.right - rect.left
+  if (height <= 0 || width <= 0) {
+    return 0
+  }
+  return Math.min(1, vh / height) * Math.min(1, vw / width)
 }
 
 const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
@@ -127,16 +155,45 @@ const TqMotion = ({
   const ref = React.useRef(null)
   const shouldReduceMotion = useReducedMotion()
 
-  // in-view reveal is driven by useInView + a timed in-viewport failsafe so a
-  // reveal can NEVER trap content at opacity:0 (a top hero already in view can
-  // miss the observer's initial callback). Below-the-fold elements still wait.
+  // in-view reveal is driven by useInView + a STANDING in-viewport failsafe, so
+  // a reveal can never trap content at opacity:0.
+  //
+  // This used to be a single setTimeout that checked once, roughly a second
+  // after mount. That only ever rescued content which happened to be on screen
+  // at that instant: everything below the fold got its one check while
+  // off-screen, saw itself invisible, and was never checked again. From then on
+  // the IntersectionObserver was the only thing that could reveal it, so one
+  // missed callback left an entire section at opacity 0 permanently — a
+  // 2162px-tall product grid sat invisible while dead-centre in the viewport,
+  // 41% on screen, for as long as anyone cared to wait.
+  //
+  // The check now stands for the element's lifetime, coalesced into a frame and
+  // passive so scrolling stays cheap, and it applies the SAME threshold
+  // useInView was given. It therefore fires exactly when the observer should
+  // have and never earlier — an animation's timing is unchanged when the
+  // observer works, which is almost always.
   const inView = useInView(ref, { once: Boolean(inViewOnce), amount: Number(inViewAmount) || 0.3 })
   const [forceReveal, setForceReveal] = React.useState(false)
+  const revealed = inView || forceReveal
+  const revealedRef = React.useRef(false)
+  React.useEffect(() => {
+    revealedRef.current = revealed
+  }, [revealed])
+
   React.useEffect(() => {
     if (trigger !== 'in-view') {
       return undefined
     }
-    const timeoutId = setTimeout(() => {
+    const once = Boolean(inViewOnce)
+    const amount = Number(inViewAmount) || 0.3
+    let frame = 0
+
+    const check = () => {
+      // Already done: nothing to measure, so a revealed element costs nothing
+      // per scroll frame beyond this comparison.
+      if (once && revealedRef.current) {
+        return
+      }
       const el = ref.current
       if (!el || typeof el.getBoundingClientRect !== 'function') {
         return
@@ -144,14 +201,38 @@ const TqMotion = ({
       const rect = el.getBoundingClientRect()
       const vh = window.innerHeight || document.documentElement.clientHeight || 0
       const vw = window.innerWidth || document.documentElement.clientWidth || 0
-      const visible = rect.top < vh && rect.bottom > 0 && rect.left < vw && rect.right > 0
-      if (visible) {
-        setForceReveal(true)
+      const fraction = visibleFraction(rect, vh, vw)
+      const threshold = Math.min(amount, reachableFraction(rect, vh, vw) * 0.9)
+      const visible = fraction > 0 && fraction >= threshold
+      // With inViewOnce the reveal latches; without it, visibility is tracked
+      // both ways so the author's repeat-on-re-entry behaviour is preserved.
+      setForceReveal(function (previous) {
+        return once ? previous || visible : visible
+      })
+    }
+
+    const schedule = () => {
+      if (frame) {
+        return
       }
-    }, (Number(duration) || 0.6) * 1000 + 600)
-    return () => clearTimeout(timeoutId)
-  }, [])
-  const revealed = inView || forceReveal
+      frame = requestAnimationFrame(function () {
+        frame = 0
+        check()
+      })
+    }
+
+    const timeoutId = setTimeout(check, (Number(duration) || 0.6) * 1000 + 600)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule, { passive: true })
+    return () => {
+      clearTimeout(timeoutId)
+      if (frame) {
+        cancelAnimationFrame(frame)
+      }
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [trigger, inViewOnce, inViewAmount, duration])
 
   const dist = Number(distance) || 0
   const base = presetStates(preset, dist)

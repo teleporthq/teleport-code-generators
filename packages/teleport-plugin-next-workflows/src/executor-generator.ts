@@ -540,6 +540,16 @@ function coerceForComparison(a, b) {
   return [a, b];
 }
 
+// Several producers cannot type their output and emit booleans as the strings
+// "true"/"false": the evaluate-auth custom-js, text inputs in the inspector,
+// form fields. coerceForComparison and is-true/is-false already read those as
+// booleans, so truthiness must agree — under a plain double-negation the
+// string "false" is TRUTHY, which let an is-truthy gate on isLoggedIn admit
+// every visitor (see is-logged-in-gate.ts).
+function isStringifiedBoolean(value) {
+  return value === 'true' || value === 'false';
+}
+
 // The operator vocabulary is written by THREE producers that never agreed on
 // a spelling: the worker canonicalizes to snake_case (is_not_empty,
 // greater_than), the GUI editor emits camelCase named forms (startsWith,
@@ -584,8 +594,8 @@ function evaluateSingleComparison(config, context) {
     case 'is-not-null': return left !== null && left !== undefined;
     case 'is-true': return left === true || left === 'true';
     case 'is-false': return left === false || left === 'false';
-    case 'is-truthy': return !!left;
-    case 'is-falsy': return !left;
+    case 'is-truthy': return isStringifiedBoolean(left) ? left === 'true' : !!left;
+    case 'is-falsy': return isStringifiedBoolean(left) ? left === 'false' : !left;
     case 'matches-regex': try { return new RegExp(String(right)).test(String(left)); } catch(e) { return false; }
     default:
       console.warn('[workflow] Unknown comparison operator "' + config.operator + '" — falling back to loose equality');
