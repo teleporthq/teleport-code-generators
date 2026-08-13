@@ -20,6 +20,7 @@
   },
   "scripts": {
     "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
+    "generate": "cross-env TS_NODE_FILES=true ts-node --transpile-only --project tsconfig.json ./src/generate.ts",
     "standalone": "cross-env TS_NODE_FILES=true ts-node --transpile-only --project tsconfig.json ./src/standalone.ts",
     "standalone:partial": "cross-env TS_NODE_FILES=true ts-node --transpile-only --project tsconfig.json ./src/standalone-partial.ts",
     "cms": "cross-env TS_NODE_FILES=true ts-node --transpile-only --project tsconfig.json ./src/cms.ts",
