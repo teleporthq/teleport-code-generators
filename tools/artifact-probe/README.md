@@ -42,7 +42,36 @@ node tools/artifact-probe/probe.mjs --project <dir> --skip-install --max-routes 
 | `--skip-install` | trust the existing `node_modules` |
 | `--max-routes <n>` | cap routes probed (default 25) |
 | `--no-screenshots` | skip full-page screenshots |
+| `--email` / `--password` | credentials for protected routes (see below) |
+| `--no-auth` | skip authentication entirely |
 | `--json` | also print the report to stdout |
+
+## Protected routes
+
+Without a session the probe sees the sign-in page instead of every guarded
+route — and it used to score that as a pass. A 37-route sweep once reported full
+coverage when two thirds of it was the same login screen.
+
+It now signs in first. Credentials come from `--email`/`--password`, then
+`ARTIFACT_PROBE_EMAIL`/`ARTIFACT_PROBE_PASSWORD`, then a gitignored
+`<project>.artifact-auth.json` beside the project — created on first run with a
+test identity and a random per-project password. Nothing is hardcoded: this repo
+is public, and the probe *creates* the account it is given, so a baked-in default
+would put a known login on every generated site.
+
+If sign-in fails the probe signs up through the real form and retries, so a
+fresh database needs no manual setup. The app returns one error for both unknown
+email and wrong password, so the sequence is what tells them apart: a sign-up
+reporting "already exists" means the password is wrong, and that is reported
+rather than silently continuing unauthenticated.
+
+Three outcomes are kept distinct, because they need different actions:
+
+| report says | means |
+| --- | --- |
+| `NOT VERIFIED → /sign-in` | no session — the probe never saw the page |
+| `FORBIDDEN (role) → /` | signed in and refused. Sign-up creates role `user`; promote the account to `admin` in the database to reach `/admin/*` |
+| `clean` | the route rendered itself and was actually inspected |
 
 Exit code is 0 only when the artifact is clean.
 

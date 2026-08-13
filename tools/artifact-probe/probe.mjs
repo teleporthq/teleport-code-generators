@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 
 import { probeArtifact } from './src/probe.mjs'
+import { resolveCredentials } from './src/auth.mjs'
 
 /**
  * CLI for the artifact probe. See README.md.
@@ -41,6 +42,15 @@ const parseArgs = (argv) => {
       case '--skip-install':
         args.skipInstall = true
         break
+      case '--email':
+        args.email = readValue()
+        break
+      case '--password':
+        args.password = readValue()
+        break
+      case '--no-auth':
+        args.noAuth = true
+        break
       case '--no-screenshots':
         args.screenshots = false
         break
@@ -59,9 +69,20 @@ const pad = (value, width) => String(value).padEnd(width)
 
 const summarize = (report) => {
   const lines = []
-  lines.push(
-    report.ok ? 'ARTIFACT OK — builds, boots, renders, nothing hidden' : 'ARTIFACT PROBLEMS'
-  )
+  // "OK" on its own would be read as "the whole app is fine". It only ever means
+  // "no defects in what was actually looked at", so when coverage is partial the
+  // headline has to say so — the numbers underneath are too easy to skim past.
+  const unverified = report.totals.routesNotVerified ?? 0
+  if (!report.ok) {
+    lines.push('ARTIFACT PROBLEMS')
+  } else if (unverified > 0) {
+    lines.push(
+      `ARTIFACT OK for the ${report.totals.routesProbed} route(s) verified — ` +
+        `${unverified} route(s) were NOT checked, so this is partial coverage`
+    )
+  } else {
+    lines.push('ARTIFACT OK — builds, boots, renders, nothing hidden')
+  }
   report.verdicts.forEach((verdict) => lines.push(`  • ${verdict}`))
 
   lines.push('')
@@ -70,7 +91,8 @@ const summarize = (report) => {
       1
     )}s` +
       ` · shared JS ${report.build.sharedJsKb ?? '?'} kB` +
-      ` · ${report.totals.routesProbed} route(s) probed`
+      ` · ${report.totals.routesProbed} route(s) verified` +
+      (report.totals.routesNotVerified ? ` · ${report.totals.routesNotVerified} NOT verified` : '')
   )
 
   if (!report.build.ok) {
@@ -82,6 +104,15 @@ const summarize = (report) => {
     .filter((route) => !route.skipped)
     .forEach((route) => {
       const flags = []
+      if (route.redirectedTo) {
+        // Never let a route that was never seen print as "clean".
+        lines.push(
+          `  ${pad(route.path, 30)} ${' '.repeat(6)}     ${
+            route.forbidden ? 'FORBIDDEN (role)' : 'NOT VERIFIED'
+          } → ${route.redirectedTo}`
+        )
+        return
+      }
       if (route.status !== null && route.status >= 400 && !['/404', '/500'].includes(route.path)) {
         flags.push(`HTTP ${route.status}`)
       }
@@ -133,8 +164,22 @@ const run = async () => {
 
   process.stderr.write(`Probing ${projectDir}\n`)
 
+  // Protected routes are only observable with a session. Resolved before the
+  // run so a first-time prompt happens up front rather than minutes in.
+  let auth = null
+  if (!args.noAuth) {
+    auth = await resolveCredentials({
+      projectDir,
+      email: args.email,
+      password: args.password,
+      interactive: true,
+    })
+    process.stderr.write(`Auth identity: ${auth.email} (from ${auth.source})\n`)
+  }
+
   const report = await probeArtifact({
     projectDir,
+    auth,
     port: args.port,
     screenshotDir: args.screenshots ? `${projectDir}.artifact-screens` : undefined,
     skipInstall: args.skipInstall,
