@@ -43,17 +43,36 @@ async function account_get_current(_config: unknown, context: Record<string, unk
   // callback re-reads the `users` row) BEFORE the workflow's own request could
   // start — for data the page had since it mounted.
   //
-  // Only 'authenticated' short-circuits. 'loading' means the provider's first
-  // fetch has not settled; 'unauthenticated' is also what next-auth reports when
-  // that fetch FAILED, and treating a transient error as "signed out" would send
-  // a signed-in visitor down the guest branch. Both fall through to the fetch —
-  // which for a guest is the cheap case anyway, since the jwt callback returns
-  // before touching the database when there is no token.
+  // Only 'authenticated' short-circuits. 'unauthenticated' is also what
+  // next-auth reports when the provider's fetch FAILED, and treating a
+  // transient error as "signed out" would send a signed-in visitor down the
+  // guest branch. It falls through to the fetch — which for a guest is the
+  // cheap case anyway, since the jwt callback returns before touching the
+  // database when there is no token.
+  //
+  // 'loading' means the provider's FIRST /api/auth/session fetch is still in
+  // flight (a click that lands within ~a second of page load). Issuing our own
+  // fetch at that moment duplicates the exact request already on the wire —
+  // including its jwt-callback user-row read. Instead, briefly poll the bridge
+  // snapshot until the in-flight fetch settles; the bounded deadline means a
+  // hung provider fetch degrades to today's behaviour (our own fetch) instead
+  // of stalling the workflow.
   if (typeof window !== 'undefined') {
     try {
       const bridge = (window as any).__teleportNextAuth
-      const snapshot =
-        bridge && typeof bridge.getSession === 'function' ? bridge.getSession() : null
+      let snapshot = bridge && typeof bridge.getSession === 'function' ? bridge.getSession() : null
+      if (snapshot && snapshot.status === 'loading') {
+        const deadline = Date.now() + 3000
+        while (Date.now() < deadline) {
+          await new Promise(function (resolve) {
+            setTimeout(resolve, 50)
+          })
+          snapshot = bridge.getSession()
+          if (!snapshot || snapshot.status !== 'loading') {
+            break
+          }
+        }
+      }
       if (snapshot && snapshot.status === 'authenticated') {
         const liveUser = snapshot.session && snapshot.session.user ? snapshot.session.user : null
         if (liveUser) {

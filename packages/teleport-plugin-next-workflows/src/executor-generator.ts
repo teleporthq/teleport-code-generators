@@ -1613,7 +1613,18 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
         // still awaits each query before it responds; we simply ignore the
         // response. Errors are logged, never routed to the error handler:
         // the workflow already moved past this point.
-        if (seg.fireAndForget) {
+        //
+        // seg.fireAndForget is computed STATICALLY (every node in the segment
+        // is a fire-and-forget data node). A segment that MIXES fire-and-forget
+        // and awaited nodes stays blocking statically — but when branch
+        // skipping has already eliminated the awaited nodes at runtime, only
+        // fire-and-forget work remains, so the same "nothing downstream can
+        // read it" guarantee holds for the nodes that will actually run. The
+        // dynamic check below upgrades exactly that case.
+        var segLiveNodes = seg.nodes.filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });
+        var segIsFireAndForget = seg.fireAndForget ||
+          (segLiveNodes.length > 0 && segLiveNodes.every(utils.isFireAndForgetNode));
+        if (segIsFireAndForget) {
           const ffUrl = serverSegmentUrls[seg.id];
           if (!ffUrl) throw new Error('No server URL for segment: ' + seg.id);
           utils.registerPendingNodePromise(

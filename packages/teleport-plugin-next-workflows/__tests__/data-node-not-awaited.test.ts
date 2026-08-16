@@ -476,10 +476,21 @@ describe('generated client runtime', () => {
   const client = generateClientRuntimeCode()
 
   it('dispatches an all-fire-and-forget segment without awaiting the round trip', () => {
-    expect(client).toContain('if (seg.fireAndForget) {')
+    expect(client).toContain('if (segIsFireAndForget) {')
     expect(client).toContain('callServerSegment(ffUrl, context).catch(')
     // The nodes still get their null entries so downstream reads are defined.
     expect(client).toContain('context[seg.nodes[ffi].id] = null;')
+  })
+
+  it('upgrades a mixed segment to fire-and-forget when the awaited nodes were branch-skipped', () => {
+    // Static flag first, then the dynamic check over the LIVE (non-skipped)
+    // nodes — a mixed segment whose awaited nodes sit on a branch that was
+    // not taken has only fire-and-forget work left to do.
+    expect(client).toContain(
+      'var segLiveNodes = seg.nodes.filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });'
+    )
+    expect(client).toContain('var segIsFireAndForget = seg.fireAndForget ||')
+    expect(client).toContain('segLiveNodes.every(utils.isFireAndForgetNode)')
   })
 
   it('keeps awaiting a normal server segment', () => {

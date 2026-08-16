@@ -292,10 +292,17 @@ const TqMotion = ({
     // group animation below so the wrapper stays OUTSIDE the grid/flex container and
     // its repeated items remain direct layout children (no collapsed layout).
     if (staggerTargets != null) {
+      // motion.div (animation-less), NOT a plain div: this branch and the group
+      // fall-through below must render the SAME outer element type. A page whose
+      // loading conditional resolves can flip which branch runs — with differing
+      // types React REMOUNTS the outer element, and framer's useInView keeps
+      // observing the detached original, so the group variant below could never
+      // reveal (the trapped-at-opacity-0 "Making Process" defect). A constant
+      // element type keeps the same DOM node across the swap and the observer live.
       return (
-        <div ref={ref} style={style} {...rest}>
+        <motion.div ref={ref} style={style} {...rest}>
           {staggerTargets}
-        </div>
+        </motion.div>
       )
     }
   }

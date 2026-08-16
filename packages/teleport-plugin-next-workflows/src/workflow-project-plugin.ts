@@ -1365,7 +1365,17 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
       }
       var segUrl = serverUrls[seg.id];
       if (segUrl) {
-        if (seg.fireAndForget) {
+        // seg.fireAndForget is static (EVERY node is a fire-and-forget data
+        // node). A mixed segment stays blocking statically, but once branch
+        // skipping has eliminated the awaited nodes at runtime, only
+        // fire-and-forget work remains — e.g. the resolve-user custom node's
+        // returning-guest branch, whose idempotent users-row re-ensure is
+        // fire-and-forget while the new-guest create (same segment, other
+        // branch) stays awaited. Upgrade exactly that case dynamically.
+        var __segLiveNodes = seg.nodes.filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });
+        var __segIsFireAndForget = seg.fireAndForget ||
+          (__segLiveNodes.length > 0 && __segLiveNodes.every(__utils.isFireAndForgetNode));
+        if (__segIsFireAndForget) {
           // Nothing downstream can read this segment's output, so the visitor
           // never waits for it. The route still awaits each query before it
           // responds; we just ignore the response. A failure is logged and

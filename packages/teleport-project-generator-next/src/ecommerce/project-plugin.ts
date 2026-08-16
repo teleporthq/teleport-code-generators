@@ -38,7 +38,7 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       // providers / delivery) and wrap _app, so the references resolve and a
       // basic cart still works. Projects that never reference it are untouched.
       if (projectReferencesEcommerceContext(files)) {
-        this.generateContextFile({} as UIDLEcommerceSettings, undefined, files, null, false)
+        this.generateContextFile({} as UIDLEcommerceSettings, undefined, files, null, false, false)
         this.injectProviderIntoApp(files)
       }
       return structure
@@ -56,7 +56,10 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       uidl.invoiceSettings,
       files,
       dataSourceId,
-      cartDbEnabled
+      cartDbEnabled,
+      // Publish the workflow settings global — this branch also emits the
+      // /api/ecommerce/settings route with the identical payload.
+      true
     )
     this.generateApiRoutes(ecommerceSettings, dataSourceType, dataSourceConfig, files)
     if (cartRoute) {
@@ -115,13 +118,15 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     invoiceSettings: UIDLInvoiceSettings | undefined,
     files: Map<string, any>,
     dataSourceId: string | null,
-    cartDbEnabled: boolean
+    cartDbEnabled: boolean,
+    emitWorkflowSettingsGlobal: boolean
   ): void {
     const content = generateEcommerceContextFileContent(
       ecommerceSettings,
       invoiceSettings,
       dataSourceId,
-      cartDbEnabled
+      cartDbEnabled,
+      emitWorkflowSettingsGlobal
     )
     files.set('ecommerce-context', {
       path: [],

@@ -1,8 +1,18 @@
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
 
-export const generateEcommerceSettingsApiRoute = (settings: UIDLEcommerceSettings): string => {
+// The settings payload every workflow-facing consumer shares: the
+// /api/ecommerce/settings route bakes it as its response literal, and the
+// generated ecommerce-context publishes the SAME object on
+// `window.__teleportEcommerceSettings` so the `ecommerce-get-settings`
+// workflow node (client-side, see teleport-plugin-next-workflows) can read it
+// without a network round trip. Keep the two consumers on this ONE builder —
+// the workflow node treats the baked global and the route response as
+// interchangeable.
+export const buildWorkflowEcommerceSettingsPayload = (
+  settings: UIDLEcommerceSettings
+): Record<string, unknown> => {
   const stockConfig = settings.stockManagementConfig
-  const settingsPayload = JSON.stringify({
+  return {
     guestCheckout: settings.guestCheckout,
     stockManagement: settings.stockManagement,
     allowBackorders: stockConfig?.allowBackorders ?? true,
@@ -12,7 +22,11 @@ export const generateEcommerceSettingsApiRoute = (settings: UIDLEcommerceSetting
     cashOnDelivery: settings.cashOnDelivery,
     deliveryEnabled: settings.deliveryEnabled,
     storePickupEnabled: settings.storePickupEnabled,
-  })
+  }
+}
+
+export const generateEcommerceSettingsApiRoute = (settings: UIDLEcommerceSettings): string => {
+  const settingsPayload = JSON.stringify(buildWorkflowEcommerceSettingsPayload(settings))
 
   return `export default function handler(req, res) {
   if (req.method !== 'GET') {

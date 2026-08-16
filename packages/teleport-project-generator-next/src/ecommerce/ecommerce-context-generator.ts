@@ -1,4 +1,5 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
 
 export const generateEcommerceContextFileContent = (
   ecommerceSettings: UIDLEcommerceSettings,
@@ -9,7 +10,18 @@ export const generateEcommerceContextFileContent = (
   // the generated /api/cart/[op] route. Only enabled for Postgres datasources
   // — see NextEcommerceProjectPlugin.generateApiRoutes. When false the output
   // is byte-identical to the pure-localStorage cart.
-  cartDbEnabled?: boolean
+  cartDbEnabled?: boolean,
+  // When true, the module publishes the workflow-facing settings payload on
+  // `window.__teleportEcommerceSettings` at module-eval time (this module is
+  // imported by _app, so the global exists before any workflow can run). The
+  // client-side `ecommerce-get-settings` workflow node reads it instead of
+  // fetching /api/ecommerce/settings — the route bakes the SAME payload as a
+  // literal, so the global can never disagree with it. Only the real-settings
+  // branch of the project plugin turns this on; the settings-less fallback
+  // context (emitted just so cart-hook imports resolve) must NOT publish a
+  // defaults-shaped payload that the workflow node would mistake for real
+  // merchant settings.
+  emitWorkflowSettingsGlobal?: boolean
 ): string => {
   const settingsJson = JSON.stringify(buildSettingsObject(ecommerceSettings, invoiceSettings))
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
@@ -280,13 +292,28 @@ function persistCartToDb(items) {
 `
     : ''
 
+  // Workflow-facing settings global — same literal the /api/ecommerce/settings
+  // route responds with. Published at module-eval time (before any render or
+  // click) so the client-side `ecommerce-get-settings` workflow node resolves
+  // synchronously instead of paying a server round trip per click.
+  const workflowSettingsGlobalCode = emitWorkflowSettingsGlobal
+    ? `
+const WORKFLOW_ECOMMERCE_SETTINGS = ${JSON.stringify(
+        buildWorkflowEcommerceSettingsPayload(ecommerceSettings)
+      )}
+if (typeof window !== 'undefined') {
+  window.__teleportEcommerceSettings = WORKFLOW_ECOMMERCE_SETTINGS
+}
+`
+    : ''
+
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'
 const PICKUP_STORE_DEFAULT_KEY = 'workflow_pickup_store_default'
-${dsConstCode}
+${workflowSettingsGlobalCode}${dsConstCode}
 
 const EcommerceContext = createContext(null)
 
