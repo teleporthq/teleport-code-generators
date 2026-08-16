@@ -77,8 +77,27 @@ async function account_get_current(_config: unknown, context: Record<string, unk
         const liveUser = snapshot.session && snapshot.session.user ? snapshot.session.user : null
         if (liveUser) {
           __cache(liveUser)
+          ;(window as any).__tqSessionConfirmedSignedOut = false
           return __out(liveUser)
         }
+      }
+      // The fetch below exists to guard against 'unauthenticated' meaning "the
+      // provider's fetch FAILED" rather than "signed out". Once ONE fetch this
+      // page load has come back ok with no user, that ambiguity is resolved —
+      // repeating the confirmation on every subsequent click only burns a round
+      // trip. The memo is a window flag (never storage): a reload starts a
+      // fresh page and re-verifies, and it is cleared the moment any live user
+      // is observed. It is consulted ONLY when next-auth itself reports
+      // 'unauthenticated' — it can never mask a signed-in session, and it is
+      // display-plumbing only: every server-side write re-derives identity
+      // from the httpOnly session cookie, not from anything cached here.
+      if (
+        snapshot &&
+        snapshot.status === 'unauthenticated' &&
+        (window as any).__tqSessionConfirmedSignedOut === true
+      ) {
+        __cache(null)
+        return __out(null)
       }
     } catch (_e) {}
   }
@@ -90,6 +109,12 @@ async function account_get_current(_config: unknown, context: Record<string, unk
       const user = session && session.user ? session.user : null
 
       __cache(user)
+
+      if (typeof window !== 'undefined') {
+        try {
+          ;(window as any).__tqSessionConfirmedSignedOut = !user
+        } catch (_e) {}
+      }
 
       return __out(user)
     }

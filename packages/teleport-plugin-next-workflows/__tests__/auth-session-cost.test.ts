@@ -591,6 +591,107 @@ describe('account-get-current reads the in-memory session before the network', (
     )
   })
 
+  it('confirms a sign-out ONCE per page load, then stops re-fetching', async () => {
+    // next-auth reports 'unauthenticated' both for "signed out" and "my fetch
+    // failed", so the FIRST guest resolution verifies against the endpoint.
+    // Once that verification succeeds with no user, repeating it on every
+    // click only burns a round trip — the memo short-circuits it.
+    let fetched = 0
+    await withWindow(
+      { getSession: () => ({ status: 'unauthenticated', session: null as unknown }) },
+      async () => {
+        fetched += 1
+        return { ok: true, json: async () => ({}) }
+      },
+      async (handler) => {
+        const first = await handler({}, {})
+        expect(fetched).toBe(1)
+        expect(first.user).toBeNull()
+
+        const second = await handler({}, {})
+        expect(fetched).toBe(1)
+        expect(second.user).toBeNull()
+      }
+    )
+  })
+
+  it('never memoizes sign-out from a FAILED confirmation fetch', async () => {
+    let fetched = 0
+    const user = { id: 'u-7', email: 'joan@example.com' }
+    await withWindow(
+      { getSession: () => ({ status: 'unauthenticated', session: null as unknown }) },
+      async () => {
+        fetched += 1
+        if (fetched === 1) {
+          throw new Error('network blip')
+        }
+        return { ok: true, json: async () => ({ user }) }
+      },
+      async (handler) => {
+        await handler({}, {})
+        // The blip must not count as confirmation — the next call re-verifies
+        // and finds the real signed-in session.
+        const second = await handler({}, {})
+        expect(fetched).toBe(2)
+        expect(second.id).toBe('u-7')
+      }
+    )
+  })
+
+  it('a confirmation fetch that finds a user does NOT memoize sign-out', async () => {
+    let fetched = 0
+    const user = { id: 'u-8', email: 'lin@example.com' }
+    await withWindow(
+      { getSession: () => ({ status: 'unauthenticated', session: null as unknown }) },
+      async () => {
+        fetched += 1
+        return { ok: true, json: async () => ({ user }) }
+      },
+      async (handler) => {
+        const first = await handler({}, {})
+        expect(first.id).toBe('u-8')
+        const second = await handler({}, {})
+        // Still verifying every time — the memo only forms on a confirmed
+        // empty session, never while a user is being returned.
+        expect(fetched).toBe(2)
+        expect(second.id).toBe('u-8')
+      }
+    )
+  })
+
+  it('an authenticated bridge clears a previously memoized sign-out', async () => {
+    // Sequence: guest confirms sign-out (memo forms) → user signs in (bridge
+    // flips to authenticated) → signs out again (bridge back to
+    // unauthenticated). The sign-in must clear the memo... and it does, but
+    // even if it did not, correctness holds: the memo is only consulted while
+    // next-auth itself reports 'unauthenticated'.
+    let status = 'unauthenticated'
+    let fetched = 0
+    const user = { id: 'u-9', email: 'kay@example.com' }
+    await withWindow(
+      { getSession: () => ({ status, session: status === 'authenticated' ? { user } : null }) },
+      async () => {
+        fetched += 1
+        return { ok: true, json: async () => ({}) }
+      },
+      async (handler) => {
+        await handler({}, {})
+        expect(fetched).toBe(1)
+        expect((global as any).window.__tqSessionConfirmedSignedOut).toBe(true)
+
+        status = 'authenticated'
+        const signedIn = await handler({}, {})
+        expect(signedIn.id).toBe('u-9')
+        expect((global as any).window.__tqSessionConfirmedSignedOut).toBe(false)
+
+        status = 'unauthenticated'
+        await handler({}, {})
+        // Memo was cleared by the sign-in, so sign-out is re-confirmed once.
+        expect(fetched).toBe(2)
+      }
+    )
+  })
+
   it('ignores a malformed bridge rather than throwing', async () => {
     const user = { id: 'u-6', email: 'ken@example.com' }
     let fetched = 0
