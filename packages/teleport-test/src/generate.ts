@@ -96,11 +96,11 @@ const resolveProjectType = (value: string | undefined): ProjectType => {
   if (!value) {
     return ProjectType.NEXT
   }
-  const normalized = value.toLowerCase()
-  if (!PROJECT_TYPES.includes(normalized)) {
+  const match = PROJECT_TYPES.find((type) => type.toLowerCase() === value.toLowerCase())
+  if (!match) {
     throw new Error(`Unknown --project-type "${value}". Known: ${PROJECT_TYPES.join(', ')}`)
   }
-  return normalized as ProjectType
+  return match as ProjectType
 }
 
 const readUidl = (uidlPath: string): ProjectUIDL => {

@@ -1059,11 +1059,18 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
 
     // Find or create getStaticProps chunk
     let { chunk: getStaticPropsChunk, tryBlock } = findGetStaticPropsChunkAndTryBlock(chunks)
-    if (!getStaticPropsChunk || !tryBlock) {
+    if (!getStaticPropsChunk) {
       const created = createGetStaticPropsChunk()
       getStaticPropsChunk = created.chunk
       tryBlock = created.tryBlock
       chunks.push(getStaticPropsChunk)
+    } else if (!tryBlock) {
+      // The chunk is the minimal fallback stub emitted by the static-paths
+      // plugin (no try block). Replace its content in place — pushing a second
+      // chunk would export getStaticProps twice and break the Next.js build.
+      const created = createGetStaticPropsChunk()
+      getStaticPropsChunk.content = created.chunk.content
+      tryBlock = created.tryBlock
     }
 
     // Compute folder depth for import paths
