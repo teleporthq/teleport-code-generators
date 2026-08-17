@@ -6,6 +6,7 @@ import { generateSignatureComponentCode } from './signature-component'
 import { generateColorPickerComponentCode } from './color-picker-component'
 import { generateEmojiPickerComponentCode } from './emoji-picker-component'
 import { generateMotionComponentCode } from './motion-component'
+import { generateScrollSceneComponentCode } from './scroll-scene-component'
 import { generateFormFileInputComponentCode } from './form-file-input-component'
 import { generateCategoriesMegamenuComponentCode } from './categories-megamenu-component'
 import { generateCategoriesFilterComponentCode } from './categories-filter-component'
@@ -67,6 +68,15 @@ export const createNextWidgetProjectPlugins = (): ProjectPlugin[] => [
     dependencyName: 'framer-motion',
     dependencyVersion: '^11.18.0',
     // framer-motion needs React 18 — bump it like the calendar widget does.
+    bumpReact18: true,
+  }),
+  createNextWidgetProjectPlugin({
+    elementType: 'scroll-scene-node',
+    fileName: 'tq-scroll-scene',
+    fileKey: 'tq-scroll-scene-component',
+    generateCode: generateScrollSceneComponentCode,
+    dependencyName: 'framer-motion',
+    dependencyVersion: '^11.18.0',
     bumpReact18: true,
   }),
   createNextWidgetProjectPlugin({
