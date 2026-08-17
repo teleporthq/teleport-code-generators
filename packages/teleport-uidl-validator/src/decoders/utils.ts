@@ -20,6 +20,8 @@ import {
 import {
   UIDLStaticValue,
   ReferenceType,
+  UIDLConditionExpressionEntry,
+  UIDLConditionExpressionGroup,
   UIDLDynamicReference,
   UIDLStateDefinition,
   UIDLPageOptions,
@@ -739,18 +741,28 @@ export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
   elementStyleWithStateConditionDecoder
 )
 
-// One entry of a UIDLConditionalExpression. The decoded object REPLACES the
-// input in the generator pipelines, so every legal field must be declared here
-// or it is silently stripped before codegen. `reference` is the optional
-// per-entry left side (absent = inherit the expression's top-level reference).
-const conditionEntryDecoder = object({
-  operation: string(),
-  operand: optional(
-    union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
-  ),
-  containsField: optional(string()),
-  reference: optional(union(dynamicValueDecoder, expressionValueDecoder)),
-})
+// One entry of a UIDLConditionalExpression: a leaf comparison or a nested
+// group (parenthesized sub-chain). The decoded object REPLACES the input in
+// the generator pipelines, so every legal field must be declared here or it
+// is silently stripped before codegen. `reference` is the optional per-entry
+// left side (absent = inherit the expression's top-level reference).
+const conditionEntryDecoder: Decoder<UIDLConditionExpressionEntry | UIDLConditionExpressionGroup> =
+  lazy(() =>
+    union(
+      object({
+        operation: string(),
+        operand: optional(
+          union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
+        ),
+        containsField: optional(string()),
+        reference: optional(union(dynamicValueDecoder, expressionValueDecoder)),
+      }),
+      object({
+        conditions: array(conditionEntryDecoder),
+        matchingCriteria: optional(string()),
+      })
+    )
+  )
 
 export const conditionalProjectStyleDecoder: Decoder<UIDLDynamicCondition> = object({
   reference: dynamicValueDecoder,

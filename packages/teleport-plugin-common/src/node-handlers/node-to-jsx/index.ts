@@ -1987,15 +1987,15 @@ const wrapWithConditional = (
   options: JSXGenerationOptions
 ): types.LogicalExpression => {
   const conditionIdentifier = trackAndResolveConditionIdentifier(reference, params, options)
-  const perConditionIdentifiers = condition.conditions.map((conditionEntry) =>
-    conditionEntry.reference
-      ? trackAndResolveConditionIdentifier(conditionEntry.reference, params, options)
-      : undefined
-  )
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier, {
     localIdentifier: options.localIdentifier,
     detailsPageExposeAsName: options.detailsPageExposeAsName || params.detailsPageExposeAsName,
-    perConditionIdentifiers,
+    // Leaf entries (any nesting depth) with their own left side resolve —
+    // and globals-track — through the same path as the top-level reference.
+    resolveEntryIdentifier: (conditionEntry) =>
+      conditionEntry.reference
+        ? trackAndResolveConditionIdentifier(conditionEntry.reference, params, options)
+        : undefined,
   })
 }
 

@@ -397,6 +397,122 @@ describe('generateJSXSyntax', () => {
         { id: 'darkMode', name: 'darkMode' },
       ])
     })
+
+    it('nests a group entry as a parenthesized sub-chain — (a && b) || c', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'a' },
+        },
+        condition: {
+          conditions: [
+            {
+              conditions: [
+                { operation: '===', operand: 1 },
+                {
+                  operation: '===',
+                  operand: 3,
+                  reference: {
+                    type: 'dynamic',
+                    content: { referenceType: 'state', id: 'b' },
+                  },
+                },
+              ],
+              matchingCriteria: 'all',
+            },
+            {
+              operation: '===',
+              operand: 5,
+              reference: {
+                type: 'dynamic',
+                content: { referenceType: 'state', id: 'c' },
+              },
+            },
+          ],
+          matchingCriteria: '||',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const groupedParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: {
+          a: { type: 'number', defaultValue: 1 },
+          b: { type: 'number', defaultValue: 3 },
+          c: { type: 'number', defaultValue: 0 },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, groupedParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const conditionChain = (expressionChild.expression as types.LogicalExpression)
+        .left as types.LogicalExpression
+
+      // (a === 1 && b === 3) || c === 5 — the group nests as the left branch,
+      // which the printer emits parenthesized.
+      expect(conditionChain.operator).toBe('||')
+
+      const groupChain = conditionChain.left as types.LogicalExpression
+      expect(groupChain.type).toBe('LogicalExpression')
+      expect(groupChain.operator).toBe('&&')
+      const aComparison = groupChain.left as types.BinaryExpression
+      const bComparison = groupChain.right as types.BinaryExpression
+      expect((aComparison.left as types.Identifier).name).toBe('a')
+      expect((aComparison.right as types.NumericLiteral).value).toBe(1)
+      expect((bComparison.left as types.Identifier).name).toBe('b')
+      expect((bComparison.right as types.NumericLiteral).value).toBe(3)
+
+      const cComparison = conditionChain.right as types.BinaryExpression
+      expect((cComparison.left as types.Identifier).name).toBe('c')
+      expect((cComparison.right as types.NumericLiteral).value).toBe(5)
+    })
+
+    it('tracks references from leaves nested inside groups', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'menuOpen' },
+        },
+        condition: {
+          conditions: [
+            { operation: '===', operand: true },
+            {
+              conditions: [
+                {
+                  operation: '===',
+                  operand: true,
+                  reference: {
+                    type: 'dynamic',
+                    content: { referenceType: 'globalState', id: 'darkMode' },
+                  },
+                },
+              ],
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const nestedTrackingParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { menuOpen: { type: 'boolean', defaultValue: false } },
+        globalStateDefinitions: {
+          darkMode: { id: 'darkMode', name: 'darkMode', type: 'boolean', defaultValue: false },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      generateJSXSyntax(wrappingParent, nestedTrackingParams, options)
+
+      expect(nestedTrackingParams.globalStateReferences).toEqual([
+        { id: 'darkMode', name: 'darkMode' },
+      ])
+    })
   })
 
   describe('navlink href via differentiatorValue', () => {

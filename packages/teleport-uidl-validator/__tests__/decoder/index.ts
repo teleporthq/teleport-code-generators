@@ -206,3 +206,54 @@ test('renderingConditionsDecoder preserves containsField and per-entry reference
     expect(result.result.condition.matchingCriteria).toBe('all')
   }
 })
+
+test('renderingConditionsDecoder preserves nested condition groups — (a && b) || c', () => {
+  const renderingConditions = {
+    reference: {
+      type: 'dynamic',
+      content: { referenceType: 'state', id: 'a' },
+    },
+    condition: {
+      conditions: [
+        {
+          conditions: [
+            { operation: '===', operand: 1 },
+            {
+              operation: '===',
+              operand: 3,
+              reference: { type: 'dynamic', content: { referenceType: 'state', id: 'b' } },
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+        {
+          operation: '===',
+          operand: 5,
+          reference: { type: 'dynamic', content: { referenceType: 'state', id: 'c' } },
+        },
+      ],
+      matchingCriteria: '||',
+    },
+  }
+
+  const result = renderingConditionsDecoder.run(renderingConditions)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const decodedConditions = result.result.condition.conditions as Array<{
+      operation?: string
+      matchingCriteria?: string
+      conditions?: Array<{
+        operation: string
+        operand?: unknown
+        reference?: { type: string; content: { id: string } }
+      }>
+      reference?: { type: string; content: { id: string } }
+    }>
+    expect(decodedConditions[0].conditions).toHaveLength(2)
+    expect(decodedConditions[0].matchingCriteria).toBe('all')
+    expect(decodedConditions[0].conditions?.[1].reference?.content.id).toBe('b')
+    expect(decodedConditions[1].operation).toBe('===')
+    expect(decodedConditions[1].reference?.content.id).toBe('c')
+    expect(result.result.condition.matchingCriteria).toBe('||')
+  }
+})

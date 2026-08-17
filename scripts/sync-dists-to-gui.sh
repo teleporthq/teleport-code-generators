@@ -71,5 +71,15 @@ for package_name in $changed_packages; do
   echo "sync  $package_name  ->  $target_dist"
 done
 
+# Next's webpack persistent cache keys node_modules by package VERSION
+# (managedPaths), which rsyncing dists never bumps — so even a dev-server
+# RESTART keeps serving the old compiled modules. Purge the cache so the next
+# start recompiles from the synced dists (cost: one slower cold start).
+webpack_cache_dir="$GUI_ROOT/apps/gui/.next/cache/webpack"
+if [ -d "$webpack_cache_dir" ]; then
+  rm -rf "$webpack_cache_dir"
+  echo "purged $webpack_cache_dir (stale-dist trap)"
+fi
+
 echo
 echo "Done. Restart the GUI dev server so webpack picks the new dists up."
