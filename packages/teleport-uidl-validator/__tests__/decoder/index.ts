@@ -3,6 +3,7 @@ import {
   conditionalNodeDecoder,
   stateDefinitionsDecoder,
   cmsListRepeaterNodeDecoder,
+  renderingConditionsDecoder,
 } from '../../src/decoders/utils'
 
 test('decode conditional nodes properly when using dynamic and expression reference', () => {
@@ -160,5 +161,48 @@ test('cmsListRepeaterNodeDecoder preserves searchUrlParamKey through validation'
     // The sibling search fields still decode alongside it.
     expect(content.searchEnabled).toBe(true)
     expect(content.searchDebounce).toBe(300)
+  }
+})
+
+// Same silent-stripping hazard as above, for rendering conditions: the decoded
+// UIDL REPLACES the input in every generator pipeline, so a condition-entry
+// field missing from the decoder never reaches codegen. `containsField` was
+// stripped this way (contains-on-object-field degraded to plain contains in
+// every published app); per-entry `reference` would break far louder — the
+// entry would silently compare the WRONG state.
+test('renderingConditionsDecoder preserves containsField and per-entry references', () => {
+  const renderingConditions = {
+    reference: {
+      type: 'dynamic',
+      content: { referenceType: 'state', id: 'newsletterOfferVisible' },
+    },
+    condition: {
+      conditions: [
+        { operation: '===', operand: true },
+        {
+          operation: '===',
+          operand: false,
+          reference: {
+            type: 'dynamic',
+            content: { referenceType: 'state', id: 'userIsLoggedIn' },
+          },
+        },
+        { operation: 'contains', operand: 'tag-1', containsField: 'tags' },
+      ],
+      matchingCriteria: 'all',
+    },
+  }
+
+  const result = renderingConditionsDecoder.run(renderingConditions)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const decodedConditions = result.result.condition.conditions as Array<{
+      operation: string
+      containsField?: string
+      reference?: { type: string; content: { id: string } }
+    }>
+    expect(decodedConditions[1].reference?.content.id).toBe('userIsLoggedIn')
+    expect(decodedConditions[2].containsField).toBe('tags')
+    expect(result.result.condition.matchingCriteria).toBe('all')
   }
 })

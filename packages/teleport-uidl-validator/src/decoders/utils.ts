@@ -739,20 +739,26 @@ export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
   elementStyleWithStateConditionDecoder
 )
 
+// One entry of a UIDLConditionalExpression. The decoded object REPLACES the
+// input in the generator pipelines, so every legal field must be declared here
+// or it is silently stripped before codegen. `reference` is the optional
+// per-entry left side (absent = inherit the expression's top-level reference).
+const conditionEntryDecoder = object({
+  operation: string(),
+  operand: optional(
+    union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
+  ),
+  containsField: optional(string()),
+  reference: optional(union(dynamicValueDecoder, expressionValueDecoder)),
+})
+
 export const conditionalProjectStyleDecoder: Decoder<UIDLDynamicCondition> = object({
   reference: dynamicValueDecoder,
   importDefinitions: optional(dict(externaldependencyDecoder)),
   value: optional(union(string(), number(), boolean())),
   expression: optional(
     object({
-      conditions: array(
-        object({
-          operation: string(),
-          operand: optional(
-            union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
-          ),
-        })
-      ),
+      conditions: array(conditionEntryDecoder),
       matchingCriteria: optional(string()),
     })
   ),
@@ -822,14 +828,7 @@ const flexibleChildDecoder: Decoder<VUIDLNode> = lazy(() => {
 })
 
 export const conditionalExpressionDecoder = object({
-  conditions: array(
-    object({
-      operation: string(),
-      operand: optional(
-        union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
-      ),
-    })
-  ),
+  conditions: array(conditionEntryDecoder),
   matchingCriteria: optional(string()),
 })
 
@@ -928,14 +927,7 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
     value: optional(union(string(), number(), boolean())),
     condition: optional(
       object({
-        conditions: array(
-          object({
-            operation: string(),
-            operand: optional(
-              union(string(), number(), boolean(), dynamicValueDecoder, expressionValueDecoder)
-            ),
-          })
-        ),
+        conditions: array(conditionEntryDecoder),
         matchingCriteria: optional(string()),
       })
     ),

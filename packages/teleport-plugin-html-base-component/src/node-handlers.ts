@@ -208,6 +208,15 @@ export const generateHtmlSyntax: NodeToHTML<
         return conditionalNodeComment
       }
 
+      // This evaluator resolves ONE reference to its default value and checks
+      // every condition against it. Entries carrying their own per-entry
+      // `reference` cannot be answered that way — bail out like the `state`
+      // branch below does (render nothing) instead of comparing them against
+      // the wrong default.
+      if (conditions.some((conditionEntry) => conditionEntry.reference)) {
+        return conditionalNodeComment
+      }
+
       const {
         content: { referenceType, id, refPath = [] },
       } = reference

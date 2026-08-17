@@ -192,6 +192,23 @@ const standardizeUIDLConditionalExpression = (
   return conditionalExpression
 }
 
+// An entry carrying its own `reference` compares that reference instead of the
+// expression's inherited key. Dynamic refs contribute their id; expr refs
+// contribute their raw expression, parenthesized (this flavor works in string
+// space, so the expression text slots in as the left side directly).
+const resolveConditionEntryKey = (
+  entry: UIDLConditionalExpression['conditions'][number],
+  inheritedKey: string
+): string => {
+  if (!entry.reference) {
+    return inheritedKey
+  }
+  if (entry.reference.type === 'dynamic') {
+    return entry.reference.content.id
+  }
+  return `(${entry.reference.content})`
+}
+
 const createConditional = (
   conditionalKey: string,
   conditionalExpression: UIDLConditionalExpression
@@ -199,11 +216,22 @@ const createConditional = (
   const { matchingCriteria, conditions } = conditionalExpression
   if (conditions.length === 1) {
     const { operation, operand, containsField } = conditions[0]
-    return stringifyConditionalExpression(conditionalKey, operation, operand, containsField)
+    return stringifyConditionalExpression(
+      resolveConditionEntryKey(conditions[0], conditionalKey),
+      operation,
+      operand,
+      containsField
+    )
   }
 
-  const stringConditions = conditions.map(({ operation, operand, containsField }) => {
-    return `(${stringifyConditionalExpression(conditionalKey, operation, operand, containsField)})`
+  const stringConditions = conditions.map((conditionEntry) => {
+    const { operation, operand, containsField } = conditionEntry
+    return `(${stringifyConditionalExpression(
+      resolveConditionEntryKey(conditionEntry, conditionalKey),
+      operation,
+      operand,
+      containsField
+    )})`
   })
 
   const joinOperator = matchingCriteria === 'all' ? '&&' : '||'

@@ -1082,6 +1082,8 @@ export interface UIDLConditionalExpression {
     operation: string
     operand?: string | boolean | number | UIDLDynamicReference | UIDLExpressionValue
     containsField?: string
+    // Left side of THIS entry. Absent = inherit the expression's top-level reference.
+    reference?: UIDLDynamicReference | UIDLExpressionValue
   }>
   // In the code generation phase, we are only supporting 'all' or '||'
   // Maybe the type checking for this can be improved.

@@ -935,7 +935,13 @@ export const createConditionalJSXExpression = (
   content: JSXASTReturnType,
   conditionalExpression: UIDLConditionalExpression,
   conditionalIdentifier: ConditionalIdentifier,
-  options: { localIdentifier?: string; detailsPageExposeAsName?: string } = {},
+  options: {
+    localIdentifier?: string
+    detailsPageExposeAsName?: string
+    // Indexed parallel to `conditions`; an entry with its own `reference` gets
+    // its resolved identifier here, the rest inherit `conditionalIdentifier`.
+    perConditionIdentifiers?: Array<ConditionalIdentifier | undefined>
+  } = {},
   t = types
 ) => {
   let contentNode: types.Expression
@@ -958,8 +964,12 @@ export const createConditionalJSXExpression = (
 
   // When the stateValue is an object we will compute a logical/binary expression on the left side
   const { conditions, matchingCriteria } = conditionalExpression
-  const binaryExpressions = conditions.map((condition) =>
-    createBinaryExpression(condition, conditionalIdentifier, options)
+  const binaryExpressions = conditions.map((condition, conditionIndex) =>
+    createBinaryExpression(
+      condition,
+      options.perConditionIdentifiers?.[conditionIndex] ?? conditionalIdentifier,
+      options
+    )
   )
 
   if (binaryExpressions.length === 1) {
