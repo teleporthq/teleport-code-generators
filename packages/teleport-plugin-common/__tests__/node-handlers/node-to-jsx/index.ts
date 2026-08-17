@@ -226,6 +226,293 @@ describe('generateJSXSyntax', () => {
       expect(wrappedContent.type).toBe('JSXElement')
       expect((wrappedContent.openingElement.name as types.JSXIdentifier).name).toBe('container')
     })
+
+    const buildTwoReferenceConditions = (matchingCriteria: string) =>
+      ({
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'newsletterOfferVisible' },
+        },
+        condition: {
+          conditions: [
+            { operation: '===', operand: true },
+            {
+              operation: '===',
+              operand: false,
+              reference: {
+                type: 'dynamic',
+                content: { referenceType: 'state', id: 'userIsLoggedIn' },
+              },
+            },
+          ],
+          matchingCriteria,
+        },
+      } as never)
+
+    it('compares each entry against its own reference when one is set (AND chain)', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = buildTwoReferenceConditions('all')
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const twoStateParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: {
+          newsletterOfferVisible: { type: 'boolean', defaultValue: true },
+          userIsLoggedIn: { type: 'boolean', defaultValue: false },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, twoStateParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const outerLogical = expressionChild.expression as types.LogicalExpression
+      expect(outerLogical.operator).toBe('&&')
+
+      // Left side is the chained condition pair, joined with `&&` for 'all'.
+      const conditionChain = outerLogical.left as types.LogicalExpression
+      expect(conditionChain.type).toBe('LogicalExpression')
+      expect(conditionChain.operator).toBe('&&')
+
+      // `=== true` compiles to the bare identifier, `=== false` to `!identifier`
+      // — i.e. `newsletterOfferVisible && !userIsLoggedIn`, the wild-log case.
+      const firstComparison = conditionChain.left as types.Identifier
+      const secondComparison = conditionChain.right as types.UnaryExpression
+      expect(firstComparison.name).toBe('newsletterOfferVisible')
+      expect(secondComparison.operator).toBe('!')
+      expect((secondComparison.argument as types.Identifier).name).toBe('userIsLoggedIn')
+    })
+
+    it('chains mixed-reference entries with `||` when matchingCriteria is not "all"', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = buildTwoReferenceConditions('||')
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const twoStateParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: {
+          newsletterOfferVisible: { type: 'boolean', defaultValue: true },
+          userIsLoggedIn: { type: 'boolean', defaultValue: false },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, twoStateParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const outerLogical = expressionChild.expression as types.LogicalExpression
+      const conditionChain = outerLogical.left as types.LogicalExpression
+      expect(conditionChain.operator).toBe('||')
+      expect((conditionChain.left as types.Identifier).name).toBe('newsletterOfferVisible')
+      expect(
+        ((conditionChain.right as types.UnaryExpression).argument as types.Identifier).name
+      ).toBe('userIsLoggedIn')
+    })
+
+    it('mixes a prop-referencing entry into a state-anchored chain with the right prefix', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'menuOpen' },
+        },
+        condition: {
+          conditions: [
+            { operation: '===', operand: true },
+            {
+              operation: '===',
+              operand: 'admin',
+              reference: {
+                type: 'dynamic',
+                content: { referenceType: 'prop', id: 'role' },
+              },
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const mixedParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { menuOpen: { type: 'boolean', defaultValue: false } },
+        propDefinitions: { role: { type: 'string', defaultValue: 'guest' } },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, mixedParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const conditionChain = (expressionChild.expression as types.LogicalExpression)
+        .left as types.LogicalExpression
+
+      // `=== true` on the boolean state compiles to the bare identifier.
+      const stateComparison = conditionChain.left as types.Identifier
+      expect(stateComparison.name).toBe('menuOpen')
+
+      // The prop entry rides the `props.` prefix from the prefix map.
+      const propComparison = conditionChain.right as types.BinaryExpression
+      const propMember = propComparison.left as types.MemberExpression
+      expect((propMember.object as types.Identifier).name).toBe('props')
+      expect((propMember.property as types.Identifier).name).toBe('role')
+      expect((propComparison.right as types.StringLiteral).value).toBe('admin')
+    })
+
+    it('tracks a globalState per-entry reference on params for context wiring', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'menuOpen' },
+        },
+        condition: {
+          conditions: [
+            { operation: '===', operand: true },
+            {
+              operation: '===',
+              operand: true,
+              reference: {
+                type: 'dynamic',
+                content: { referenceType: 'globalState', id: 'darkMode' },
+              },
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const globalStateParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { menuOpen: { type: 'boolean', defaultValue: false } },
+        globalStateDefinitions: {
+          darkMode: { id: 'darkMode', name: 'darkMode', type: 'boolean', defaultValue: false },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      generateJSXSyntax(wrappingParent, globalStateParams, options)
+
+      expect(globalStateParams.globalStateReferences).toEqual([
+        { id: 'darkMode', name: 'darkMode' },
+      ])
+    })
+
+    it('nests a group entry as a parenthesized sub-chain — (a && b) || c', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'a' },
+        },
+        condition: {
+          conditions: [
+            {
+              conditions: [
+                { operation: '===', operand: 1 },
+                {
+                  operation: '===',
+                  operand: 3,
+                  reference: {
+                    type: 'dynamic',
+                    content: { referenceType: 'state', id: 'b' },
+                  },
+                },
+              ],
+              matchingCriteria: 'all',
+            },
+            {
+              operation: '===',
+              operand: 5,
+              reference: {
+                type: 'dynamic',
+                content: { referenceType: 'state', id: 'c' },
+              },
+            },
+          ],
+          matchingCriteria: '||',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const groupedParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: {
+          a: { type: 'number', defaultValue: 1 },
+          b: { type: 'number', defaultValue: 3 },
+          c: { type: 'number', defaultValue: 0 },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, groupedParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const conditionChain = (expressionChild.expression as types.LogicalExpression)
+        .left as types.LogicalExpression
+
+      // (a === 1 && b === 3) || c === 5 — the group nests as the left branch,
+      // which the printer emits parenthesized.
+      expect(conditionChain.operator).toBe('||')
+
+      const groupChain = conditionChain.left as types.LogicalExpression
+      expect(groupChain.type).toBe('LogicalExpression')
+      expect(groupChain.operator).toBe('&&')
+      const aComparison = groupChain.left as types.BinaryExpression
+      const bComparison = groupChain.right as types.BinaryExpression
+      expect((aComparison.left as types.Identifier).name).toBe('a')
+      expect((aComparison.right as types.NumericLiteral).value).toBe(1)
+      expect((bComparison.left as types.Identifier).name).toBe('b')
+      expect((bComparison.right as types.NumericLiteral).value).toBe(3)
+
+      const cComparison = conditionChain.right as types.BinaryExpression
+      expect((cComparison.left as types.Identifier).name).toBe('c')
+      expect((cComparison.right as types.NumericLiteral).value).toBe(5)
+    })
+
+    it('tracks references from leaves nested inside groups', () => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'menuOpen' },
+        },
+        condition: {
+          conditions: [
+            { operation: '===', operand: true },
+            {
+              conditions: [
+                {
+                  operation: '===',
+                  operand: true,
+                  reference: {
+                    type: 'dynamic',
+                    content: { referenceType: 'globalState', id: 'darkMode' },
+                  },
+                },
+              ],
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const nestedTrackingParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { menuOpen: { type: 'boolean', defaultValue: false } },
+        globalStateDefinitions: {
+          darkMode: { id: 'darkMode', name: 'darkMode', type: 'boolean', defaultValue: false },
+        },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      generateJSXSyntax(wrappingParent, nestedTrackingParams, options)
+
+      expect(nestedTrackingParams.globalStateReferences).toEqual([
+        { id: 'darkMode', name: 'darkMode' },
+      ])
+    })
   })
 
   describe('navlink href via differentiatorValue', () => {

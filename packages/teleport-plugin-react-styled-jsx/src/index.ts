@@ -9,6 +9,7 @@ import {
 import {
   ComponentPluginFactory,
   ComponentPlugin,
+  UIDLConditionExpressionEntry,
   UIDLStyleValue,
   PluginStyledJSX,
   UIDLElement,
@@ -262,7 +263,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   ? referenceContent.refPath.join('.')
                   : referenceContent.id
 
-              const { conditions } = styleRef.content.condition.expression
+              // Class conditions are single-reference flat chains: no writer
+              // emits per-entry references or nested groups here.
+              const conditions = styleRef.content.condition.expression
+                .conditions as UIDLConditionExpressionEntry[]
 
               const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
               const right = conditions[0].operand

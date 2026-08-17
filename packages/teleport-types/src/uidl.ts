@@ -1077,12 +1077,24 @@ export interface UIDLConditionalNode {
   }
 }
 
+export interface UIDLConditionExpressionEntry {
+  operation: string
+  operand?: string | boolean | number | UIDLDynamicReference | UIDLExpressionValue
+  containsField?: string
+  // Left side of THIS entry. Absent = inherit the expression's top-level reference.
+  reference?: UIDLDynamicReference | UIDLExpressionValue
+}
+
+// A parenthesized sub-chain: its conditions combine under its own
+// matchingCriteria and the result joins the parent chain as ONE entry.
+// Distinguished from a leaf entry by the presence of `conditions`.
+export interface UIDLConditionExpressionGroup {
+  conditions: Array<UIDLConditionExpressionEntry | UIDLConditionExpressionGroup>
+  matchingCriteria?: string
+}
+
 export interface UIDLConditionalExpression {
-  conditions: Array<{
-    operation: string
-    operand?: string | boolean | number | UIDLDynamicReference | UIDLExpressionValue
-    containsField?: string
-  }>
+  conditions: Array<UIDLConditionExpressionEntry | UIDLConditionExpressionGroup>
   // In the code generation phase, we are only supporting 'all' or '||'
   // Maybe the type checking for this can be improved.
   matchingCriteria?: string

@@ -14,6 +14,8 @@ import {
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
   UIDLConditionalExpression,
+  UIDLConditionExpressionEntry,
+  UIDLConditionExpressionGroup,
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
   UIDLExpressionValue,
@@ -931,11 +933,22 @@ export const createConditionIdentifier = (
   }
 }
 
+interface ConditionalJSXExpressionOptions {
+  localIdentifier?: string
+  detailsPageExposeAsName?: string
+  // Resolves the identifier for a leaf entry carrying its own `reference`;
+  // returning undefined (or omitting the hook) inherits the chain's
+  // top-level identifier.
+  resolveEntryIdentifier?: (
+    entry: UIDLConditionExpressionEntry
+  ) => ConditionalIdentifier | undefined
+}
+
 export const createConditionalJSXExpression = (
   content: JSXASTReturnType,
   conditionalExpression: UIDLConditionalExpression,
   conditionalIdentifier: ConditionalIdentifier,
-  options: { localIdentifier?: string; detailsPageExposeAsName?: string } = {},
+  options: ConditionalJSXExpressionOptions = {},
   t = types
 ) => {
   let contentNode: types.Expression
@@ -948,37 +961,59 @@ export const createConditionalJSXExpression = (
     contentNode = content
   }
 
-  let binaryExpression:
-    | types.LogicalExpression
-    | types.BinaryExpression
-    | types.UnaryExpression
-    | types.Identifier
-    | types.MemberExpression
-    | types.CallExpression
-
-  // When the stateValue is an object we will compute a logical/binary expression on the left side
-  const { conditions, matchingCriteria } = conditionalExpression
-  const binaryExpressions = conditions.map((condition) =>
-    createBinaryExpression(condition, conditionalIdentifier, options)
+  const binaryExpression = createConditionChainExpression(
+    conditionalExpression,
+    conditionalIdentifier,
+    options,
+    t
   )
 
-  if (binaryExpressions.length === 1) {
-    binaryExpression = binaryExpressions[0]
-  } else {
-    // the first two binary expressions are put together as a logical expression
-    const [firstExp, secondExp] = binaryExpressions
-    const operation = matchingCriteria === 'all' ? '&&' : '||'
-    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
+  return t.logicalExpression('&&', binaryExpression, contentNode)
+}
 
-    // accumulate the rest of the expressions to the logical expression
-    for (let index = 2; index < binaryExpressions.length; index++) {
-      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
-    }
+// Folds a (possibly nested) conditions chain into one expression. Group
+// entries recurse with their own matchingCriteria — the AST nesting is what
+// the printer emits as parentheses.
+const createConditionChainExpression = (
+  chain: UIDLConditionalExpression | UIDLConditionExpressionGroup,
+  conditionalIdentifier: ConditionalIdentifier,
+  options: ConditionalJSXExpressionOptions,
+  t = types
+): types.Expression => {
+  const { conditions, matchingCriteria } = chain
+  const entryExpressions = conditions.map((entry) =>
+    UIDLUtils.isUIDLConditionGroup(entry)
+      ? createConditionChainExpression(entry, conditionalIdentifier, options, t)
+      : createBinaryExpression(
+          entry,
+          options.resolveEntryIdentifier?.(entry) ?? conditionalIdentifier,
+          options
+        )
+  )
 
-    binaryExpression = expression
+  if (entryExpressions.length === 0) {
+    // An empty group cannot gate anything; degrade to a pass-through.
+    return t.booleanLiteral(true)
   }
 
-  return t.logicalExpression('&&', binaryExpression, contentNode)
+  if (entryExpressions.length === 1) {
+    return entryExpressions[0]
+  }
+
+  // the first two expressions are put together as a logical expression
+  const operation = matchingCriteria === 'all' ? '&&' : '||'
+  let expression: types.LogicalExpression = t.logicalExpression(
+    operation,
+    entryExpressions[0],
+    entryExpressions[1]
+  )
+
+  // accumulate the rest of the expressions to the logical expression
+  for (let index = 2; index < entryExpressions.length; index++) {
+    expression = t.logicalExpression(operation, expression, entryExpressions[index])
+  }
+
+  return expression
 }
 
 /**

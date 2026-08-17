@@ -22,6 +22,8 @@ import {
   UIDLRootComponent,
   UIDLResourceItem,
   GeneratorOptions,
+  UIDLConditionExpressionEntry,
+  UIDLConditionExpressionGroup,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
 import { StringUtils } from '..'
@@ -38,6 +40,12 @@ export const extractRoutes = (rootComponent: UIDLRootComponent) => {
       child.content.reference.content.id === 'route'
   ) as UIDLConditionalNode[]
 }
+
+// A conditional-expression entry is either a leaf comparison or a nested
+// group; only the presence of `conditions` tells them apart.
+export const isUIDLConditionGroup = (
+  entry: UIDLConditionExpressionEntry | UIDLConditionExpressionGroup
+): entry is UIDLConditionExpressionGroup => 'conditions' in entry
 
 export const createWebComponentFriendlyName = (componentName: string) => {
   const dashCaseName = camelCaseToDashCase(componentName)

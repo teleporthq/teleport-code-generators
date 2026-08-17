@@ -2,6 +2,8 @@ import * as hastUtils from '../../utils/hast-utils'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLConditionalExpression,
+  UIDLConditionExpressionEntry,
+  UIDLConditionExpressionGroup,
   UIDLConditionalNode,
   HastNode,
   UIDLAttributeValue,
@@ -192,18 +194,53 @@ const standardizeUIDLConditionalExpression = (
   return conditionalExpression
 }
 
+// An entry carrying its own `reference` compares that reference instead of the
+// expression's inherited key. Dynamic refs contribute their id; expr refs
+// contribute their raw expression, parenthesized (this flavor works in string
+// space, so the expression text slots in as the left side directly).
+const resolveConditionEntryKey = (
+  entry: UIDLConditionExpressionEntry,
+  inheritedKey: string
+): string => {
+  if (!entry.reference) {
+    return inheritedKey
+  }
+  if (entry.reference.type === 'dynamic') {
+    return entry.reference.content.id
+  }
+  return `(${entry.reference.content})`
+}
+
+// A group entry recurses with its own matchingCriteria and comes back already
+// parenthesized; a leaf stringifies its single comparison unwrapped.
+const stringifyConditionEntry = (
+  entry: UIDLConditionExpressionEntry | UIDLConditionExpressionGroup,
+  inheritedKey: string
+): string => {
+  if (UIDLUtils.isUIDLConditionGroup(entry)) {
+    return `(${createConditional(inheritedKey, entry)})`
+  }
+  return stringifyConditionalExpression(
+    resolveConditionEntryKey(entry, inheritedKey),
+    entry.operation,
+    entry.operand,
+    entry.containsField
+  )
+}
+
 const createConditional = (
   conditionalKey: string,
-  conditionalExpression: UIDLConditionalExpression
-) => {
+  conditionalExpression: UIDLConditionalExpression | UIDLConditionExpressionGroup
+): string => {
   const { matchingCriteria, conditions } = conditionalExpression
   if (conditions.length === 1) {
-    const { operation, operand, containsField } = conditions[0]
-    return stringifyConditionalExpression(conditionalKey, operation, operand, containsField)
+    return stringifyConditionEntry(conditions[0], conditionalKey)
   }
 
-  const stringConditions = conditions.map(({ operation, operand, containsField }) => {
-    return `(${stringifyConditionalExpression(conditionalKey, operation, operand, containsField)})`
+  const stringConditions = conditions.map((conditionEntry) => {
+    const entryText = stringifyConditionEntry(conditionEntry, conditionalKey)
+    // Groups arrive parenthesized already; leaves get wrapped here.
+    return UIDLUtils.isUIDLConditionGroup(conditionEntry) ? entryText : `(${entryText})`
   })
 
   const joinOperator = matchingCriteria === 'all' ? '&&' : '||'

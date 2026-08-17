@@ -4,6 +4,7 @@ import {
   HastNode,
   HTMLComponentGeneratorError,
   UIDLAttributeValue,
+  UIDLConditionExpressionEntry,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLDynamicReference,
@@ -22,7 +23,6 @@ import {
   UIDLComponentOutputOptions,
   UIDLElement,
   ElementsLookup,
-  UIDLConditionalNode,
   PropDefaultValueTypes,
   UIDLCMSListRepeaterNode,
   UIDLStaticValue,
@@ -208,6 +208,23 @@ export const generateHtmlSyntax: NodeToHTML<
         return conditionalNodeComment
       }
 
+      // This evaluator resolves ONE reference to its default value and checks
+      // a FLAT condition chain against it. Entries carrying their own
+      // per-entry `reference` and nested groups cannot be answered that way —
+      // bail out like the `state` branch below does (render nothing) instead
+      // of evaluating them wrong.
+      if (
+        conditions.some(
+          (conditionEntry) =>
+            UIDLUtils.isUIDLConditionGroup(conditionEntry) || conditionEntry.reference
+        )
+      ) {
+        return conditionalNodeComment
+      }
+
+      // The guard above ensured every remaining entry is a flat leaf.
+      const leafConditions = conditions as UIDLConditionExpressionEntry[]
+
       const {
         content: { referenceType, id, refPath = [] },
       } = reference
@@ -231,7 +248,9 @@ export const generateHtmlSyntax: NodeToHTML<
           // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
           // UIDL validations need to be improved on this aspect.
           const dynamicConditions = createConditionalStatement(
-            staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
+            staticValue !== undefined
+              ? [{ operand: staticValue, operation: '===' }]
+              : leafConditions,
             defaultValue
           )
           const matchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
@@ -285,7 +304,9 @@ export const generateHtmlSyntax: NodeToHTML<
           }
 
           const localConditions = createConditionalStatement(
-            staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : conditions,
+            staticValue !== undefined
+              ? [{ operand: staticValue, operation: '===' }]
+              : leafConditions,
             localValue as UIDLPropDefinition['defaultValue']
           )
           const localMatchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
@@ -412,7 +433,7 @@ export const generateHtmlSyntax: NodeToHTML<
 }
 
 const createConditionalStatement = (
-  conditions: UIDLConditionalNode['content']['condition']['conditions'],
+  conditions: UIDLConditionExpressionEntry[],
   leftOperand: UIDLPropDefinition['defaultValue']
 ) => {
   return conditions.map((condition) => {

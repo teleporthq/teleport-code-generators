@@ -19,7 +19,13 @@ import {
   UIDLDependency,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { JSXASTReturnType, JSXGenerationOptions, JSXGenerationParams, NodeToJSX } from './types'
+import {
+  ConditionalIdentifier,
+  JSXASTReturnType,
+  JSXGenerationOptions,
+  JSXGenerationParams,
+  NodeToJSX,
+} from './types'
 
 import {
   addEventHandlerToTag,
@@ -1931,17 +1937,14 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
   )
 }
 
-// Shared between UIDLConditionalNode (wraps a child subtree) and the inline
-// `renderingConditions` property on UIDLElement content. Tracks global and
-// globalState references on params, resolves the condition identifier, and
-// builds the `condition && <content/>` logical expression.
-const wrapWithConditional = (
-  subTree: JSXASTReturnType,
+// Tracks a condition reference's global / globalState usage on params and
+// resolves it to a ConditionalIdentifier. Shared by the top-level reference
+// and the optional per-entry references of a conditional expression.
+const trackAndResolveConditionIdentifier = (
   reference: UIDLConditionalNode['content']['reference'],
-  condition: UIDLConditionalExpression,
   params: JSXGenerationParams,
   options: JSXGenerationOptions
-): types.LogicalExpression => {
+): ConditionalIdentifier => {
   if (
     reference.type === 'dynamic' &&
     'referenceType' in reference.content &&
@@ -1968,10 +1971,31 @@ const wrapWithConditional = (
     reference.content.referenceType === 'global'
       ? (normalizeGlobalRef(reference as any) as typeof reference)
       : reference
-  const conditionIdentifier = createConditionIdentifier(effectiveRef, params, options)
+  return createConditionIdentifier(effectiveRef, params, options)
+}
+
+// Shared between UIDLConditionalNode (wraps a child subtree) and the inline
+// `renderingConditions` property on UIDLElement content. Tracks global and
+// globalState references on params, resolves the condition identifier — plus
+// one identifier per entry that carries its own `reference` — and builds the
+// `condition && <content/>` logical expression.
+const wrapWithConditional = (
+  subTree: JSXASTReturnType,
+  reference: UIDLConditionalNode['content']['reference'],
+  condition: UIDLConditionalExpression,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+): types.LogicalExpression => {
+  const conditionIdentifier = trackAndResolveConditionIdentifier(reference, params, options)
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier, {
     localIdentifier: options.localIdentifier,
     detailsPageExposeAsName: options.detailsPageExposeAsName || params.detailsPageExposeAsName,
+    // Leaf entries (any nesting depth) with their own left side resolve —
+    // and globals-track — through the same path as the top-level reference.
+    resolveEntryIdentifier: (conditionEntry) =>
+      conditionEntry.reference
+        ? trackAndResolveConditionIdentifier(conditionEntry.reference, params, options)
+        : undefined,
   })
 }
 

@@ -12,6 +12,7 @@ import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
+  UIDLConditionExpressionEntry,
   UIDLDynamicReference,
   UIDLStyleDefinitions,
   ChunkType,
@@ -345,8 +346,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 const {
                   value: staticValue,
                   reference,
-                  expression: { conditions, matchingCriteria },
+                  expression: { matchingCriteria },
                 } = styleRef.content.condition
+                // Class conditions are single-reference flat chains: no writer
+                // emits per-entry references or nested groups here.
+                const conditions = styleRef.content.condition.expression
+                  .conditions as UIDLConditionExpressionEntry[]
 
                 const {
                   content: { referenceType, id, refPath = [] },
@@ -511,7 +516,9 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     ? referenceContent.refPath.join('.')
                     : referenceContent.id
 
-                const { conditions } = styleRef.content.condition.expression
+                // Same flat-leaf contract as the html branch above.
+                const conditions = styleRef.content.condition.expression
+                  .conditions as UIDLConditionExpressionEntry[]
 
                 const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
                 const right = conditions[0].operand as string | number | boolean

@@ -1,8 +1,8 @@
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { PluginCSS, UIDLConditionalNode, UIDLPropDefinition } from '@teleporthq/teleport-types'
+import { PluginCSS, UIDLConditionExpressionEntry, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const createConditionalStatement = (
-  conditions: UIDLConditionalNode['content']['condition']['conditions'],
+  conditions: UIDLConditionExpressionEntry[],
   leftOperand: UIDLPropDefinition['defaultValue']
 ) => {
   return conditions.map((condition) => {
