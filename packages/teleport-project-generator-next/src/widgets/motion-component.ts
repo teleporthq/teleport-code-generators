@@ -8,9 +8,10 @@
  * Triggers: on-load (initial/animate), in-view (useInView-driven + a standing
  * in-viewport failsafe so content is never trapped at opacity:0 — any element
  * that is genuinely on screen reveals even if the IntersectionObserver never
- * reports it), scroll (scroll-linked parallax
- * via useScroll/useTransform), hover (whileHover),
- * tap (whileTap). `stagger` descends through grid/list wrappers to the real
+ * reports it), scroll (scroll-linked: useScroll progress — windowed by
+ * scrollOffset, optionally useSpring-smoothed by scrub — interpolates the FULL
+ * from/to state onto the element, matching the canvas runtime), hover
+ * (whileHover), tap (whileTap). `stagger` descends through grid/list wrappers to the real
  * repeated items (e.g. <array-mapper> cards) and cascades THOSE with a per-child
  * delay — not the lone grid block — matching the canvas renderer. When the repeated
  * items come from a runtime <Repeater> (build-time opaque, so they can't be wrapped
@@ -21,7 +22,7 @@
  */
 export const generateMotionComponentCode = (): string => {
   return `import React from 'react'
-import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 
 const EASINGS = {
   ease: [0.25, 0.1, 0.25, 1],
@@ -32,6 +33,74 @@ const EASINGS = {
   spring: [0.34, 1.56, 0.64, 1],
   back: [0.68, -0.6, 0.32, 1.6],
   bounce: [0.22, 1.2, 0.36, 1],
+}
+
+// Mirrors the canvas renderer's motion-keyframes helpers so a scroll-linked
+// element interpolates EVERY from/to property (x/y/scale/rotate/opacity/filter)
+// identically in the canvas, the preview and the published site.
+const TRANSFORM_KEYS = ['x', 'y', 'scale', 'rotate']
+
+const transformComponent = (key, value) => {
+  const numeric = typeof value === 'number'
+  switch (key) {
+    case 'x':
+      return 'translateX(' + (numeric ? value + 'px' : value) + ')'
+    case 'y':
+      return 'translateY(' + (numeric ? value + 'px' : value) + ')'
+    case 'scale':
+      return 'scale(' + value + ')'
+    case 'rotate':
+      return 'rotate(' + (numeric ? value + 'deg' : value) + ')'
+    default:
+      return ''
+  }
+}
+
+const BLUR_RE = /^blur\\(([\\d.]+)px\\)$/
+
+const interpolateValue = (from, to, p) => {
+  if (typeof from === 'number' && typeof to === 'number') {
+    return from + (to - from) * p
+  }
+  if (typeof from === 'string' && typeof to === 'string') {
+    const f = BLUR_RE.exec(from)
+    const t = BLUR_RE.exec(to)
+    if (f && t) {
+      const value = parseFloat(f[1]) + (parseFloat(t[1]) - parseFloat(f[1])) * p
+      return 'blur(' + value + 'px)'
+    }
+  }
+  return p >= 1 ? to : from
+}
+
+const applyScrollState = (element, fromVars, toVars, p) => {
+  if (!element) {
+    return
+  }
+  const keys = new Set([...Object.keys(fromVars), ...Object.keys(toVars)])
+  const transformParts = []
+  keys.forEach((key) => {
+    const fromValue = fromVars[key] !== undefined ? fromVars[key] : toVars[key]
+    const toValue = toVars[key] !== undefined ? toVars[key] : fromVars[key]
+    const value = interpolateValue(fromValue, toValue, p)
+    if (TRANSFORM_KEYS.includes(key)) {
+      transformParts.push(transformComponent(key, value))
+    } else {
+      element.style[key] = String(value)
+    }
+  })
+  if (transformParts.length > 0) {
+    element.style.transform = transformParts.join(' ')
+  }
+}
+
+// useScroll offset pairs per motion-scroll-offset mode — mirrors the canvas
+// runtime's scrollProgressForOffset semantics.
+const SCROLL_OFFSET_RANGES = {
+  pass: ['start end', 'end start'],
+  contained: ['start start', 'end end'],
+  enter: ['start end', 'start start'],
+  exit: ['end end', 'end start'],
 }
 
 const presetStates = (preset, distance) => {
@@ -148,6 +217,8 @@ const TqMotion = ({
   distance = 40,
   from = null,
   to = null,
+  scrub = 0,
+  scrollOffset = 'pass',
   style,
   children,
   ...rest
@@ -249,16 +320,37 @@ const TqMotion = ({
     repeatType,
   }
 
-  // Scroll-linked parallax is one trigger out of five, but the hook has to run on
-  // every render. Passing a target when we are not going to use it makes framer
-  // measure this element against the scroll container on every scroll frame — and
-  // warn about the container being position:static — once per motion node on the
-  // page. Targetless useScroll shares one window listener and measures nothing.
-  const scrollOptions = trigger === 'scroll' ? { target: ref, offset: ['start end', 'end start'] } : {}
+  // Scroll-linked motion is one trigger out of five, but the hooks have to run
+  // on every render. Passing a target when we are not going to use it makes
+  // framer measure this element against the scroll container on every scroll
+  // frame — and warn about the container being position:static — once per
+  // motion node on the page. Targetless useScroll shares one window listener
+  // and measures nothing.
+  const scrollOptions =
+    trigger === 'scroll'
+      ? { target: ref, offset: SCROLL_OFFSET_RANGES[scrollOffset] || SCROLL_OFFSET_RANGES.pass }
+      : {}
   const { scrollYProgress } = useScroll(scrollOptions)
-  const yFrom = typeof fromVars.y === 'number' ? fromVars.y : dist
-  const yTo = typeof toVars.y === 'number' ? toVars.y : -dist
-  const parallaxY = useTransform(scrollYProgress, [0, 1], [yFrom, yTo])
+  const scrubSeconds = Number(scrub) || 0
+  const smoothedProgress = useSpring(scrollYProgress, {
+    duration: Math.max(1, scrubSeconds * 1000),
+    bounce: 0,
+  })
+  const scrollProgress = scrubSeconds > 0 ? smoothedProgress : scrollYProgress
+  // Progress writes styles straight to the DOM node (no re-render per frame),
+  // interpolating the FULL from/to state — not just y — exactly like the
+  // canvas runtime does.
+  useMotionValueEvent(scrollProgress, 'change', (p) => {
+    if (trigger === 'scroll' && !shouldReduceMotion) {
+      applyScrollState(ref.current, fromVars, toVars, p)
+    }
+  })
+  React.useEffect(() => {
+    if (trigger === 'scroll' && !shouldReduceMotion) {
+      applyScrollState(ref.current, fromVars, toVars, scrollProgress.get())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger, shouldReduceMotion])
 
   if (shouldReduceMotion) {
     return (
@@ -270,9 +362,9 @@ const TqMotion = ({
 
   if (trigger === 'scroll') {
     return (
-      <motion.div ref={ref} style={{ ...(style || {}), y: parallaxY }} {...rest}>
+      <div ref={ref} style={style} {...rest}>
         {children}
-      </motion.div>
+      </div>
     )
   }
 
