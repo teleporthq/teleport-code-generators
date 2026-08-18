@@ -119,10 +119,25 @@ const presetStates = (preset, distance) => {
       return { from: { opacity: 0, scale: 0.8 }, to: { opacity: 1, scale: 1 } }
     case 'zoom-in':
       return { from: { opacity: 0, scale: 0.5 }, to: { opacity: 1, scale: 1 } }
+    case 'pop-in':
+      return { from: { opacity: 0, scale: 0.6 }, to: { opacity: 1, scale: 1 } }
     case 'rotate-in':
       return { from: { opacity: 0, rotate: -8 }, to: { opacity: 1, rotate: 0 } }
+    case 'tilt-in':
+      return { from: { opacity: 0, rotate: -10, y: distance }, to: { opacity: 1, rotate: 0, y: 0 } }
     case 'blur-in':
       return { from: { opacity: 0, filter: 'blur(12px)' }, to: { opacity: 1, filter: 'blur(0px)' } }
+    case 'blur-up':
+      return {
+        from: { opacity: 0, y: distance, filter: 'blur(8px)' },
+        to: { opacity: 1, y: 0, filter: 'blur(0px)' },
+      }
+    // Attention loops: rest at the natural state (NO opacity ramp — a looping
+    // opacity would strobe) and read as animation only when repeated (mirror).
+    case 'pulse':
+      return { from: { scale: 1 }, to: { scale: 1.06 } }
+    case 'float':
+      return { from: { y: 0 }, to: { y: -12 } }
     case 'none':
       return { from: {}, to: {} }
     default:
