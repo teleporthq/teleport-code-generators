@@ -204,7 +204,7 @@ describe('Next widget project plugins', () => {
     await runAll(structure)
     const content = structure.files.get('tq-motion-component')?.files[0].content as string
     expect(content).toContain(
-      "import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'"
+      "import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'"
     )
     expect(content).toContain('<motion.div')
     expect(content).toContain('{children}')
