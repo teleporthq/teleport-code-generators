@@ -262,7 +262,15 @@ const TqScrollScene = ({
   // layout='chapters': pin every REAL grid item of the stage into the same
   // cell. The CSS child rule handles plain children; this pass additionally
   // descends through display:contents wrappers (whose children — not they —
-  // are the grid items) so wrapped content stacks too. Mirrors the editor.
+  // are the grid items), pierces open shadow roots/slots, and re-runs when a
+  // not-yet-upgraded web component defines (pre-upgrade its
+  // :host{display:contents} doesn't exist, so it reads as a box and upgrades
+  // fire no mutation). Mirrors the editor runtime.
+  const restackRef = React.useRef(null)
+  const awaitedTagsRef = React.useRef(null)
+  if (awaitedTagsRef.current === null) {
+    awaitedTagsRef.current = new Set()
+  }
   const restack = React.useCallback(() => {
     if (layout !== 'chapters' || !trackRef.current) {
       return
@@ -272,7 +280,12 @@ const TqScrollScene = ({
       return
     }
     const place = (el) => {
-      if (!(el instanceof HTMLElement) || el.tagName === 'STYLE') {
+      // Duck-typed, never instanceof — mirrors the editor runtime, where
+      // canvas elements belong to another realm and instanceof always fails.
+      if (!el || el.nodeType !== 1 || el.tagName === 'STYLE') {
+        return
+      }
+      if (!el.style || typeof el.style.removeProperty !== 'function') {
         return
       }
       let display = ''
@@ -282,13 +295,40 @@ const TqScrollScene = ({
         // detached node — skip
       }
       if (display === 'contents') {
+        // A pre-upgrade pass may have pinned this wrapper as a box — clean up.
+        if (el.style.gridArea) {
+          el.style.removeProperty('grid-area')
+        }
+        if (el.shadowRoot) {
+          Array.from(el.shadowRoot.children).forEach(place)
+          return
+        }
+        if (typeof el.assignedElements === 'function') {
+          const assigned = el.assignedElements({ flatten: true })
+          ;(assigned.length > 0 ? assigned : Array.from(el.children)).forEach(place)
+          return
+        }
         Array.from(el.children).forEach(place)
         return
+      }
+      const tag = el.tagName.toLowerCase()
+      if (
+        tag.includes('-') &&
+        typeof customElements !== 'undefined' &&
+        !customElements.get(tag) &&
+        !awaitedTagsRef.current.has(tag)
+      ) {
+        awaitedTagsRef.current.add(tag)
+        customElements
+          .whenDefined(tag)
+          .then(() => restackRef.current && restackRef.current())
+          .catch(() => undefined)
       }
       el.style.gridArea = '1 / 1'
     }
     Array.from(stage.children).forEach(place)
   }, [layout])
+  restackRef.current = restack
 
   React.useEffect(() => {
     const track = trackRef.current
@@ -377,9 +417,16 @@ const TqScrollScene = ({
           data-scene-layout={layout === 'chapters' ? 'chapters' : undefined}
         >
           {layout === 'chapters' ? (
-            <style>{
-              '[data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
-            }</style>
+            // dangerouslySetInnerHTML, NOT a text child: React SSR escapes text
+            // inside <style> ('>' -> '&gt;'), and style is a raw-text element so
+            // the browser never decodes it — the selector would break on the
+            // server AND hydration would fail on the text mismatch.
+            <style
+              dangerouslySetInnerHTML={{
+                __html:
+                  '[data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }',
+              }}
+            />
           ) : null}
           {children}
         </div>
