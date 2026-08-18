@@ -205,13 +205,20 @@ const TqScrollScene = ({
 
     applyAll(progress.get())
 
-    // Repeater items render after mount — refresh the bound set on subtree
-    // changes and re-apply so late children join at the current frame.
+    // Repeater items render after mount, and bindings may be rewritten in
+    // place on existing elements (attribute-only mutations) — watch both,
+    // mirroring the editor runtime. The attributeFilter keeps our own style
+    // writes from feeding back into the observer.
     const observer = new MutationObserver(() => {
       boundRef.current = collectBound(track)
       applyAll(progressRef.current)
     })
-    observer.observe(track, { childList: true, subtree: true })
+    observer.observe(track, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-scroll-bind'],
+    })
 
     if (process.env.NODE_ENV !== 'production' && pin) {
       let ancestor = track.parentElement
