@@ -215,6 +215,7 @@ const TqScrollScene = ({
   scrub = 0.3,
   reducedMotion = 'final',
   exposeProgress = false,
+  layout = 'flow',
   style,
   children,
   ...rest
@@ -334,9 +335,19 @@ const TqScrollScene = ({
             // from fighting the page. Mirrors the canvas renderer.
             overflow: 'hidden',
             isolation: 'isolate',
+            // layout='chapters': the stage IS the centering grid and every
+            // direct child stacks in the same cell (rule below) — the
+            // scrollytelling shape with zero hand-written wrapper styles.
+            ...(layout === 'chapters' ? { display: 'grid', placeItems: 'center' } : {}),
           }}
           data-scene-stage
+          data-scene-layout={layout === 'chapters' ? 'chapters' : undefined}
         >
+          {layout === 'chapters' ? (
+            <style>{
+              '[data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
+            }</style>
+          ) : null}
           {children}
         </div>
       ) : (

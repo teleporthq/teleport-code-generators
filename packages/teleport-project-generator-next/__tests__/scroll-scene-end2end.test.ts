@@ -98,6 +98,9 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(code).toContain('minHeight: normalizeSceneLength')
     expect(code).toContain("minHeight: '100vh'")
     expect(code).not.toContain("height: '100vh' }")
+    // Chapter layout: the stage centers + same-cell-stacks its children.
+    expect(code).toContain("layout === 'chapters'")
+    expect(code).toContain('grid-area: 1 / 1')
     // Lanes applied by DOM query + MutationObserver (the Repeater-safe design),
     // never React child introspection.
     expect(code).toContain('querySelectorAll')
