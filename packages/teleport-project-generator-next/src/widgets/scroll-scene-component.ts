@@ -21,7 +21,19 @@ import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'fra
 
 const SCROLL_BIND_ATTR = 'data-scroll-bind'
 
-const LANE_PROPS = ['x', 'y', 'scale', 'rotate', 'opacity', 'blur']
+const LANE_PROPS = [
+  'x',
+  'y',
+  'scale',
+  'rotate',
+  'rotate-x',
+  'rotate-y',
+  'opacity',
+  'blur',
+  'grayscale',
+  'saturate',
+  'brightness',
+]
 
 const LANE_PRESETS = {
   'depth-1': [{ prop: 'y', at: [0, 1], values: [40, -40] }],
@@ -31,6 +43,33 @@ const LANE_PRESETS = {
   'rail-x': [{ prop: 'x', at: [0, 1], values: [0, -100], unit: '%' }],
   'zoom-through': [{ prop: 'scale', at: [0, 1], values: [0.85, 1.1] }],
   'unblur-in': [{ prop: 'blur', at: [0, 0.3], values: [10, 0] }],
+  'rise-in': [
+    { prop: 'y', at: [0, 0.35], values: [70, 0] },
+    { prop: 'opacity', at: [0, 0.3], values: [0, 1] },
+  ],
+  'ghost-out': [
+    { prop: 'opacity', at: [0.7, 1], values: [1, 0] },
+    { prop: 'blur', at: [0.7, 1], values: [0, 8] },
+  ],
+  'color-in': [{ prop: 'grayscale', at: [0, 0.45], values: [1, 0] }],
+  'sun-up': [{ prop: 'brightness', at: [0, 0.4], values: [0.35, 1] }],
+  'fade-to-mono': [
+    { prop: 'grayscale', at: [0.6, 1], values: [0, 1] },
+    { prop: 'saturate', at: [0.6, 1], values: [1, 0.6] },
+  ],
+  'crash-zoom': [
+    { prop: 'scale', at: [0, 0.25], values: [1.6, 1] },
+    { prop: 'opacity', at: [0, 0.15], values: [0, 1] },
+  ],
+  'tilt-reveal': [
+    { prop: 'rotate-x', at: [0, 0.4], values: [35, 0] },
+    { prop: 'opacity', at: [0, 0.3], values: [0, 1] },
+  ],
+  'spin-in': [
+    { prop: 'rotate', at: [0, 0.35], values: [-90, 0] },
+    { prop: 'opacity', at: [0, 0.25], values: [0, 1] },
+  ],
+  breathe: [{ prop: 'scale', at: [0, 0.5, 1], values: [0.98, 1.03, 0.98] }],
 }
 
 const isValidLane = (lane) => {
@@ -93,8 +132,12 @@ const laneValueAt = (lane, p) => {
   return values[values.length - 1]
 }
 
+const FILTER_PROP_ORDER = ['blur', 'grayscale', 'saturate', 'brightness']
+
 const applyLanesAt = (element, lanes, p) => {
   const transformParts = []
+  const filterByProp = {}
+  let needsPerspective = false
   for (const lane of lanes) {
     const value = laneValueAt(lane, p)
     switch (lane.prop) {
@@ -110,16 +153,40 @@ const applyLanesAt = (element, lanes, p) => {
       case 'rotate':
         transformParts.push('rotate(' + value + 'deg)')
         break
+      case 'rotate-x':
+        needsPerspective = true
+        transformParts.push('rotateX(' + value + 'deg)')
+        break
+      case 'rotate-y':
+        needsPerspective = true
+        transformParts.push('rotateY(' + value + 'deg)')
+        break
       case 'opacity':
         element.style.opacity = String(value)
         break
       case 'blur':
-        element.style.filter = 'blur(' + value + 'px)'
+        filterByProp.blur = 'blur(' + value + 'px)'
+        break
+      case 'grayscale':
+        filterByProp.grayscale = 'grayscale(' + value + ')'
+        break
+      case 'saturate':
+        filterByProp.saturate = 'saturate(' + value + ')'
+        break
+      case 'brightness':
+        filterByProp.brightness = 'brightness(' + value + ')'
         break
     }
   }
+  if (needsPerspective) {
+    transformParts.unshift('perspective(900px)')
+  }
   if (transformParts.length > 0) {
     element.style.transform = transformParts.join(' ')
+  }
+  const filterParts = FILTER_PROP_ORDER.map((prop) => filterByProp[prop]).filter(Boolean)
+  if (filterParts.length > 0) {
+    element.style.filter = filterParts.join(' ')
   }
 }
 
