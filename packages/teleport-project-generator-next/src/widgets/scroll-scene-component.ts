@@ -312,14 +312,18 @@ const TqScrollScene = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion, reducedMotion, pin, applyAll])
 
+  // MIN-heights, never exact heights — mirrors the canvas renderer: an exact
+  // height turned any content taller than one screen into an overflow the next
+  // section painted straight over. A minimum keeps the full-screen chapter look
+  // for short content and extends the stage for tall content.
   const trackStyle = pin
-    ? { ...(style || {}), height: normalizeSceneLength(sceneLength), position: 'relative' }
+    ? { ...(style || {}), minHeight: normalizeSceneLength(sceneLength), position: 'relative' }
     : style
 
   return (
     <div ref={trackRef} style={trackStyle} {...rest}>
       {pin ? (
-        <div style={{ position: 'sticky', top: 0, height: '100vh' }} data-scene-stage>
+        <div style={{ position: 'sticky', top: 0, minHeight: '100vh' }} data-scene-stage>
           {children}
         </div>
       ) : (

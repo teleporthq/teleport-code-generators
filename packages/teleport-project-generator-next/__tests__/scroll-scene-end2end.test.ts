@@ -91,9 +91,13 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(code).toContain("from 'framer-motion'")
     expect(code).toContain('useScroll')
     expect(code).toContain('useSpring')
-    // Sticky pinning + track sizing.
+    // Sticky pinning + track sizing. MIN-heights, never exact heights — an
+    // exact height let content taller than one screen be painted over by the
+    // next section (mirrors the canvas renderer's contract).
     expect(code).toContain("position: 'sticky'")
-    expect(code).toContain('normalizeSceneLength')
+    expect(code).toContain('minHeight: normalizeSceneLength')
+    expect(code).toContain("minHeight: '100vh'")
+    expect(code).not.toContain("height: '100vh' }")
     // Lanes applied by DOM query + MutationObserver (the Repeater-safe design),
     // never React child introspection.
     expect(code).toContain('querySelectorAll')
