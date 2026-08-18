@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'fs'
 import { join, resolve } from 'path'
 import { performance } from 'perf_hooks'
 import {
@@ -127,6 +135,62 @@ export const cleanGeneratedFiles = (projectDir: string): void => {
     }
     rmSync(join(projectDir, entry), { recursive: true, force: true })
   }
+}
+
+/**
+ * Bring `projectDir` to exactly the contents of `generatedDir` with MINIMAL
+ * churn — the re-sync-safe replacement for clean-then-rewrite. The generated
+ * project's `next dev` may be WATCHING projectDir: deleting whole directories
+ * and streaming them back (the old clean) fed the watcher seconds of
+ * half-written tree — transient compile errors that sometimes wedged the dev
+ * server, and (worse) webpack drops its watch on a deleted-then-recreated
+ * directory, after which hot reload silently stops. Reconciling instead:
+ * - overwrites a file only when its BYTES changed (untouched files produce no
+ *   watch events at all — a typical re-sync touches a handful of files);
+ * - deletes orphans file-by-file, so the stale-orphan guarantee that motivated
+ *   the clean still holds;
+ * - never deletes a directory that still exists in the new output, so watches
+ *   stay alive.
+ * PRESERVE_ON_CLEAN is honored for deletions at the project root, exactly like
+ * the clean.
+ */
+export const reconcileGeneratedTree = (generatedDir: string, projectDir: string): void => {
+  const syncDir = (from: string, to: string, depth: number): void => {
+    mkdirSync(to, { recursive: true })
+    const fromEntries = readdirSync(from, { withFileTypes: true })
+    const fromNames = new Set(fromEntries.map((entry) => entry.name))
+
+    for (const entry of readdirSync(to, { withFileTypes: true })) {
+      if (depth === 0 && PRESERVE_ON_CLEAN.has(entry.name)) {
+        continue
+      }
+      if (!fromNames.has(entry.name)) {
+        rmSync(join(to, entry.name), { recursive: true, force: true })
+      }
+    }
+
+    for (const entry of fromEntries) {
+      const src = join(from, entry.name)
+      const dst = join(to, entry.name)
+      const dstExists = existsSync(dst)
+      if (entry.isDirectory()) {
+        if (dstExists && !statSync(dst).isDirectory()) {
+          rmSync(dst, { force: true })
+        }
+        syncDir(src, dst, depth + 1)
+        continue
+      }
+      if (dstExists && statSync(dst).isDirectory()) {
+        rmSync(dst, { recursive: true, force: true })
+      }
+      const next = readFileSync(src)
+      if (!existsSync(dst) || !readFileSync(dst).equals(next)) {
+        writeFileSync(dst, next)
+      }
+    }
+  }
+
+  syncDir(generatedDir, projectDir, 0)
 }
 
 /**
@@ -262,13 +326,16 @@ export const generateProject = async (
       mkdirSync(outRoot, { recursive: true })
     }
 
-    const cleanStartedAt = performance.now()
-    // Read the existing `.env` BEFORE the clean. The clean keeps `.env` on disk
-    // anyway, but the values also have to be folded into the UIDL so the
-    // REGENERATED file carries them forward.
+    // Read the existing `.env` BEFORE generating: the values are folded into
+    // the UIDL so the REGENERATED .env carries them forward.
     preservedEnvKeys = preserveExistingEnv(uidl, envPath ?? join(projectDir, '.env'))
-    cleanGeneratedFiles(projectDir)
-    cleanMs = performance.now() - cleanStartedAt
+
+    // Generate into a STAGING directory, then reconcile into the (possibly
+    // live-watched) project directory — see reconcileGeneratedTree. The old
+    // clean-then-pack-in-place fed a running `next dev` seconds of half-written
+    // tree on every re-sync.
+    const stagingRoot = join(outRoot, '.resync-staging')
+    rmSync(stagingRoot, { recursive: true, force: true })
 
     const packStartedAt = performance.now()
     await captureConsole(warnings, () =>
@@ -280,12 +347,17 @@ export const generateProject = async (
         plugins,
         publishOptions: {
           ...(packerOverrides.publishOptions ?? {}),
-          outputPath: outRoot,
+          outputPath: stagingRoot,
           projectSlug: slug,
         },
       })
     )
     packMs = performance.now() - packStartedAt
+
+    const reconcileStartedAt = performance.now()
+    reconcileGeneratedTree(join(stagingRoot, slug), projectDir)
+    rmSync(stagingRoot, { recursive: true, force: true })
+    cleanMs = performance.now() - reconcileStartedAt
   } catch (error) {
     return failure(error)
   }
