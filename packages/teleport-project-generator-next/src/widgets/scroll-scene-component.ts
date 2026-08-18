@@ -323,7 +323,20 @@ const TqScrollScene = ({
   return (
     <div ref={trackRef} style={trackStyle} {...rest}>
       {pin ? (
-        <div style={{ position: 'sticky', top: 0, minHeight: '100vh' }} data-scene-stage>
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            minHeight: '100vh',
+            // Travelling lanes (rail-x, rise-in, crash-zoom) must not spill a
+            // scrollbar onto the page; overflow on the sticky element itself
+            // never disables pinning. isolation keeps scene-internal stacking
+            // from fighting the page. Mirrors the canvas renderer.
+            overflow: 'hidden',
+            isolation: 'isolate',
+          }}
+          data-scene-stage
+        >
           {children}
         </div>
       ) : (
