@@ -259,12 +259,44 @@ const TqScrollScene = ({
     }
   })
 
+  // layout='chapters': pin every REAL grid item of the stage into the same
+  // cell. The CSS child rule handles plain children; this pass additionally
+  // descends through display:contents wrappers (whose children — not they —
+  // are the grid items) so wrapped content stacks too. Mirrors the editor.
+  const restack = React.useCallback(() => {
+    if (layout !== 'chapters' || !trackRef.current) {
+      return
+    }
+    const stage = trackRef.current.querySelector(':scope > [data-scene-stage]')
+    if (!stage) {
+      return
+    }
+    const place = (el) => {
+      if (!(el instanceof HTMLElement) || el.tagName === 'STYLE') {
+        return
+      }
+      let display = ''
+      try {
+        display = getComputedStyle(el).display
+      } catch (e) {
+        // detached node — skip
+      }
+      if (display === 'contents') {
+        Array.from(el.children).forEach(place)
+        return
+      }
+      el.style.gridArea = '1 / 1'
+    }
+    Array.from(stage.children).forEach(place)
+  }, [layout])
+
   React.useEffect(() => {
     const track = trackRef.current
     if (!track) {
       return undefined
     }
     boundRef.current = collectBound(track)
+    restack()
 
     if (shouldReduceMotion) {
       applyAll(reducedMotion === 'static' ? 0 : 1)
@@ -279,6 +311,7 @@ const TqScrollScene = ({
     // writes from feeding back into the observer.
     const observer = new MutationObserver(() => {
       boundRef.current = collectBound(track)
+      restack()
       applyAll(progressRef.current)
     })
     observer.observe(track, {
@@ -311,7 +344,7 @@ const TqScrollScene = ({
 
     return () => observer.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldReduceMotion, reducedMotion, pin, applyAll])
+  }, [shouldReduceMotion, reducedMotion, pin, applyAll, restack])
 
   // MIN-heights, never exact heights — mirrors the canvas renderer: an exact
   // height turned any content taller than one screen into an overflow the next
