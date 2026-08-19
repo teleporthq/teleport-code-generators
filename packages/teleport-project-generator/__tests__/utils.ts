@@ -205,6 +205,91 @@ describe('extractPageOptions', () => {
   })
 })
 
+/**
+ * Two admin edit pages — one over the platform `teleport_product_reviews`
+ * table, one over an author-created `product_reviews` — both arrived carrying
+ * `navLink: '/admin/product-reviews/update/[id]'`. The dedupe suffixed the
+ * route as a plain string, the second page became `.../[id]1`, and because a
+ * segment is a route parameter only when the brackets span all of it, Next
+ * refused `getStaticPaths` on it and the production build died in Vercel.
+ */
+describe('extractPageOptions — duplicate dynamic routes', () => {
+  const duplicateUpdateRoutes: UIDLRouteDefinitions = {
+    type: 'string',
+    defaultValue: 'home',
+    values: [
+      { value: 'home', pageOptions: { navLink: '/' } },
+      {
+        value: 'admin/product-reviews/update/product-reviews-update',
+        pageOptions: {
+          navLink: '/admin/product-reviews/update/[id]',
+          dynamicRouteAttribute: 'id',
+          componentName: 'ProductReviewsUpdate',
+        },
+      },
+      {
+        value: 'admin/product-reviews/update/product-reviews-update1',
+        pageOptions: {
+          navLink: '/admin/product-reviews/update/[id]',
+          dynamicRouteAttribute: 'id',
+          componentName: 'ProductReviewsUpdate',
+        },
+      },
+    ],
+  }
+
+  /**
+   * `createPageUIDL` writes each resolved `pageOptions` back into the route
+   * definition before moving to the next page, so the pages resolve in order
+   * and only one of the two can move. Replayed here so the assertion is about
+   * the pair of routes the project actually ships, not one call in isolation.
+   */
+  const resolveEveryPage = (routes: UIDLRouteDefinitions) =>
+    routes.values
+      .filter((route) => route.pageOptions)
+      .map((route) => {
+        const { pageOptions } = extractPageOptions(routes, route.value.toString(), true)
+        route.pageOptions = pageOptions
+        return pageOptions
+      })
+
+  it('moves the collision onto the static part and keeps the route parameter', () => {
+    const [, first, second] = resolveEveryPage(duplicateUpdateRoutes)
+
+    expect([first.navLink, second.navLink].sort()).toEqual([
+      '/admin/product-reviews/update/[id]',
+      '/admin/product-reviews/update1/[id]',
+    ])
+    // Both stay real dynamic pages: Next writes
+    // `pages/admin/product-reviews/update/[id].js` and `.../update1/[id].js`,
+    // and `getStaticPaths` is legal on each.
+    expect(first.fileName).toBe('[id]')
+    expect(second.fileName).toBe('[id]')
+    expect(first.dynamicRouteAttribute).toBe('id')
+    expect(second.dynamicRouteAttribute).toBe('id')
+    expect([first.componentName, second.componentName].sort()).toEqual([
+      'ProductReviewsUpdate',
+      'ProductReviewsUpdate1',
+    ])
+  })
+
+  it('still suffixes duplicate STATIC routes the way it always did', () => {
+    const duplicateListRoutes: UIDLRouteDefinitions = {
+      type: 'string',
+      defaultValue: 'home',
+      values: [
+        { value: 'home', pageOptions: { navLink: '/' } },
+        { value: 'product-reviews-list', pageOptions: { navLink: '/product-reviews-list' } },
+        { value: 'product-reviews-list1', pageOptions: { navLink: '/product-reviews-list' } },
+      ],
+    }
+
+    const { pageOptions } = extractPageOptions(duplicateListRoutes, 'product-reviews-list1', true)
+    expect(pageOptions.navLink).toBe('/product-reviews-list1')
+    expect(pageOptions.fileName).toBe('product-reviews-list1')
+  })
+})
+
 describe('prepareComponentOutputOptions', () => {
   it('creates all output options based on the UIDL and the default conventions', () => {
     const mockStrategy = createStrategyWithCommonGenerator()

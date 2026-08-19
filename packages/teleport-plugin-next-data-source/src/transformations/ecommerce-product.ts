@@ -206,6 +206,47 @@ function buildEcommerceProduct(record, options) {
     })
   }
 
+  // The merchant's related-product picks. \`relatedProducts\` carries the
+  // TRANSFORMED rows, not ids, so the details page's related-products rail can
+  // map over it and draw a product card per entry; \`relatedProductIds\` keeps
+  // the raw selection for anything that wants it. The rows arrive from ONE
+  // batched query (getRelatedProductsMap) that transformRecords runs, keyed by
+  // id in options.relatedProductsById.
+  //
+  // MUST mirror buildRelatedEcommerceProducts in
+  // packages/renderer/src/utils/ecommerce-products.ts (the canvas-preview SSOT):
+  // the merchant's order, inactive products dropped, self dropped, and the
+  // nested build deliberately WITHOUT the map — two products referencing each
+  // other is the normal case (they are each other's accessories) and threading
+  // the map through would recurse until the stack ran out.
+  var relatedProductIds = parseRelatedIds(record.related_product_ids)
+  var relatedProductsById = options.relatedProductsById
+  var relatedProducts = []
+  if (relatedProductsById && relatedProductIds.length > 0) {
+    var relatedNestedOptions = {
+      assetMap: assetMap,
+      currentLanguage: currentLang,
+      mainLanguage: mainLang,
+      variantsByProductId: options.variantsByProductId || {},
+    }
+    for (var rp = 0; rp < relatedProductIds.length; rp++) {
+      var relatedId = relatedProductIds[rp]
+      if (id != null && relatedId === String(id)) continue
+      var relatedRecord = relatedProductsById[relatedId]
+      if (!relatedRecord) continue
+      // A product taken off sale must not come back through the back door on
+      // every product that references it. Missing status reads as active, the
+      // same default the main status normalization uses above.
+      var relatedStatusRaw = relatedRecord.status
+      var relatedStatus =
+        relatedStatusRaw == null || relatedStatusRaw === ''
+          ? 'active'
+          : String(relatedStatusRaw).trim().toLowerCase()
+      if (relatedStatus !== 'active') continue
+      relatedProducts.push(buildEcommerceProduct(relatedRecord, relatedNestedOptions))
+    }
+  }
+
   // -------------------------------------------------------
   // Image resolution (complex multi-step process)
   // -------------------------------------------------------
@@ -321,6 +362,8 @@ function buildEcommerceProduct(record, options) {
     category: category,
     categories: categories,
     tags: tags,
+    relatedProductIds: relatedProductIds,
+    relatedProducts: relatedProducts,
     imageAlt: imageAlt,
     providerType: providerType,
     providerProductId: providerProductId,
@@ -563,6 +606,51 @@ function transformEcommerceProducts(records, options) {
 // by product_id, so buildEcommerceProduct can attach product.variants without a
 // per-product query. Best-effort: a store with no variants (or before the table
 // exists) yields an empty map and flat products keep variants: [].
+// Batched fetch of the product rows a set of products reference as "related",
+// keyed by id, so buildEcommerceProduct can attach product.relatedProducts
+// without a query per product.
+//
+// Best-effort by design: a store whose products table predates the column
+// yields no ids at all (the read below is of an absent property, not of a
+// column — the SQL never names it), the map stays empty, and the details page's
+// rail simply stays hidden behind its is_not_empty gate. Same for a failed
+// query.
+async function getRelatedProductsMap(getClientFn, records) {
+  var map = {}
+  if (!Array.isArray(records) || records.length === 0) return map
+
+  var wantedIds = []
+  for (var i = 0; i < records.length; i++) {
+    var ids = parseRelatedIds(records[i] && records[i].related_product_ids)
+    for (var j = 0; j < ids.length; j++) {
+      if (wantedIds.indexOf(ids[j]) === -1) wantedIds.push(ids[j])
+    }
+  }
+  if (wantedIds.length === 0) return map
+
+  var client
+  try {
+    client = getClientFn()
+    await client.connect()
+    var result = await client.query('SELECT * FROM teleport_products WHERE id = ANY($1)', [
+      wantedIds,
+    ])
+    if (result && result.rows) {
+      for (var r = 0; r < result.rows.length; r++) {
+        var row = result.rows[r]
+        if (row && row.id != null) map[String(row.id)] = row
+      }
+    }
+  } catch (e) {
+    // Leaves relatedProducts empty rather than failing the page.
+  } finally {
+    if (client) {
+      try { await client.end() } catch (e) { /* ignore */ }
+    }
+  }
+  return map
+}
+
 async function getVariantsMap(getClientFn, productIds) {
   var map = {}
   if (!Array.isArray(productIds) || productIds.length === 0) return map

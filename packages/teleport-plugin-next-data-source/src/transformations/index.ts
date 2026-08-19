@@ -125,6 +125,29 @@ export const getTransformWrapperCode = (tableName: string): string => {
   const variantOption =
     type === 'ecommerce-product' ? ', variantsByProductId: variantsByProductId' : ''
 
+  // Related items are resolved for a SINGLE-record fetch only — which is the
+  // details page, the one surface that renders them (it looks the row up by
+  // slug). A listing fetch returns many rows, and resolving there would run an
+  // extra query and then inline up to four fully-transformed entities PER CARD
+  // into __NEXT_DATA__ that nothing on that page draws. The canvas renderer
+  // draws the same line for the same reason: only the details-page item node
+  // passes a resolver.
+  //
+  // A one-product store's listing does pay for one extra query. That is the
+  // whole cost of the heuristic, and it beats plumbing a page-role flag through
+  // every fetcher.
+  const relatedMapVar = type === 'blog-post' ? 'relatedPostsById' : 'relatedProductsById'
+  const relatedMapFn = type === 'blog-post' ? 'getRelatedPostsMap' : 'getRelatedProductsMap'
+  const relatedEnrichment = `
+  var ${relatedMapVar} = null
+  if (Array.isArray(records) && records.length === 1) {
+    try {
+      ${relatedMapVar} = await ${relatedMapFn}(getClientFn, records)
+    } catch (e) {
+      // Best-effort; the related rail stays hidden behind its empty gate.
+    }
+  }`
+
   return `
 async function transformRecords(records, getClientFn, reqQuery) {
   var assetMap = {}
@@ -132,10 +155,10 @@ async function transformRecords(records, getClientFn, reqQuery) {
     assetMap = await getAssetMap(getClientFn)
   } catch (e) {
     // Asset resolution is best-effort; continue without it
-  }${variantEnrichment}
+  }${variantEnrichment}${relatedEnrichment}
   var currentLanguage = (reqQuery && reqQuery.lang) || null
   var mainLanguage = (reqQuery && reqQuery.mainLang) || null
-  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption} }
+  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption}, ${relatedMapVar}: ${relatedMapVar} }
   return ${transformFn}(records, options)
 }
 `

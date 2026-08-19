@@ -10,6 +10,7 @@ import {
   generateFillTemplateFn,
   WELCOME_EMAIL_CONFIG_KEYS,
 } from './transactional-email-code'
+import { generateSessionTokenResolverCode } from './session-cookie-resolver'
 
 // GUI provider id → the actual next-auth v4 provider MODULE name, for the few
 // cases where they differ. Everything else uses the id as the module name.
@@ -1372,6 +1373,7 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
   return `import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+${generateSessionTokenResolverCode()}
 const protectedRoutes = ${protectedRoutesJson};
 
 const authRoutes = ${authRoutesJson};
@@ -1532,18 +1534,22 @@ async function middleware(request) {
   }
 
   // Resolve the current user for this request. Fast path: decode the session JWT
-  // at the edge with getToken. That can return null in the Edge runtime even for
-  // a valid session (NEXTAUTH_SECRET not identical/available in the Edge runtime,
-  // or the JWE simply failing to decode there) — which previously redirected
-  // logged-in users to sign-in. When getToken yields nothing but a session
-  // cookie IS present, fall back to the Node /api/auth/session endpoint, which is
-  // authoritative. This keeps BOTH the auth gate AND role enforcement correct
-  // regardless of the edge quirk (no role checks are silently skipped).
+  // at the edge, telling getToken which cookie the request actually carries —
+  // left to its own defaults it derives the cookie name from
+  // process.env.NEXTAUTH_URL, which this deployment ships as a localhost value,
+  // so on https it looked for the non-secure cookie and returned null for every
+  // valid session. That is what made this fast path miss and sent logged-in
+  // users to sign-in.
+  //
+  // The /api/auth/session fallback below stays as a genuine last resort (a
+  // custom cookie name, or a secret unavailable at the edge): cookie PRESENCE
+  // decides whether it is worth a round trip, and the endpoint is authoritative
+  // for BOTH the auth gate and the role check, so no role is silently skipped.
   var sessionUser = null;
   var secret = process.env.NEXTAUTH_SECRET;
   if (secret) {
     try {
-      sessionUser = await getToken({ req: request, secret: secret });
+      sessionUser = await __tqResolveSessionToken(getToken, request, secret);
     } catch (e) {
       sessionUser = null;
     }

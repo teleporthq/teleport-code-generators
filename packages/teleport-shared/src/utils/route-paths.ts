@@ -62,6 +62,60 @@ export const pathHasDynamicSegment = (path: string): boolean =>
  * `{ staticParts: [str], paramNames: [] }`, which callers use to keep emitting
  * a plain string attribute.
  */
+/**
+ * A WHOLE segment that Next.js reads as a route parameter.
+ *
+ * Wider than `DYNAMIC_PATH_SEGMENT_SOURCE` on purpose: this one also has to
+ * recognise the catch-all forms (`[...slug]`, `[[...slug]]`), because the
+ * question it answers is "may I edit this segment's text?" and the answer for
+ * every bracketed segment is no.
+ */
+const ROUTE_PARAM_SEGMENT_RE = /^\[{1,2}(?:\.\.\.)?[^[\]/]+\]{1,2}$/
+
+/**
+ * Make a route unique by suffixing it, WITHOUT touching its parameters.
+ *
+ * Two pages that claim the same URL cannot both keep it, so one is renamed.
+ * The rename used to be a bare string append, which is correct for a static
+ * route (`/products-list` → `/products-list1`) and silently fatal for a
+ * dynamic one: `/admin/product-reviews/update/[id]` became
+ * `/admin/product-reviews/update/[id]1`, and a segment is a route parameter
+ * only when the brackets span the WHOLE of it. Next therefore read `[id]1` as
+ * literal text, and the page — which still called `getStaticPaths` — failed
+ * the production build outright:
+ *
+ *   Error: getStaticPaths can only be used with dynamic pages, not
+ *   '/admin/product-reviews/update/[id]1'.
+ *
+ * That shipped: a store with both a platform `teleport_product_reviews` table
+ * and an author-created `product_reviews` one generated two admin edit pages,
+ * both carrying `navLink: '/admin/product-reviews/update/[id]'`, and every
+ * publish of that project died in Vercel.
+ *
+ * So the suffix goes on the last segment that is REAL TEXT. The parameter
+ * survives, the URL stays distinct, and the page still resolves its row.
+ * When every segment is a parameter (`/[id]`) there is no text to extend, so a
+ * static segment is inserted ahead of the tail instead — renaming `[id]` would
+ * break the `params.id` the page reads. Paths with no segment to speak of
+ * (`/`, `**`) keep the historical append.
+ */
+export const appendRouteDisambiguator = (path: string, suffix: number): string => {
+  if (!suffix) return path
+  const segments = (path || '').split('/')
+
+  for (let index = segments.length - 1; index >= 0; index--) {
+    const segment = segments[index]
+    if (segment.length === 0 || ROUTE_PARAM_SEGMENT_RE.test(segment)) continue
+    segments[index] = `${segment}${suffix}`
+    return segments.join('/')
+  }
+
+  const firstParam = segments.findIndex((segment) => ROUTE_PARAM_SEGMENT_RE.test(segment))
+  if (firstParam === -1) return `${path}${suffix}`
+  segments.splice(firstParam, 0, `page${suffix}`)
+  return segments.join('/')
+}
+
 export const parseDynamicPathSegments = (
   str: string
 ): { staticParts: string[]; paramNames: string[] } => {

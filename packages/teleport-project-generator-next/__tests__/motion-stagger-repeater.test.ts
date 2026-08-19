@@ -90,6 +90,59 @@ describe('TqMotion stagger resolution (mapStaggerTargets)', () => {
     const lone = element('img', { src: 'x' })
     expect(mapStaggerTargets(lone, wrap, 0)).toBeNull()
   })
+
+  // ⛔ THE REPORTED DEFECT (run 75860d32, "Start by Concern" on Routine Guide).
+  // The lone-child guard above only fires for a container whose ONLY child is the
+  // repeater. That grid held the mapper AND one static "text pivot" card, so the
+  // array was length 2, both branches were wrapped, and the mapper's four cards
+  // shipped stacked inside ONE cell of a repeat(3, 1fr) grid — one column of tall
+  // cards, the pivot beside it, and the third column empty down the whole band.
+  it('returns null when a <Repeater> sits BESIDE a static sibling in the same container', () => {
+    const grid = element('div', {
+      className: 'collage-grid',
+      children: [
+        element('Repeater', { items: [], renderItem: (): null => null }),
+        element('div', { className: 'collage-item text-pivot', children: 'Your Glow Pathway' }),
+      ],
+    })
+
+    expect(mapStaggerTargets(grid, wrap, 0)).toBeNull()
+  })
+
+  it('returns null for a table-backed <DataProvider> beside a static sibling', () => {
+    // A table-backed array-mapper compiles to <DataProvider renderSuccess={…}> —
+    // opaque at build time for the same reason, so it collapses the same way.
+    const grid = element('div', {
+      className: 'people-grid',
+      children: [
+        element('DataProvider', { name: 'team_members', renderSuccess: (): null => null }),
+        element('div', { className: 'people-cta', children: 'Join us' }),
+      ],
+    })
+
+    expect(mapStaggerTargets(grid, wrap, 0)).toBeNull()
+  })
+
+  it('still cascades when the repeater sits inside its own wrapper beside a sibling', () => {
+    // The wrapper is ALREADY the box between the grid and the items, so a
+    // motion.div around it changes no layout — only the repeater as a DIRECT
+    // child of the laying-out container is the collapse case.
+    const grid = element('div', {
+      className: 'cards',
+      children: [
+        element('div', {
+          className: 'card-rail',
+          children: element('Repeater', { items: [], renderItem: (): null => null }),
+        }),
+        element('div', { className: 'card', children: 'static' }),
+      ],
+    })
+
+    const result = mapStaggerTargets(grid, wrap, 0) as StubElement
+    const wrapped = result.props.children as StubElement[]
+    expect(wrapped).toHaveLength(2)
+    expect(wrapped.every((w) => w.type === 'motion.div')).toBe(true)
+  })
 })
 
 describe('generated TqMotion source', () => {
