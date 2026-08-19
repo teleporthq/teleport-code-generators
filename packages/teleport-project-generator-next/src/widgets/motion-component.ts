@@ -12,11 +12,13 @@
  * via useScroll/useTransform), hover (whileHover),
  * tap (whileTap). `stagger` descends through grid/list wrappers to the real
  * repeated items (e.g. <array-mapper> cards) and cascades THOSE with a per-child
- * delay — not the lone grid block — matching the canvas renderer. When the repeated
- * items come from a runtime <Repeater> (build-time opaque, so they can't be wrapped
- * individually), it degrades to a single GROUP animation rather than wrapping the
- * Repeater in a lone block — that block would sit between the grid/flex container and
- * its items and collapse the layout. Honors prefers-reduced-motion. framer-motion
+ * delay — not the lone grid block — matching the canvas renderer. When ANY node it
+ * would wrap comes from a runtime <Repeater>/<DataProvider> (build-time opaque, so
+ * its items can't be wrapped individually), it degrades to a single GROUP animation
+ * rather than wrapping that node in a lone block — that block would sit between the
+ * grid/flex container and its items and collapse them into one cell. That holds
+ * whether the repeater is the container's only child or sits beside static siblings.
+ * Honors prefers-reduced-motion. framer-motion
  * requires React 18 — the Next project plugin bumps react/react-dom accordingly.
  */
 export const generateMotionComponentCode = (): string => {
@@ -118,12 +120,47 @@ const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
 // grid/flex container and its repeated items and collapse them into one cell. On null
 // the caller animates the whole subtree as one group instead — the wrapper then sits
 // OUTSIDE the layout container, so the repeated items stay its direct layout children.
+//
+// ⛔ AND A SIBLING BESIDE THE REPEATER DEFEATED THAT GUARD (run 75860d32,
+// "Start by Concern"). The lone-child test only ever fired for a container whose
+// ONLY child is the mapper. That page's grid held the mapper AND one static card:
+//
+//   <div class="collage-grid">            // grid-template-columns: repeat(3, 1fr)
+//     {loading && <div class="loading-state"/>}
+//     {!loading && <Repeater items={concernStarterSets} …/>}   // 4 cards
+//     <div class="collage-item text-pivot"/>
+//   </div>
+//
+// so the array is length 2 at runtime, every branch was wrapped, and the four
+// cards landed INSIDE ONE motion.div — one grid cell holding a vertical stack,
+// the pivot in the next, and the third column empty for the height of the band.
+// The user's read: "4 big cards to the left and only one small card to the
+// right … the right part of the page looks really empty."
+//
+// A repeater among siblings is the SAME defect as a repeater alone, so it takes
+// the same remedy: no stagger, one group animation, layout untouched. Losing a
+// cascade is a smaller loss than losing the layout.
 const mapStaggerTargets = (nodes, wrap, depth) => {
+  // Renders MANY siblings at runtime from ONE build-time element: <Repeater>
+  // (array-mapper) and <DataProvider> (a table-backed mapper's fetch wrapper).
+  // Both keep their content behind a render prop, so props.children is undefined
+  // and the descent below can never reach the items to cascade them.
+  const rendersManySiblings = (node) =>
+    !!node &&
+    React.isValidElement(node) &&
+    !!node.props &&
+    (node.props.renderItem != null || node.props.renderSuccess != null)
   const arr = React.Children.toArray(nodes)
   if (arr.length > 1 || depth >= 3) {
+    if (arr.some(rendersManySiblings)) {
+      return null
+    }
     return arr.map((child, index) => wrap(child, index))
   }
   const only = arr[0]
+  if (rendersManySiblings(only)) {
+    return null
+  }
   if (only && React.isValidElement(only) && only.props && only.props.children != null) {
     const inner = mapStaggerTargets(only.props.children, wrap, depth + 1)
     if (inner == null) {

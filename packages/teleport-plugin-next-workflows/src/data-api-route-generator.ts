@@ -12,6 +12,7 @@
  */
 
 import { generateSqlValidatorCode } from './sql-validator'
+import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 
 const DATA_NODE_TYPES = new Set([
   'data-select',
@@ -61,7 +62,11 @@ export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string 
 
   return `const { Client } = require('pg');
 ${
-  authUsersTable ? "const { getToken } = require('next-auth/jwt');\n" : ''
+  // The session cookie is resolved from the REQUEST rather than from
+  // process.env.NEXTAUTH_URL — see session-cookie-resolver.ts. Reading it the
+  // old way made `assertSessionOwnsUsersRow` answer 401 to a signed-in user on
+  // any serverless instance that had not served an auth request first.
+  authUsersTable ? generateCommonJsSessionTokenResolverCode() : ''
 }const AUTH_USERS_TABLE = ${JSON.stringify(authUsersTable)};
 const LOW_STOCK_ALERTS_ENABLED = ${JSON.stringify(lowStockAlertsEnabled)};
 const LOW_STOCK_THRESHOLD = ${JSON.stringify(lowStockThreshold)};
@@ -818,7 +823,7 @@ async function assertSessionOwnsUsersRow(req, operation, body) {
 
   var token;
   try {
-    token = await getToken({ req: req, secret: process.env.NEXTAUTH_SECRET });
+    token = await __tqSessionToken(req);
   } catch (e) {
     token = null;
   }

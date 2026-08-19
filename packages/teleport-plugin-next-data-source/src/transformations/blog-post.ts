@@ -77,6 +77,37 @@ function buildBlogPost(record, options) {
       ? coerceBoolean(record.allowComments, true)
       : true
 
+  // The author's related-post picks. \`relatedPosts\` carries the TRANSFORMED
+  // rows, not ids, so the details page's related-posts rail can map over it and
+  // draw an article card per entry; \`relatedPostIds\` keeps the raw selection.
+  // The rows arrive from ONE batched query (getRelatedPostsMap) that
+  // transformRecords runs, keyed by id in options.relatedPostsById.
+  //
+  // MUST mirror buildRelatedBlogPosts in packages/renderer/src/utils/blog-posts.ts
+  // (the canvas-preview SSOT): the author's order, UNPUBLISHED posts dropped,
+  // self dropped, and the nested build deliberately WITHOUT the map — two posts
+  // pointing at each other is ordinary and would otherwise recurse forever.
+  var relatedPostIds = parseRelatedIds(record.related_post_ids)
+  var relatedPostsById = options.relatedPostsById
+  var relatedPosts = []
+  if (relatedPostsById && relatedPostIds.length > 0) {
+    var relatedNestedOptions = {
+      assetMap: assetMap,
+      currentLanguage: currentLang,
+      mainLanguage: mainLang,
+    }
+    for (var rp = 0; rp < relatedPostIds.length; rp++) {
+      var relatedId = relatedPostIds[rp]
+      if (id != null && relatedId === String(id)) continue
+      var relatedRecord = relatedPostsById[relatedId]
+      if (!relatedRecord) continue
+      // A draft must not reach the storefront through another post's rail.
+      // Missing status reads as 'draft', the same default as above.
+      if ((relatedRecord.status || 'draft') !== 'published') continue
+      relatedPosts.push(buildBlogPost(relatedRecord, relatedNestedOptions))
+    }
+  }
+
   // Timestamps
   var rawPublishedAt = pickFirst(record.published_at, record.publishedAt)
   var publishedAt = rawPublishedAt != null ? normalizeTimestamp(rawPublishedAt) : null
@@ -99,6 +130,8 @@ function buildBlogPost(record, options) {
     status: status,
     category: category,
     tags: tags,
+    relatedPostIds: relatedPostIds,
+    relatedPosts: relatedPosts,
     featuredImageUrl: featuredImageUrl,
     featuredImageAlt: featuredImageAlt,
     galleryImages: galleryImages,
@@ -123,6 +156,47 @@ function buildBlogPost(record, options) {
 function transformBlogPosts(records, options) {
   if (!Array.isArray(records)) return []
   return records.map(function(record) { return buildBlogPost(record, options) })
+}
+
+// Batched fetch of the post rows a set of posts reference as "related", keyed by
+// id. Best-effort in the same way as the product side: a table provisioned
+// before the column yields no ids (the read is of an absent property, not of a
+// column — the SQL never names it), the map stays empty, and the rail stays
+// hidden behind its is_not_empty gate.
+async function getRelatedPostsMap(getClientFn, records) {
+  var map = {}
+  if (!Array.isArray(records) || records.length === 0) return map
+
+  var wantedIds = []
+  for (var i = 0; i < records.length; i++) {
+    var ids = parseRelatedIds(records[i] && records[i].related_post_ids)
+    for (var j = 0; j < ids.length; j++) {
+      if (wantedIds.indexOf(ids[j]) === -1) wantedIds.push(ids[j])
+    }
+  }
+  if (wantedIds.length === 0) return map
+
+  var client
+  try {
+    client = getClientFn()
+    await client.connect()
+    var result = await client.query('SELECT * FROM teleport_blog_posts WHERE id = ANY($1)', [
+      wantedIds,
+    ])
+    if (result && result.rows) {
+      for (var r = 0; r < result.rows.length; r++) {
+        var row = result.rows[r]
+        if (row && row.id != null) map[String(row.id)] = row
+      }
+    }
+  } catch (e) {
+    // Leaves relatedPosts empty rather than failing the page.
+  } finally {
+    if (client) {
+      try { await client.end() } catch (e) { /* ignore */ }
+    }
+  }
+  return map
 }
 `
 }
