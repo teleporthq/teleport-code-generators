@@ -182,6 +182,13 @@ export const NextProjectMapping: Mapping = {
         path: '../components/tq-scroll-scene',
       },
     },
+    'scroll-video-node': {
+      elementType: 'TqScrollVideo',
+      dependency: {
+        type: 'local',
+        path: '../components/tq-scroll-video',
+      },
+    },
     'form-file-input-node': {
       elementType: 'TqFormFileInput',
       dependency: {

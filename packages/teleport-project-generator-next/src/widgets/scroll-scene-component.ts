@@ -395,7 +395,9 @@ const TqScrollScene = ({
     : style
 
   return (
-    <div ref={trackRef} style={trackStyle} {...rest}>
+    // data-scene-track: the discovery hook for scene-aware widgets (TqScrollVideo
+    // finds its driving scene with closest('[data-scene-track]')).
+    <div ref={trackRef} style={trackStyle} data-scene-track {...rest}>
       {pin ? (
         <div
           style={{

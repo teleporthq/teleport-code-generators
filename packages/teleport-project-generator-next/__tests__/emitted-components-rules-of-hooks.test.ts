@@ -26,6 +26,8 @@ import { generateQrCodeComponentCode } from '../src/widgets/qrcode-component'
 import { generateEmojiPickerComponentCode } from '../src/widgets/emoji-picker-component'
 import { generateColorPickerComponentCode } from '../src/widgets/color-picker-component'
 import { generateFormFileInputComponentCode } from '../src/widgets/form-file-input-component'
+import { generateScrollSceneComponentCode } from '../src/widgets/scroll-scene-component'
+import { generateScrollVideoComponentCode } from '../src/widgets/scroll-video-component'
 import { COLLAPSIBLE_TEXT_OVERFLOW_COMPONENT_SOURCE } from '../src/collapsible-text/collapsible-text-overflow-component'
 import { NAV_ACTIVE_LINK_COMPONENT_SOURCE } from '../src/nav-active-link/nav-active-link-component'
 import { TRACKER_COMPONENT_SOURCE } from '../src/analytics/tracker-component'
@@ -36,6 +38,8 @@ const EMITTED_COMPONENTS: Array<[string, string]> = [
   ['tq-drag-drop', generateDragDropComponentCode()],
   ['rich-text-editor', generateRichTextEditorComponentCode()],
   ['tq-motion', generateMotionComponentCode()],
+  ['tq-scroll-scene', generateScrollSceneComponentCode()],
+  ['tq-scroll-video', generateScrollVideoComponentCode()],
   ['tq-signature', generateSignatureComponentCode()],
   ['tq-categories-filter', generateCategoriesFilterComponentCode()],
   ['tq-categories-megamenu', generateCategoriesMegamenuComponentCode()],
@@ -60,7 +64,7 @@ describe('emitted React components obey the Rules of Hooks', () => {
 
   it('covers every component source the generator can emit', () => {
     // A new widget added without a row here would ship unguarded.
-    expect(EMITTED_COMPONENTS).toHaveLength(16)
+    expect(EMITTED_COMPONENTS).toHaveLength(18)
   })
 })
 

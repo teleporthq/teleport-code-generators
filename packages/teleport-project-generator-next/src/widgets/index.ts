@@ -7,6 +7,7 @@ import { generateColorPickerComponentCode } from './color-picker-component'
 import { generateEmojiPickerComponentCode } from './emoji-picker-component'
 import { generateMotionComponentCode } from './motion-component'
 import { generateScrollSceneComponentCode } from './scroll-scene-component'
+import { generateScrollVideoComponentCode } from './scroll-video-component'
 import { generateFormFileInputComponentCode } from './form-file-input-component'
 import { generateCategoriesMegamenuComponentCode } from './categories-megamenu-component'
 import { generateCategoriesFilterComponentCode } from './categories-filter-component'
@@ -78,6 +79,13 @@ export const createNextWidgetProjectPlugins = (): ProjectPlugin[] => [
     dependencyName: 'framer-motion',
     dependencyVersion: '^11.18.0',
     bumpReact18: true,
+  }),
+  createNextWidgetProjectPlugin({
+    // Pure-DOM scrub player — no animation library, no dependency to register.
+    elementType: 'scroll-video-node',
+    fileName: 'tq-scroll-video',
+    fileKey: 'tq-scroll-video-component',
+    generateCode: generateScrollVideoComponentCode,
   }),
   createNextWidgetProjectPlugin({
     elementType: 'form-file-input-node',
