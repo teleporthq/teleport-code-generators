@@ -373,7 +373,7 @@ describe('buildPaymentMetadataBuilder — runtime semantics', () => {
   // Build a synthetic params array that mirrors the workflow context:
   // a mix of unrelated nodes plus an order-create-item-shaped result.
   const fn = (() => {
-    const code = buildPaymentMetadataBuilder()
+    const code = buildPaymentMetadataBuilder('/order-details')
     return new Function(code + '\nreturn customHandler;')() as any
   })()
 

@@ -5,6 +5,11 @@ async function data_delete_item(config: any, context: any) {
   const tableName = config.tableName
   const filters = config.filters || []
   const baseUrl = (context && context.__baseUrl) || ''
+  // Credentials for calling this deployment's own API routes — see
+  // internalRequestHeaders in runtime-utils. Without them a deployment behind
+  // Vercel Deployment Protection 401s its own request and this node silently
+  // returns nothing.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
   const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // Unresolved route-param sentinel in a filter → validation error (see
@@ -47,6 +52,7 @@ async function data_delete_item(config: any, context: any) {
         // Trusted internal server-side call — lets the /api/data guard distinguish
         // this from a direct browser request (see assertSessionOwnsUsersRow).
         'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
       },
       body: JSON.stringify({ tableName, filters }),
     })

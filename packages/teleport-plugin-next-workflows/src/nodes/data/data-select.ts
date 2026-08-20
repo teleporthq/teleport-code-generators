@@ -16,6 +16,11 @@ async function data_select(config: any, context: any) {
     ? config.rawQueryUserPartParams
     : []
   const baseUrl = (context && context.__baseUrl) || ''
+  // Credentials for calling this deployment's own API routes — see
+  // internalRequestHeaders in runtime-utils. Without them a deployment behind
+  // Vercel Deployment Protection 401s its own request and this node silently
+  // returns nothing.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
 
   function isEmptyFilterValue(value: any) {
     if (value === undefined || value === null) return true
@@ -97,7 +102,7 @@ async function data_select(config: any, context: any) {
 
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/select', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
       body: JSON.stringify(payload),
     })
 

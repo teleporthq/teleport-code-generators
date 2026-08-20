@@ -3,11 +3,11 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 async function utility_hybrid_search(config: any, context: Record<string, unknown>) {
   const query = config.query || ''
   const queryEmbedding = config.queryEmbedding || null
-  const collection = config.collection || []
+  const collection = config.documents || []
   const fields = config.fields || []
   const embeddingField = config.embeddingField || 'embedding'
   const topK = config.topK !== undefined ? Number(config.topK) : 10
-  const textWeight = config.textWeight !== undefined ? Number(config.textWeight) : 0.5
+  const textWeight = config.keywordWeight !== undefined ? Number(config.keywordWeight) : 0.5
   const semanticWeight = config.semanticWeight !== undefined ? Number(config.semanticWeight) : 0.5
   const fusionMethod = config.fusionMethod || 'rrf'
   const rrfK = config.rrfK !== undefined ? Number(config.rrfK) : 60

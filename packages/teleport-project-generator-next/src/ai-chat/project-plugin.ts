@@ -299,10 +299,21 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
       }
     }
 
+    // The embedding key is its own env var, and is needed by EVERY non-OpenAI
+    // provider — not just Anthropic. Embeddings always go to OpenAI because
+    // that is what the knowledge base was indexed with, so a Google/Cohere/
+    // Mistral/Llama chat still needs an OpenAI key for semantic search.
     const provider = chat.aiProvider?.provider || 'openai'
-    const providerLacksEmbeddings = provider === 'anthropic'
-    if (providerLacksEmbeddings && !uidl.globals.env.EMBEDDING_API_KEY) {
-      uidl.globals.env.EMBEDDING_API_KEY = ''
+    if (provider !== 'openai') {
+      const embeddingKey = chat.aiProvider?.embeddingSecretKeyReference
+      if (embeddingKey && !uidl.globals.env[embeddingKey]) {
+        uidl.globals.env[embeddingKey] = ''
+      }
+      // Always surfaced as the documented override, so the key can be supplied
+      // at deploy time even when the project has no OpenAI secret recorded.
+      if (!uidl.globals.env.EMBEDDING_API_KEY) {
+        uidl.globals.env.EMBEDDING_API_KEY = ''
+      }
     }
   }
 

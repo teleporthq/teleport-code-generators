@@ -20,6 +20,35 @@
  * whether the repeater is the container's only child or sits beside static siblings.
  * Honors prefers-reduced-motion. framer-motion
  * requires React 18 — the Next project plugin bumps react/react-dom accordingly.
+ *
+ * ## ⛔ A STAGGER MUST NOT ADD A DOM NODE (run c133d485, "How the Appointment Works")
+ *
+ * The cascade used to wrap every target in its own `<motion.div>`. The canvas does
+ * the opposite: `runMotion` writes the tween straight onto the target elements'
+ * inline style and adds NOTHING to the tree. So the published DOM gained a box the
+ * canvas never had, sitting exactly between a layout container and its items — and
+ * every declaration the author aimed at those items stopped reaching the boxes the
+ * container was laying out:
+ *
+ * ```html
+ * <div class="process-rail">                    <!-- flex; width: max-content -->
+ *   <div class="process-step-card">…</div>  x4  <!-- flex: 0 0 380px -->
+ * ```
+ *
+ * published as `.process-rail > div > .process-step-card`, so the flex items were
+ * the anonymous wrappers (`flex: 0 1 auto`), `flex-basis: 380px` reached nothing,
+ * each wrapper shrink-wrapped to its copy's max-content — 1500px — and the rail
+ * measured 6096px against a 1056px viewport. Measured live on the deployed site.
+ * The same wrapper is why `:nth-child()` dies once published (see
+ * `bake-structural-pseudo-classes.ts` in the generation service).
+ *
+ * The cascade is therefore applied IN PLACE: each target is cloned with the
+ * animated CSS on its own `style`, driven by a CSS transition whose delay carries
+ * the per-index offset. Same curves, same keyframes, same order — and the
+ * published tree is the canvas tree. Two shapes fall back to the single group
+ * animation rather than re-introducing a wrapper: a target that is not a plain DOM
+ * element (a component is free to drop an injected `style`), and a `repeat` other
+ * than 0 (a CSS transition plays exactly once).
  */
 export const generateMotionComponentCode = (): string => {
   return `import React from 'react'
@@ -61,6 +90,51 @@ const presetStates = (preset, distance) => {
     default:
       return { from: { opacity: 0 }, to: { opacity: 1 } }
   }
+}
+
+// The transform-family keys, in the order the canvas composes them — the string
+// has to match \`cssFromState\` in the renderer's motion-keyframes exactly, or a
+// staggered card and its canvas twin would compose the same values differently.
+const TRANSFORM_KEYS = ['x', 'y', 'scale', 'rotate']
+
+const transformComponent = (key, value) => {
+  const numeric = typeof value === 'number'
+  switch (key) {
+    case 'x':
+      return 'translateX(' + (numeric ? value + 'px' : value) + ')'
+    case 'y':
+      return 'translateY(' + (numeric ? value + 'px' : value) + ')'
+    case 'scale':
+      return 'scale(' + value + ')'
+    case 'rotate':
+      return 'rotate(' + (numeric ? value + 'deg' : value) + ')'
+    default:
+      return ''
+  }
+}
+
+// Turn a resolved motion state ({ opacity, x, y, scale, rotate, filter, … }) into
+// an inline style object: the transform keys collapse into one \`transform\` string
+// and every other key passes through as its own CSS property. Mirrors the canvas.
+const cssFromState = (state) => {
+  const css = {}
+  const transformParts = []
+  for (let i = 0; i < TRANSFORM_KEYS.length; i++) {
+    const key = TRANSFORM_KEYS[i]
+    if (state[key] !== undefined) {
+      transformParts.push(transformComponent(key, state[key]))
+    }
+  }
+  Object.keys(state).forEach((key) => {
+    if (TRANSFORM_KEYS.indexOf(key) !== -1) {
+      return
+    }
+    css[key] = state[key]
+  })
+  if (transformParts.length > 0) {
+    css.transform = transformParts.join(' ')
+  }
+  return css
 }
 
 // How much of the element is inside the viewport right now, as a 0..1 fraction
@@ -111,7 +185,7 @@ const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
 // Find the elements a stagger should cascade across. Content is usually wrapped as
 // <TqMotion><div class="grid">{items.map(...)}</div></TqMotion>, so the only child
 // is a grid wrapper. Descend through single-child wrappers to the real repeated
-// items, wrap THOSE (so cards cascade — not the lone block), and keep the wrappers.
+// items, cascade THOSE (so cards cascade — not the lone block), keep the wrappers.
 //
 // Returns null when the descent bottoms out at a single, non-cascadable node — most
 // importantly a runtime <Repeater> (array-mapper), which is self-closing at build
@@ -150,9 +224,19 @@ const mapStaggerTargets = (nodes, wrap, depth) => {
     React.isValidElement(node) &&
     !!node.props &&
     (node.props.renderItem != null || node.props.renderSuccess != null)
+  // The cascade is written onto each target's own \`style\`, so a target has to be
+  // a plain DOM element: a component owns its rendering and is free to drop an
+  // injected style prop (next/link does exactly that), which would leave the item
+  // stuck at its resting state. One such target disqualifies the whole cascade —
+  // a partial cascade is a page where some cards never appear.
+  const stylableInPlace = (node) =>
+    !!node && React.isValidElement(node) && typeof node.type === 'string'
   const arr = React.Children.toArray(nodes)
   if (arr.length > 1 || depth >= 3) {
     if (arr.some(rendersManySiblings)) {
+      return null
+    }
+    if (!arr.every(stylableInPlace)) {
       return null
     }
     return arr.map((child, index) => wrap(child, index))
@@ -216,6 +300,19 @@ const TqMotion = ({
   React.useEffect(() => {
     revealedRef.current = revealed
   }, [revealed])
+
+  // The in-place cascade needs its own "the transition may start now" flag for the
+  // load trigger: framer's initial/animate pair does that itself, but a CSS
+  // transition only runs when the value CHANGES, so the resting state has to be
+  // what the first paint (and the SSR html) carries. Flipped on the next frame.
+  const [played, setPlayed] = React.useState(false)
+  React.useEffect(() => {
+    if (trigger !== 'load') {
+      return undefined
+    }
+    const frame = requestAnimationFrame(() => setPlayed(true))
+    return () => cancelAnimationFrame(frame)
+  }, [trigger])
 
   React.useEffect(() => {
     if (trigger !== 'in-view') {
@@ -313,21 +410,44 @@ const TqMotion = ({
     )
   }
 
-  if (Number(stagger) > 0 && (trigger === 'load' || trigger === 'in-view')) {
-    const wrapChild = (child, index) => {
-      const childTransition = { ...transition, delay: (Number(delay) || 0) + index * Number(stagger) }
-      const childProps = buildAnimProps(trigger, fromVars, toVars, childTransition, revealed)
-      return (
-        <motion.div key={index} {...childProps}>
-          {child}
-        </motion.div>
-      )
+  // A CSS transition plays exactly once, so a repeating stagger keeps the framer
+  // path (and its wrapper). Entrance cascades — every stagger the generator has
+  // ever emitted — run in place.
+  if (Number(stagger) > 0 && repeatCount === 0 && (trigger === 'load' || trigger === 'in-view')) {
+    const fromCss = cssFromState(fromVars)
+    const toCss = cssFromState(toVars)
+    // Transition every property either state touches, so a preset that animates
+    // only \`filter\` (blur-in) is covered exactly like one that animates opacity.
+    const animatedProps = Object.keys(fromCss).concat(
+      Object.keys(toCss).filter((prop) => fromCss[prop] === undefined)
+    )
+    const easeCss = 'cubic-bezier(' + ease.join(', ') + ')'
+    const durationSeconds = Number(duration) || 0.6
+    const atRest = trigger === 'load' ? played : revealed
+
+    const styleChild = (child, index) => {
+      const delaySeconds = (Number(delay) || 0) + index * Number(stagger)
+      const childTransition = animatedProps
+        .map(
+          (prop) =>
+            prop + ' ' + durationSeconds + 's ' + easeCss + ' ' + delaySeconds + 's'
+        )
+        .join(', ')
+      return React.cloneElement(child, {
+        key: index,
+        style: {
+          ...(child.props.style || {}),
+          ...(atRest ? toCss : fromCss),
+          transition: childTransition,
+        },
+      })
     }
-    const staggerTargets = mapStaggerTargets(children, wrapChild, 0)
+    const staggerTargets = mapStaggerTargets(children, styleChild, 0)
     // staggerTargets is null when there are no real per-item targets to cascade
-    // (e.g. the items render from a runtime <Repeater>). Fall through to the single
-    // group animation below so the wrapper stays OUTSIDE the grid/flex container and
-    // its repeated items remain direct layout children (no collapsed layout).
+    // (e.g. the items render from a runtime <Repeater>, or a target is a component
+    // that may drop an injected style). Fall through to the single group animation
+    // below so the wrapper stays OUTSIDE the grid/flex container and its repeated
+    // items remain direct layout children (no collapsed layout).
     if (staggerTargets != null) {
       // motion.div (animation-less), NOT a plain div: this branch and the group
       // fall-through below must render the SAME outer element type. A page whose

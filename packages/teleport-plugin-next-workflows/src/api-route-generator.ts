@@ -105,7 +105,11 @@ module.exports = async function handler(req, res) {
     // are drained by the settle below rather than being lost when we reply.
     context.__pendingNodePromises = [];${requestInjection}
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;${auth.guardCall}
+    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Credentials for this deployment's calls to its own /api/data routes —
+    // without them a protected deployment 401s itself and every data node
+    // returns no rows. See internalRequestHeaders in runtime-utils.
+    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
 
     for (let i = 0; i < sortedNodes.length; i++) {
@@ -391,6 +395,12 @@ module.exports = async function handler(req, res) {
     await utils.settlePendingNodePromises(context);
     delete context.__request;
     delete context.__pendingNodePromises;
+    // MUST be stripped before replying: the results payload below IS this
+    // context, serialized straight to the browser. __internalHeaders carries
+    // the visitor's forwarded cookie, and writing it into a JS-readable
+    // response body would hand the session token to any script on the page,
+    // undoing the httpOnly flag it was set with.
+    delete context.__internalHeaders;
     res.status(200).json({ success: true, results: context });
   } catch (error) {
     console.error('Workflow segment error:', error);
@@ -512,7 +522,11 @@ module.exports = async function handler(req, res) {
     // See the non-streaming segment route — shared queue for nested custom nodes.
     context.__pendingNodePromises = [];${requestInjection}
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;${auth.guardCall}
+    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Credentials for this deployment's calls to its own /api/data routes —
+    // without them a protected deployment 401s itself and every data node
+    // returns no rows. See internalRequestHeaders in runtime-utils.
+    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
     const executed = {};
 
@@ -827,6 +841,12 @@ module.exports = async function handler(req, res) {
     await utils.settlePendingNodePromises(context);
     delete context.__request;
     delete context.__pendingNodePromises;
+    // MUST be stripped before replying: the results payload below IS this
+    // context, serialized straight to the browser. __internalHeaders carries
+    // the visitor's forwarded cookie, and writing it into a JS-readable
+    // response body would hand the session token to any script on the page,
+    // undoing the httpOnly flag it was set with.
+    delete context.__internalHeaders;
     if (streamStarted) {
       res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: context }) + '\\n\\n');
       res.end();
@@ -1546,7 +1566,11 @@ ${generateSignatureVerificationBlock(webhookConfig)}
     context.__pendingNodePromises = [];
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;
     var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;${requestInjection}
+    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Credentials for this deployment's calls to its own /api/data routes —
+    // without them a protected deployment 401s itself and every data node
+    // returns no rows. See internalRequestHeaders in runtime-utils.
+    context.__internalHeaders = utils.internalRequestHeaders(req);${requestInjection}
 
 ${executionLoop}
 

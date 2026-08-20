@@ -5,6 +5,11 @@ async function data_create_item(config: any, context: any) {
   const tableName = config.tableName
   const columnMappings = config.columnMappings || {}
   const baseUrl = (context && context.__baseUrl) || ''
+  // Credentials for calling this deployment's own API routes — see
+  // internalRequestHeaders in runtime-utils. Without them a deployment behind
+  // Vercel Deployment Protection 401s its own request and this node silently
+  // returns nothing.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
 
   // An unresolved route-param sentinel (see resolveTemplateTokenString in
   // runtime-utils) in a columnMapping degrades to null so the INSERT itself
@@ -67,7 +72,7 @@ async function data_create_item(config: any, context: any) {
     }
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
       body: JSON.stringify(reqBody),
     })
 
@@ -99,7 +104,7 @@ async function data_create_item(config: any, context: any) {
         if (__orderOwnerId) {
           fetch(baseUrl + '/api/cart/mark-ordered', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...__internalHeaders },
             body: JSON.stringify({ anonymousUserId: __orderOwnerId }),
           }).catch(function () {})
         }
@@ -194,7 +199,7 @@ async function data_create_item(config: any, context: any) {
       try {
         fetch(baseUrl + '/api/ecommerce/order-notification', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...__internalHeaders },
           body: JSON.stringify({
             orderId: item.id || '',
             // orderNumber is the human-friendly identifier (e.g. ORD-1234)

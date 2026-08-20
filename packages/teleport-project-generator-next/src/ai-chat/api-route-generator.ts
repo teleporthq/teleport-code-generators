@@ -155,7 +155,6 @@ ${authGuard}
     documents = documents || [];
 
     // Step 5: Semantic search
-    var coveredByKnowledge = false;
     var contextChunks = [];
     if (documents.length > 0) {
       try {
@@ -173,10 +172,11 @@ ${authGuard}
         scored.sort(function(a, b) { return b.score - a.score; });
         var topResults = scored.slice(0, ${ragConfig.searchTopK});
         if (topResults.length > 0) {
-          coveredByKnowledge = true;
+          // Line breaks are kept: a knowledge chunk is often a record whose
+          // "Field: value" layout is what tells the model it IS a record.
           contextChunks = topResults.map(function(r) {
-            return (r.doc.content || '').replace(/\\n/g, ' ');
-          });
+            return String(r.doc.content || r.doc.search_content || '').trim();
+          }).filter(function(text) { return text.length > 0; });
         }
       } catch (_embErr) {
         // If embedding fails, proceed without context
@@ -184,7 +184,7 @@ ${authGuard}
     }
 
     // Step 6: Build prompt context
-    var contextStr = contextChunks.join('\\n\\n');
+    var contextStr = contextChunks.join('\\n\\n---\\n\\n');
 
     // Step 7: AI answer
     var aiPrompt = contextStr
@@ -192,6 +192,23 @@ ${authGuard}
       : 'Question: "' + rephrasedQuestion + '"';
 
     var aiMsgId = generateId();
+
+    // \`covered_by_knowledge\` answers "could the knowledge base carry this
+    // question?" — the column the merchant's admin Chat Messages list reads to
+    // find the gaps. Setting it from "the search returned rows" made it a
+    // constant true, because the search always returns its top-K. The finished
+    // answer is the only honest signal, and matching the model's own configured
+    // fallback sentence is exact.
+    var UNKNOWN_INFORMATION_MESSAGE = ${JSON.stringify(
+      chat.chatSettings?.unknownInformationMessage || ''
+    )};
+    function answeredFromKnowledge(answer) {
+      var normalized = String(answer == null ? '' : answer).replace(/\\s+/g, ' ').trim().toLowerCase();
+      if (!normalized) { return false; }
+      var fallback = UNKNOWN_INFORMATION_MESSAGE.replace(/\\s+/g, ' ').trim().toLowerCase();
+      if (!fallback) { return true; }
+      return normalized.indexOf(fallback) === -1;
+    }
 ${
   streaming
     ? generateStreamingResponseBlock(tables, ragConfig)
@@ -236,6 +253,7 @@ function generateStreamingResponseBlock(
     }
 
     // Step 8: Store assistant message
+    var coveredByKnowledge = contextChunks.length > 0 && answeredFromKnowledge(fullResponse);
     var aiNow = new Date().toISOString();
     await db.insert(${JSON.stringify(tables.messagesTable)}, {
       id: aiMsgId,
@@ -286,6 +304,7 @@ function generateNonStreamingResponseBlock(
     }
 
     // Step 8: Store assistant message
+    var coveredByKnowledge = contextChunks.length > 0 && answeredFromKnowledge(aiResponse);
     var aiNow = new Date().toISOString();
     await db.insert(${JSON.stringify(tables.messagesTable)}, {
       id: aiMsgId,

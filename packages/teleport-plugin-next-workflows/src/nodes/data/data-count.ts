@@ -5,6 +5,11 @@ async function data_count(config: any, context: any) {
   const tableName = config.tableName
   const filters = config.filters || []
   const baseUrl = (context && context.__baseUrl) || ''
+  // Credentials for calling this deployment's own API routes — see
+  // internalRequestHeaders in runtime-utils. Without them a deployment behind
+  // Vercel Deployment Protection 401s its own request and this node silently
+  // returns nothing.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
 
   // Unresolved route-param sentinel in a filter (see resolveTemplateTokenString
   // in runtime-utils). DEGRADE: return count:0 WITHOUT an `error` so the executor
@@ -31,7 +36,7 @@ async function data_count(config: any, context: any) {
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/count', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
       body: JSON.stringify({ tableName, filters }),
     })
 

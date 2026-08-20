@@ -3,7 +3,7 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 async function utility_semantic_search(config: any, context: Record<string, unknown>) {
   const query = config.query || ''
   const queryEmbedding = config.queryEmbedding || null
-  const collection = config.collection || []
+  const collection = config.documents || []
   const embeddingField = config.embeddingField || 'embedding'
   const topK = config.topK !== undefined ? Number(config.topK) : 10
   const threshold = config.threshold !== undefined ? Number(config.threshold) : 0
