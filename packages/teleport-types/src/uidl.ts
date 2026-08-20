@@ -278,6 +278,14 @@ export interface UIDLAIAssistantChat {
     provider: string
     model: string
     secretKeyReference: string | null
+    /**
+     * Project-secret name holding the OpenAI key used for query embeddings.
+     * Always OpenAI regardless of `provider`: the knowledge base is indexed
+     * with OpenAI `text-embedding-3-small`, so a query vector from any other
+     * model cannot be compared against it. Optional so a UIDL produced before
+     * this field existed still validates.
+     */
+    embeddingSecretKeyReference?: string | null
   } | null
   chatSettings: {
     chatName: string

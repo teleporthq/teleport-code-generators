@@ -33,6 +33,10 @@ export function generateAIProviderUtils(): string {
     wrapWithGuard('__ai_resolveTextField', __ai_resolveTextField),
     wrapWithGuard('__ai_resolveToken', __ai_resolveToken),
     wrapWithGuard('__ai_detectProvider', __ai_detectProvider),
+    wrapWithGuard('__ai_resolveProvider', __ai_resolveProvider),
+    wrapWithGuard('__ai_modelCapabilities', __ai_modelCapabilities),
+    wrapWithGuard('__ai_providerBaseURL', __ai_providerBaseURL),
+    wrapWithGuard('__ai_openAICompatibleBody', __ai_openAICompatibleBody),
     wrapWithGuard('__ai_clampTemperature', __ai_clampTemperature),
     wrapWithGuard('__ai_parseJSON', __ai_parseJSON),
     wrapWithGuard('__ai_callProvider', __ai_callProvider),
@@ -52,33 +56,15 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   const userMessage = params.userMessage;
   const temperature = params.temperature;
   const maxTokens = params.maxTokens;
+  const caps = __ai_modelCapabilities(provider, model, maxTokens);
   const __nodeRequire = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require;
-
-  if (provider === 'openai') {
-    const _mod = __nodeRequire('openai');
-    const OpenAI = _mod.default || _mod;
-    const messages = [];
-    if (systemMessage) messages.push({ role: 'system', content: systemMessage });
-    messages.push({ role: 'user', content: userMessage });
-    const client = new OpenAI({ apiKey: token });
-    const opts = { model: model, messages: messages, temperature: temperature, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } };
-    const stream = await client.chat.completions.create(opts);
-    let usage = {};
-    for await (const chunk of stream) {
-      if (chunk.usage) {
-        usage = { promptTokens: chunk.usage.prompt_tokens || 0, completionTokens: chunk.usage.completion_tokens || 0, totalTokens: chunk.usage.total_tokens || 0 };
-      }
-      const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content;
-      if (delta) await onChunk(delta);
-    }
-    return { usage: usage };
-  }
 
   if (provider === 'anthropic') {
     const _mod = __nodeRequire('@anthropic-ai/sdk');
     const Anthropic = _mod.default || _mod;
     const client = new Anthropic({ apiKey: token });
-    const opts = { model: model, messages: [{ role: 'user', content: userMessage }], temperature: temperature, max_tokens: maxTokens || 1024, stream: true };
+    const opts = { model: model, messages: [{ role: 'user', content: userMessage }], max_tokens: caps.maxTokens, stream: true };
+    if (caps.supportsTemperature) { opts.temperature = temperature; }
     if (systemMessage) opts.system = systemMessage;
     const stream = await client.messages.create(opts);
     let promptTokens = 0;
@@ -114,9 +100,11 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
     let fullPrompt = '';
     if (systemMessage) fullPrompt += systemMessage + '\\n\\n';
     fullPrompt += userMessage;
+    const generationConfig = { maxOutputTokens: caps.maxTokens };
+    if (caps.supportsTemperature) { generationConfig.temperature = temperature; }
     const result = await genModel.generateContentStream({
       contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-      generationConfig: { temperature: temperature, maxOutputTokens: maxTokens }
+      generationConfig: generationConfig
     });
     for await (const chunk of result.stream) {
       try {
@@ -133,7 +121,8 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
     const _mod = __nodeRequire('cohere-ai');
     const CohereClient = _mod.CohereClient;
     const client = new CohereClient({ token: token });
-    const opts = { model: model, message: userMessage, temperature: temperature, maxTokens: maxTokens };
+    const opts = { model: model, message: userMessage, maxTokens: caps.maxTokens };
+    if (caps.supportsTemperature) { opts.temperature = temperature; }
     if (systemMessage) opts.preamble = systemMessage;
     const stream = await client.chatStream(opts);
     let usage = {};
@@ -156,7 +145,9 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
     const messages = [];
     if (systemMessage) messages.push({ role: 'system', content: systemMessage });
     messages.push({ role: 'user', content: userMessage });
-    const stream = await client.chat.stream({ model: model, messages: messages, temperature: temperature, maxTokens: maxTokens });
+    const opts = { model: model, messages: messages, maxTokens: caps.maxTokens };
+    if (caps.supportsTemperature) { opts.temperature = temperature; }
+    const stream = await client.chat.stream(opts);
     let usage = {};
     for await (const event of stream) {
       const delta = event.data && event.data.choices && event.data.choices[0] && event.data.choices[0].delta && event.data.choices[0].delta.content;
@@ -170,14 +161,13 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
 
   const _mod = __nodeRequire('openai');
   const OpenAI = _mod.default || _mod;
-  const baseURL = provider === 'perplexity' ? 'https://api.perplexity.ai' : provider === 'meta' ? 'https://api.together.xyz/v1' : undefined;
+  const baseURL = __ai_providerBaseURL(provider);
   const clientOpts = { apiKey: token };
   if (baseURL) clientOpts.baseURL = baseURL;
   const client = new OpenAI(clientOpts);
-  const messages = [];
-  if (systemMessage) messages.push({ role: 'system', content: systemMessage });
-  messages.push({ role: 'user', content: userMessage });
-  const opts = { model: model, messages: messages, temperature: temperature, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } };
+  const opts = __ai_openAICompatibleBody(caps, model, systemMessage, userMessage, temperature, false);
+  opts.stream = true;
+  opts.stream_options = { include_usage: true };
   const stream = await client.chat.completions.create(opts);
   let usage = {};
   for await (const chunk of stream) {
@@ -270,40 +260,185 @@ function __ai_resolveToken(token: any): string {
   return String(token)
 }
 
+/**
+ * Last-resort provider inference for nodes saved before the editor started
+ * writing `config.provider`.
+ *
+ * ⛔ This is a heuristic and it is WRONG for several current model ids —
+ * `magistral-medium-latest` and `ministral-8b-latest` are Mistral,
+ * `command-a-03-2025` is Cohere, and Together serves Llama under
+ * `meta-llama/…`. Every unmatched id falls through to OpenAI and the request
+ * goes to the wrong API with the wrong key. The patterns below cover the whole
+ * shipped catalogue, but the durable fix is `config.provider`, which
+ * `__ai_resolveProvider` prefers.
+ */
 function __ai_detectProvider(modelId: any): string {
-  if (!modelId) {
+  const id = String(modelId || '').toLowerCase()
+  if (!id) {
     return 'openai'
   }
-  if (modelId.startsWith('gpt-')) {
-    return 'openai'
-  }
-  if (modelId.startsWith('claude-')) {
-    return 'anthropic'
-  }
-  if (modelId.startsWith('gemini-')) {
-    return 'google'
-  }
-  if (modelId.startsWith('command')) {
-    return 'cohere'
-  }
-  if (modelId.startsWith('mistral-') || modelId.startsWith('mixtral-') || modelId === 'pixtral') {
-    return 'mistral'
-  }
-  if (modelId.indexOf('sonar') >= 0) {
+  // Perplexity first: its retired ids are `llama-3.1-sonar-*`, which would
+  // otherwise be claimed by the Llama branch below.
+  if (id.indexOf('sonar') >= 0) {
     return 'perplexity'
   }
-  if (modelId.startsWith('llama-')) {
+  if (id.indexOf('gpt-') === 0 || /^o\d/.test(id)) {
+    return 'openai'
+  }
+  if (id.indexOf('claude') === 0) {
+    return 'anthropic'
+  }
+  if (id.indexOf('gemini') === 0) {
+    return 'google'
+  }
+  if (id.indexOf('command') === 0) {
+    return 'cohere'
+  }
+  if (
+    id.indexOf('mistral') === 0 ||
+    id.indexOf('mixtral') === 0 ||
+    id.indexOf('ministral') === 0 ||
+    id.indexOf('magistral') === 0 ||
+    id.indexOf('pixtral') === 0 ||
+    id.indexOf('codestral') === 0 ||
+    id.indexOf('devstral') === 0 ||
+    id.indexOf('open-mistral') === 0 ||
+    id.indexOf('open-mixtral') === 0
+  ) {
+    return 'mistral'
+  }
+  if (id.indexOf('meta-llama/') === 0 || id.indexOf('llama') === 0) {
     return 'meta'
   }
   return 'openai'
 }
 
+/** The provider a node will call: explicit config wins, inference is fallback. */
+function __ai_resolveProvider(config: any): string {
+  const explicit = config && config.provider
+  if (typeof explicit === 'string' && explicit.trim()) {
+    return explicit.trim()
+  }
+  return __ai_detectProvider(config && config.model)
+}
+
+/**
+ * Request-shape rules that differ per model. Getting these wrong is a hard 400,
+ * not a degraded answer:
+ *
+ *  - Anthropic removed `temperature` from Opus 4.7 onward, Sonnet 5 onward, and
+ *    the Fable / Mythos line. Sending one fails the request outright.
+ *  - OpenAI's reasoning models (`o1`, `o3`, `o4-mini`, every `gpt-5*`) replaced
+ *    `max_tokens` with `max_completion_tokens` and reject a custom temperature.
+ *    Their budget also covers hidden reasoning tokens, so a small cap is spent
+ *    thinking and the answer comes back EMPTY with no error — hence the floor.
+ *
+ * Mirrored in the editor by `getAIModelCapabilities`
+ * (`features/workflows/constants/ai-providers/capabilities.ts`), which uses the
+ * same rules to hide the Temperature field. Keep the two in sync.
+ */
+function __ai_modelCapabilities(provider: any, model: any, requestedMaxTokens: any): any {
+  const id = String(model || '').toLowerCase()
+  // Anthropic rejects a request with no max_tokens at all, so every provider
+  // gets a concrete number rather than `undefined`.
+  const requested =
+    typeof requestedMaxTokens === 'number' && requestedMaxTokens > 0 ? requestedMaxTokens : 1024
+  const caps: any = {
+    supportsTemperature: true,
+    maxTokensParam: 'max_tokens',
+    maxTokens: requested,
+    reasoningModel: false,
+  }
+
+  if (provider === 'anthropic') {
+    const match = /^claude-(fable|mythos|opus|sonnet|haiku)-(\d+)(?:-(\d+))?/.exec(id)
+    if (match) {
+      const family = match[1]
+      const major = parseInt(match[2], 10)
+      const minor = match[3] ? parseInt(match[3], 10) : 0
+      if (family === 'fable' || family === 'mythos') {
+        caps.supportsTemperature = false
+      } else if (family === 'opus' && (major > 4 || (major === 4 && minor >= 7))) {
+        caps.supportsTemperature = false
+      } else if (family === 'sonnet' && major >= 5) {
+        caps.supportsTemperature = false
+      }
+    }
+    return caps
+  }
+
+  if (provider === 'openai' && (/^o\d/.test(id) || id.indexOf('gpt-5') === 0)) {
+    caps.supportsTemperature = false
+    caps.maxTokensParam = 'max_completion_tokens'
+    caps.reasoningModel = true
+    // The budget covers hidden reasoning tokens as well as the visible answer.
+    // Below this floor the model can spend the whole allowance thinking and
+    // return an EMPTY string with a normal 200 — a silent failure in a live
+    // chat. The editor states the same floor next to the Max Tokens field.
+    if (caps.maxTokens < 2000) {
+      caps.maxTokens = 2000
+    }
+    return caps
+  }
+
+  return caps
+}
+
+/** Floor applied to OpenAI reasoning models — see `__ai_modelCapabilities`. */
+export const AI_REASONING_MODEL_MIN_TOKENS = 2000
+
+/** The OpenAI-compatible base URL a provider is reached on, or undefined. */
+function __ai_providerBaseURL(provider: any): string | undefined {
+  if (provider === 'perplexity') {
+    return 'https://api.perplexity.ai'
+  }
+  if (provider === 'meta') {
+    // Llama has no first-party inference API — Together AI serves it over an
+    // OpenAI-compatible endpoint, which is why Meta model ids are Together's
+    // namespaced `meta-llama/…` ones and the key is a Together key.
+    return 'https://api.together.xyz/v1'
+  }
+  return undefined
+}
+
+/**
+ * Builds a Chat Completions request body honouring the model's capabilities:
+ * the right output-token field, and `temperature` only where it is accepted.
+ */
+function __ai_openAICompatibleBody(
+  caps: any,
+  model: any,
+  systemMessage: any,
+  userMessage: any,
+  temperature: any,
+  jsonMode: any
+): any {
+  const messages: any[] = []
+  if (systemMessage) {
+    messages.push({ role: 'system', content: systemMessage })
+  }
+  messages.push({ role: 'user', content: userMessage })
+
+  const opts: any = { model, messages }
+  opts[caps.maxTokensParam] = caps.maxTokens
+  if (caps.supportsTemperature) {
+    opts.temperature = temperature
+  }
+  if (jsonMode) {
+    opts.response_format = { type: 'json_object' }
+  }
+  return opts
+}
+
 function __ai_clampTemperature(temp: any, provider: string): number {
+  // ⛔ Must stay aligned with DEFAULT_TEMPERATURE_RANGES in the editor
+  // (`features/workflows/constants/ai-providers/capabilities.ts`), or the
+  // inspector will accept a value the runtime silently rewrites.
   const ranges: Record<string, number[]> = {
     openai: [0, 2],
     anthropic: [0, 1],
-    google: [0, 1],
-    cohere: [0, 5],
+    google: [0, 2],
+    cohere: [0, 1],
     mistral: [0, 1],
     meta: [0, 2],
     perplexity: [0, 2],
@@ -350,46 +485,10 @@ async function __ai_callProvider(params: any): Promise<any> {
   const systemMessage = params.systemMessage
   const userMessage = params.userMessage
   const temperature = params.temperature
-  const maxTokens = params.maxTokens
   const jsonMode = params.jsonMode || false
+  const caps = __ai_modelCapabilities(provider, model, params.maxTokens)
   const __nodeRequire =
     typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
-
-  if (provider === 'openai') {
-    return (async function () {
-      const _mod = __nodeRequire('openai')
-      const OpenAI = _mod.default || _mod
-      const messages: any[] = []
-      if (systemMessage) {
-        messages.push({ role: 'system', content: systemMessage })
-      }
-      messages.push({ role: 'user', content: userMessage })
-      const client = new OpenAI({ apiKey: token })
-      const opts: any = {
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-      }
-      if (jsonMode) {
-        opts.response_format = { type: 'json_object' }
-      }
-      const completion = await client.chat.completions.create(opts)
-      const usage = completion.usage || {}
-      return {
-        content:
-          (completion.choices[0] &&
-            completion.choices[0].message &&
-            completion.choices[0].message.content) ||
-          '',
-        usage: {
-          promptTokens: usage.prompt_tokens || 0,
-          completionTokens: usage.completion_tokens || 0,
-          totalTokens: usage.total_tokens || 0,
-        },
-      }
-    })()
-  }
 
   if (provider === 'anthropic') {
     return (async function () {
@@ -399,8 +498,12 @@ async function __ai_callProvider(params: any): Promise<any> {
       const opts: any = {
         model,
         messages: [{ role: 'user', content: userMessage }],
-        temperature,
-        max_tokens: maxTokens || 1024,
+        // Anthropic requires max_tokens on every request; the capability
+        // resolver guarantees a positive number.
+        max_tokens: caps.maxTokens,
+      }
+      if (caps.supportsTemperature) {
+        opts.temperature = temperature
       }
       if (systemMessage) {
         opts.system = systemMessage
@@ -437,9 +540,16 @@ async function __ai_callProvider(params: any): Promise<any> {
         fullPrompt += systemMessage + '\n\n'
       }
       fullPrompt += userMessage
+      const generationConfig: any = { maxOutputTokens: caps.maxTokens }
+      if (caps.supportsTemperature) {
+        generationConfig.temperature = temperature
+      }
+      if (jsonMode) {
+        generationConfig.responseMimeType = 'application/json'
+      }
       const result = await genModel.generateContent({
         contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature, maxOutputTokens: maxTokens },
+        generationConfig,
       })
       const resp = result.response
       const meta = resp.usageMetadata || {}
@@ -462,8 +572,10 @@ async function __ai_callProvider(params: any): Promise<any> {
       const opts: any = {
         model,
         message: userMessage,
-        temperature,
-        maxTokens,
+        maxTokens: caps.maxTokens,
+      }
+      if (caps.supportsTemperature) {
+        opts.temperature = temperature
       }
       if (systemMessage) {
         opts.preamble = systemMessage
@@ -491,12 +603,18 @@ async function __ai_callProvider(params: any): Promise<any> {
         messages.push({ role: 'system', content: systemMessage })
       }
       messages.push({ role: 'user', content: userMessage })
-      const response = await client.chat.complete({
+      const opts: any = {
         model,
         messages,
-        temperature,
-        maxTokens,
-      })
+        maxTokens: caps.maxTokens,
+      }
+      if (caps.supportsTemperature) {
+        opts.temperature = temperature
+      }
+      if (jsonMode) {
+        opts.responseFormat = { type: 'json_object' }
+      }
+      const response = await client.chat.complete(opts)
       const choice = response.choices && response.choices[0] ? response.choices[0] : ({} as any)
       const usage = response.usage || {}
       return {
@@ -510,35 +628,27 @@ async function __ai_callProvider(params: any): Promise<any> {
     })()
   }
 
-  // meta, perplexity, or unknown → OpenAI-compatible
+  // openai, meta (via Together), perplexity, or an unknown provider — all
+  // reachable through the OpenAI-compatible Chat Completions shape.
   return (async function () {
     const _mod = __nodeRequire('openai')
     const OpenAI = _mod.default || _mod
-    const baseURL =
-      provider === 'perplexity'
-        ? 'https://api.perplexity.ai'
-        : provider === 'meta'
-        ? 'https://api.together.xyz/v1'
-        : undefined
+    const baseURL = __ai_providerBaseURL(provider)
     const clientOpts: any = { apiKey: token }
     if (baseURL) {
       clientOpts.baseURL = baseURL
     }
     const client = new OpenAI(clientOpts)
-    const messages: any[] = []
-    if (systemMessage) {
-      messages.push({ role: 'system', content: systemMessage })
-    }
-    messages.push({ role: 'user', content: userMessage })
-    const opts: any = {
+    // Only first-party OpenAI implements JSON mode; the compatible endpoints
+    // reject the parameter, so it is dropped for them.
+    const opts = __ai_openAICompatibleBody(
+      caps,
       model,
-      messages,
+      systemMessage,
+      userMessage,
       temperature,
-      max_tokens: maxTokens,
-    }
-    if (jsonMode && !baseURL) {
-      opts.response_format = { type: 'json_object' }
-    }
+      jsonMode && !baseURL
+    )
     const completion = await client.chat.completions.create(opts)
     const usage = completion.usage || {}
     return {

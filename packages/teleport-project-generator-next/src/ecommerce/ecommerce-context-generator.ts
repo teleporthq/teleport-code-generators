@@ -50,6 +50,19 @@ export const generateEcommerceContextFileContent = (
       Number(ecommerceSettings.deliveryConfig?.freeDeliveryThreshold ?? 0) || 0,
   })
 
+  // Percentage the storefront must ADD to every stored product price, or 0.
+  //
+  // `teleport_products.price` is NET when the merchant picked "Added on top"
+  // and already GROSS when they picked "Included in price", so exactly one of
+  // the two modes changes what the shopper is quoted. Mirrors
+  // `resolveStorefrontTaxRate` in the editor (teleport-gui
+  // `features/e-commerce/utils/storefront-tax.ts`) — including the deliberate
+  // choice NOT to gate on `invoiceSettings.enabled` (which is auto-cleared when
+  // the last payment provider is removed) and the treatment of a missing
+  // `taxIncludedInPrice` as "added on top", matching every other legacy-document
+  // coercion of that field.
+  const storefrontTaxRate = resolveStorefrontTaxRate(invoiceSettings)
+
   const enrichFnCode = dataSourceId
     ? [
         // Build a human-readable variant label ("Red / XL") from the product's
@@ -342,11 +355,36 @@ function roundMoney(n) {
   return Math.round((Number(n) || 0) * 100) / 100
 }
 
+// Percentage added on top of every stored product price. Baked from the
+// merchant's invoice settings at export time; \`0\` means "prices are already
+// what the customer pays" (tax-inclusive pricing, or no tax configured).
+const STOREFRONT_TAX_RATE = ${storefrontTaxRate}
+
+// Gross counterpart of a stored (net) price. Cart lines are persisted to
+// localStorage and to \`teleport_order_items\` at their NET price — that is the
+// merchant's source of truth, and the invoice route re-derives VAT from it —
+// so the tax is added HERE, at every point a price is shown or charged, and
+// never written back into the stored cart. A rate change therefore re-prices
+// every existing basket on the next publish, with no migration and no way to
+// tax the same line twice.
+function applyStorefrontTax(amount) {
+  const base = Number(amount) || 0
+  if (STOREFRONT_TAX_RATE <= 0) return base
+  return roundMoney(base * (1 + STOREFRONT_TAX_RATE / 100))
+}
+
+// The unit price the shopper is quoted, and pays. Rounded per UNIT (not per
+// line) so \`unit price × quantity\` really does equal the line total the cart
+// page prints beside it.
+function cartItemDisplayPrice(item) {
+  return applyStorefrontTax(item && item.price)
+}
+
 function computeCartMeta(items) {
   let total = 0
   let itemCount = 0
   for (let i = 0; i < items.length; i++) {
-    total += (items[i].price || 0) * (items[i].quantity || 1)
+    total += cartItemDisplayPrice(items[i]) * (items[i].quantity || 1)
     itemCount += items[i].quantity || 1
   }
   return { total: roundMoney(total), itemCount }
@@ -557,6 +595,11 @@ ${
         JSON.stringify({
           maxQuantityPerProduct: maxQtyPerProduct,
           deliveryConfig: ${deliveryConfigJson},
+          // Same channel, same reason as deliveryConfig: cart-get-total runs as
+          // a standalone localStorage handler with no access to this context,
+          // and the amount it hands to the place-order workflow has to be the
+          // amount this provider just showed the buyer.
+          taxConfig: { storefrontTaxRate: STOREFRONT_TAX_RATE },
         })
       )
     } catch {}
@@ -649,6 +692,20 @@ ${
     [cartMeta.total, settings.Delivery]
   )
 
+  // What the cart & checkout pages bind their per-line price to. The stored
+  // \`cartItems\` keep the NET price (they are what gets persisted and what
+  // becomes \`teleport_order_items.unit_price\`); this projection is the only
+  // place the tax is folded in for display, so the line price a shopper reads
+  // always agrees with the subtotal computed by \`computeCartMeta\`.
+  // A no-tax store gets the identical array back, not a copy.
+  const displayCartItems = useMemo(
+    () =>
+      STOREFRONT_TAX_RATE <= 0
+        ? cartItems
+        : cartItems.map((item) => Object.assign({}, item, { price: cartItemDisplayPrice(item) })),
+    [cartItems]
+  )
+
   // Derive currency symbol from the first cart item or fallback to '$'
   const cartCurrencySymbol = useMemo(() => {
     for (let ci = 0; ci < cartItems.length; ci++) {
@@ -663,7 +720,7 @@ ${
 
   const value = useMemo(() => ({
     Cart: {
-      items: cartItems,
+      items: displayCartItems,
       total: cartMeta.total,
       itemCount: cartMeta.itemCount,
       shippingPrice: shippingMeta.shippingPrice,
@@ -689,7 +746,7 @@ ${
     storeLocations,
     defaultPickupStoreId,
     ecommerceCategories,
-  }), [cartItems, cartMeta, shippingMeta, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
+  }), [displayCartItems, cartMeta, shippingMeta, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
 
   return (
     <EcommerceContext.Provider value={value}>
@@ -716,6 +773,24 @@ export const useEcommerceSettings = () => {
   return Settings
 }
 `
+}
+
+/**
+ * Percentage the storefront adds on top of every stored product price, or `0`
+ * when prices are already tax-inclusive / no rate is configured.
+ *
+ * This is the ONE place the rule lives on the export side: the provider bakes
+ * the result into `STOREFRONT_TAX_RATE` and mirrors it into
+ * `workflow_cart_settings.taxConfig`, which is where the standalone
+ * `cart-get-total` handler reads it at runtime. Exported so tests can assert
+ * the rule directly rather than through emitted source.
+ */
+export const resolveStorefrontTaxRate = (invoiceSettings?: UIDLInvoiceSettings): number => {
+  if (!invoiceSettings || invoiceSettings.taxIncludedInPrice === true) {
+    return 0
+  }
+  const rate = Number(invoiceSettings.defaultTaxRate)
+  return Number.isFinite(rate) && rate > 0 ? rate : 0
 }
 
 function buildSettingsObject(

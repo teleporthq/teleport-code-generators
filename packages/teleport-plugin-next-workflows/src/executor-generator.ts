@@ -1217,7 +1217,44 @@ function collectBranchNodes(startId, allNodes, edges, excludeParentId) {
   return ids;
 }
 
+/**
+ * Headers a server-side node must send when this deployment calls its OWN API
+ * routes over HTTP (every data node does: \`fetch(__baseUrl + '/api/data/…')\`).
+ *
+ * ⛔ Without them, a deployment behind Vercel Deployment Protection answers its
+ * own request with 401 "Protected deployment". The page renders — the visitor's
+ * browser holds the bypass cookie — but every data node silently returns
+ * \`{ rows: [] }\`, so the app looks alive while nothing reads or writes. On the
+ * shipped AI-chat store this made the whole knowledge base invisible: the RAG
+ * search returned zero rows for every question and the assistant answered "I
+ * don't have enough information in my knowledge base" every single time.
+ *
+ * Two credentials, in order of what actually exists at the time:
+ *  - the visitor's own cookies, which already carried them past the protection
+ *    to reach this route. Forwarding them makes the self-call exactly as
+ *    authorized as the page load was, and nothing more.
+ *  - \`VERCEL_AUTOMATION_BYPASS_SECRET\`, the only thing that works when there is
+ *    no browser behind the request (a cron trigger, an inbound webhook).
+ *
+ * Same-origin only: these go to \`__baseUrl\`, which is derived from this
+ * request's own host, so no credential is forwarded anywhere else.
+ */
+function internalRequestHeaders(req) {
+  const headers = {};
+  if (req && req.headers && req.headers.cookie) {
+    headers.cookie = req.headers.cookie;
+  }
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (bypassSecret) {
+    headers['x-vercel-protection-bypass'] = bypassSecret;
+    // Tells Vercel not to hand the bypass back to the caller as a cookie.
+    headers['x-vercel-set-bypass-cookie'] = 'false';
+  }
+  return headers;
+}
+
 module.exports = {
+  internalRequestHeaders,
   resolveValue,
   resolveSecret,
   resolveConfig,

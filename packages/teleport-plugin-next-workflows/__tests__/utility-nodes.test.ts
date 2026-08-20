@@ -11,12 +11,25 @@ import { utilityParseUrl } from '../src/nodes/utility/utility-parse-url'
 import { utilityFormatPhoneNumber } from '../src/nodes/utility/utility-format-phone-number'
 import { utilitySemanticSearch } from '../src/nodes/utility/utility-semantic-search'
 import { utilityHybridSearch } from '../src/nodes/utility/utility-hybrid-search'
+import { resolveHandlerEntryName } from '../src/nodes/types'
 
 /* tslint:disable:no-eval */
-function createHandler(generator: { generateHandler(): string }) {
-  const fnStr = generator.generateHandler()
-  const fn = eval('(' + fnStr + ')')
-  return fn
+// Loads a handler the way the generated project does — the source goes inside
+// an IIFE that returns the entry point by name (see `api-route-generator`).
+//
+// ⛔ The previous `eval('(' + source + ')')` assumed a handler emits nothing
+// but a bare function expression. That stopped being true the moment a handler
+// needed a shared prelude: the AI-provider utils emit `var` helpers ahead of
+// the entry, exactly as `ai-custom-prompt` has always done, and the wrapper
+// then failed with "Unexpected token 'var'".
+//
+// `eval` rather than `new Function` on purpose: it keeps module scope, so
+// handlers that `require('crypto')` and the ts-jest `__awaiter`/`__generator`
+// helpers both still resolve.
+function createHandler(generator: { nodeType: string; generateHandler(): string }) {
+  const source = generator.generateHandler().trim()
+  const entry = resolveHandlerEntryName(source, generator.nodeType)
+  return eval(`(function () {\n${source}\nreturn ${entry};\n})()`)
 }
 
 describe('utility-csv-parse', () => {
@@ -567,7 +580,7 @@ describe('utility-semantic-search', () => {
       { title: 'Python guide', content: 'Python for beginners' },
       { title: 'Advanced JavaScript', content: 'Deep dive into JS patterns' },
     ]
-    const result = await handler({ query: 'JavaScript', collection }, {})
+    const result = await handler({ query: 'JavaScript', documents: collection }, {})
     expect(result.results.length).toBeGreaterThan(0)
     expect(result.results[0].item.title).toContain('JavaScript')
   })
@@ -578,7 +591,7 @@ describe('utility-semantic-search', () => {
       { title: 'B', embedding: [0, 1, 0] },
       { title: 'C', embedding: [0.9, 0.1, 0] },
     ]
-    const result = await handler({ queryEmbedding: [1, 0, 0], collection }, {})
+    const result = await handler({ queryEmbedding: [1, 0, 0], documents: collection }, {})
     expect(result.results.length).toBeGreaterThan(0)
     expect(result.results[0].item.title).toBe('A')
   })
@@ -589,12 +602,12 @@ describe('utility-semantic-search', () => {
       { title: 'B', embedding: [0.9, 0.1, 0] },
       { title: 'C', embedding: [0.8, 0.2, 0] },
     ]
-    const result = await handler({ queryEmbedding: [1, 0, 0], collection, topK: 2 }, {})
+    const result = await handler({ queryEmbedding: [1, 0, 0], documents: collection, topK: 2 }, {})
     expect(result.results.length).toBe(2)
   })
 
   it('returns error for empty inputs', async () => {
-    const result = await handler({ query: '', collection: [] }, {})
+    const result = await handler({ query: '', documents: [] }, {})
     expect(result.error).toBeTruthy()
   })
 })
@@ -612,7 +625,7 @@ describe('utility-hybrid-search', () => {
       { title: 'JS patterns', embedding: [0.8, 0.2, 0] },
     ]
     const result = await handler(
-      { query: 'JavaScript', queryEmbedding: [1, 0, 0], collection, fields: ['title'] },
+      { query: 'JavaScript', queryEmbedding: [1, 0, 0], documents: collection, fields: ['title'] },
       {}
     )
     expect(result.results.length).toBeGreaterThan(0)
@@ -621,13 +634,16 @@ describe('utility-hybrid-search', () => {
 
   it('works with text-only (no embeddings)', async () => {
     const collection = [{ title: 'JavaScript basics' }, { title: 'Python guide' }]
-    const result = await handler({ query: 'JavaScript', collection, fields: ['title'] }, {})
+    const result = await handler(
+      { query: 'JavaScript', documents: collection, fields: ['title'] },
+      {}
+    )
     expect(result.results.length).toBe(1)
     expect(result.hasSemanticScores).toBe(false)
   })
 
   it('returns error for empty query', async () => {
-    const result = await handler({ query: '', collection: [] }, {})
+    const result = await handler({ query: '', documents: [] }, {})
     expect(result.error).toBeTruthy()
   })
 })

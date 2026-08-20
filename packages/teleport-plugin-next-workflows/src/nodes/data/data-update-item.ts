@@ -6,6 +6,11 @@ async function data_update_item(config: any, context: any) {
   const filters = config.filters || []
   const columnMappings = config.columnMappings || {}
   const baseUrl = (context && context.__baseUrl) || ''
+  // Credentials for calling this deployment's own API routes — see
+  // internalRequestHeaders in runtime-utils. Without them a deployment behind
+  // Vercel Deployment Protection 401s its own request and this node silently
+  // returns nothing.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
   const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // Unresolved route-param sentinel (see resolveTemplateTokenString in
@@ -131,6 +136,7 @@ async function data_update_item(config: any, context: any) {
         // Trusted internal server-side call — lets the /api/data guard distinguish
         // this from a direct browser request (see assertSessionOwnsUsersRow).
         'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
       },
       body: JSON.stringify(reqBody),
     })

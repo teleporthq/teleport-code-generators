@@ -1,4 +1,7 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator } from '../types'
+import { generateAIProviderUtils, AI_PROVIDER_DEPENDENCIES } from '../ai/ai-provider-utils'
+
+declare function __ai_resolveToken(token: any): string
 
 async function utility_similarity_scoring(config: any, context: Record<string, unknown>) {
   const text1 = config.text1 || ''
@@ -237,6 +240,50 @@ async function utility_similarity_scoring(config: any, context: Record<string, u
         score = jaro + prefix * 0.1 * (1 - jaro)
         break
       }
+      case 'semantic': {
+        // Embeds both texts and compares the vectors, which is what makes this
+        // mode "AI-powered" — the lexical algorithms above compare characters
+        // and cannot see that "car" and "automobile" mean the same thing.
+        // Embeddings go through OpenAI, matching `ai-generate-text-embedding`.
+        let apiKey
+        try {
+          apiKey = __ai_resolveToken(config.token)
+        } catch (tokenErr: any) {
+          return { score: 0, algorithm, error: tokenErr.message }
+        }
+
+        const __nodeRequire =
+          typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+        const _mod = __nodeRequire('openai')
+        const OpenAI = _mod.default || _mod
+        const client = new OpenAI({ apiKey })
+
+        const response = await client.embeddings.create({
+          model: config.model || 'text-embedding-3-small',
+          input: [String(text1), String(text2)],
+        })
+
+        const vectors = (response.data || []).map(function (entry: any) {
+          return entry.embedding
+        })
+        if (vectors.length < 2 || !vectors[0] || !vectors[1]) {
+          return { score: 0, algorithm, error: 'No embeddings returned from API' }
+        }
+
+        let dot = 0
+        let magA = 0
+        let magB = 0
+        const len = Math.min(vectors[0].length, vectors[1].length)
+        for (let vi = 0; vi < len; vi++) {
+          dot += vectors[0][vi] * vectors[1][vi]
+          magA += vectors[0][vi] * vectors[0][vi]
+          magB += vectors[1][vi] * vectors[1][vi]
+        }
+        magA = Math.sqrt(magA)
+        magB = Math.sqrt(magB)
+        score = magA === 0 || magB === 0 ? 0 : dot / (magA * magB)
+        break
+      }
       default:
         return {
           score: 0,
@@ -244,7 +291,7 @@ async function utility_similarity_scoring(config: any, context: Record<string, u
           error:
             'Unknown algorithm: ' +
             algorithm +
-            '. Supported: levenshtein, jaccard, cosine, dice, hamming, jaro-winkler',
+            '. Supported: levenshtein, jaccard, cosine, dice, hamming, jaro-winkler, semantic',
         }
     }
 
@@ -256,7 +303,13 @@ async function utility_similarity_scoring(config: any, context: Record<string, u
 export const utilitySimilarityScoring: NodeHandlerGenerator = {
   nodeType: 'utility-similarity-scoring',
   executionEnv: 'server',
+  // Only the `semantic` algorithm reaches out to a provider, and it uses
+  // OpenAI embeddings — the same model family the rest of the product indexes
+  // with. The other algorithms are pure string maths and need nothing.
+  dependencies: { openai: AI_PROVIDER_DEPENDENCIES.openai },
   generateHandler(): string {
-    return handlerToString(utility_similarity_scoring)
+    // `__ai_resolveToken` turns a secret reference into the real key; it lives
+    // in the shared AI utils, so they have to be emitted alongside the handler.
+    return generateAIProviderUtils() + '\n\n' + utility_similarity_scoring.toString()
   },
 }
