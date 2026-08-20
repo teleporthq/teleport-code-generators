@@ -20,6 +20,11 @@ export {
   hasStreamingAINode,
 } from './api-route-generator'
 export { generateTriggerCode } from './trigger-generator'
+export {
+  SESSION_TOKEN_RESOLVER_FN,
+  generateSessionTokenResolverCode,
+  generateCommonJsSessionTokenResolverCode,
+} from './session-cookie-resolver'
 export { projectUsesRealtime, REALTIME_NODE_TYPES, REALTIME_TRIGGER_TYPES } from './graph-utils'
 export * from './realtime-generator'
 export { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'

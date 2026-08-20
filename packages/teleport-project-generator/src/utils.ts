@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils, RoutePaths } from '@teleporthq/teleport-shared'
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -309,12 +309,19 @@ export const prepareComponentOutputOptions = (
 
 const deduplicatePageOptionValues = (options: UIDLPageOptions, otherOptions: UIDLPageOptions[]) => {
   let navlinkSuffix = 0
-  while (otherOptions.some((opt) => opt.navLink === appendSuffix(options.navLink, navlinkSuffix))) {
+  // A navLink is a ROUTE, not a plain string: its suffix goes on the last
+  // literal segment so a trailing `[id]` stays a route parameter. See
+  // `RoutePaths.appendRouteDisambiguator` for the build failure this prevents.
+  while (
+    otherOptions.some(
+      (opt) => opt.navLink === RoutePaths.appendRouteDisambiguator(options.navLink, navlinkSuffix)
+    )
+  ) {
     navlinkSuffix++
   }
 
   if (navlinkSuffix > 0) {
-    options.navLink = appendSuffix(options.navLink, navlinkSuffix)
+    options.navLink = RoutePaths.appendRouteDisambiguator(options.navLink, navlinkSuffix)
     console.warn(
       `Potential duplication solved by appending '${navlinkSuffix}' to the navlink: ${options.navLink}`
     )

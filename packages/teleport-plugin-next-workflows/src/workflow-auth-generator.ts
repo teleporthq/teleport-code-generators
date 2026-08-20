@@ -1,4 +1,5 @@
 import { UIDLWorkflowProtection } from '@teleporthq/teleport-types'
+import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 
 /**
  * The shared, stateless auth guard for generated workflow API routes, emitted
@@ -11,6 +12,12 @@ import { UIDLWorkflowProtection } from '@teleporthq/teleport-types'
  * round trip. `next-auth/jwt` is required LAZILY so a project generated without
  * authentication (where the package is absent) never fails to load this file —
  * such projects also carry no protected workflows, so the guard no-ops.
+ *
+ * ⛔ WHICH cookie that decode reads is resolved from the REQUEST, not from
+ * `process.env.NEXTAUTH_URL` — see `session-cookie-resolver.ts` for the 401 that
+ * taught us the difference. Every signed-in caller whose request landed on a
+ * serverless instance that had not yet served an auth request was reported
+ * anonymous, and the page-load workflow answered 401.
  */
 export const generateWorkflowAuthHelperFile = (): string => {
   return `'use strict';
@@ -22,24 +29,10 @@ export const generateWorkflowAuthHelperFile = (): string => {
 // (const __WF_AUTH) computed by the GUI mapper from the protection of the
 // page(s) that trigger the workflow plus a graph scan for user-owned writes.
 
+${generateCommonJsSessionTokenResolverCode()}
 function getSessionToken(req) {
-  var secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    return Promise.resolve(null);
-  }
-  var getToken;
-  try {
-    getToken = require('next-auth/jwt').getToken;
-  } catch (e) {
-    return Promise.resolve(null);
-  }
-  if (typeof getToken !== 'function') {
-    return Promise.resolve(null);
-  }
   // Local cookie decode — no DB, no network.
-  return Promise.resolve()
-    .then(function () { return getToken({ req: req, secret: secret }); })
-    .catch(function () { return null; });
+  return __tqSessionToken(req);
 }
 
 function sessionUserId(token) {

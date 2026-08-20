@@ -106,6 +106,26 @@ function parseJsonArray(value) {
   return []
 }
 
+// The related-item picks a merchant/author made: a JSON array of row ids stored
+// in a TEXT column (\`related_product_ids\` / \`related_post_ids\`). Mirrors
+// parseRelatedEntityIds in the GUI (apps/gui/app/project-page/features/shared/
+// related-entities/related-entity-ids.ts) — order-preserving, deduplicated,
+// blanks dropped, tolerant of a comma-separated cell edited by hand.
+//
+// \`indexOf\` rather than a seen-map on purpose: these lists hold a handful of
+// entries, and an object keyed by arbitrary strings answers truthy for
+// 'constructor'/'toString'.
+function parseRelatedIds(value) {
+  var raw = parseJsonArray(value)
+  var ids = []
+  for (var i = 0; i < raw.length; i++) {
+    var id = String(raw[i] == null ? '' : raw[i]).trim()
+    if (!id || ids.indexOf(id) !== -1) continue
+    ids.push(id)
+  }
+  return ids
+}
+
 function parseJsonObject(value) {
   if (value == null) return {}
   if (typeof value === 'object' && !Array.isArray(value)) return value

@@ -1,4 +1,5 @@
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
+import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
 
 // The settings payload every workflow-facing consumer shares: the
 // /api/ecommerce/settings route bakes it as its response literal, and the
@@ -94,7 +95,7 @@ export const generateCheckoutApiRoute = (
   }`
     : ''
 
-  return `${dbImport ? dbImport + "\nconst { getToken } = require('next-auth/jwt')\n" : ''}
+  return `${dbImport ? dbImport + '\n' + generateCommonJsSessionTokenResolverCode() : ''}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -226,7 +227,7 @@ ${
     try {
       let __cartUserId = null
       try {
-        const __tok = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+        const __tok = await __tqSessionToken(req)
         if (__tok) __cartUserId = __tok.id || __tok.sub || null
       } catch (e) { __cartUserId = null }
       const __cartSessionId = req.body && req.body.sessionId ? String(req.body.sessionId).slice(0, 255) : null

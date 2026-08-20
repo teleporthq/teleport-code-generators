@@ -17,6 +17,7 @@
  * provisioned.
  */
 import { generatePgClientCode } from './pg-client-code'
+import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import {
   SUPPORTED_EMAIL_PROVIDERS,
   transactionalEmailDependencies,
@@ -55,8 +56,7 @@ export const generateAccountDeleteRoute = (options: AccountDeleteRouteOptions = 
     options.deletedEmailPattern || 'deleted-user-{{userId}}@deleted.invalid'
 
   return `${generatePgClientCode()}
-const { getToken } = require('next-auth/jwt');
-
+${generateCommonJsSessionTokenResolverCode()}
 const AUTH_USERS_TABLE = ${JSON.stringify(authUsersTable)};
 const SITE_NAME = ${JSON.stringify(options.siteName || '')};
 const DELETED_EMAIL_PATTERN = ${JSON.stringify(deletedEmailPattern)};
@@ -182,7 +182,7 @@ module.exports = async function handler(req, res) {
   // Identify the user from the session — never trust a client-supplied id.
   var token = null;
   try {
-    token = await getToken({ req: req, secret: process.env.NEXTAUTH_SECRET });
+    token = await __tqSessionToken(req);
   } catch (e) {
     token = null;
   }

@@ -1,3 +1,4 @@
+import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
 import { generateDbImport } from './ecommerce-api-routes-generator'
 
 // Datasource types whose `generateDbImport` emits a node-postgres `Pool`. The
@@ -41,9 +42,8 @@ export const generateCartApiRoute = (
   }
 
   return `${dbImport}
-const { getToken } = require('next-auth/jwt')
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+${generateCommonJsSessionTokenResolverCode()}
+const UUID_RE =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
@@ -61,7 +61,7 @@ function generateUUID() {
 async function resolveIdentity(req, body) {
   var userId = null
   try {
-    var token = await getToken({ req: req, secret: process.env.NEXTAUTH_SECRET })
+    var token = await __tqSessionToken(req)
     if (token) userId = token.id || token.sub || null
   } catch (e) {
     userId = null
