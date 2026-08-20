@@ -1368,10 +1368,16 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
         // seg.fireAndForget is static (EVERY node is a fire-and-forget data
         // node). A mixed segment stays blocking statically, but once branch
         // skipping has eliminated the awaited nodes at runtime, only
-        // fire-and-forget work remains — e.g. the resolve-user custom node's
-        // returning-guest branch, whose idempotent users-row re-ensure is
-        // fire-and-forget while the new-guest create (same segment, other
-        // branch) stays awaited. Upgrade exactly that case dynamically.
+        // fire-and-forget work remains, and that case is upgraded here.
+        //
+        // What this does NOT decide is whether a node should have been
+        // fire-and-forget in the first place. Not awaiting is safe when nothing
+        // downstream reads the node's OUTPUT and nothing downstream depends on
+        // the WRITE — and the second half is the one that gets missed. The
+        // caller's next request is a separate round trip that can reach the
+        // database first, so a row this segment was supposed to insert may not
+        // exist yet when a later request references it under a foreign key.
+        // Any write another request will point at must stay awaited.
         var __segLiveNodes = seg.nodes.filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });
         var __segIsFireAndForget = seg.fireAndForget ||
           (__segLiveNodes.length > 0 && __segLiveNodes.every(__utils.isFireAndForgetNode));
