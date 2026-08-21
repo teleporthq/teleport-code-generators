@@ -107,18 +107,38 @@ export const getTransformWrapperCode = (tableName: string): string => {
 
   // Products additionally get their purchasable variant combinations attached in
   // ONE batched query (keyed by product id). Blog posts have no such enrichment.
+  //
+  // ⛔ The map starts as NULL and stays null when the query cannot run. The
+  // transform reads null as "combinations unknown" and keeps every picker
+  // selectable; a `{}` would mean "the lookup ran and this catalogue has none",
+  // which strikes out every value and hides every buy button. A transient DB
+  // failure must not be able to say that.
+  //
+  // Runs AFTER the related-items lookup so the related rows — which the details
+  // page draws as real product cards, each with its own picker — get their
+  // combinations from the SAME query instead of transforming as variant-less.
   const variantEnrichment =
     type === 'ecommerce-product'
       ? `
-  var variantsByProductId = {}
+  var variantsByProductId = null
   try {
     var __variantPids = []
     for (var __i = 0; __i < records.length; __i++) {
       if (records[__i] && records[__i].id != null) __variantPids.push(records[__i].id)
     }
+    if (relatedProductsById) {
+      for (var __rk in relatedProductsById) {
+        if (!Object.prototype.hasOwnProperty.call(relatedProductsById, __rk)) continue
+        // The ROW's own id, not the map key: the key was stringified when the map
+        // was built, and a query parameter array of mixed types is one the driver
+        // cannot type against the product_id column.
+        var __rrow = relatedProductsById[__rk]
+        if (__rrow && __rrow.id != null) __variantPids.push(__rrow.id)
+      }
+    }
     variantsByProductId = await getVariantsMap(getClientFn, __variantPids)
   } catch (e) {
-    // Variant enrichment is best-effort; flat products keep variants: [].
+    // Leaves the map null — "unknown", never "none".
   }`
       : ''
 
@@ -155,7 +175,7 @@ async function transformRecords(records, getClientFn, reqQuery) {
     assetMap = await getAssetMap(getClientFn)
   } catch (e) {
     // Asset resolution is best-effort; continue without it
-  }${variantEnrichment}${relatedEnrichment}
+  }${relatedEnrichment}${variantEnrichment}
   var currentLanguage = (reqQuery && reqQuery.lang) || null
   var mainLanguage = (reqQuery && reqQuery.mainLang) || null
   var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption}, ${relatedMapVar}: ${relatedMapVar} }

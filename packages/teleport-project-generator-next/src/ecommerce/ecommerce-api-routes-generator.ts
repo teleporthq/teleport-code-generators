@@ -624,7 +624,11 @@ export const generateDeliveryPriceApiRoute = (settings: UIDLEcommerceSettings): 
 `
 }
 
-export const generateOrderNotificationApiRoute = (settings: UIDLEcommerceSettings): string => {
+export const generateOrderNotificationApiRoute = (
+  settings: UIDLEcommerceSettings,
+  dataSourceType: string | null = null,
+  dataSourceConfig: Record<string, unknown> | null = null
+): string => {
   const config = settings.orderNotificationConfig
   if (!config || !config.provider) {
     return `export default async function handler(req, res) {
@@ -640,12 +644,75 @@ export const generateOrderNotificationApiRoute = (settings: UIDLEcommerceSetting
   const bodyTemplate = config.body || 'A new order ({{orderNumber}}) was placed.'
   const notificationEmails = JSON.stringify(config.notificationEmails || [])
 
+  // The order-line fallback below is Postgres-only: it uses `$N` placeholders
+  // and joins the teleport_* order tables, exactly like the checkout / cart
+  // routes. For any other datasource the loader is omitted and the endpoint
+  // behaves as before (it renders whatever `items` the caller passed).
+  const dbImport = isPostgresCartDataSource(dataSourceType)
+    ? generateDbImport(dataSourceType, dataSourceConfig)
+    : null
+
+  // Loads the order's persisted lines when the CALLER couldn't supply them.
+  // The payment webhooks (Stripe `checkout.session.completed`, PayPal
+  // `PAYMENT.CAPTURE.COMPLETED`) only know the provider's session/capture
+  // payload — they have an orderId but no cart — so without this every
+  // online-payment notification reached the merchant with an empty item list.
+  // `teleport_order_items` is the authoritative snapshot written by checkout,
+  // and the image is resolved variant-override-first, matching the
+  // order-details page. Never throws: a failure degrades to "no items", which
+  // is exactly the pre-existing behaviour.
+  const orderItemsLoader = dbImport
+    ? `
+const ORDER_ITEMS_QUERY =
+  "SELECT oi.product_name, oi.variant_label, oi.quantity, oi.unit_price, oi.total_price, oi.currency, " +
+  "COALESCE(NULLIF(v.image_url, ''), NULLIF(p.image_url, ''), '') AS image_url " +
+  'FROM teleport_order_items oi ' +
+  'LEFT JOIN teleport_products p ON p.id = oi.product_id ' +
+  'LEFT JOIN teleport_product_variants v ON v.id::text = oi.variant_id ' +
+  'WHERE oi.order_id = $1 ORDER BY oi.created_at ASC'
+
+async function loadOrderItems(orderId) {
+  if (!orderId) return []
+  try {
+    const result = await db.query(ORDER_ITEMS_QUERY, [orderId])
+    const rows = (result && result.rows) || []
+    return rows.map(function (row) {
+      const qty = Number(row.quantity) || 1
+      const unit = Number(row.unit_price) || 0
+      const total = row.total_price != null ? Number(row.total_price) : unit * qty
+      const label = row.variant_label ? row.product_name + ' (' + row.variant_label + ')' : row.product_name
+      return {
+        name: label || 'Item',
+        sku: '',
+        quantity: qty,
+        unitPrice: unit,
+        totalPrice: total,
+        image: row.image_url || '',
+        product_name: label || 'Item',
+        unit_price: unit.toFixed(2),
+        line_total: total.toFixed(2),
+        currency: row.currency || '',
+        image_url: row.image_url || '',
+      }
+    })
+  } catch (err) {
+    console.error('[order-notification] could not load order items: ' + (err && err.message ? err.message : String(err)))
+    return []
+  }
+}
+`
+    : `
+async function loadOrderItems() {
+  return []
+}
+`
+
   // Token resolution + subject/body rendering happens here at request
   // time; the actual dispatch is delegated to the shared
   // utils/ecommerce/email-sender module, which encapsulates the
   // provider switch + logging + error normalisation.
   return `var sender = require('../../../utils/ecommerce/email-sender')
-
+${dbImport ? `${dbImport}\n` : ''}${orderItemsLoader}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -678,7 +745,7 @@ export default async function handler(req, res) {
     // orderId is provided we fall back to that so the customer-
     // facing "Order ID" line still renders.
     const resolvedOrderNumber = orderNumber || orderId || ''
-    const itemsArr = Array.isArray(items) ? items : []
+    const itemsArr = Array.isArray(items) && items.length > 0 ? items : await loadOrderItems(orderId)
     const itemsCount = itemsArr.reduce(function(sum, it) {
       var q = Number(it && it.quantity) || 1
       return sum + q
@@ -708,7 +775,7 @@ export default async function handler(req, res) {
     }
     var itemsListHtml = ''
     if (itemsArr.length > 0) {
-      var parts = ['<ul style="margin:8px 0;padding-left:20px;">']
+      var parts = ['<ul style="margin:8px 0;padding-left:20px;list-style:none;">']
       for (var ii = 0; ii < itemsArr.length; ii++) {
         var it = itemsArr[ii] || {}
         var name = htmlEscape(it.name || it.productName || it.product_name || 'Item')
@@ -717,7 +784,15 @@ export default async function handler(req, res) {
         var qty = Number(it.quantity) || 1
         var unit = formatMoney(it.unitPrice != null ? it.unitPrice : it.price)
         var total = formatMoney(it.totalPrice != null ? it.totalPrice : (Number(it.unitPrice != null ? it.unitPrice : it.price) || 0) * qty)
-        parts.push('<li><strong>' + name + '</strong>' + skuFrag +
+        // Thumbnail of the product's main image, matching the order-details
+        // page (and the builder template's item rows). Only emitted when the
+        // caller actually supplied a URL — an <img src=""> renders as a broken
+        // image icon in most desktop clients.
+        var imgUrl = it.image || it.image_url || it.imageUrl || it.thumbnail || ''
+        var imgFrag = imgUrl
+          ? '<img src="' + htmlEscape(imgUrl) + '" alt="" width="44" height="44" style="width:44px;height:44px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:10px;" />'
+          : ''
+        parts.push('<li style="margin:0 0 8px;">' + imgFrag + '<strong>' + name + '</strong>' + skuFrag +
           ' — ' + qty + ' × ' + unit +
           ' = <strong>' + total + '</strong></li>')
       }
@@ -751,18 +826,28 @@ export default async function handler(req, res) {
     }
 
     const subject = sender.renderTemplate(${JSON.stringify(subjectTemplate)}, tokenPayload)
-    let html = sender.renderTemplate(${JSON.stringify(bodyTemplate)}, tokenPayload)
-
-    // Auto-inject the items list when the merchant's template doesn't
-    // reference {{itemsList}}. Without this, merchants whose template
-    // only has {{itemsCount}} see just a number ("Items: 3") with no
-    // line-item detail — useless for fulfillment. Insertion point:
-    // right after the line that mentions itemsCount if we can find it,
-    // otherwise before the closing </p> sequence at the end. Skipped
-    // when there are no items.
-    if (itemsListHtml && ${JSON.stringify(
+    // Expand the builder template's <!--tq:each items--> row block FIRST —
+    // renderTemplate blanks every token it doesn't know, so an un-expanded row
+    // block would render once with all per-item values empty. A raw-HTML
+    // template has no such block and this is a pass-through.
+    const expandedBody = sender.expandListBlocks(${JSON.stringify(
       bodyTemplate
-    )}.indexOf('{{itemsList}}') < 0 && html.length > 0) {
+    )}, { items: itemsArr })
+    let html = sender.renderTemplate(expandedBody, tokenPayload)
+
+    // Auto-inject the items list when the merchant's template renders no item
+    // list of its own. Without this, merchants whose template only has
+    // {{itemsCount}} see just a number ("Items: 3") with no line-item detail —
+    // useless for fulfillment. Insertion point: right after the line that
+    // mentions itemsCount if we can find it, otherwise appended at the end.
+    // Skipped when there are no items, and skipped when the template already
+    // renders them itself (via {{itemsList}} or a tq:each row block) —
+    // injecting there produced a SECOND, unstyled copy of the list, landing
+    // wherever the first "</p>" after "Items:" happened to be (in the builder
+    // template, inside the shipping-address block).
+    if (itemsListHtml && !sender.hasOwnItemList(${JSON.stringify(
+      bodyTemplate
+    )}) && html.length > 0) {
       const itemsHeader = '<p><strong>Items ordered:</strong></p>' + itemsListHtml
       const itemsCountAnchor = html.indexOf('Items:')
       if (itemsCountAnchor !== -1) {
@@ -939,7 +1024,16 @@ export default async function handler(req, res) {
     }
 
     const subject = sender.renderTemplate(${JSON.stringify(subjectTemplate)}, tokenPayload)
-    const html = sender.renderTemplate(${JSON.stringify(bodyTemplate)}, tokenPayload)
+    // Same ordering contract as the order-notification route: expand a builder
+    // template's <!--tq:each products--> row block before the flat token
+    // fill, or every per-product value in it renders empty. The scan rows
+    // ({ id, name, stock, sku }) already match the row keys the builder's
+    // low-stock array-mapper binds to. Pass-through for a raw-HTML body, which
+    // renders the list through the {{productsList}} blob instead.
+    const expandedBody = sender.expandListBlocks(${JSON.stringify(
+      bodyTemplate
+    )}, { products: productsArr })
+    const html = sender.renderTemplate(expandedBody, tokenPayload)
 
     const result = await sender.sendNotificationEmail(notificationEmails, subject, html)
     return res.status(200).json(result)
@@ -950,6 +1044,17 @@ export default async function handler(req, res) {
 }
 `
 }
+
+// Datasource types whose `generateDbImport` emits a node-postgres `Pool`. Every
+// SQL-emitting e-commerce route (checkout, cart, the order-line loader in the
+// order-notification route) is Postgres-specific — `$N` placeholders,
+// transactions via `db.connect()`, `FOR UPDATE`, `RETURNING` — so they only
+// generate for these. For anything else (mysql/supabase/turso/none) the caller
+// skips the SQL-backed behaviour and degrades to the pure-client path.
+const POSTGRES_DATA_SOURCE_TYPES = ['teleport', 'postgresql', 'cockroachdb', 'amazon-redshift']
+
+export const isPostgresCartDataSource = (dataSourceType: string | null): boolean =>
+  !!dataSourceType && POSTGRES_DATA_SOURCE_TYPES.indexOf(dataSourceType) !== -1
 
 export function generateDbImport(
   dataSourceType: string | null,

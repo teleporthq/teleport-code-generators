@@ -4,6 +4,7 @@
 // into its component body — the cron route previously used a naive inline loop
 // that did neither, so a per-cart reminder email would ship raw {{token}} merge
 // fields and its loop body would never run.
+import { generateSharedRuntimeUtilsCode } from '../src/executor-generator'
 import { generateCronAPIRoute } from '../src/api-route-generator'
 
 const TRIGGER_ID = 'cron-1'
@@ -123,12 +124,20 @@ describe('generateCronAPIRoute — loop + templateParams support', () => {
   })
 
   it('merges templateParams into email body + subject', () => {
-    // Both the top-level and loop-body execution paths apply the merge; the
-    // email node lives in the loop body here.
-    expect(route).toContain('utils.applyTemplateParams(bResolved.body, bResolved.templateParams)')
-    expect(route).toContain(
-      'utils.applyTemplateParams(bResolved.subject, bResolved.templateParams)'
-    )
+    // The merge lives in the SHARED runtime's `resolveConfig`, not pasted at
+    // each call site. That is the whole point: `resolveConfig` is the single
+    // function every execution path — main loop, loop body, parallel branch,
+    // error branch, across all four route generators and the client executor —
+    // funnels a node config through. Pasting it per site is what left the main
+    // loop of `generateServerSegmentAPIRoute` (where every ordinary page
+    // workflow's email node runs) without it, shipping literal `{{token}}`s.
+    const runtime = generateSharedRuntimeUtilsCode()
+    expect(runtime).toContain('applyTemplateParams(resolved.body, resolved.templateParams)')
+    expect(runtime).toContain('applyTemplateParams(resolved.subject, resolved.templateParams)')
+    // …and the route reaches it simply by calling resolveConfig.
+    expect(route).toContain('const resolveConfig = utils.resolveConfig')
+    // No stale per-site copy left behind to drift out of sync.
+    expect(route).not.toContain('utils.applyTemplateParams(')
   })
 
   it('bakes the scan + loop + email nodes into the server WORKFLOW_CONFIG', () => {

@@ -125,9 +125,18 @@ describe('generateOrderNotificationApiRoute — itemsList rendering + auto-injec
   })
 
   it('builds an <ul> when the items array is non-empty', () => {
-    expect(route).toContain('<ul style="margin:8px 0;padding-left:20px;">')
+    // `list-style:none` because each row leads with a product thumbnail — a
+    // bullet next to a 44px image reads as a rendering glitch.
+    expect(route).toContain('<ul style="margin:8px 0;padding-left:20px;list-style:none;">')
     // Each line item shows quantity × unit price = total
     expect(route).toMatch(/qty\s*\+\s*' × '\s*\+\s*unit/)
+  })
+
+  it('leads each auto-built line item with the product image when one is known', () => {
+    expect(route).toContain('it.image || it.image_url || it.imageUrl || it.thumbnail')
+    expect(route).toContain('object-fit:cover')
+    // No URL ⇒ no <img> at all: an empty src renders as a broken-image icon.
+    expect(route).toMatch(/imgFrag\s*=\s*imgUrl\s*\n?\s*\?/)
   })
 
   it('formats every monetary field to 2 decimals via formatMoney', () => {
@@ -135,12 +144,69 @@ describe('generateOrderNotificationApiRoute — itemsList rendering + auto-injec
     expect(route).toContain('v.toFixed(2)')
   })
 
-  it('auto-injects an "Items ordered" block when the body lacks {{itemsList}} but has items', () => {
+  it('auto-injects an "Items ordered" block when the body renders no list of its own', () => {
     expect(route).toContain('Items ordered:')
-    expect(route).toContain("indexOf('{{itemsList}}') < 0")
+    // The guard covers BOTH ways a template can render its own list: the
+    // legacy {{itemsList}} blob and a builder array-mapper's tq:each block.
+    expect(route).toContain('sender.hasOwnItemList(')
     // The injection prefers to land just after the line that mentions
     // "Items:" so the merchant's existing layout is preserved.
     expect(route).toContain("html.indexOf('Items:')")
+  })
+
+  it('expands a builder template list block BEFORE the flat token fill', () => {
+    expect(route).toContain('sender.expandListBlocks(')
+    const expandAt = route.indexOf('sender.expandListBlocks(')
+    const renderBodyAt = route.indexOf('sender.renderTemplate(expandedBody')
+    expect(expandAt).toBeGreaterThan(-1)
+    expect(renderBodyAt).toBeGreaterThan(expandAt)
+  })
+
+  it('falls back to the order’s persisted lines when the caller sends no items', () => {
+    // The payment webhooks know an orderId but have no cart to forward.
+    expect(route).toContain('await loadOrderItems(orderId)')
+  })
+
+  it('emits a real order-lines loader only for Postgres datasources', () => {
+    const pg = generateOrderNotificationApiRoute(baseSettings(), 'teleport', {
+      connectionString: 'postgres://x',
+    })
+    expect(pg).toContain('FROM teleport_order_items oi')
+    expect(pg).toContain("require('pg')")
+
+    // A non-Postgres (or unknown) datasource keeps the endpoint SQL-free; the
+    // loader degrades to "no items" rather than emitting `$N` placeholders a
+    // MySQL/Turso driver could never bind.
+    const nonPg = generateOrderNotificationApiRoute(baseSettings(), 'mysql', { host: 'x' })
+    expect(nonPg).not.toContain('teleport_order_items')
+    expect(nonPg).toContain('async function loadOrderItems()')
+
+    // Omitting the datasource entirely (the pre-existing 1-arg call shape)
+    // must stay valid and behave like the non-Postgres case.
+    expect(route).not.toContain('teleport_order_items')
+    expect(route).toContain('async function loadOrderItems()')
+  })
+
+  it('emits syntactically valid JavaScript in every datasource shape', () => {
+    // The route is assembled from nested template literals; a stray backtick
+    // or `${` in a comment silently truncates the emitted file. Parsing it
+    // here is the only way to catch that before a project build does.
+    const parse = (source: string) => {
+      // `export default` is only legal inside a module — swap it for a plain
+      // declaration so `new Function` can parse the body.
+      const body = source.replace('export default async function handler', 'async function handler')
+      // eslint-disable-next-line no-new-func
+      return () => new Function(body)
+    }
+    expect(parse(route)).not.toThrow()
+    expect(
+      parse(
+        generateOrderNotificationApiRoute(baseSettings(), 'teleport', {
+          connectionString: 'postgres://x',
+        })
+      )
+    ).not.toThrow()
+    expect(parse(generateOrderNotificationApiRoute(baseSettings({ provider: null })))).not.toThrow()
   })
 
   it('renders shipping address with <br> separators (multi-line in email clients)', () => {

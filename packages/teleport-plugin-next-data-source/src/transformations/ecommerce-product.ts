@@ -191,6 +191,12 @@ function buildEcommerceProduct(record, options) {
   // transformRecords and passed in via options.variantsByProductId, keyed by
   // product id. The storefront card/details read these to default-select the
   // first in-stock variant, disable dead options, and resolve the chosen id.
+  //
+  // NULL (not {}) means the lookup could not run — the table is missing, or the
+  // query failed. That is "combinations UNKNOWN", which is NOT "this product has
+  // none": a transient DB failure must never turn every variant product in the
+  // catalogue into an unbuyable one. See hasPurchasableVariant below.
+  var variantsResolved = options.variantsByProductId != null
   var variantsByProductId = options.variantsByProductId || {}
   var rawVariants = variantsByProductId[id] || []
   var variants = []
@@ -227,7 +233,12 @@ function buildEcommerceProduct(record, options) {
       assetMap: assetMap,
       currentLanguage: currentLang,
       mainLanguage: mainLang,
-      variantsByProductId: options.variantsByProductId || {},
+      // Passed through UNCOALESCED so a related product inherits the same
+      // known/unknown answer as its parent — \`|| {}\` here would tell the nested
+      // build "the lookup ran and found nothing" and strike out every related
+      // card's picker. The batched query includes the related ids for exactly
+      // this reason (see getTransformWrapperCode).
+      variantsByProductId: options.variantsByProductId,
     }
     for (var rp = 0; rp < relatedProductIds.length; rp++) {
       var relatedId = relatedProductIds[rp]
@@ -312,7 +323,7 @@ function buildEcommerceProduct(record, options) {
   var variantAxisKeys = []
   for (var ak = 0; ak < variantOptions.length; ak++) { variantAxisKeys.push(variantOptions[ak].key) }
   var firstVariant = pickFirstAvailableVariant(variants, variantAxisKeys)
-  var deadValueKeys = computeDeadVariantKeys(variants, variantOptions)
+  var deadValueKeys = computeDeadVariantKeys(variants, variantOptions, variantsResolved)
   for (var ai = 0; ai < variantOptions.length; ai++) {
     var vax = variantOptions[ai]
     for (var vj = 0; vj < vax.values.length; vj++) {
@@ -332,8 +343,31 @@ function buildEcommerceProduct(record, options) {
       vval.showSwatch = vax.type === 'color' && vval.color ? 'true' : 'false'
     }
   }
-  var defaultVariantId = firstVariant && isVariantInStock(firstVariant) ? firstVariant.id : ''
+  // The combination the picker auto-selects on first paint: the first in-stock
+  // one covering every axis. Absent means there is nothing the shopper could add
+  // without choosing — which is what gates the buy button below.
+  var hasInStockCombination = !!(firstVariant && isVariantInStock(firstVariant))
+  var defaultVariantId = hasInStockCombination ? firstVariant.id : ''
   var defaultVariantPrice = firstVariant ? formatVariantPrice(firstVariant.price, price) : ''
+  // Can this product be added to the cart at all, before the shopper touches the
+  // picker? A STRING, same convention as outOfStock/requiresVariantSelection.
+  //
+  //   flat product         -> 'true'  (stock is governed by outOfStock)
+  //   combinations UNKNOWN -> 'true'  (the lookup could not run; a transient DB
+  //                                    failure must never make a whole catalogue
+  //                                    unbuyable — same permissive rule as
+  //                                    dead-marking)
+  //   otherwise            -> whether an in-stock combination covering every axis
+  //                           exists. 'false' therefore covers BOTH "every
+  //                           combination is sold out" AND "the axes have no
+  //                           combinations at all" — to a shopper those are the
+  //                           same thing: there is no size to pick.
+  //
+  // MUST mirror packages/renderer/src/utils/ecommerce-products.ts.
+  var hasPurchasableVariant =
+    (requiresVariantSelection !== 'true' || !variantsResolved || hasInStockCombination)
+      ? 'true'
+      : 'false'
   // Stringified companions: a data-* attr bound to an ARRAY renders
   // '[object Object]', so the picker's on-mount/click workflows read the
   // combinations + axes from these JSON strings via getAttribute.
@@ -386,6 +420,7 @@ function buildEcommerceProduct(record, options) {
     variantsJson: variantsJson,
     defaultVariantId: defaultVariantId,
     defaultVariantPrice: defaultVariantPrice,
+    hasPurchasableVariant: hasPurchasableVariant,
   }
 }
 
@@ -416,11 +451,14 @@ function pickFirstAvailableVariant(variants, axisKeys) {
 }
 // Map of composite "axisKey|valueKey" -> true for every value that appears in
 // NO in-stock combination (rendered as the Unavailable state).
-function computeDeadVariantKeys(variants, axes) {
-  // No combinations attached (flat product, zero-variant product, or editor
-  // preview) -> nothing is dead; every value stays selectable. Dead-marking is
-  // only meaningful relative to combinations that actually exist.
-  if (!Array.isArray(variants) || variants.length === 0) return {}
+//
+// variantsResolved is the whole subtlety: dead-marking is only meaningful
+// against combinations we actually LOOKED UP. When the lookup could not run,
+// nothing is dead — a missing table or a failed query must not grey out every
+// picker in the store. When it DID run, an empty list is a fact, not a gap:
+// every value is unbuyable and renders as Unavailable.
+function computeDeadVariantKeys(variants, axes, variantsResolved) {
+  if (!variantsResolved || !Array.isArray(variants)) return {}
   var alive = {}
   for (var i = 0; i < variants.length; i++) {
     var v = variants[i]
@@ -651,6 +689,10 @@ async function getRelatedProductsMap(getClientFn, records) {
   return map
 }
 
+// Combinations for every product on the page, keyed by product id. Returns NULL
+// when the lookup could not run, which the transform reads as "unknown" and
+// stays permissive with; an empty map means the query ran and this catalogue
+// simply has no combinations.
 async function getVariantsMap(getClientFn, productIds) {
   var map = {}
   if (!Array.isArray(productIds) || productIds.length === 0) return map
@@ -678,7 +720,10 @@ async function getVariantsMap(getClientFn, productIds) {
       }
     }
   } catch (e) {
-    // teleport_product_variants may not exist for a non-variant store.
+    // teleport_product_variants may not exist for a non-variant store, or the
+    // query may have failed. Either way the combinations are UNKNOWN — null
+    // keeps every picker selectable instead of declaring the catalogue unbuyable.
+    map = null
   } finally {
     if (client) {
       try { await client.end() } catch (e) { /* ignore */ }

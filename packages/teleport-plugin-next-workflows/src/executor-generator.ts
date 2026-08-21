@@ -501,6 +501,35 @@ function resolveConfig(config, context) {
       resolved[key] = resolveScalarValue(val, context);
     }
   }
+  // Component-bodied email nodes carry their merge values as \`templateParams\`
+  // and their body/subject as \`{{token}}\` templates. Filling them HERE — the one
+  // function every execution path funnels a node config through — is what makes
+  // the fill unmissable.
+  //
+  // It used to be pasted at the individual call sites instead, and it was only
+  // ever pasted at three of the sixteen: the client executor, and the loop-body
+  // + main loops of the cron/webhook route. The MAIN loop of
+  // \`generateServerSegmentAPIRoute\` — which is where every ordinary page
+  // workflow's email node actually executes — never had it, so withdrawal
+  // confirmations, withdrawal owner notifications, review notifications,
+  // order notifications and the password-reset email all shipped with their
+  // tokens verbatim: literal "{{customerName}}" in the body, "{{orderNumber}}"
+  // in the subject, and \`href="{{resetUrl}}"\` on the reset button (an invalid
+  // relative URL, which mail clients drop — so the button had no link at all).
+  // The abandoned-cart reminder was the only one that worked, because its send
+  // node sits inside a loop body AND on a cron route: the two paths that had
+  // the paste.
+  //
+  // Runs after resolution on purpose: \`templateParams[].value\` is itself a
+  // workflow-context ref that the loop above has just resolved.
+  if (Array.isArray(resolved.templateParams)) {
+    if (typeof resolved.body === 'string') {
+      resolved.body = applyTemplateParams(resolved.body, resolved.templateParams);
+    }
+    if (typeof resolved.subject === 'string') {
+      resolved.subject = applyTemplateParams(resolved.subject, resolved.templateParams);
+    }
+  }
   return resolved;
 }
 
@@ -809,17 +838,9 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
         throw new Error(configError);
       }
 
-      // Component-bodied send-email node: fill {{token}} merge fields in the
-      // serialized template body/subject from the resolved templateParams
-      // (resolveConfig already resolved each param value against context).
-      if (resolvedConfig && Array.isArray(resolvedConfig.templateParams)) {
-        if (typeof resolvedConfig.body === 'string') {
-          resolvedConfig.body = applyTemplateParams(resolvedConfig.body, resolvedConfig.templateParams);
-        }
-        if (typeof resolvedConfig.subject === 'string') {
-          resolvedConfig.subject = applyTemplateParams(resolvedConfig.subject, resolvedConfig.templateParams);
-        }
-      }
+      // NOTE: the component-bodied email fill used to live here. It now runs
+      // inside resolveConfig itself, so every execution path gets it exactly
+      // once — see the comment there.
 
       if (node.type === 'general-if-statement') {
         const condResult = evaluateCondition(resolvedConfig, context);

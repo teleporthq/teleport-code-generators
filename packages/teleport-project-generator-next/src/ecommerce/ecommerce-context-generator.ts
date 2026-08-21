@@ -188,6 +188,34 @@ export const generateEcommerceContextFileContent = (
   const cartDbHelpers = cartDbEnabled
     ? `const CART_SESSION_KEY = 'workflow_cart_session_id'
 
+// Timestamp written by the workflow cart-clear handler when the cart is
+// emptied on purpose (order placed, or the shopper hit "Clear cart"). Read by
+// the DB reconcile effect below so a deliberate clear is never mistaken for a
+// first-visit empty cart worth restoring. Short-lived: it only has to outlive
+// the in-flight cart-sync round trip, and it must NOT suppress a legitimate
+// cross-device restore on the shopper's next visit.
+const CART_CLEARED_AT_KEY = 'workflow_cart_cleared_at'
+const CART_CLEARED_GRACE_MS = 60000
+
+function wasCartJustCleared() {
+  if (typeof window === 'undefined') return false
+  try {
+    const raw = localStorage.getItem(CART_CLEARED_AT_KEY)
+    if (!raw) return false
+    const age = Date.now() - Number(raw)
+    // A clock change (or a corrupted value) must never wedge the cart into a
+    // permanently un-restorable state, so anything outside the grace window —
+    // in either direction — is treated as stale and dropped.
+    const fresh = isFinite(age) && age >= 0 && age < CART_CLEARED_GRACE_MS
+    if (!fresh) {
+      localStorage.removeItem(CART_CLEARED_AT_KEY)
+    }
+    return fresh
+  } catch {
+    return false
+  }
+}
+
 // Stable per-browser guest id, used to scope a cart for users who aren't
 // logged in. Logged-in carts are keyed server-side by the auth token instead.
 function getOrCreateSessionId() {
@@ -228,7 +256,8 @@ function persistCartToDb(items) {
     : ''
 
   // In-provider reconcile effect: on mount, local cart wins (and is backed up
-  // to the DB); if local is empty, hydrate from the DB.
+  // to the DB); if local is empty, hydrate from the DB — unless the cart was
+  // just deliberately emptied (see CART_CLEARED_AT_KEY below).
   const cartDbMountEffect = cartDbEnabled
     ? `
   const cartDbInitRef = useRef(false)
@@ -241,6 +270,15 @@ function persistCartToDb(items) {
       persistCartToDb(local)
       return
     }
+    // "Empty local cart" is ambiguous: it means either "first visit on this
+    // device, restore my cart" or "I just checked out / cleared the cart".
+    // The workflow \`cart-clear\` handler stamps the second case and also pushes
+    // the empty cart to /api/cart/sync — but that push is fire-and-forget, so a
+    // post-order redirect can mount this provider before it lands. Without the
+    // stamp we would then re-hydrate the cart the shopper just ordered, write
+    // it back to localStorage, and the buyer lands on the confirmation page
+    // with a full cart. The window only has to outlive the in-flight sync.
+    if (wasCartJustCleared()) return
     try {
       fetch('/api/cart/load', {
         method: 'POST',
