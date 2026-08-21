@@ -51,6 +51,11 @@ import {
   looksLikeOrderOwnershipHandler,
   buildOrderOwnershipReplacement,
 } from './ecommerce/order-ownership'
+import {
+  DEFAULT_ORDER_DETAILS_PREFIX,
+  readSuccessUrlPrefix,
+  resolveOrderDetailsRoutePrefix,
+} from './ecommerce/order-details-route'
 
 const DEFAULT_THRESHOLD = 5
 
@@ -307,7 +312,14 @@ function customHandler(previousContext, params) {
 // is "an object with an id and at least one column unique to the
 // orders table" (total_amount / customer_email / order_number / …).
 // This makes the lookup robust against ANY upstream reordering.
-const buildPaymentMetadataBuilder = (): string => {
+//
+// `orderDetailsPrefix` is the order-details page's REAL route prefix,
+// read from the project by `resolveOrderDetailsRoutePrefix` — this
+// template used to hard-code `/order-details`, which 404'd every paid
+// checkout on a project whose site map routed the page elsewhere
+// (`/orders/[order_number]`). See ./ecommerce/order-details-route.
+const buildPaymentMetadataBuilder = (orderDetailsPrefix: string): string => {
+  const successPrefix = JSON.stringify(`${orderDetailsPrefix}/`)
   return `${REWRITER_MARKER}
 function customHandler(params) {
   // Walk params looking for the order-create-item result. We accept
@@ -353,7 +365,7 @@ function customHandler(params) {
     (orderId ? 'ORD-' + orderId.slice(0, 8) : '');
 
   return {
-    successUrl: '/order-details/' + (orderNumber || 'unknown') + '?payment=success',
+    successUrl: ${successPrefix} + encodeURIComponent(orderNumber || 'unknown') + '?payment=success',
     cancelUrl: '/checkout',
     description: 'Order ' + (orderNumber || orderId || 'pending'),
     // Stripe / PayPal stash this string in their session metadata; the
@@ -426,7 +438,11 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
   // off, so its output is harmless either way.
   const replacementSelect = buildLowStockSelectBuilder(ctx.threshold)
   const replacementEmailNoOp = buildLowStockEmailPayloadNoOp()
-  const replacementMetadataBuilder = buildPaymentMetadataBuilder()
+  // Where a paid checkout returns to. Resolved from the PROJECT when the project
+  // says (the runtime navigation node's own `targetPage.staticUrl`); only when
+  // it does not do we read the URL the node we are replacing already declares,
+  // which the GUI baked from the live document. See ./ecommerce/order-details-route.
+  const projectOrderDetailsPrefix = resolveOrderDetailsRoutePrefix(uidl)
   const replacementStockDecrement = buildStockDecrementBuilder(ctx.allowBackorders)
   // Cart-availability replacements: bake `allowBackorders` into the
   // place-order pre-flight check so the runtime doesn't have to read
@@ -466,7 +482,11 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
       // that applies wherever the AI emitted this pattern, even if the
       // merchant later toggles e-commerce off.
       if (looksLikePaymentMetadataBuilder(code)) {
-        node.config!.code = replacementMetadataBuilder
+        const prefix =
+          projectOrderDetailsPrefix === DEFAULT_ORDER_DETAILS_PREFIX
+            ? readSuccessUrlPrefix(code) ?? projectOrderDetailsPrefix
+            : projectOrderDetailsPrefix
+        node.config!.code = buildPaymentMetadataBuilder(prefix)
         summary.paymentMetadataBuilderRewrites++
         continue
       }

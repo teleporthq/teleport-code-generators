@@ -4,17 +4,55 @@ import { generateAIProviderUtils, AI_PROVIDER_DEPENDENCIES } from './ai-provider
 declare function __ai_resolveTextField(val: any): string
 declare function __ai_resolveToken(token: any): string
 
+/**
+ * Text embeddings, always through OpenAI's embeddings API.
+ *
+ * ## `config.optional`
+ *
+ * A node result carrying `error: true` is FATAL — `isFatalNodeResult` in the
+ * executor throws on it and the whole workflow stops. That is right for a
+ * pipeline whose output is the embedding, and wrong for one where the
+ * embedding only powers a nice-to-have branch.
+ *
+ * The AI Assistant Chat is the second case: its retrieval is a hybrid of a
+ * vector search and a keyword search running in parallel, and the keyword half
+ * answers perfectly well on its own. A chat whose provider is Anthropic or
+ * Google may legitimately have no OpenAI key at all (embeddings are OpenAI-only
+ * because that is what the knowledge base was indexed with), and that must
+ * degrade to keyword-only search rather than break every message.
+ *
+ * With `optional: true` the node reports failure as data — `skipped: true` plus
+ * an empty `embedding` — so downstream nodes can branch on it. Consumers must
+ * check `embedding.length` before using it, which the chat's semantic-query
+ * builder already does.
+ */
 async function ai_generate_text_embedding(config: any, context: Record<string, unknown>) {
+  const optional = config.optional === true
+
+  function fail(message: string, code: string) {
+    if (optional) {
+      return {
+        embedding: [],
+        vectorLiteral: '',
+        dimensions: 0,
+        skipped: true,
+        skipReason: message,
+        code,
+      }
+    }
+    return { error: true, message, code }
+  }
+
   const text = __ai_resolveTextField(config.text)
   if (!text) {
-    return { error: true, message: 'Text to embed is required', code: 'missing_text' }
+    return fail('Text to embed is required', 'missing_text')
   }
 
   let token
   try {
     token = __ai_resolveToken(config.token)
   } catch (err: any) {
-    return { error: true, message: err.message, code: 'authentication_error' }
+    return fail(err.message, 'authentication_error')
   }
 
   const model = config.model || 'text-embedding-3-small'
@@ -40,12 +78,19 @@ async function ai_generate_text_embedding(config: any, context: Record<string, u
 
     const embeddingData = response.data && response.data[0]
     if (!embeddingData || !embeddingData.embedding) {
-      return { error: true, message: 'No embedding returned from API', code: 'empty_response' }
+      return fail('No embedding returned from API', 'empty_response')
     }
 
     const usage = response.usage || {}
     return {
       embedding: embeddingData.embedding,
+      // pgvector's literal form, ready to bind as a `$N` param and cast with
+      // `::vector`. The raw `embedding` array cannot do that job: a JS array
+      // bound as a query parameter is serialized as a Postgres ARRAY literal
+      // (`{0.1,0.2}`), which no cast turns into a vector. Without this field a
+      // vector search has to assemble its SQL in a general-custom-js node —
+      // whose output is relayed to the browser, leaking the schema.
+      vectorLiteral: '[' + embeddingData.embedding.join(',') + ']',
       model: response.model || model,
       dimensions: embeddingData.embedding.length,
       usage: {
@@ -54,7 +99,7 @@ async function ai_generate_text_embedding(config: any, context: Record<string, u
       },
     }
   } catch (err: any) {
-    return { error: true, message: err.message || String(err), code: 'provider_error' }
+    return fail(err.message || String(err), 'provider_error')
   }
 }
 

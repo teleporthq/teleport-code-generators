@@ -14,6 +14,7 @@ import {
   hasUnresolvableDynamicParams,
 } from './utils'
 import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
+import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 import * as types from '@babel/types'
 
 interface SearchConfig {
@@ -853,6 +854,17 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
                     types.returnStatement(
                       types.objectExpression([
                         types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                        // ⛔ WITHOUT THIS THE PAGE IS A BUILD-TIME SNAPSHOT FOREVER.
+                        // The non-paginated shape in `utils.ts` has always carried
+                        // it; this bootstrap did not, so every paginated list page
+                        // (blog, products, orders, every admin list) served its
+                        // build-time first page from the CDN for the life of the
+                        // deployment — a post moved back to draft still shipped.
+                        // See ./isr.ts.
+                        types.objectProperty(
+                          types.identifier('revalidate'),
+                          types.numericLiteral(DATA_SOURCE_ISR_REVALIDATE_SECONDS)
+                        ),
                       ])
                     ),
                   ]),

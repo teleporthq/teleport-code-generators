@@ -13,6 +13,7 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
+import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'rest-api',
@@ -1417,7 +1418,10 @@ export const extractDataSourceIntoGetStaticProps = (
                   types.objectProperty(types.identifier(propKey), responseMemberAST, false, false),
                 ])
               ),
-              types.objectProperty(types.identifier('revalidate'), types.numericLiteral(1)),
+              types.objectProperty(
+                types.identifier('revalidate'),
+                types.numericLiteral(DATA_SOURCE_ISR_REVALIDATE_SECONDS)
+              ),
             ])
           ),
         ]),

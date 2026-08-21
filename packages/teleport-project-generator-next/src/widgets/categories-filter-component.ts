@@ -133,14 +133,55 @@ const computeMinimalSelectedIds = (categories, checkedSet) => {
   return out
 }
 
-// Expand the URL ids into { checked, indeterminate } render state.
+// Category display NAME (verbatim, trimmed) -> id, so a \`?<paramKey>=\` value
+// that carries a human category name — which is what AI-generated "Shop by
+// category" nav links use — checks the same boxes an id-based link does.
+//
+// ids + names, matched EXACTLY, and nothing else: this has to accept exactly
+// the tokens \`category_filter_ids\` carries, since the products list filters
+// with a case-sensitive \`jsonb_exists_any\` over that same column. A value only
+// this side understands (a slug, or a lowercased name) does not make the page
+// work — it ticks a box over an empty grid.
+const indexIdByToken = (categories) => {
+  const map = new Map()
+  asList(categories).forEach((cat) => {
+    if (cat && cat.id && typeof cat.name === 'string') {
+      const token = cat.name.trim()
+      if (token && !map.has(token)) {
+        map.set(token, cat.id)
+      }
+    }
+  })
+  return map
+}
+
+// One URL value -> a category id: exact id wins, else the exact display name.
+// Returns null for a value that names no category (it seeds nothing, as before).
+const resolveCategoryToken = (value, known, idByToken) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+  if (known.has(trimmed)) {
+    return trimmed
+  }
+  const byToken = idByToken.get(trimmed)
+  return byToken == null ? null : byToken
+}
+
+// Expand the URL values into { checked, indeterminate } render state.
 const expandSelection = (categories, urlIds) => {
   const checked = new Set()
   const indeterminate = new Set()
   const seeded = new Set()
   const known = indexById(categories)
-  ;(urlIds || []).forEach((id) => {
-    if (known.has(id)) {
+  const idByToken = indexIdByToken(categories)
+  ;(urlIds || []).forEach((value) => {
+    const id = resolveCategoryToken(value, known, idByToken)
+    if (id !== null) {
       seeded.add(id)
       getDescendantIds(categories, id).forEach((descendantId) => seeded.add(descendantId))
     }

@@ -11,10 +11,17 @@ async function data_raw_query(config: any, context: any) {
   const params = Array.isArray(config.params) ? config.params : []
   const baseUrl = (context && context.__baseUrl) || ''
 
+  // Credentials for calling this deployment's own API routes. A deployment
+  // behind Vercel Deployment Protection answers its OWN request with 401
+  // "Protected deployment", which turns every data node into a silent
+  // `{ rows: [] }` — the page renders, but nothing reads or writes. See
+  // internalRequestHeaders in runtime-utils for what these carry.
+  const __internalHeaders = (context && context.__internalHeaders) || {}
+
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/raw-query', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
       body: JSON.stringify({ query, params }),
     })
 

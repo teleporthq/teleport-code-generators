@@ -7,7 +7,7 @@ import {
 
 declare function __ai_resolveTextField(val: any): string
 declare function __ai_resolveToken(token: any): string
-declare function __ai_detectProvider(modelId: any): string
+declare function __ai_resolveProvider(config: any): string
 declare function __ai_clampTemperature(temp: any, provider: string): number
 declare function __ai_callProvider(params: any): Promise<any>
 declare function __ai_parseJSON(text: any): any
@@ -56,7 +56,7 @@ async function ai_text_classifier(
     return { error: true, message: err.message, code: 'authentication_error' }
   }
 
-  const provider = __ai_detectProvider(model)
+  const provider = __ai_resolveProvider(config)
   const temperature = __ai_clampTemperature(0, provider)
 
   let systemPrompt
