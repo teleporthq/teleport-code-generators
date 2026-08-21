@@ -35,6 +35,56 @@ const RENDER_TEMPLATE_FN = `function renderTemplate(template, payload) {
   })
 }`
 
+// Expand the repeating-row blocks a BUILDER email template serializes an
+// array-mapper into: `<!--tq:each KEY-->…{{field}}…<!--/tq:each-->`. The inner
+// body is repeated once per row of `lists[KEY]`, with the row's `{{field}}`
+// tokens replaced by the (HTML-escaped) item value. Tokens the row doesn't
+// carry are left verbatim so the page-level `renderTemplate` below can still
+// resolve them (e.g. `{{companyName}}` inside a row).
+//
+// MUST run BEFORE `renderTemplate`: that one blanks every unknown token, so a
+// row template reaching it un-expanded renders exactly once with every
+// per-item value empty — which is precisely the "Items ordered section is
+// blank" defect this exists to prevent.
+//
+// PAIRED EDIT: identical logic lives in the workflow runtime
+// (`executor-generator.ts` `expandListBlocks`), in teleport-gui
+// (`order-side-effects-helper.ts` `EXPAND_LIST_BLOCKS_JS`) and in
+// teleport-services-worker (`adapters/email/_bridge.ts`). Keep in sync.
+const EXPAND_LIST_BLOCKS_FN = `function expandListBlocks(template, lists) {
+  if (typeof template !== 'string' || template.indexOf('<!--tq:each') === -1) return template
+  function escRow(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  }
+  return template.replace(/<!--tq:each\\s+([\\w.-]+)\\s*-->([\\s\\S]*?)<!--\\/tq:each-->/g, function(_m, key, body) {
+    var rows = lists && lists[key]
+    if (!Array.isArray(rows)) return ''
+    var out = ''
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r] || {}
+      out += body.replace(/\\{\\{\\s*([\\w.-]+)\\s*\\}\\}/g, function(mm, field) {
+        return (Object.prototype.hasOwnProperty.call(row, field) && row[field] != null)
+          ? escRow(row[field])
+          : mm
+      })
+    }
+    return out
+  })
+}`
+
+// True when a merchant template renders its own item list — either as a
+// builder array-mapper block or via the legacy `{{itemsList}}` blob. The
+// endpoints use this to skip appending a second, auto-generated list.
+const HAS_OWN_ITEM_LIST_FN = `function hasOwnItemList(template) {
+  if (!template) return false
+  var t = String(template)
+  return t.indexOf('<!--tq:each') !== -1 || t.indexOf('{{itemsList}}') !== -1
+}`
+
 // Strip every HTML tag for the plain-text fallback. Mail clients that
 // can't render HTML (and most spam-score heuristics) need a parallel
 // text body — this is the cheapest way to derive one from the HTML
@@ -263,6 +313,10 @@ ${providerDispatch}
 
 ${RENDER_TEMPLATE_FN}
 
+${EXPAND_LIST_BLOCKS_FN}
+
+${HAS_OWN_ITEM_LIST_FN}
+
 ${HTML_TO_TEXT_FN}
 
 ${senderFn}
@@ -270,6 +324,8 @@ ${senderFn}
 module.exports = {
   sendNotificationEmail: sendNotificationEmail,
   renderTemplate: renderTemplate,
+  expandListBlocks: expandListBlocks,
+  hasOwnItemList: hasOwnItemList,
 }
 `
 }

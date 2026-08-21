@@ -373,3 +373,86 @@ function extractFn(haystack: string, decl: string): string {
   }
   throw new Error('unbalanced braces in ' + decl)
 }
+
+describe('generateEmailSenderModule — list-block expansion (executed, not grepped)', () => {
+  // The expander's regexes are written inside a TS template literal, so every
+  // backslash is doubled in the source. A string-contains assertion cannot tell
+  // a correctly-escaped `\\s` from a broken one — the only honest check is to
+  // run the emitted function.
+  const loadModule = () => {
+    const code = generateEmailSenderModule(baseSettings())
+    const moduleShim = { exports: {} as Record<string, (...fnArgs: any[]) => any> }
+    // The provider dispatch requires('resend' | '@sendgrid/mail' | 'pg'), which
+    // we don't want to pull in — stub require for anything but the shape the
+    // functions under test touch.
+    // eslint-disable-next-line no-new-func
+    new Function('module', 'require', 'process', code)(moduleShim, () => ({}), { env: {} })
+    return moduleShim.exports
+  }
+
+  it('repeats the row body once per item and fills the per-row tokens', () => {
+    const { expandListBlocks } = loadModule()
+    const out = expandListBlocks(
+      '<div><!--tq:each items--><li>{{quantity}}x {{product_name}}</li><!--/tq:each--></div>',
+      {
+        items: [
+          { quantity: 2, product_name: 'Beans' },
+          { quantity: 1, product_name: 'Mug' },
+        ],
+      }
+    )
+    expect(out).toBe('<div><li>2x Beans</li><li>1x Mug</li></div>')
+  })
+
+  it('tolerates whitespace-padded tokens and dotted/dashed field names', () => {
+    const { expandListBlocks } = loadModule()
+    const out = expandListBlocks('<!--tq:each items-->[{{ image_url }}]<!--/tq:each-->', {
+      items: [{ image_url: 'https://cdn.x/a.png' }],
+    })
+    expect(out).toBe('[https://cdn.x/a.png]')
+  })
+
+  it('HTML-escapes row values so a product name cannot break out of the markup', () => {
+    const { expandListBlocks } = loadModule()
+    const out = expandListBlocks('<!--tq:each items--><li>{{name}}</li><!--/tq:each-->', {
+      items: [{ name: '<script>alert(1)</script> & "quoted"' }],
+    })
+    expect(out).toBe('<li>&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quoted&quot;</li>')
+  })
+
+  it('leaves a token the row does not carry for the page-level fill to resolve', () => {
+    const { expandListBlocks, renderTemplate } = loadModule()
+    const expanded = expandListBlocks(
+      '<!--tq:each items-->{{name}} by {{companyName}}<!--/tq:each-->',
+      {
+        items: [{ name: 'Beans' }],
+      }
+    )
+    expect(expanded).toBe('Beans by {{companyName}}')
+    expect(renderTemplate(expanded, { companyName: 'Acme' })).toBe('Beans by Acme')
+  })
+
+  it('drops the block entirely when the list is missing or not an array', () => {
+    const { expandListBlocks } = loadModule()
+    const tpl = 'a<!--tq:each items-->{{name}}<!--/tq:each-->b'
+    expect(expandListBlocks(tpl, {})).toBe('ab')
+    expect(expandListBlocks(tpl, { items: null })).toBe('ab')
+    expect(expandListBlocks(tpl, { items: [] })).toBe('ab')
+  })
+
+  it('is a pass-through for a template with no block, and for non-strings', () => {
+    const { expandListBlocks } = loadModule()
+    expect(expandListBlocks('<p>{{orderNumber}}</p>', { items: [{}] })).toBe(
+      '<p>{{orderNumber}}</p>'
+    )
+    expect(expandListBlocks(null, { items: [{}] })).toBe(null)
+  })
+
+  it('hasOwnItemList recognises BOTH ways a template renders its own list', () => {
+    const { hasOwnItemList } = loadModule()
+    expect(hasOwnItemList('<!--tq:each items-->x<!--/tq:each-->')).toBe(true)
+    expect(hasOwnItemList('<p>{{itemsList}}</p>')).toBe(true)
+    expect(hasOwnItemList('<p>Items: {{itemsCount}}</p>')).toBe(false)
+    expect(hasOwnItemList('')).toBe(false)
+  })
+})

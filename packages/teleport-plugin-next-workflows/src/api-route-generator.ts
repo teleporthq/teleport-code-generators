@@ -211,10 +211,6 @@ module.exports = async function handler(req, res) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
             bResolved.__nodeId = bNode.id;
-            if (bResolved && Array.isArray(bResolved.templateParams)) {
-              if (typeof bResolved.body === 'string') { bResolved.body = utils.applyTemplateParams(bResolved.body, bResolved.templateParams); }
-              if (typeof bResolved.subject === 'string') { bResolved.subject = utils.applyTemplateParams(bResolved.subject, bResolved.templateParams); }
-            }
             if (bNode.type === 'general-if-statement') {
               context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
               continue;
@@ -1155,10 +1151,6 @@ const generateNodeExecutionLoop = (
       var __configError = utils.finalizeResolvedConfig(node.type, resolved);
       if (__configError) { throw new Error(__configError); }
       resolved.__nodeId = node.id;
-      if (resolved && Array.isArray(resolved.templateParams)) {
-        if (typeof resolved.body === 'string') { resolved.body = utils.applyTemplateParams(resolved.body, resolved.templateParams); }
-        if (typeof resolved.subject === 'string') { resolved.subject = utils.applyTemplateParams(resolved.subject, resolved.templateParams); }
-      }
 
       if (node.type === 'general-if-statement') {
         var condResult = utils.evaluateCondition(resolved, context);
@@ -1229,10 +1221,6 @@ const generateNodeExecutionLoop = (
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
             bResolved.__nodeId = bNode.id;
-            if (bResolved && Array.isArray(bResolved.templateParams)) {
-              if (typeof bResolved.body === 'string') { bResolved.body = utils.applyTemplateParams(bResolved.body, bResolved.templateParams); }
-              if (typeof bResolved.subject === 'string') { bResolved.subject = utils.applyTemplateParams(bResolved.subject, bResolved.templateParams); }
-            }
             if (bNode.type === 'general-if-statement') {
               context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
               continue;
