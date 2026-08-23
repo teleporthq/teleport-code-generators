@@ -249,7 +249,10 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           {
             name: 'order-notification',
             fileType: FileType.JS,
-            content: generateOrderNotificationApiRoute(settings),
+            // The datasource is passed so the route can load the order's
+            // persisted lines when a caller (the Stripe / PayPal webhooks)
+            // knows the orderId but has no cart to send.
+            content: generateOrderNotificationApiRoute(settings, dataSourceType, dataSourceConfig),
           },
         ],
       })

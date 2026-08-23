@@ -92,7 +92,19 @@ async function data_create_item(config: any, context: any) {
     // requiring the AI to remember to add an explicit email-send
     // workflow node. The endpoint is a no-op when notifications
     // are not configured, so it is safe to call unconditionally.
-    if (typeof tableName === 'string' && tableName === 'teleport_orders' && data && data.item) {
+    //
+    // ...unless the workflow that owns this INSERT already carries its own
+    // "Send Order-Notification Email" node. The builder sets
+    // `suppressOrderNotification: true` on this node in that case, because
+    // otherwise the merchant receives the SAME order twice: once from here
+    // and once from the workflow. The workflow node is the canonical sender —
+    // it runs AFTER `order_number` has been backfilled (this INSERT still
+    // sees NULL and falls back to the raw UUID) and it renders the merchant's
+    // builder template through the full filler, list blocks included. Absent
+    // flag ⇒ previous behaviour, so already-exported projects are unaffected.
+    const notifiesOnInsert = config.suppressOrderNotification !== true
+    const isOrderInsert = typeof tableName === 'string' && tableName === 'teleport_orders'
+    if (isOrderInsert && data && data.item && notifiesOnInsert) {
       const item: any = data.item
 
       // Best-effort: mark the buyer's active database cart as ordered. This is
@@ -136,19 +148,38 @@ async function data_create_item(config: any, context: any) {
           }
         }
       }
-      // Normalise items into the shape the email endpoint can render
-      // (name, quantity, unit_price, total_price). Defensive about
-      // every field — different cart sources spell them differently.
+      // Normalise items into the shape the email endpoint can render.
+      // Defensive about every field — different cart sources spell them
+      // differently.
+      //
+      // Each row carries BOTH spellings on purpose:
+      //  - camelCase (`name`/`unitPrice`/`totalPrice`) for the endpoint's own
+      //    `{{itemsList}}` <ul> builder, and
+      //  - the snake_case array-mapper row keys (`product_name`, `quantity`,
+      //    `unit_price`, `line_total`, `currency`, `image_url`) that a builder
+      //    email template's `<!--tq:each items-->` row block binds to.
+      // One payload therefore feeds both renderers without either having to
+      // know which template style the merchant is on.
+      const orderCurrency = item.currency || ''
       const normalisedItems = cartItems.map(function (it: any) {
         const unitPrice = Number(it.unitPrice != null ? it.unitPrice : it.price) || 0
         const quantity = parseInt(it.quantity, 10)
         const qty = isFinite(quantity) && quantity > 0 ? quantity : 1
+        const lineTotal = Math.round(unitPrice * qty * 100) / 100
+        const displayName = it.name || it.productName || it.product_name || 'Item'
+        const imageUrl = it.image || it.image_url || it.imageUrl || it.thumbnail || ''
         return {
-          name: it.name || it.productName || it.product_name || 'Item',
+          name: displayName,
           sku: it.sku || it.SKU || '',
           quantity: qty,
           unitPrice: Math.round(unitPrice * 100) / 100,
-          totalPrice: Math.round(unitPrice * qty * 100) / 100,
+          totalPrice: lineTotal,
+          image: imageUrl,
+          product_name: displayName,
+          unit_price: unitPrice.toFixed(2),
+          line_total: lineTotal.toFixed(2),
+          currency: orderCurrency,
+          image_url: imageUrl,
         }
       })
 

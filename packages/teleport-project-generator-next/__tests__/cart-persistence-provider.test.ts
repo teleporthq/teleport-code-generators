@@ -61,3 +61,35 @@ describe('EcommerceProvider — database cart layer', () => {
     expect(withFlagOff).not.toContain('persistCartToDb')
   })
 })
+
+describe('EcommerceProvider — deliberate-clear guard', () => {
+  const clearGuardSettings = { cashOnDelivery: true } as any
+  const withDb = generateEcommerceContextFileContent(clearGuardSettings, undefined, 'ds-1', true)
+
+  it('skips the DB re-hydration when the cart was just cleared on purpose', () => {
+    // Without this, the post-order redirect mounts the provider with an empty
+    // localStorage cart, the /api/cart/load round trip beats the in-flight
+    // empty sync, and the buyer's confirmation page shows a full cart again.
+    expect(withDb).toContain('function wasCartJustCleared()')
+    expect(withDb).toContain('if (wasCartJustCleared()) return')
+    expect(withDb).toContain("const CART_CLEARED_AT_KEY = 'workflow_cart_cleared_at'")
+  })
+
+  it('expires the stamp so a later visit can still restore a cross-device cart', () => {
+    expect(withDb).toContain('CART_CLEARED_GRACE_MS')
+    expect(withDb).toContain('localStorage.removeItem(CART_CLEARED_AT_KEY)')
+  })
+
+  it('checks the stamp only AFTER a non-empty local cart has won', () => {
+    const localWinsAt = withDb.indexOf('persistCartToDb(local)')
+    const guardAt = withDb.indexOf('if (wasCartJustCleared()) return')
+    expect(localWinsAt).toBeGreaterThan(-1)
+    expect(guardAt).toBeGreaterThan(localWinsAt)
+  })
+
+  it('emits none of the guard when the DB cart layer is off', () => {
+    const noDb = generateEcommerceContextFileContent(clearGuardSettings, undefined, 'ds-1', false)
+    expect(noDb).not.toContain('wasCartJustCleared')
+    expect(noDb).not.toContain('workflow_cart_cleared_at')
+  })
+})

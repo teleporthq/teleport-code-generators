@@ -1,16 +1,12 @@
 import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
-import { generateDbImport } from './ecommerce-api-routes-generator'
+import { generateDbImport, isPostgresCartDataSource } from './ecommerce-api-routes-generator'
 
-// Datasource types whose `generateDbImport` emits a node-postgres `Pool`. The
-// cart route is Postgres-specific (transactions via `db.connect()`, `$N`
-// placeholders, `FOR UPDATE`, `RETURNING`), so it only generates for these —
-// exactly the same set the orders/checkout SQL already assumes. For anything
-// else (mysql/supabase/turso/none) the route is skipped and the cart stays
-// pure-localStorage, unchanged from before.
-const POSTGRES_DATA_SOURCE_TYPES = ['teleport', 'postgresql', 'cockroachdb', 'amazon-redshift']
-
-export const isPostgresCartDataSource = (dataSourceType: string | null): boolean =>
-  !!dataSourceType && POSTGRES_DATA_SOURCE_TYPES.indexOf(dataSourceType) !== -1
+// Re-exported from `ecommerce-api-routes-generator`, which owns the
+// datasource-shape knowledge (`generateDbImport` lives there and the
+// order-notification route needs the same predicate). Kept exported from this
+// module too so the existing importers — and the cart-persistence tests —
+// don't have to move.
+export { isPostgresCartDataSource }
 
 /**
  * Generates `pages/api/cart/[op].js` — the database-backed cart endpoint.

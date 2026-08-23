@@ -106,3 +106,36 @@ describe('data_create_item — order-notification piggyback payload', () => {
 // cover the contract (which fields are read, where they default,
 // fire-and-forget shape, etc.). The full integration is exercised
 // by the existing end-to-end test in the dist project.
+
+describe('data-create-item stands down when the workflow owns the send', () => {
+  const suppressionHandlerCode = dataCreateItem.generateHandler()
+
+  it('gates the auto-fire on the builder-set suppressOrderNotification flag', () => {
+    // The place-order workflow sets this on its create-order node whenever it
+    // also carries a "Send Order-Notification Email" node. Without the gate
+    // the merchant receives the SAME order twice — once from here with a NULL
+    // order_number (rendered as the raw UUID) and a flat-filled body, once
+    // from the workflow with the real order number and the fully expanded
+    // template.
+    expect(suppressionHandlerCode).toContain('suppressOrderNotification')
+    expect(suppressionHandlerCode).toMatch(/suppressOrderNotification\s*!==\s*true/)
+  })
+
+  it('keeps firing when the flag is absent, so exported projects are unaffected', () => {
+    // `!== true` (not a truthiness check) is what makes "flag missing" mean
+    // "behave exactly as before".
+    expect(suppressionHandlerCode).not.toMatch(/config\.suppressOrderNotification\s*\)/)
+  })
+
+  it('sends both the {{itemsList}} and the array-mapper row keys per item', () => {
+    // One payload feeds the endpoint's own <ul> builder AND a builder email
+    // template's `tq:each` row block, so neither renderer needs to know which
+    // template style the merchant is on.
+    for (const key of ['product_name', 'unit_price', 'line_total', 'image_url']) {
+      expect(suppressionHandlerCode).toContain(key)
+    }
+    expect(suppressionHandlerCode).toMatch(
+      /it\.image \|\| it\.image_url \|\| it\.imageUrl \|\| it\.thumbnail/
+    )
+  })
+})
