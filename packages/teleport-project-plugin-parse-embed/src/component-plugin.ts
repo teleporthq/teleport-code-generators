@@ -38,6 +38,41 @@ function escapeNestedScriptClose(html: string): string {
   return result
 }
 
+/**
+ * hast-util-to-jsx-inline-script wraps each <script> body in an outer {`…`}
+ * template literal with NO escaping of its own (its <style> branch goes through
+ * JSON.stringify; the script branch never got that treatment). A raw backtick
+ * or `${` in the body therefore terminates/interpolates the OUTER literal and
+ * the generated component does not compile.
+ *
+ * Escape both here, parity-aware and idempotent — the same algorithm as
+ * teleport-plugin-common's addRawAttributeToJSXTag (the non-advanced-embeds
+ * React path): a backtick behind an ODD number of backslashes is already
+ * escaped and is left alone, so content that editors pre-escaped keeps exactly
+ * one level of escaping, while raw content (the canonical storage form) gains
+ * the one level it needs. Runs on the placeholder form produced by
+ * escapeNestedScriptClose, so an inner `</script>` cannot end the match early.
+ *
+ * Exported for tests.
+ */
+export function escapeScriptBodiesForJsxTemplateLiteral(html: string): string {
+  return html.replace(
+    /(<script\b[^>]*>)([\s\S]*?)(<\/script\s*>)/gi,
+    (_fullMatch: string, openTag: string, body: string, closeTag: string) =>
+      openTag +
+      body
+        .replace(/\\*`/g, (match: string) => {
+          const backslashCount = match.length - 1
+          return backslashCount % 2 === 0 ? match.slice(0, backslashCount) + '\\`' : match
+        })
+        .replace(/\\*\$\{/g, (match: string) => {
+          const backslashCount = match.length - 2
+          return backslashCount % 2 === 0 ? match.slice(0, backslashCount) + '\\${' : match
+        }) +
+      closeTag
+  )
+}
+
 const NODE_MAPPER: Record<
   SUPPORTED_PROJECT_TYPES,
   Promise<(content: unknown, options: unknown) => string>
@@ -101,13 +136,21 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
           // escaping would be a JavaScript syntax error inside <script> tags.
           rawHtmlContent = rawHtmlContent.replace(/\\`/g, '`')
         }
-        // For React/Next.js, keep escaped backticks intact — the content gets
-        // wrapped in template literals by hast-util-to-jsx-inline-script, so
-        // backticks inside must stay escaped to avoid syntax errors.
-
         // Escape nested </script> tags so hast-util-from-html doesn't truncate
         // script content at an inner </script> (e.g. one inside a template literal).
         rawHtmlContent = escapeNestedScriptClose(rawHtmlContent)
+
+        if (
+          projectType === 'teleport-project-react' ||
+          projectType === 'teleport-project-next'
+        ) {
+          // For React/Next the fork wraps script bodies in an outer {`…`}
+          // template literal — make them safe for it ourselves. Parity-aware:
+          // already-escaped input (the GUI mapper pre-escapes today) passes
+          // through unchanged, raw input gets escaped, so this is safe on both
+          // sides of the GUI dropping its pre-escape step.
+          rawHtmlContent = escapeScriptBodiesForJsxTemplateLiteral(rawHtmlContent)
+        }
 
         const hastNodes = fromHtml(rawHtmlContent, {
           fragment: true,
