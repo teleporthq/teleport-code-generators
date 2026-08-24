@@ -5,7 +5,10 @@
  * setting currentTime. Inside a TqScrollScene it follows the scene track's
  * pass (discovered via closest('[data-scene-track]'), pin inferred from the
  * stage's computed sticky position); standalone it scrubs on its own trip
- * through the viewport. windowStart/windowEnd map a slice of that progress to
+ * through the viewport — a LEGACY FALLBACK kept for bare markup that predates
+ * the scene-hosted model (or slipped past it): the editor always inserts the
+ * video inside a scene, because the fallback needs ~two screens of
+ * surrounding content before any scrubbing is possible. windowStart/windowEnd map a slice of that progress to
  * the whole clip. Pure DOM — no animation library involved; progress math
  * mirrors the canvas renderer's scroll-video-runtime verbatim.
  *
@@ -186,13 +189,17 @@ const TqScrollVideo = ({
     // The video is ABSOLUTE on purpose: an in-flow video with height:100%
     // chains a circular percentage through a content-sized wrapper and the
     // page height grows by the rest of the document every layout pass.
-    // The wrapper (aspect-ratio / authored styles) owns the size, and
+    // The wrapper's SIZE comes entirely from the authored styles — as a scene
+    // BACKGROUND those are position:absolute + inset:0 (a CSS class), so the
+    // wrapper must not carry an inline position of its own: inline beats
+    // class, and the old position:'relative' here collapsed the backdrop to a
+    // 0px-tall in-flow div — video present in the JSX, invisible on the page.
     // contain:'layout' (after the authored spread, so it always applies)
     // keeps the wrapper the video's containing block even when the author
     // sets position:static.
     <div
       ref={hostRef}
-      style={{ position: 'relative', overflow: 'hidden', ...(style || {}), contain: 'layout' }}
+      style={{ overflow: 'hidden', ...(style || {}), contain: 'layout' }}
       {...rest}
     >
       <video

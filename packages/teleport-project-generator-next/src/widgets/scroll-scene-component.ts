@@ -215,7 +215,7 @@ const TqScrollScene = ({
   scrub = 0.3,
   reducedMotion = 'final',
   exposeProgress = false,
-  layout = 'flow',
+  layout = 'chapters',
   style,
   children,
   ...rest

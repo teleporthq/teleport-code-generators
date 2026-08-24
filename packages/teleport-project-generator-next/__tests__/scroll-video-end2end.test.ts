@@ -85,6 +85,20 @@ describe('Next generator with a Scroll Video element', () => {
     expect(content).toContain('export default TqScrollVideo')
   })
 
+  it('the wrapper carries NO inline position — the authored backdrop class must win', async () => {
+    const outputFolder = await generator.generateProject(buildUidl(), template)
+
+    const wrapper = findFile(outputFolder, 'components', 'tq-scroll-video')
+    const content = wrapper?.content as string
+    // A scene BACKGROUND is position:absolute + inset:0 via its generated CSS
+    // class. Inline style beats class, so an inline position here collapsed
+    // the backdrop to a 0px-tall in-flow div: the video was in the JSX, the
+    // URL served, and the page showed nothing. contain:'layout' alone keeps
+    // the wrapper the containing block for the absolute <video> inside it.
+    expect(content).toContain("style={{ overflow: 'hidden', ...(style || {}), contain: 'layout' }}")
+    expect(content).not.toContain("position: 'relative'")
+  })
+
   it('the scene wrapper stamps data-scene-track so the video can find it', async () => {
     const outputFolder = await generator.generateProject(buildUidl(), template)
 
