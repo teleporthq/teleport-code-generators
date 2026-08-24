@@ -1,4 +1,8 @@
+/* tslint:disable no-invalid-template-strings */
 /**
+ * Raw `${` in plain strings is deliberate throughout — these tests exercise
+ * the template-literal escaper, so the fixtures ARE those sequences.
+ *
  * The real hast packages are pure ESM and this repo's jest transform is CJS,
  * so the plugin-level tests mock them with minimal faithful stand-ins:
  * the fork mock reproduces hast-util-to-jsx-inline-script's script branch
