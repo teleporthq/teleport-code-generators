@@ -92,6 +92,7 @@ import {
   UIDLLocalResource,
   UIDLExternalResource,
   VCMSListRepeaterElementNode,
+  UIDLDataCacheConfig,
   UIDLResourceMapper,
   UIDLInjectValue,
   VUIDLStateValueDetails,
@@ -1029,6 +1030,16 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   }),
 })
 
+export const dataCacheConfigDecoder: Decoder<UIDLDataCacheConfig> = object({
+  enabled: withDefault(false, boolean()),
+  ttlSeconds: optional(number()),
+  client: optional(boolean()),
+  server: optional(boolean()),
+  cdnSMaxAge: optional(number()),
+  cdnStaleWhileRevalidate: optional(number()),
+  versionScope: optional(string()),
+})
+
 export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = object({
   type: constant('cms-list-repeater'),
   content: object({
@@ -1053,8 +1064,24 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     // searchKeyword bug). Mirrors the `searchUrlParamKey` field on
     // `UIDLCMSListRepeaterNodeContent`.
     searchUrlParamKey: optional(string()),
+    // Found by the exhaustive round-trip guard in `__tests__/decoder`: the
+    // pagination plugin reads this to seed the generated search input's
+    // `useState` (`searchDefaultValueInitAST`), but it was being stripped here
+    // first, so the seed was dead in every published project.
+    searchDefaultValue: optional(union(staticValueDecoder, expressionValueDecoder)),
     sort: optional(union(staticValueDecoder, expressionValueDecoder)),
     sortDirection: optional(union(staticValueDecoder, expressionValueDecoder)),
+    // Same reason as `searchUrlParamKey` above: `object()` silently strips any
+    // key it is not told about, so an omission here would leave every published
+    // list uncached with nothing to indicate why.
+    cache: optional(dataCacheConfigDecoder),
+    // ⛔ THE THIRD TIME this omission has shipped a defect. `isLoading` is what
+    // makes a STATE-backed repeater draw its `nodes.loading` branch instead of
+    // itself (`generateCMSListRepeaterNode`); stripped here, the branch is still
+    // generated for its styles — so the skeleton's CSS and keyframes appear in
+    // the output and everything LOOKS wired — but no ternary is emitted and the
+    // list shows its empty copy for the whole fetch.
+    isLoading: optional(union(staticValueDecoder, expressionValueDecoder)),
   }),
 })
 

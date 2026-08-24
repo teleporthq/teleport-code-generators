@@ -1,4 +1,3 @@
-import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import {
   replaceSecretReference,
   generateDateFormatterCode,
@@ -9,6 +8,7 @@ import {
   getTransformationCode,
   getTransformExpression,
   getTransformWrapperCode,
+  type EcommerceProductTransformOptions,
 } from '../transformations'
 
 interface TeleportDBConfig {
@@ -52,7 +52,7 @@ export const validateTeleportConfig = (
 export const generateTeleportFetcher = (
   config: Record<string, unknown>,
   tableName: string,
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {}
 ): string => {
   const dbConfig = config as TeleportDBConfig
   const schema = dbConfig.options?.schema
@@ -142,7 +142,7 @@ const getClient = () => {
 ${generateSafeJSONParseCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${getTransformationCode(tableName, categories)}
+${getTransformationCode(tableName, transformOptions)}
 ${getTransformWrapperCode(tableName)}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex

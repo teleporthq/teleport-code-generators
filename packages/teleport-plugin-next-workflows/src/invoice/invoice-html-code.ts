@@ -961,8 +961,12 @@ function replacePlaceholders(template, data) {
       invoiceNumber: inv.number || '',
       customerName: cust.name || '',
       customerEmail: cust.email || '',
-      invoiceDate: inv.issueDate || '',
-      dueDate: inv.dueDate || '',
+      // Formatted, not raw: a merge token carries only a field name, so an
+      // unformatted issue/due date would reach the customer's inbox as the
+      // stored timestamp. \`formatDateValue\` is the same helper the PDF uses,
+      // so the mail and its attachment agree.
+      invoiceDate: formatDateValue(inv.issueDate),
+      dueDate: formatDateValue(inv.dueDate),
       totalAmount: (inv.currencySymbol || '') + Number(inv.total || 0).toFixed(2),
       subtotal: (inv.currencySymbol || '') + Number(inv.subtotal || 0).toFixed(2),
       taxAmount: (inv.currencySymbol || '') + Number(inv.taxAmount || 0).toFixed(2),

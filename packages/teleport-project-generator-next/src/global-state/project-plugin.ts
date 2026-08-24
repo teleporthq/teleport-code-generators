@@ -5,7 +5,10 @@ import {
   UIDLGlobalStateDefinition,
   UIDLDataSource,
 } from '@teleporthq/teleport-types'
-import { generateDataSourceFetcherWithCore } from '@teleporthq/teleport-plugin-next-data-source'
+import {
+  generateDataSourceFetcherWithCore,
+  buildProductTransformOptions,
+} from '@teleporthq/teleport-plugin-next-data-source'
 import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 import {
   collectGlobalStateFetchConfigs,
@@ -444,7 +447,7 @@ export class NextGlobalStateProjectPlugin implements ProjectPlugin {
             config.dataSource,
             config.tableName,
             true, // isApiRoute
-            structure.uidl.ecommerceSettings?.categories
+            buildProductTransformOptions(structure.uidl)
           )
         } catch {
           continue

@@ -314,6 +314,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.ecommerceSettings && {
         ecommerceSettings: uidl.ecommerceSettings,
       }),
+      ...(uidl.invoiceSettings && {
+        invoiceSettings: uidl.invoiceSettings,
+      }),
       ...((uidl as unknown as Record<string, unknown>).pageLayoutMode && {
         pageLayoutMode: (uidl as unknown as Record<string, unknown>).pageLayoutMode as string,
       }),

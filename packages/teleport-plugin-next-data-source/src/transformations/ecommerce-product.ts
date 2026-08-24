@@ -1,4 +1,20 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { StorefrontTax } from '@teleporthq/teleport-shared'
+
+/**
+ * Everything the product transform needs baked in at export time, beyond the
+ * row itself. An options OBJECT rather than positional parameters: the list has
+ * already grown twice and every caller in the chain has to forward it verbatim.
+ */
+export interface EcommerceProductTransformOptions {
+  /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
+  categories?: UIDLEcommerceCategory[]
+  /**
+   * Percentage to ADD on top of every stored (NET) price for DISPLAY, or 0.
+   * Resolved by the caller through `StorefrontTax.resolveStorefrontTaxRate`.
+   */
+  storefrontTaxRate?: number
+}
 
 /**
  * Flattens the nested category tree (`ecommerceSettings.categories`, baked at
@@ -47,11 +63,16 @@ const flattenCategoriesById = (
  * that UIDL components expect.
  */
 export const generateEcommerceProductTransformationCode = (
-  categories?: UIDLEcommerceCategory[]
+  options: EcommerceProductTransformOptions = {}
 ): string => {
-  const categoriesByIdJson = JSON.stringify(flattenCategoriesById(categories))
+  const categoriesByIdJson = JSON.stringify(flattenCategoriesById(options.categories))
+  const taxHelperCode = StorefrontTax.generateStorefrontTaxHelperCode(
+    options.storefrontTaxRate ?? 0
+  )
 
   return `
+${taxHelperCode}
+
 // Category taxonomy (id -> {name, slug, translations}), baked in at export
 // time — see flattenCategoriesById in ecommerce-product.ts. Empty when the
 // store has no category taxonomy, or products.category_ids simply resolves
@@ -349,6 +370,32 @@ function buildEcommerceProduct(record, options) {
   var hasInStockCombination = !!(firstVariant && isVariantInStock(firstVariant))
   var defaultVariantId = hasInStockCombination ? firstVariant.id : ''
   var defaultVariantPrice = firstVariant ? formatVariantPrice(firstVariant.price, price) : ''
+  // Gross (tax-inclusive) counterparts of the three price fields the STOREFRONT
+  // renders. \`price\` / \`defaultVariantPrice\` / \`variantsJson\` deliberately stay
+  // NET: the same transform feeds the merchant's admin panel, and every write
+  // path (add-to-cart, checkout, the invoice route) re-reads the raw row and
+  // must keep seeing the price the merchant typed. Only these three are safe to
+  // gross, because nothing writes them back.
+  //
+  // MUST mirror packages/renderer/src/utils/ecommerce-products.ts.
+  var displayPrice = grossMoney(price)
+  var defaultVariantDisplayPrice = firstVariant
+    ? grossMoney(formatVariantPrice(firstVariant.price, price))
+    : ''
+  var variantsDisplay = []
+  for (var dv = 0; dv < variants.length; dv++) {
+    var dvRow = variants[dv]
+    variantsDisplay.push({
+      id: dvRow.id,
+      options: dvRow.options,
+      // A null variant price INHERITS the product price, so gross the RESOLVED
+      // value — otherwise an inheriting combination would fall back to the net
+      // base price in the picker while an overriding one showed gross.
+      price: applyStorefrontTax(dvRow.price == null ? price : dvRow.price),
+      quantity: dvRow.quantity,
+      image_url: dvRow.image_url,
+    })
+  }
   // Can this product be added to the cart at all, before the shopper touches the
   // picker? A STRING, same convention as outOfStock/requiresVariantSelection.
   //
@@ -373,6 +420,7 @@ function buildEcommerceProduct(record, options) {
   // combinations + axes from these JSON strings via getAttribute.
   var variantOptionsJson = safeStringifyJson(variantOptions)
   var variantsJson = safeStringifyJson(variants)
+  var variantsDisplayJson = safeStringifyJson(variantsDisplay)
 
   return {
     id: id,
@@ -418,8 +466,11 @@ function buildEcommerceProduct(record, options) {
     variants: variants,
     variantOptionsJson: variantOptionsJson,
     variantsJson: variantsJson,
+    variantsDisplayJson: variantsDisplayJson,
     defaultVariantId: defaultVariantId,
     defaultVariantPrice: defaultVariantPrice,
+    displayPrice: displayPrice,
+    defaultVariantDisplayPrice: defaultVariantDisplayPrice,
     hasPurchasableVariant: hasPurchasableVariant,
   }
 }

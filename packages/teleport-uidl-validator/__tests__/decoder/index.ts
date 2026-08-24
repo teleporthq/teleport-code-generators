@@ -1,4 +1,8 @@
-import { UIDLConditionalNode, UIDLStateDefinition } from '@teleporthq/teleport-types'
+import {
+  UIDLCMSListRepeaterNodeContent,
+  UIDLConditionalNode,
+  UIDLStateDefinition,
+} from '@teleporthq/teleport-types'
 import {
   conditionalNodeDecoder,
   stateDefinitionsDecoder,
@@ -123,6 +127,95 @@ test('stateDefinitionsDecoder rejects urlSearchParamBinding that is missing the 
 
   const result = stateDefinitionsDecoder.run(state)
   expect(result.ok).toBeFalsy()
+})
+
+/**
+ * ⛔ THE decoder hazard, stated once and enforced for the whole node.
+ *
+ * `object()` silently DROPS any key absent from its schema, and the decoded UIDL
+ * REPLACES the input for the rest of the pipeline — so a field the type and the
+ * code generator both know about, but the decoder does not, simply ceases to
+ * exist somewhere in the middle with nothing logged. It has cost three shipped
+ * defects on this one node: `searchUrlParamKey` (URL search sync dead), `cache`
+ * (every published list uncached) and `isLoading` (a state-backed list showed
+ * "no results" for the whole fetch — its loading branch was still generated for
+ * its STYLES, so the skeleton CSS was in the output and everything looked wired).
+ *
+ * This map is exhaustive by construction: add a field to
+ * `UIDLCMSListRepeaterNodeContent` and this file stops COMPILING until you have
+ * said which side it falls on, and adding it as `preserved` then fails the test
+ * below until the decoder knows about it too.
+ */
+const REPEATER_CONTENT_FIELDS: Record<
+  keyof UIDLCMSListRepeaterNodeContent,
+  'preserved' | 'assigned-after-validation'
+> = {
+  elementType: 'preserved',
+  name: 'preserved',
+  attrs: 'preserved',
+  dependency: 'preserved',
+  nodes: 'preserved',
+  renderPropIdentifier: 'preserved',
+  source: 'preserved',
+  paginated: 'preserved',
+  perPage: 'preserved',
+  searchEnabled: 'preserved',
+  searchDebounce: 'preserved',
+  searchDefaultValue: 'preserved',
+  searchUrlParamKey: 'preserved',
+  sort: 'preserved',
+  isLoading: 'preserved',
+  sortDirection: 'preserved',
+  // Stamped by the generator AFTER validation, never carried in from the UIDL.
+  key: 'assigned-after-validation',
+}
+
+test('cmsListRepeaterNodeDecoder preserves every content field the type declares', () => {
+  const sample: Record<string, unknown> = {
+    elementType: 'container',
+    name: 'cms-list-repeater',
+    attrs: { dataNodeId: { type: 'static', content: 'node-1' } },
+    dependency: {
+      type: 'package',
+      path: '@teleporthq/react-components',
+      version: 'latest',
+      meta: { namedImport: true },
+    },
+    nodes: {
+      list: { type: 'element', content: { elementType: 'container' } },
+      empty: { type: 'element', content: { elementType: 'container' } },
+      loading: { type: 'element', content: { elementType: 'container' } },
+    },
+    renderPropIdentifier: 'favouriteProduct',
+    source: 'favouriteProducts',
+    paginated: true,
+    perPage: 20,
+    searchEnabled: true,
+    searchDebounce: 300,
+    searchDefaultValue: { type: 'static', content: 'shoes' },
+    searchUrlParamKey: 'searchKeyword',
+    sort: { type: 'static', content: 'name' },
+    sortDirection: { type: 'static', content: 'asc' },
+    isLoading: { type: 'expr', content: "isLoadingFavourites || ''" },
+  }
+
+  const expected = Object.entries(REPEATER_CONTENT_FIELDS)
+    .filter(([, kind]) => kind === 'preserved')
+    .map(([field]) => field)
+
+  // Every preserved field must be exercised — a field left out of `sample`
+  // would pass the round trip below without ever being decoded.
+  expect(Object.keys(sample).sort()).toEqual([...expected].sort())
+
+  const result = cmsListRepeaterNodeDecoder.run({ type: 'cms-list-repeater', content: sample })
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const content = result.result.content as Record<string, unknown>
+    // Compared as a SET, not field by field: a new field that the decoder drops
+    // has to fail here rather than wait for someone to add an assertion for it.
+    expect(Object.keys(content).sort()).toEqual([...expected].sort())
+    expect(content.isLoading).toEqual({ type: 'expr', content: "isLoadingFavourites || ''" })
+  }
 })
 
 test('cmsListRepeaterNodeDecoder preserves searchUrlParamKey through validation', () => {

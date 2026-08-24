@@ -1343,6 +1343,89 @@ function domSerializationReplacer(key, value) {
   return isDomNode(value) ? snapshotDomNode(value) : value;
 }
 
+// Ceiling (in serialized characters) for a single context entry that travels to
+// a server segment. It exists so one oversized value — a picked file's base64
+// dataURL, a scraped page's HTML — cannot blow up every server-segment request.
+const PRUNE_MAX_SERIALIZED_LENGTH = 100000;
+
+// How deep the pruner may descend while trying to salvage the small parts of an
+// oversized container. Deep enough for the shapes workflow nodes actually
+// produce ({ value: { image: <dataURL> } }, { files: [ { dataURL } ] }, the
+// __stateValues bag) and shallow enough to stay cheap.
+const PRUNE_MAX_DEPTH = 6;
+
+function serializeForPrune(val) {
+  try {
+    // Replace DOM nodes with serializable snapshots as we stringify, then
+    // re-parse so the request body itself (JSON.stringify(prunedContext) in
+    // callServerSegment, which has no replacer) never sees a live DOM node.
+    return JSON.stringify(val, domSerializationReplacer);
+  } catch (e) {
+    return null;
+  }
+}
+
+// Prunes ONE value down to something that is safe to POST to a server segment,
+// returning { value, size } where size is the serialized length actually kept.
+//
+// The whole-value replacement this used to do ("too big? send { __truncated }")
+// was lossy in the one case that matters most: a small, needed field sitting
+// NEXT TO a huge one. The account form's accountFormData state holds the user's
+// name beside the freshly-picked photo's ~2 MB dataURL, so the server segment
+// received { __truncated: true } for the entire state and resolved
+// accountFormData.name to undefined — and data-update-item DROPS an undefined
+// column mapping, so the profile saved the new picture while silently keeping
+// the old name. Descending instead means only the oversized LEAF is replaced;
+// every sibling still resolves on the server.
+//
+// Each container keeps at most PRUNE_MAX_SERIALIZED_LENGTH of children, so the
+// total payload stays bounded by the same budget the whole-value rule enforced.
+function prunedValue(val, depth) {
+  const serialized = serializeForPrune(val);
+  if (serialized === null) {
+    return { value: { __serializationError: true }, size: 30 };
+  }
+  // undefined, functions and symbols stringify to undefined — the caller
+  // decides whether to skip the key entirely.
+  if (serialized === undefined) {
+    return null;
+  }
+  if (serialized.length <= PRUNE_MAX_SERIALIZED_LENGTH) {
+    return { value: JSON.parse(serialized), size: serialized.length };
+  }
+  if (depth >= PRUNE_MAX_DEPTH || !val || typeof val !== 'object') {
+    return { value: { __truncated: true, type: typeof val }, size: 40 };
+  }
+  let used = 0;
+  if (Array.isArray(val)) {
+    const prunedArr = [];
+    for (let i = 0; i < val.length; i++) {
+      if (used >= PRUNE_MAX_SERIALIZED_LENGTH) {
+        prunedArr.push({ __truncated: true, type: typeof val[i] });
+        continue;
+      }
+      const child = prunedValue(val[i], depth + 1);
+      // JSON.stringify turns an unserializable array slot into null, so keep a
+      // placeholder rather than shifting every later index by one.
+      prunedArr.push(child === null ? null : child.value);
+      used += child === null ? 4 : child.size;
+    }
+    return { value: prunedArr, size: used };
+  }
+  const prunedObj = {};
+  const keys = Object.keys(val);
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k];
+    const child = used >= PRUNE_MAX_SERIALIZED_LENGTH
+      ? { value: { __truncated: true, type: typeof val[key] }, size: 40 }
+      : prunedValue(val[key], depth + 1);
+    if (child === null) continue;
+    prunedObj[key] = child.value;
+    used += child.size;
+  }
+  return { value: prunedObj, size: used };
+}
+
 function pruneContext(context) {
   const pruned = {};
   const keys = Object.keys(context);
@@ -1355,26 +1438,15 @@ function pruneContext(context) {
     // them; serializing them would ship a list of empty objects and let a
     // server response overwrite the client's live list.
     if (key === '__pendingNodePromises') continue;
-    try {
-      // Replace DOM nodes with serializable snapshots as we stringify, then
-      // re-parse so the request body itself (JSON.stringify(prunedContext) in
-      // callServerSegment, which has no replacer) never sees a live DOM node.
-      const serialized = JSON.stringify(val, domSerializationReplacer);
-      if (serialized === undefined) continue;
-      if (serialized.length > 100000) {
-        pruned[key] = { __truncated: true, type: typeof val };
-      } else {
-        pruned[key] = JSON.parse(serialized);
-      }
-    } catch(e) {
-      pruned[key] = { __serializationError: true };
-    }
+    const entry = prunedValue(val, 0);
+    if (entry === null) continue;
+    pruned[key] = entry.value;
   }
   return pruned;
 }
 
 // Merge a server segment's returned context back into the live client context.
-// Two rules protect client-only state that cannot survive the round-trip:
+// Three rules protect client-only state that cannot survive the round-trip:
 //   1. A server-side placeholder ({ __serializationError } / { __truncated })
 //      must never overwrite a real client value.
 //   2. The trigger element/node is authoritative on the client. The live DOM
@@ -1383,11 +1455,17 @@ function pruneContext(context) {
 //      post-server client node (cart-update reading
 //      trigger.element.dataset.cartItemId, or any node calling a DOM method)
 //      still works against the genuine element rather than a frozen copy.
+//   3. __stateValues is the CLIENT's snapshot of its own React state. The
+//      server only ever reads it (template tokens, state-get-* handlers), and
+//      what comes back is the PRUNED copy this runtime sent — an oversized
+//      leaf inside it was replaced with a truncation marker. Merging that copy
+//      back would poison the snapshot the remaining client nodes read from.
 function mergeServerResults(context, serverResults, triggerNodeId) {
   if (!serverResults || typeof serverResults !== 'object') return;
   const keys = Object.keys(serverResults);
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
+    if (key === '__stateValues') continue;
     const clientVal = context[key];
     // Keep the client's authoritative live DOM trigger element. The top-level
     // triggerElement holds the node directly; the trigger node's context holds

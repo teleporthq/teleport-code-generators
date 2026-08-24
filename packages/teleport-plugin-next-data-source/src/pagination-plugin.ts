@@ -3,7 +3,6 @@ import {
   ComponentPluginFactory,
   ChunkType,
   FileType,
-  UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
@@ -11,6 +10,10 @@ import { StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
+import {
+  buildProductTransformOptions,
+  type EcommerceProductTransformOptions,
+} from './transformations'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
 import {
@@ -18,6 +21,15 @@ import {
   buildLoadingStateDeclarations,
   getLoadingStateVars,
 } from './loading-state'
+import type { DataSourceServerCacheOptions, ResolvedDataSourceCache } from './cache/types'
+import { mergeServerCacheOptions, resolveCacheFromRepeaterContent } from './cache/config'
+import {
+  buildCacheHydrationEffect,
+  buildCacheStoreThen,
+  buildCachedFetchBody,
+  buildCachedParamsDeclarations,
+  registerCacheClientImports,
+} from './cache/ast'
 
 // ----- searchDefaultValue support -----
 //
@@ -186,6 +198,10 @@ interface DataSourceUsage {
   // client-side fetch refires when the buyer navigates between
   // `?categoryFilter=Rings` and `?categoryFilter=Necklaces`.
   filterUrlSearchParamKeys: string[]
+  // Resolved caching setup for this mapper, or `undefined` when it does not
+  // cache — in which case every emit site below must produce exactly what it
+  // produced before caching existed.
+  cache?: ResolvedDataSourceCache
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -568,6 +584,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           filterStateIds,
           filterPropIds,
           filterUrlSearchParamKeys,
+          cache: resolveCacheFromRepeaterContent(content.cache, parentDataSource.resourceDef),
           category: 'plain',
         }
 
@@ -1508,6 +1525,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // provider can use one depends on its JSX (it needs a `renderLoading` slot),
     // which is only known once the category updaters above have run.
     const loadingStateDeclarations: types.Statement[] = []
+    const cacheDeclarations: types.Statement[] = []
 
     dataProvidersWithRepeaters.forEach((dp) => {
       const nameAttr = dp.openingElement.attributes.find(
@@ -1539,11 +1557,11 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
       // Update DataProvider based on category
       if (usage.category === 'paginated+search') {
-        updateDataProviderForPaginatedSearch(dp, usage, vars, fileName)
+        updateDataProviderForPaginatedSearch(dp, usage, vars, fileName, cacheDeclarations)
       } else if (usage.category === 'paginated-only') {
-        updateDataProviderForPaginationOnly(dp, usage, vars, fileName)
+        updateDataProviderForPaginationOnly(dp, usage, vars, fileName, cacheDeclarations)
       } else if (usage.category === 'search-only') {
-        updateDataProviderForSearchOnly(dp, usage, vars, fileName)
+        updateDataProviderForSearchOnly(dp, usage, vars, fileName, cacheDeclarations)
       } else if (usage.category === 'plain') {
         updateDataProviderForPlain(dp, fileName, usage)
       }
@@ -1562,14 +1580,48 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         options.extractedResources,
         usage,
         options.dataSources,
-        options.ecommerceSettings?.categories
+        buildProductTransformOptions(options)
       )
     })
+
+    // tslint:disable-next-line:no-any
+    const sharedOptions = options as any
+    if (!sharedOptions.serverCacheByFile) {
+      sharedOptions.serverCacheByFile = new Map()
+    }
+    applyServerCacheToDataSourceModules(
+      options.extractedResources,
+      registry,
+      options.dataSources,
+      buildProductTransformOptions(options),
+      sharedOptions.serverCacheByFile
+    )
 
     // Declare the loading-state hooks alongside the other data-source state, at
     // the top of the component body. Unconditional and in a fixed order, so the
     // hook order stays stable across renders.
     loadingStateDeclarations.reverse().forEach((s) => blockStatement.body.unshift(s))
+
+    // Cache declarations go BELOW the loading-state hooks (they are unshifted
+    // first, so they end up after) because `ds_N_cached` reads state the hooks
+    // above declare. Hook order stays fixed across renders either way.
+    const cachedScopes = Array.from(
+      new Set(
+        registry.usages
+          .filter((usage) => usage.cache?.client)
+          .map((usage) => (usage.cache as ResolvedDataSourceCache).scope)
+      )
+    )
+
+    if (cacheDeclarations.length || cachedScopes.length) {
+      // One effect per page covering every scope on it: flips the hydration
+      // latch, then asks once whether any of this page's tables changed while
+      // the visitor was away. Without it a browser serving everything from its
+      // own cache would never learn about a write at all.
+      blockStatement.body.push(buildCacheHydrationEffect(cachedScopes))
+      cacheDeclarations.reverse().forEach((statement) => blockStatement.body.unshift(statement))
+      registerCacheClientImports(dependencies, uidl.outputOptions?.folderPath)
+    }
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
     // These access single items like data[0].name and should not re-render on state changes
@@ -1826,11 +1878,61 @@ function findAllPaginationNodesInJSX(
   return results
 }
 
+/**
+ * Emits the provider's `params` and, for a cached mapper, the peek beside it.
+ *
+ * An uncached mapper keeps the inline `params={useMemo(...)}` it has always had,
+ * byte for byte. A cached one hoists that memo into a component const so the
+ * peek can depend on the same object identity instead of rebuilding it.
+ *
+ * Returns the identifier holding the peeked rows, or `undefined` when this
+ * mapper does not cache.
+ */
+function pushParamsAttribute(
+  // tslint:disable-next-line:no-any
+  dp: any,
+  usage: DataSourceUsage,
+  paramsProps: types.ObjectProperty[],
+  memoDeps: types.Expression[],
+  cacheDeclarations: types.Statement[]
+): string | undefined {
+  const paramsMemo = types.callExpression(types.identifier('useMemo'), [
+    types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
+    types.arrayExpression(memoDeps),
+  ])
+
+  // A state-bound sort deliberately suppresses `initialData` (see the comment at
+  // the call site): the prefetch ran without sort params, so reusing anything on
+  // mount would mask the current sort. The cache peek is `initialData` by
+  // another name, so it has to be suppressed for exactly the same reason.
+  const cache = usage.cache?.client && !usage.dynamicSort ? usage.cache : undefined
+
+  if (!cache) {
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(types.jsxIdentifier('params'), types.jsxExpressionContainer(paramsMemo))
+    )
+    return undefined
+  }
+
+  const hoisted = buildCachedParamsDeclarations({ index: usage.index, paramsMemo, cache })
+  cacheDeclarations.push(...hoisted.declarations)
+
+  dp.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('params'),
+      types.jsxExpressionContainer(types.identifier(hoisted.paramsIdentifier))
+    )
+  )
+
+  return hoisted.cachedIdentifier
+}
+
 function updateDataProviderForPaginatedSearch(
   dp: any,
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
-  fileName: string
+  fileName: string,
+  cacheDeclarations: types.Statement[]
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -1885,17 +1987,7 @@ function updateDataProviderForPaginatedSearch(
   }
   pushUrlSearchParamMemoDeps(memoDeps, usage)
 
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('params'),
-      types.jsxExpressionContainer(
-        types.callExpression(types.identifier('useMemo'), [
-          types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression(memoDeps),
-        ])
-      )
-    )
-  )
+  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
   // Add initialData. Skip the server-prefetched data entirely when a dynamic
   // state-bound sort is active — the prefetch ran without sort parameters, so
@@ -1935,7 +2027,7 @@ function updateDataProviderForPaginatedSearch(
               false,
               true
             ),
-            types.identifier('undefined')
+            cachedInitialData ? types.identifier(cachedInitialData) : types.identifier('undefined')
           )
         )
       )
@@ -1976,7 +2068,9 @@ function updateDataProviderForPaginatedSearch(
   )
 
   // Add fetchData
-  dp.openingElement.attributes.push(createFetchDataAttribute(fileName))
+  dp.openingElement.attributes.push(
+    createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
+  )
 
   // Add persistDataDuringLoading
   dp.openingElement.attributes.push(
@@ -1991,7 +2085,8 @@ function updateDataProviderForPaginationOnly(
   dp: any,
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
-  fileName: string
+  fileName: string,
+  cacheDeclarations: types.Statement[]
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2025,17 +2120,7 @@ function updateDataProviderForPaginationOnly(
   pushUrlSearchParamMemoDeps(memoDeps, usage)
 
   // Add params
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('params'),
-      types.jsxExpressionContainer(
-        types.callExpression(types.identifier('useMemo'), [
-          types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression(memoDeps),
-        ])
-      )
-    )
-  )
+  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
   // Add initialData. See paginated+search updater for why we skip prefetch
   // reuse when a dynamic state-bound sort is active.
@@ -2059,7 +2144,7 @@ function updateDataProviderForPaginationOnly(
               false,
               true
             ),
-            types.identifier('undefined')
+            cachedInitialData ? types.identifier(cachedInitialData) : types.identifier('undefined')
           )
         )
       )
@@ -2086,7 +2171,9 @@ function updateDataProviderForPaginationOnly(
   )
 
   // Add fetchData
-  dp.openingElement.attributes.push(createFetchDataAttribute(fileName))
+  dp.openingElement.attributes.push(
+    createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
+  )
 
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -2100,7 +2187,8 @@ function updateDataProviderForSearchOnly(
   dp: any,
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
-  fileName: string
+  fileName: string,
+  cacheDeclarations: types.Statement[]
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2143,17 +2231,7 @@ function updateDataProviderForSearchOnly(
   }
   pushUrlSearchParamMemoDeps(memoDeps, usage)
 
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('params'),
-      types.jsxExpressionContainer(
-        types.callExpression(types.identifier('useMemo'), [
-          types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
-          types.arrayExpression(memoDeps),
-        ])
-      )
-    )
-  )
+  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
   // Add initialData. See paginated+search updater for why we skip prefetch
   // reuse when a dynamic state-bound sort is active.
@@ -2173,7 +2251,7 @@ function updateDataProviderForSearchOnly(
               false,
               true
             ),
-            types.identifier('undefined')
+            cachedInitialData ? types.identifier(cachedInitialData) : types.identifier('undefined')
           )
         )
       )
@@ -2197,7 +2275,9 @@ function updateDataProviderForSearchOnly(
   )
 
   // Add fetchData
-  dp.openingElement.attributes.push(createFetchDataAttribute(fileName))
+  dp.openingElement.attributes.push(
+    createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
+  )
 
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -2210,13 +2290,22 @@ function updateDataProviderForSearchOnly(
 function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSourceUsage): void {
   const attrs = dp.openingElement.attributes
 
+  const clientCache = usage.cache?.client ? usage.cache : undefined
+
   // Check if fetchData already exists
   const hasFetchData = attrs.some(
     (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'fetchData'
   )
 
-  // If no fetchData, add it
-  if (!hasFetchData) {
+  if (clientCache) {
+    // A plain provider may already carry the UNMEMOIZED fetcher `utils.ts`
+    // emits. Caching has to replace it rather than skip: the memoized form is
+    // what both the cache peek and the in-flight tracking are attached to.
+    dp.openingElement.attributes = attrs.filter(
+      (attr: any) => !(attr.type === 'JSXAttribute' && attr.name?.name === 'fetchData')
+    )
+    dp.openingElement.attributes.push(createFetchDataAttribute(fileName, clientCache))
+  } else if (!hasFetchData) {
     attrs.push(createFetchDataAttribute(fileName))
   }
 
@@ -2334,73 +2423,75 @@ function stabilizeDataProviderWithoutRepeater(dp: any): void {
   )
 }
 
-function createFetchDataAttribute(fileName: string): types.JSXAttribute {
+function createFetchDataAttribute(
+  fileName: string,
+  cache?: ResolvedDataSourceCache
+): types.JSXAttribute {
+  const fetchCall = types.callExpression(types.identifier('fetch'), [
+    types.templateLiteral(
+      [
+        types.templateElement({
+          raw: `/api/${fileName}?`,
+          cooked: `/api/${fileName}?`,
+        }),
+        types.templateElement({ raw: '', cooked: '' }),
+      ],
+      [types.newExpression(types.identifier('URLSearchParams'), [types.identifier('params')])]
+    ),
+    types.objectExpression([
+      types.objectProperty(
+        types.identifier('headers'),
+        types.objectExpression([
+          types.objectProperty(
+            types.stringLiteral('Content-Type'),
+            types.stringLiteral('application/json')
+          ),
+        ])
+      ),
+    ]),
+  ])
+
+  const parsedJson = types.callExpression(
+    types.memberExpression(fetchCall, types.identifier('then')),
+    [
+      types.arrowFunctionExpression(
+        [types.identifier('res')],
+        types.callExpression(
+          types.memberExpression(types.identifier('res'), types.identifier('json')),
+          []
+        )
+      ),
+    ]
+  )
+
+  // The uncached tail is left exactly as it has always been emitted, so a
+  // project that does not cache produces byte-identical output.
+  const uncachedTail = types.arrowFunctionExpression(
+    [types.identifier('response')],
+    types.optionalMemberExpression(
+      types.identifier('response'),
+      types.identifier('data'),
+      false,
+      true
+    )
+  )
+
+  const networkChain = types.callExpression(
+    types.memberExpression(parsedJson, types.identifier('then')),
+    [cache ? buildCacheStoreThen(cache) : uncachedTail]
+  )
+
+  const arrow = cache
+    ? types.arrowFunctionExpression(
+        [types.identifier('params')],
+        buildCachedFetchBody(networkChain, cache)
+      )
+    : types.arrowFunctionExpression([types.identifier('params')], networkChain)
+
   return types.jsxAttribute(
     types.jsxIdentifier('fetchData'),
     types.jsxExpressionContainer(
-      types.callExpression(types.identifier('useCallback'), [
-        types.arrowFunctionExpression(
-          [types.identifier('params')],
-          types.callExpression(
-            types.memberExpression(
-              types.callExpression(
-                types.memberExpression(
-                  types.callExpression(types.identifier('fetch'), [
-                    types.templateLiteral(
-                      [
-                        types.templateElement({
-                          raw: `/api/${fileName}?`,
-                          cooked: `/api/${fileName}?`,
-                        }),
-                        types.templateElement({ raw: '', cooked: '' }),
-                      ],
-                      [
-                        types.newExpression(types.identifier('URLSearchParams'), [
-                          types.identifier('params'),
-                        ]),
-                      ]
-                    ),
-                    types.objectExpression([
-                      types.objectProperty(
-                        types.identifier('headers'),
-                        types.objectExpression([
-                          types.objectProperty(
-                            types.stringLiteral('Content-Type'),
-                            types.stringLiteral('application/json')
-                          ),
-                        ])
-                      ),
-                    ]),
-                  ]),
-                  types.identifier('then')
-                ),
-                [
-                  types.arrowFunctionExpression(
-                    [types.identifier('res')],
-                    types.callExpression(
-                      types.memberExpression(types.identifier('res'), types.identifier('json')),
-                      []
-                    )
-                  ),
-                ]
-              ),
-              types.identifier('then')
-            ),
-            [
-              types.arrowFunctionExpression(
-                [types.identifier('response')],
-                types.optionalMemberExpression(
-                  types.identifier('response'),
-                  types.identifier('data'),
-                  false,
-                  true
-                )
-              ),
-            ]
-          )
-        ),
-        types.arrayExpression([]),
-      ])
+      types.callExpression(types.identifier('useCallback'), [arrow, types.arrayExpression([])])
     )
   )
 }
@@ -2697,11 +2788,114 @@ function wirePaginationButtons(
   }
 }
 
+/**
+ * Applies the SERVER cache to the generated data-source modules, once, after
+ * every provider has been visited.
+ *
+ * A post-pass rather than a parameter to `ensureAPIRouteExists` because four
+ * different places race to create `utils/data-sources/<file>.js` — the
+ * getStaticProps path, the component path, the client-API path and this plugin —
+ * and whichever wins would otherwise decide whether the file is cached. Since
+ * the generator is deterministic, regenerating the winner with the cache options
+ * is order-independent and cannot half-apply.
+ *
+ * The config is merged per FILE, not per mapper: one module serves every mapper
+ * reading that `(type, table, dataSourceId)` triple, so two mappers on two pages
+ * have to agree — and the fresher one wins (see `mergeServerCacheOptions`).
+ */
+function applyServerCacheToDataSourceModules(
+  // tslint:disable-next-line:no-any
+  extractedResources: any,
+  registry: StateRegistry,
+  // tslint:disable-next-line:no-any
+  dataSources: Record<string, any>,
+  transformOptions: EcommerceProductTransformOptions = {},
+  // Accumulated across every page/component this generation has processed. The
+  // module is shared project-wide, so merging only the CURRENT page's usages
+  // would let page ORDER decide the TTL: a page asking for 300s processed after
+  // one asking for 60s would widen the window the second page was configured
+  // with. Carried on the shared options object so the merge stays global.
+  accumulator?: Map<string, { usage: DataSourceUsage; entries: DataSourceServerCacheOptions[] }>
+): void {
+  const byFileName =
+    accumulator ??
+    new Map<string, { usage: DataSourceUsage; entries: DataSourceServerCacheOptions[] }>()
+
+  registry.usages.forEach((usage) => {
+    if (!usage.cache?.server) {
+      return
+    }
+    const fileName = generateSafeFileName(
+      usage.resourceDefinition.dataSourceType,
+      usage.resourceDefinition.tableName,
+      usage.resourceDefinition.dataSourceId
+    )
+    const bucket = byFileName.get(fileName) || { usage, entries: [] }
+    bucket.entries.push({
+      scope: usage.cache.scope,
+      ttlSeconds: usage.cache.ttlSeconds,
+      sMaxAge: usage.cache.sMaxAge,
+      staleWhileRevalidate: usage.cache.staleWhileRevalidate,
+    })
+    byFileName.set(fileName, bucket)
+  })
+
+  byFileName.forEach((bucket, fileName) => {
+    const cacheOptions = mergeServerCacheOptions(bucket.entries)
+    if (!cacheOptions) {
+      return
+    }
+
+    const dataSource = dataSources[bucket.usage.resourceDefinition.dataSourceId]
+    if (!dataSource) {
+      return
+    }
+
+    const tableName = bucket.usage.resourceDefinition.tableName || 'data'
+    const utilsKey = `utils/${fileName}`
+    const apiKey = `api/${fileName}`
+
+    try {
+      if (extractedResources[utilsKey]) {
+        extractedResources[utilsKey].content = generateDataSourceFetcherWithCore(
+          dataSource,
+          tableName,
+          false,
+          transformOptions,
+          cacheOptions
+        )
+        return
+      }
+
+      // The variant that inlines the whole fetcher straight into `pages/api`
+      // instead of re-exporting a utils module. Detected by content rather than
+      // by which code path produced it, so a future fifth emitter is covered too.
+      const apiEntry = extractedResources[apiKey]
+      if (
+        apiEntry &&
+        typeof apiEntry.content === 'string' &&
+        apiEntry.content.includes('async function handler')
+      ) {
+        apiEntry.content = generateDataSourceFetcherWithCore(
+          dataSource,
+          tableName,
+          true,
+          transformOptions,
+          cacheOptions
+        )
+      }
+    } catch (error) {
+      // Caching must never be the reason a project fails to generate; the
+      // uncached module that is already in place stays exactly as it was.
+    }
+  })
+}
+
 function ensureAPIRouteExists(
   extractedResources: any,
   usage: DataSourceUsage,
   dataSources: Record<string, any>,
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {}
 ): void {
   // Generate file name for the API route
   const fileName = generateSafeFileName(
@@ -2721,7 +2915,7 @@ function ensureAPIRouteExists(
           dataSource,
           usage.resourceDefinition.tableName || 'data',
           false,
-          categories
+          transformOptions
         )
 
         extractedResources[`utils/${fileName}`] = {

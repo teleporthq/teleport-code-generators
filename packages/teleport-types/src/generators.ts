@@ -21,6 +21,7 @@ import {
   UIDLWorkflows,
   UIDLAuthentication,
   UIDLEcommerceSettings,
+  UIDLInvoiceSettings,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -191,6 +192,12 @@ export interface GeneratorOptions {
   // (the category taxonomy lives only in `ecommerceSettings.categories`,
   // baked at export time — there is no DB table for it).
   ecommerceSettings?: UIDLEcommerceSettings
+  // Project-level invoice settings, plumbed down for the SAME reason: the
+  // `teleport` data source fetcher bakes the storefront tax rate
+  // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a
+  // catalogue price is displayed gross when the merchant picked "Added on
+  // top". Resolved through `StorefrontTax.resolveStorefrontTaxRate`.
+  invoiceSettings?: UIDLInvoiceSettings
   // Project-level layout mode ('dashboard' | 'standard' | ...), plumbed down
   // so page-level plugins can render the correct nav chrome (top bar vs.
   // left sidebar). Purely a visual/structural choice — it has no bearing on

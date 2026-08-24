@@ -31,9 +31,22 @@ function extractFn(name: string, returnExpr = name): Fn {
   if (!match) {
     throw new Error(`${name} not found in generated runtime`)
   }
-  // pruneContext depends on isDomNode/snapshotDomNode/domSerializationReplacer;
-  // mergeServerResults depends on isDomNode. Pull those in too when present.
-  const deps = ['isDomNode', 'snapshotDomNode', 'domSerializationReplacer']
+  // pruneContext depends on isDomNode/snapshotDomNode/domSerializationReplacer
+  // plus the recursive pruner (serializeForPrune/prunedValue) and its two size
+  // constants; mergeServerResults depends on isDomNode. Pull those in too.
+  const constDecls = ['PRUNE_MAX_SERIALIZED_LENGTH', 'PRUNE_MAX_DEPTH']
+    .map((c) => {
+      const m = src.match(new RegExp(`const ${c} = \\d+;`))
+      return m ? m[0] : ''
+    })
+    .join('\n')
+  const deps = [
+    'isDomNode',
+    'snapshotDomNode',
+    'domSerializationReplacer',
+    'serializeForPrune',
+    'prunedValue',
+  ]
     .filter((d) => d !== name)
     .map((d) => {
       const m = src.match(new RegExp(`function ${d}\\b[\\s\\S]*?\\n\\}`))
@@ -41,7 +54,7 @@ function extractFn(name: string, returnExpr = name): Fn {
     })
     .join('\n')
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  return new Function(`${deps}\n${match[0]}\nreturn ${returnExpr};`)() as Fn
+  return new Function(`${constDecls}\n${deps}\n${match[0]}\nreturn ${returnExpr};`)() as Fn
 }
 
 // Minimal stand-in for a DOM element with a dataset (jsdom is not loaded here).
@@ -140,6 +153,32 @@ describe('trigger element survives the server-segment round-trip', () => {
     mergeServerResults(context, { keep: { __truncated: true }, fresh: { ok: 1 } }, undefined)
     expect(context.keep).toEqual({ real: true })
     expect(context.fresh).toEqual({ ok: 1 })
+  })
+
+  it('mergeServerResults never replaces the client __stateValues snapshot', () => {
+    // The server only ever READS __stateValues (template tokens, state-get-*
+    // handlers) and echoes back the PRUNED copy it was given — in which an
+    // oversized state (a picked photo's dataURL) has been replaced by a
+    // truncation marker. Merging that copy back would poison the snapshot the
+    // remaining client nodes resolve their object-property updates against.
+    const live = {
+      accountFormData: { name: 'Ada Lovelace', image: 'data:image/png;base64,AAAA' },
+      currentUser: { id: 'u-1', image: 'https://cdn/old.png' },
+    }
+    const context: Record<string, any> = { __stateValues: live }
+
+    mergeServerResults(
+      context,
+      {
+        __stateValues: { accountFormData: { name: 'Ada Lovelace', image: { __truncated: true } } },
+        'server-node': { updatedCount: 1 },
+      },
+      undefined
+    )
+
+    expect(context.__stateValues).toBe(live)
+    expect(context.__stateValues.currentUser.image).toBe('https://cdn/old.png')
+    expect(context['server-node']).toEqual({ updatedCount: 1 })
   })
 
   it('mergeServerResults still protects the trigger node without an id (custom node)', () => {

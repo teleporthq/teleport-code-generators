@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import { findCachedFetchNetworkChain } from './cache/ast'
 
 /**
  * ------------------------------------------------------------------
@@ -137,15 +138,77 @@ export function applyLoadingStateToDataProvider(
   }
 
   const fetchArrow = findMemoizedFetchDataArrow(fetchDataAttr)
-  if (!fetchArrow || fetchArrow.body.type !== 'CallExpression') {
+  if (!fetchArrow) {
     return false
   }
 
-  fetchArrow.body = buildTrackedFetchBody(fetchArrow.body, vars)
+  if (fetchArrow.body.type === 'CallExpression') {
+    fetchArrow.body = buildTrackedFetchBody(fetchArrow.body, vars)
+  } else if (fetchArrow.body.type === 'BlockStatement') {
+    if (!injectTrackingIntoCachedBody(fetchArrow.body, vars)) {
+      return false
+    }
+  } else {
+    return false
+  }
 
   setPersistDataDuringLoading(attributes, vars)
 
   return true
+}
+
+/**
+ * Adds the in-flight bookkeeping to a CACHED `fetchData` body.
+ *
+ * The body already returns early with `Promise.resolve(hit)` on a cache hit, so
+ * the tracking is attached to the network chain BELOW that — never to the early
+ * return. That is the whole point: a hit must not raise `isFetching`, because
+ * `persistDataDuringLoading={!isFetching}` would then drop the provider into its
+ * loading slot for a frame and produce exactly the skeleton flash the cache
+ * exists to remove.
+ *
+ * Returns `false` when the body is not the shape this module knows how to wrap,
+ * so the caller emits no state declarations rather than half-wiring it.
+ */
+function injectTrackingIntoCachedBody(body: types.BlockStatement, vars: LoadingStateVars): boolean {
+  // Idempotent: a second pass over the same AST must not double-count.
+  if (containsIdentifier(body, vars.setIsFetchingVar)) {
+    return false
+  }
+
+  const networkChain = findCachedFetchNetworkChain(body)
+  if (!networkChain) {
+    return false
+  }
+
+  const tracked = buildTrackedFetchBody(networkChain.statement.argument as types.Expression, vars)
+  body.body.splice(networkChain.index, 1, ...tracked.body)
+
+  return true
+}
+
+// tslint:disable-next-line:no-any
+function containsIdentifier(node: any, name: string): boolean {
+  if (!node || typeof node !== 'object') {
+    return false
+  }
+  if (node.type === 'Identifier' && node.name === name) {
+    return true
+  }
+  for (const key of Object.keys(node)) {
+    if (key === 'loc' || key === 'start' || key === 'end') {
+      continue
+    }
+    const value = node[key]
+    if (Array.isArray(value)) {
+      if (value.some((entry) => containsIdentifier(entry, name))) {
+        return true
+      }
+    } else if (value && typeof value === 'object' && containsIdentifier(value, name)) {
+      return true
+    }
+  }
+  return false
 }
 
 // tslint:disable-next-line:no-any

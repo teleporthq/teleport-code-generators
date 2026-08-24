@@ -61,7 +61,13 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       // /api/ecommerce/settings route with the identical payload.
       true
     )
-    this.generateApiRoutes(ecommerceSettings, dataSourceType, dataSourceConfig, files)
+    this.generateApiRoutes(
+      ecommerceSettings,
+      uidl.invoiceSettings,
+      dataSourceType,
+      dataSourceConfig,
+      files
+    )
     if (cartRoute) {
       files.set('ecommerce-api-cart', {
         path: ['pages', 'api', 'cart'],
@@ -142,6 +148,10 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
 
   private generateApiRoutes(
     settings: UIDLEcommerceSettings,
+    // Only the order-notification route needs these: the item lines it reads
+    // from `teleport_order_items` are NET, and the merchant's copy of the order
+    // has to quote what the buyer paid.
+    invoiceSettings: UIDLInvoiceSettings | undefined,
     dataSourceType: string | null,
     dataSourceConfig: Record<string, unknown> | null,
     files: Map<string, any>
@@ -252,7 +262,12 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
             // The datasource is passed so the route can load the order's
             // persisted lines when a caller (the Stripe / PayPal webhooks)
             // knows the orderId but has no cart to send.
-            content: generateOrderNotificationApiRoute(settings, dataSourceType, dataSourceConfig),
+            content: generateOrderNotificationApiRoute(
+              settings,
+              dataSourceType,
+              dataSourceConfig,
+              invoiceSettings
+            ),
           },
         ],
       })

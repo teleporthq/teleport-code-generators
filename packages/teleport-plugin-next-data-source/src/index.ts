@@ -14,6 +14,7 @@ import {
   hasUnresolvableDynamicParams,
 } from './utils'
 import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
+import { buildProductTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 import * as types from '@babel/types'
 
@@ -608,7 +609,7 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dependencies,
           dynamicRouteAttr,
           uidl.outputOptions?.folderPath,
-          options.ecommerceSettings?.categories
+          buildProductTransformOptions(options)
         )
 
         if (result.success && result.chunk) {
@@ -646,7 +647,7 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dataSources,
           componentChunk,
           options.extractedResources,
-          options.ecommerceSettings?.categories
+          buildProductTransformOptions(options)
         )
       }
     })
@@ -1268,7 +1269,7 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
         dataSources,
         componentChunk,
         options.extractedResources,
-        options.ecommerceSettings?.categories
+        buildProductTransformOptions(options)
       )
     })
 
@@ -1354,7 +1355,7 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
               dataSource,
               firstDataSourceInfo.tableName,
               false,
-              options.ecommerceSettings?.categories
+              buildProductTransformOptions(options)
             )
             options.extractedResources[`utils/${fileName}`] = {
               fileName,
@@ -1398,3 +1399,8 @@ export * from './utils'
 export * from './array-mapper-pagination'
 export * from './pagination-plugin'
 export * from './count-fetchers'
+// The product transform's build-time options (category taxonomy + storefront
+// tax rate) — every package that emits a data-source fetcher has to derive
+// them the same way.
+export { buildProductTransformOptions } from './transformations'
+export type { EcommerceProductTransformOptions } from './transformations'
