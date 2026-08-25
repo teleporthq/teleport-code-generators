@@ -418,18 +418,24 @@ const TqScrollScene = ({
           data-scene-stage
           data-scene-layout={layout === 'chapters' ? 'chapters' : undefined}
         >
-          {layout === 'chapters' ? (
-            // dangerouslySetInnerHTML, NOT a text child: React SSR escapes text
-            // inside <style> ('>' -> '&gt;'), and style is a raw-text element so
-            // the browser never decodes it — the selector would break on the
-            // server AND hydration would fail on the text mismatch.
-            <style
-              dangerouslySetInnerHTML={{
-                __html:
-                  '[data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }',
-              }}
-            />
-          ) : null}
+          {/* dangerouslySetInnerHTML, NOT a text child: React SSR escapes text
+              inside <style> ('>' -> '&gt;'), and style is a raw-text element so
+              the browser never decodes it — the selector would break on the
+              server AND hydration would fail on the text mismatch.
+              Backdrop rule: an absolutely positioned clip paints ABOVE static
+              in-flow siblings (a plain heading next to the video vanished
+              behind the clip), so the scene pins its clip into the stage's
+              negative z band — isolation:isolate above keeps -1 inside the
+              scene. Scene-owned so it holds however the clip arrived. */}
+          <style
+            dangerouslySetInnerHTML={{
+              __html:
+                '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; }' +
+                (layout === 'chapters'
+                  ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
+                  : ''),
+            }}
+          />
           {children}
         </div>
       ) : (

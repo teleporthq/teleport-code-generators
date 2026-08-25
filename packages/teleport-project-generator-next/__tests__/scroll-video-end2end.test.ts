@@ -105,4 +105,16 @@ describe('Next generator with a Scroll Video element', () => {
     const scene = findFile(outputFolder, 'components', 'tq-scroll-scene')
     expect(scene?.content).toContain('data-scene-track')
   })
+
+  it('the scene pins its clip into the negative z band so plain children layer above it', async () => {
+    const outputFolder = await generator.generateProject(buildUidl(), template)
+
+    const wrapper = findFile(outputFolder, 'components', 'tq-scroll-video')
+    expect(wrapper?.content).toContain('data-scroll-video')
+
+    const scene = findFile(outputFolder, 'components', 'tq-scroll-scene')
+    expect(scene?.content).toContain(
+      '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; }'
+    )
+  })
 })

@@ -182,7 +182,7 @@ const TqScrollVideo = ({
   }, [activeSrc, smoothing, windowStart, windowEnd, reducedMotion])
 
   if (!src) {
-    return <div ref={hostRef} style={style} {...rest} />
+    return <div ref={hostRef} style={style} data-scroll-video="" {...rest} />
   }
 
   return (
@@ -197,9 +197,13 @@ const TqScrollVideo = ({
     // contain:'layout' (after the authored spread, so it always applies)
     // keeps the wrapper the video's containing block even when the author
     // sets position:static.
+    // data-scroll-video: the marker TqScrollScene's backdrop rule targets —
+    // the scene pins the clip into its stage's negative z band so ordinary
+    // scene children (headings, text, CTAs) always render above the video.
     <div
       ref={hostRef}
       style={{ overflow: 'hidden', ...(style || {}), contain: 'layout' }}
+      data-scroll-video=""
       {...rest}
     >
       <video
