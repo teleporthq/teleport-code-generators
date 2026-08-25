@@ -90,8 +90,13 @@ describe('/api/invoices/generate — orderId hydration', () => {
   it('prefers body.items over hydrated items when both exist', () => {
     // Admin "regenerate invoice with custom items" use cases need
     // body.items to win. The condition checks length > 0 so an empty
-    // explicit array still falls back to DB-hydrated items.
-    expect(route).toContain('var items = Array.isArray(body.items) && body.items.length > 0')
+    // explicit array still falls back to DB-hydrated items. The predicate is
+    // named because the settle-wait below keys off it too — a caller that
+    // brought its own lines never waits for the DB rows to land.
+    expect(route).toContain(
+      'var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;'
+    )
+    expect(route).toContain('var items = callerSuppliedItems')
   })
 
   it('falls back to order.billing_* / shipping_* fields for customer data', () => {

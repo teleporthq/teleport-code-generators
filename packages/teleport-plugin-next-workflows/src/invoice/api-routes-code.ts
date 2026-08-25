@@ -92,6 +92,100 @@ async function uploadInvoicePdfToRuntimeStorage(pdfBuffer, fileName, baseUrl) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Waiting for the order's line items to be fully written.
+//
+// This endpoint is reached BEFORE checkout has finished writing the order.
+// \`/api/ecommerce/order-notification\` is fire-and-forget'd by the runtime
+// \`data-create-item\` handler the moment the \`teleport_orders\` row lands —
+// which is upstream of the checkout workflow's "Loop Over Each Cart Item",
+// the loop that inserts \`teleport_order_items\` one HTTP round-trip at a
+// time. Hydrating on arrival therefore snapshots a HALF-WRITTEN order: a
+// real 3-line order was invoiced with a single line and a total 225.45
+// short of what the buyer was charged, because the other two rows were
+// still in flight when the hydration query ran.
+//
+// So don't race it — wait for the order to settle, then hydrate. Three exit
+// conditions, cheapest first:
+//
+//   1. \`expectedItemCount\` — the caller's own cart-line count — is reached.
+//      The order-notification route passes it, so the racing path is exact.
+//   2. \`teleport_orders.order_number\` is populated. Checkout backfills the
+//      order number only AFTER the item loop has run to completion (the COD
+//      branch does it in "Mark Order As Cash On Delivery Confirmed", the
+//      online-payment branch in "Set Order Number Before Payment Redirect"),
+//      so a non-empty order number proves every line has been written.
+//   3. The row count is identical across \`SETTLE_STABLE_READS\` consecutive
+//      reads — the fallback for orders written by a flow that never sets an
+//      order number.
+//
+// An order that is already complete — every webhook-driven call, and any
+// hand-built admin call — satisfies (1) or (2) on the FIRST read, so the
+// only request that ever pays for a poll is the one that would otherwise
+// have shipped a wrong invoice.
+var SETTLE_TIMEOUT_MS = 6000;
+var SETTLE_POLL_MS = 400;
+var SETTLE_STABLE_READS = 3;
+
+function sleepMs(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
+  var deadline = Date.now() + SETTLE_TIMEOUT_MS;
+  var lastCount = -1;
+  var repeats = 0;
+  var attempts = 0;
+
+  while (true) {
+    var hydrated = await dataAccess.getOrderWithItems(orderId);
+    attempts += 1;
+    if (!hydrated || !hydrated.order) {
+      // Nothing to wait for — the order id doesn't resolve. The caller logs
+      // this as a miss and falls back to its own body.* fields.
+      return hydrated;
+    }
+
+    var rows = Array.isArray(hydrated.items) ? hydrated.items : [];
+    var count = rows.length;
+
+    if (expectedItemCount > 0 && count >= expectedItemCount) {
+      if (attempts > 1) {
+        console.info('[invoice] Order ' + orderId + ' settled at ' + count + ' line(s) after ' + attempts + ' read(s) (expected ' + expectedItemCount + ')');
+      }
+      return hydrated;
+    }
+
+    var orderNumber = hydrated.order.order_number;
+    if (count > 0 && orderNumber != null && String(orderNumber).length > 0) {
+      if (attempts > 1) {
+        console.info('[invoice] Order ' + orderId + ' settled at ' + count + ' line(s) after ' + attempts + ' read(s) (order_number=' + orderNumber + ')');
+      }
+      return hydrated;
+    }
+
+    if (count === lastCount) {
+      repeats += 1;
+    } else {
+      lastCount = count;
+      repeats = 1;
+    }
+    if (count > 0 && repeats >= SETTLE_STABLE_READS) {
+      console.info('[invoice] Order ' + orderId + ' settled at ' + count + ' line(s) — row count stable across ' + repeats + ' reads');
+      return hydrated;
+    }
+
+    if (Date.now() >= deadline) {
+      console.warn('[invoice] Order ' + orderId + ' did not settle within ' + SETTLE_TIMEOUT_MS +
+        'ms — invoicing the ' + count + ' line(s) visible now' +
+        (expectedItemCount > 0 ? ' (expected ' + expectedItemCount + ')' : ''));
+      return hydrated;
+    }
+
+    await sleepMs(SETTLE_POLL_MS);
+  }
+}
+
 var CURRENCY_SYMBOLS = {
   'USD': '$', 'EUR': '\\u20AC', 'GBP': '\\u00A3', 'JPY': '\\u00A5',
   'CAD': 'C$', 'AUD': 'A$', 'CHF': 'CHF ', 'CNY': '\\u00A5',
@@ -128,11 +222,23 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;
+
+    // How many line items the caller believes this order has. Used only to
+    // stop \`hydrateOrderWhenSettled\` polling the moment the order is whole —
+    // never to reject or pad the invoice, so a wrong count can at worst make
+    // us wait a little longer and fall through to the other exit conditions.
+    var expectedItemCount = Number(body.expectedItemCount);
+    if (!isFinite(expectedItemCount) || expectedItemCount < 0) {
+      expectedItemCount = 0;
+    }
+
     console.info('[invoice] === /api/invoices/generate === baseUrl=' + __baseUrl);
     console.info('[invoice] Request received:', {
       orderId: body.orderId || null,
-      hasBodyItems: Array.isArray(body.items) && body.items.length > 0,
+      hasBodyItems: callerSuppliedItems,
       bodyItemCount: Array.isArray(body.items) ? body.items.length : 0,
+      expectedItemCount: expectedItemCount,
       hasCustomerEmail: !!body.customerEmail,
       requestedCurrency: body.currency || null,
     });
@@ -147,11 +253,19 @@ module.exports = async function handler(req, res) {
     // provide wins, so hand-built admin-side calls (or future clients)
     // can still override the customer/company/notes/etc. without being
     // forced to round-trip the DB themselves.
+    //
+    // The line items are read through \`hydrateOrderWhenSettled\`, which waits
+    // for checkout to finish writing them — see the comment on that helper
+    // for why an unguarded read snapshots a half-written order. A caller that
+    // brought its own \`items\` array doesn't depend on the DB rows at all, so
+    // that path takes the plain single read and skips the wait entirely.
     var hydratedOrder = null;
     var hydratedItems = [];
     if (body.orderId) {
       try {
-        var hydrated = await dataAccess.getOrderWithItems(body.orderId);
+        var hydrated = callerSuppliedItems
+          ? await dataAccess.getOrderWithItems(body.orderId)
+          : await hydrateOrderWhenSettled(body.orderId, expectedItemCount);
         if (hydrated && hydrated.order) {
           hydratedOrder = hydrated.order;
           hydratedItems = Array.isArray(hydrated.items) ? hydrated.items : [];
@@ -166,7 +280,7 @@ module.exports = async function handler(req, res) {
       console.info('[invoice] No orderId in request — skipping DB hydration, using body.* fields verbatim');
     }
 
-    var items = Array.isArray(body.items) && body.items.length > 0
+    var items = callerSuppliedItems
       ? body.items
       : hydratedItems.map(function (row) {
           return {
@@ -252,6 +366,21 @@ module.exports = async function handler(req, res) {
       shippingAmount = 0;
     }
     var total = goodsTotal + shippingAmount;
+
+    // Cross-check against the amount the order was actually placed for. The
+    // invoice is built from line items, the order carries the charged total,
+    // and the two must agree — when they don't, the invoice is being written
+    // from an incomplete set of lines (exactly what a lost race against
+    // checkout's item loop looks like). Log-only: a mismatch must never stop
+    // the merchant getting an invoice, but it has to be visible in the
+    // function logs instead of silently shipping a short bill.
+    var orderTotalAmount = Number(orderShippingSource.total_amount);
+    if (isFinite(orderTotalAmount) && orderTotalAmount > 0 && Math.abs(orderTotalAmount - total) > 0.02) {
+      console.warn('[invoice] Total mismatch for order ' + (body.orderId || '(none)') +
+        ' — invoice total ' + (Math.round(total * 100) / 100) +
+        ' vs teleport_orders.total_amount ' + orderTotalAmount +
+        ' across ' + items.length + ' line item(s). The invoice may be missing lines.');
+    }
 
     var nextNumber = await dataAccess.getNextInvoiceNumber(INVOICE_PREFIX);
     var invoiceNumber = INVOICE_PREFIX + String(nextNumber).padStart(4, '0');

@@ -304,7 +304,22 @@ describe('generateOrderNotificationApiRoute — buyer invoice generation', () =>
     expect(route).toContain("__isWebhookPayment = __pm === 'stripe' || __pm === 'paypal'")
     expect(route).toContain('!__isWebhookPayment')
     expect(route).toContain("'/api/invoices/generate'")
-    expect(route).toContain('body: JSON.stringify({ orderId: orderId })')
+    expect(route).toContain('var __invoicePayload = { orderId: orderId }')
+    expect(route).toContain('body: JSON.stringify(__invoicePayload)')
+  })
+
+  it('tells the invoice endpoint how many lines the finished order will have', () => {
+    // We run BEFORE checkout has written the order lines — the data-create-item
+    // auto-fire reaches us the instant the order row lands, while the item loop
+    // is still inserting. Without the count, the invoice endpoint hydrated
+    // whatever rows happened to exist and shipped a one-line invoice for a
+    // three-line order. Only the caller's own cart can supply the count: a
+    // count re-read from the database races exactly the same way.
+    expect(route).toContain(
+      'const callerItems = Array.isArray(items) && items.length > 0 ? items : null'
+    )
+    expect(route).toContain('if (callerItems) {')
+    expect(route).toContain('__invoicePayload.expectedItemCount = callerItems.length')
   })
 
   it('logs invoice generation success and failure for debugging', () => {

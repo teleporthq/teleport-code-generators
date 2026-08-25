@@ -788,12 +788,16 @@ export default async function handler(req, res) {
     // orderId is provided we fall back to that so the customer-
     // facing "Order ID" line still renders.
     const resolvedOrderNumber = orderNumber || orderId || ''
+    // The caller's own snapshot of the cart, kept separate from the DB
+    // fallback: it is the only source that is known-complete at the moment
+    // this route runs, so it — and only it — can tell the invoice endpoint how
+    // many lines the finished order will have. See the \`expectedItemCount\`
+    // hand-off further down.
+    const callerItems = Array.isArray(items) && items.length > 0 ? items : null
     // Every source of lines is NET — a caller's cart (the data-create-item
     // auto-fire) and the order's persisted lines alike — so they are grossed
     // HERE, once, whichever way they arrived.
-    const itemsArr = grossOrderItems(
-      Array.isArray(items) && items.length > 0 ? items : await loadOrderItems(orderId)
-    )
+    const itemsArr = grossOrderItems(callerItems || await loadOrderItems(orderId))
     const itemsCount = itemsArr.reduce(function(sum, it) {
       var q = Number(it && it.quantity) || 1
       return sum + q
@@ -950,10 +954,23 @@ export default async function handler(req, res) {
         // payment webhooks use when self-fetching this API.
         var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https')
         var __invoiceUrl = __proto + '://' + req.headers.host + '/api/invoices/generate'
+        // Hand the invoice endpoint the number of lines this order will have.
+        // We are called by the data-create-item auto-fire the instant the order
+        // row lands — BEFORE checkout's item loop has written the order lines —
+        // so an invoice built from whatever rows exist right now comes out
+        // short (one line, and a total that doesn't match what the buyer paid).
+        // The count lets /api/invoices/generate wait for the rest of the lines
+        // instead of racing them. Only sent when the caller supplied the cart
+        // itself: a count re-read from the database could be just as truncated,
+        // and would make the wait a no-op.
+        var __invoicePayload = { orderId: orderId }
+        if (callerItems) {
+          __invoicePayload.expectedItemCount = callerItems.length
+        }
         var __invoiceResp = await fetch(__invoiceUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: orderId }),
+          body: JSON.stringify(__invoicePayload),
         })
         if (!__invoiceResp.ok) {
           var __invoiceErrBody = ''
