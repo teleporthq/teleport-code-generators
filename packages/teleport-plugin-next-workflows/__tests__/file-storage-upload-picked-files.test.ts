@@ -7,6 +7,7 @@
 
 import { Blob as NodeBlob } from 'buffer'
 import { loadHandler, HandlerFn } from './_helpers/load-handler'
+import { installUploadGlobals, removeUploadGlobals } from './_helpers/abort-controller-stub'
 
 // jest 26's node sandbox exposes none of the browser upload globals the
 // handler uses (FormData/Blob/atob/fetch), so the test installs minimal
@@ -40,25 +41,27 @@ describe('file-storage-upload: PickedFile array from state', () => {
     handler = loadHandler('file-storage-upload')
     fetchMock = jest.fn(async () => ({
       ok: true,
-      json: async () => ({
-        files: [
-          { id: '1', name: 'a.png', url: 'https://storage.example/a.png' },
-          { id: '2', name: 'b.txt', url: 'https://storage.example/b.txt' },
-        ],
-      }),
+      status: 200,
+      // The handler reads the body as TEXT and parses it itself, so a gateway
+      // error page cannot masquerade as a JSON parse failure.
+      text: async () =>
+        JSON.stringify({
+          files: [
+            { id: '1', name: 'a.png', url: 'https://storage.example/a.png' },
+            { id: '2', name: 'b.txt', url: 'https://storage.example/b.txt' },
+          ],
+        }),
     }))
-    ;(globalThis as any).fetch = fetchMock
-    ;(globalThis as any).FormData = FormDataStub
-    ;(globalThis as any).Blob = NodeBlob
-    ;(globalThis as any).atob = (encoded: string) =>
-      Buffer.from(encoded, 'base64').toString('binary')
+    installUploadGlobals({
+      fetch: fetchMock,
+      FormData: FormDataStub,
+      Blob: NodeBlob,
+      atob: (encoded: string) => Buffer.from(encoded, 'base64').toString('binary'),
+    })
   })
 
   afterEach(() => {
-    delete (globalThis as any).fetch
-    delete (globalThis as any).FormData
-    delete (globalThis as any).Blob
-    delete (globalThis as any).atob
+    removeUploadGlobals(['fetch', 'FormData', 'Blob', 'atob'])
   })
 
   it('converts every PickedFile dataURL to a Blob and appends all of them', async () => {

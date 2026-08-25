@@ -2017,7 +2017,12 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   )
 }
 
-const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXElement[]> = (
+// The repeater renders its `loading` branch INSTEAD of itself when the node
+// carries an `isLoading` signal. Hence `JSXASTReturnType[]` rather than
+// `types.JSXElement[]`: that form is a conditional EXPRESSION, which the parent
+// element loop wraps in a `{ … }` container the same way it already does for a
+// conditional node's logical expression.
+const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTReturnType[]> = (
   node,
   params,
   options
@@ -2141,12 +2146,56 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
     )
   }
 
+  // Generated on EVERY repeater for its side effects — `nodesLookup` registration,
+  // style classes, and the head snippets a loading template rides out on (a
+  // skeleton card's `@keyframes`). Whether the result is also RENDERED depends on
+  // `isLoading` below.
+  let loadingElement: JSXASTReturnType | undefined
   if ('loading' in node.content.nodes) {
-    generateNode(node.content.nodes.loading, params, options)
+    loadingElement = generateNode(node.content.nodes.loading, params, options)[0]
   }
 
   if (node.content?.dependency && options.dependencyHandling === 'import') {
     params.dependencies[jsxTag] = node.content.dependency
+  }
+
+  // A repeater fed by a DATA SOURCE never carries `isLoading`: it sits inside a
+  // `DataProvider` that owns the fetch, and its loading branch is hoisted onto
+  // that provider's `renderLoading` (`hoistLoadingFromRepeaterToDataSource`).
+  // Emitting it here as well would draw the same branch twice. A repeater fed by
+  // a plain STATE has no provider, so this is the only thing that can tell it a
+  // fetch is in flight — without it the `loading` branch is generated and then
+  // thrown away, which is why a state-backed list used to show its EMPTY branch
+  // for the whole duration of the fetch.
+  const { isLoading } = node.content
+  if (
+    isLoading &&
+    loadingElement &&
+    typeof loadingElement !== 'string' &&
+    // A `JSXExpressionContainer` is only legal as a CHILD, never as a ternary
+    // branch. The loading root is a fragment or an element, so this never fires
+    // in practice — it is here so a future node type cannot emit invalid code.
+    loadingElement.type !== 'JSXExpressionContainer'
+  ) {
+    // `String(x) === 'true'`, never a bare truthiness test. The flag is a page
+    // state, and a generated string state holds the STRING `'false'` when it is
+    // off — which is truthy. `String()` equally accepts a real boolean.
+    const flag =
+      isLoading.type === 'expr'
+        ? ASTUtils.getExpressionFromUIDLExpressionNode(isLoading)
+        : types.stringLiteral(String(isLoading.content))
+
+    return [
+      types.conditionalExpression(
+        types.binaryExpression(
+          '===',
+          types.callExpression(types.identifier('String'), [flag]),
+          types.stringLiteral('true')
+        ),
+        loadingElement,
+        repeaterNode
+      ),
+    ]
   }
 
   return [repeaterNode]

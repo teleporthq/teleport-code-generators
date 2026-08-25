@@ -21,6 +21,7 @@ import {
   UIDLWorkflows,
   UIDLAuthentication,
   UIDLEcommerceSettings,
+  UIDLInvoiceSettings,
 } from './uidl'
 import type { JSXElement } from '@babel/types'
 
@@ -144,6 +145,15 @@ export interface GeneratorOptions {
    */
   prefixInlineClasses?: string
   skipNavlinkResolver?: boolean
+  /**
+   * Set by generation passes that consume a UIDL WITHOUT emitting markup from
+   * it — the project style sheet, for instance, is extracted from the root
+   * component but only its style set definitions are written out. Checking that
+   * throwaway tree against the HTML content model would report nesting that
+   * never reaches a file, and (because such passes run with the base HTML
+   * mapping rather than the target's) tags the target never emits.
+   */
+  skipHtmlNestingResolver?: boolean
   skipI18n?: boolean
   internationalization?: {
     main: { name: string; locale: string }
@@ -191,6 +201,12 @@ export interface GeneratorOptions {
   // (the category taxonomy lives only in `ecommerceSettings.categories`,
   // baked at export time — there is no DB table for it).
   ecommerceSettings?: UIDLEcommerceSettings
+  // Project-level invoice settings, plumbed down for the SAME reason: the
+  // `teleport` data source fetcher bakes the storefront tax rate
+  // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a
+  // catalogue price is displayed gross when the merchant picked "Added on
+  // top". Resolved through `StorefrontTax.resolveStorefrontTaxRate`.
+  invoiceSettings?: UIDLInvoiceSettings
   // Project-level layout mode ('dashboard' | 'standard' | ...), plumbed down
   // so page-level plugins can render the correct nav chrome (top bar vs.
   // left sidebar). Purely a visual/structural choice — it has no bearing on

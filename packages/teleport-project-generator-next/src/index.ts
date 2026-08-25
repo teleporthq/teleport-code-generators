@@ -26,6 +26,7 @@ import { createNextUrlSearchParamsPlugin } from './url-search-params-plugin'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
+import { NextCacheRuntimePlugin } from './cache/project-plugin'
 import { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
 import {
   createNextWorkflowPlugin,
@@ -78,6 +79,7 @@ import {
  */
 export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextDataSourceDependenciesPlugin(),
+  new NextCacheRuntimePlugin(),
   new NextDataSourceUtilityPlugin(),
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),

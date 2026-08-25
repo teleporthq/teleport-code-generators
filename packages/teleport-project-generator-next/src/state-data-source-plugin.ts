@@ -17,6 +17,7 @@ import {
   generateSafeFileName,
   sanitizeFileName,
   validateDataSourceConfig,
+  buildProductTransformOptions,
 } from '@teleporthq/teleport-plugin-next-data-source'
 import { isSelectOnlyQuery } from './global-state/data-source-utils'
 
@@ -1092,7 +1093,7 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
             dataSource,
             tableName,
             false,
-            options.ecommerceSettings?.categories
+            buildProductTransformOptions(options)
           )
         } catch (error) {
           // Skip this group if fetcher generation fails

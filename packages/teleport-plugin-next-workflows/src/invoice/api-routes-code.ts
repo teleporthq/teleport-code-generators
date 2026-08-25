@@ -206,6 +206,11 @@ module.exports = async function handler(req, res) {
       discountAmount = Number(body.discountAmount) || 0;
     }
 
+    // Hydrated order row (or \`{}\` for a fully body-driven call), read before the
+    // totals below need it. \`orderRow\` further down is the same object under a
+    // name the customer/payment fallbacks use.
+    var orderShippingSource = hydratedOrder || {};
+
     var taxRate = body.taxRate != null ? Number(body.taxRate) : DEFAULT_TAX_RATE;
     var subtotal;
     var taxAmount = 0;
@@ -223,9 +228,30 @@ module.exports = async function handler(req, res) {
         taxAmount = taxableAmount * (taxRate / 100);
       }
     }
-    var total = TAX_INCLUDED_IN_PRICE
+    var goodsTotal = TAX_INCLUDED_IN_PRICE
       ? (grossLineSum - discountAmount)
       : (taxableAmount + taxAmount);
+
+    // Delivery fee the buyer was charged. Read from the order (or handed in by
+    // a caller that assembled the invoice itself) rather than re-derived from
+    // the merchant's CURRENT delivery settings — the order is a historical
+    // record and its settings may have changed since.
+    //
+    // It is added to the total but NOT into \`subtotal\` / \`taxAmount\`: those two
+    // describe the GOODS, which is what \`teleport_invoice_items\` holds and what
+    // the VAT breakdown is computed from. The storefront charges the configured
+    // delivery price verbatim (\`computeShippingMeta\` never taxes it), so the
+    // invoice must not tax it either — otherwise the invoice total stops
+    // matching \`teleport_orders.total_amount\`, i.e. the amount actually taken.
+    // 0 for pickup orders, free-delivery orders, and orders placed before the
+    // column existed.
+    var shippingAmount = Number(
+      body.shippingAmount != null ? body.shippingAmount : (orderShippingSource.shipping_amount || 0)
+    );
+    if (!isFinite(shippingAmount) || shippingAmount < 0) {
+      shippingAmount = 0;
+    }
+    var total = goodsTotal + shippingAmount;
 
     var nextNumber = await dataAccess.getNextInvoiceNumber(INVOICE_PREFIX);
     var invoiceNumber = INVOICE_PREFIX + String(nextNumber).padStart(4, '0');
@@ -264,7 +290,7 @@ module.exports = async function handler(req, res) {
     // field but the order has one, use it. Kept permissive on field
     // names (billing_* wins, falls back to shipping_*) because a buyer
     // who checked "bill to a different address" has both on the order.
-    var orderRow = hydratedOrder || {};
+    var orderRow = orderShippingSource;
     var fallbackCustomerName =
       orderRow.billing_name || orderRow.shipping_name || orderRow.customer_name || '';
     var fallbackCustomerEmail = orderRow.billing_email || orderRow.customer_email || '';
@@ -316,6 +342,9 @@ module.exports = async function handler(req, res) {
       // the line-item table renders blank cells.
       taxIncludedInPrice: TAX_INCLUDED_IN_PRICE,
       discountAmount: Math.round(discountAmount * 100) / 100,
+      // Delivery fee, surfaced so the PDF/HTML renderer can print its own line
+      // and the merchant's template can bind \`invoice.shippingAmount\`.
+      shippingAmount: Math.round(shippingAmount * 100) / 100,
       total: Math.round(total * 100) / 100,
       currency: currency,
       currencySymbol: currencySymbol,
