@@ -1,5 +1,7 @@
 import * as types from '@babel/types'
 import generator from '@babel/generator'
+import { parse } from '@babel/parser'
+import { ASTStatementOrder } from '@teleporthq/teleport-shared'
 import {
   ChunkType,
   FileType,
@@ -229,6 +231,42 @@ describe('array-mapper cache — client wiring', () => {
       expect(code).toContain('tqCacheRevalidate(["ds1:products"])')
       expect(code.match(/tqCacheRevalidate/g)).toHaveLength(1)
     })
+
+    /**
+     * The two ordering defects the /blog page shipped with. Source-text
+     * `toContain` assertions cannot see either of them, so they are pinned
+     * structurally: parse the emitted component and prove it executes.
+     */
+    it('emits the hydration effect BEFORE the return — an appended hook never runs', async () => {
+      const { code } = await runPlugin({ category, cache: CACHE })
+
+      const file = parse(code, { sourceType: 'module', plugins: ['jsx'] })
+      const declaration = file.program.body.find(
+        (statement) => statement.type === 'VariableDeclaration'
+      ) as types.VariableDeclaration
+      const body = (declaration.declarations[0].init as types.ArrowFunctionExpression)
+        .body as types.BlockStatement
+
+      const returnIndex = body.body.findIndex((statement) => statement.type === 'ReturnStatement')
+      const hydrationIndex = body.body.findIndex((statement) =>
+        generator(statement).code.includes('tqMarkHydrated')
+      )
+
+      expect(hydrationIndex).toBeGreaterThan(-1)
+      expect(hydrationIndex).toBeLessThan(returnIndex)
+      // Nothing may trail the component's return — trailing statements are
+      // unreachable and silently disable whole features.
+      expect(returnIndex).toBe(body.body.length - 1)
+    })
+
+    it('emits statements in an executable order (no TDZ, nothing unreachable)', async () => {
+      const { code } = await runPlugin({ category, cache: CACHE })
+
+      const ast = parse(code, { sourceType: 'module', plugins: ['jsx'] })
+      // Zero repairs needed: the plugin placed everything correctly on its
+      // own, without leaning on the emit-time safety net.
+      expect(ASTStatementOrder.normalizeStatementOrder(ast)).toBe(0)
+    })
   })
 
   /**
@@ -267,6 +305,25 @@ describe('array-mapper cache — client wiring', () => {
       'tqCacheGet("ds1:products", tqCacheKey(ds_0_params), {\n    sticky: true\n  })'
     )
     expect(code).toContain(': ds_0_cached')
+  })
+
+  /**
+   * The exact crash this suite failed to see the first time:
+   * `ds_0_params` reads `ds_0_state` in its dependency array, so hoisting it
+   * ABOVE the `useState` throws
+   * `ReferenceError: Cannot access 'ds_0_state' before initialization`
+   * the moment the page renders.
+   */
+  it('declares the hoisted params/peek AFTER the state they read', async () => {
+    const { code } = await runPlugin({ category: 'paginated+search', cache: CACHE })
+
+    const stateIndex = code.indexOf('const [ds_0_state')
+    const paramsIndex = code.indexOf('const ds_0_params')
+    const cachedIndex = code.indexOf('const ds_0_cached')
+
+    expect(stateIndex).toBeGreaterThan(-1)
+    expect(paramsIndex).toBeGreaterThan(stateIndex)
+    expect(cachedIndex).toBeGreaterThan(paramsIndex)
   })
 
   /**

@@ -355,6 +355,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
         {
           isRootComponent: true,
           ...options,
+          // Only this pass' style set definitions are written out; its element
+          // tree is discarded. Placed after the spread so a caller cannot turn
+          // markup checks back on for a pass that emits no markup.
+          skipHtmlNestingResolver: true,
         }
       )
 

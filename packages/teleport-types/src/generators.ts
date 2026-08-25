@@ -145,6 +145,15 @@ export interface GeneratorOptions {
    */
   prefixInlineClasses?: string
   skipNavlinkResolver?: boolean
+  /**
+   * Set by generation passes that consume a UIDL WITHOUT emitting markup from
+   * it — the project style sheet, for instance, is extracted from the root
+   * component but only its style set definitions are written out. Checking that
+   * throwaway tree against the HTML content model would report nesting that
+   * never reaches a file, and (because such passes run with the base HTML
+   * mapping rather than the target's) tags the target never emits.
+   */
+  skipHtmlNestingResolver?: boolean
   skipI18n?: boolean
   internationalization?: {
     main: { name: string; locale: string }

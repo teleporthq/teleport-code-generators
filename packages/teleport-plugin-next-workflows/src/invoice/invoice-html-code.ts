@@ -281,6 +281,15 @@ function buildInvoiceDataScope(invoiceData) {
     website: COMPANY_DETAILS.companyWebsite,
   };
 
+  // Delivery fee charged on the order. \`hasShipping\` exists because the
+  // template gates its Delivery row on a CONDITIONAL, and every money field
+  // here is a FORMATTED string ("$4.99") — \`Number('$4.99')\` is NaN, so a
+  // \`> 0\` comparison against \`shippingAmount\` could never pass. The flag is the
+  // string 'true'/'false' the conditional compares against, matching how the
+  // order pages gate their own delivery rows.
+  var shippingAmountNumber = Number(invoiceData.shippingAmount);
+  if (!isFinite(shippingAmountNumber) || shippingAmountNumber < 0) shippingAmountNumber = 0;
+
   var realInvoice = {
     invoiceNumber: invoiceData.invoiceNumber ? '#' + invoiceData.invoiceNumber : '',
     status: invoiceData.status || '',
@@ -291,6 +300,8 @@ function buildInvoiceDataScope(invoiceData) {
     taxRate: invoiceData.taxRate != null ? String(invoiceData.taxRate) : '',
     taxAmount: formatCurrencyValue(invoiceData.taxAmount, sym),
     discountAmount: formatCurrencyValue(invoiceData.discountAmount, sym),
+    shippingAmount: formatCurrencyValue(shippingAmountNumber, sym),
+    hasShipping: shippingAmountNumber > 0 ? 'true' : 'false',
     total: formatCurrencyValue(invoiceData.total, sym),
     currency: invoiceData.currency || 'USD',
     currencySymbol: sym,
@@ -913,9 +924,13 @@ function buildFallbackInvoiceHtml(scope) {
       '</tr>');
   });
   parts.push('</tbody></table>');
+  var totalsRows = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal</span><span>' + escapeHtml(inv.subtotal) + '</span></div>';
+  if (inv.hasShipping === 'true') {
+    totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Delivery</span><span>' + escapeHtml(inv.shippingAmount) + '</span></div>';
+  }
+  totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;border-top:2px solid #333;padding-top:4px;"><span>Total</span><span>' + escapeHtml(inv.total) + '</span></div>';
   parts.push('<div style="display:flex;justify-content:flex-end;margin-top:16px;"><div style="width:240px;">' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal</span><span>' + escapeHtml(inv.subtotal) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;font-weight:bold;border-top:2px solid #333;padding-top:4px;"><span>Total</span><span>' + escapeHtml(inv.total) + '</span></div>' +
+    totalsRows +
     '</div></div>');
   if (inv.notes) parts.push('<p style="margin-top:24px;color:#666;">' + escapeHtml(inv.notes) + '</p>');
   parts.push('</div>');
@@ -970,6 +985,7 @@ function replacePlaceholders(template, data) {
       totalAmount: (inv.currencySymbol || '') + Number(inv.total || 0).toFixed(2),
       subtotal: (inv.currencySymbol || '') + Number(inv.subtotal || 0).toFixed(2),
       taxAmount: (inv.currencySymbol || '') + Number(inv.taxAmount || 0).toFixed(2),
+      shippingAmount: (inv.currencySymbol || '') + Number(inv.shippingAmount || 0).toFixed(2),
       companyName: comp.name || '',
       companyEmail: comp.email || '',
       invoiceUrl: inv.pdfUrl || '',
@@ -991,6 +1007,7 @@ function buildDataContext(invoiceData) {
       dueDate: invoiceData.dueDate || '',
       subtotal: invoiceData.subtotal || 0,
       taxAmount: invoiceData.taxAmount || 0,
+      shippingAmount: invoiceData.shippingAmount || 0,
       total: invoiceData.total || 0,
       currency: invoiceData.currency || 'USD',
       currencySymbol: invoiceData.currencySymbol || '$',

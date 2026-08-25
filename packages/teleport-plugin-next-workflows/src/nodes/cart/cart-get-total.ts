@@ -14,10 +14,20 @@ async function cart_get_total() {
     // INSERT keeps charging the old baked value until the buyer re-exports
     // their UIDL. Mirroring the config here lets the workflow stay in sync
     // without an export round-trip.
+    //
+    // `deliveryEnabled` / `storePickupEnabled` come from the same snapshot and
+    // are what let the assemble script tell "this order is delivered" from
+    // "this store only does pickup" — a fee may only be charged for the
+    // former. They are OPTIONAL on the wire: a storefront exported before they
+    // existed publishes neither, and the assemble script then falls back to
+    // its own build-time snapshot rather than reading `false` into a store
+    // that does deliver.
     let deliveryConfig: {
       deliveryPrice: number
       freeDeliveryEnabled: boolean
       freeDeliveryThreshold: number
+      deliveryEnabled?: boolean
+      storePickupEnabled?: boolean
     } | null = null
     // Percentage the storefront adds on top of the stored (net) product price.
     // EcommerceProvider mirrors it here from the merchant's invoice settings —
@@ -34,6 +44,14 @@ async function cart_get_total() {
             deliveryPrice: Number(parsed.deliveryConfig.deliveryPrice) || 0,
             freeDeliveryEnabled: !!parsed.deliveryConfig.freeDeliveryEnabled,
             freeDeliveryThreshold: Number(parsed.deliveryConfig.freeDeliveryThreshold) || 0,
+          }
+          // Copied only when actually present, so "absent" stays
+          // distinguishable from "explicitly false" downstream.
+          if (typeof parsed.deliveryConfig.deliveryEnabled === 'boolean') {
+            deliveryConfig.deliveryEnabled = parsed.deliveryConfig.deliveryEnabled
+          }
+          if (typeof parsed.deliveryConfig.storePickupEnabled === 'boolean') {
+            deliveryConfig.storePickupEnabled = parsed.deliveryConfig.storePickupEnabled
           }
         }
         if (parsed && typeof parsed === 'object' && parsed.taxConfig) {

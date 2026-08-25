@@ -6,7 +6,7 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { ASTStatementOrder, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
@@ -1602,9 +1602,6 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // hook order stays stable across renders.
     loadingStateDeclarations.reverse().forEach((s) => blockStatement.body.unshift(s))
 
-    // Cache declarations go BELOW the loading-state hooks (they are unshifted
-    // first, so they end up after) because `ds_N_cached` reads state the hooks
-    // above declare. Hook order stays fixed across renders either way.
     const cachedScopes = Array.from(
       new Set(
         registry.usages
@@ -1617,9 +1614,17 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       // One effect per page covering every scope on it: flips the hydration
       // latch, then asks once whether any of this page's tables changed while
       // the visitor was away. Without it a browser serving everything from its
-      // own cache would never learn about a write at all.
-      blockStatement.body.push(buildCacheHydrationEffect(cachedScopes))
-      cacheDeclarations.reverse().forEach((statement) => blockStatement.body.unshift(statement))
+      // own cache would never learn about a write at all. It has to land
+      // BEFORE the component's `return` — a plain `push` at this point in the
+      // pipeline appends after it, where React never registers the hook.
+      ASTStatementOrder.insertStatementsBeforeReturn(blockStatement, [
+        buildCacheHydrationEffect(cachedScopes),
+      ])
+      // `ds_N_params` / `ds_N_cached` read the `ds_N_state` hooks declared
+      // above, so they are placed at the earliest point where everything they
+      // reference is already in scope — never blindly at the top, which is
+      // exactly the `Cannot access 'ds_0_state' before initialization` crash.
+      ASTStatementOrder.insertStatementsAfterDependencies(blockStatement, cacheDeclarations)
       registerCacheClientImports(dependencies, uidl.outputOptions?.folderPath)
     }
 

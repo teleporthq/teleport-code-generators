@@ -44,7 +44,16 @@ export const generateEcommerceContextFileContent = (
   // earlier hook would hit the temporal dead zone). cart-get-total reads
   // these out of localStorage so the place-order workflow stays in sync with
   // whatever Settings → Delivery values were live at the last build.
+  //
+  // `deliveryEnabled` / `storePickupEnabled` ride along because a delivery fee
+  // may only be charged for an order the store actually DELIVERS: the
+  // place-order assemble script needs both to decide whether the buyer's
+  // fulfilment choice can attract a fee at all (a pickup-only store has no
+  // delivery tab to click, so its `deliveryOption` state never leaves its
+  // `'delivery'` default and would otherwise be charged the stale rate).
   const deliveryConfigJson = JSON.stringify({
+    deliveryEnabled: ecommerceSettings.deliveryEnabled === true,
+    storePickupEnabled: ecommerceSettings.storePickupEnabled === true,
     deliveryPrice: Number(ecommerceSettings.deliveryConfig?.deliveryPrice ?? 0) || 0,
     freeDeliveryEnabled: !!ecommerceSettings.deliveryConfig?.freeDeliveryEnabled,
     freeDeliveryThreshold:
@@ -470,11 +479,19 @@ function resolveCategoryTranslations(categories, locale) {
   })
 }
 
-function computeShippingMeta(cartTotal, deliveryConfig) {
+// Mirrors \`resolveCartDelivery\` in the editor (teleport-gui
+// \`features/e-commerce/utils/delivery-fee.ts\`), which is what the cart
+// simulator and the canvas projection use — a difference between the two is a
+// page that previews one delivery fee and charges another.
+//
+// \`deliveryEnabled\` gates the RATE, not just the row: a store that switched to
+// pickup-only keeps whatever \`deliveryPrice\` it last saved, and quoting it
+// would charge for a delivery that never happens.
+function computeShippingMeta(cartTotal, deliveryConfig, deliveryEnabled) {
   const cart = roundMoney(cartTotal)
   const freeDeliveryEnabled = deliveryConfig?.freeDeliveryEnabled ?? false
   const threshold = roundMoney(deliveryConfig?.freeDeliveryThreshold ?? 0)
-  const baseDeliveryPrice = roundMoney(deliveryConfig?.deliveryPrice ?? 0)
+  const baseDeliveryPrice = deliveryEnabled ? roundMoney(deliveryConfig?.deliveryPrice ?? 0) : 0
 
   // Epsilon defends against IEEE-754 drift on the cart subtotal — accumulated
   // \`price * quantity\` sums can land at e.g. 4999.999999999 even after
@@ -752,8 +769,8 @@ ${
   )
 
   const shippingMeta = useMemo(
-    () => computeShippingMeta(cartMeta.total, settings.Delivery),
-    [cartMeta.total, settings.Delivery]
+    () => computeShippingMeta(cartMeta.total, settings.Delivery, settings.deliveryEnabled === true),
+    [cartMeta.total, settings.Delivery, settings.deliveryEnabled]
   )
 
   // What the cart & checkout pages bind their per-line money to. The stored
