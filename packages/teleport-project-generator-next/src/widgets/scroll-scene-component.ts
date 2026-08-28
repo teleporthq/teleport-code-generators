@@ -134,32 +134,38 @@ const laneValueAt = (lane, p) => {
 
 const FILTER_PROP_ORDER = ['blur', 'grayscale', 'saturate', 'brightness']
 
+// Motion lanes write the INDIVIDUAL transform properties (translate / scale /
+// rotate) and never the transform property itself: the browser composes them
+// with whatever the author put in transform (a translateX(-50%) centering, a
+// tilt), so the scene never clobbers the user's own layout. 3D lanes use the
+// axis form of rotate; the stage supplies the vanishing point. Mirrors the
+// canvas. (No backticks in this file's comments — it is a template literal.)
 const applyLanesAt = (element, lanes, p) => {
-  const transformParts = []
   const filterByProp = {}
-  let needsPerspective = false
+  let translateX
+  let translateY
+  let rotate
+  let scale
   for (const lane of lanes) {
     const value = laneValueAt(lane, p)
     switch (lane.prop) {
       case 'x':
-        transformParts.push('translateX(' + value + (lane.unit || 'px') + ')')
+        translateX = value + (lane.unit || 'px')
         break
       case 'y':
-        transformParts.push('translateY(' + value + (lane.unit || 'px') + ')')
+        translateY = value + (lane.unit || 'px')
         break
       case 'scale':
-        transformParts.push('scale(' + value + ')')
+        scale = String(value)
         break
       case 'rotate':
-        transformParts.push('rotate(' + value + 'deg)')
+        rotate = rotate === undefined ? value + 'deg' : rotate
         break
       case 'rotate-x':
-        needsPerspective = true
-        transformParts.push('rotateX(' + value + 'deg)')
+        rotate = 'x ' + value + 'deg'
         break
       case 'rotate-y':
-        needsPerspective = true
-        transformParts.push('rotateY(' + value + 'deg)')
+        rotate = 'y ' + value + 'deg'
         break
       case 'opacity':
         element.style.opacity = String(value)
@@ -178,11 +184,14 @@ const applyLanesAt = (element, lanes, p) => {
         break
     }
   }
-  if (needsPerspective) {
-    transformParts.unshift('perspective(900px)')
+  if (translateX !== undefined || translateY !== undefined) {
+    element.style.translate = (translateX || '0px') + ' ' + (translateY || '0px')
   }
-  if (transformParts.length > 0) {
-    element.style.transform = transformParts.join(' ')
+  if (scale !== undefined) {
+    element.style.scale = scale
+  }
+  if (rotate !== undefined) {
+    element.style.rotate = rotate
   }
   const filterParts = FILTER_PROP_ORDER.map((prop) => filterByProp[prop]).filter(Boolean)
   if (filterParts.length > 0) {
@@ -330,6 +339,25 @@ const TqScrollScene = ({
   }, [layout])
   restackRef.current = restack
 
+  // A pinned scene at the page's edge exposes the html canvas when the user
+  // overscrolls (the macOS rubber-band): a white band above or below a dark
+  // scene. Two treatments, both only on pages that have a scene: the bounce
+  // is switched off where the browser honors overscroll-behavior on the root
+  // (Chrome, Edge, Firefox, Android), and the html canvas takes the page's
+  // own background color so the stretch Safari still shows is invisible.
+  React.useEffect(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+    const root = document.documentElement
+    if (!root.style.backgroundColor) {
+      const bodyBackground = window.getComputedStyle(document.body).backgroundColor
+      if (bodyBackground && bodyBackground !== 'rgba(0, 0, 0, 0)' && bodyBackground !== 'transparent') {
+        root.style.backgroundColor = bodyBackground
+      }
+    }
+  }, [])
+
   React.useEffect(() => {
     const track = trackRef.current
     if (!track) {
@@ -410,6 +438,8 @@ const TqScrollScene = ({
             // from fighting the page. Mirrors the canvas renderer.
             overflow: 'hidden',
             isolation: 'isolate',
+            // Vanishing point for 3D lanes (rotate: x/y …) on any child.
+            perspective: '900px',
             // layout='chapters': the stage IS the centering grid and every
             // direct child stacks in the same cell (rule below) — the
             // scrollytelling shape with zero hand-written wrapper styles.
@@ -430,6 +460,7 @@ const TqScrollScene = ({
           <style
             dangerouslySetInnerHTML={{
               __html:
+                'html { overscroll-behavior-y: none; } ' +
                 '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; }' +
                 (layout === 'chapters'
                   ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'

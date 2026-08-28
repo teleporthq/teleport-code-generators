@@ -48,6 +48,7 @@ import { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
 import { NextKanbanProjectPlugin } from './kanban/project-plugin'
 import { NextCountdownProjectPlugin } from './countdown/project-plugin'
 import { createNextWidgetProjectPlugins } from './widgets'
+import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
 import {
   createLocalComponentPathPlugin,
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
@@ -87,6 +88,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
   new NextNavActiveLinkProjectPlugin(),
+  new NextSnapIntoViewProjectPlugin(),
   new NextCollapsibleTextProjectPlugin(),
   new NextDashboardLayoutPlugin(),
   new NextRichTextEditorProjectPlugin(),

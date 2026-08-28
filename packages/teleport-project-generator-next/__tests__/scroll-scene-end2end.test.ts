@@ -123,4 +123,74 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(packageJson.dependencies['framer-motion']).toBe('^11.18.0')
     expect(packageJson.dependencies.react).toBe('^18.3.1')
   })
+
+  it("lanes write individual transform props, never the author's `transform`", async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithScene(), template)
+    const scene = findFile(outputFolder, 'components', 'tq-scroll-scene')
+    expect(scene?.content).toContain('element.style.translate')
+    expect(scene?.content).toContain('element.style.rotate')
+    expect(scene?.content).not.toContain('element.style.transform')
+    expect(scene?.content).toContain("perspective: '900px'")
+  })
+
+  it('treats overscroll: no rubber-band where honored, html canvas matches the page color', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithScene(), template)
+    const scene = findFile(outputFolder, 'components', 'tq-scroll-scene')
+    expect(scene?.content).toContain('html { overscroll-behavior-y: none; }')
+    expect(scene?.content).toContain('root.style.backgroundColor = bodyBackground')
+  })
+
+  it('Snap into view is an element option: the page-level controller ships only when used', async () => {
+    const plain = await generator.generateProject(buildUidlWithScene(), template)
+    expect(findFile(plain, 'components', 'tq-snap-into-view')).toBeUndefined()
+
+    const uidl = buildUidlWithScene()
+    const indexPage = (uidl.root.node.content.children || []).find(
+      (child) =>
+        child.type === 'conditional' && (child.content as { value?: string }).value === 'index'
+    )
+    const pageElement = (indexPage as { content: { node: { content: { children: unknown[] } } } })
+      .content.node.content
+    pageElement.children.push({
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'snapping-section',
+        attrs: { 'data-snap-into-view': { type: 'static', content: 'true' } },
+        children: [],
+      },
+    })
+    const snapped = await generator.generateProject(uidl, template)
+    const runtime = findFile(snapped, 'components', 'tq-snap-into-view')
+    expect(runtime?.content).toContain('scroll-snap-type: y proximity')
+    expect(runtime?.content).toContain("window.scrollBy({ top: delta, behavior: 'smooth' })")
+    expect(runtime?.content).not.toContain('mandatory')
+    const app = findFile(snapped, 'pages', '_app')
+    expect(app?.content).toContain('<TqSnapIntoView />')
+    const page = findFile(snapped, 'pages', 'index')
+    expect(page?.content).toContain('data-snap-into-view="true"')
+    expect(runtime?.content).toContain('firm: 1')
+    expect(runtime?.content).toContain('="firm"]')
+    expect(runtime?.content).not.toContain('mandatory')
+
+    const firmUidl = buildUidlWithScene()
+    const firmIndexPage = (firmUidl.root.node.content.children || []).find(
+      (child) =>
+        child.type === 'conditional' && (child.content as { value?: string }).value === 'index'
+    )
+    ;(
+      firmIndexPage as { content: { node: { content: { children: unknown[] } } } }
+    ).content.node.content.children.push({
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'firm-section',
+        attrs: { 'data-snap-into-view': { type: 'static', content: 'firm' } },
+        children: [],
+      },
+    })
+    const firm = await generator.generateProject(firmUidl, template)
+    expect(findFile(firm, 'components', 'tq-snap-into-view')).toBeDefined()
+    expect(findFile(firm, 'pages', 'index')?.content).toContain('data-snap-into-view="firm"')
+  })
 })

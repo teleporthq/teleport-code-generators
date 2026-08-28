@@ -1,7 +1,12 @@
 import uidlSample from '../../../../examples/uidl-samples/tests.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import projectWithSlot from '../../../../examples/test-samples/project-with-slot.json'
-import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
+import {
+  createHTMLProjectGenerator,
+  pluginCloneGlobals,
+  pluginHomeReplace,
+  pluginSnapIntoView,
+} from '../../src'
 import HTMLTemplate from '../../src/project-template'
 import { FileType } from '@teleporthq/teleport-types'
 
@@ -70,6 +75,38 @@ describe('Html Project Generator', () => {
 
     expect(heroComponent).toBeDefined()
     expect(indexFile?.content).toContain(`This is amazing, because this is a named-slot`)
+  })
+
+  it('Snap into view: the native snap rule ships only when an element opts in', async () => {
+    const plain = createHTMLProjectGenerator()
+    plain.addPlugin(pluginSnapIntoView)
+    const untouched = await plain.generateProject(uidlSample, HTMLTemplate)
+    untouched.files.forEach((file) => expect(file.content).not.toContain('scroll-snap-type'))
+
+    const uidl = JSON.parse(JSON.stringify(uidlSample))
+    const about = uidl.root.node.content.children.find(
+      (child: { content: { value?: string } }) => child.content.value === 'About'
+    )
+    about.content.node.content.attrs = {
+      ...(about.content.node.content.attrs || {}),
+      'data-snap-into-view': { type: 'static', content: 'firm' },
+    }
+    const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginSnapIntoView)
+    const snapped = await generator.generateProject(uidl, HTMLTemplate)
+
+    const globalCss = snapped.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const aboutPage = snapped.files.find(
+      (file) => file.name === 'about' && file.fileType === FileType.HTML
+    )
+    const rulesCarrier = globalCss ? globalCss.content : aboutPage?.content || ''
+    expect(rulesCarrier).toContain('scroll-snap-type: y proximity')
+    expect(rulesCarrier).toContain('[data-snap-into-view="firm"]')
+    expect(rulesCarrier).toContain('[data-snap-into-view="gentle"]')
+    expect(rulesCarrier).not.toContain('mandatory')
+    expect(aboutPage?.content).toContain('data-snap-into-view="firm"')
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -75,19 +75,24 @@ const EASINGS = {
 // (\`applyScrollState\`) and the in-place stagger (\`cssFromState\`) build on these.
 const TRANSFORM_KEYS = ['x', 'y', 'scale', 'rotate']
 
-const transformComponent = (key, value) => {
-  const numeric = typeof value === 'number'
-  switch (key) {
-    case 'x':
-      return 'translateX(' + (numeric ? value + 'px' : value) + ')'
-    case 'y':
-      return 'translateY(' + (numeric ? value + 'px' : value) + ')'
-    case 'scale':
-      return 'scale(' + value + ')'
-    case 'rotate':
-      return 'rotate(' + (numeric ? value + 'deg' : value) + ')'
-    default:
-      return ''
+// The transform family is written as the INDIVIDUAL transform properties
+// (translate / scale / rotate) and never as the transform property itself, so
+// whatever the author put in transform (a translateX(-50%) centering, a tilt)
+// survives the animation and the browser composes the two. Mirrors the canvas.
+const withUnit = (value, unit) => (typeof value === 'number' ? value + unit : String(value))
+
+const writeTransformProps = (css, state) => {
+  if (state.x !== undefined || state.y !== undefined) {
+    css.translate =
+      withUnit(state.x !== undefined ? state.x : 0, 'px') +
+      ' ' +
+      withUnit(state.y !== undefined ? state.y : 0, 'px')
+  }
+  if (state.scale !== undefined) {
+    css.scale = String(state.scale)
+  }
+  if (state.rotate !== undefined) {
+    css.rotate = withUnit(state.rotate, 'deg')
   }
 }
 
@@ -113,20 +118,22 @@ const applyScrollState = (element, fromVars, toVars, p) => {
     return
   }
   const keys = new Set([...Object.keys(fromVars), ...Object.keys(toVars)])
-  const transformParts = []
+  const transformState = {}
   keys.forEach((key) => {
     const fromValue = fromVars[key] !== undefined ? fromVars[key] : toVars[key]
     const toValue = toVars[key] !== undefined ? toVars[key] : fromVars[key]
     const value = interpolateValue(fromValue, toValue, p)
     if (TRANSFORM_KEYS.includes(key)) {
-      transformParts.push(transformComponent(key, value))
+      transformState[key] = value
     } else {
       element.style[key] = String(value)
     }
   })
-  if (transformParts.length > 0) {
-    element.style.transform = transformParts.join(' ')
-  }
+  const transformCss = {}
+  writeTransformProps(transformCss, transformState)
+  Object.keys(transformCss).forEach((prop) => {
+    element.style[prop] = transformCss[prop]
+  })
 }
 
 // useScroll offset pairs per motion-scroll-offset mode — mirrors the canvas
@@ -181,26 +188,18 @@ const presetStates = (preset, distance) => {
 }
 
 // Turn a resolved motion state ({ opacity, x, y, scale, rotate, filter, … }) into
-// an inline style object: the transform keys collapse into one \`transform\` string
-// and every other key passes through as its own CSS property. Mirrors the canvas.
+// an inline style object: the transform keys become the individual translate /
+// scale / rotate properties and every other key passes through as its own CSS
+// property. Mirrors the canvas.
 const cssFromState = (state) => {
   const css = {}
-  const transformParts = []
-  for (let i = 0; i < TRANSFORM_KEYS.length; i++) {
-    const key = TRANSFORM_KEYS[i]
-    if (state[key] !== undefined) {
-      transformParts.push(transformComponent(key, state[key]))
-    }
-  }
+  writeTransformProps(css, state)
   Object.keys(state).forEach((key) => {
     if (TRANSFORM_KEYS.indexOf(key) !== -1) {
       return
     }
     css[key] = state[key]
   })
-  if (transformParts.length > 0) {
-    css.transform = transformParts.join(' ')
-  }
   return css
 }
 
