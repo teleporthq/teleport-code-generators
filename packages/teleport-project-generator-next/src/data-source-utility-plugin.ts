@@ -8,6 +8,7 @@ import {
 import {
   generateDataSourceFetcherWithCore,
   generateSafeFileName,
+  buildProductTransformOptions,
 } from '@teleporthq/teleport-plugin-next-data-source'
 
 // Resources authored in `uidl.resources.items` that point at a local data
@@ -65,7 +66,7 @@ export class NextDataSourceUtilityPlugin implements ProjectPlugin {
           dataSource,
           tableName,
           false,
-          uidl.ecommerceSettings?.categories
+          buildProductTransformOptions(uidl)
         )
       } catch {
         continue

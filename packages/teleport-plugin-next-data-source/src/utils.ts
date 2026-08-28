@@ -7,12 +7,12 @@ import {
   UIDLDataSource,
   DataSourceType,
   ChunkType,
-  UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
+import type { EcommerceProductTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
@@ -192,7 +192,7 @@ export const extractDataSourceIntoNextAPIFolder = (
   dataSources: Record<string, UIDLDataSource>,
   componentChunk: ChunkDefinition,
   extractedResources: GeneratorOptions['extractedResources'],
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {}
 ) => {
   try {
     // Validate node content structure
@@ -446,7 +446,12 @@ export default dataSourceModule.handler
     // Generate fetcher code for API route (exports just the handler)
     let fetcherCode: string
     try {
-      fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName || '', true, categories)
+      fetcherCode = generateDataSourceFetcherWithCore(
+        dataSource,
+        tableName || '',
+        true,
+        transformOptions
+      )
     } catch (error) {
       return
     }
@@ -896,7 +901,7 @@ export const extractDataSourceIntoGetStaticProps = (
   dependencies: Record<string, any>,
   dynamicRouteAttr?: string,
   folderPath?: string[],
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {}
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -1224,7 +1229,7 @@ export const extractDataSourceIntoGetStaticProps = (
         dataSource,
         tableName || '',
         false,
-        categories
+        transformOptions
       )
     } catch (error) {
       // tslint:disable-next-line:no-console

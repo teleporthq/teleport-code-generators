@@ -1,4 +1,5 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import { StorefrontTax } from '@teleporthq/teleport-shared'
 import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
 
 export const generateEcommerceContextFileContent = (
@@ -43,7 +44,16 @@ export const generateEcommerceContextFileContent = (
   // earlier hook would hit the temporal dead zone). cart-get-total reads
   // these out of localStorage so the place-order workflow stays in sync with
   // whatever Settings → Delivery values were live at the last build.
+  //
+  // `deliveryEnabled` / `storePickupEnabled` ride along because a delivery fee
+  // may only be charged for an order the store actually DELIVERS: the
+  // place-order assemble script needs both to decide whether the buyer's
+  // fulfilment choice can attract a fee at all (a pickup-only store has no
+  // delivery tab to click, so its `deliveryOption` state never leaves its
+  // `'delivery'` default and would otherwise be charged the stale rate).
   const deliveryConfigJson = JSON.stringify({
+    deliveryEnabled: ecommerceSettings.deliveryEnabled === true,
+    storePickupEnabled: ecommerceSettings.storePickupEnabled === true,
     deliveryPrice: Number(ecommerceSettings.deliveryConfig?.deliveryPrice ?? 0) || 0,
     freeDeliveryEnabled: !!ecommerceSettings.deliveryConfig?.freeDeliveryEnabled,
     freeDeliveryThreshold:
@@ -418,12 +428,37 @@ function cartItemDisplayPrice(item) {
   return applyStorefrontTax(item && item.price)
 }
 
+// A line's quantity, defended against the shapes a cart can actually hold: the
+// field arrives as a string from a hand-edited localStorage cart, and a missing
+// or non-positive value has always meant "one of these".
+function cartItemQuantity(item) {
+  const qty = Number(item && item.quantity)
+  return isFinite(qty) && qty > 0 ? qty : 1
+}
+
+// What ONE cart line costs — the gross unit price times its quantity. This is
+// what the cart page prints beside the \`− qty +\` stepper and what the checkout
+// summary prints under its "Total" column; summing it across the lines gives
+// back exactly \`computeCartMeta\`'s subtotal, which is why both go through the
+// same two helpers.
+function cartItemLineTotal(item) {
+  return roundMoney(cartItemDisplayPrice(item) * cartItemQuantity(item))
+}
+
+// Money reaching a bound text node is printed verbatim, so it is formatted here
+// or not at all: \`40.46 * 5\` is \`202.3\`, and a price slot has to read
+// \`202.30\`.
+function formatCartMoney(amount) {
+  const n = Number(amount)
+  return (isFinite(n) ? n : 0).toFixed(2)
+}
+
 function computeCartMeta(items) {
   let total = 0
   let itemCount = 0
   for (let i = 0; i < items.length; i++) {
-    total += cartItemDisplayPrice(items[i]) * (items[i].quantity || 1)
-    itemCount += items[i].quantity || 1
+    total += cartItemLineTotal(items[i])
+    itemCount += cartItemQuantity(items[i])
   }
   return { total: roundMoney(total), itemCount }
 }
@@ -444,11 +479,19 @@ function resolveCategoryTranslations(categories, locale) {
   })
 }
 
-function computeShippingMeta(cartTotal, deliveryConfig) {
+// Mirrors \`resolveCartDelivery\` in the editor (teleport-gui
+// \`features/e-commerce/utils/delivery-fee.ts\`), which is what the cart
+// simulator and the canvas projection use — a difference between the two is a
+// page that previews one delivery fee and charges another.
+//
+// \`deliveryEnabled\` gates the RATE, not just the row: a store that switched to
+// pickup-only keeps whatever \`deliveryPrice\` it last saved, and quoting it
+// would charge for a delivery that never happens.
+function computeShippingMeta(cartTotal, deliveryConfig, deliveryEnabled) {
   const cart = roundMoney(cartTotal)
   const freeDeliveryEnabled = deliveryConfig?.freeDeliveryEnabled ?? false
   const threshold = roundMoney(deliveryConfig?.freeDeliveryThreshold ?? 0)
-  const baseDeliveryPrice = roundMoney(deliveryConfig?.deliveryPrice ?? 0)
+  const baseDeliveryPrice = deliveryEnabled ? roundMoney(deliveryConfig?.deliveryPrice ?? 0) : 0
 
   // Epsilon defends against IEEE-754 drift on the cart subtotal — accumulated
   // \`price * quantity\` sums can land at e.g. 4999.999999999 even after
@@ -726,21 +769,29 @@ ${
   )
 
   const shippingMeta = useMemo(
-    () => computeShippingMeta(cartMeta.total, settings.Delivery),
-    [cartMeta.total, settings.Delivery]
+    () => computeShippingMeta(cartMeta.total, settings.Delivery, settings.deliveryEnabled === true),
+    [cartMeta.total, settings.Delivery, settings.deliveryEnabled]
   )
 
-  // What the cart & checkout pages bind their per-line price to. The stored
-  // \`cartItems\` keep the NET price (they are what gets persisted and what
+  // What the cart & checkout pages bind their per-line money to. The stored
+  // \`cartItems\` keep the NET unit price (they are what gets persisted and what
   // becomes \`teleport_order_items.unit_price\`); this projection is the only
-  // place the tax is folded in for display, so the line price a shopper reads
-  // always agrees with the subtotal computed by \`computeCartMeta\`.
-  // A no-tax store gets the identical array back, not a copy.
+  // place the tax is folded in for display, so the money a shopper reads always
+  // agrees with the subtotal computed by \`computeCartMeta\`.
+  //
+  // \`price\` is the LINE total, not the unit price: a cart line is drawn next to
+  // its own quantity stepper (and the checkout summary heads the column
+  // "Total"), so the amount that belongs there is what those units cost
+  // together. \`unitPrice\` keeps the per-unit figure addressable for a template
+  // that wants to spell out "x each".
   const displayCartItems = useMemo(
     () =>
-      STOREFRONT_TAX_RATE <= 0
-        ? cartItems
-        : cartItems.map((item) => Object.assign({}, item, { price: cartItemDisplayPrice(item) })),
+      cartItems.map((item) =>
+        Object.assign({}, item, {
+          unitPrice: formatCartMoney(cartItemDisplayPrice(item)),
+          price: formatCartMoney(cartItemLineTotal(item)),
+        })
+      ),
     [cartItems]
   )
 
@@ -817,19 +868,15 @@ export const useEcommerceSettings = () => {
  * Percentage the storefront adds on top of every stored product price, or `0`
  * when prices are already tax-inclusive / no rate is configured.
  *
- * This is the ONE place the rule lives on the export side: the provider bakes
- * the result into `STOREFRONT_TAX_RATE` and mirrors it into
+ * The rule itself lives in `@teleporthq/teleport-shared` so the data-source
+ * transform (a package this one depends ON, not the other way round) applies
+ * the same gate to catalogue prices. Re-exported here because this module is
+ * where the export side has always read it from: the provider bakes the result
+ * into `STOREFRONT_TAX_RATE` and mirrors it into
  * `workflow_cart_settings.taxConfig`, which is where the standalone
- * `cart-get-total` handler reads it at runtime. Exported so tests can assert
- * the rule directly rather than through emitted source.
+ * `cart-get-total` handler reads it at runtime.
  */
-export const resolveStorefrontTaxRate = (invoiceSettings?: UIDLInvoiceSettings): number => {
-  if (!invoiceSettings || invoiceSettings.taxIncludedInPrice === true) {
-    return 0
-  }
-  const rate = Number(invoiceSettings.defaultTaxRate)
-  return Number.isFinite(rate) && rate > 0 ? rate : 0
-}
+export const resolveStorefrontTaxRate = StorefrontTax.resolveStorefrontTaxRate
 
 function buildSettingsObject(
   ecommerceSettings: UIDLEcommerceSettings,

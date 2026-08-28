@@ -456,6 +456,83 @@ describe('reportStockWriteAudit — warns on unknown sites', () => {
 })
 
 // ────────────────────────────────────────────────────────────────────
+// `data-raw-query` sites. SQL belongs in a data node, never in a
+// `general-custom-js` node (whose source ships to the browser), so this
+// is where the decrement actually lives. The auditor originally only
+// understood the custom-js shape, which made it blind to BOTH the real
+// decrement and any rogue raw-SQL write against the products table.
+// ────────────────────────────────────────────────────────────────────
+describe('data-raw-query stock writes', () => {
+  const ALIASED_DECREMENT =
+    'UPDATE teleport_products AS p SET quantity = p.quantity - d.qty, updated_at = NOW() ' +
+    'FROM unnest($1::text[], $2::int[]) AS d(id, qty) ' +
+    'WHERE p.quantity IS NOT NULL AND p.id::text = d.id'
+
+  it('classifies the aliased, parameterised decrement as order-decrement', () => {
+    const result = classifyStockWriteSite('Place Order', {
+      type: 'data-raw-query',
+      config: { query: ALIASED_DECREMENT },
+    })
+    expect(result.category).toBe('order-decrement')
+    expect(result.sqlSnippet).toContain('UPDATE teleport_products')
+  })
+
+  it('still classifies the un-aliased decrement as order-decrement', () => {
+    const result = classifyStockWriteSite('Place Order', {
+      type: 'data-raw-query',
+      config: {
+        query: 'UPDATE teleport_products SET quantity = quantity - 1 WHERE id = $1',
+      },
+    })
+    expect(result.category).toBe('order-decrement')
+  })
+
+  it('treats an admin bulk statement as admin, not as an unexplained write', () => {
+    const result = classifyStockWriteSite('Admin Panel: Mark as Inactive Selected Products', {
+      type: 'data-raw-query',
+      config: {
+        query: 'UPDATE teleport_products SET status = $1, updated_at = NOW() WHERE id = ANY($2)',
+      },
+    })
+    expect(result.category).toBe('admin')
+  })
+
+  it('flags a raw write from an unrecognised workflow as unknown', () => {
+    const result = classifyStockWriteSite('Some Other Flow', {
+      type: 'data-raw-query',
+      config: { query: 'UPDATE teleport_products SET price = 0' },
+    })
+    expect(result.category).toBe('unknown')
+  })
+
+  it('collects raw-query writes but never read-only SELECTs', () => {
+    const sites = findStockWriteSites({
+      workflows: {
+        workflows: {
+          w1: {
+            id: 'w1',
+            name: 'Place Order',
+            nodes: [
+              { id: 'n1', type: 'data-raw-query', config: { query: ALIASED_DECREMENT } },
+              {
+                id: 'n2',
+                type: 'data-raw-query',
+                config: { query: 'SELECT id, quantity FROM teleport_products WHERE id = $1' },
+              },
+            ],
+          },
+        },
+      },
+      // tslint:disable-next-line:no-any
+    } as any)
+
+    expect(sites).toHaveLength(1)
+    expect(sites[0].nodeId).toBe('n1')
+    expect(sites[0].category).toBe('order-decrement')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────
 // Integration test against the REAL project UIDL fixture. This is the
 // load-bearing contract test: it locks in the current expected state
 // (admin + order-decrement only, ZERO unknowns) so any future AI-side

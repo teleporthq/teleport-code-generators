@@ -314,6 +314,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.ecommerceSettings && {
         ecommerceSettings: uidl.ecommerceSettings,
       }),
+      ...(uidl.invoiceSettings && {
+        invoiceSettings: uidl.invoiceSettings,
+      }),
       ...((uidl as unknown as Record<string, unknown>).pageLayoutMode && {
         pageLayoutMode: (uidl as unknown as Record<string, unknown>).pageLayoutMode as string,
       }),
@@ -352,6 +355,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
         {
           isRootComponent: true,
           ...options,
+          // Only this pass' style set definitions are written out; its element
+          // tree is discarded. Placed after the spread so a caller cannot turn
+          // markup checks back on for a pass that emits no markup.
+          skipHtmlNestingResolver: true,
         }
       )
 

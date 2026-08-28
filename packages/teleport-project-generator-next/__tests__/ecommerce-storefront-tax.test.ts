@@ -66,8 +66,12 @@ function evalCartMath(source: string) {
     grab('roundMoney'),
     grab('applyStorefrontTax'),
     grab('cartItemDisplayPrice'),
+    grab('cartItemQuantity'),
+    grab('cartItemLineTotal'),
+    grab('formatCartMoney'),
     grab('computeCartMeta'),
-    'return { STOREFRONT_TAX_RATE, applyStorefrontTax, cartItemDisplayPrice, computeCartMeta }',
+    'return { STOREFRONT_TAX_RATE, applyStorefrontTax, cartItemDisplayPrice, cartItemQuantity,' +
+      ' cartItemLineTotal, formatCartMoney, computeCartMeta }',
   ].join('\n')
   // tslint:disable-next-line:function-constructor
   return new Function(scope)()
@@ -150,6 +154,77 @@ describe('EcommerceProvider — emitted cart math', () => {
   })
 })
 
+/**
+ * A cart line is drawn beside its own quantity stepper, and the checkout
+ * summary heads its money column "Total" — so what belongs in both is what the
+ * LINE costs, not what one unit costs. `price` on the display projection is
+ * therefore `gross unit x quantity`, and these lock in that it is derived the
+ * same way the subtotal is (so the lines always add up to it) and that it is
+ * printed as money rather than as a bare float.
+ */
+describe('EcommerceProvider — cart line totals', () => {
+  const taxedMath = () =>
+    evalCartMath(
+      generateEcommerceContextFileContent(
+        ecommerceSettings,
+        invoiceSettings({ defaultTaxRate: 19 }),
+        'ds-1'
+      )
+    )
+
+  it('multiplies the gross unit price by the quantity', () => {
+    const math = taxedMath()
+    expect(math.cartItemLineTotal({ price: 19.99, quantity: 3 })).toBe(71.37)
+    expect(math.cartItemLineTotal({ price: 34, quantity: 5 })).toBe(202.3)
+  })
+
+  it('agrees with the subtotal the Summary card prints', () => {
+    const math = taxedMath()
+    const lines = [
+      { price: 19.99, quantity: 3 },
+      { price: 34, quantity: 5 },
+      { price: 16, quantity: 4 },
+    ]
+    const sumOfLines = lines.reduce((acc, line) => acc + math.cartItemLineTotal(line), 0)
+    // Per-unit rounding is what keeps these equal to the cent: rounding each
+    // line separately and rounding the sum cannot drift apart.
+    expect(math.computeCartMeta(lines).total).toBe(Math.round(sumOfLines * 100) / 100)
+    expect(math.computeCartMeta(lines).itemCount).toBe(12)
+  })
+
+  it('treats a missing, zero, negative or unparseable quantity as one', () => {
+    const math = taxedMath()
+    expect(math.cartItemQuantity({})).toBe(1)
+    expect(math.cartItemQuantity({ quantity: 0 })).toBe(1)
+    expect(math.cartItemQuantity({ quantity: -2 })).toBe(1)
+    expect(math.cartItemQuantity({ quantity: 'two' })).toBe(1)
+    expect(math.cartItemQuantity(null)).toBe(1)
+    // A quantity stored as a STRING is what a hand-edited localStorage cart
+    // holds, and it still has to multiply.
+    expect(math.cartItemQuantity({ quantity: '4' })).toBe(4)
+    expect(math.cartItemLineTotal({ price: 10, quantity: '4' })).toBe(47.6)
+  })
+
+  it('still multiplies when no tax is configured', () => {
+    const math = evalCartMath(
+      generateEcommerceContextFileContent(ecommerceSettings, undefined, 'ds-1')
+    )
+    expect(math.cartItemLineTotal({ price: 10, quantity: 2 })).toBe(20)
+    expect(math.cartItemLineTotal({ price: '19.99', quantity: 2 })).toBe(39.98)
+  })
+
+  it('prints money with two decimals, never a bare float', () => {
+    const math = taxedMath()
+    // 40.46 x 5 is 202.3 — a price slot has to read 202.30.
+    expect(math.formatCartMoney(202.3)).toBe('202.30')
+    expect(math.formatCartMoney(20)).toBe('20.00')
+    expect(math.formatCartMoney(0)).toBe('0.00')
+    // Nothing a broken line can hold may reach the DOM as "NaN".
+    expect(math.formatCartMoney(undefined)).toBe('0.00')
+    expect(math.formatCartMoney('abc')).toBe('0.00')
+  })
+})
+
 describe('EcommerceProvider — where the tax is (and is not) applied', () => {
   const taxed = () =>
     generateEcommerceContextFileContent(
@@ -160,9 +235,11 @@ describe('EcommerceProvider — where the tax is (and is not) applied', () => {
 
   it('exposes taxed prices on the context while the stored cart stays net', () => {
     const out = taxed()
-    // The context projection the cart/checkout pages bind their line price to.
+    // The context projection the cart/checkout pages bind their line money to:
+    // `price` is the LINE total, `unitPrice` the per-unit figure.
     expect(out).toContain('const displayCartItems = useMemo(')
-    expect(out).toContain('price: cartItemDisplayPrice(item)')
+    expect(out).toContain('price: formatCartMoney(cartItemLineTotal(item))')
+    expect(out).toContain('unitPrice: formatCartMoney(cartItemDisplayPrice(item))')
     expect(out).toContain('items: displayCartItems,')
     // What gets persisted is still the raw `cartItems` state.
     expect(out).toContain('saveCartToStorage(next)')

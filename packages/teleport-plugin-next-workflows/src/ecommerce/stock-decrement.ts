@@ -353,6 +353,41 @@ const isAdminWorkflowName = (name: string): boolean => {
   return /\badmin\b/i.test(name)
 }
 
+/**
+ * The decrement statement itself, in every shape a builder has emitted.
+ *
+ * The table may carry an alias and the column may be qualified through it —
+ * `UPDATE teleport_products AS p SET quantity = p.quantity - d.qty …` — which is
+ * what the parameterised `data-raw-query` form uses. An un-aliased
+ * `SET quantity = quantity - …` is the older shape and still matches.
+ */
+const ORDER_DECREMENT_SQL_RE =
+  /UPDATE\s+teleport_products\s+(?:AS\s+)?\w*\s*SET\s+quantity\s*=\s*(?:\w+\.)?quantity\s*-/i
+
+/** The GREATEST / NULL-preserving guards, independent of how the row is addressed. */
+const ORDER_DECREMENT_GUARD_RES: RegExp[] = [
+  /quantity\s*=\s*GREATEST\s*\(\s*\d+\s*,\s*COALESCE\s*\(\s*(?:\w+\.)?quantity/i,
+  /quantity\s*=\s*CASE\s+WHEN\s+(?:\w+\.)?quantity\s+IS\s+NULL\s+THEN\s+NULL\s+ELSE\s+GREATEST/i,
+]
+
+/**
+ * Whether a bare SQL string is the order stock decrement.
+ *
+ * Used for `data-raw-query` nodes, which is where the decrement lives now: SQL
+ * belongs in a data node, never in a `general-custom-js` node whose source ships
+ * to the browser. Without this branch the auditor sees no decrement at all and
+ * would equally miss a rogue raw-SQL write to the products table.
+ */
+const looksLikeOrderDecrementSql = (sql: string): boolean => {
+  if (typeof sql !== 'string' || sql.indexOf('teleport_products') < 0) {
+    return false
+  }
+  if (ORDER_DECREMENT_SQL_RE.test(sql)) {
+    return true
+  }
+  return ORDER_DECREMENT_GUARD_RES.some((re) => re.test(sql))
+}
+
 const looksLikeOrderDecrementCustomHandler = (code: string): boolean => {
   if (typeof code !== 'string') {
     return false
@@ -379,23 +414,16 @@ const looksLikeOrderDecrementCustomHandler = (code: string): boolean => {
     // NULL-preserving shape (`quantity = CASE WHEN quantity IS NULL
     // THEN NULL ELSE GREATEST(0, quantity - CASE id …) END`).
     if (code.indexOf('teleport_products') >= 0) {
-      if (/quantity\s*=\s*quantity\s*-/.test(code)) {
+      if (/quantity\s*=\s*(?:\w+\.)?quantity\s*-/.test(code)) {
         return true
       }
-      if (/quantity\s*=\s*GREATEST\s*\(\s*\d+\s*,\s*COALESCE\s*\(\s*quantity/i.test(code)) {
-        return true
-      }
-      if (
-        /quantity\s*=\s*CASE\s+WHEN\s+quantity\s+IS\s+NULL\s+THEN\s+NULL\s+ELSE\s+GREATEST/i.test(
-          code
-        )
-      ) {
+      if (ORDER_DECREMENT_GUARD_RES.some((re) => re.test(code))) {
         return true
       }
     }
     return false
   }
-  return /UPDATE\s+teleport_products\s+SET\s+quantity\s*=\s*quantity\s*-/i.test(code)
+  return ORDER_DECREMENT_SQL_RE.test(code)
 }
 
 // Pull the first 300 chars of any SQL string in a custom-js handler.
@@ -410,10 +438,35 @@ const extractSqlSnippet = (code: string): string => {
 
 export const classifyStockWriteSite = (
   workflowName: string,
-  node: { type?: string; config?: { code?: string } }
+  node: { type?: string; config?: { code?: string; query?: string } }
 ): { category: StockWriteSite['category']; sqlSnippet: string } => {
   const nodeType = node.type || ''
   const code = (node.config && node.config.code) || ''
+  const query = (node.config && node.config.query) || ''
+
+  // `data-raw-query` sites: the decrement's current home. The SQL is a plain
+  // string on the node, so it is matched directly rather than through the
+  // custom-handler marker logic (a data node carries no rewritten handler).
+  if (nodeType === 'data-raw-query') {
+    if (looksLikeOrderDecrementSql(query)) {
+      return { category: 'order-decrement', sqlSnippet: extractSqlSnippet(query) }
+    }
+    if (
+      /UPDATE\s+teleport_products|DELETE\s+(?:FROM\s+)?teleport_products|INSERT\s+(?:INTO\s+)?teleport_products/i.test(
+        query
+      )
+    ) {
+      // The admin panel's BULK actions are raw-SQL by necessity (one statement
+      // for N rows), so the same workflow-name signal the structured-CRUD
+      // branch uses applies here — otherwise every bulk delete / status change
+      // would be reported as an unexplained write.
+      if (isAdminWorkflowName(workflowName)) {
+        return { category: 'admin', sqlSnippet: extractSqlSnippet(query) }
+      }
+      return { category: 'unknown', sqlSnippet: extractSqlSnippet(query) }
+    }
+    return { category: 'unknown', sqlSnippet: '' }
+  }
 
   // Raw-SQL custom-js sites: distinguish "decrement" from "other write".
   if (nodeType === 'general-custom-js') {
@@ -494,6 +547,25 @@ export const findStockWriteSites = (uidl: ProjectUIDL): StockWriteSite[] => {
           category,
           sqlSnippet,
         })
+        continue
+      }
+
+      // Raw-SQL data-node branch. Same "writes only" rule as custom-js below:
+      // a SELECT against teleport_products is not a write site.
+      if (node.type === 'data-raw-query' && typeof config.query === 'string') {
+        if (/\b(UPDATE|DELETE\s+FROM|INSERT\s+INTO)\s+teleport_products\b/i.test(config.query)) {
+          const { category, sqlSnippet } = classifyStockWriteSite(workflowName, node)
+          sites.push({
+            workflowId,
+            workflowName,
+            workflowKind: kind,
+            nodeId: node.id || '',
+            nodeType: node.type,
+            stepNumber: node.stepNumber,
+            category,
+            sqlSnippet,
+          })
+        }
         continue
       }
 

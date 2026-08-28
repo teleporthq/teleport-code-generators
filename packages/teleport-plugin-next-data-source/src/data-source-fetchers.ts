@@ -1,4 +1,4 @@
-import { DataSourceType, UIDLDataSource, UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { DataSourceType, UIDLDataSource } from '@teleporthq/teleport-types'
 import {
   generatePostgreSQLFetcher,
   generateMySQLFetcher,
@@ -33,6 +33,9 @@ import {
 } from './fetchers'
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
+import type { EcommerceProductTransformOptions } from './transformations'
+import { DataCache } from '@teleporthq/teleport-shared'
+import type { DataSourceServerCacheOptions } from './cache/types'
 
 export { generateRawQueryFetcher, parseQueryTemplateVariables }
 
@@ -81,7 +84,7 @@ export const getDataSourceDependencies = (
 export function generateDataSourceFetcher(
   dataSource: UIDLDataSource,
   tableName: string,
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {}
 ): string {
   if (!dataSource || typeof dataSource !== 'object') {
     throw new Error('Invalid data source: data source must be a valid object')
@@ -237,7 +240,7 @@ export function generateDataSourceFetcher(
         if (!validation.isValid) {
           throw new Error(`Teleport config validation failed: ${validation.error}`)
         }
-        return generateTeleportFetcher(config, tableName, categories)
+        return generateTeleportFetcher(config, tableName, transformOptions)
       }
 
       default:
@@ -258,9 +261,10 @@ export function generateDataSourceFetcherWithCore(
   dataSource: UIDLDataSource,
   tableName: string,
   isApiRoute: boolean = false,
-  categories?: UIDLEcommerceCategory[]
+  transformOptions: EcommerceProductTransformOptions = {},
+  cacheOptions?: DataSourceServerCacheOptions
 ): string {
-  const apiHandler = generateDataSourceFetcher(dataSource, tableName, categories)
+  const apiHandler = generateDataSourceFetcher(dataSource, tableName, transformOptions)
 
   // Extract the handler function body from the API route
   // The API route is structured as: export default async function handler(req, res) { ... }
@@ -285,14 +289,64 @@ export function generateDataSourceFetcherWithCore(
   // Combine and deduplicate imports
   const allImports = Array.from(new Set([...imports, ...countImports]))
 
+  // Caching is applied HERE rather than in the API route because four separate
+  // places emit an `api/<file>` route and a fifth path (`getStaticProps` →
+  // `fetchData` → `handler`) never goes through a route at all. Wrapping the
+  // module's exports is the one point that covers all five, and leaves every
+  // route emitter untouched.
+  //
+  // The import depth differs by destination: this module is written to
+  // `utils/data-sources/` normally, but the `isApiRoute` variant is inlined
+  // straight into `pages/api/`.
+  const cachePreamble = cacheOptions
+    ? `import { tqWithCache } from '${isApiRoute ? '../../' : '../'}tq-cache/server'`
+    : ''
+
+  const cacheWiring = cacheOptions
+    ? `
+const __tqDataCache = ${JSON.stringify({
+        scope: cacheOptions.scope,
+        ttl: cacheOptions.ttlSeconds,
+        sMaxAge: cacheOptions.sMaxAge || 0,
+        swr: cacheOptions.staleWhileRevalidate || 0,
+      })}
+const __tqCountCache = ${JSON.stringify({
+        scope: DataCache.countScopeFor(cacheOptions.scope),
+        // Its OWN keyspace, but the DATA scope's version row. A write bumps one
+        // row; if the count kept a separate version nothing would ever bump it,
+        // and the total would stay stale after every create and delete — the
+        // grid showing one more row than the pager counts.
+        versionScope: cacheOptions.scope,
+        ttl: cacheOptions.ttlSeconds,
+        sMaxAge: cacheOptions.sMaxAge || 0,
+        swr: cacheOptions.staleWhileRevalidate || 0,
+      })}
+
+const cachedHandler = tqWithCache(handler, __tqDataCache)
+const cachedGetCount = tqWithCache(getCount, __tqCountCache)
+`
+    : ''
+
+  const handlerExport = cacheOptions ? 'cachedHandler' : 'handler'
+  const countExport = cacheOptions ? 'cachedGetCount' : 'getCount'
+
   // For API routes, export just the handler function
   // For utils files, export the full object with all functions
-  const exports = isApiRoute
-    ? 'export default handler'
-    : `export { fetchData, fetchCount, handler, getCount }
+  //
+  // The uncached branch is spelled out verbatim rather than interpolated, so an
+  // uncached project keeps generating byte-identical output — `handler as
+  // handler` would be harmless at runtime and still a diff in every snapshot.
+  const exports = !cacheOptions
+    ? isApiRoute
+      ? 'export default handler'
+      : `export { fetchData, fetchCount, handler, getCount }
 export default { fetchData, fetchCount, handler, getCount }`
+    : isApiRoute
+    ? `export default ${handlerExport}`
+    : `export { fetchData, fetchCount, ${handlerExport} as handler, ${countExport} as getCount }
+export default { fetchData, fetchCount, handler: ${handlerExport}, getCount: ${countExport} }`
 
-  return `${allImports.join('\n')}
+  return `${[...allImports, cachePreamble].filter(Boolean).join('\n')}
 
 async function fetchData(params = {}) {
   const req = {
@@ -314,7 +368,7 @@ async function fetchData(params = {}) {
     },
   }
   
-  await handler(req, res)
+  await ${handlerExport}(req, res)
   
   if (statusCode !== 200 || !result || !result.success) {
     throw new Error(result?.error || 'Failed to fetch data')
@@ -343,7 +397,7 @@ async function fetchCount(params = {}) {
     },
   }
   
-  await getCount(req, res)
+  await ${countExport}(req, res)
   
   if (statusCode !== 200 || !result || !result.success) {
     throw new Error(result?.error || 'Failed to get count')
@@ -355,7 +409,7 @@ async function fetchCount(params = {}) {
 ${countFetcherWithoutImports}
 
 ${handlerWithoutImports}
-
+${cacheWiring}
 ${exports}
 `
 }

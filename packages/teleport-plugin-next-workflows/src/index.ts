@@ -20,6 +20,7 @@ export {
   hasStreamingAINode,
 } from './api-route-generator'
 export { generateTriggerCode } from './trigger-generator'
+export { generatePgClientCode } from './pg-client-code'
 export {
   SESSION_TOKEN_RESOLVER_FN,
   generateSessionTokenResolverCode,

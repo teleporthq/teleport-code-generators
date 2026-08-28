@@ -7,6 +7,7 @@ import { accountGetCurrent } from './account/account-get-current'
 import { accountHashPassword } from './account/account-hash-password'
 import { accountLogin } from './account/account-login'
 import { accountLogout } from './account/account-logout'
+import { accountRefreshSession } from './account/account-refresh-session'
 import { accountSignup } from './account/account-signup'
 import { accountSocialLogin } from './account/account-social-login'
 import { audioPlay } from './audio/audio-play'
@@ -33,6 +34,9 @@ import { browserSpeechToText } from './browser/browser-speech-to-text'
 import { browserSubscribeToPush } from './browser/browser-subscribe-to-push'
 import { browserTextToSpeech } from './browser/browser-text-to-speech'
 import { browserWriteClipboard } from './browser/browser-write-clipboard'
+import { cacheGet } from './cache/cache-get'
+import { cacheSet } from './cache/cache-set'
+import { cacheInvalidate } from './cache/cache-invalidate'
 import { cartAddItem } from './cart/cart-add-item'
 import { cartClear } from './cart/cart-clear'
 import { cartGetItems } from './cart/cart-get-items'
@@ -170,6 +174,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'account-hash-password': accountHashPassword,
   'account-login': accountLogin,
   'account-logout': accountLogout,
+  'account-refresh-session': accountRefreshSession,
   'account-signup': accountSignup,
   'account-social-login': accountSocialLogin,
   'audio-play': audioPlay,
@@ -285,6 +290,9 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'storage-session-get': storageSessionGet,
   'storage-session-remove': storageSessionRemove,
   'storage-session-set': storageSessionSet,
+  'cache-get': cacheGet,
+  'cache-set': cacheSet,
+  'cache-invalidate': cacheInvalidate,
   'toast-show': toastShow,
   'transform-array': transformArray,
   'transform-calculate': transformCalculate,

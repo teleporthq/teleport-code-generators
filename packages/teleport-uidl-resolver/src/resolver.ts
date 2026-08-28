@@ -12,6 +12,7 @@ import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
 import { resolveHtmlNode } from './resolvers/embed-node'
 import { resolveUnboundExpressions } from './resolvers/unbound-expressions'
+import { resolveHtmlNesting } from './resolvers/html-nesting'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -63,6 +64,15 @@ export default class Resolver {
 
     utils.resolveNode(uidl.node, newOptions)
     utils.resolveNodeInPropDefinitions(uidl, newOptions)
+
+    // Element types are concrete HTML tags from here on, which is the earliest
+    // point at which the markup can be checked against the HTML content model.
+    // Nesting the parser refuses to keep (a `<div>` inside a `<p>`, a `<form>`
+    // inside a `<form>`) makes the served HTML parse into a different tree than
+    // the one that was rendered, and React then fails to hydrate the page.
+    if (!newOptions.skipHtmlNestingResolver) {
+      resolveHtmlNesting(uidl, newOptions)
+    }
 
     // Guard against `expr` nodes that reference an out-of-scope identifier
     // (e.g. an orphaned `<option>{{ cat.name }}</option>` whose repeater was

@@ -1,7 +1,28 @@
-import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import type { GeneratorOptions } from '@teleporthq/teleport-types'
+import { StorefrontTax } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
-import { generateEcommerceProductTransformationCode } from './ecommerce-product'
+import {
+  generateEcommerceProductTransformationCode,
+  type EcommerceProductTransformOptions,
+} from './ecommerce-product'
+
+export type { EcommerceProductTransformOptions }
+
+/**
+ * Collects everything the product transform bakes in from the generator
+ * options, in ONE place so every fetcher-emitting call site stays in step.
+ *
+ * `storefrontTaxRate` is what turns a NET catalogue price into the price the
+ * shopper is quoted; `resolveStorefrontTaxRate` returns 0 (a no-op) for
+ * tax-inclusive or untaxed stores.
+ */
+export const buildProductTransformOptions = (
+  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings'>
+): EcommerceProductTransformOptions => ({
+  categories: options.ecommerceSettings?.categories,
+  storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
+})
 
 export type TransformationType = 'blog-post' | 'ecommerce-product' | null
 
@@ -51,7 +72,7 @@ export const detectTransformationType = (tableName: string): TransformationType 
  */
 export const getTransformationCode = (
   tableName: string,
-  categories?: UIDLEcommerceCategory[]
+  options: EcommerceProductTransformOptions = {}
 ): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
@@ -64,7 +85,7 @@ export const getTransformationCode = (
     case 'blog-post':
       return shared + generateBlogPostTransformationCode()
     case 'ecommerce-product':
-      return shared + generateEcommerceProductTransformationCode(categories)
+      return shared + generateEcommerceProductTransformationCode(options)
     default:
       return ''
   }

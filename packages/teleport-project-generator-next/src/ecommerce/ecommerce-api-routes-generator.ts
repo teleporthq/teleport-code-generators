@@ -1,4 +1,5 @@
-import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
+import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import { EmailDate, StorefrontTax } from '@teleporthq/teleport-shared'
 import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
 
 // The settings payload every workflow-facing consumer shares: the
@@ -627,9 +628,17 @@ export const generateDeliveryPriceApiRoute = (settings: UIDLEcommerceSettings): 
 export const generateOrderNotificationApiRoute = (
   settings: UIDLEcommerceSettings,
   dataSourceType: string | null = null,
-  dataSourceConfig: Record<string, unknown> | null = null
+  dataSourceConfig: Record<string, unknown> | null = null,
+  invoiceSettings?: UIDLInvoiceSettings
 ): string => {
   const config = settings.orderNotificationConfig
+  // `teleport_order_items` stores NET prices — the invoice route re-derives VAT
+  // from them — so the merchant's copy of the order grosses them here, at the
+  // point of display, exactly like the workflow-sent twin
+  // (`buildOrderEmailPayloadScript` in the editor).
+  const storefrontTaxHelper = StorefrontTax.generateStorefrontTaxHelperCode(
+    StorefrontTax.resolveStorefrontTaxRate(invoiceSettings)
+  )
   if (!config || !config.provider) {
     return `export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -712,6 +721,40 @@ async function loadOrderItems() {
   // utils/ecommerce/email-sender module, which encapsulates the
   // provider switch + logging + error normalisation.
   return `var sender = require('../../../utils/ecommerce/email-sender')
+${storefrontTaxHelper}
+
+// Re-prices one payload's item rows for display. Returns the SAME array when the
+// store adds no tax, so an untaxed project renders byte-identical output.
+//
+// Both spellings are re-priced because one payload feeds two renderers: the
+// camelCase fields drive the {{itemsList}} <ul>, the snake_case ones a builder
+// template's row block. The line total is derived from the GROSS UNIT times the
+// quantity, so the two figures on a row multiply out exactly.
+function grossOrderItems(items) {
+  if (!Array.isArray(items) || STOREFRONT_TAX_RATE <= 0) return items || []
+  return items.map(function (item) {
+    var row = Object.assign({}, item)
+    var qty = Number(row.quantity) || 1
+    var netUnit =
+      Number(
+        row.unitPrice != null
+          ? row.unitPrice
+          : row.unit_price != null
+          ? row.unit_price
+          : row.price
+      ) || 0
+    var grossUnit = applyStorefrontTax(netUnit)
+    var grossTotal = Math.round(grossUnit * qty * 100) / 100
+    if (row.unitPrice != null || row.price != null) row.unitPrice = grossUnit
+    if (row.totalPrice != null) row.totalPrice = grossTotal
+    if (row.price != null) row.price = grossUnit
+    row.unit_price = grossUnit.toFixed(2)
+    row.line_total = grossTotal.toFixed(2)
+    return row
+  })
+}
+
+${EmailDate.generateEmailDateHelperCode('formatOrderDate')}
 ${dbImport ? `${dbImport}\n` : ''}${orderItemsLoader}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -745,12 +788,26 @@ export default async function handler(req, res) {
     // orderId is provided we fall back to that so the customer-
     // facing "Order ID" line still renders.
     const resolvedOrderNumber = orderNumber || orderId || ''
-    const itemsArr = Array.isArray(items) && items.length > 0 ? items : await loadOrderItems(orderId)
+    // The caller's own snapshot of the cart, kept separate from the DB
+    // fallback: it is the only source that is known-complete at the moment
+    // this route runs, so it — and only it — can tell the invoice endpoint how
+    // many lines the finished order will have. See the \`expectedItemCount\`
+    // hand-off further down.
+    const callerItems = Array.isArray(items) && items.length > 0 ? items : null
+    // Every source of lines is NET — a caller's cart (the data-create-item
+    // auto-fire) and the order's persisted lines alike — so they are grossed
+    // HERE, once, whichever way they arrived.
+    const itemsArr = grossOrderItems(callerItems || await loadOrderItems(orderId))
     const itemsCount = itemsArr.reduce(function(sum, it) {
       var q = Number(it && it.quantity) || 1
       return sum + q
     }, 0) || itemsArr.length
-    const formattedDate = orderDate || new Date().toISOString().substring(0, 10)
+    // Every caller reaches this route with a different date shape — the
+    // data-create-item auto-fire sends none, the payment webhooks forward the
+    // provider's ISO timestamp. A merge token carries only a field name, so
+    // whatever lands in \`orderDate\` is what the merchant reads: format it here
+    // rather than trusting the caller.
+    const formattedDate = formatOrderDate(orderDate || new Date())
 
     // Escape HTML so a product name with "<" or "&" can't break the
     // markup or carry through as an XSS vector if the merchant
@@ -897,10 +954,23 @@ export default async function handler(req, res) {
         // payment webhooks use when self-fetching this API.
         var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https')
         var __invoiceUrl = __proto + '://' + req.headers.host + '/api/invoices/generate'
+        // Hand the invoice endpoint the number of lines this order will have.
+        // We are called by the data-create-item auto-fire the instant the order
+        // row lands — BEFORE checkout's item loop has written the order lines —
+        // so an invoice built from whatever rows exist right now comes out
+        // short (one line, and a total that doesn't match what the buyer paid).
+        // The count lets /api/invoices/generate wait for the rest of the lines
+        // instead of racing them. Only sent when the caller supplied the cart
+        // itself: a count re-read from the database could be just as truncated,
+        // and would make the wait a no-op.
+        var __invoicePayload = { orderId: orderId }
+        if (callerItems) {
+          __invoicePayload.expectedItemCount = callerItems.length
+        }
         var __invoiceResp = await fetch(__invoiceUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: orderId }),
+          body: JSON.stringify(__invoicePayload),
         })
         if (!__invoiceResp.ok) {
           var __invoiceErrBody = ''

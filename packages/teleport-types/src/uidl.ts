@@ -117,6 +117,35 @@ export interface UIDLDataSourceResourceDefinition {
   dataSourceType: DataSourceType
 }
 
+/**
+ * Caching for a data-source-backed list.
+ *
+ * Keyed by the WHOLE request shape (filters + sort + search + page), which the
+ * generated `params` object already is, so a repeated combination costs no
+ * database query. `versionScope` is what one invalidation clears: every entry
+ * for that table, across every mapper, page, filter and page number.
+ *
+ * ⛔ `server: true` means one cached entry is served to EVERY visitor. It must
+ * never be set for a list whose rows are scoped to the signed-in visitor. The
+ * GUI decides that (page auth + user-ownership filter columns) and the code
+ * generator independently re-checks that the emitted handler is a pure function
+ * of the URL before it may share anything.
+ */
+export interface UIDLDataCacheConfig {
+  enabled: boolean
+  /** One user-facing duration, in seconds, applied to both layers. */
+  ttlSeconds?: number
+  /** Per-visitor cache in the browser. */
+  client?: boolean
+  /** In-process cache on the server, shared between visitors. */
+  server?: boolean
+  /** `Cache-Control: s-maxage`. Opt-in, and refusable at generation time. */
+  cdnSMaxAge?: number
+  cdnStaleWhileRevalidate?: number
+  /** `<dataSourceId>:<tableName>` — the unit of invalidation. */
+  versionScope?: string
+}
+
 export interface UIDLAuthProvider {
   id: string
   name: string
@@ -988,6 +1017,24 @@ export interface UIDLCMSListRepeaterNodeContent {
   searchUrlParamKey?: string
   sort?: UIDLStaticValue | UIDLExpressionValue
   sortDirection?: UIDLStaticValue | UIDLExpressionValue
+  /**
+   * Whether the rows this repeater draws are still being fetched.
+   *
+   * A repeater whose `source` is a data source is wrapped in a `DataProvider`,
+   * which owns that question and answers it through `renderLoading`. A repeater
+   * fed by a plain STATE has no provider at all, so nothing could tell it that a
+   * fetch was in flight and its `nodes.loading` branch was unreachable in the
+   * generated code. This is that signal: when it resolves to `true` (or the
+   * string `'true'`, which is what a generated string state holds), the `loading`
+   * branch renders INSTEAD of the repeater.
+   *
+   * ⛔ Never set this on a data-source-backed repeater: its loading branch is
+   * hoisted onto the `DataProvider` (`hoistLoadingFromRepeaterToDataSource`), so
+   * the two would render the same branch twice.
+   */
+  isLoading?: UIDLStaticValue | UIDLExpressionValue
+  /** Per-mapper caching. Overrides the data-source-level default below. */
+  cache?: UIDLDataCacheConfig
 }
 
 export interface UIDLDataSourceItemNode {

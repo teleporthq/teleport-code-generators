@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-workflows",
-  "version": "0.43.55",
+  "version": "0.43.58",
   "description": "A plugin for workflow code generation in Next.js projects.",
   "author": "teleportHQ",
   "license": "MIT",
@@ -66,7 +66,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.43.54",
-    "@teleporthq/teleport-types": "^0.43.54"
+    "@teleporthq/teleport-shared": "^0.43.57",
+    "@teleporthq/teleport-types": "^0.43.57"
   }
 }
