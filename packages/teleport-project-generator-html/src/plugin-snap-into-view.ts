@@ -1,11 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import {
-  FileType,
-  GeneratedFile,
-  ProjectPlugin,
-  ProjectPluginStructure,
-  UIDLElement,
-} from '@teleporthq/teleport-types'
+import { ProjectPlugin, ProjectPluginStructure, UIDLElement } from '@teleporthq/teleport-types'
+import { appendGlobalCss } from './global-css'
 
 /**
  * "Snap into view" for the static HTML export. The Next export ships a small
@@ -42,13 +37,6 @@ export const projectUsesSnapIntoView = (uidl: ProjectPluginStructure['uidl']): b
   return used
 }
 
-const withInlineStyle = (html: string): string => {
-  const styleTag = `<style>\n${SNAP_INTO_VIEW_CSS}</style>\n`
-  return html.includes('</head>')
-    ? html.replace('</head>', `${styleTag}</head>`)
-    : `${styleTag}${html}`
-}
-
 export class ProjectPluginSnapIntoView implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     return structure
@@ -58,33 +46,7 @@ export class ProjectPluginSnapIntoView implements ProjectPlugin {
     if (!projectUsesSnapIntoView(structure.uidl)) {
       return structure
     }
-
-    const styleSheet = structure.files.get('projectStyleSheet')
-    const globalCss = styleSheet?.files.find((file) => file.fileType === FileType.CSS)
-    if (styleSheet && globalCss) {
-      structure.files.set('projectStyleSheet', {
-        ...styleSheet,
-        files: styleSheet.files.map((file: GeneratedFile) =>
-          file === globalCss
-            ? { ...file, content: `${file.content.trimEnd()}\n\n${SNAP_INTO_VIEW_CSS}` }
-            : file
-        ),
-      })
-      return structure
-    }
-
-    // No global stylesheet to extend (no tokens, no style sets): every page
-    // carries the rule inline instead.
-    structure.files.forEach((entry, key) => {
-      structure.files.set(key, {
-        ...entry,
-        files: entry.files.map((file: GeneratedFile) =>
-          file.fileType === FileType.HTML
-            ? { ...file, content: withInlineStyle(file.content) }
-            : file
-        ),
-      })
-    })
+    appendGlobalCss(structure, SNAP_INTO_VIEW_CSS)
     return structure
   }
 }

@@ -8,6 +8,7 @@ import HTMLTemplate from './project-template'
 import { pluginCloneGlobals, ProjectPluginCloneGlobals } from './plugin-clone-globals'
 import { pluginHomeReplace } from './plugin-home-replace'
 import { pluginSnapIntoView, ProjectPluginSnapIntoView } from './plugin-snap-into-view'
+import { pluginScrollRail, ProjectPluginScrollRail } from './plugin-scroll-rail'
 import { htmlErrorPageMapping } from './error-page-mapping'
 
 interface HTMLProjectGeneratorOptions {
@@ -66,7 +67,9 @@ export {
   pluginCloneGlobals,
   pluginHomeReplace,
   pluginSnapIntoView,
+  pluginScrollRail,
   htmlErrorPageMapping,
   ProjectPluginCloneGlobals,
   ProjectPluginSnapIntoView,
+  ProjectPluginScrollRail,
 }

@@ -6,6 +6,7 @@ import {
   pluginCloneGlobals,
   pluginHomeReplace,
   pluginSnapIntoView,
+  pluginScrollRail,
 } from '../../src'
 import HTMLTemplate from '../../src/project-template'
 import { FileType } from '@teleporthq/teleport-types'
@@ -107,6 +108,41 @@ describe('Html Project Generator', () => {
     expect(rulesCarrier).toContain('[data-snap-into-view="gentle"]')
     expect(rulesCarrier).not.toContain('mandatory')
     expect(aboutPage?.content).toContain('data-snap-into-view="firm"')
+  })
+
+  it('Scroll rail: CSS in the global stylesheet, the wheel script per page, only when used', async () => {
+    const plain = createHTMLProjectGenerator()
+    plain.addPlugin(pluginScrollRail)
+    const untouched = await plain.generateProject(uidlSample, HTMLTemplate)
+    untouched.files.forEach((file) => {
+      expect(file.content).not.toContain('scroll-snap-type: x')
+      expect(file.content).not.toContain('data-scroll-rail-wheel')
+    })
+
+    const uidl = JSON.parse(JSON.stringify(uidlSample))
+    const about = uidl.root.node.content.children.find(
+      (child: { content: { value?: string } }) => child.content.value === 'About'
+    )
+    about.content.node.content.attrs = {
+      ...(about.content.node.content.attrs || {}),
+      'data-scroll-rail-snap': { type: 'static', content: 'gentle' },
+      'data-scroll-rail-wheel': { type: 'static', content: 'true' },
+    }
+    const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginScrollRail)
+    const railed = await generator.generateProject(uidl, HTMLTemplate)
+
+    const globalCss = railed.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const aboutPage = railed.files.find(
+      (file) => file.name === 'about' && file.fileType === FileType.HTML
+    )
+    const rulesCarrier = globalCss ? globalCss.content : aboutPage?.content || ''
+    expect(rulesCarrier).toContain('scroll-snap-type: x proximity')
+    expect(rulesCarrier).toContain('scroll-snap-align: start')
+    expect(aboutPage?.content).toContain('data-scroll-rail-snap="gentle"')
+    expect(aboutPage?.content).toContain("addEventListener('wheel'")
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

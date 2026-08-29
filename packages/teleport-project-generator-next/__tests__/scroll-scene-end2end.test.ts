@@ -140,6 +140,46 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(scene?.content).toContain('root.style.backgroundColor = bodyBackground')
   })
 
+  it('Scroll rail behaviors ship their controller only when a container opts in', async () => {
+    const plain = await generator.generateProject(buildUidlWithScene(), template)
+    expect(findFile(plain, 'components', 'tq-scroll-rail')).toBeUndefined()
+
+    const uidl = buildUidlWithScene()
+    const indexPage = (uidl.root.node.content.children || []).find(
+      (child) =>
+        child.type === 'conditional' && (child.content as { value?: string }).value === 'index'
+    )
+    ;(
+      indexPage as { content: { node: { content: { children: unknown[] } } } }
+    ).content.node.content.children.push({
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'card-rail',
+        style: { overflowX: { type: 'static', content: 'auto' } },
+        attrs: {
+          'data-scroll-rail-snap': { type: 'static', content: 'firm' },
+          'data-scroll-rail-wheel': { type: 'static', content: 'true' },
+          'data-scroll-rail-scrollbar': { type: 'static', content: 'hidden' },
+        },
+        children: [],
+      },
+    })
+    const railed = await generator.generateProject(uidl, template)
+    const runtime = findFile(railed, 'components', 'tq-scroll-rail')
+    expect(runtime?.content).toContain('scroll-snap-type: x mandatory')
+    expect(runtime?.content).toContain('scroll-snap-align: start')
+    expect(runtime?.content).toContain('::-webkit-scrollbar { display: none; }')
+    expect(runtime?.content).toContain("addEventListener('wheel'")
+    // A snapping rail steps one item per gesture — a free nudge would be re-snapped at once.
+    expect(runtime?.content).toContain("rail.scrollTo({ left: next, behavior: 'smooth' })")
+    expect(findFile(railed, 'pages', '_app')?.content).toContain('<TqScrollRail />')
+    const page = findFile(railed, 'pages', 'index')?.content || ''
+    expect(page).toContain('data-scroll-rail-snap="firm"')
+    expect(page).toContain('data-scroll-rail-wheel="true"')
+    expect(page).toContain('data-scroll-rail-scrollbar="hidden"')
+  })
+
   it('Snap into view is an element option: the page-level controller ships only when used', async () => {
     const plain = await generator.generateProject(buildUidlWithScene(), template)
     expect(findFile(plain, 'components', 'tq-snap-into-view')).toBeUndefined()
