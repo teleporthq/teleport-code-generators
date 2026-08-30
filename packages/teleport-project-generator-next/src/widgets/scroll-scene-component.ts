@@ -248,7 +248,8 @@ const normalizeSceneLength = (value) => {
   if (!match) {
     return '300vh'
   }
-  return Math.min(800, Math.max(100, Number(match[1]))) + 'vh'
+  // Hard safety bound only — the editor owns the story-sized soft cap.
+  return Math.min(4000, Math.max(100, Number(match[1]))) + 'vh'
 }
 
 const TqScrollScene = ({
