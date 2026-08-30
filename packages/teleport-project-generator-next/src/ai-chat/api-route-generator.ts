@@ -1,4 +1,5 @@
 import { UIDLAIAssistantChat } from '@teleporthq/teleport-types'
+import { collectUnknownInformationMessages } from './localized-messages'
 
 function generateAuthGuardBlock(
   authProtection: NonNullable<UIDLAIAssistantChat['authProtection']>,
@@ -199,15 +200,21 @@ ${authGuard}
     // constant true, because the search always returns its top-K. The finished
     // answer is the only honest signal, and matching the model's own configured
     // fallback sentence is exact.
-    var UNKNOWN_INFORMATION_MESSAGE = ${JSON.stringify(
-      chat.chatSettings?.unknownInformationMessage || ''
-    )};
+    //
+    // On a multilingual project the model answers in the visitor's language and
+    // picks its refusal from the list the system prompt gives it, so EVERY
+    // language's sentence has to be recognised here — matching only the main
+    // one would record a translated refusal as a covered answer.
+    var UNKNOWN_INFORMATION_MESSAGES = ${JSON.stringify(collectUnknownInformationMessages(chat))};
     function answeredFromKnowledge(answer) {
       var normalized = String(answer == null ? '' : answer).replace(/\\s+/g, ' ').trim().toLowerCase();
       if (!normalized) { return false; }
-      var fallback = UNKNOWN_INFORMATION_MESSAGE.replace(/\\s+/g, ' ').trim().toLowerCase();
-      if (!fallback) { return true; }
-      return normalized.indexOf(fallback) === -1;
+      for (var fi = 0; fi < UNKNOWN_INFORMATION_MESSAGES.length; fi++) {
+        var fallback = String(UNKNOWN_INFORMATION_MESSAGES[fi]).replace(/\\s+/g, ' ').trim().toLowerCase();
+        if (!fallback) { continue; }
+        if (normalized.indexOf(fallback) !== -1) { return false; }
+      }
+      return true;
     }
 ${
   streaming

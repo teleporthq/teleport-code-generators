@@ -21,6 +21,11 @@ import {
   generateGlobalCSSCode,
 } from './widget-generator'
 import { generateAuthWrapperCode } from './auth-wrapper-generator'
+import {
+  AI_CHAT_LOCALIZED_MESSAGES_FILE,
+  AI_CHAT_LOCALIZED_MESSAGES_PATH,
+  generateLocalizedMessagesCode,
+} from './localized-messages'
 import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
 
 export class NextAIChatProjectPlugin implements ProjectPlugin {
@@ -111,6 +116,21 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
           name: 'provider',
           fileType: FileType.JS,
           content: generateProviderCode(chat),
+        },
+      ],
+    })
+
+    // Emitted for every chat, single-language included: the hook, the API route
+    // and the chat component all resolve their copy through it, so having it
+    // unconditionally keeps those three free of "does this project have
+    // languages?" branches. It is one small map on a single-language project.
+    files.set('ai-chat-localized-messages', {
+      path: AI_CHAT_LOCALIZED_MESSAGES_PATH,
+      files: [
+        {
+          name: AI_CHAT_LOCALIZED_MESSAGES_FILE,
+          fileType: FileType.JS,
+          content: generateLocalizedMessagesCode(chat),
         },
       ],
     })

@@ -317,6 +317,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.invoiceSettings && {
         invoiceSettings: uidl.invoiceSettings,
       }),
+      ...(uidl.aiAssistantChat && {
+        aiAssistantChat: uidl.aiAssistantChat,
+      }),
       ...((uidl as unknown as Record<string, unknown>).pageLayoutMode && {
         pageLayoutMode: (uidl as unknown as Record<string, unknown>).pageLayoutMode as string,
       }),

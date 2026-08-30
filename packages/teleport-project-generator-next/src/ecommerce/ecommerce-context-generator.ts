@@ -360,7 +360,7 @@ function persistCartToDb(items) {
   const workflowSettingsGlobalCode = emitWorkflowSettingsGlobal
     ? `
 const WORKFLOW_ECOMMERCE_SETTINGS = ${JSON.stringify(
-        buildWorkflowEcommerceSettingsPayload(ecommerceSettings)
+        buildWorkflowEcommerceSettingsPayload(ecommerceSettings, invoiceSettings)
       )}
 if (typeof window !== 'undefined') {
   window.__teleportEcommerceSettings = WORKFLOW_ECOMMERCE_SETTINGS

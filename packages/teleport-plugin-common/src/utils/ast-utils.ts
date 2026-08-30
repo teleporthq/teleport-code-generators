@@ -22,6 +22,22 @@ import { balanceExpression, countUnclosedStaticParens } from './template-express
  * Converts HTML attribute names to React/JSX camelCase format
  * Preserves data-* and aria-* attributes as-is
  */
+/**
+ * React sets attributes on CUSTOM ELEMENTS (dash-named tags) verbatim, so
+ * camelCasing them is not just unnecessary — it breaks the element:
+ * `camera-controls` camelCased to `cameraControls` reaches the DOM as the
+ * meaningless `cameracontrols`. Web-component tags keep their attribute
+ * spelling untouched.
+ */
+export const isCustomElementTagName = (jsxNode: types.JSXElement): boolean => {
+  const name = jsxNode.openingElement.name
+  return name.type === 'JSXIdentifier' && name.name.includes('-')
+}
+
+export const resolveAttributeNameForTag = (jsxNode: types.JSXElement, attrName: string): string => {
+  return isCustomElementTagName(jsxNode) ? attrName : convertToReactAttributeName(attrName)
+}
+
 export const convertToReactAttributeName = (attrName: string): string => {
   if (attrName.startsWith('data-') || attrName.startsWith('aria-')) {
     return attrName
@@ -140,7 +156,7 @@ export const addDynamicAttributeToJSXTag = (
   prefix: string = '',
   t = types
 ) => {
-  const reactName = convertToReactAttributeName(name)
+  const reactName = resolveAttributeNameForTag(jsxASTNode, name)
   // Same rule as `createDynamicValueExpression`: with no prefix the value IS the
   // binding (React hooks state), so it must match the sanitised name
   // `createStateHookAST` declared — `value={class}` does not parse. With a
@@ -467,6 +483,7 @@ const REACT_BOOLEAN_DOM_PROPS = new Set([
   'muted',
   'loop',
   'playsInline',
+  'autoPlay',
   'controls',
   'async',
   'defer',
@@ -486,7 +503,7 @@ export const addAttributeToJSXTag = (
   attrValue?: boolean | unknown,
   t = types
 ) => {
-  const reactAttrName = convertToReactAttributeName(attrName)
+  const reactAttrName = resolveAttributeNameForTag(jsxNode, attrName)
   const nameOfAttribute = t.jsxIdentifier(reactAttrName)
   let attributeDefinition
   let normalizedValue: boolean | unknown = attrValue

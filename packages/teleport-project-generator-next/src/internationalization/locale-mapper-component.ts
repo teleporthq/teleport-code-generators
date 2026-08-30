@@ -5,6 +5,7 @@ import {
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const USE_ECOMMERCE_HOOK: UIDLDependency = {
   type: 'local',
@@ -233,6 +234,114 @@ const transformLanguageSwitcherLinks = (node: types.Node): boolean => {
   return false
 }
 
+/**
+ * The translation key `node-to-jsx` stashed in the placeholder span it emits for
+ * a translated child (`<span>{/* locale-<key> *\/}</span>`).
+ */
+const readLocaleReferenceKey = (localeRef: types.JSXElement): string | null => {
+  const expressionContainer = localeRef.children.find(
+    (child): child is types.JSXExpressionContainer => child.type === 'JSXExpressionContainer'
+  )
+  if (!expressionContainer) {
+    return null
+  }
+
+  const comment = expressionContainer.expression.innerComments?.[0]?.value
+  if (!comment?.startsWith('locale-')) {
+    return null
+  }
+
+  return comment.replace('locale-', '') || null
+}
+
+/** `translate.raw('<key>')`, with the key sanitized exactly like the messages file. */
+const buildTranslationLookup = (key: string): types.CallExpression =>
+  types.callExpression(
+    types.memberExpression(types.identifier('translate'), types.identifier('raw')),
+    [types.stringLiteral(StringUtils.sanitizeTranslationKey(key))]
+  )
+
+/**
+ * Elements whose content model is TEXT ONLY. A translated child of one of these
+ * cannot go through the usual `dangerouslySetInnerHTML` span — `<option>` may not
+ * contain an element, so React would serialize markup the browser's parser then
+ * throws away, and the client would hydrate against a different tree than the
+ * server rendered.
+ */
+const TEXT_ONLY_ELEMENTS: ReadonlySet<string> = new Set(['option'])
+
+/** Node keys that hold positions or comments rather than child AST nodes. */
+const SKIP_WALK_KEYS: ReadonlySet<string> = new Set([
+  'loc',
+  'start',
+  'end',
+  'range',
+  'leadingComments',
+  'trailingComments',
+  'innerComments',
+])
+
+/**
+ * Inlines the translated children of text-only elements as a plain
+ * `{translate.raw('key')}` expression and returns the references it consumed, so
+ * the generic (HTML) pass leaves them alone.
+ *
+ * Safe because those elements can only ever hold a flat string: the studio links
+ * their copy as a `static` translation entry, which the messages file stores as
+ * the bare text rather than as rendered markup.
+ */
+const inlineTextOnlyLocaleReferences = (
+  node: types.Node | null | undefined,
+  localeRefs: Set<types.JSXElement>,
+  handled: Set<types.JSXElement> = new Set()
+): Set<types.JSXElement> => {
+  if (!node || typeof node !== 'object') {
+    return handled
+  }
+
+  if (
+    types.isJSXElement(node) &&
+    types.isJSXIdentifier(node.openingElement.name) &&
+    TEXT_ONLY_ELEMENTS.has(node.openingElement.name.name)
+  ) {
+    node.children = node.children.map((child) => {
+      if (!types.isJSXElement(child) || !localeRefs.has(child)) {
+        return child
+      }
+
+      const key = readLocaleReferenceKey(child)
+      if (!key) {
+        return child
+      }
+
+      handled.add(child)
+      return types.jsxExpressionContainer(buildTranslationLookup(key))
+    })
+  }
+
+  for (const property of Object.keys(node)) {
+    if (SKIP_WALK_KEYS.has(property)) {
+      continue
+    }
+
+    const value = (node as unknown as Record<string, unknown>)[property]
+    if (Array.isArray(value)) {
+      value.forEach((child) => {
+        if (child && typeof (child as { type?: string }).type === 'string') {
+          inlineTextOnlyLocaleReferences(child as types.Node, localeRefs, handled)
+        }
+      })
+      continue
+    }
+
+    if (value && typeof (value as { type?: string }).type === 'string') {
+      inlineTextOnlyLocaleReferences(value as types.Node, localeRefs, handled)
+    }
+  }
+
+  return handled
+}
+
 export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = () => {
   const nextInternationalization: ComponentPlugin = async (structure) => {
     const { chunks } = structure
@@ -256,27 +365,47 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
 
     let useTranslationsInBody = useTranslationsAlreadyInBody(componentBody.body)
 
-    for (const localeRef of jsxComponent.meta?.localeReferences || []) {
-      const localeRefExpression: types.JSXExpressionContainer | undefined = localeRef.children.find(
-        (item): item is types.JSXExpressionContainer => item.type === 'JSXExpressionContainer'
-      )
-      const reference = localeRefExpression.expression.innerComments[0]?.value?.replace(
-        'locale-',
-        ''
-      )
-      const refRawExpression = types.callExpression(
-        types.memberExpression(types.identifier('translate'), types.identifier('raw')),
-        [types.stringLiteral(reference)]
-      )
+    // Translated ATTRIBUTES (placeholder, alt, title, aria-label, …). `node-to-jsx`
+    // emitted each one with the main-language text so a framework without an i18n
+    // plugin still ships readable markup; here the value becomes the runtime
+    // lookup. `.raw` is used for the same reason the children below use it — the
+    // stored value is a plain string and must not be run through next-intl's ICU
+    // parser, which treats `{` as the start of a placeholder.
+    const localeAttributeReferences = jsxComponent.meta?.localeAttributeReferences || []
+    for (const { attribute, key } of localeAttributeReferences) {
+      attribute.value = types.jsxExpressionContainer(buildTranslationLookup(key))
+    }
 
+    const localeReferences: types.JSXElement[] = jsxComponent.meta?.localeReferences || []
+
+    // Text-only parents (`<option>`) take their translation as a bare string
+    // BEFORE the pass below turns every remaining reference into markup.
+    const inlinedLocaleReferences = inlineTextOnlyLocaleReferences(
+      componentBody,
+      new Set(localeReferences)
+    )
+
+    for (const localeRef of localeReferences) {
+      if (inlinedLocaleReferences.has(localeRef)) {
+        continue
+      }
+
+      const reference = readLocaleReferenceKey(localeRef)
+
+      // The placeholder comment is dropped either way — a reference with no key
+      // has no messages entry to read, and leaving the comment behind would ship
+      // an empty span carrying `{/* locale- */}` into the page.
       localeRef.children = []
+      if (!reference) {
+        continue
+      }
 
       localeRef.openingElement.attributes.push(
         types.jsxAttribute(
           types.jsxIdentifier('dangerouslySetInnerHTML'),
           types.jsxExpressionContainer(
             types.objectExpression([
-              types.objectProperty(types.identifier('__html'), refRawExpression),
+              types.objectProperty(types.identifier('__html'), buildTranslationLookup(reference)),
             ])
           )
         )
@@ -284,9 +413,16 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     }
 
     const reactHooks: types.VariableDeclaration[] = []
-    structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+    const needsTranslations = localeReferences.length > 0 || localeAttributeReferences.length > 0
 
-    if (jsxComponent.meta?.localeReferences?.length > 0 && !useTranslationsInBody) {
+    // Registered only when something actually calls the hook: an unconditional
+    // import leaves `import { useTranslations } from 'next-intl'` unused on every
+    // page that holds no translated copy (the generated 404, for one).
+    if (needsTranslations || useTranslationsInBody) {
+      structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+    }
+
+    if (needsTranslations && !useTranslationsInBody) {
       const translationsAST = types.variableDeclaration('const', [
         types.variableDeclarator(
           types.identifier('translate'),

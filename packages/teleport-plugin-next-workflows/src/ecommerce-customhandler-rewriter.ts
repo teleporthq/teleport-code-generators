@@ -56,6 +56,11 @@ import {
   readSuccessUrlPrefix,
   resolveOrderDetailsRoutePrefix,
 } from './ecommerce/order-details-route'
+import {
+  rewriteParameterizedStockChainInNodes,
+  rewriteVariantPickerStockGate,
+  ParameterizedChainRewriteSummary,
+} from './ecommerce/parameterized-stock-chain'
 
 const DEFAULT_THRESHOLD = 5
 
@@ -64,6 +69,14 @@ interface RewriteContext {
   stockManagementEnabled: boolean
   lowStockAlertsEnabled: boolean
   allowBackorders: boolean
+  // TRUE when stock levels must never gate purchasability in the storefront:
+  // the merchant disabled stock management entirely OR opted into backorders.
+  // Drives the variant-picker gate re-bake. Mirrors the GUI rule in
+  // `apps/gui/.../features/e-commerce/utils/product-variants.ts`
+  // (`isVariantInStock`) and the product transform's ALLOW_BACKORDERS bake in
+  // teleport-plugin-next-data-source. FALSE when the project has no
+  // e-commerce settings at all (nothing to re-bake there).
+  stockNeverBlocks: boolean
 }
 
 const buildContext = (uidl: ProjectUIDL): RewriteContext => {
@@ -98,7 +111,14 @@ const buildContext = (uidl: ProjectUIDL): RewriteContext => {
   // FALSE (refuse to go negative) because that matches what most merchants
   // expect and what the existing stock-check endpoint already assumes.
   const allowBackorders = !!(cfg && cfg.allowBackorders === true)
-  return { threshold, stockManagementEnabled, lowStockAlertsEnabled, allowBackorders }
+  const stockNeverBlocks = !!ecom && (!stockManagementEnabled || allowBackorders)
+  return {
+    threshold,
+    stockManagementEnabled,
+    lowStockAlertsEnabled,
+    allowBackorders,
+    stockNeverBlocks,
+  }
 }
 
 // Marker string embedded in every replacement we emit. Single source
@@ -409,6 +429,8 @@ interface RewriteSummary {
   addToCartLimitCheckRewrites: number
   orderNumberGeneratorRewrites: number
   orderOwnershipRewrites: number
+  variantPickerGateRewrites: number
+  parameterizedChain: ParameterizedChainRewriteSummary
 }
 
 // Walks the project UIDL, locates every workflow node that matches one of
@@ -426,6 +448,13 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
     addToCartLimitCheckRewrites: 0,
     orderNumberGeneratorRewrites: 0,
     orderOwnershipRewrites: 0,
+    variantPickerGateRewrites: 0,
+    parameterizedChain: {
+      deltasBuilderRewrites: 0,
+      decrementQueryRewrites: 0,
+      lowStockSelectRewrites: 0,
+      skippedChains: 0,
+    },
   }
   if (!uidl.workflows || !uidl.workflows.workflows) {
     return summary
@@ -556,17 +585,56 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
         summary.orderOwnershipRewrites++
         continue
       }
+      // Storefront variant-picker click resolver. Its `inStock` gate is
+      // re-baked from the CURRENT settings in either direction: with
+      // backorders (or stock management off) a zero-stock combination stays
+      // selectable/addable; turning the setting back off restores the gate.
+      // Targeted line swap — see ecommerce/parameterized-stock-chain.ts.
+      const pickerRewrite = rewriteVariantPickerStockGate(code, ctx.stockNeverBlocks)
+      if (pickerRewrite !== null) {
+        node.config!.code = pickerRewrite
+        summary.variantPickerGateRewrites++
+        continue
+      }
     }
   }
 
-  const workflows = uidl.workflows.workflows as Record<string, { nodes?: unknown }>
+  const workflows = uidl.workflows.workflows as Record<string, { name?: string; nodes?: unknown }>
   for (const wf of Object.values(workflows)) {
     visit(wf && wf.nodes)
   }
 
-  const customNodes = (uidl.workflows.customNodes || {}) as Record<string, { nodes?: unknown }>
+  const customNodes = (uidl.workflows.customNodes || {}) as Record<
+    string,
+    { name?: string; nodes?: unknown }
+  >
   for (const cn of Object.values(customNodes)) {
     visit(cn && cn.nodes)
+  }
+
+  // Parameterized stock chain (data-raw-query decrement + low-stock SELECT +
+  // their cart-deltas data builder): made variant-aware and re-baked from the
+  // current settings (threshold, backorders) on every generation. Gated on
+  // stockManagement like the legacy decrement rewrite — when the merchant
+  // turned stock management off entirely we leave the workflow alone. See
+  // ecommerce/parameterized-stock-chain.ts for the shapes and the contract.
+  if (ctx.stockManagementEnabled) {
+    for (const wf of Object.values(workflows)) {
+      rewriteParameterizedStockChainInNodes(
+        wf && wf.nodes,
+        (wf && wf.name) || 'workflow',
+        { threshold: ctx.threshold, allowBackorders: ctx.allowBackorders },
+        summary.parameterizedChain
+      )
+    }
+    for (const cn of Object.values(customNodes)) {
+      rewriteParameterizedStockChainInNodes(
+        cn && cn.nodes,
+        (cn && cn.name) || 'customNode',
+        { threshold: ctx.threshold, allowBackorders: ctx.allowBackorders },
+        summary.parameterizedChain
+      )
+    }
   }
 
   // Legacy UIDLs (and any future AI drift that puts the stock chain

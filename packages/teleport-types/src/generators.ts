@@ -22,8 +22,9 @@ import {
   UIDLAuthentication,
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
+  UIDLAIAssistantChat,
 } from './uidl'
-import type { JSXElement } from '@babel/types'
+import type { JSXAttribute, JSXElement } from '@babel/types'
 
 export enum FileType {
   CSS = 'css',
@@ -44,6 +45,21 @@ export enum ChunkType {
 export type ChunkContent = string | unknown
 
 /**
+ * A JSX attribute whose value must be replaced with the target framework's
+ * translation lookup for `key` (e.g. `placeholder={translate.raw('key')}` for
+ * next-intl).
+ *
+ * `node-to-jsx` emits the attribute with the main-language text so that every
+ * framework without a locale plugin still produces valid, readable markup; the
+ * framework's i18n plugin then rewrites the recorded attributes in place. This
+ * mirrors how `localeReferences` works for translated CHILDREN.
+ */
+export interface UIDLLocaleAttributeReference {
+  attribute: JSXAttribute
+  key: string
+}
+
+/**
  * React could have one or more JS chunks, nothing else.
  * Vue has a template chunk, of type XML/HTML, a javascript
  * chunk and a style chunk
@@ -58,6 +74,7 @@ export interface ChunkDefinition {
     } & Record<string, unknown>
     dynamicRefPrefix?: Record<string, unknown>
     localeReferences?: JSXElement[]
+    localeAttributeReferences?: UIDLLocaleAttributeReference[]
     globalReferences?: Array<UIDLGlobalReference['content']['id']>
     globalStateReferences?: Array<{ id: string; name: string }>
   } & Record<string, unknown>
@@ -215,6 +232,12 @@ export interface GeneratorOptions {
   // `pageHasSameTableMutationWorkflow` in teleport-plugin-next-static-props /
   // teleport-plugin-next-static-paths), independent of layout mode.
   pageLayoutMode?: string
+  // Project-level AI assistant chat settings, plumbed down so a component
+  // plugin can localize the chat component's initial `chatMessages` state.
+  // That welcome text is a state VALUE, not a text node, so the locale
+  // machinery that rewrites translated NODES (`useTranslations`) cannot reach
+  // it — the plugin has to read the per-locale copy from here.
+  aiAssistantChat?: UIDLAIAssistantChat
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

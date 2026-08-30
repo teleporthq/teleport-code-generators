@@ -50,7 +50,7 @@ import {
   objectToObjectExpression,
   parseStringWithTemplateExpressions,
   parseJSExpressionAsAST,
-  convertToReactAttributeName,
+  resolveAttributeNameForTag,
   convertValueToLiteral,
   GLOBAL_REF_ID_MAP,
   sanitizeExprContent,
@@ -1044,7 +1044,7 @@ const addAttributesToJSXTag = (
           const globalExpr = createDynamicValueExpression(normRef, options)
           elementTag.openingElement.attributes.push(
             types.jsxAttribute(
-              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
               types.jsxExpressionContainer(globalExpr)
             )
           )
@@ -1060,10 +1060,37 @@ const addAttributesToJSXTag = (
           const expr = createGlobalStateExpression(dynamicRef as any, params.globalStateDefinitions)
           elementTag.openingElement.attributes.push(
             types.jsxAttribute(
-              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
               types.jsxExpressionContainer(expr)
             )
           )
+          break
+        }
+
+        // A translated attribute (`placeholder`, `alt`, `title`, `aria-label`, …).
+        // It cannot be emitted the way a translated CHILD is — that path produces a
+        // `<span>` the framework plugin fills through `dangerouslySetInnerHTML`, and
+        // an attribute needs a plain string. So the attribute is written with the
+        // main-language text (carried on the reference's `fallback`) and recorded on
+        // `params.localeAttributeReferences`; the target framework's i18n plugin
+        // rewrites the recorded attributes into its own translation lookup — see
+        // `createNextInternationalizationPlugin`. A framework without such a plugin
+        // keeps the main-language string, which is valid, readable markup.
+        if (referenceType === 'locale') {
+          const translationKey = dynamicRef.content.id
+          if (!translationKey) {
+            break
+          }
+
+          // `fallback` only exists on the plain reference member of the union, and
+          // narrowing happened on the destructured `referenceType`, not on the ref.
+          const { fallback } = dynamicRef.content as { fallback?: string | number | boolean }
+          const attribute = types.jsxAttribute(
+            types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
+            types.stringLiteral(StringUtils.encode(fallback === undefined ? '' : String(fallback)))
+          )
+          elementTag.openingElement.attributes.push(attribute)
+          params.localeAttributeReferences.push({ attribute, key: translationKey })
           break
         }
 
@@ -1120,7 +1147,7 @@ const addAttributesToJSXTag = (
           params.hoistedConstants.push({ name: constName, expression })
           elementTag.openingElement.attributes.push(
             types.jsxAttribute(
-              types.jsxIdentifier(convertToReactAttributeName(attrKey)),
+              types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
               types.jsxExpressionContainer(types.identifier(constName))
             )
           )

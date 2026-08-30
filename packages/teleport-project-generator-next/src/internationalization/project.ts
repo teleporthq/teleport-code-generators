@@ -297,6 +297,19 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
   }
 
   async runBefore(structure: ProjectPluginStructure) {
+    // global-context.js (emitted in runAfter) imports `useLocale` from
+    // next-intl UNCONDITIONALLY, but the dependency normally only arrives
+    // through the locale-mapper component's UIDLDependency — which a project
+    // without any translated content never uses. Guarantee the dep BEFORE
+    // generation runs: `configContentGenerator` gates the _app
+    // <NextIntlProvider> wrapper on this exact map entry, so a runAfter
+    // injection would ship a package.json WITH next-intl but an _app WITHOUT
+    // the provider — and `useLocale()` then throws while prerendering the
+    // 404/500 pages. Missing entirely instead fails `next build` with
+    // "Can't resolve 'next-intl'".
+    if (!structure.dependencies['next-intl']) {
+      structure.dependencies['next-intl'] = '2.10.0'
+    }
     return structure
   }
 

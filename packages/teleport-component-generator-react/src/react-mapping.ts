@@ -85,6 +85,23 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    // React renders the custom element directly; the side-effect import
+    // registers it. The BUNDLED build on purpose: it embeds three, so the
+    // standalone React target needs no peer-dependency plumbing (the react
+    // project generator has no plugin hook to pin `three` the way the Next
+    // generator does).
+    'model-viewer-node': {
+      elementType: 'model-viewer',
+      dependency: {
+        type: 'package',
+        path: '@google/model-viewer',
+        version: '4.3.1',
+        meta: {
+          importJustPath: true,
+          importAlias: '@google/model-viewer/dist/model-viewer.min.js',
+        },
+      },
+    },
   },
   events: {
     click: 'onClick',

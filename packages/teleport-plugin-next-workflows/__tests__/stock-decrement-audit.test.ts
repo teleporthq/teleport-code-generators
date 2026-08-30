@@ -567,7 +567,11 @@ describe('stock-write audit against the real example project UIDL', () => {
       return
     }
 
-    expect(audit.admin.length).toBeGreaterThanOrEqual(1)
+    // Admin CRUD sites only exist when the fixture bundles the admin panel —
+    // an AI store dump without admin pages is a valid fixture and must not
+    // fail the audit. When present they must classify as admin (checked
+    // below); the invariants that hold for EVERY ecommerce fixture are
+    // "the place-order decrement exists" and "nothing is unknown".
     expect(audit.orderDecrement.length).toBeGreaterThanOrEqual(1)
     expect(audit.unknown).toEqual([])
 

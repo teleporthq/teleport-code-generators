@@ -174,6 +174,14 @@ const preserveExistingEnv = (uidl: ProjectUIDL, envPath: string): void => {
 // `.vscode`, `.claude` and `CLAUDE.md` are editor/agent scaffolding dropped into
 // the generated project by tooling (or by hand) — the generator never emits
 // them, so wiping them would only cost the developer their setup.
+// `.next` is deliberately NOT preserved: it is a pure build cache, and keeping
+// it across a regeneration is how the "silent default _app" trap happens — a
+// dev server running during the clean sees `pages/_app.js` vanish, resolves
+// `private-next-pages/_app` to Next's BUILT-IN default `_app`, and caches that
+// in `.next`. Pages keep hot-reloading (so everything LOOKS fine) while every
+// app-level runtime shipped through `_app` (play-sound, model-viewer orbit
+// reset, nav active links, global state providers…) is silently gone until the
+// server restarts on a clean cache.
 const PRESERVE_ON_CLEAN = new Set([
   'node_modules',
   '.env',
@@ -181,7 +189,6 @@ const PRESERVE_ON_CLEAN = new Set([
   '.git',
   'package-lock.json',
   'yarn.lock',
-  '.next',
   '.vscode',
   '.claude',
   'CLAUDE.md',
@@ -201,11 +208,20 @@ const cleanGeneratedFiles = (projectDir: string): void => {
   if (!existsSync(projectDir)) {
     return
   }
+  const hadNextCache = existsSync(join(projectDir, '.next'))
   for (const entry of readdirSync(projectDir)) {
     if (PRESERVE_ON_CLEAN.has(entry)) {
       continue
     }
     rmSync(join(projectDir, entry), { recursive: true, force: true })
+  }
+  if (hadNextCache) {
+    console.warn(
+      chalk.yellow(
+        `\n[standalone] Wiped ${projectDir}/.next — if a dev server is running against this folder, RESTART it now.\n` +
+          `A server that watched the regeneration may have cached Next's default _app and silently dropped every app-level runtime.\n`
+      )
+    )
   }
 }
 
