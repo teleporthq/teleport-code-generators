@@ -75,6 +75,7 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(component?.content).toContain("'clip-y'")
     expect(component?.content).toContain("'count'")
     expect(component?.content).toContain('clipPath')
+    expect(component?.content).toContain('data-scene-hidden')
     expect(component?.content).toContain("setProperty('--tq-count'")
     expect(component?.content).toContain('[data-scroll-count]::before')
   })

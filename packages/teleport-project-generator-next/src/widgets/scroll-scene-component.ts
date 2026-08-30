@@ -40,6 +40,9 @@ const LANE_PROPS = [
 
 // Mirrors SCROLL_COUNT_ATTR / SCROLL_COUNT_CSS in the editor's lane contract.
 const COUNT_ATTR = 'data-scroll-count'
+const HIDDEN_ATTR = 'data-scene-hidden'
+const HIDDEN_CSS =
+  '[data-scene-hidden], [data-scene-hidden] * { pointer-events: none !important; }'
 const COUNT_CSS =
   '[data-scroll-count]::before { counter-reset: tq-count var(--tq-count, 0); content: counter(tq-count); }'
 const clampPercent = (value) => Math.min(100, Math.max(0, Math.round(value * 100) / 100))
@@ -178,6 +181,15 @@ const applyLanesAt = (element, lanes, p) => {
         break
       case 'opacity':
         element.style.opacity = String(value)
+        // A faded-out element must not swallow clicks (stacked chapters: the
+        // invisible top one would take every tap meant for the visible story).
+        // Attribute + CSS rule, never inline pointer-events, so lanes cannot
+        // overwrite a pointer-events the author set. Mirrors the editor.
+        if (value <= 0.02) {
+          element.setAttribute(HIDDEN_ATTR, '')
+        } else {
+          element.removeAttribute(HIDDEN_ATTR)
+        }
         break
       case 'blur':
         filterByProp.blur = 'blur(' + value + 'px)'
@@ -484,6 +496,8 @@ const TqScrollScene = ({
                 'html { overscroll-behavior-y: none; } ' +
                 '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; } ' +
                 COUNT_CSS +
+                ' ' +
+                HIDDEN_CSS +
                 (layout === 'chapters'
                   ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
                   : ''),
