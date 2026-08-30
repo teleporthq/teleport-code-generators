@@ -39,7 +39,21 @@ const ANCHOR_SAFE_ARIA_ATTRIBUTES = new Set([
   'aria-disabled', // For disabled links
 ])
 
+/* Attributes a per-element runtime reads (scroll-scene lanes, snap points,
+   scroll rails, chapter bookkeeping) stay on the styled element. The link
+   wrapper is display:contents whenever the parent lays out with flex/grid, and
+   a box-less element ignores opacity/transform/scroll properties — a lane
+   parked on the wrapper animates nothing, so a linked button stayed visible in
+   every chapter of a scene. */
+const RUNTIME_DATA_ATTRIBUTE_PREFIXES = ['data-scroll-', 'data-snap-', 'data-chapter-']
+
+export const isRuntimeDataAttribute = (attrName: string): boolean =>
+  RUNTIME_DATA_ATTRIBUTE_PREFIXES.some((prefix) => attrName.startsWith(prefix))
+
 const isAttributeSafeForAnchor = (attrName: string): boolean => {
+  if (isRuntimeDataAttribute(attrName)) {
+    return false
+  }
   return (
     ANCHOR_SAFE_ATTRIBUTES.has(attrName) ||
     attrName.startsWith('data-') ||

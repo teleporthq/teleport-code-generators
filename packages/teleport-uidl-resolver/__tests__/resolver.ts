@@ -34,6 +34,21 @@ describe('resolveElement', () => {
     expect(resolvedElement.attrs.dummy.content).toBe('remains here')
   })
 
+  it('drops editor-only chapter bookkeeping but keeps the runtime lanes', () => {
+    const chapter = element('container', {
+      'data-scroll-bind': staticNode('[{"prop":"opacity","at":[0,1],"values":[0,1]}]'),
+      'data-scroll-bind-rel': staticNode('[{"prop":"opacity","at":[0,1],"values":[0,1]}]'),
+      'data-chapter-window': staticNode('0-0.5'),
+      'data-chapter-template': staticNode('finale'),
+      'data-snap-into-view': staticNode('gentle'),
+    })
+    const resolver = new Resolver()
+    resolver.addMapping(mapping)
+    const resolved = resolver.resolveElement(chapter)
+
+    expect(Object.keys(resolved.attrs)).toEqual(['data-scroll-bind', 'data-snap-into-view'])
+  })
+
   it('maps a seflClosing tag', () => {
     const resolver = new Resolver()
     const imageElement = element('image', {

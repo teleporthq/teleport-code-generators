@@ -1,4 +1,5 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { wrapBodyCustomCode } from './body-code/body-code-component'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -72,8 +73,11 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   }
 
   if (customCode?.body) {
+    // Inert until TqBodyCode unpacks it after hydration — see body-code/.
     const divNode = ASTBuilders.createJSXTag('div')
-    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', { __html: customCode.body })
+    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', {
+      __html: wrapBodyCustomCode(customCode.body),
+    })
     ASTUtils.addChildJSXTag(bodyNode, divNode)
   }
 

@@ -157,6 +157,23 @@ export const resolveConditional = (condNode: UIDLConditionalNode, options: Gener
   }
 }
 
+/* Editor bookkeeping the runtimes never read: a chapter's relative lanes, its
+   window and template key only exist so the editor can re-split a scene when
+   chapters are added or removed. Shipping them costs the visitor bytes on every
+   animated element and nothing else. */
+export const EDITOR_ONLY_ATTRIBUTES = [
+  'data-scroll-bind-rel',
+  'data-chapter-window',
+  'data-chapter-template',
+]
+
+const stripEditorOnlyAttributes = (element: UIDLElement) => {
+  if (!element.attrs) {
+    return
+  }
+  EDITOR_ONLY_ATTRIBUTES.forEach((key) => delete element.attrs[key])
+}
+
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
   const { mapping, localDependenciesPrefix } = options
   const {
@@ -175,6 +192,8 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Setting up the name of the node based on the type, if it is not supplied
   originalElement.name = originalElement.name || originalElement.elementType
+
+  stripEditorOnlyAttributes(originalElement)
 
   // Mapping the type from the semantic type of the mapping
   // Semantic type has precedence as it is dictated by the user
