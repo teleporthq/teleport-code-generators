@@ -33,7 +33,16 @@ const LANE_PROPS = [
   'grayscale',
   'saturate',
   'brightness',
+  'clip',
+  'clip-y',
+  'count',
 ]
+
+// Mirrors SCROLL_COUNT_ATTR / SCROLL_COUNT_CSS in the editor's lane contract.
+const COUNT_ATTR = 'data-scroll-count'
+const COUNT_CSS =
+  '[data-scroll-count]::before { counter-reset: tq-count var(--tq-count, 0); content: counter(tq-count); }'
+const clampPercent = (value) => Math.min(100, Math.max(0, Math.round(value * 100) / 100))
 
 const LANE_PRESETS = {
   'depth-1': [{ prop: 'y', at: [0, 1], values: [40, -40] }],
@@ -181,6 +190,18 @@ const applyLanesAt = (element, lanes, p) => {
         break
       case 'brightness':
         filterByProp.brightness = 'brightness(' + value + ')'
+        break
+      case 'clip':
+        element.style.clipPath = 'inset(0 ' + clampPercent(100 - value) + '% 0 0)'
+        break
+      case 'clip-y':
+        element.style.clipPath = 'inset(0 0 ' + clampPercent(100 - value) + '% 0)'
+        break
+      case 'count':
+        element.style.setProperty('--tq-count', String(Math.round(value)))
+        if (!element.hasAttribute(COUNT_ATTR)) {
+          element.setAttribute(COUNT_ATTR, '')
+        }
         break
     }
   }
@@ -461,7 +482,8 @@ const TqScrollScene = ({
             dangerouslySetInnerHTML={{
               __html:
                 'html { overscroll-behavior-y: none; } ' +
-                '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; }' +
+                '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; } ' +
+                COUNT_CSS +
                 (layout === 'chapters'
                   ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
                   : ''),

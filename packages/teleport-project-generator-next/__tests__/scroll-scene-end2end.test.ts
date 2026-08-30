@@ -68,6 +68,17 @@ const findFile = (folder: GeneratedFolder, folderName: string, fileName: string)
 describe('Next generator with a Scroll Scene element', () => {
   const generator = createNextProjectGenerator()
 
+  it('ships the reveal and count lanes in the runtime, with the count rule', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithScene(), template)
+    const component = findFile(outputFolder, 'components', 'tq-scroll-scene')
+    expect(component?.content).toContain("'clip'")
+    expect(component?.content).toContain("'clip-y'")
+    expect(component?.content).toContain("'count'")
+    expect(component?.content).toContain('clipPath')
+    expect(component?.content).toContain("setProperty('--tq-count'")
+    expect(component?.content).toContain('[data-scroll-count]::before')
+  })
+
   it('renders <TqScrollScene> wrapping its children with data-scroll-bind intact', async () => {
     const outputFolder = await generator.generateProject(buildUidlWithScene(), template)
 
