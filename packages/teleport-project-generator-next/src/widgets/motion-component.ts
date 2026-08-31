@@ -96,18 +96,44 @@ const writeTransformProps = (css, state) => {
   }
 }
 
-const BLUR_RE = /^blur\\(([\\d.]+)px\\)$/
+// Composed filters (blur(10px) grayscale(1) -> blur(0px) grayscale(0))
+// interpolate function-by-function when both sides carry the same sequence —
+// mirrors the canvas contract.
+const FILTER_LIST_RE = /^(?:[a-z-]+\\(\\s*-?\\d*\\.?\\d+(?:px|deg|%)?\\s*\\)\\s*)+$/
+const FILTER_FN_RE = /([a-z-]+)\\(\\s*(-?\\d*\\.?\\d+)(px|deg|%)?\\s*\\)/g
+
+const interpolateFilter = (from, to, p) => {
+  if (!FILTER_LIST_RE.test(from.trim()) || !FILTER_LIST_RE.test(to.trim())) {
+    return null
+  }
+  const fromFns = Array.from(from.matchAll(FILTER_FN_RE))
+  const toFns = Array.from(to.matchAll(FILTER_FN_RE))
+  if (fromFns.length !== toFns.length || fromFns.length === 0) {
+    return null
+  }
+  const parts = []
+  for (let index = 0; index < fromFns.length; index++) {
+    const fn = fromFns[index][1]
+    const unit = fromFns[index][3] || ''
+    if (fn !== toFns[index][1] || unit !== (toFns[index][3] || '')) {
+      return null
+    }
+    const value =
+      parseFloat(fromFns[index][2]) +
+      (parseFloat(toFns[index][2]) - parseFloat(fromFns[index][2])) * p
+    parts.push(fn + '(' + value + unit + ')')
+  }
+  return parts.join(' ')
+}
 
 const interpolateValue = (from, to, p) => {
   if (typeof from === 'number' && typeof to === 'number') {
     return from + (to - from) * p
   }
   if (typeof from === 'string' && typeof to === 'string') {
-    const f = BLUR_RE.exec(from)
-    const t = BLUR_RE.exec(to)
-    if (f && t) {
-      const value = parseFloat(f[1]) + (parseFloat(t[1]) - parseFloat(f[1])) * p
-      return 'blur(' + value + 'px)'
+    const filter = interpolateFilter(from, to, p)
+    if (filter !== null) {
+      return filter
     }
   }
   return p >= 1 ? to : from
@@ -174,12 +200,45 @@ const presetStates = (preset, distance) => {
         from: { opacity: 0, y: distance, filter: 'blur(8px)' },
         to: { opacity: 1, y: 0, filter: 'blur(0px)' },
       }
+    case 'drop-in':
+      return {
+        from: { opacity: 0, y: -distance, scale: 1.05 },
+        to: { opacity: 1, y: 0, scale: 1 },
+      }
+    case 'swing-in':
+      return { from: { opacity: 0, rotate: -20, y: distance }, to: { opacity: 1, rotate: 0, y: 0 } }
+    case 'spin-in':
+      return {
+        from: { opacity: 0, rotate: -180, scale: 0.6 },
+        to: { opacity: 1, rotate: 0, scale: 1 },
+      }
+    case 'blur-zoom':
+      return {
+        from: { opacity: 0, scale: 1.35, filter: 'blur(10px)' },
+        to: { opacity: 1, scale: 1, filter: 'blur(0px)' },
+      }
+    case 'zoom-out':
+      return { from: { opacity: 0, scale: 1.4 }, to: { opacity: 1, scale: 1 } }
+    case 'develop':
+      return {
+        from: { opacity: 0, filter: 'blur(6px) grayscale(1)' },
+        to: { opacity: 1, filter: 'blur(0px) grayscale(0)' },
+      }
+    case 'glow-in':
+      return {
+        from: { opacity: 0, filter: 'brightness(1.8) saturate(0.4)' },
+        to: { opacity: 1, filter: 'brightness(1) saturate(1)' },
+      }
     // Attention loops: rest at the natural state (NO opacity ramp — a looping
     // opacity would strobe) and read as animation only when repeated (mirror).
     case 'pulse':
       return { from: { scale: 1 }, to: { scale: 1.06 } }
     case 'float':
       return { from: { y: 0 }, to: { y: -12 } }
+    case 'spin':
+      return { from: { rotate: 0 }, to: { rotate: 360 } }
+    case 'wobble':
+      return { from: { rotate: -3 }, to: { rotate: 3 } }
     case 'none':
       return { from: {}, to: {} }
     default:
