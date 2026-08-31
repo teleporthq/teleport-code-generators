@@ -448,6 +448,116 @@ const TqScrollScene = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion, reducedMotion, pin, applyAll, restack])
 
+  // Anchor navigation into a pinned scene. Chapters stack inside the sticky
+  // stage, so the browser's native jump to a chapter's id lands at the
+  // element's DOCUMENT position (the top of the track) — never at the moment
+  // the chapter is on stage. "Being at chapter three" is a scroll PROGRESS
+  // through the track, so hash navigation is translated: the target progress
+  // is the midpoint of the chapter's story window (data-chapter-window when
+  // the editor recorded one, else the span of its data-scroll-bind stops),
+  // and the page scrolls to trackTop + progress * (trackHeight - viewport).
+  // Same-page anchor clicks are intercepted for a single smooth ride; the
+  // hashchange listener covers programmatic navigation, and the mount pass
+  // covers arriving on a URL that already carries the hash.
+  React.useEffect(() => {
+    const track = trackRef.current
+    if (!track || !pin || typeof window === 'undefined') {
+      return undefined
+    }
+    const chapterRootFor = (target) => {
+      const stage = track.querySelector(':scope > [data-scene-stage]')
+      if (!stage || !stage.contains(target)) {
+        return null
+      }
+      let current = target
+      while (current && current.parentElement !== stage) {
+        current = current.parentElement
+      }
+      return current
+    }
+    const chapterProgress = (chapterRoot) => {
+      const recorded = String(chapterRoot.getAttribute('data-chapter-window') || '')
+        .split(',')
+        .map((part) => parseFloat(part))
+      if (recorded.length === 2 && recorded.every((value) => Number.isFinite(value))) {
+        return (recorded[0] + recorded[1]) / 2
+      }
+      const lanes = parseScrollBind(chapterRoot.getAttribute(SCROLL_BIND_ATTR))
+      const stops = lanes.flatMap((lane) => lane.at)
+      if (stops.length === 0) {
+        return null
+      }
+      return (Math.min.apply(null, stops) + Math.max.apply(null, stops)) / 2
+    }
+    const scrollToChapter = (id, behavior) => {
+      const target = id ? document.getElementById(id) : null
+      const chapterRoot = target ? chapterRootFor(target) : null
+      if (!chapterRoot) {
+        return false
+      }
+      const progress = chapterProgress(chapterRoot)
+      if (progress === null) {
+        return false
+      }
+      const rect = track.getBoundingClientRect()
+      const trackTop = rect.top + window.scrollY
+      const travel = Math.max(0, track.offsetHeight - window.innerHeight)
+      window.scrollTo({
+        top: trackTop + Math.min(1, Math.max(0, progress)) * travel,
+        behavior,
+      })
+      return true
+    }
+    const onClick = (event) => {
+      if (event.defaultPrevented || event.button !== 0) {
+        return
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return
+      }
+      const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null
+      if (!anchor) {
+        return
+      }
+      const href = anchor.getAttribute('href') || ''
+      const hashIndex = href.indexOf('#')
+      if (hashIndex === -1) {
+        return
+      }
+      const beforeHash = href.slice(0, hashIndex)
+      if (beforeHash && beforeHash !== window.location.pathname) {
+        return
+      }
+      const id = decodeURIComponent(href.slice(hashIndex + 1))
+      if (scrollToChapter(id, 'smooth')) {
+        event.preventDefault()
+        try {
+          window.history.pushState(null, '', '#' + id)
+        } catch (e) {
+          // history can refuse in sandboxed frames; the scroll already happened
+        }
+      }
+    }
+    const onHashChange = () => {
+      scrollToChapter(decodeURIComponent(window.location.hash.slice(1)), 'smooth')
+    }
+    document.addEventListener('click', onClick, true)
+    window.addEventListener('hashchange', onHashChange)
+    let settleTimer = 0
+    const initialId = decodeURIComponent(window.location.hash.slice(1))
+    if (initialId) {
+      window.requestAnimationFrame(() => scrollToChapter(initialId, 'auto'))
+      // late images/fonts shift the track's document position — one correction
+      settleTimer = window.setTimeout(() => scrollToChapter(initialId, 'auto'), 350)
+    }
+    return () => {
+      document.removeEventListener('click', onClick, true)
+      window.removeEventListener('hashchange', onHashChange)
+      window.clearTimeout(settleTimer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin])
+
   // MIN-heights, never exact heights — mirrors the canvas renderer: an exact
   // height turned any content taller than one screen into an overflow the next
   // section painted straight over. A minimum keeps the full-screen chapter look

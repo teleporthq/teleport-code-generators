@@ -78,6 +78,12 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(component?.content).toContain('data-scene-hidden')
     expect(component?.content).toContain("setProperty('--tq-count'")
     expect(component?.content).toContain('[data-scroll-count]::before')
+    // Anchor navigation into a pinned scene: hash targets are translated to
+    // the chapter's story-window progress, never left at the element's
+    // document position (which is the top of the track).
+    expect(component?.content).toContain('hashchange')
+    expect(component?.content).toContain('data-chapter-window')
+    expect(component?.content).toContain('scrollToChapter')
   })
 
   it('renders <TqScrollScene> wrapping its children with data-scroll-bind intact', async () => {
