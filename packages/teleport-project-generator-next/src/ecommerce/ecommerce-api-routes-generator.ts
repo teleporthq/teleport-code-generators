@@ -11,7 +11,8 @@ import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-p
 // the workflow node treats the baked global and the route response as
 // interchangeable.
 export const buildWorkflowEcommerceSettingsPayload = (
-  settings: UIDLEcommerceSettings
+  settings: UIDLEcommerceSettings,
+  invoiceSettings?: UIDLInvoiceSettings
 ): Record<string, unknown> => {
   const stockConfig = settings.stockManagementConfig
   return {
@@ -24,11 +25,24 @@ export const buildWorkflowEcommerceSettingsPayload = (
     cashOnDelivery: settings.cashOnDelivery,
     deliveryEnabled: settings.deliveryEnabled,
     storePickupEnabled: settings.storePickupEnabled,
+    // Storefront tax view — the same collapse the cart context uses:
+    // `storefrontTaxRate` is 0 whenever nothing is added on top of the stored
+    // net prices (tax included in price, no rate, or no invoice settings), so
+    // consumers (e.g. the AI chat's pricing prompt) can branch on it alone.
+    storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(invoiceSettings),
+    taxIncludedInPrice: invoiceSettings?.taxIncludedInPrice === true,
+    defaultTaxRate:
+      typeof invoiceSettings?.defaultTaxRate === 'number' ? invoiceSettings.defaultTaxRate : 0,
   }
 }
 
-export const generateEcommerceSettingsApiRoute = (settings: UIDLEcommerceSettings): string => {
-  const settingsPayload = JSON.stringify(buildWorkflowEcommerceSettingsPayload(settings))
+export const generateEcommerceSettingsApiRoute = (
+  settings: UIDLEcommerceSettings,
+  invoiceSettings?: UIDLInvoiceSettings
+): string => {
+  const settingsPayload = JSON.stringify(
+    buildWorkflowEcommerceSettingsPayload(settings, invoiceSettings)
+  )
 
   return `export default function handler(req, res) {
   if (req.method !== 'GET') {

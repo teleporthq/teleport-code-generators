@@ -299,6 +299,26 @@ export interface UIDLAIAssistantChatAuthProtection {
   allowedRoles: string[]
 }
 
+/**
+ * The languages the generated project has to serve the chat in.
+ *
+ * Absent on a single-language project — every locale-resolution branch in the
+ * generated code is gated on this, so a project without it emits exactly the
+ * code it emitted before localized chat copy existed.
+ */
+export interface UIDLAIAssistantChatLocalization {
+  /** Locale whose copy lives in the flat `chatSettings` fields. */
+  mainLocale: string
+  /** Every locale, main first, in project order. */
+  locales: string[]
+}
+
+/** One locale's fully resolved chat copy — neither field can be missing. */
+export interface UIDLAIAssistantChatMessages {
+  welcomeMessage: string
+  unknownInformationMessage: string
+}
+
 export interface UIDLAIAssistantChat {
   enabled: boolean
   dataSourceId: string | null
@@ -316,10 +336,19 @@ export interface UIDLAIAssistantChat {
      */
     embeddingSecretKeyReference?: string | null
   } | null
+  localization?: UIDLAIAssistantChatLocalization
   chatSettings: {
     chatName: string
     welcomeMessage: string
     unknownInformationMessage: string
+    /**
+     * The copy of EVERY locale, main locale included, already resolved: the GUI
+     * applies the "falls back to the main language" rule before export, because
+     * the generated project has no notion of an unset translation.
+     *
+     * Absent on a single-language project.
+     */
+    translations?: Record<string, UIDLAIAssistantChatMessages>
     agentIconAssetId: string | null
     bubblePosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
     bubbleStyles: Record<string, string>

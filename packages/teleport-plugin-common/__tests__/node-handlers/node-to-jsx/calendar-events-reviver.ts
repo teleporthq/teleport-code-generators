@@ -40,6 +40,7 @@ const buildParams = (): JSXGenerationParams => ({
   nodesLookup: {},
   windowImports: {},
   localeReferences: [],
+  localeAttributeReferences: [],
   globalReferences: [],
   globalStateReferences: [],
   hoistedConstants: [],

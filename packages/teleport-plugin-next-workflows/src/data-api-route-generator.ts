@@ -21,6 +21,10 @@ const DATA_NODE_TYPES = new Set([
   'data-delete-item',
   'data-count',
   'data-raw-query',
+  // Not a data-category node, but its handler executes its validated SQL
+  // through this route's raw-query operation, so a workflow using only this
+  // node still needs the route emitted.
+  'ai-select-database-data',
 ])
 
 export const needsDataAPIRoute = (usedNodeTypes: Set<string>): boolean => {

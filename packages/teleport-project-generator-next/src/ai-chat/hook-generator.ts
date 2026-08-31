@@ -2,11 +2,10 @@ import { UIDLAIAssistantChat } from '@teleporthq/teleport-types'
 
 export function generateHookCode(chat: UIDLAIAssistantChat): string {
   const streaming = chat.ragConfig.answer.streaming
-  const welcomeMessage = chat.chatSettings.welcomeMessage || 'Hello! How can I help you?'
 
-  return `import { useState, useRef, useCallback, useEffect } from 'react';
-
-var WELCOME_MSG = ${JSON.stringify(welcomeMessage)};
+  return `import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/router';
+import { getAIChatWelcomeMessage, localizeAIChatMessages } from '../lib/ai-chat/localized-messages';
 
 function _newUuid() {
   try { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); } catch (_) {}
@@ -50,8 +49,15 @@ function setSessionConversationId(id) {
 }
 
 export default function useAIChat() {
-  var welcomeMsg = { id: 'welcome_msg', sender: 'ai', message: WELCOME_MSG, status: 'sent' };
-  var [messages, setMessages] = useState([welcomeMsg]);
+  // \`router.locale\` is the active route locale on a project with i18n
+  // configured, and undefined without it — in which case every lookup below
+  // resolves to the main locale, exactly as before locales existed.
+  var router = useRouter();
+  var locale = router && router.locale;
+  var welcomeMsg = useMemo(function() {
+    return { id: 'welcome_msg', sender: 'ai', message: getAIChatWelcomeMessage(locale), status: 'sent' };
+  }, [locale]);
+  var [messages, setMessages] = useState(function() { return [welcomeMsg]; });
   var [inputValue, setInputValue] = useState('');
   var [isOpen, setIsOpen] = useState(false);
   var [isLoading, setIsLoading] = useState(false);
@@ -66,6 +72,14 @@ export default function useAIChat() {
   useEffect(function() {
     setSessionConversationId(conversationId);
   }, [conversationId]);
+
+  // A Next.js locale switch is a client-side route change that keeps this hook
+  // mounted, so the greeting captured by the initial state would stay in the
+  // previous language. \`localizeAIChatMessages\` only rewrites an untouched
+  // welcome entry and returns the same array otherwise, so this cannot loop.
+  useEffect(function() {
+    setMessages(function(prev) { return localizeAIChatMessages(prev, locale); });
+  }, [locale]);
 
   useEffect(function() {
     if (messagesEndRef.current) {
@@ -122,7 +136,7 @@ ${streaming ? generateStreamingSendBlock() : generateNonStreamingSendBlock()}
     setConversationId(null);
     setMessages([welcomeMsg]);
     setInputValue('');
-  }, []);
+  }, [welcomeMsg]);
 
   var inputHasValue = inputValue.trim().length > 0;
 

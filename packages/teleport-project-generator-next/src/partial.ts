@@ -614,6 +614,7 @@ export const useGlobalContext = () => {
       dependencies: {},
       nodesLookup: {},
       localeReferences: [],
+      localeAttributeReferences: [],
       globalReferences: [],
       globalStateReferences: [],
       hoistedConstants: [],

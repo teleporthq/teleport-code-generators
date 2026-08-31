@@ -234,6 +234,20 @@ function resolveAssetUrl(value, assetMap) {
   return value
 }
 
+// Whether an asset-id resolution produced a real URL. resolveAssetUrl returns
+// an UNKNOWN id verbatim (asset deleted, teleport_assets not mirrored yet) and
+// a bare 'TQ_...' must never reach a <model-viewer src> or a poster.
+function isResolvedMediaUrl(value) {
+  return typeof value === 'string' && (isUrl(value) || value.charAt(0) === '/')
+}
+
+// resolveAssetUrl for MEDIA that has no safe fallback: a value that did not
+// resolve to a URL is reported as absent (null) instead of passed through.
+function resolveMediaUrl(value, assetMap) {
+  var resolved = resolveAssetUrl(value, assetMap)
+  return isResolvedMediaUrl(resolved) ? resolved : null
+}
+
 function resolveAssetUrls(values, assetMap) {
   if (!Array.isArray(values)) return []
   return values

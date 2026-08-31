@@ -1,4 +1,9 @@
-import { FileType, ProjectPluginStructure, UIDLEcommerceSettings } from '@teleporthq/teleport-types'
+import {
+  FileType,
+  ProjectPluginStructure,
+  UIDLEcommerceSettings,
+  UIDLInvoiceSettings,
+} from '@teleporthq/teleport-types'
 import { NextEcommerceProjectPlugin } from '../src/ecommerce/project-plugin'
 import {
   buildWorkflowEcommerceSettingsPayload,
@@ -97,6 +102,30 @@ describe('workflow settings global in the generated ecommerce-context', () => {
     expect(globalAt).toBeGreaterThan(-1)
     expect(providerAt).toBeGreaterThan(-1)
     expect(globalAt).toBeLessThan(providerAt)
+  })
+
+  it('carries the storefront tax view for workflow consumers (e.g. the AI chat)', () => {
+    const taxed = { defaultTaxRate: 19, taxIncludedInPrice: false } as UIDLInvoiceSettings
+    const payload = buildWorkflowEcommerceSettingsPayload(SETTINGS, taxed)
+    expect(payload.storefrontTaxRate).toBe(19)
+    expect(payload.taxIncludedInPrice).toBe(false)
+    expect(payload.defaultTaxRate).toBe(19)
+  })
+
+  it('collapses the tax rate to 0 when tax is included in prices', () => {
+    const included = { defaultTaxRate: 19, taxIncludedInPrice: true } as UIDLInvoiceSettings
+    const payload = buildWorkflowEcommerceSettingsPayload(SETTINGS, included)
+    expect(payload.storefrontTaxRate).toBe(0)
+    expect(payload.taxIncludedInPrice).toBe(true)
+    // The configured rate is still reported for consumers that need it.
+    expect(payload.defaultTaxRate).toBe(19)
+  })
+
+  it('defaults the tax fields when there are no invoice settings', () => {
+    const payload = buildWorkflowEcommerceSettingsPayload(SETTINGS)
+    expect(payload.storefrontTaxRate).toBe(0)
+    expect(payload.taxIncludedInPrice).toBe(false)
+    expect(payload.defaultTaxRate).toBe(0)
   })
 
   it('settings-less backstop context does NOT publish the global', async () => {

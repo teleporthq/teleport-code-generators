@@ -96,6 +96,14 @@ export const encode = (str: string) => {
 
 export const generateRandomString = () => Math.random().toString(36).substring(2, 6)
 
+// next-intl refuses to initialise when a messages-file key contains a `.` (its
+// namespace separator), and translation keys minted from user text can contain
+// anything. Every emitter of a translation key — the locale messages files AND
+// each `translate.raw('<key>')` lookup — must funnel the key through this so
+// both sides stay consistent for projects whose stored UIDL already carries
+// dotted keys.
+export const sanitizeTranslationKey = (key: string): string => key.replace(/\./g, '_')
+
 export const generateCSSVariableName = (name: string): string => {
   return name.startsWith('--') ? camelCaseToDashCase(name) : camelCaseToDashCase(`--${name}`)
 }

@@ -188,6 +188,7 @@ describe('createConditionIdentifier', () => {
     nodesLookup: {},
     windowImports: {},
     localeReferences: [],
+    localeAttributeReferences: [],
     globalReferences: [],
     globalStateReferences: [],
     hoistedConstants: [],

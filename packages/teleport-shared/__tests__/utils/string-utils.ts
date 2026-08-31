@@ -7,6 +7,7 @@ import {
   dashCaseToCamelCase,
   removeIllegalCharacters,
   encode,
+  sanitizeTranslationKey,
 } from '../../src/utils/string-utils'
 
 describe('slugify tests', () => {
@@ -184,5 +185,20 @@ describe('dashCaseToCamelCase', () => {
 describe('encode', () => {
   it('works', () => {
     expect(encode('<p>test</p>')).toBe('&lt;p&gt;test&lt;/p&gt;')
+  })
+})
+
+describe('sanitizeTranslationKey', () => {
+  it('strips the `.` next-intl reads as a namespace separator', () => {
+    // Keys minted from user text — `2. Definitions_UUSf6E` made next-intl
+    // reject the whole messages file at runtime.
+    expect(sanitizeTranslationKey('2. Definitions_UUSf6E')).toBe('2_ Definitions_UUSf6E')
+    expect(sanitizeTranslationKey('Please read these Terms..._k384Ak')).toBe(
+      'Please read these Terms____k384Ak'
+    )
+  })
+
+  it('leaves already-safe keys untouched', () => {
+    expect(sanitizeTranslationKey('static_a1b2c3')).toBe('static_a1b2c3')
   })
 })

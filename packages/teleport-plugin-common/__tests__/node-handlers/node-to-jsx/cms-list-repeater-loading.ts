@@ -28,6 +28,7 @@ const params = (): JSXGenerationParams => ({
   nodesLookup: {},
   windowImports: {},
   localeReferences: [],
+  localeAttributeReferences: [],
   globalReferences: [],
   globalStateReferences: [],
   hoistedConstants: [],

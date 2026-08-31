@@ -10,18 +10,36 @@ import {
 export type { EcommerceProductTransformOptions }
 
 /**
+ * Stock never gates purchasability when the merchant disabled stock management
+ * entirely or opted into backorders. Mirrors the GUI rule in
+ * `apps/gui/app/project-page/features/e-commerce/utils/product-variants.ts`
+ * (`isVariantInStock`). A project without e-commerce settings keeps the
+ * strict default (stock gates apply) — same behaviour as before the flag.
+ */
+const resolveAllowBackorders = (
+  settings: GeneratorOptions['ecommerceSettings'] | undefined
+): boolean => {
+  if (!settings) {
+    return false
+  }
+  return !settings.stockManagement || settings.stockManagementConfig?.allowBackorders === true
+}
+
+/**
  * Collects everything the product transform bakes in from the generator
  * options, in ONE place so every fetcher-emitting call site stays in step.
  *
  * `storefrontTaxRate` is what turns a NET catalogue price into the price the
  * shopper is quoted; `resolveStorefrontTaxRate` returns 0 (a no-op) for
- * tax-inclusive or untaxed stores.
+ * tax-inclusive or untaxed stores. `allowBackorders` is the effective
+ * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
 export const buildProductTransformOptions = (
   options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings'>
 ): EcommerceProductTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
+  allowBackorders: resolveAllowBackorders(options.ecommerceSettings),
 })
 
 export type TransformationType = 'blog-post' | 'ecommerce-product' | null

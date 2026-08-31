@@ -215,6 +215,22 @@ export const NextProjectMapping: Mapping = {
         },
       },
     },
+    // Same treatment as lottie-player: <model-viewer> is a self-registering
+    // web component that touches window at import time, so the side-effect
+    // import is emitted inside a window-guarded dynamic import. The version is
+    // kept in sync with the editor-canvas CDN build (MODEL_VIEWER_VERSION).
+    'model-viewer-node': {
+      elementType: 'model-viewer',
+      dependency: {
+        type: 'package',
+        version: '4.3.1',
+        path: '@google/model-viewer',
+        meta: {
+          importJustPath: true,
+          needsWindowObject: true,
+        },
+      },
+    },
     'cms-list-repeater': {
       elementType: 'Repeater',
       dependency: {

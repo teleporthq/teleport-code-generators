@@ -184,7 +184,7 @@ var __ai_handleStreamingCall = typeof __ai_handleStreamingCall !== 'undefined' ?
   let fullResponse = '';
   const streamResult = await __ai_callProviderStreaming(callParams, async function(chunk) {
     fullResponse += chunk;
-    await streamCallback({ chunk: chunk, fullResponse: fullResponse, model: model });
+    await streamCallback({ chunk: chunk, fullResponse: fullResponse });
   });
   return { response: fullResponse, model: model, usage: streamResult.usage || {} };
 };
