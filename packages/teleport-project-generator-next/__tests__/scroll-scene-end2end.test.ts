@@ -84,6 +84,10 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(component?.content).toContain('hashchange')
     expect(component?.content).toContain('data-chapter-window')
     expect(component?.content).toContain('scrollToChapter')
+    // Gentle chapter snap: settle-on-pause exists and is opt-in via the
+    // chapterSnap prop; nothing ever intercepts an in-flight scroll.
+    expect(component?.content).toContain("chapterSnap = 'off'")
+    expect(component?.content).toContain("chapterSnap !== 'gentle'")
   })
 
   it('renders <TqScrollScene> wrapping its children with data-scroll-bind intact', async () => {

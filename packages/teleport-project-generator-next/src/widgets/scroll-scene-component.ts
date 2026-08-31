@@ -259,6 +259,7 @@ const TqScrollScene = ({
   reducedMotion = 'final',
   exposeProgress = false,
   layout = 'chapters',
+  chapterSnap = 'off',
   style,
   children,
   ...rest
@@ -448,33 +449,13 @@ const TqScrollScene = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion, reducedMotion, pin, applyAll, restack])
 
-  // Anchor navigation into a pinned scene. Chapters stack inside the sticky
-  // stage, so the browser's native jump to a chapter's id lands at the
-  // element's DOCUMENT position (the top of the track) — never at the moment
-  // the chapter is on stage. "Being at chapter three" is a scroll PROGRESS
-  // through the track, so hash navigation is translated: the target progress
-  // is the midpoint of the chapter's story window (data-chapter-window when
-  // the editor recorded one, else the span of its data-scroll-bind stops),
-  // and the page scrolls to trackTop + progress * (trackHeight - viewport).
-  // Same-page anchor clicks are intercepted for a single smooth ride; the
-  // hashchange listener covers programmatic navigation, and the mount pass
-  // covers arriving on a URL that already carries the hash.
-  React.useEffect(() => {
-    const track = trackRef.current
-    if (!track || !pin || typeof window === 'undefined') {
-      return undefined
-    }
-    const chapterRootFor = (target) => {
-      const stage = track.querySelector(':scope > [data-scene-stage]')
-      if (!stage || !stage.contains(target)) {
-        return null
-      }
-      let current = target
-      while (current && current.parentElement !== stage) {
-        current = current.parentElement
-      }
-      return current
-    }
+  // Chapter geometry, shared by anchor navigation and chapter snap: the
+  // moment a chapter is "on stage" is the midpoint of its story window
+  // (data-chapter-window when the editor recorded one, else the span of its
+  // data-scroll-bind stops), and a progress maps to the document position
+  // trackTop + progress * (trackHeight - viewport).
+  const chapterHelpersRef = React.useRef(null)
+  if (chapterHelpersRef.current === null) {
     const chapterProgress = (chapterRoot) => {
       const recorded = String(chapterRoot.getAttribute('data-chapter-window') || '')
         .split(',')
@@ -489,23 +470,73 @@ const TqScrollScene = ({
       }
       return (Math.min.apply(null, stops) + Math.max.apply(null, stops)) / 2
     }
+    chapterHelpersRef.current = {
+      stageOf: (track) => track.querySelector(':scope > [data-scene-stage]'),
+      chapterProgress,
+      chapterMoments: (track) => {
+        const stage = chapterHelpersRef.current.stageOf(track)
+        if (!stage) {
+          return []
+        }
+        const moments = []
+        for (const child of Array.from(stage.children)) {
+          if (!child.getAttribute || !child.getAttribute(SCROLL_BIND_ATTR)) {
+            continue
+          }
+          const progress = chapterProgress(child)
+          if (progress !== null) {
+            moments.push(Math.min(1, Math.max(0, progress)))
+          }
+        }
+        return moments.sort((a, b) => a - b)
+      },
+      scrollToProgress: (track, progress, behavior) => {
+        const rect = track.getBoundingClientRect()
+        const trackTop = rect.top + window.scrollY
+        const travel = Math.max(0, track.offsetHeight - window.innerHeight)
+        window.scrollTo({
+          top: trackTop + Math.min(1, Math.max(0, progress)) * travel,
+          behavior,
+        })
+      },
+    }
+  }
+
+  // Anchor navigation into a pinned scene. Chapters stack inside the sticky
+  // stage, so the browser's native jump to a chapter's id lands at the
+  // element's DOCUMENT position (the top of the track) — never at the moment
+  // the chapter is on stage. Hash navigation is translated to progress
+  // instead. Same-page anchor clicks are intercepted for a single smooth
+  // ride; the hashchange listener covers programmatic navigation, and the
+  // mount pass covers arriving on a URL that already carries the hash.
+  React.useEffect(() => {
+    const track = trackRef.current
+    if (!track || !pin || typeof window === 'undefined') {
+      return undefined
+    }
+    const helpers = chapterHelpersRef.current
+    const chapterRootFor = (target) => {
+      const stage = helpers.stageOf(track)
+      if (!stage || !stage.contains(target)) {
+        return null
+      }
+      let current = target
+      while (current && current.parentElement !== stage) {
+        current = current.parentElement
+      }
+      return current
+    }
     const scrollToChapter = (id, behavior) => {
       const target = id ? document.getElementById(id) : null
       const chapterRoot = target ? chapterRootFor(target) : null
       if (!chapterRoot) {
         return false
       }
-      const progress = chapterProgress(chapterRoot)
+      const progress = helpers.chapterProgress(chapterRoot)
       if (progress === null) {
         return false
       }
-      const rect = track.getBoundingClientRect()
-      const trackTop = rect.top + window.scrollY
-      const travel = Math.max(0, track.offsetHeight - window.innerHeight)
-      window.scrollTo({
-        top: trackTop + Math.min(1, Math.max(0, progress)) * travel,
-        behavior,
-      })
+      helpers.scrollToProgress(track, progress, behavior)
       return true
     }
     const onClick = (event) => {
@@ -557,6 +588,62 @@ const TqScrollScene = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin])
+
+  // Gentle chapter snap (scene-chapter-snap="gentle"): when the visitor
+  // PAUSES mid-scene, the story settles on the nearest chapter's moment.
+  // Deliberately not wheel hijacking — nothing intercepts an in-flight
+  // scroll, trackpad momentum stays native, and a scrubbed background video
+  // simply glides a short segment to the chapter's frame. Reduced-motion
+  // visitors are never moved.
+  React.useEffect(() => {
+    const track = trackRef.current
+    if (!track || !pin || chapterSnap !== 'gentle' || typeof window === 'undefined') {
+      return undefined
+    }
+    if (shouldReduceMotion) {
+      return undefined
+    }
+    const helpers = chapterHelpersRef.current
+    let settleTimer = 0
+    let suppressUntil = 0
+    const settle = () => {
+      if (Date.now() < suppressUntil) {
+        return
+      }
+      const progress = progressRef.current
+      if (progress <= 0.001 || progress >= 0.999) {
+        return
+      }
+      const moments = helpers.chapterMoments(track)
+      if (moments.length === 0) {
+        return
+      }
+      let nearest = moments[0]
+      for (const moment of moments) {
+        if (Math.abs(moment - progress) < Math.abs(nearest - progress)) {
+          nearest = moment
+        }
+      }
+      if (Math.abs(nearest - progress) < 0.005) {
+        return
+      }
+      suppressUntil = Date.now() + 900
+      helpers.scrollToProgress(track, nearest, 'smooth')
+    }
+    const onScroll = () => {
+      window.clearTimeout(settleTimer)
+      if (Date.now() < suppressUntil) {
+        return
+      }
+      settleTimer = window.setTimeout(settle, 180)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.clearTimeout(settleTimer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin, chapterSnap, shouldReduceMotion])
 
   // MIN-heights, never exact heights — mirrors the canvas renderer: an exact
   // height turned any content taller than one screen into an overflow the next
