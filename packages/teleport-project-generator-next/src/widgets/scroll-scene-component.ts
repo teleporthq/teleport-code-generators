@@ -103,7 +103,7 @@ const isValidLane = (lane) => {
       return false
     }
   }
-  return lane.unit === undefined || lane.unit === 'px' || lane.unit === '%'
+  return lane.unit === undefined || lane.unit === 'px' || lane.unit === '%' || lane.unit === 'vw'
 }
 
 const parseScrollBind = (value) => {
