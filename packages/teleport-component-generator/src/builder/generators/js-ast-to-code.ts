@@ -1,6 +1,6 @@
 import { CodeGenerator } from '@babel/generator'
 import * as types from '@babel/types'
-import { ASTStatementOrder } from '@teleporthq/teleport-shared'
+import { ASTEffectCleanup, ASTStatementOrder } from '@teleporthq/teleport-shared'
 import { CodeGeneratorFunction } from '@teleporthq/teleport-types'
 
 export const generator: CodeGeneratorFunction<types.Node> = (ast) => {
@@ -18,6 +18,14 @@ export const generator: CodeGeneratorFunction<types.Node> = (ast) => {
   // `ASTStatementOrder`'s insertion helpers), but a future plugin that gets it
   // wrong degrades to correct output instead of a broken page.
   ASTStatementOrder.normalizeStatementOrder(ast)
+
+  // The same treatment for the other silent time bomb an emitted hook can
+  // carry: an effect callback that hands React something it will later call as
+  // a cleanup function but cannot (`TypeError: destroy is not a function`,
+  // thrown from React's own commit phase on unmount, with no frame naming the
+  // component). `normalizeEffectCleanups` only rewrites callbacks it can prove
+  // break that contract — see `ASTEffectCleanup` for what counts as proof.
+  ASTEffectCleanup.normalizeEffectCleanups(ast)
 
   const babelGenerator = new CodeGenerator(ast, { jsescOption: { minimal: true } })
   const { code } = babelGenerator.generate()

@@ -83,8 +83,18 @@ describe('Next generator with a model-viewer element', () => {
 
     // No static top-level import — the custom element registers itself and
     // touches window, so the import must be dynamic and window-guarded.
-    expect(indexPage?.content).not.toContain("^import '@google/model-viewer'")
+    expect(indexPage?.content).not.toMatch(/^import '@google\/model-viewer'/m)
     expect(indexPage?.content).toContain("import('@google/model-viewer')")
+
+    // The import is RUN by the effect, never RETURNED from it. A concise arrow
+    // body (`useEffect(() => import(…), [])`) hands React the import's Promise
+    // as that effect's cleanup, and React calls whatever an effect returns on
+    // unmount — so leaving the page killed the app with
+    // `TypeError: destroy is not a function`.
+    expect(indexPage?.content).toMatch(/useEffect\(\(\) => \{\s*import\('@google\/model-viewer'\)/)
+    // A chunk that fails to load degrades to an unupgraded element with a
+    // warning, instead of an unhandled promise rejection.
+    expect(indexPage?.content).toMatch(/\.catch\(\(error\) => \{/)
 
     // The element renders with its local asset paths and the presence-valued
     // boolean (the component only checks attribute presence).

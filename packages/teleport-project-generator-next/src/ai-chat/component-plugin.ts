@@ -3,37 +3,30 @@ import { GenericUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { isChatLocalized, AI_CHAT_LOCALIZED_MESSAGES_PATH } from './localized-messages'
 import { USE_TRANSLATIONS_HOOK } from '../internationalization/locale-mapper-component'
+import {
+  CHAT_MESSAGES_STATE_KEY,
+  findCallInitDeclarator,
+  findComponentBody,
+  findJsxComponentChunk,
+  findStateHook,
+  isChatComponent,
+} from './ast-utils'
+
+/**
+ * The session-restore call this plugin also has to wrap. Declared here rather
+ * than imported from the persistence plugin: these two plugins are independent
+ * (either can be absent), and a value import would couple their module graphs.
+ */
+const RESTORE_MESSAGES_IDENTIFIER = 'restoreAIChatMessages'
 
 interface AIChatLocalizedWelcomePluginConfig {
   /** Output path of the generator using this plugin: `['components']` / `['pages']`. */
   basePath: string[]
 }
 
-/**
- * State key holding the chat transcript. Set by the editor when it builds the
- * `ai-assistant-chat` component (`AI_CHAT_MESSAGES_STATE_KEY`); its first entry
- * is the welcome bubble.
- */
-const CHAT_MESSAGES_STATE_KEY = 'chatMessages'
-
 /** Local identifiers this plugin introduces, prefixed so they cannot collide. */
 const LOCALE_IDENTIFIER = '__aiChatLocale'
 const LOCALIZE_IDENTIFIER = 'localizeAIChatMessages'
-
-const isChatComponent = (componentName: string): boolean => {
-  return componentName.toLowerCase().replace(/[^a-z]/g, '') === 'aiassistantchat'
-}
-
-const findComponentBody = (
-  chunkContent: types.VariableDeclaration
-): types.BlockStatement | null => {
-  const declarator = chunkContent.declarations[0] as types.VariableDeclarator | undefined
-  const init = declarator?.init
-  if (!init || init.type !== 'ArrowFunctionExpression' || init.body.type !== 'BlockStatement') {
-    return null
-  }
-  return init.body
-}
 
 /** Idempotence guard: this plugin has already run over this component body. */
 const declaresLocale = (body: types.BlockStatement): boolean =>
@@ -45,47 +38,6 @@ const declaresLocale = (body: types.BlockStatement): boolean =>
           declaration.id.type === 'Identifier' && declaration.id.name === LOCALE_IDENTIFIER
       )
   )
-
-/**
- * `const [chatMessages, setChatMessages] = useState(<init>)` — the declaration
- * `createStateHookAST` emits for the transcript state.
- */
-const findMessagesStateHook = (
-  body: types.BlockStatement
-): { index: number; declarator: types.VariableDeclarator; setterName: string } | null => {
-  for (let index = 0; index < body.body.length; index++) {
-    const statement = body.body[index]
-    if (statement.type !== 'VariableDeclaration') {
-      continue
-    }
-    for (const declarator of statement.declarations) {
-      if (declarator.id.type !== 'ArrayPattern' || declarator.id.elements.length < 2) {
-        continue
-      }
-      const [stateId, setterId] = declarator.id.elements
-      if (
-        !stateId ||
-        stateId.type !== 'Identifier' ||
-        stateId.name !== CHAT_MESSAGES_STATE_KEY ||
-        !setterId ||
-        setterId.type !== 'Identifier'
-      ) {
-        continue
-      }
-      if (
-        !declarator.init ||
-        declarator.init.type !== 'CallExpression' ||
-        declarator.init.callee.type !== 'Identifier' ||
-        declarator.init.callee.name !== 'useState' ||
-        declarator.init.arguments.length !== 1
-      ) {
-        continue
-      }
-      return { index, declarator, setterName: setterId.name }
-    }
-  }
-  return null
-}
 
 /**
  * Makes the AI chat component's welcome bubble follow the visitor's locale.
@@ -144,19 +96,12 @@ export const createAIChatLocalizedWelcomePlugin: ComponentPluginFactory<
       return structure
     }
 
-    const jsxComponent = chunks.find(
-      (chunk) =>
-        chunk.name === 'jsx-component' &&
-        typeof chunk.content === 'object' &&
-        chunk.content !== null &&
-        'type' in chunk.content &&
-        (chunk.content as types.Node).type === 'VariableDeclaration'
-    )
+    const jsxComponent = findJsxComponentChunk(chunks)
     if (!jsxComponent) {
       return structure
     }
 
-    const componentBody = findComponentBody(jsxComponent.content as types.VariableDeclaration)
+    const componentBody = findComponentBody(jsxComponent)
     if (!componentBody) {
       return structure
     }
@@ -165,7 +110,7 @@ export const createAIChatLocalizedWelcomePlugin: ComponentPluginFactory<
       return structure
     }
 
-    const stateHook = findMessagesStateHook(componentBody)
+    const stateHook = findStateHook(componentBody, CHAT_MESSAGES_STATE_KEY)
     if (!stateHook) {
       return structure
     }
@@ -184,6 +129,24 @@ export const createAIChatLocalizedWelcomePlugin: ComponentPluginFactory<
     ;(declarator.init as types.CallExpression).arguments = [
       types.callExpression(types.identifier(LOCALIZE_IDENTIFIER), [initialValue, locale()]),
     ]
+
+    // The session-persistence plugin (which runs BEFORE this one) restores the
+    // previous page's transcript inside a mount effect. That transcript is the
+    // other value this component renders as `chatMessages`, so it needs the
+    // same treatment: without it, a conversation carried onto a page in another
+    // language keeps its welcome bubble in the language it started in.
+    //
+    // Wrapping the restore CALL rather than the setter argument is what makes
+    // this safe — `localizeAIChatMessages` returns its input untouched for a
+    // non-array, so the `null` that means "nothing stored" passes straight
+    // through and the emitted `if (restoredChatMessages)` guard still works.
+    const restoreDeclarator = findCallInitDeclarator(componentBody, RESTORE_MESSAGES_IDENTIFIER)
+    if (restoreDeclarator?.init) {
+      restoreDeclarator.init = types.callExpression(types.identifier(LOCALIZE_IDENTIFIER), [
+        restoreDeclarator.init as types.Expression,
+        locale(),
+      ])
+    }
 
     const localeDeclaration = types.variableDeclaration('const', [
       types.variableDeclarator(locale(), types.callExpression(types.identifier('useLocale'), [])),

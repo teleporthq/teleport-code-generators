@@ -23,13 +23,20 @@ declare function __aisql_buildSystemPrompt(
 // generated SQL, the table schemas, the model's free-text explanation, or a
 // database error message (pg errors quote the failing statement). The whole
 // generate → validate → execute flow stays inside this one handler; the result
-// is only { executed, rowCount, rows } (rows come exclusively from the
-// allow-listed tables) or a fixed-string failure code.
+// is only { executed, rowCount, rows, truncated } (rows come exclusively from
+// the allow-listed tables) or a fixed-string failure code.
 async function ai_select_database_data(config: any, context: any) {
   const optional = config.optional === true
   const fail = function (code: string) {
     if (optional) {
-      return { executed: false, rows: [], rowCount: 0, skipped: true, skipReason: code }
+      return {
+        executed: false,
+        rows: [],
+        rowCount: 0,
+        truncated: false,
+        skipped: true,
+        skipReason: code,
+      }
     }
     return { error: true, message: 'AI database query failed (' + code + ')', code }
   }
@@ -83,7 +90,7 @@ async function ai_select_database_data(config: any, context: any) {
       continue
     }
     if (parsed.needsQuery === false) {
-      return { executed: false, rows: [], rowCount: 0 }
+      return { executed: false, rows: [], rowCount: 0, truncated: false }
     }
     const check = __aisql_validateSelectQuery(String(parsed.query || ''), allowedTables)
     if (check.valid) {
@@ -119,7 +126,12 @@ async function ai_select_database_data(config: any, context: any) {
       return fail('query_failed')
     }
     const rows = Array.isArray(data.rows) ? data.rows : []
-    return { executed: true, rowCount: rows.length, rows }
+    // ⛔ `rowCount` is how many rows came BACK, never how many exist: every
+    // statement is capped by __aisql_enforceLimit. A full page of rows means
+    // the result was almost certainly cut off, and anything downstream that
+    // presents it as a total would be inventing a number — so say so here
+    // rather than leave the caller to guess.
+    return { executed: true, rowCount: rows.length, rows, truncated: rows.length >= maxRows }
   } catch (err: unknown) {
     return fail('query_failed')
   }

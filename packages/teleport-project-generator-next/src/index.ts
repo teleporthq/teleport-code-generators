@@ -24,6 +24,7 @@ import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 import { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
 import { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+import { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 import { createNextUrlSearchParamsPlugin } from './url-search-params-plugin'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
@@ -51,6 +52,7 @@ import { NextKanbanProjectPlugin } from './kanban/project-plugin'
 import { NextCountdownProjectPlugin } from './countdown/project-plugin'
 import { NextModelViewerProjectPlugin } from './model-viewer/project-plugin'
 import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
+import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { createNextWidgetProjectPlugins } from './widgets'
 import {
   createLocalComponentPathPlugin,
@@ -100,6 +102,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextCountdownProjectPlugin(),
   new NextModelViewerProjectPlugin(),
   new NextPlaySoundProjectPlugin(),
+  new NextPaginationScrollProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
 ]
 
@@ -122,6 +125,9 @@ const createNextProjectGenerator = () => {
   const nextPagesDataSourcePlugin = createNextPagesDataSourcePlugin()
   const stateDataSourcePlugin = createStateDataSourcePlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
+  const aiChatSessionPersistencePlugin = createAIChatSessionPersistencePlugin({
+    basePath: ['components'],
+  })
   const aiChatLocalizedWelcomePlugin = createAIChatLocalizedWelcomePlugin({
     basePath: ['components'],
   })
@@ -156,6 +162,10 @@ const createNextProjectGenerator = () => {
         nextComponentInlineFetchPlugin,
         nextComponentDataSourcePlugin,
         nextInternationalizationPlugin,
+        // Chat-only: keeps the transcript alive across client-side
+        // navigation. MUST run before the welcome plugin, so a restored
+        // transcript still gets its greeting re-localized.
+        aiChatSessionPersistencePlugin,
         // Runs on the ai-assistant-chat component only — see its own note for
         // why the welcome message cannot go through the locale mapper above.
         aiChatLocalizedWelcomePlugin,
@@ -255,6 +265,7 @@ export { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
 export { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
 export { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'

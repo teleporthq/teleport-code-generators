@@ -1187,15 +1187,59 @@ export const collectGlobalStateReferencesFromObjectStates = (
   return refs
 }
 
+/**
+ * The mount-time side-effect import for a package that cannot be imported at
+ * module scope because it touches `window` while it evaluates —
+ * self-registering web components such as `<lottie-player>` and
+ * `<model-viewer>`. Running it from an effect keeps it off the server render.
+ *
+ *   useEffect(() => {
+ *     import('@google/model-viewer').catch((error) => {
+ *       console.warn('[teleport] Failed to load "@google/model-viewer"', error)
+ *     })
+ *   }, [])
+ *
+ * Two details of that shape are load-bearing:
+ *
+ *   - The callback body is a BLOCK. A concise arrow body (`() => import(…)`)
+ *     also RETURNS the import's Promise, and React stores an effect's return
+ *     value as its cleanup function and calls it on unmount — so every mounted
+ *     copy of the component turned navigating away into
+ *     `TypeError: destroy is not a function`, thrown from React's commit phase
+ *     with no frame naming the component. Nothing is returned here.
+ *   - The rejection is handled. A chunk that fails to load (offline, a stale
+ *     deploy, a blocked CDN) would otherwise surface as an unhandled promise
+ *     rejection; the element simply stays unupgraded, which is a degraded page
+ *     rather than a broken one, and the warning is what makes that visible.
+ */
 export const generateDynamicWindowImport = (
   hookName = 'useEffect',
   dependency: string
 ): types.ExpressionStatement => {
+  const failureIdentifier = types.identifier('error')
+  const importCall = types.callExpression(types.import(), [types.stringLiteral(dependency)])
+  const guardedImport = types.callExpression(
+    types.memberExpression(importCall, types.identifier('catch')),
+    [
+      types.arrowFunctionExpression(
+        [failureIdentifier],
+        types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(
+              types.memberExpression(types.identifier('console'), types.identifier('warn')),
+              [types.stringLiteral(`[teleport] Failed to load "${dependency}"`), failureIdentifier]
+            )
+          ),
+        ])
+      ),
+    ]
+  )
+
   return types.expressionStatement(
     types.callExpression(types.identifier(hookName), [
       types.arrowFunctionExpression(
         [],
-        types.callExpression(types.identifier('import'), [types.stringLiteral(dependency)])
+        types.blockStatement([types.expressionStatement(guardedImport)])
       ),
       types.arrayExpression([]),
     ])

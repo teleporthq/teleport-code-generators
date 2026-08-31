@@ -5,6 +5,7 @@ import * as GenericUtils from './utils/generic'
 import * as JSIdentifiers from './utils/js-identifiers'
 import * as ASTScope from './utils/ast-scope'
 import * as ASTStatementOrder from './utils/ast-statement-order'
+import * as ASTEffectCleanup from './utils/ast-effect-cleanup'
 import * as RoutePaths from './utils/route-paths'
 import * as LayoutTopology from './utils/layout-topology'
 import * as HtmlContentModel from './utils/html-content-model'
@@ -21,6 +22,7 @@ export {
   JSIdentifiers,
   ASTScope,
   ASTStatementOrder,
+  ASTEffectCleanup,
   RoutePaths,
   LayoutTopology,
   HtmlContentModel,

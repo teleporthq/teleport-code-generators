@@ -14,73 +14,141 @@ import * as types from '@babel/types'
  *
  * The chat component is built from UIDL nodes whose styles are strictly
  * per-node, so descendant rules cannot be expressed there. This plugin appends
- * them to the component's existing `<style jsx>` template instead, scoped
- * under the AI-message class and wrapped in `:global(...)` — without it,
- * styled-jsx would scope the descendant part to the build-time class hash the
- * runtime children never receive.
+ * them to the component's existing `<style jsx>` template instead.
+ *
+ * ⛔ THE WHOLE SELECTOR goes inside `:global(...)`, never just a part of it.
+ * styled-jsx appends the scope hash to the last compound selector it considers
+ * local, so of the three plausible spellings only the third survives:
+ *
+ *   .cls :global(ul)   →  .cls.jsx-HASH ul   ✗ the markdown ROOT has no hash
+ *   :global(.cls) ul   →  .cls ul.jsx-HASH   ✗ the runtime <ul> has no hash
+ *   :global(.cls ul)   →  .cls ul            ✓
+ *
+ * `<Markdown>` is a capitalized component, and styled-jsx only adds its class
+ * to lowercase host elements — so nothing under this bubble ever carries the
+ * hash, and any rule that keeps one is silently dead. The class itself is
+ * component-prefixed and unique, so going fully global leaks nothing.
  */
 
 /** Matches the generated class of the AI bubble's markdown element. */
 const AI_MESSAGE_CLASS_RE = /\.([A-Za-z0-9_-]*ai-message-text[A-Za-z0-9_-]*)/
 
 const buildMarkdownCss = (messageClass: string): string => {
-  const scope = `.${messageClass}`
+  const scope = (selector: string) => `:global(.${messageClass} ${selector})`
   return [
     '',
-    `${scope} :global(p) {`,
+    `${scope('p')} {`,
     '  margin: 0 0 8px;',
     '}',
-    `${scope} :global(p:last-child) {`,
+    // The bubble supplies its own padding; the first and last blocks must not
+    // add to it, or every answer sits crooked inside its bubble.
+    `${scope('> *:first-child')} {`,
+    '  margin-top: 0;',
+    '}',
+    `${scope('> *:last-child')} {`,
     '  margin-bottom: 0;',
     '}',
-    `${scope} :global(a) {`,
+    `${scope('a')} {`,
     '  color: inherit;',
     '  font-weight: 600;',
     '  text-decoration: underline;',
     '  text-underline-offset: 2px;',
     '}',
-    `${scope} :global(ul),`,
-    `${scope} :global(ol) {`,
+    `${scope('ul')},`,
+    `${scope('ol')} {`,
     '  margin: 8px 0;',
     '  padding-left: 20px;',
     '}',
-    `${scope} :global(ul) {`,
+    `${scope('ul')} {`,
     '  list-style: disc;',
     '}',
-    `${scope} :global(ol) {`,
+    `${scope('ol')} {`,
     '  list-style: decimal;',
     '}',
-    `${scope} :global(li) {`,
+    `${scope('li')} {`,
     '  margin: 4px 0;',
     '}',
-    `${scope} :global(strong) {`,
+    `${scope('li > ul')},`,
+    `${scope('li > ol')} {`,
+    '  margin: 2px 0;',
+    '}',
+    `${scope('li::marker')} {`,
+    '  color: inherit;',
+    '}',
+    `${scope('strong')} {`,
     '  font-weight: 700;',
     '}',
-    `${scope} :global(em) {`,
+    `${scope('em')} {`,
     '  font-style: italic;',
     '}',
-    `${scope} :global(code) {`,
+    `${scope('code')} {`,
     '  font-family: monospace;',
     '  font-size: 12px;',
     '  padding: 1px 4px;',
     '  border-radius: 4px;',
     '  background: rgba(127, 127, 127, 0.15);',
     '}',
-    `${scope} :global(h1),`,
-    `${scope} :global(h2),`,
-    `${scope} :global(h3),`,
-    `${scope} :global(h4) {`,
+    `${scope('pre')} {`,
+    '  margin: 8px 0;',
+    '  padding: 8px 10px;',
+    '  border-radius: 6px;',
+    '  background: rgba(127, 127, 127, 0.12);',
+    '  overflow-x: auto;',
+    '}',
+    // Otherwise the inline-code chip paints a second background inside the block.
+    `${scope('pre code')} {`,
+    '  padding: 0;',
+    '  background: transparent;',
+    '}',
+    `${scope('h1')},`,
+    `${scope('h2')},`,
+    `${scope('h3')},`,
+    `${scope('h4')} {`,
     '  font-size: 15px;',
     '  font-weight: 700;',
     '  margin: 10px 0 6px;',
     '}',
-    `${scope} :global(blockquote) {`,
+    `${scope('blockquote')} {`,
     '  margin: 8px 0;',
     '  padding-left: 10px;',
     '  border-left: 3px solid rgba(127, 127, 127, 0.4);',
     '}',
+    `${scope('hr')} {`,
+    '  margin: 10px 0;',
+    '  border: none;',
+    '  border-top: 1px solid rgba(127, 127, 127, 0.35);',
+    '}',
+    `${scope('table')} {`,
+    '  margin: 8px 0;',
+    '  border-collapse: collapse;',
+    '  font-size: 13px;',
+    '}',
+    `${scope('th')},`,
+    `${scope('td')} {`,
+    '  border: 1px solid rgba(127, 127, 127, 0.35);',
+    '  padding: 4px 8px;',
+    '  text-align: left;',
+    '}',
     '',
   ].join('\n')
+}
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * Re-scopes the bubble's OWN rule so it reaches the markdown root.
+ *
+ * The UIDL emits `.cls { font-size: 14px; … }`, which styled-jsx compiles to
+ * `.cls.jsx-HASH` — and `<Markdown>` never gets that hash, so the bubble's
+ * typography silently did nothing. Rewriting it to `:global(.cls)` is the same
+ * fix as the descendant rules above.
+ *
+ * Idempotent: after the rewrite the class is followed by `)`, not `{`, so a
+ * second pass matches nothing.
+ */
+const globalizeBaseRule = (raw: string, messageClass: string): string => {
+  const pattern = new RegExp(`\\.${escapeRegExp(messageClass)}(?=\\s*\\{)`, 'g')
+  return raw.replace(pattern, `:global(.${messageClass})`)
 }
 
 const isChatComponent = (componentName: string): boolean => {
@@ -167,7 +235,16 @@ export const createAIChatMarkdownStylesPlugin: ComponentPluginFactory<
       return structure
     }
 
-    const css = buildMarkdownCss(classFromAnyQuasi[1])
+    const messageClass = classFromAnyQuasi[1]
+
+    for (const quasi of template.quasis) {
+      quasi.value.raw = globalizeBaseRule(quasi.value.raw || '', messageClass)
+      if (typeof quasi.value.cooked === 'string') {
+        quasi.value.cooked = globalizeBaseRule(quasi.value.cooked, messageClass)
+      }
+    }
+
+    const css = buildMarkdownCss(messageClass)
     const lastQuasi = template.quasis[template.quasis.length - 1]
     lastQuasi.value.raw = (lastQuasi.value.raw || '') + css
     lastQuasi.value.cooked = (lastQuasi.value.cooked || '') + css

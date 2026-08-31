@@ -193,7 +193,7 @@ describe('callStreamingServerSegment — on-stream/on-end env filter', () => {
 
     global.fetch = jest.fn(async () =>
       fakeSseResponse([
-        { type: 'chunk', nodeId: AI_ID, chunk: 'Hel', fullResponse: 'Hel', model: 'gpt' },
+        { type: 'chunk', nodeId: AI_ID, chunk: 'Hel', fullResponse: 'Hel' },
         { type: 'done', results: { [AI_ID]: { fullResponse: 'Hello' } } },
       ])
     ) as unknown as typeof fetch
@@ -251,7 +251,7 @@ describe('callStreamingServerSegment — on-stream/on-end env filter', () => {
 
     global.fetch = jest.fn(async () =>
       fakeSseResponse([
-        { type: 'chunk', nodeId: AI_ID, chunk: 'Hi', fullResponse: 'Hi', model: 'gpt' },
+        { type: 'chunk', nodeId: AI_ID, chunk: 'Hi', fullResponse: 'Hi' },
         { type: 'done', results: {} },
       ])
     ) as unknown as typeof fetch

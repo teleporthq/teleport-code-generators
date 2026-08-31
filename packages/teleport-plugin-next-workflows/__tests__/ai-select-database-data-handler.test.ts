@@ -74,12 +74,19 @@ function loadIsFatalNodeResult(): (result: unknown) => boolean {
 }
 
 describe('happy path', () => {
-  it('generates, validates, executes, and returns only { executed, rowCount, rows }', async () => {
+  it('generates, validates, executes, and returns only { executed, rowCount, rows, truncated }', async () => {
     const state = makeState()
     const handler = loadHandler(state)
     const result = await handler(BASE_CONFIG, {})
 
-    expect(result).toEqual({ executed: true, rowCount: 2, rows: [{ id: '1' }, { id: '2' }] })
+    expect(result).toEqual({
+      executed: true,
+      rowCount: 2,
+      rows: [{ id: '1' }, { id: '2' }],
+      // Two rows under a cap of 50: nothing was cut off, so a caller may
+      // report this as a complete result.
+      truncated: false,
+    })
     expect(state.aiCalls).toHaveLength(1)
     expect(state.aiCalls[0].jsonMode).toBe(true)
     expect(state.aiCalls[0].systemMessage).toContain('TABLE "teleport_products"')
@@ -94,7 +101,7 @@ describe('happy path', () => {
     const handler = loadHandler(state)
     const result = await handler(BASE_CONFIG, {})
 
-    expect(result).toEqual({ executed: false, rows: [], rowCount: 0 })
+    expect(result).toEqual({ executed: false, rows: [], rowCount: 0, truncated: false })
     expect(state.fetchCalls).toHaveLength(0)
   })
 
@@ -156,6 +163,7 @@ describe('failure contract — nothing sensitive ever leaves the handler', () =>
       executed: false,
       rows: [],
       rowCount: 0,
+      truncated: false,
       skipped: true,
       skipReason: 'provider_error',
     })
@@ -187,5 +195,43 @@ describe('failure contract — nothing sensitive ever leaves the handler', () =>
 describe('registration', () => {
   it('is a server node so its config (schemas, allowlist) is redacted from client bundles', () => {
     expect(aiSelectDatabaseData.executionEnv).toBe('server')
+  })
+})
+
+describe('telling a capped result apart from a complete one', () => {
+  it('flags a full page of rows as truncated', async () => {
+    // The statement is capped, so a result that fills the cap is one page of a
+    // larger answer. Reporting its length as a total is what made the chat say
+    // "there are 50 products" for a catalogue of 220.
+    const rows = Array.from({ length: 50 }, (_, index) => ({ id: String(index) }))
+    const state = makeState({ fetchResponse: { ok: true, json: { rows } } })
+    const handler = loadHandler(state)
+
+    const result = (await handler({ ...BASE_CONFIG, maxRows: 50 }, {})) as {
+      truncated: boolean
+      rowCount: number
+    }
+
+    expect(result.truncated).toBe(true)
+    expect(result.rowCount).toBe(50)
+  })
+
+  it('does not flag an aggregate answer as truncated', async () => {
+    const state = makeState({
+      aiResponses: [
+        '{"needsQuery": true, "query": "SELECT COUNT(*) AS \\"total_count\\" FROM \\"teleport_products\\""}',
+      ],
+      fetchResponse: { ok: true, json: { rows: [{ total_count: 223 }] } },
+    })
+    const handler = loadHandler(state)
+
+    const result = (await handler({ ...BASE_CONFIG, maxRows: 50 }, {})) as {
+      truncated: boolean
+      rows: unknown[]
+    }
+
+    // One row carrying the real total — the only shape that can state one.
+    expect(result.truncated).toBe(false)
+    expect(result.rows).toEqual([{ total_count: 223 }])
   })
 })

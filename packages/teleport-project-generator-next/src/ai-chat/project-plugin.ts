@@ -26,6 +26,8 @@ import {
   AI_CHAT_LOCALIZED_MESSAGES_PATH,
   generateLocalizedMessagesCode,
 } from './localized-messages'
+import { AI_CHAT_SESSION_STORE_FILE, generateAIChatSessionStoreCode } from './session-store'
+import { injectImportIntoApp } from '../app-import-injection'
 import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
 
 export class NextAIChatProjectPlugin implements ProjectPlugin {
@@ -72,6 +74,12 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
     dependencies['react-dom'] = '^18.3.1'
     emitLegacyPeerDepsNpmrc(structure, 'ai-chat-npmrc')
     this.addEnvVariables(uidl, chat)
+    // Side-effect import: the store drops a stored conversation when the
+    // document was RELOADED. It has to run on every page, not only the ones
+    // carrying the chat — a refresh on a chat-less page would otherwise leave
+    // the transcript in storage for the next chat page to restore, and the
+    // conversation would outlive the refresh that was meant to end it.
+    injectImportIntoApp(structure, `import '../lib/ai-chat/${AI_CHAT_SESSION_STORE_FILE}'`)
     if (!hasUIDLChatComponent) {
       this.injectWidgetIntoApp(structure)
     }
@@ -131,6 +139,19 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
           name: AI_CHAT_LOCALIZED_MESSAGES_FILE,
           fileType: FileType.JS,
           content: generateLocalizedMessagesCode(chat),
+        },
+      ],
+    })
+
+    // Holds the conversation while the visitor moves between pages — the chat
+    // is mounted per page, so without it a link click ends the conversation.
+    files.set('ai-chat-session-store', {
+      path: AI_CHAT_LOCALIZED_MESSAGES_PATH,
+      files: [
+        {
+          name: AI_CHAT_SESSION_STORE_FILE,
+          fileType: FileType.JS,
+          content: generateAIChatSessionStoreCode(),
         },
       ],
     })

@@ -10,7 +10,14 @@ import Hero from '../components/hero'
 import Footer from '../components/footer'
 
 const Home = (props) => {
-  useEffect(() => import('@lottiefiles/lottie-player'), [])
+  useEffect(() => {
+    import('@lottiefiles/lottie-player').catch((error) => {
+      console.warn(
+        '[teleport] Failed to load \\"@lottiefiles/lottie-player\\"',
+        error
+      )
+    })
+  }, [])
   return (
     <>
       <div className=\\"home-container1\\">
