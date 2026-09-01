@@ -7,7 +7,7 @@ import {
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
 import { ASTStatementOrder, StringUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import {
@@ -30,6 +30,33 @@ import {
   buildCachedParamsDeclarations,
   registerCacheClientImports,
 } from './cache/ast'
+import {
+  convertControlToButton,
+  dropInactivePaginationControls,
+  findPaginationControl,
+  setJSXExpressionAttribute,
+  type PaginationControlKind,
+} from './pagination-controls'
+import { buildCountFetchEffect } from './count-effect'
+import {
+  buildPageTokensDeclaration,
+  wireNumberedPagination,
+  type NumberedPaginationVars,
+} from './numbered-pagination'
+import {
+  buildAccumulatingResponseHandler,
+  buildInfiniteScrollDeclarations,
+  buildSentinelElement,
+  buildSentinelObserverEffect,
+  getInfiniteScrollVars,
+} from './infinite-scroll'
+import {
+  buildFilterSortPageResetEffect,
+  buildPageResetRefDeclaration,
+  hasNoPageResetDeps,
+  type PageResetDeps,
+} from './page-reset'
+import { buildPageUrlRefDeclaration, buildPageUrlSyncEffect } from './page-url-sync'
 
 // ----- searchDefaultValue support -----
 //
@@ -202,6 +229,22 @@ interface DataSourceUsage {
   // cache — in which case every emit site below must produce exactly what it
   // produced before caching existed.
   cache?: ResolvedDataSourceCache
+  // Which pagination controls this mapper wires. `'numbered'` additionally wires
+  // First/Last and repeats the authored page-number template button; `'buttons'`
+  // is today's Previous/Next pair. Normalised to `'buttons'` whenever
+  // `infiniteScroll` is set — an accumulating list has no pages to jump between.
+  paginationMode: 'buttons' | 'numbered'
+  // Append rows instead of replacing them page by page. Suppresses every
+  // pagination control except an authored Load More button.
+  infiniteScroll: boolean
+  // With `infiniteScroll`: append on a Load More click rather than automatically
+  // when the visitor scrolls to the end of the list.
+  infiniteScrollLoadMore: boolean
+  // URL query-param key the current page is two-way bound to (e.g. `'page'`) —
+  // the pagination counterpart of `searchUrlParamKey`, sharing its
+  // `URLSearchParamSync` builders. Page 1 is written as the ABSENCE of the key.
+  // Cleared when `infiniteScroll` is set.
+  pageUrlParamKey?: string
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -562,6 +605,20 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
             ? content.searchUrlParamKey.trim()
             : undefined
 
+        // An accumulating list has no discrete pages, so it can neither jump
+        // between them nor put one in the URL. Normalising here — rather than at
+        // each of the ~6 emit sites — keeps every downstream branch able to trust
+        // `paginationMode` / `pageUrlParamKey` on their own.
+        const infiniteScroll = !!content.infiniteScroll
+        const pageUrlParamKey =
+          !infiniteScroll &&
+          typeof content.pageUrlParamKey === 'string' &&
+          content.pageUrlParamKey.trim().length > 0
+            ? content.pageUrlParamKey.trim()
+            : undefined
+        const paginationMode: 'buttons' | 'numbered' =
+          !infiniteScroll && content.paginationMode === 'numbered' ? 'numbered' : 'buttons'
+
         const usage: DataSourceUsage = {
           index: index++,
           dataSourceIdentifier: parentDataSource.identifier,
@@ -585,6 +642,10 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           filterPropIds,
           filterUrlSearchParamKeys,
           cache: resolveCacheFromRepeaterContent(content.cache, parentDataSource.resourceDef),
+          paginationMode,
+          infiniteScroll,
+          infiniteScrollLoadMore: infiniteScroll && !!content.infiniteScrollLoadMore,
+          pageUrlParamKey,
           category: 'plain',
         }
 
@@ -698,6 +759,19 @@ function usageHasSearchUrlSync(usage: DataSourceUsage): boolean {
   )
 }
 
+// The page ⇄ URL counterpart of `usageHasSearchUrlSync`: the usage must carry a
+// `pageUrlParamKey` AND own a page state (only the paginated categories declare
+// `ds_N_page` / `ds_N_state.page`). `infiniteScroll` usages are already excluded
+// by the registry, which clears their key.
+function usageHasPageUrlSync(usage: DataSourceUsage): boolean {
+  return (
+    !!usage.pageUrlParamKey &&
+    usage.paginated &&
+    !usage.infiniteScroll &&
+    (usage.category === 'paginated+search' || usage.category === 'paginated-only')
+  )
+}
+
 // Emits the two URL-sync effects for a search input bound to a URL param
 // (`searchUrlParamKey`), reusing the shared `URLSearchParamSync` builders so the
 // search input behaves exactly like the `selectedCategory` / `sortBy` dropdowns:
@@ -751,6 +825,250 @@ function pushSearchUrlSyncEffects(
   // debounce effect propagates the change into the debounced value + fetch.
   effectStatements.push(
     URLSearchParamSync.buildUrlReadBackEffect(usage.searchUrlParamKey, vars.setSearchQueryVar)
+  )
+}
+
+// How one usage reads and writes its current page.
+//
+// A paginated+search list keeps the page inside a combined
+// `{ page, debouncedQuery }` object so a search reset can replace both at once,
+// while a paginated-only list has a plain `ds_N_page`. Every control that moves
+// the page goes through this pair rather than re-deriving the distinction.
+function getPageAccessors(
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): {
+  currentPageExpr: () => types.Expression
+  buildSetPageStatement: (pageExpr: types.Expression) => types.Expression
+} {
+  const isCombinedState = usage.category === 'paginated+search'
+
+  return {
+    currentPageExpr: () =>
+      isCombinedState
+        ? types.memberExpression(types.identifier(vars.combinedStateVar), types.identifier('page'))
+        : types.identifier(vars.pageStateVar),
+    // Functional updates that bail when the page is unchanged: clicking the
+    // page you are already on must not schedule a render, and with it a refetch.
+    buildSetPageStatement: (pageExpr: types.Expression) =>
+      isCombinedState
+        ? types.callExpression(types.identifier(vars.setCombinedStateVar), [
+            types.arrowFunctionExpression(
+              [types.identifier('state')],
+              types.conditionalExpression(
+                types.binaryExpression(
+                  '===',
+                  types.memberExpression(types.identifier('state'), types.identifier('page')),
+                  types.cloneNode(pageExpr, true) as types.Expression
+                ),
+                types.identifier('state'),
+                types.objectExpression([
+                  types.spreadElement(types.identifier('state')),
+                  types.objectProperty(
+                    types.identifier('page'),
+                    types.cloneNode(pageExpr, true) as types.Expression
+                  ),
+                ])
+              )
+            ),
+          ])
+        : types.callExpression(types.identifier(vars.setPageStateVar), [
+            types.arrowFunctionExpression(
+              [types.identifier('page')],
+              types.conditionalExpression(
+                types.binaryExpression(
+                  '===',
+                  types.identifier('page'),
+                  types.cloneNode(pageExpr, true) as types.Expression
+                ),
+                types.identifier('page'),
+                types.cloneNode(pageExpr, true) as types.Expression
+              )
+            ),
+          ]),
+  }
+}
+
+/**
+ * Advance one page, unless the count already says this is the last one. Shared
+ * by the scroll sentinel and the Load More button.
+ *
+ * ⛔ The next page is derived from the updater's OWN argument, never from the
+ * page in scope. The sentinel's effect is re-armed on `hasMore` / `maxPages`,
+ * and neither changes on an append while the total is unknown — so a captured
+ * `ds_N_page` would still read 1 on the second intersection and the list would
+ * stop growing after one page, on exactly the sources that cannot be counted.
+ */
+function buildAdvancePageStatement(
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): types.Statement {
+  const isCombinedState = usage.category === 'paginated+search'
+  const paramName = isCombinedState ? 'state' : 'page'
+  const pageOfParam = (): types.Expression =>
+    isCombinedState
+      ? types.memberExpression(types.identifier(paramName), types.identifier('page'))
+      : types.identifier(paramName)
+
+  // maxPages > 0 && <param page> >= maxPages
+  const atLastPage = types.logicalExpression(
+    '&&',
+    types.binaryExpression('>', types.identifier(vars.maxPagesStateVar), types.numericLiteral(0)),
+    types.binaryExpression('>=', pageOfParam(), types.identifier(vars.maxPagesStateVar))
+  )
+  const nextPage = types.binaryExpression('+', pageOfParam(), types.numericLiteral(1))
+
+  return types.expressionStatement(
+    types.callExpression(
+      types.identifier(isCombinedState ? vars.setCombinedStateVar : vars.setPageStateVar),
+      [
+        types.arrowFunctionExpression(
+          [types.identifier(paramName)],
+          types.conditionalExpression(
+            atLastPage,
+            types.identifier(paramName),
+            isCombinedState
+              ? types.objectExpression([
+                  types.spreadElement(types.identifier(paramName)),
+                  types.objectProperty(types.identifier('page'), nextPage),
+                ])
+              : nextPage
+          )
+        ),
+      ]
+    )
+  )
+}
+
+// The accumulator, the end-of-data flag and (in auto mode) the sentinel ref,
+// declared only for a mapper that appends.
+function pushInfiniteScrollDeclarations(
+  stateDeclarations: types.Statement[],
+  effectStatements: types.Statement[],
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (!usage.infiniteScroll || !usage.paginated) {
+    return
+  }
+  const infiniteVars = getInfiniteScrollVars(usage.index)
+  const { currentPageExpr } = getPageAccessors(usage, vars)
+  const usesSentinel = !usage.infiniteScrollLoadMore
+
+  stateDeclarations.push(
+    ...buildInfiniteScrollDeclarations(
+      infiniteVars,
+      vars.maxPagesStateVar,
+      currentPageExpr(),
+      usesSentinel
+    )
+  )
+
+  if (usesSentinel) {
+    effectStatements.push(
+      buildSentinelObserverEffect(infiniteVars, vars.maxPagesStateVar, () =>
+        buildAdvancePageStatement(usage, vars)
+      )
+    )
+  }
+}
+
+// The `useMemo` holding the visible page numbers, declared only for a mapper in
+// numbered mode.
+function pushPageTokensDeclaration(
+  stateDeclarations: types.Statement[],
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (usage.paginationMode !== 'numbered' || !usage.paginated) {
+    return
+  }
+  const { currentPageExpr } = getPageAccessors(usage, vars)
+  stateDeclarations.push(
+    buildPageTokensDeclaration(usage.index, vars.maxPagesStateVar, currentPageExpr())
+  )
+}
+
+// Emits the page ⇄ `?<key>=` sync for a mapper bound to `pageUrlParamKey` — the
+// pagination counterpart of `pushSearchUrlSyncEffects`, but a SINGLE effect
+// that owns both directions. `page-url-sync.ts` explains at length why the
+// usual read-back / write-back pair cannot be used here.
+//
+// ⛔ MUST be pushed AFTER the filter/sort reset effect. Both can fire in one
+// flush on a navigation that changes filter and page together; effects run in
+// emission order, so this one running LAST is what makes the URL win when it
+// carries a page, while a plain user filter change (whose URL has not moved
+// yet) is left with the reset's page 1 and writes that back.
+function pushPageUrlSyncEffects(
+  stateDeclarations: types.Statement[],
+  effectStatements: types.Statement[],
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (!usageHasPageUrlSync(usage)) {
+    return
+  }
+  const refVar = `ds_${usage.index}_pageUrlRef`
+  const { currentPageExpr, buildSetPageStatement } = getPageAccessors(usage, vars)
+
+  stateDeclarations.push(buildPageUrlRefDeclaration(refVar))
+  effectStatements.push(
+    buildPageUrlSyncEffect({
+      paramKey: usage.pageUrlParamKey as string,
+      refVar,
+      currentPageExpr,
+      buildSetPageStatement,
+    })
+  )
+}
+
+// The name of the ref holding this usage's last-seen filter/sort signature.
+function getPageResetRefVar(usage: DataSourceUsage): string {
+  return `ds_${usage.index}_filterResetRef`
+}
+
+// Everything that can narrow this list: filter destinations (state-, prop- and
+// URL-bound) plus the state a dynamic sort reads. Sort does not change WHICH
+// rows match, but it does change which row is on which page, so holding the
+// visitor on page 5 across a sort change shows them an arbitrary window of a
+// list they just reordered.
+function collectPageResetDeps(usage: DataSourceUsage): PageResetDeps {
+  return {
+    stateIds: [...usage.filterStateIds, ...(usage.dynamicSort?.depStateIds ?? [])],
+    propIds: usage.filterPropIds,
+    urlSearchParamKeys: usage.filterUrlSearchParamKeys,
+  }
+}
+
+// Emits the "a filter or sort changed ⇒ go back to page 1" effect for one
+// paginated usage. No-op for a list nothing can filter or reorder, so a mapper
+// without filters generates byte-for-byte what it always did.
+function pushFilterSortPageResetEffect(
+  stateDeclarations: types.Statement[],
+  effectStatements: types.Statement[],
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (!usage.paginated) {
+    return
+  }
+  const deps = collectPageResetDeps(usage)
+  if (hasNoPageResetDeps(deps)) {
+    return
+  }
+
+  const refVar = getPageResetRefVar(usage)
+  stateDeclarations.push(buildPageResetRefDeclaration(refVar))
+
+  // The setter bails when the page is already 1 (see `getPageAccessors`), so a
+  // visitor who was on page 1 all along and merely ticked a category does not
+  // get an extra render — and with it an extra fetch.
+  const { buildSetPageStatement } = getPageAccessors(usage, vars)
+
+  effectStatements.push(
+    buildFilterSortPageResetEffect(refVar, deps, () =>
+      types.expressionStatement(buildSetPageStatement(types.numericLiteral(1)))
+    )
   )
 }
 
@@ -963,18 +1281,40 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
                         types.arrowFunctionExpression(
                           [],
                           types.blockStatement([
+                            // ⛔ Functional, and a no-op when the query has not
+                            // actually moved. This effect fires on ANY change to
+                            // the input state — including the URL read-back
+                            // echoing back a value the visitor never typed (a
+                            // browser Forward to `?searchKeyword=x&page=3`) — and
+                            // replacing the whole object would silently drop the
+                            // page it had just adopted, as well as remount the
+                            // provider on a `key` that contains the query.
                             types.expressionStatement(
                               types.callExpression(types.identifier(vars.setCombinedStateVar), [
-                                types.objectExpression([
-                                  types.objectProperty(
-                                    types.identifier('page'),
-                                    types.numericLiteral(1)
-                                  ),
-                                  types.objectProperty(
-                                    types.identifier('debouncedQuery'),
-                                    types.identifier(vars.searchQueryVar)
-                                  ),
-                                ]),
+                                types.arrowFunctionExpression(
+                                  [types.identifier('state')],
+                                  types.conditionalExpression(
+                                    types.binaryExpression(
+                                      '===',
+                                      types.memberExpression(
+                                        types.identifier('state'),
+                                        types.identifier('debouncedQuery')
+                                      ),
+                                      types.identifier(vars.searchQueryVar)
+                                    ),
+                                    types.identifier('state'),
+                                    types.objectExpression([
+                                      types.objectProperty(
+                                        types.identifier('page'),
+                                        types.numericLiteral(1)
+                                      ),
+                                      types.objectProperty(
+                                        types.identifier('debouncedQuery'),
+                                        types.identifier(vars.searchQueryVar)
+                                      ),
+                                    ])
+                                  )
+                                ),
                               ])
                             ),
                           ])
@@ -1054,110 +1394,6 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         // Add filters to count fetch params if present
         appendFiltersParam(urlParams, usage.filters, buildFilterDestinationExpression)
 
-        // Build the count fetch effect body
-        const countFetchEffectBody: types.Statement[] = []
-
-        // Refresh the count on mount (no skip-on-mount guard). Pages seed maxPages
-        // from the build-time `getStaticProps` count, but that snapshot goes stale:
-        // rows added AFTER the build (e.g. the normalized product_variants table,
-        // which is seeded/grows past one page during store generation) are not
-        // reflected, so a frozen maxPages of 0/1 leaves "Next" permanently disabled
-        // on data-heavy tables. Re-fetching the live count on mount corrects
-        // maxPages so pagination tracks the real row count. The effect still runs
-        // when the search query or a filter changes (see deps below).
-
-        // Add the fetch call
-        countFetchEffectBody.push(
-          types.expressionStatement(
-            types.callExpression(
-              types.memberExpression(
-                types.callExpression(
-                  types.memberExpression(
-                    types.callExpression(types.identifier('fetch'), [
-                      types.templateLiteral(
-                        [
-                          types.templateElement({
-                            raw: `/api/${fileName}-count?`,
-                            cooked: `/api/${fileName}-count?`,
-                          }),
-                          types.templateElement({ raw: '', cooked: '' }),
-                        ],
-                        [
-                          types.newExpression(types.identifier('URLSearchParams'), [
-                            types.objectExpression(urlParams),
-                          ]),
-                        ]
-                      ),
-                    ]),
-                    types.identifier('then')
-                  ),
-                  [
-                    types.arrowFunctionExpression(
-                      [types.identifier('res')],
-                      types.callExpression(
-                        types.memberExpression(types.identifier('res'), types.identifier('json')),
-                        []
-                      )
-                    ),
-                  ]
-                ),
-                types.identifier('then')
-              ),
-              [
-                types.arrowFunctionExpression(
-                  [types.identifier('data')],
-                  types.blockStatement([
-                    types.ifStatement(
-                      types.logicalExpression(
-                        '&&',
-                        types.identifier('data'),
-                        types.binaryExpression(
-                          'in',
-                          types.stringLiteral('count'),
-                          types.identifier('data')
-                        )
-                      ),
-                      types.blockStatement([
-                        types.expressionStatement(
-                          types.callExpression(types.identifier(vars.setMaxPagesStateVar), [
-                            types.conditionalExpression(
-                              types.binaryExpression(
-                                '===',
-                                types.memberExpression(
-                                  types.identifier('data'),
-                                  types.identifier('count')
-                                ),
-                                types.numericLiteral(0)
-                              ),
-                              types.numericLiteral(0),
-                              types.callExpression(
-                                types.memberExpression(
-                                  types.identifier('Math'),
-                                  types.identifier('ceil')
-                                ),
-                                [
-                                  types.binaryExpression(
-                                    '/',
-                                    types.memberExpression(
-                                      types.identifier('data'),
-                                      types.identifier('count')
-                                    ),
-                                    types.numericLiteral(usage.perPage)
-                                  ),
-                                ]
-                              )
-                            ),
-                          ])
-                        ),
-                      ])
-                    ),
-                  ])
-                ),
-              ]
-            )
-          )
-        )
-
         const countEffectDeps: types.Expression[] = [
           types.memberExpression(
             types.identifier(vars.combinedStateVar),
@@ -1176,16 +1412,28 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         // Same goes for URL-driven filters (already documented above).
         pushUrlSearchParamMemoDeps(countEffectDeps, usage)
         effectStatements.push(
-          types.expressionStatement(
-            types.callExpression(types.identifier('useEffect'), [
-              types.arrowFunctionExpression([], types.blockStatement(countFetchEffectBody)),
-              types.arrayExpression(countEffectDeps),
-            ])
-          )
+          buildCountFetchEffect({
+            fileName,
+            perPage: usage.perPage,
+            setMaxPagesVar: vars.setMaxPagesStateVar,
+            urlParams,
+            deps: countEffectDeps,
+          })
         )
 
         // Two-way URL sync for the search input when bound to a URL param.
         pushSearchUrlSyncEffects(effectStatements, usage, vars)
+
+        // Visible page numbers, when this mapper draws a numbered strip.
+        pushPageTokensDeclaration(stateDeclarations, usage, vars)
+        // Accumulation state, when it appends instead of paging.
+        pushInfiniteScrollDeclarations(stateDeclarations, effectStatements, usage, vars)
+
+        // A filter or sort change invalidates the page the visitor is on.
+        pushFilterSortPageResetEffect(stateDeclarations, effectStatements, usage, vars)
+        // Ordering matters — see `pushPageUrlSyncEffects`: the read-back runs
+        // after the reset so a URL that names a page wins over it.
+        pushPageUrlSyncEffects(stateDeclarations, effectStatements, usage, vars)
       } else if (usage.category === 'paginated-only') {
         // Simple page state
         const maxPagesInit = isPage
@@ -1225,122 +1473,72 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           ])
         )
 
-        // For components (not pages), add a useEffect to fetch count on mount
-        // Pages get count from getStaticProps, but components need to fetch it client-side
-        if (!isPage) {
+        // The live row count behind `ds_N_maxPages`.
+        //
+        // Components have never had a build-time count to fall back on, so they
+        // have always fetched one here. Pages seed theirs from `getStaticProps`,
+        // which only knows the STATIC filters — good enough to enable/disable a
+        // "Next" button, but not to label a numbered strip or to know when an
+        // infinite list has reached its end, so those two modes fetch a live
+        // count as well.
+        const needsLiveCount =
+          !isPage || usage.paginationMode === 'numbered' || usage.infiniteScroll
+        if (needsLiveCount) {
           const fileName = generateSafeFileName(
             usage.resourceDefinition.dataSourceType,
             usage.resourceDefinition.tableName,
             usage.resourceDefinition.dataSourceId
           )
 
-          effectStatements.push(
-            types.expressionStatement(
-              types.callExpression(types.identifier('useEffect'), [
-                types.arrowFunctionExpression(
-                  [],
-                  types.blockStatement([
-                    types.expressionStatement(
-                      types.callExpression(
-                        types.memberExpression(
-                          types.callExpression(
-                            types.memberExpression(
-                              types.callExpression(types.identifier('fetch'), [
-                                types.stringLiteral(`/api/${fileName}-count`),
-                              ]),
-                              types.identifier('then')
-                            ),
-                            [
-                              types.arrowFunctionExpression(
-                                [types.identifier('res')],
-                                types.callExpression(
-                                  types.memberExpression(
-                                    types.identifier('res'),
-                                    types.identifier('json')
-                                  ),
-                                  []
-                                )
-                              ),
-                            ]
-                          ),
-                          types.identifier('then')
-                        ),
-                        [
-                          types.arrowFunctionExpression(
-                            [types.identifier('data')],
-                            types.blockStatement([
-                              types.ifStatement(
-                                types.logicalExpression(
-                                  '&&',
-                                  types.identifier('data'),
-                                  types.binaryExpression(
-                                    'in',
-                                    types.stringLiteral('count'),
-                                    types.identifier('data')
-                                  )
-                                ),
-                                types.blockStatement([
-                                  types.expressionStatement(
-                                    types.callExpression(
-                                      types.identifier(vars.setMaxPagesStateVar),
-                                      [
-                                        types.conditionalExpression(
-                                          types.binaryExpression(
-                                            '===',
-                                            types.memberExpression(
-                                              types.identifier('data'),
-                                              types.identifier('count')
-                                            ),
-                                            types.numericLiteral(0)
-                                          ),
-                                          types.numericLiteral(0),
-                                          types.callExpression(
-                                            types.memberExpression(
-                                              types.identifier('Math'),
-                                              types.identifier('ceil')
-                                            ),
-                                            [
-                                              types.binaryExpression(
-                                                '/',
-                                                types.memberExpression(
-                                                  types.identifier('data'),
-                                                  types.identifier('count')
-                                                ),
-                                                types.numericLiteral(usage.perPage)
-                                              ),
-                                            ]
-                                          )
-                                        ),
-                                      ]
-                                    )
-                                  ),
-                                ])
-                              ),
-                            ])
-                          ),
-                        ]
-                      )
-                    ),
-                  ])
-                ),
-                // Default to mount-only; refresh when ANY filter destination
-                // changes — state-bound (e.g. `selectedCategory`) and
-                // URL-driven — so the pagination control reflects the current
-                // filtered count instead of the unfiltered mount-time total.
-                types.arrayExpression(
-                  ((): types.Expression[] => {
-                    const deps: types.Expression[] = []
-                    const depsSeen = new Set<string>()
-                    pushStateIdsAsDeps(deps, depsSeen, usage.filterStateIds)
-                    pushPropIdsAsDeps(deps, depsSeen, usage.filterPropIds)
-                    pushUrlSearchParamMemoDeps(deps, usage)
-                    return deps
-                  })()
-                ),
-              ])
+          // ⛔ This list has no search input, so no `query` param — but it may
+          // well have filters, and omitting them (as this call site did until
+          // the shared builder replaced it) counts the WHOLE table: "Next"
+          // stayed enabled far past the end of a filtered result set.
+          const countUrlParams: types.ObjectProperty[] = []
+          if (usage.queryColumns.length > 0) {
+            countUrlParams.push(
+              types.objectProperty(
+                types.identifier('queryColumns'),
+                types.callExpression(
+                  types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                  [types.arrayExpression(usage.queryColumns.map((c) => types.stringLiteral(c)))]
+                )
+              )
             )
+          }
+          appendFiltersParam(countUrlParams, usage.filters, buildFilterDestinationExpression)
+
+          // Default to mount-only; refresh when ANY filter destination
+          // changes — state-bound (e.g. `selectedCategory`) and URL-driven —
+          // so the pagination control reflects the current filtered count
+          // instead of the unfiltered mount-time total.
+          const countDeps: types.Expression[] = []
+          const countDepsSeen = new Set<string>()
+          pushStateIdsAsDeps(countDeps, countDepsSeen, usage.filterStateIds)
+          pushPropIdsAsDeps(countDeps, countDepsSeen, usage.filterPropIds)
+          pushUrlSearchParamMemoDeps(countDeps, usage)
+
+          effectStatements.push(
+            buildCountFetchEffect({
+              fileName,
+              perPage: usage.perPage,
+              setMaxPagesVar: vars.setMaxPagesStateVar,
+              urlParams: countUrlParams,
+              deps: countDeps,
+            })
           )
         }
+
+        // Visible page numbers, when this mapper draws a numbered strip.
+        pushPageTokensDeclaration(stateDeclarations, usage, vars)
+        // Accumulation state, when it appends instead of paging.
+        pushInfiniteScrollDeclarations(stateDeclarations, effectStatements, usage, vars)
+
+        // A filter or sort change invalidates the page the visitor is on.
+        pushFilterSortPageResetEffect(stateDeclarations, effectStatements, usage, vars)
+        // Ordering matters — see `pushPageUrlSyncEffects`: the read-back runs
+        // after the reset so a URL that names a page wins over it.
+        pushPageUrlSyncEffects(stateDeclarations, effectStatements, usage, vars)
       } else if (usage.category === 'search-only') {
         // Search-only state
         stateDeclarations.push(
@@ -1464,7 +1662,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // same predicate as the effects themselves so router is only injected when
     // it is actually used.
     const needsUseRouter = registry.usages.some(
-      (u) => hasUrlSearchParamFilters(u) || usageHasSearchUrlSync(u)
+      (u) => hasUrlSearchParamFilters(u) || usageHasSearchUrlSync(u) || usageHasPageUrlSync(u)
     )
     if (needsUseRouter) {
       if (!dependencies.useRouter) {
@@ -1502,6 +1700,14 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       }
     }
 
+    // Both the search write-back and the page ⇄ URL effect write the URL through
+    // the shared `URLQueryWriter`, so the ref + helper they close over must be in
+    // the body. Idempotent with `createNextUrlSearchParamsPlugin`, which needs the
+    // same pair for the category/sort dropdowns and may have run first.
+    if (registry.usages.some((u) => usageHasSearchUrlSync(u) || usageHasPageUrlSync(u))) {
+      URLQueryWriter.ensureQuerySyncDeclarations(blockStatement.body)
+    }
+
     // Insert effects before return statement
     const returnIndex = blockStatement.body.findIndex((s: any) => s.type === 'ReturnStatement')
     const insertIndex = returnIndex !== -1 ? returnIndex : blockStatement.body.length
@@ -1525,6 +1731,11 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // provider can use one depends on its JSX (it needs a `renderLoading` slot),
     // which is only known once the category updaters above have run.
     const loadingStateDeclarations: types.Statement[] = []
+    // Usage indexes whose provider actually got the refetch loading state.
+    const usagesWithLoadingState = new Set<number>()
+    // Which mapper each `DataProvider` JSX element belongs to, so the pagination
+    // widgets can be matched to their owner rather than counted off in order.
+    const usageByProviderNode = new Map<any, DataSourceUsage>()
     const cacheDeclarations: types.Statement[] = []
 
     dataProvidersWithRepeaters.forEach((dp) => {
@@ -1547,6 +1758,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
       const usage = usages[currentIndex]
       usageIndexByDataSourceId.set(dataSourceIdentifier, currentIndex + 1)
+      usageByProviderNode.set(dp, usage)
 
       const vars = getStateVarsForUsage(usage)
       const fileName = generateSafeFileName(
@@ -1573,6 +1785,20 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       const loadingVars = getLoadingStateVars(usage.index)
       if (applyLoadingStateToDataProvider(dp, loadingVars)) {
         loadingStateDeclarations.push(...buildLoadingStateDeclarations(loadingVars))
+        // Recorded because the loading state is only declared for a provider
+        // that HAS a loading slot; a Load More button wired later may only
+        // reference `ds_N_isFetching` if it actually exists.
+        usagesWithLoadingState.add(usage.index)
+      }
+
+      // An auto-loading list needs something at the end of the rows for its
+      // IntersectionObserver to watch.
+      if (usage.infiniteScroll && usage.paginated && !usage.infiniteScrollLoadMore) {
+        insertSentinelAfterProvider(
+          blockStatement,
+          dp,
+          buildSentinelElement(getInfiniteScrollVars(usage.index))
+        )
       }
 
       // Create API route for all categories (including 'plain' for components)
@@ -1658,23 +1884,30 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       wireSearchInput(input.node, vars)
     })
 
-    // STEP 5: Wire pagination buttons
-    // Match pagination nodes to usages by order (within paginated usages)
-    const paginationNodes = findAllPaginationNodesInJSX(blockStatement)
-
-    // Get all paginated usages in order
-    const paginatedUsages = registry.usages.filter((u) => u.paginated)
-
-    // Match by order - pagination node 0 -> paginatedUsages[0], etc.
-    paginationNodes.forEach((paginationNode, idx) => {
-      if (idx >= paginatedUsages.length) {
-        return
+    // STEP 5: Wire pagination widgets
+    //
+    // Each widget belongs to the mapper whose `DataProvider` it follows in the
+    // document — the builder emits it as a sibling of (or inside) that provider.
+    //
+    // ⛔ Not a positional zip of "widgets" against "paginated usages": the two
+    // lists no longer have to be the same length, because an infinite-scroll
+    // mapper renders no widget. Counting one for it would shift every later
+    // mapper onto the wrong usage and wire one list's buttons to another list's
+    // state. Anchoring on the provider cannot drift for the same reason the
+    // provider loop above cannot.
+    findPaginationNodesWithOwners(blockStatement, usageByProviderNode).forEach(
+      ({ node, usage }) => {
+        if (!usage) {
+          return
+        }
+        wirePaginationWidget(
+          node,
+          usage,
+          getStateVarsForUsage(usage),
+          usagesWithLoadingState.has(usage.index)
+        )
       }
-
-      const usage = paginatedUsages[idx]
-      const vars = getStateVarsForUsage(usage)
-      wirePaginationButtons(paginationNode.node, usage, vars)
-    })
+    )
 
     // STEP 6: Update getStaticProps if this is a page
     if (isPage) {
@@ -1688,6 +1921,63 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 }
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Inserts the scroll sentinel immediately after a `DataProvider`, as its next
+ * sibling, so it sits below the rendered rows.
+ *
+ * It has to be a sibling: the provider's own child is a render-prop function,
+ * and anything placed inside it would be re-created on every fetch — the
+ * observer would then be watching an element that is no longer in the document.
+ *
+ * Returns false when the provider has no element parent to splice into (a
+ * provider returned directly from the component), leaving the list on its
+ * count-driven `hasMore` rather than injecting a stray node.
+ */
+function insertSentinelAfterProvider(
+  blockStatement: types.BlockStatement,
+  provider: any,
+  sentinel: types.JSXElement
+): boolean {
+  let inserted = false
+
+  const traverse = (node: any): void => {
+    if (!node || inserted) {
+      return
+    }
+    if (Array.isArray(node.children)) {
+      const at = node.children.indexOf(provider)
+      if (at !== -1) {
+        node.children.splice(at + 1, 0, sentinel)
+        inserted = true
+        return
+      }
+      node.children.forEach(traverse)
+    }
+    if (node.body) {
+      if (Array.isArray(node.body)) {
+        node.body.forEach(traverse)
+      } else {
+        traverse(node.body)
+      }
+    }
+    if (node.consequent) {
+      traverse(node.consequent)
+    }
+    if (node.alternate) {
+      traverse(node.alternate)
+    }
+    if (node.expression) {
+      traverse(node.expression)
+    }
+    if (node.argument) {
+      traverse(node.argument)
+    }
+  }
+
+  traverse(blockStatement)
+  return inserted
+}
 
 function findAllDataProvidersInJSX(blockStatement: types.BlockStatement): any[] {
   const results: any[] = []
@@ -1835,10 +2125,21 @@ function findAllSearchInputsInJSX(
   return results
 }
 
-function findAllPaginationNodesInJSX(
-  blockStatement: types.BlockStatement
-): Array<{ node: any; className: string }> {
-  const results: Array<{ node: any; className: string }> = []
+/**
+ * Every pagination widget in the JSX, paired with the mapper it belongs to.
+ *
+ * Ownership follows document order: a widget belongs to the most recent
+ * `DataProvider` seen before it, which is exactly how the builder emits it —
+ * as a sibling that follows its provider, or nested inside that provider's
+ * subtree. A widget that precedes every provider (nothing sensible to wire it
+ * to) comes back with no owner and is left alone.
+ */
+function findPaginationNodesWithOwners(
+  blockStatement: types.BlockStatement,
+  usageByProviderNode: Map<any, DataSourceUsage>
+): Array<{ node: any; usage?: DataSourceUsage }> {
+  const results: Array<{ node: any; usage?: DataSourceUsage }> = []
+  let currentUsage: DataSourceUsage | undefined
 
   const traverse = (node: any): void => {
     if (!node) {
@@ -1846,12 +2147,16 @@ function findAllPaginationNodesInJSX(
     }
 
     if (node.type === 'JSXElement') {
+      const owner = usageByProviderNode.get(node)
+      if (owner) {
+        currentUsage = owner
+      }
       const classAttr = node.openingElement?.attributes?.find(
         (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'className'
       )
       const className = classAttr?.value?.value || classAttr?.value?.expression?.value || ''
       if (className.includes('cms-pagination-node')) {
-        results.push({ node, className })
+        results.push({ node, usage: currentUsage })
       }
     }
 
@@ -2000,7 +2305,12 @@ function updateDataProviderForPaginatedSearch(
   // the first client fetch (its internal guard only skips when initialData is
   // defined on mount). Without that skip, toggling sort correctly triggers a
   // refetch via the useMemo params dependency chain.
-  if (!usage.dynamicSort) {
+  //
+  // An appending list skips it for a second reason: `initialData` makes
+  // DataProvider skip its first fetch, so page 1 would render from the prefetch
+  // and never enter the accumulator — appending page 2 would then REPLACE the
+  // visible rows with page 2 alone.
+  if (!usage.dynamicSort && !usage.infiniteScroll) {
     const initialDataCondition = wrapInitialDataWithUrlFilterGuard(
       types.logicalExpression(
         '&&',
@@ -2044,38 +2354,56 @@ function updateDataProviderForPaginatedSearch(
   // "skip-first-fetch-when-we-have-initialData" guard, which would prevent the
   // new sort params from reaching the fetcher. Leaving sort out of the key
   // lets the useMemo params identity change alone drive refetch.
+  //
+  // ⛔ The page is left out too when the list APPENDS: remounting on every
+  // appended page would unmount the accumulated rows and refetch from scratch.
+  // The query stays in the key, so a new search still starts a clean list.
   dp.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('key'),
       types.jsxExpressionContainer(
-        types.templateLiteral(
-          [
-            types.templateElement({
-              raw: `${usage.dataSourceIdentifier}-`,
-              cooked: `${usage.dataSourceIdentifier}-`,
-            }),
-            types.templateElement({ raw: '-', cooked: '-' }),
-            types.templateElement({ raw: '', cooked: '' }),
-          ],
-          [
-            types.memberExpression(
-              types.identifier(vars.combinedStateVar),
-              types.identifier('page')
-            ),
-            types.memberExpression(
-              types.identifier(vars.combinedStateVar),
-              types.identifier('debouncedQuery')
-            ),
-          ]
-        )
+        usage.infiniteScroll
+          ? types.templateLiteral(
+              [
+                types.templateElement({
+                  raw: `${usage.dataSourceIdentifier}-`,
+                  cooked: `${usage.dataSourceIdentifier}-`,
+                }),
+                types.templateElement({ raw: '', cooked: '' }),
+              ],
+              [
+                types.memberExpression(
+                  types.identifier(vars.combinedStateVar),
+                  types.identifier('debouncedQuery')
+                ),
+              ]
+            )
+          : types.templateLiteral(
+              [
+                types.templateElement({
+                  raw: `${usage.dataSourceIdentifier}-`,
+                  cooked: `${usage.dataSourceIdentifier}-`,
+                }),
+                types.templateElement({ raw: '-', cooked: '-' }),
+                types.templateElement({ raw: '', cooked: '' }),
+              ],
+              [
+                types.memberExpression(
+                  types.identifier(vars.combinedStateVar),
+                  types.identifier('page')
+                ),
+                types.memberExpression(
+                  types.identifier(vars.combinedStateVar),
+                  types.identifier('debouncedQuery')
+                ),
+              ]
+            )
       )
     )
   )
 
   // Add fetchData
-  dp.openingElement.attributes.push(
-    createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
-  )
+  dp.openingElement.attributes.push(buildFetchDataForUsage(fileName, usage))
 
   // Add persistDataDuringLoading
   dp.openingElement.attributes.push(
@@ -2128,8 +2456,9 @@ function updateDataProviderForPaginationOnly(
   const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
   // Add initialData. See paginated+search updater for why we skip prefetch
-  // reuse when a dynamic state-bound sort is active.
-  if (!usage.dynamicSort) {
+  // reuse when a dynamic state-bound sort is active, and why an appending list
+  // skips it too.
+  if (!usage.dynamicSort && !usage.infiniteScroll) {
     dp.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
@@ -2156,29 +2485,32 @@ function updateDataProviderForPaginationOnly(
     )
   }
 
-  // Add key — sort is intentionally NOT included; see paginated+search updater.
-  dp.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('key'),
-      types.jsxExpressionContainer(
-        types.templateLiteral(
-          [
-            types.templateElement({
-              raw: `${usage.dataSourceIdentifier}-page-`,
-              cooked: `${usage.dataSourceIdentifier}-page-`,
-            }),
-            types.templateElement({ raw: '', cooked: '' }),
-          ],
-          [types.identifier(vars.pageStateVar)]
+  // Add key — sort is intentionally NOT included; see paginated+search updater,
+  // which also explains why an appending list keys on nothing at all (there is
+  // no query here to vary it by; a filter change restarts the accumulator
+  // through its signature instead).
+  if (!usage.infiniteScroll) {
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('key'),
+        types.jsxExpressionContainer(
+          types.templateLiteral(
+            [
+              types.templateElement({
+                raw: `${usage.dataSourceIdentifier}-page-`,
+                cooked: `${usage.dataSourceIdentifier}-page-`,
+              }),
+              types.templateElement({ raw: '', cooked: '' }),
+            ],
+            [types.identifier(vars.pageStateVar)]
+          )
         )
       )
     )
-  )
+  }
 
   // Add fetchData
-  dp.openingElement.attributes.push(
-    createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
-  )
+  dp.openingElement.attributes.push(buildFetchDataForUsage(fileName, usage))
 
   dp.openingElement.attributes.push(
     types.jsxAttribute(
@@ -2430,7 +2762,10 @@ function stabilizeDataProviderWithoutRepeater(dp: any): void {
 
 function createFetchDataAttribute(
   fileName: string,
-  cache?: ResolvedDataSourceCache
+  cache?: ResolvedDataSourceCache,
+  // When set, the resolved value is every page fetched so far rather than just
+  // the page that was requested — see `infinite-scroll.ts`.
+  accumulate?: { usage: DataSourceUsage }
 ): types.JSXAttribute {
   const fetchCall = types.callExpression(types.identifier('fetch'), [
     types.templateLiteral(
@@ -2481,9 +2816,22 @@ function createFetchDataAttribute(
     )
   )
 
+  // ⛔ Accumulation and the client cache are mutually exclusive: a cache hit
+  // short-circuits the fetch and hands back one page's rows, which would drop
+  // every page already accumulated. The caller suppresses the client cache for
+  // an appending list, so this branch never sees both.
+  const responseTail = accumulate
+    ? buildAccumulatingResponseHandler(
+        getInfiniteScrollVars(accumulate.usage.index),
+        accumulate.usage.perPage
+      )
+    : cache
+    ? buildCacheStoreThen(cache)
+    : uncachedTail
+
   const networkChain = types.callExpression(
     types.memberExpression(parsedJson, types.identifier('then')),
-    [cache ? buildCacheStoreThen(cache) : uncachedTail]
+    [responseTail]
   )
 
   const arrow = cache
@@ -2534,57 +2882,128 @@ function wireSearchInput(inputNode: any, vars: ReturnType<typeof getStateVarsFor
   )
 }
 
+/**
+ * The `fetchData` attribute for one paginated usage.
+ *
+ * ⛔ An appending list gets no CLIENT cache: a cache hit resolves with one
+ * page's rows without going through the accumulator, which would silently
+ * discard every page already loaded. The SERVER cache is untouched — it sits
+ * behind the API route and returns the same page either way.
+ */
+function buildFetchDataForUsage(fileName: string, usage: DataSourceUsage): types.JSXAttribute {
+  if (usage.infiniteScroll) {
+    return createFetchDataAttribute(fileName, undefined, { usage })
+  }
+  return createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
+}
+
+/**
+ * Wires the authored Load More button of an appending list.
+ *
+ * Disabled — not hidden — when there is nothing left to load, so the author's
+ * styling of the finished state is theirs to decide, and so the control does
+ * not vanish from under the visitor's cursor mid-click.
+ */
+function wireLoadMoreButton(
+  paginationNode: any,
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>,
+  hasLoadingState: boolean
+): void {
+  if (!usage.infiniteScrollLoadMore) {
+    return
+  }
+  const button = findPaginationControl(paginationNode, 'load-more')
+  if (!button) {
+    return
+  }
+  const infiniteVars = getInfiniteScrollVars(usage.index)
+
+  convertControlToButton(button)
+  setJSXExpressionAttribute(
+    button,
+    'onClick',
+    types.arrowFunctionExpression(
+      [],
+      // The advance statement is an expression statement; the handler needs the
+      // expression itself.
+      (buildAdvancePageStatement(usage, vars) as types.ExpressionStatement).expression
+    )
+  )
+  // The in-flight term is only referenced when the provider declared it —
+  // a mapper with no loading branch never gets `ds_N_isFetching`.
+  const notHasMore = types.unaryExpression('!', types.identifier(infiniteVars.hasMoreVar), true)
+  setJSXExpressionAttribute(
+    button,
+    'disabled',
+    hasLoadingState
+      ? types.logicalExpression(
+          '||',
+          notHasMore,
+          types.identifier(getLoadingStateVars(usage.index).isFetchingVar)
+        )
+      : notHasMore
+  )
+}
+
+/**
+ * Wires one mapper's pagination container according to the mode it is in, and
+ * removes the controls belonging to the other modes.
+ *
+ * The builder never deletes a control when the author switches mode — doing so
+ * would throw away their styling — so the container can hold a superset of what
+ * any one mode needs. Pruning here is what keeps a Previous/Next list from
+ * rendering a dead numbered strip, and an infinite list from rendering page
+ * buttons beside its Load More.
+ */
+function wirePaginationWidget(
+  paginationNode: any,
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>,
+  hasLoadingState: boolean
+): void {
+  if (usage.infiniteScroll) {
+    // Only the Load More button survives; page controls make no sense for a
+    // list the visitor never leaves.
+    dropInactivePaginationControls(paginationNode, ['load-more'])
+    wireLoadMoreButton(paginationNode, usage, vars, hasLoadingState)
+    return
+  }
+
+  const activeKinds: PaginationControlKind[] =
+    usage.paginationMode === 'numbered'
+      ? ['first', 'previous', 'pages', 'page', 'ellipsis', 'next', 'last']
+      : ['previous', 'next']
+  dropInactivePaginationControls(paginationNode, activeKinds)
+
+  wirePaginationButtons(paginationNode, usage, vars)
+
+  if (usage.paginationMode === 'numbered') {
+    const { currentPageExpr, buildSetPageStatement } = getPageAccessors(usage, vars)
+    const numberedVars: NumberedPaginationVars = {
+      index: usage.index,
+      maxPagesVar: vars.maxPagesStateVar,
+      currentPageExpr,
+      buildSetPageStatement,
+    }
+    wireNumberedPagination(paginationNode, numberedVars)
+  }
+}
+
 function wirePaginationButtons(
   paginationNode: any,
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>
 ): void {
-  // Find prev and next buttons
-  const findButton = (node: any, direction: 'previous' | 'next'): any => {
-    if (!node) {
-      return null
-    }
-
-    if (node.type === 'JSXElement') {
-      const classAttr = node.openingElement?.attributes?.find(
-        (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'className'
-      )
-      const className = classAttr?.value?.value || classAttr?.value?.expression?.value || ''
-      if (className.includes(direction)) {
-        return node
-      }
-    }
-
-    if (node.children && Array.isArray(node.children)) {
-      for (const c of node.children) {
-        const found = findButton(c, direction)
-        if (found) {
-          return found
-        }
-      }
-    }
-    return null
-  }
-
-  const prevButton = findButton(paginationNode, 'previous')
-  const nextButton = findButton(paginationNode, 'next')
+  // Marker attribute first, class-name substring second — projects generated
+  // before the marker existed carry only the class name.
+  const prevButton = findPaginationControl(paginationNode, 'previous', 'previous')
+  const nextButton = findPaginationControl(paginationNode, 'next', 'next')
 
   const isCombinedState = usage.category === 'paginated+search'
 
   if (prevButton) {
-    // Change to button element
-    prevButton.openingElement.name.name = 'button'
-    if (prevButton.closingElement) {
-      prevButton.closingElement.name.name = 'button'
-    }
-
-    // Add type="button"
-    const hasType = prevButton.openingElement.attributes.some((a: any) => a.name?.name === 'type')
-    if (!hasType) {
-      prevButton.openingElement.attributes.push(
-        types.jsxAttribute(types.jsxIdentifier('type'), types.stringLiteral('button'))
-      )
-    }
+    convertControlToButton(prevButton)
 
     // Add onClick
     prevButton.openingElement.attributes = prevButton.openingElement.attributes.filter(
@@ -2694,17 +3113,7 @@ function wirePaginationButtons(
   }
 
   if (nextButton) {
-    nextButton.openingElement.name.name = 'button'
-    if (nextButton.closingElement) {
-      nextButton.closingElement.name.name = 'button'
-    }
-
-    const hasType = nextButton.openingElement.attributes.some((a: any) => a.name?.name === 'type')
-    if (!hasType) {
-      nextButton.openingElement.attributes.push(
-        types.jsxAttribute(types.jsxIdentifier('type'), types.stringLiteral('button'))
-      )
-    }
+    convertControlToButton(nextButton)
 
     nextButton.openingElement.attributes = nextButton.openingElement.attributes.filter(
       (a: any) => a.name?.name !== 'onClick'

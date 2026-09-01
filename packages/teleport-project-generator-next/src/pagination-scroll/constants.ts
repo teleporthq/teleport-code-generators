@@ -30,6 +30,19 @@ export const PAGINATION_ATTR = 'data-tq-pagination'
  */
 export const LIST_CHROME_ATTR = 'data-tq-list-chrome'
 
+/**
+ * Identifies which pagination control a node is, stamped by the builder and
+ * read by `teleport-plugin-next-data-source` when it wires them.
+ *
+ * The runtime needs one of those values: `'load-more'`. Every other control
+ * REPLACES the visible rows, so scrolling back to the top of the list is what
+ * the visitor expects — but Load More APPENDS below what they are already
+ * reading, and yanking them back to the first row would undo the click they
+ * just made.
+ */
+export const PAGINATION_CONTROL_ATTR = 'data-tq-pagination-control'
+export const LOAD_MORE_CONTROL_VALUE = 'load-more'
+
 /** Emitted runtime path, relative to the generated project root. */
 export const PAGINATION_SCROLL_RUNTIME_DIR = ['utils']
 export const PAGINATION_SCROLL_RUNTIME_MODULE = 'pagination-scroll'

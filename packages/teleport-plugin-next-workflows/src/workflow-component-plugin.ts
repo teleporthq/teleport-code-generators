@@ -24,6 +24,7 @@ import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
 import { formControlPropertyReads } from './trigger-generator'
+import { restoreControlledSelectValue } from './controlled-select'
 
 interface WorkflowPluginConfig {
   isPage?: boolean
@@ -1223,6 +1224,14 @@ const injectWorkflowCode = (
           )
         }
       }
+
+      // The change handler exists only now, so this is the first moment anything
+      // can tell that a `<select>` demoted to `defaultValue` while its JSX was
+      // generated is in fact controlled. See ./controlled-select.
+      restoreControlledSelectValue(
+        openingElement,
+        (byProp.get('onChange') || []).map((trigger) => trigger.workflow)
+      )
     }
   }
 }

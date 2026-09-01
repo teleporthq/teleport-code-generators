@@ -1,6 +1,27 @@
 export class TeleportError extends Error {
   constructor(message: string) {
     super(message)
+    /*
+     * ⛔ WITHOUT THIS LINE EVERY SUBCLASS OF `TeleportError` FAILS `instanceof`.
+     *
+     * This package is compiled with `target: ES5`, and TypeScript's ES5
+     * down-level of `class X extends Error` emits `var _this = _super.call(this,
+     * message) || this`. Calling the native `Error` constructor returns a BRAND
+     * NEW plain Error — which is truthy, so it wins the `||` and becomes the
+     * constructed object. The result carries the right `message` but has
+     * `Error.prototype` in its chain, so `err instanceof VercelDeploymentError`
+     * is false and `err.name` reads `'Error'`.
+     *
+     * That silently disabled every `instanceof` check against these errors. In
+     * the publish path it meant a deployment the server had merely got tired of
+     * waiting for was reported to the user as a generic failure instead of the
+     * "still running, check back" answer that branch was written to give.
+     *
+     * `new.target` down-levels to `this.constructor`, which the `__extends`
+     * helper has already pointed at the most-derived class, so this restores the
+     * real prototype chain (and with it `this.name`) for every subclass.
+     */
+    Object.setPrototypeOf(this, new.target.prototype)
     this.name = this.constructor.name
   }
 }

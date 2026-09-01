@@ -1,5 +1,5 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { StorefrontTax } from '@teleporthq/teleport-shared'
+import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
 
 /**
  * Everything the product transform needs baked in at export time, beyond the
@@ -85,6 +85,7 @@ export const generateEcommerceProductTransformationCode = (
 
   return `
 ${taxHelperCode}
+${ProductDiscounts.generateProductDiscountHelperCode()}
 
 // Baked from the merchant's stock settings: TRUE when stock never blocks a
 // purchase (stock management off OR backorders allowed). Regenerating the
@@ -472,24 +473,45 @@ function buildEcommerceProduct(record, options) {
   // gross, because nothing writes them back.
   //
   // MUST mirror packages/renderer/src/utils/ecommerce-products.ts.
-  var displayPrice = grossMoney(price)
+  // The scheduled markdown in force right now, resolved from the raw column on
+  // every read so a discount starts and expires on its own. It comes off the NET
+  // price BEFORE tax: tax is a percentage of what is actually charged.
+  var activeDiscount = __pdResolveActive(record.discounts, Date.now())
+  var displayPrice = grossMoney(__pdDiscountedPrice(price, activeDiscount))
+  var defaultVariantNetPrice = firstVariant
+    ? safeNumber(formatVariantPrice(firstVariant.price, price), 0)
+    : 0
   var defaultVariantDisplayPrice = firstVariant
-    ? grossMoney(formatVariantPrice(firstVariant.price, price))
+    ? grossMoney(__pdDiscountedPrice(defaultVariantNetPrice, activeDiscount))
     : ''
   var variantsDisplay = []
   for (var dv = 0; dv < variants.length; dv++) {
     var dvRow = variants[dv]
+    // A null variant price INHERITS the product price, so discount and gross the
+    // RESOLVED value — otherwise an inheriting combination would fall back to
+    // the net base price in the picker while an overriding one showed gross.
+    var dvNetPrice = dvRow.price == null ? price : dvRow.price
     variantsDisplay.push({
       id: dvRow.id,
       options: dvRow.options,
-      // A null variant price INHERITS the product price, so gross the RESOLVED
-      // value — otherwise an inheriting combination would fall back to the net
-      // base price in the picker while an overriding one showed gross.
-      price: applyStorefrontTax(dvRow.price == null ? price : dvRow.price),
+      price: applyStorefrontTax(__pdDiscountedPrice(dvNetPrice, activeDiscount)),
+      // What this combination costs WITHOUT the discount, for the struck-through
+      // price beside it. Null when nothing is discounted, so the picker's click
+      // resolver can tell "no saving" from "a saving of zero".
+      originalPrice: activeDiscount ? applyStorefrontTax(dvNetPrice) : null,
       quantity: dvRow.quantity,
       image_url: dvRow.image_url,
     })
   }
+  // Discount display fields. Strings throughout: rendering conditions compare
+  // operands as strings, and a bound text node prints its value verbatim.
+  var hasDiscount = activeDiscount ? 'true' : 'false'
+  var discountLabel = activeDiscount
+    ? __pdDiscountLabel(activeDiscount, currencySymbol, getCurrencyInfo(currency).position)
+    : ''
+  var originalDisplayPrice = activeDiscount ? grossMoney(price) : ''
+  var originalDefaultVariantDisplayPrice =
+    activeDiscount && firstVariant ? grossMoney(defaultVariantNetPrice) : ''
   // Can this product be added to the cart at all, before the shopper touches the
   // picker? A STRING, same convention as outOfStock/requiresVariantSelection.
   //
@@ -571,6 +593,10 @@ function buildEcommerceProduct(record, options) {
     defaultVariantPrice: defaultVariantPrice,
     displayPrice: displayPrice,
     defaultVariantDisplayPrice: defaultVariantDisplayPrice,
+    hasDiscount: hasDiscount,
+    discountLabel: discountLabel,
+    originalDisplayPrice: originalDisplayPrice,
+    originalDefaultVariantDisplayPrice: originalDefaultVariantDisplayPrice,
     hasPurchasableVariant: hasPurchasableVariant,
   }
 }

@@ -5,7 +5,7 @@ import type {
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import { Constants, JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
-import { URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
+import { URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { USE_ROUTER_HOOK } from './internationalization/locale-mapper-component'
 
 // Matches the default name used by `createReactComponentPlugin` when adding
@@ -14,6 +14,9 @@ import { USE_ROUTER_HOOK } from './internationalization/locale-mapper-component'
 const REACT_COMPONENT_CHUNK_NAME = 'jsx-component'
 
 const USE_EFFECT_DEPENDENCY: UIDLDependency = Constants.USE_STATE_DEPENDENCY
+// Same named-import-from-react shape; the dependency resolver merges them into
+// one `import { useState, useEffect, useRef } from 'react'` line.
+const USE_REF_DEPENDENCY: UIDLDependency = Constants.USE_STATE_DEPENDENCY
 
 // Shared by the internationalization plugin — duplicated here as a local
 // helper to avoid an import cycle. Checks whether the component body already
@@ -70,24 +73,36 @@ const effectDepsContainRouterQueryKey = (
     return false
   })
 
-// True if the useEffect callback body contains a `router.replace(...)` call.
-// The load-bearing side effect of a write-back; pairing this with the deps
-// check protects against false positives (some other effect that happens to
-// watch the same state but does not write the URL).
-const effectBodyHasRouterReplace = (fn: types.ArrowFunctionExpression): boolean => {
+// True if the useEffect callback body writes the URL — the load-bearing side
+// effect of a write-back. Pairing this with the deps check protects against
+// false positives (some other effect that happens to watch the same state but
+// does not write the URL).
+//
+// Two shapes count. `__tqWriteQueryParam(...)` is what this plugin emits today;
+// a bare `router.replace(...)` is what it emitted before the shared writer
+// existed, and is still what a hand-written or third-party effect would use. A
+// probe that knew only the new shape would emit a SECOND write-back next to an
+// old one and put the two back to fighting over the same key.
+const effectBodyWritesUrl = (fn: types.ArrowFunctionExpression): boolean => {
   if (fn.body.type !== 'BlockStatement') {
     return false
   }
-  return fn.body.body.some(
-    (s) =>
-      s.type === 'ExpressionStatement' &&
-      s.expression.type === 'CallExpression' &&
-      s.expression.callee.type === 'MemberExpression' &&
-      s.expression.callee.object.type === 'Identifier' &&
-      s.expression.callee.object.name === 'router' &&
-      s.expression.callee.property.type === 'Identifier' &&
-      s.expression.callee.property.name === 'replace'
-  )
+  return fn.body.body.some((s) => {
+    if (s.type !== 'ExpressionStatement' || s.expression.type !== 'CallExpression') {
+      return false
+    }
+    const callee = s.expression.callee
+    if (callee.type === 'Identifier') {
+      return callee.name === URLQueryWriter.QUERY_WRITER_ID
+    }
+    return (
+      callee.type === 'MemberExpression' &&
+      callee.object.type === 'Identifier' &&
+      callee.object.name === 'router' &&
+      callee.property.type === 'Identifier' &&
+      callee.property.name === 'replace'
+    )
+  })
 }
 
 // True if the useEffect callback body calls a function named `setterName`.
@@ -279,8 +294,7 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
         const defaultValueExpr = defaultValue !== '' ? types.stringLiteral(defaultValue) : undefined
         const hasWriteBack = hasUseEffectMatching(
           body.body,
-          (deps, fn) =>
-            effectDepsContainStateId(deps, stateBinding) && effectBodyHasRouterReplace(fn)
+          (deps, fn) => effectDepsContainStateId(deps, stateBinding) && effectBodyWritesUrl(fn)
         )
         if (!hasWriteBack) {
           // State dropdowns read AND depend on the same bare state identifier
@@ -312,6 +326,14 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
         const returnIndex = body.body.findIndex((s) => s.type === 'ReturnStatement')
         const insertionIndex = returnIndex === -1 ? body.body.length : returnIndex
         body.body.splice(insertionIndex, 0, ...effectsToInsert)
+      }
+
+      // Every write-back emitted above delegates to the shared query writer, so
+      // the ref + helper it closes over must exist in the body. Idempotent with
+      // the pagination plugin, which needs the very same pair for the page
+      // binding and may have run first.
+      if (URLQueryWriter.ensureQuerySyncDeclarations(body.body) && !dependencies.useRef) {
+        dependencies.useRef = { ...USE_REF_DEPENDENCY }
       }
     }
 

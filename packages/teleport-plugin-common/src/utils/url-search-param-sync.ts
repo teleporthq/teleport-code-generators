@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import * as URLQueryWriter from './url-query-writer'
 
 // Shared builders for two-way `<state> ⇄ ?key=` URL search-param syncing.
 //
@@ -49,17 +50,9 @@ const clone = (expr: types.Expression): types.Expression =>
 //   useEffect(() => {
 //     if (typeof window === 'undefined') return
 //     if (!router.isReady) return
-//     const __nextQuery = { ...router.query }
-//     if (selectedCategory === '' || selectedCategory == null) {
-//       delete __nextQuery.categoryFilter
-//     } else {
-//       __nextQuery.categoryFilter = String(selectedCategory)
-//     }
-//     if (__nextQuery.categoryFilter === router.query.categoryFilter) return
-//     router.replace(
-//       { pathname: router.pathname, query: __nextQuery },
-//       undefined,
-//       { shallow: true }
+//     __tqWriteQueryParam(
+//       'categoryFilter',
+//       selectedCategory === '' || selectedCategory == null ? undefined : selectedCategory
 //     )
 //   }, [selectedCategory, router.isReady])
 //
@@ -75,26 +68,29 @@ const clone = (expr: types.Expression): types.Expression =>
 // URL instead of stickily writing `?sortBy=name-asc` on first load. This is
 // the write-back half of the default-aware pairing that keeps the URL⇄state
 // sync loop-free: the read-back below resolves a missing key back to the same
-// default, so the two never disagree. Omitting it (empty-default bindings like
-// `selectedCategory` / the search input) yields byte-identical output to the
-// pre-default builder.
+// default, so the two never disagree.
 //
 // Notes:
 // 1. `router.isReady` gate: on the very first SSG render `router.query` is
 //    empty, so without this gate any value initialized from
-//    `window.location.search` would immediately `router.replace` itself with
-//    the same value, racing with Next's own hydration. `router.isReady` is
-//    also in the deps array — once it flips to true, the effect re-runs with
-//    the now-hydrated `router.query` and decides correctly whether to replace.
-// 2. The equality check after building `__nextQuery` short-circuits replaces
-//    that would not change the URL — important when the user re-enters the
-//    same value, when the value mounts equal to the URL, and when the
-//    read-back effect fires its setter with the value just pushed.
-// 3. `shallow: true` keeps `getStaticProps` from re-running just because the
-//    URL bar changed; the data-source `useMemo` reacts to the state, not the
-//    URL.
+//    `window.location.search` would immediately replace itself with the same
+//    value, racing with Next's own hydration. `router.isReady` is also in the
+//    deps array — once it flips to true, the effect re-runs with the
+//    now-hydrated query and decides correctly whether to write.
+// 2. ⛔ THE EFFECT NO LONGER BUILDS THE NEXT QUERY ITSELF. It hands its single
+//    key to `URLQueryWriter`, which merges into the last query the component
+//    ASKED for rather than the one Next has got round to rendering. Two controls
+//    writing in the same flush — which is guaranteed, because changing a filter
+//    resets the page — used to spread the same stale `router.query` and erase
+//    each other's keys; the read-backs then fought over the wreckage forever.
+//    `url-query-writer.ts` has the full account.
+// 3. Because no key can be clobbered any more, `router.query` is NOT a
+//    dependency here. It used to be, as a way to RE-ASSERT a key some other
+//    writer had just dropped — which is exactly the feedback edge that turned a
+//    one-shot loss into a non-terminating swap. Fixing the write at its source
+//    means there is nothing to re-assert.
 // 4. Empty / null value deletes the key entirely so the URL never keeps a
-//    sticky `?key=` empty param.
+//    sticky `?key=` empty param. The writer treats `undefined` as "remove".
 export const buildUrlWriteBackEffect = (
   paramKey: string,
   valueExpr: types.Expression,
@@ -133,66 +129,10 @@ export const buildUrlWriteBackEffect = (
       ),
       types.returnStatement(null)
     ),
-    // const __nextQuery = { ...router.query }
-    types.variableDeclaration('const', [
-      types.variableDeclarator(
-        types.identifier('__nextQuery'),
-        types.objectExpression([
-          types.spreadElement(
-            types.memberExpression(types.identifier('router'), types.identifier('query'))
-          ),
-        ])
-      ),
-    ]),
-    // if (value === '' || value == null [|| value === <default>]) { delete __nextQuery.key }
-    // else { __nextQuery.key = String(value) }
-    types.ifStatement(
-      deleteCondition,
-      types.blockStatement([
-        types.expressionStatement(
-          types.unaryExpression(
-            'delete',
-            accessKeyOf(types.identifier('__nextQuery'), paramKey)
-          ) as unknown as types.Expression
-        ),
-      ]),
-      types.blockStatement([
-        types.expressionStatement(
-          types.assignmentExpression(
-            '=',
-            accessKeyOf(types.identifier('__nextQuery'), paramKey),
-            types.callExpression(types.identifier('String'), [clone(valueExpr)])
-          )
-        ),
-      ])
-    ),
-    // if (__nextQuery.key === router.query.key) return
-    types.ifStatement(
-      types.binaryExpression(
-        '===',
-        accessKeyOf(types.identifier('__nextQuery'), paramKey),
-        routerQueryAccess(paramKey)
-      ),
-      types.returnStatement(null)
-    ),
-    // router.replace({ pathname: router.pathname, query: __nextQuery }, undefined, { shallow: true })
-    types.expressionStatement(
-      types.callExpression(
-        types.memberExpression(types.identifier('router'), types.identifier('replace')),
-        [
-          types.objectExpression([
-            types.objectProperty(
-              types.identifier('pathname'),
-              types.memberExpression(types.identifier('router'), types.identifier('pathname'))
-            ),
-            types.objectProperty(types.identifier('query'), types.identifier('__nextQuery')),
-          ]),
-          types.identifier('undefined'),
-          types.objectExpression([
-            types.objectProperty(types.identifier('shallow'), types.booleanLiteral(true)),
-          ]),
-        ]
-      )
+    // __tqWriteQueryParam('<key>', <deleteCondition> ? undefined : <value>)
+    URLQueryWriter.buildQueryWriteCall(
+      paramKey,
+      types.conditionalExpression(deleteCondition, types.identifier('undefined'), clone(valueExpr))
     ),
   ])
 

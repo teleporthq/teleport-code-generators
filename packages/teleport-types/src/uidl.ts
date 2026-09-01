@@ -1064,6 +1064,38 @@ export interface UIDLCMSListRepeaterNodeContent {
   isLoading?: UIDLStaticValue | UIDLExpressionValue
   /** Per-mapper caching. Overrides the data-source-level default below. */
   cache?: UIDLDataCacheConfig
+  /**
+   * Which pagination controls the generated list draws.
+   *
+   * `'buttons'` (the default when absent) wires only the Previous/Next pair.
+   * `'numbered'` additionally wires First/Last and repeats the authored
+   * page-number template button once per visible page.
+   *
+   * Ignored when `infiniteScroll` is set — an accumulating list has no pages
+   * to jump between.
+   */
+  paginationMode?: 'buttons' | 'numbered'
+  /**
+   * Append rows to the list instead of replacing them page by page.
+   *
+   * Suppresses every pagination control except an authored Load More button,
+   * and — because a partially loaded list must not be served from a client
+   * cache peek — disables `cache.client` for this repeater.
+   */
+  infiniteScroll?: boolean
+  /**
+   * With `infiniteScroll`: append on a click of the authored Load More button
+   * rather than automatically when the visitor scrolls to the end of the list.
+   */
+  infiniteScrollLoadMore?: boolean
+  /**
+   * URL query-param key the current page is two-way bound to (e.g. `'page'`),
+   * the pagination counterpart of `searchUrlParamKey`. Page 1 is written as
+   * the ABSENCE of the key, so an unpaginated visit keeps a clean URL.
+   *
+   * Ignored when `infiniteScroll` is set.
+   */
+  pageUrlParamKey?: string
 }
 
 export interface UIDLDataSourceItemNode {
@@ -1813,6 +1845,10 @@ export interface UIDLEcommerceSettings {
   orderNotificationConfig: UIDLEcommerceOrderNotificationConfig | null
   paymentProviders: UIDLEcommercePaymentProvider[]
   allowFavourites?: boolean
+  // Discount vouchers. Gates the checkout voucher input and the discount row at
+  // runtime, so a storefront exported before the feature (where this is absent)
+  // reads as "off" and behaves exactly as it did.
+  vouchersEnabled?: boolean
   // Nested category tree for the storefront category filter (see above).
   categories?: UIDLEcommerceCategory[]
 }

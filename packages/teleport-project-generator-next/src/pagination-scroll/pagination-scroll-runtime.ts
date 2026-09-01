@@ -1,4 +1,9 @@
-import { LIST_CHROME_ATTR, PAGINATION_ATTR } from './constants'
+import {
+  LIST_CHROME_ATTR,
+  LOAD_MORE_CONTROL_VALUE,
+  PAGINATION_ATTR,
+  PAGINATION_CONTROL_ATTR,
+} from './constants'
 
 /**
  * Source of the generated `utils/pagination-scroll.js`.
@@ -56,6 +61,10 @@ var CHROME_SELECTOR = '[' + CHROME_ATTR + ']'
 // Only a real control counts. A caption or a page counter sitting inside the
 // pagination block must not move the page when it is clicked.
 var CONTROL_SELECTOR = 'button, [role="button"]'
+
+// Load More appends below what the visitor is already reading, so scrolling
+// them back to the first row would undo the click they just made.
+var LOAD_MORE_SELECTOR = '[${PAGINATION_CONTROL_ATTR}="${LOAD_MORE_CONTROL_VALUE}"]'
 
 // Keys that mean "I am scrolling myself", and therefore end the correction loop.
 var SCROLL_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar']
@@ -328,6 +337,9 @@ function onDocumentClick(event) {
     }
     var control = target.closest(CONTROL_SELECTOR)
     if (!control) {
+      return
+    }
+    if (control.closest(LOAD_MORE_SELECTOR)) {
       return
     }
     var pagination = control.closest(PAGINATION_SELECTOR)

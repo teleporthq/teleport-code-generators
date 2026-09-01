@@ -24,6 +24,7 @@ import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 import { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
 import { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+import { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
 import { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 import { createNextUrlSearchParamsPlugin } from './url-search-params-plugin'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
@@ -132,6 +133,7 @@ const createNextProjectGenerator = () => {
     basePath: ['components'],
   })
   const aiChatMarkdownStylesPlugin = createAIChatMarkdownStylesPlugin()
+  const aiChatOptionChipsStylesPlugin = createAIChatOptionChipsStylesPlugin()
   const nextUrlSearchParamsPlugin = createNextUrlSearchParamsPlugin()
   const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
   const nextFormSubmissionPlugin = createNextFormSubmissionPlugin()
@@ -172,6 +174,10 @@ const createNextProjectGenerator = () => {
         // Also chat-only: appends descendant CSS for the runtime markdown
         // children (links, lists, bold) the per-node UIDL styles cannot reach.
         aiChatMarkdownStylesPlugin,
+        // Chat-only: the answer-chip states (`selected` / `inactive` /
+        // disabled) live in a data attribute the chat's scripts write, and an
+        // attribute selector cannot be expressed as a per-node UIDL style.
+        aiChatOptionChipsStylesPlugin,
         nextUrlSearchParamsPlugin,
         nextFormSubmissionPlugin,
         nextComponentWorkflowPlugin,
@@ -265,6 +271,7 @@ export { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
 export { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
 export { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+export { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
 export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'

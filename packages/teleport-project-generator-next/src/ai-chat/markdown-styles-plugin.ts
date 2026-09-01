@@ -1,5 +1,6 @@
 import { ComponentPlugin, ComponentPluginFactory } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { AI_MESSAGE_CLASS_RE, findChatStyleTemplate, isChatComponent } from './style-template-utils'
 
 /**
  * Styles the markdown the AI chat bubble renders.
@@ -29,9 +30,6 @@ import * as types from '@babel/types'
  * hash, and any rule that keeps one is silently dead. The class itself is
  * component-prefixed and unique, so going fully global leaks nothing.
  */
-
-/** Matches the generated class of the AI bubble's markdown element. */
-const AI_MESSAGE_CLASS_RE = /\.([A-Za-z0-9_-]*ai-message-text[A-Za-z0-9_-]*)/
 
 const buildMarkdownCss = (messageClass: string): string => {
   const scope = (selector: string) => `:global(.${messageClass} ${selector})`
@@ -149,54 +147,6 @@ const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\
 const globalizeBaseRule = (raw: string, messageClass: string): string => {
   const pattern = new RegExp(`\\.${escapeRegExp(messageClass)}(?=\\s*\\{)`, 'g')
   return raw.replace(pattern, `:global(.${messageClass})`)
-}
-
-const isChatComponent = (componentName: string): boolean => {
-  return componentName.toLowerCase().replace(/[^a-z]/g, '') === 'aiassistantchat'
-}
-
-/**
- * Finds the styled-jsx template literal whose CSS text mentions the AI-message
- * class, anywhere in the node tree.
- */
-const findChatStyleTemplate = (
-  node: types.Node | null | undefined
-): types.TemplateLiteral | null => {
-  if (!node || typeof node !== 'object') {
-    return null
-  }
-  if (types.isJSXElement(node)) {
-    const opening = node.openingElement
-    if (types.isJSXIdentifier(opening.name) && opening.name.name === 'style') {
-      for (const child of node.children) {
-        if (
-          types.isJSXExpressionContainer(child) &&
-          types.isTemplateLiteral(child.expression) &&
-          child.expression.quasis.some((quasi) => AI_MESSAGE_CLASS_RE.test(quasi.value.raw || ''))
-        ) {
-          return child.expression
-        }
-      }
-      return null
-    }
-  }
-  for (const key of Object.keys(node)) {
-    const value = (node as unknown as Record<string, unknown>)[key]
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        const found = findChatStyleTemplate(entry as types.Node)
-        if (found) {
-          return found
-        }
-      }
-    } else if (value && typeof value === 'object' && 'type' in (value as object)) {
-      const found = findChatStyleTemplate(value as types.Node)
-      if (found) {
-        return found
-      }
-    }
-  }
-  return null
 }
 
 export const createAIChatMarkdownStylesPlugin: ComponentPluginFactory<

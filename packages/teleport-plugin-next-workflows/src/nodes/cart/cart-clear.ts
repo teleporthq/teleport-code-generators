@@ -35,6 +35,9 @@ async function cart_clear() {
         // tell "just checked out" apart from "first visit, restore my cart"
         // and skip re-hydrating while the sync below is still in flight.
         localStorage.setItem('workflow_cart_cleared_at', String(Date.now()))
+        // An applied voucher belongs to the cart that is being emptied — after
+        // a completed checkout it must not carry over to the next order.
+        localStorage.removeItem('workflow_voucher')
         const sessionId = localStorage.getItem('workflow_cart_session_id') || null
         fetch('/api/cart/sync', {
           method: 'POST',
@@ -45,6 +48,7 @@ async function cart_clear() {
         /* localStorage or fetch unavailable — local clear already succeeded */
       }
       window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
+      window.dispatchEvent(new CustomEvent('teleport:voucher-changed'))
     }
     return { success: true }
   } catch (err: unknown) {
