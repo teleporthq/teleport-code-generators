@@ -204,9 +204,14 @@ const PRESERVE_ON_CLEAN = new Set([
 // fails with "Module not found: Can't resolve 'next-auth/jwt'" (or framer-motion,
 // etc). Wiping the generated tree — preserving only install + user-owned files —
 // guarantees the output always reflects exactly the current UIDL.
-const cleanGeneratedFiles = (projectDir: string): void => {
+const RESTART_DEV_SERVER_WARNING =
+  "A dev server that watched the regeneration may have cached Next's default _app and silently " +
+  'dropped every app-level runtime — the symptom is a provider that is plainly there in _app.js ' +
+  'throwing "must be used within a Provider" at runtime.'
+
+const cleanGeneratedFiles = (projectDir: string): boolean => {
   if (!existsSync(projectDir)) {
-    return
+    return false
   }
   const hadNextCache = existsSync(join(projectDir, '.next'))
   for (const entry of readdirSync(projectDir)) {
@@ -219,13 +224,19 @@ const cleanGeneratedFiles = (projectDir: string): void => {
     console.warn(
       chalk.yellow(
         `\n[standalone] Wiped ${projectDir}/.next — if a dev server is running against this folder, RESTART it now.\n` +
-          `A server that watched the regeneration may have cached Next's default _app and silently dropped every app-level runtime.\n`
+          `${RESTART_DEV_SERVER_WARNING}\n`
       )
     )
   }
+  return hadNextCache
 }
 
 const run = async () => {
+  // Reported twice in one session: the warning below is printed BEFORE ~1500
+  // lines of generation output, so it scrolls away and the next thing anyone
+  // sees is a runtime error that looks like a codegen bug. Repeat it last.
+  let wipedNextCache = false
+  let generatedProjectDir = ''
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
       try {
@@ -243,7 +254,8 @@ const run = async () => {
       preserveExistingEnv(projectUIDL, existingEnvPath)
       // Wipe stale generated files so orphans from a previous run can't break
       // the build (this subsumes the old workflows-only cleanup).
-      cleanGeneratedFiles(projectDir)
+      generatedProjectDir = projectDir
+      wipedNextCache = cleanGeneratedFiles(projectDir)
     }
 
     await Promise.all([
@@ -326,6 +338,32 @@ const run = async () => {
       //   uidl: flotiqUIDL,
       // }),
     ])
+    // ⛔ The clean deletes `.next`, so nothing this script does can recreate it.
+    // If it is back by the time generation finishes, a dev server was WATCHING
+    // the regeneration — and it rebuilt the cache during the window where
+    // `pages/_app.js` did not exist, which is exactly how Next's built-in
+    // default `_app` gets baked in. Killing that server is then not enough: the
+    // poisoned cache outlives it and the next server inherits it. Measured: a
+    // fresh server on the inherited cache still threw "useGlobalState must be
+    // used within a GlobalStateProvider" on every page; the same server on a
+    // deleted cache served them all.
+    if (generatedProjectDir && existsSync(join(generatedProjectDir, '.next'))) {
+      console.warn(
+        chalk.red(
+          `\n[standalone] A dev server was RUNNING during this regeneration — ${generatedProjectDir}/.next came back on its own.\n` +
+            `That cache is poisoned. Stop the server, delete .next, and only then start it again:\n` +
+            `  rm -rf ${generatedProjectDir}/.next\n` +
+            `${RESTART_DEV_SERVER_WARNING}\n`
+        )
+      )
+    } else if (wipedNextCache) {
+      console.warn(
+        chalk.yellow(
+          `\n[standalone] RESTART any dev server running against dist/teleport-project-next.\n` +
+            `${RESTART_DEV_SERVER_WARNING}\n`
+        )
+      )
+    }
   } catch (e) {
     // A generation failure wipes the whole output (the clean above already ran),
     // so swallowing it here made `npm run standalone` print a SyntaxError and
