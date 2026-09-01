@@ -166,6 +166,11 @@ const REPEATER_CONTENT_FIELDS: Record<
   sort: 'preserved',
   isLoading: 'preserved',
   sortDirection: 'preserved',
+  cache: 'preserved',
+  paginationMode: 'preserved',
+  infiniteScroll: 'preserved',
+  infiniteScrollLoadMore: 'preserved',
+  pageUrlParamKey: 'preserved',
   // Stamped by the generator AFTER validation, never carried in from the UIDL.
   key: 'assigned-after-validation',
 }
@@ -197,6 +202,11 @@ test('cmsListRepeaterNodeDecoder preserves every content field the type declares
     sort: { type: 'static', content: 'name' },
     sortDirection: { type: 'static', content: 'asc' },
     isLoading: { type: 'expr', content: "isLoadingFavourites || ''" },
+    cache: { enabled: true, ttlSeconds: 300, client: true, server: true },
+    paginationMode: 'numbered',
+    infiniteScroll: false,
+    infiniteScrollLoadMore: false,
+    pageUrlParamKey: 'page',
   }
 
   const expected = Object.entries(REPEATER_CONTENT_FIELDS)
@@ -254,6 +264,81 @@ test('cmsListRepeaterNodeDecoder preserves searchUrlParamKey through validation'
     // The sibling search fields still decode alongside it.
     expect(content.searchEnabled).toBe(true)
     expect(content.searchDebounce).toBe(300)
+  }
+})
+
+test('cmsListRepeaterNodeDecoder preserves the pagination shape fields', () => {
+  const node = {
+    type: 'cms-list-repeater',
+    content: {
+      elementType: 'container',
+      name: 'cms-list-repeater',
+      renderPropIdentifier: 'ecommerceProduct',
+      paginated: true,
+      perPage: 20,
+      paginationMode: 'numbered',
+      pageUrlParamKey: 'page',
+      nodes: {
+        list: { type: 'element', content: { elementType: 'container' } },
+      },
+    },
+  }
+
+  const result = cmsListRepeaterNodeDecoder.run(node)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const content = result.result.content as {
+      paginationMode?: string
+      pageUrlParamKey?: string
+    }
+    expect(content.paginationMode).toBe('numbered')
+    expect(content.pageUrlParamKey).toBe('page')
+  }
+})
+
+test('cmsListRepeaterNodeDecoder rejects a paginationMode outside the union', () => {
+  const node = {
+    type: 'cms-list-repeater',
+    content: {
+      elementType: 'container',
+      name: 'cms-list-repeater',
+      renderPropIdentifier: 'ecommerceProduct',
+      paginationMode: 'carousel',
+      nodes: {
+        list: { type: 'element', content: { elementType: 'container' } },
+      },
+    },
+  }
+
+  expect(cmsListRepeaterNodeDecoder.run(node).ok).toBeFalsy()
+})
+
+test('cmsListRepeaterNodeDecoder preserves the infinite-scroll flags', () => {
+  const node = {
+    type: 'cms-list-repeater',
+    content: {
+      elementType: 'container',
+      name: 'cms-list-repeater',
+      renderPropIdentifier: 'ecommerceProduct',
+      paginated: true,
+      perPage: 20,
+      infiniteScroll: true,
+      infiniteScrollLoadMore: true,
+      nodes: {
+        list: { type: 'element', content: { elementType: 'container' } },
+      },
+    },
+  }
+
+  const result = cmsListRepeaterNodeDecoder.run(node)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const content = result.result.content as {
+      infiniteScroll?: boolean
+      infiniteScrollLoadMore?: boolean
+    }
+    expect(content.infiniteScroll).toBe(true)
+    expect(content.infiniteScrollLoadMore).toBe(true)
   }
 })
 

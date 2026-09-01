@@ -177,10 +177,11 @@ describe('createNextUrlSearchParamsPlugin', () => {
     expect((code.match(/useEffect\(/g) || []).length).toBe(2)
   })
 
-  it('handles URL keys that are not valid JS identifiers via bracket notation', async () => {
+  it('handles URL keys that are not valid JS identifiers', async () => {
     // GUI sometimes ships URL keys with hyphens or dots (e.g. `category-filter`,
-    // `q.cat`). Emitting `__nextQuery.category-filter` would parse as
-    // subtraction; the plugin must use bracket notation for these.
+    // `q.cat`). The key is now a plain string argument to the shared writer,
+    // which indexes with `next[key]` — so an awkward key needs no bracket
+    // gymnastics at the call site and can never be emitted as a subtraction.
     const chunk = makeJsxComponentChunk()
     const structure: ComponentStructure = {
       uidl: {
@@ -201,10 +202,10 @@ describe('createNextUrlSearchParamsPlugin', () => {
     await plugin(structure)
 
     const code = codeOfChunk(chunk)
-    expect(code).toContain('__nextQuery["category-filter"]')
-    expect(code).toContain('delete __nextQuery["category-filter"]')
-    // And critically the bad form must NOT appear.
-    expect(code).not.toContain('__nextQuery.category-filter')
+    expect(code).toContain('__tqWriteQueryParam("category-filter"')
+    expect(code).toContain('const __urlValue = router.query["category-filter"]')
+    // And critically the bad form must NOT appear anywhere.
+    expect(code).not.toContain('.category-filter')
   })
 
   it('dedupes state defs that bind to the same URL param key', async () => {
@@ -293,9 +294,12 @@ describe('createNextUrlSearchParamsPlugin', () => {
     await plugin(structure)
 
     const code = codeOfChunk(chunk)
-    // The emitted code must DELETE the key on empty value, not write
+    // The emitted code must REMOVE the key on an empty value, not write
     // `?categoryFilter=` — that would leave a sticky empty filter in the URL.
-    expect(code).toContain('delete __nextQuery.categoryFilter')
+    // `undefined` is how the shared writer is told to drop a key.
+    expect(code).toContain(
+      '__tqWriteQueryParam("categoryFilter", selectedCategory === "" || selectedCategory == null ? undefined : selectedCategory)'
+    )
   })
 
   it('activates for page-level searchParams (dynamic references via router.query)', async () => {

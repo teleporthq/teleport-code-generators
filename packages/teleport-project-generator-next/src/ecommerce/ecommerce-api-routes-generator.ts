@@ -25,6 +25,9 @@ export const buildWorkflowEcommerceSettingsPayload = (
     cashOnDelivery: settings.cashOnDelivery,
     deliveryEnabled: settings.deliveryEnabled,
     storePickupEnabled: settings.storePickupEnabled,
+    // Gates the checkout voucher UI and neutralises a voucher already sitting
+    // in a shopper's browser when the merchant turns the feature off.
+    vouchersEnabled: settings.vouchersEnabled === true,
     // Storefront tax view — the same collapse the cart context uses:
     // `storefrontTaxRate` is 0 whenever nothing is added on top of the stored
     // net prices (tax included in price, no rate, or no invoice settings), so

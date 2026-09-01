@@ -158,8 +158,13 @@ describe('cart-get-total — storefront tax', () => {
       tax: 0,
       total: 0,
       itemCount: 0,
+      // No readable cart means no per-product markdown to record on the order.
+      productDiscountTotal: 0,
       deliveryConfig: null,
       taxConfig: { storefrontTaxRate: 0 },
+      // Unreadable storage means no applied voucher, which the place-order
+      // workflow must see as "nothing to re-validate" rather than as absent.
+      voucher: null,
     })
   })
 })

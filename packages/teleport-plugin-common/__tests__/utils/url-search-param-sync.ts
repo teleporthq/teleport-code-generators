@@ -11,7 +11,7 @@ import {
 const codeOf = (node: types.Node): string => generator(node).code
 
 describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
-  it('emits a loop-free state→URL write-back for a bare state identifier (dropdown case)', () => {
+  it('delegates the write to the shared query writer (dropdown case)', () => {
     const effect = buildUrlWriteBackEffect(
       'categoryFilter',
       types.identifier('selectedCategory'),
@@ -22,17 +22,25 @@ describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
     // SSR + router-ready guards.
     expect(code).toContain('if (typeof window === "undefined") return')
     expect(code).toContain('if (!router.isReady) return')
-    // Snapshot the current query, then set or delete the bound key.
-    expect(code).toContain('const __nextQuery =')
-    expect(code).toContain('...router.query')
-    expect(code).toContain('if (selectedCategory === "" || selectedCategory == null)')
-    expect(code).toContain('delete __nextQuery.categoryFilter')
-    expect(code).toContain('__nextQuery.categoryFilter = String(selectedCategory)')
-    // Skip-if-equal guard prevents a redundant replace (the loop breaker on the URL side).
-    expect(code).toContain('if (__nextQuery.categoryFilter === router.query.categoryFilter) return')
-    expect(code).toContain('shallow: true')
-    // Deps: the value + router.isReady (so it re-runs once the router hydrates).
+
+    // ⛔ The effect must NOT build the next query itself. Spreading
+    // `router.query` here is what let two controls writing in one flush erase
+    // each other's keys — and, through their read-backs, oscillate forever.
+    expect(code).not.toContain('__nextQuery')
+    expect(code).not.toContain('...router.query')
+    expect(code).not.toContain('router.replace')
+
+    // One key, one call. `undefined` is the writer's "remove this key".
+    expect(code).toContain(
+      '__tqWriteQueryParam("categoryFilter", selectedCategory === "" || selectedCategory == null ? undefined : selectedCategory)'
+    )
+
+    // ⛔ `router.query` is deliberately NOT a dependency. It was added once as a
+    // way to RE-ASSERT a key another writer had dropped, which is precisely the
+    // edge that closed the loop; with clobbering fixed at its source there is
+    // nothing to re-assert.
     expect(code).toContain('}, [selectedCategory, router.isReady])')
+    expect(code).not.toContain('router.isReady, router.query]')
   })
 
   it('emits the write-back reading a member expression (search debounced-query case)', () => {
@@ -44,16 +52,14 @@ describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
     // The value pushed to the URL is read from the combined state object,
     // not a bare identifier — this is the generalization the search input needs.
     expect(code).toContain(
-      'if (ds_0_state.debouncedQuery === "" || ds_0_state.debouncedQuery == null)'
+      '__tqWriteQueryParam("searchKeyword", ds_0_state.debouncedQuery === "" || ds_0_state.debouncedQuery == null ? undefined : ds_0_state.debouncedQuery)'
     )
-    expect(code).toContain('__nextQuery.searchKeyword = String(ds_0_state.debouncedQuery)')
-    expect(code).toContain('if (__nextQuery.searchKeyword === router.query.searchKeyword) return')
     // Dependency is the debounced member expression, so the URL only updates
     // after the debounce commits — never on every keystroke.
     expect(code).toContain('}, [ds_0_state.debouncedQuery, router.isReady])')
   })
 
-  it('uses bracket notation for URL keys that are not valid JS identifiers', () => {
+  it('passes a non-identifier URL key through as a plain string argument', () => {
     const effect = buildUrlWriteBackEffect(
       'search-keyword',
       types.identifier('q'),
@@ -61,12 +67,12 @@ describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
     )
     const code = codeOf(effect)
 
-    expect(code).toContain('delete __nextQuery["search-keyword"]')
-    expect(code).toContain('__nextQuery["search-keyword"] = String(q)')
-    expect(code).not.toContain('__nextQuery.search-keyword')
+    // The writer indexes with `next[key]`, so an awkward key needs no bracket
+    // gymnastics at the call site any more.
+    expect(code).toContain('__tqWriteQueryParam("search-keyword"')
   })
 
-  it('also deletes the key when the value equals a non-empty default (clean canonical URL)', () => {
+  it('also removes the key when the value equals a non-empty default (clean canonical URL)', () => {
     const effect = buildUrlWriteBackEffect(
       'sortBy',
       types.identifier('sortBy'),
@@ -75,18 +81,16 @@ describe('URLSearchParamSync.buildUrlWriteBackEffect', () => {
     )
     const code = codeOf(effect)
 
-    // The default now also routes to the delete branch, so loading the page at
-    // its default sort never writes a sticky `?sortBy=name-asc`.
-    expect(code).toContain('if (sortBy === "" || sortBy == null || sortBy === "name-asc")')
-    expect(code).toContain('delete __nextQuery.sortBy')
-    expect(code).toContain('__nextQuery.sortBy = String(sortBy)')
+    // The default routes to the remove branch, so loading the page at its
+    // default sort never writes a sticky `?sortBy=name-asc`.
+    expect(code).toContain('sortBy === "" || sortBy == null || sortBy === "name-asc" ? undefined')
   })
 
-  it('omits the default clause when no default is supplied (byte-identical fallback)', () => {
+  it('omits the default clause when no default is supplied', () => {
     const withoutDefault = codeOf(
       buildUrlWriteBackEffect('sortBy', types.identifier('sortBy'), types.identifier('sortBy'))
     )
-    expect(withoutDefault).toContain('if (sortBy === "" || sortBy == null)')
+    expect(withoutDefault).toContain('sortBy === "" || sortBy == null ? undefined : sortBy')
     expect(withoutDefault).not.toContain('=== "name-asc"')
   })
 })

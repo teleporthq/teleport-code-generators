@@ -11,6 +11,7 @@ import * as LayoutTopology from './utils/layout-topology'
 import * as HtmlContentModel from './utils/html-content-model'
 import * as StyleDeclarations from './utils/style-declarations'
 import * as StorefrontTax from './utils/storefront-tax'
+import * as ProductDiscounts from './utils/product-discounts'
 import * as EmailDate from './utils/email-date'
 import * as DataCache from './cache'
 
@@ -28,6 +29,7 @@ export {
   HtmlContentModel,
   StyleDeclarations,
   StorefrontTax,
+  ProductDiscounts,
   EmailDate,
   DataCache,
 }

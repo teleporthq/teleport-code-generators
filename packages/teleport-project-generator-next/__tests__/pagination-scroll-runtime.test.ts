@@ -2,7 +2,9 @@ import { PAGINATION_SCROLL_RUNTIME_JS } from '../src/pagination-scroll/paginatio
 import {
   LIST_CHROME_ATTR,
   LIST_CONTROLS_ELEMENT_TYPE,
+  LOAD_MORE_CONTROL_VALUE,
   PAGINATION_ATTR,
+  PAGINATION_CONTROL_ATTR,
   PAGINATION_ELEMENT_TYPE,
 } from '../src/pagination-scroll/constants'
 
@@ -52,6 +54,16 @@ describe('pagination scroll runtime source', () => {
     expect(PAGINATION_SCROLL_RUNTIME_JS).toContain(
       "control.disabled === true || control.getAttribute('aria-disabled') === 'true'"
     )
+  })
+
+  it('leaves a Load More click alone', () => {
+    // Every other control REPLACES the rows, so returning to the top of the
+    // list is what the visitor expects. Load More APPENDS below what they are
+    // already reading — scrolling them back would undo the click.
+    expect(PAGINATION_SCROLL_RUNTIME_JS).toContain(
+      `var LOAD_MORE_SELECTOR = '[${PAGINATION_CONTROL_ATTR}="${LOAD_MORE_CONTROL_VALUE}"]'`
+    )
+    expect(PAGINATION_SCROLL_RUNTIME_JS).toContain('if (control.closest(LOAD_MORE_SELECTOR))')
   })
 
   it('skips chrome and hidden siblings when it picks the first row', () => {
