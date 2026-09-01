@@ -95,6 +95,11 @@ describe('createNextUrlSearchParamsPlugin', () => {
     expect(structure.dependencies.useRouter).toBeDefined()
     expect(structure.dependencies.useRouter.path).toBe('next/router')
     expect(structure.dependencies.useEffect).toBeDefined()
+    // The write-backs delegate to `__tqWriteQueryParam`, whose ref is a
+    // `useRef` — without the dependency the page would reference an unimported
+    // hook and fail at module load.
+    expect(structure.dependencies.useRef).toBeDefined()
+    expect(structure.dependencies.useRef.path).toBe('react')
 
     const code = codeOfChunk(chunk)
     expect(code).toContain('const router = useRouter()')

@@ -10,6 +10,11 @@ import {
   getTransformWrapperCode,
   type EcommerceProductTransformOptions,
 } from '../transformations'
+import {
+  generateSortFallbackFieldHelper,
+  generateSortFieldSqlHelper,
+  generateSortTiebreakSql,
+} from '../product-price-sort'
 
 interface TeleportDBConfig {
   host?: string
@@ -221,6 +226,10 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
 
 ${generateDateFormatterCode()}
 
+${generateSortFieldSqlHelper(tableName)}
+
+${generateSortFallbackFieldHelper(tableName)}
+
 // Matches DDL / dangerous statements the raw-query branch should refuse.
 // Keep this list conservative — anything destructive or schema-changing is
 // out of scope for a client-triggered fetch. SELECT and CTEs (WITH ...) are
@@ -346,35 +355,66 @@ export default async function handler(req, res) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
     }
     
+    // Handle sorts - new array format. Two ORDER BY clauses are built: the one
+    // actually used, and a plain-column twin kept only as the fallback below.
+    let orderBySql = ''
+    let plainOrderBySql = ''
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
-        const orderClauses = parsedSorts.map((sort) => {
-          if (!sort.field) return null
-          const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-          return \`\${sort.field} \${order}\`
-        }).filter(Boolean)
+        const valid = parsedSorts.filter((sort) => sort && sort.field)
+        const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
+        const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}\`)
+        const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
-          sql += \` ORDER BY \${orderClauses.join(', ')}\`
+          // A deterministic tiebreaker keeps pagination stable: "sort by
+          // discount" ties every undiscounted product at zero, and equal rows
+          // with no defined order can repeat across pages or vanish between them.
+          orderBySql = \` ORDER BY \${orderClauses.join(', ')}${generateSortTiebreakSql(
+            tableName
+          )}\`
+          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}${generateSortTiebreakSql(
+            tableName
+          )}\`
         }
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
+      orderBySql = \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
+      plainOrderBySql = orderBySql
     }
-    
+    const usedDiscountAwareSort = orderBySql !== plainOrderBySql
+
     const limitValue = limit || perPage
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
-    
+
+    let sqlTail = ''
     if (limitValue) {
-      sql += \` LIMIT \${limitValue}\`
+      sqlTail += \` LIMIT \${limitValue}\`
     }
     
     if (offsetValue !== undefined) {
-      sql += \` OFFSET \${offsetValue}\`
+      sqlTail += \` OFFSET \${offsetValue}\`
     }
-    
-    const result = await client.query(sql, queryParams)
+
+    const baseSql = sql
+    sql = baseSql + orderBySql + sqlTail
+
+    // The discount-aware price ordering is an inline sub-select over a JSON
+    // column. It is written to be unraisable, but it runs inside ORDER BY for
+    // the whole table - so if a database ever rejects it, fall back to ordering
+    // by the stored list price rather than serving an empty products page.
+    let result
+    try {
+      result = await client.query(sql, queryParams)
+    } catch (sortError) {
+      if (!usedDiscountAwareSort) throw sortError
+      console.warn(
+        'Discount-aware price sort failed; falling back to the list price:',
+        sortError && sortError.message
+      )
+      result = await client.query(baseSql + plainOrderBySql + sqlTail, queryParams)
+    }
     const rows = Array.isArray(result?.rows) ? result.rows : []
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
