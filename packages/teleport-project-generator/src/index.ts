@@ -26,6 +26,7 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
+  reportUnresolvedLocalImports,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -277,6 +278,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
         ) as UIDLLocalFontAsset[],
       },
       projectRouteDefinition: uidl.root.stateDefinitions.route,
+      // Page plugins receive page folder paths relative to THIS folder, while
+      // every other path they get (resources, utils, components) is relative to
+      // the project root — they need both to build an import specifier between
+      // the two. See `GenericUtils.generatePageDependenciesPrefix`.
+      pagesPath: this.strategy.pages.path,
       designLanguage: uidl.root?.designLanguage,
       mapping,
       extractedResources: {},
@@ -365,9 +371,30 @@ export class ProjectGenerator implements ProjectGeneratorType {
         }
       )
 
+      // The framework's app file imports this stylesheet unconditionally when
+      // the strategy declares `isGlobalStylesDependent` (Next's `_app.js`,
+      // Nuxt's config), but the style sheet generator emits NO file when the
+      // UIDL carries neither style sets nor design tokens — leaving an import
+      // of a `style.css` that was never written, which fails the build with the
+      // same "Module not found" as any other dangling local import. Emit the
+      // empty sheet that import promises. Project plugins that take the import
+      // away (styled-components, css-modules, react-jss) set the flag to false
+      // in `runBefore`, before this runs, so they write nothing extra.
+      const styleSheetFiles = [...files]
+      if (
+        this.strategy.framework?.config?.isGlobalStylesDependent === true &&
+        !styleSheetFiles.some((file) => file.name === this.strategy.projectStyleSheet.fileName)
+      ) {
+        styleSheetFiles.push({
+          name: this.strategy.projectStyleSheet.fileName,
+          fileType: FileType.CSS,
+          content: '',
+        })
+      }
+
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,
-        files,
+        files: styleSheetFiles,
       })
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
@@ -768,6 +795,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
+
+    reportUnresolvedLocalImports(rootFolder)
 
     return rootFolder
   }

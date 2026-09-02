@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
+import { GenericUtils } from '@teleporthq/teleport-shared'
 import { ResolvedDataSourceCache } from './types'
 
 /** Identifiers the emitted page imports from `utils/tq-cache/client`. */
@@ -29,8 +30,7 @@ export const registerCacheClientImports = (
   dependencies: Record<string, UIDLDependency>,
   folderPath: string[] | undefined
 ): void => {
-  const depth = (folderPath ? folderPath.length : 0) + 1
-  const path = `${'../'.repeat(depth)}utils/tq-cache/client`
+  const path = `${GenericUtils.generatePageToRootPrefix({ folderPath })}utils/tq-cache/client`
 
   CACHE_CLIENT_IMPORTS.forEach((identifier) => {
     if (!dependencies[identifier]) {

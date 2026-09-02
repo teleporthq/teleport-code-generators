@@ -201,6 +201,20 @@ export interface GeneratorOptions {
     tokens?: UIDLDesignTokens
   }
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
+  /**
+   * PROJECT-ROOT-relative folder the framework serves pages from
+   * (`['pages']` for Next) — i.e. the project strategy's `pages.path`.
+   *
+   * A page UIDL's `outputOptions.folderPath` is relative to THAT folder, while
+   * every other path in these options (`resources.path`, the data-source and
+   * workflow util folders, ...) is relative to the PROJECT ROOT. A page plugin
+   * that needs an import path between the two has to rebase the page folder on
+   * this one first — see `GenericUtils.generatePageDependenciesPrefix`, which
+   * exists because mixing the two coordinate systems silently produced
+   * `../fetch_items` (resolving inside `pages/`) for a page in
+   * `pages/resources/` importing the root `resources/` folder.
+   */
+  pagesPath?: string[]
   dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
   globalAssets?: UIDLGlobalAsset[]

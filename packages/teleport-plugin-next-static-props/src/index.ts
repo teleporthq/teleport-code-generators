@@ -8,7 +8,6 @@ import {
 import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPropsAST } from './utils'
-import { join } from 'path'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
@@ -64,10 +63,11 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
       dependencies[resourceImportName] = {
         type: 'local',
-        path: GenericUtils.localRelativePath(
-          join(...uidl.outputOptions.folderPath, uidl.outputOptions.fileName),
-          join(...resources.path, StringUtils.camelCaseToDashCase(usedResource.name))
-        ),
+        path: `${GenericUtils.generatePageDependenciesPrefix({
+          toPath: resources.path,
+          folderPath: uidl.outputOptions.folderPath,
+          pagesPath: options.pagesPath,
+        })}${StringUtils.camelCaseToDashCase(usedResource.name)}`,
       }
     }
 

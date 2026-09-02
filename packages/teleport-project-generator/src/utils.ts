@@ -1,4 +1,10 @@
-import { UIDLUtils, StringUtils, GenericUtils, RoutePaths } from '@teleporthq/teleport-shared'
+import {
+  UIDLUtils,
+  StringUtils,
+  GenericUtils,
+  RoutePaths,
+  LocalImports,
+} from '@teleporthq/teleport-shared'
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -604,4 +610,40 @@ export const bootstrapGenerator = (
     ...(style && { variation: style }),
     strictHtmlWhitespaceSensitivity,
   })
+}
+
+/**
+ * Last line of defence against "Module not found" builds: walk the finished
+ * project and report every relative import that resolves to no generated file.
+ *
+ * A plugin that computes an import path from the wrong base (a page folder path
+ * measured from `pages/` against a folder measured from the project root, say)
+ * produces a project that looks complete and only breaks when the framework
+ * compiles it — on the user's machine, or on Vercel. This puts the failure back
+ * next to the code that caused it.
+ *
+ * Reports, never throws: the scan is text-based, so a string literal that merely
+ * LOOKS like an import could show up here, and no generation should ever be
+ * lost to that. `teleport-test`'s standalone run turns the same check into a
+ * non-zero exit code, which is where a regression gets caught for real.
+ */
+export const reportUnresolvedLocalImports = (rootFolder: GeneratedFolder): void => {
+  let unresolved: LocalImports.UnresolvedLocalImport[] = []
+
+  try {
+    unresolved = LocalImports.findUnresolvedLocalImportsInProject(rootFolder)
+  } catch {
+    // A diagnostic must never cost a caller its generated project — the files
+    // are already complete by the time this runs.
+    return
+  }
+
+  if (unresolved.length === 0) {
+    return
+  }
+
+  /* tslint:disable-next-line:no-console */
+  console.warn(
+    `[teleport-project-generator] ${LocalImports.formatUnresolvedLocalImports(unresolved)}`
+  )
 }

@@ -12,7 +12,7 @@ import {
   UIDLCustomWorkflowNode,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
@@ -633,8 +633,10 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
         }
       }
 
-      const folderDepth = (uidl.outputOptions?.folderPath || []).length
-      const pathPrefix = '../'.repeat(1 + folderDepth)
+      const pathPrefix = GenericUtils.generatePageToRootPrefix({
+        folderPath: uidl.outputOptions?.folderPath,
+        pagesPath: options.pagesPath,
+      })
 
       dependencies.workflowRuntime = {
         type: 'local',
