@@ -6,7 +6,7 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
-import { ASTStatementOrder, StringUtils } from '@teleporthq/teleport-shared'
+import { ASTStatementOrder, GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
@@ -3597,8 +3597,7 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
-          const depth = (folderPath ? folderPath.length : 0) + 1
-          const relativePrefix = '../'.repeat(depth)
+          const relativePrefix = GenericUtils.generatePageToRootPrefix({ folderPath })
           dependencies[fetcherImportName] = {
             type: 'local',
             path: `${relativePrefix}utils/data-sources/${fileName}`,
@@ -3815,8 +3814,7 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
-          const depth = (folderPath ? folderPath.length : 0) + 1
-          const relativePrefix = '../'.repeat(depth)
+          const relativePrefix = GenericUtils.generatePageToRootPrefix({ folderPath })
           dependencies[fetcherImportName] = {
             type: 'local',
             path: `${relativePrefix}utils/data-sources/${fileName}`,

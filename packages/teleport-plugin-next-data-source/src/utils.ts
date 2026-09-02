@@ -10,7 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import type { EcommerceProductTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
@@ -1253,13 +1253,11 @@ export const extractDataSourceIntoGetStaticProps = (
 
     // Add dependency for the fetcher
     const fetcherImportName = StringUtils.dashCaseToCamelCase(fileName)
-    // Calculate the correct relative path based on page folder depth.
-    // folderPath contains subfolders within pages/ (e.g. ['admin'] for pages/admin/X.js).
-    // We add 1 for the pages/ directory itself.
-    // Pages at pages/X.js (folderPath=[]) need '../' (1 level up)
-    // Pages at pages/admin/X.js (folderPath=['admin']) need '../../' (2 levels up)
-    const depth = (folderPath ? folderPath.length : 0) + 1
-    const relativePrefix = '../'.repeat(depth)
+    // Relative path from the page back to the project root. `folderPath` holds
+    // the subfolders WITHIN pages/ (e.g. ['admin'] for pages/admin/X.js), so
+    // the pages/ folder itself has to be counted too — which is exactly what
+    // the shared helper does (see `generatePageDependenciesPrefix`).
+    const relativePrefix = GenericUtils.generatePageToRootPrefix({ folderPath })
     dependencies[fetcherImportName] = {
       type: 'local',
       path: `${relativePrefix}utils/data-sources/${fileName}`,

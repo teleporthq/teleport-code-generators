@@ -17,7 +17,7 @@ describe('Vue Nuxt Project Generator', () => {
     const outputFolder = await generator.generateProject(uidlSample, template)
     const assetsPath = generator.getAssetsPath()
 
-    const packageJSON = outputFolder.files[1]
+    const packageJSON = outputFolder.files.find((file) => file.name === 'package')
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
@@ -28,7 +28,7 @@ describe('Vue Nuxt Project Generator', () => {
     const outputFolder = await generator.generateProject(uidlSampleWithDependencies, template)
     const assetsPath = generator.getAssetsPath()
 
-    const packageJSON = outputFolder.files[2]
+    const packageJSON = outputFolder.files.find((file) => file.name === 'package')
     const pages = outputFolder.subFolders[1]
     const components = outputFolder.subFolders[0]
 
@@ -49,8 +49,8 @@ describe('Vue Nuxt Project Generator', () => {
       `import DangerousHTML from 'dangerous-html/dist/vue/lib.js'`
     )
 
-    expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
-    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.13"`)
+    expect(packageJSON?.content).toContain(`"antd": "4.5.4"`)
+    expect(packageJSON?.content).toContain(`"dangerous-html": "0.1.13"`)
 
     /* For Nuxt based projects, just imports are injected in index file of the routes */
     expect(pages.files[0].content).toContain(`import 'antd/dist/antd.css'`)

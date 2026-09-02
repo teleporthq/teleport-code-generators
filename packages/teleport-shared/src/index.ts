@@ -2,6 +2,7 @@ import * as Constants from './constants'
 import * as StringUtils from './utils/string-utils'
 import * as UIDLUtils from './utils/uidl-utils'
 import * as GenericUtils from './utils/generic'
+import * as LocalImports from './utils/local-imports'
 import * as JSIdentifiers from './utils/js-identifiers'
 import * as ASTScope from './utils/ast-scope'
 import * as ASTStatementOrder from './utils/ast-statement-order'
@@ -20,6 +21,7 @@ export {
   StringUtils,
   UIDLUtils,
   GenericUtils,
+  LocalImports,
   JSIdentifiers,
   ASTScope,
   ASTStatementOrder,
