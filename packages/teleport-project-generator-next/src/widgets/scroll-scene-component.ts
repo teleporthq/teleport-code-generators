@@ -15,6 +15,8 @@
  * --scene-progress only when exposeProgress is set, and a dev-only warning
  * when an ancestor's overflow silently disables the sticky pinning.
  */
+import { settledMomentForLanes } from './scroll-scene-moment'
+
 export const generateScrollSceneComponentCode = (): string => {
   return `import React from 'react'
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'
@@ -105,6 +107,8 @@ const isValidLane = (lane) => {
   }
   return lane.unit === undefined || lane.unit === 'px' || lane.unit === '%' || lane.unit === 'vw'
 }
+
+${settledMomentForLanes.toString()}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()
@@ -457,6 +461,28 @@ const TqScrollScene = ({
   const chapterHelpersRef = React.useRef(null)
   if (chapterHelpersRef.current === null) {
     const chapterProgress = (chapterRoot) => {
+      // 1. The author's own snap point ("Snap here" on the timeline) wins.
+      const override = parseFloat(chapterRoot.getAttribute('data-chapter-moment') || '')
+      if (Number.isFinite(override)) {
+        return Math.min(1, Math.max(0, override))
+      }
+      // 2. The settled moment — everything arrived, nothing leaving — read
+      //    from the root's and every descendant's lanes.
+      const boundLanes = []
+      const boundElements = [chapterRoot].concat(
+        Array.from(chapterRoot.querySelectorAll('[' + SCROLL_BIND_ATTR + ']'))
+      )
+      for (const element of boundElements) {
+        const lanes = parseScrollBind(element.getAttribute(SCROLL_BIND_ATTR))
+        for (const lane of lanes) {
+          boundLanes.push(lane)
+        }
+      }
+      const settled = settledMomentForLanes(boundLanes)
+      if (settled !== null) {
+        return settled
+      }
+      // 3. Through-motion only (a crossing line): the window's middle.
       const recorded = String(chapterRoot.getAttribute('data-chapter-window') || '')
         .split(',')
         .map((part) => parseFloat(part))
@@ -480,7 +506,11 @@ const TqScrollScene = ({
         }
         const moments = []
         for (const child of Array.from(stage.children)) {
-          if (!child.getAttribute || !child.getAttribute(SCROLL_BIND_ATTR)) {
+          if (
+            !child.getAttribute ||
+            child.tagName === 'STYLE' ||
+            child.hasAttribute('data-scroll-video')
+          ) {
             continue
           }
           const progress = chapterProgress(child)
@@ -606,6 +636,8 @@ const TqScrollScene = ({
     const helpers = chapterHelpersRef.current
     let settleTimer = 0
     let suppressUntil = 0
+    let lastProgress = progressRef.current
+    let direction = 0
     const settle = () => {
       if (Date.now() < suppressUntil) {
         return
@@ -618,8 +650,14 @@ const TqScrollScene = ({
       if (moments.length === 0) {
         return
       }
-      let nearest = moments[0]
-      for (const moment of moments) {
+      // Settle in the direction the visitor was travelling: a short scroll
+      // forward lands on the next chapter, never back on the one just left.
+      const ahead = moments.filter((moment) =>
+        direction > 0 ? moment >= progress - 0.02 : direction < 0 ? moment <= progress + 0.02 : true
+      )
+      const candidates = ahead.length > 0 ? ahead : moments
+      let nearest = candidates[0]
+      for (const moment of candidates) {
         if (Math.abs(moment - progress) < Math.abs(nearest - progress)) {
           nearest = moment
         }
@@ -632,6 +670,11 @@ const TqScrollScene = ({
     }
     const onScroll = () => {
       window.clearTimeout(settleTimer)
+      const progress = progressRef.current
+      if (progress !== lastProgress) {
+        direction = progress > lastProgress ? 1 : -1
+        lastProgress = progress
+      }
       if (Date.now() < suppressUntil) {
         return
       }

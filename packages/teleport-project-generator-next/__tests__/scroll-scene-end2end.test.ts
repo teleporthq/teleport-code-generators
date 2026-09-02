@@ -83,6 +83,12 @@ describe('Next generator with a Scroll Scene element', () => {
     // document position (which is the top of the track).
     expect(component?.content).toContain('hashchange')
     expect(component?.content).toContain('data-chapter-window')
+    // Snap + anchors aim at the chapter's SETTLED moment (all arrived, none
+    // leaving), honour the author's "Snap here" point, and settle in the
+    // direction of travel.
+    expect(component?.content).toContain('data-chapter-moment')
+    expect(component?.content).toContain('function settledMomentForLanes')
+    expect(component?.content).toContain('const candidates = ahead.length > 0 ? ahead : moments')
     expect(component?.content).toContain('scrollToChapter')
     // Gentle chapter snap: settle-on-pause exists and is opt-in via the
     // chapterSnap prop; nothing ever intercepts an in-flight scroll.
