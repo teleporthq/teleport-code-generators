@@ -1082,6 +1082,13 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
     // the output and everything LOOKS wired — but no ternary is emitted and the
     // list shows its empty copy for the whole fetch.
     isLoading: optional(union(staticValueDecoder, expressionValueDecoder)),
+    // Pagination shape + behaviour. Same stripping hazard as every field above:
+    // omitted here, the generated list silently falls back to Previous/Next with
+    // no page in the URL, whatever the builder configured.
+    paginationMode: optional(union(constant('buttons'), constant('numbered'))),
+    infiniteScroll: optional(boolean()),
+    infiniteScrollLoadMore: optional(boolean()),
+    pageUrlParamKey: optional(string()),
   }),
 })
 

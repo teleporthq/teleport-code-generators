@@ -1309,7 +1309,7 @@ const handleAttributes = (
             For reference, check `html-mapping` file.
           */
           if (
-            (elementType === 'img' || elementType === 'video') &&
+            (elementType === 'img' || elementType === 'video' || elementType === 'audio') &&
             attrKey === 'src' &&
             !isValidURL(value)
           ) {
@@ -1376,7 +1376,7 @@ const handleAttributes = (
         const extractedValue = String(extracted)
 
         if (
-          (elementType === 'img' || elementType === 'video') &&
+          (elementType === 'img' || elementType === 'video' || elementType === 'audio') &&
           attrKey === 'src' &&
           !extractedValue.startsWith('http')
         ) {

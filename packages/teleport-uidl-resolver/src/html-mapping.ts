@@ -67,6 +67,17 @@ export const HTMLMapping: Mapping = {
         },
       },
     },
+    'model-viewer-node': {
+      elementType: 'model-viewer',
+      dependency: {
+        type: 'package',
+        path: '@google/model-viewer',
+        version: '4.3.1',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
     textinput: {
       elementType: 'input',
       attrs: {

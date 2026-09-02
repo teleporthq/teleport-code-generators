@@ -30,9 +30,14 @@ const AI_PROMPT = 'Summarize this SENSITIVE_SERVER_PROMPT'
 const AI_MODEL = 'gpt-4o-secret-model'
 const CLIENT_MARKER = 'CLIENT_VISIBLE_VALUE'
 
+const AISQL_ALLOWED_TABLE = 'secret_allowed_table'
+const AISQL_SCHEMA_COLUMN = 'sensitive_schema_column'
+const AISQL_PROMPT = 'SENSITIVE_AISQL_PROMPT'
+
 const TRIGGER_ID = 'trigger-1'
 const DATA_ID = 'data-1'
 const AI_ID = 'ai-1'
+const AISQL_ID = 'aisql-1'
 const CLIENT_ID = 'client-1'
 
 const buildWorkflow = (): any => ({
@@ -70,18 +75,39 @@ const buildWorkflow = (): any => ({
       label: 'Summarize',
     },
     {
+      id: AISQL_ID,
+      type: 'ai-select-database-data',
+      config: {
+        dataSourceId: DATA_SOURCE_ID,
+        allowedTables: [AISQL_ALLOWED_TABLE],
+        prompt: AISQL_PROMPT,
+        model: AI_MODEL,
+        token: 'sk-secret',
+        tableSchemas: [
+          {
+            table: AISQL_ALLOWED_TABLE,
+            columns: [{ name: AISQL_SCHEMA_COLUMN, type: 'text' }],
+          },
+        ],
+      },
+      executionEnv: 'server',
+      stepNumber: 3,
+      label: 'AI query',
+    },
+    {
       id: CLIENT_ID,
       type: 'state-update-local-state',
       config: { property: 'summary', value: CLIENT_MARKER },
       executionEnv: 'client',
-      stepNumber: 3,
+      stepNumber: 4,
       label: 'Write summary',
     },
   ],
   edges: [
     { id: 'e1', source: TRIGGER_ID, target: DATA_ID },
     { id: 'e2', source: DATA_ID, target: AI_ID },
-    { id: 'e3', source: AI_ID, target: CLIENT_ID },
+    { id: 'e3', source: AI_ID, target: AISQL_ID },
+    { id: 'e4', source: AISQL_ID, target: CLIENT_ID },
   ],
 })
 
@@ -153,6 +179,12 @@ describe('client bundle redacts server node config', () => {
     // AI server node's prompt/model are server-only too.
     expect(moduleCode).not.toContain(AI_PROMPT)
     expect(moduleCode).not.toContain(AI_MODEL)
+    // ai-select-database-data bakes the table allowlist + schemas into its
+    // config; none of it may reach the browser.
+    expect(moduleCode).not.toContain(AISQL_ALLOWED_TABLE)
+    expect(moduleCode).not.toContain(AISQL_SCHEMA_COLUMN)
+    expect(moduleCode).not.toContain('tableSchemas')
+    expect(moduleCode).not.toContain(AISQL_PROMPT)
   })
 
   it('preserves the AI streaming flag so streaming detection still works', () => {

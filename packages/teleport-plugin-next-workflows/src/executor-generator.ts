@@ -1645,7 +1645,7 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
 
       if (data.type === 'chunk' && data.nodeId) {
         streamedNodeIds[data.nodeId] = true;
-        context[data.nodeId] = { chunk: data.chunk, fullResponse: data.fullResponse, model: data.model };
+        context[data.nodeId] = { chunk: data.chunk, fullResponse: data.fullResponse };
         const info = streamingInfo[data.nodeId];
         if (info && info.onStreamNodes.length > 0) {
           const runnableStreamNodes = clientExecutableBranchNodes(info.onStreamNodes);

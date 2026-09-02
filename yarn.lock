@@ -3700,6 +3700,11 @@ cli-width@^3.0.0:
   resolved "https://registry.npmjs.org/cli-width/-/cli-width-3.0.0.tgz"
   integrity sha512-FxqpkPPwu1HjuN93Omfm4h8uIanXofW0RxVEW3k5RKx+mJJYSthzNhp32Kzxxy3YAEZ/Dc/EWN1vZRY0+kOhbw==
 
+client-only@0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/client-only/-/client-only-0.0.1.tgz#38bba5d403c41ab150bff64a95c85013cf73bca1"
+  integrity sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==
+
 cliui@^5.0.0:
   version "5.0.0"
   resolved "https://registry.npmjs.org/cliui/-/cliui-5.0.0.tgz"
@@ -10806,6 +10811,13 @@ stubs@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmjs.org/stubs/-/stubs-3.0.0.tgz"
   integrity sha512-PdHt7hHUJKxvTCgbKX9C1V/ftOcjJQgz8BZwNfV5c4B6dcGqlpelTbJ999jBGZ2jYiPAwcX5dP6oBwVlBlUbxw==
+
+styled-jsx@^5.1.6:
+  version "5.1.7"
+  resolved "https://registry.yarnpkg.com/styled-jsx/-/styled-jsx-5.1.7.tgz#b37bbf924630e811bc36b87e25754427f51ee385"
+  integrity sha512-HPLmEIYprxCeWDMLYiaaAhsV3yGfIlCqzuVOybE6fjF3SUJmH67nCoMDO+nAvHNHo46OfvpCNu4Rcue82dMNFg==
+  dependencies:
+    client-only "0.0.1"
 
 supports-color@^5.3.0:
   version "5.5.0"

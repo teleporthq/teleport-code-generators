@@ -1,5 +1,5 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
-import { StorefrontTax } from '@teleporthq/teleport-shared'
+import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
 import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
 
 export const generateEcommerceContextFileContent = (
@@ -117,11 +117,39 @@ export const generateEcommerceContextFileContent = (
         '  }',
         '  return swatches',
         '}',
+        // Reports whether the freshly-built line differs from the stored one on
+        // any field enrichment owns, so an unchanged cart can be returned by
+        // reference. Compared field-by-field rather than by JSON.stringify:
+        // key order is not guaranteed across engines and a false "changed"
+        // would reintroduce the redundant write this exists to avoid.
+        'var TQ_ENRICHED_FIELDS = ["name","price","image","variant","currency","currencySymbol","slug","originalPrice","discountType","discountValue","discountAmount"]',
+        'function tqLineChanged(before, after) {',
+        '  for (var f = 0; f < TQ_ENRICHED_FIELDS.length; f++) {',
+        '    var key = TQ_ENRICHED_FIELDS[f]',
+        '    var a = before ? before[key] : undefined',
+        '    var b = after[key]',
+        '    if ((a == null) !== (b == null)) return true',
+        '    if (a != null && String(a) !== String(b)) return true',
+        '  }',
+        '  var beforeSwatches = (before && before.variantSwatches) || []',
+        '  var afterSwatches = after.variantSwatches || []',
+        '  if (beforeSwatches.length !== afterSwatches.length) return true',
+        '  for (var sw = 0; sw < afterSwatches.length; sw++) {',
+        '    if ((beforeSwatches[sw] || {}).color !== (afterSwatches[sw] || {}).color) return true',
+        '  }',
+        '  return false',
+        '}',
         'async function enrichCartItems(items) {',
         '  if (!items || items.length === 0) return items',
-        // Enrich a line when it lacks a name OR carries a variant (variant lines
-        // need per-variant price/image/label even if the product name is set).
-        '  var needsEnrichment = items.filter(function(i) { return i.productId && (!i.name || i.variantId) })',
+        // EVERY line with a product id is re-read, not just the bare ones.
+        //
+        // It used to be "no name, or a variant" — enough when a line's price
+        // could only go stale if the merchant edited it. A per-product discount
+        // starts and expires on a schedule, so a line added at full price
+        // yesterday must be re-priced today (and vice versa). Hydration is the
+        // one place regenerated code can heal that, and it is a single batched
+        // /api/data round trip for the whole cart either way.
+        '  var needsEnrichment = items.filter(function(i) { return i.productId })',
         '  if (needsEnrichment.length === 0) return items',
         '  var productIds = [], seen = {}',
         '  for (var k = 0; k < needsEnrichment.length; k++) {',
@@ -160,7 +188,18 @@ export const generateEcommerceContextFileContent = (
         '        }',
         '      } catch (ve) {}',
         '    }',
-        '    return items.map(function(item) {',
+        // Whether anything actually moved. The caller persists + re-renders only
+        // when the array is a NEW one, and now that EVERY line is re-read (not
+        // just the bare ones) a fresh `map` would report a change on every sync
+        // of an unchanged cart — one redundant localStorage write and one
+        // redundant render each time. Returning the original array when nothing
+        // differs keeps the old no-op contract exactly.
+        '    var didChange = false',
+        '    function markIfChanged(before, after) {',
+        '      if (tqLineChanged(before, after)) { didChange = true }',
+        '      return after',
+        '    }',
+        '    var enriched = items.map(function(item) {',
         '      var product = productMap[item.productId]',
         '      if (!product && item.name) return item',
         '      if (!product) return item',
@@ -175,7 +214,14 @@ export const generateEcommerceContextFileContent = (
         '        variantLabel = tqBuildVariantLabel(product.variant_options, variant.options)',
         '        variantSwatches = tqBuildVariantSwatches(product.variant_options, variant.options)',
         '      }',
-        '      return Object.assign({}, item, {',
+        // The markdown live RIGHT NOW, applied to whichever net price won above
+        // (the variant override, or the product base). The cart stays NET, so
+        // this is the net price the shopper is charged, and the tax and every
+        // total downstream are computed from it exactly as before.
+        '      var discount = __pdResolveActive(product.discounts, Date.now())',
+        '      var listPrice = price',
+        '      price = __pdDiscountedPrice(listPrice, discount)',
+        '      return markIfChanged(item, Object.assign({}, item, {',
         "        name: product.name || item.name || '',",
         '        price: price,',
         '        image: image,',
@@ -183,9 +229,17 @@ export const generateEcommerceContextFileContent = (
         '        variantSwatches: variantSwatches,',
         '        currency: product.currency || item.currency || null,',
         '        currencySymbol: product.currency_symbol || product.currencySymbol || item.currencySymbol || null,',
-        '        slug: product.slug || item.slug || null',
-        '      })',
+        '        slug: product.slug || item.slug || null,',
+        // Re-stamped on every hydration, including back to null/0 once a
+        // discount has expired — the placed order must record what was actually
+        // given away, not what was live when the line was added.
+        '        originalPrice: discount ? listPrice : null,',
+        '        discountType: discount ? discount.type : null,',
+        '        discountValue: discount ? discount.value : null,',
+        '        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0',
+        '      }))',
         '    })',
+        '    return didChange ? enriched : items',
         '  } catch(e) { return items }',
         '}',
       ].join('\n')
@@ -360,7 +414,7 @@ function persistCartToDb(items) {
   const workflowSettingsGlobalCode = emitWorkflowSettingsGlobal
     ? `
 const WORKFLOW_ECOMMERCE_SETTINGS = ${JSON.stringify(
-        buildWorkflowEcommerceSettingsPayload(ecommerceSettings)
+        buildWorkflowEcommerceSettingsPayload(ecommerceSettings, invoiceSettings)
       )}
 if (typeof window !== 'undefined') {
   window.__teleportEcommerceSettings = WORKFLOW_ECOMMERCE_SETTINGS
@@ -374,6 +428,7 @@ import { useRouter } from 'next/router'
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'
 const PICKUP_STORE_DEFAULT_KEY = 'workflow_pickup_store_default'
+const VOUCHER_STORAGE_KEY = 'workflow_voucher'
 ${workflowSettingsGlobalCode}${dsConstCode}
 
 const EcommerceContext = createContext(null)
@@ -387,6 +442,8 @@ function loadCartFromStorage() {
     return []
   }
 }
+
+${ProductDiscounts.generateProductDiscountHelperCode()}
 
 ${enrichFnCode}
 
@@ -443,6 +500,24 @@ function cartItemQuantity(item) {
 // same two helpers.
 function cartItemLineTotal(item) {
   return roundMoney(cartItemDisplayPrice(item) * cartItemQuantity(item))
+}
+
+// Whether this line carries a live scheduled markdown. \`originalPrice\` is
+// stamped by enrichCartItems as the NET list price the line was discounted
+// from, and cleared to null the moment the discount expires — so comparing it
+// with the NET price actually charged is the whole test. Number(null) is 0 and
+// Number(undefined) is NaN, and neither is greater than a price, so a line that
+// predates the feature reads as undiscounted.
+function cartItemHasDiscount(item) {
+  const original = Number(item && item.originalPrice)
+  return isFinite(original) && original > Number(item && item.price)
+}
+
+// The gross line total BEFORE the markdown — the figure struck through beside
+// what the shopper actually pays. Grossed and multiplied out through the same
+// two steps as \`cartItemLineTotal\`, or the two numbers would not be comparable.
+function cartItemOriginalLineTotal(item) {
+  return roundMoney(applyStorefrontTax(item && item.originalPrice) * cartItemQuantity(item))
 }
 
 // Money reaching a bound text node is printed verbatim, so it is formatted here
@@ -513,18 +588,116 @@ function computeShippingMeta(cartTotal, deliveryConfig, deliveryEnabled) {
   return { shippingIsFree, shippingPrice, totalWithShipping, freeDeliveryProgress, freeDeliveryRemaining }
 }
 
+// The voucher the shopper applied at checkout, kept beside the cart so the
+// discount survives a navigation and recomputes as they edit their basket.
+//
+// Anything unparseable is treated as "no voucher" rather than throwing: this
+// runs during render, and a malformed value must never take the storefront
+// down. The stored copy is DISPLAY only — the place-order workflow re-reads the
+// voucher from the database and prices the order from that.
+function loadVoucherFromStorage() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(VOUCHER_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || !parsed.code) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+// ⚠️ PAIRED with \`resolveVoucherDiscount\` in the editor (teleport-gui
+// \`features/e-commerce/utils/voucher-discount.ts\`) and with the
+// \`VOUCHER_DISCOUNT_HELPERS\` baked into the checkout workflows. All three
+// compute the same number; a difference means the shopper is shown one
+// discount and charged another.
+//
+// Discounts are taken on the GROSS eligible subtotal (per-unit gross rounding,
+// then multiply), clamped so an order can reach zero but never go below it.
+function voucherLineGross(item, taxRatePercent) {
+  const net = Number(item.price) || 0
+  if (taxRatePercent > 0) return roundMoney(net * (1 + taxRatePercent / 100))
+  return net
+}
+
+function isVoucherLineEligible(item, voucher) {
+  if (voucher.applies_to_all_products !== false) return true
+  const ids = Array.isArray(voucher.product_ids) ? voucher.product_ids : []
+  return ids.indexOf(String(item.productId)) !== -1
+}
+
+function computeVoucherMeta(cartItems, voucher, taxRatePercent, shippingMeta, vouchersEnabled) {
+  const empty = {
+    rawDiscount: 0,
+    voucherApplied: 'false',
+    voucherCode: '',
+    voucherFreeShipping: 'false',
+    voucherDiscountVisible: 'false',
+  }
+  // Turning the feature off must neutralise a voucher already sitting in a
+  // shopper's browser, not just hide the input.
+  if (!vouchersEnabled || !voucher) return empty
+
+  const type = voucher.discount_type === 'fixed' || voucher.discount_type === 'free_shipping'
+    ? voucher.discount_type
+    : 'percentage'
+  const code = String(voucher.code || '')
+
+  if (type === 'free_shipping') {
+    // Represented as "shipping becomes free", NOT as a goods discount — the
+    // FREE badge the summary already has is the right way to show it, and
+    // subtracting the waiver from rawTotal as well would double-count it.
+    const waived = roundMoney(shippingMeta.shippingPrice)
+    return {
+      rawDiscount: 0,
+      voucherApplied: 'true',
+      voucherCode: code,
+      voucherFreeShipping: waived > 0 ? 'true' : 'false',
+      voucherDiscountVisible: 'false',
+    }
+  }
+
+  let eligibleGross = 0
+  for (const item of cartItems || []) {
+    if (!item || !isVoucherLineEligible(item, voucher)) continue
+    const qty = Math.max(0, Math.floor(Number(item.quantity) || 0))
+    if (qty === 0) continue
+    eligibleGross += voucherLineGross(item, taxRatePercent) * qty
+  }
+  eligibleGross = roundMoney(eligibleGross)
+  if (eligibleGross <= 0) {
+    return { ...empty, voucherApplied: 'true', voucherCode: code }
+  }
+
+  const value = Math.max(0, Number(voucher.discount_value) || 0)
+  const raw = type === 'percentage' ? (eligibleGross * Math.min(value, 100)) / 100 : value
+  const rawDiscount = Math.min(roundMoney(raw), eligibleGross)
+
+  return {
+    rawDiscount,
+    voucherApplied: 'true',
+    voucherCode: code,
+    voucherFreeShipping: 'false',
+    voucherDiscountVisible: rawDiscount > 0 ? 'true' : 'false',
+  }
+}
+
 export const EcommerceProvider = ({ children }) => {
   const router = useRouter()
   const [cartItems, setCartItems] = useState([])
   const [cartMeta, setCartMeta] = useState({ total: 0, itemCount: 0 })
   const [isHydrated, setIsHydrated] = useState(false)
   const [storeLocations, setStoreLocations] = useState([])
+  const [appliedVoucher, setAppliedVoucher] = useState(null)
 
   const enrichRef = useRef(false)
   useEffect(() => {
     const items = loadCartFromStorage()
     setCartItems(items)
     setCartMeta(computeCartMeta(items))
+    setAppliedVoucher(loadVoucherFromStorage())
     setIsHydrated(true)
     // Enrich cart items with product details from DB if missing
     if (!enrichRef.current) {
@@ -555,11 +728,18 @@ export const EcommerceProvider = ({ children }) => {
     }
     const onStorageChange = (e) => {
       if (e.key === CART_STORAGE_KEY) syncFromStorage()
+      if (e.key === VOUCHER_STORAGE_KEY) setAppliedVoucher(loadVoucherFromStorage())
     }
+    // The apply/remove voucher workflows write localStorage and fire this, so
+    // the order summary updates the moment a code is accepted rather than on
+    // the next unrelated render.
+    const syncVoucher = () => setAppliedVoucher(loadVoucherFromStorage())
     window.addEventListener('teleport:cart-changed', syncFromStorage)
+    window.addEventListener('teleport:voucher-changed', syncVoucher)
     window.addEventListener('storage', onStorageChange)
     return () => {
       window.removeEventListener('teleport:cart-changed', syncFromStorage)
+      window.removeEventListener('teleport:voucher-changed', syncVoucher)
       window.removeEventListener('storage', onStorageChange)
     }
   }, [])
@@ -784,12 +964,40 @@ ${
   // "Total"), so the amount that belongs there is what those units cost
   // together. \`unitPrice\` keeps the per-unit figure addressable for a template
   // that wants to spell out "x each".
+  // The tax rate comes from the baked \`STOREFRONT_TAX_RATE\` constant, NOT from
+  // \`settings\`: that object is the merchant-facing settings projection and
+  // carries no rate. Reading it there silently discounted the NET subtotal while
+  // the place-order workflow discounts the GROSS one, so a tax-added-on-top
+  // store quoted one saving and charged another.
+  const voucherMeta = useMemo(
+    () =>
+      computeVoucherMeta(
+        cartItems,
+        appliedVoucher,
+        STOREFRONT_TAX_RATE,
+        shippingMeta,
+        settings.vouchersEnabled === true
+      ),
+    [cartItems, appliedVoucher, settings.vouchersEnabled, shippingMeta]
+  )
+
   const displayCartItems = useMemo(
     () =>
       cartItems.map((item) =>
         Object.assign({}, item, {
           unitPrice: formatCartMoney(cartItemDisplayPrice(item)),
           price: formatCartMoney(cartItemLineTotal(item)),
+          // The price this line was marked down FROM. \`originalPrice\` is stored
+          // NET and PER-UNIT by enrichCartItems; here it is grossed up and
+          // multiplied out exactly like \`price\`, so the struck figure and the
+          // charged one are the same kind of number. Shadowing the stored key
+          // matches what \`price\` and \`unitPrice\` already do.
+          originalPrice: cartItemHasDiscount(item)
+            ? formatCartMoney(cartItemOriginalLineTotal(item))
+            : '',
+          // A 'true'/'false' STRING, because a rendering condition compares
+          // operands as strings and a \`!= ''\` test passes for undefined.
+          hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
         })
       ),
     [cartItems]
@@ -807,21 +1015,52 @@ ${
     return '$'
   }, [cartItems])
 
+  // A free-shipping voucher waives the delivery fee, so every figure derived
+  // from shipping has to use the WAIVED amount — otherwise the summary shows
+  // "FREE" next to a total that still includes the fee.
+  const effectiveShippingPrice =
+    voucherMeta.voucherFreeShipping === 'true' ? 0 : shippingMeta.shippingPrice
+  const effectiveTotal = Math.max(
+    0,
+    roundMoney(cartMeta.total + effectiveShippingPrice - voucherMeta.rawDiscount)
+  )
+
   const value = useMemo(() => ({
     Cart: {
       items: displayCartItems,
       total: cartMeta.total,
       itemCount: cartMeta.itemCount,
-      shippingPrice: shippingMeta.shippingPrice,
-      shippingIsFree: shippingMeta.shippingIsFree,
-      totalWithShipping: shippingMeta.totalWithShipping,
+      shippingPrice: effectiveShippingPrice,
+      shippingIsFree:
+        voucherMeta.voucherFreeShipping === 'true' ? true : shippingMeta.shippingIsFree,
+      totalWithShipping: effectiveTotal,
       freeDeliveryProgress: shippingMeta.freeDeliveryProgress,
       freeDeliveryRemaining: shippingMeta.freeDeliveryRemaining,
       maxQuantityPerProduct: maxQtyPerProduct,
-      // Aliases used by UIDL cart/checkout templates
-      rawSubtotal: cartMeta.total,
-      rawTotal: shippingMeta.totalWithShipping,
-      rawShipping: shippingMeta.shippingPrice,
+      // Aliases used by UIDL cart/checkout templates.
+      //
+      // Every one of these is 2-DECIMAL FORMATTED, for the same reason each cart
+      // line is: a bound text node prints what it is given, verbatim. Left raw,
+      // a £12.50 subtotal renders "12.5" beside per-line prices that do say
+      // "12.50", and the editor canvas (which formats these through
+      // \`resolveCartDerivedFieldFromSnapshot\`) disagrees with the published
+      // page. Nothing computes with them — they are read only by text bindings.
+      rawSubtotal: formatCartMoney(cartMeta.total),
+      // Discount-inclusive and never below zero. Built from the WAIVED shipping
+      // so a free-shipping voucher reduces the total exactly once.
+      rawTotal: formatCartMoney(effectiveTotal),
+      // What a pickup order owes: no delivery, but the discount still applies.
+      rawSubtotalAfterDiscount: formatCartMoney(
+        Math.max(0, roundMoney(cartMeta.total - voucherMeta.rawDiscount))
+      ),
+      rawShipping: formatCartMoney(effectiveShippingPrice),
+      // Voucher surface. The flags are 'true'/'false' STRINGS because a
+      // rendering condition cannot gate on a formatted money value.
+      rawDiscount: formatCartMoney(voucherMeta.rawDiscount),
+      voucherApplied: voucherMeta.voucherApplied,
+      voucherCode: voucherMeta.voucherCode,
+      voucherFreeShipping: voucherMeta.voucherFreeShipping,
+      voucherDiscountVisible: voucherMeta.voucherDiscountVisible,
       currencySymbol: cartCurrencySymbol,
       addToCart,
       removeFromCart,
@@ -835,7 +1074,12 @@ ${
     storeLocations,
     defaultPickupStoreId,
     ecommerceCategories,
-  }), [displayCartItems, cartMeta, shippingMeta, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
+  // \`voucherMeta\` and the two figures derived from it MUST be listed. Applying
+  // or removing a code changes nothing else in this array — the cart items, the
+  // cart meta and the shipping meta are all untouched — so without them the memo
+  // returned the previous context object, the Provider's value stayed
+  // reference-identical, and the summary only caught up on a page reload.
+  }), [displayCartItems, cartMeta, shippingMeta, voucherMeta, effectiveShippingPrice, effectiveTotal, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
 
   return (
     <EcommerceContext.Provider value={value}>
@@ -889,6 +1133,12 @@ function buildSettingsObject(
     guestCheckout: ecommerceSettings.guestCheckout,
     stockManagement: ecommerceSettings.stockManagement,
     orderNotifications: ecommerceSettings.orderNotifications,
+    // This object IS `E-commerce.Settings` on the storefront, so every flag a
+    // generated page gates on has to be here. The checkout's voucher block
+    // renders on `Settings.vouchersEnabled`, and the provider only reads a
+    // stored voucher when it is true — omitting it hid the input on every
+    // store and silently disabled the discount.
+    vouchersEnabled: ecommerceSettings.vouchersEnabled === true,
   }
 
   if (ecommerceSettings.deliveryConfig) {

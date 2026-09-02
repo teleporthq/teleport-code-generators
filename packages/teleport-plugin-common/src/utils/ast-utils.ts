@@ -22,6 +22,22 @@ import { balanceExpression, countUnclosedStaticParens } from './template-express
  * Converts HTML attribute names to React/JSX camelCase format
  * Preserves data-* and aria-* attributes as-is
  */
+/**
+ * React sets attributes on CUSTOM ELEMENTS (dash-named tags) verbatim, so
+ * camelCasing them is not just unnecessary — it breaks the element:
+ * `camera-controls` camelCased to `cameraControls` reaches the DOM as the
+ * meaningless `cameracontrols`. Web-component tags keep their attribute
+ * spelling untouched.
+ */
+export const isCustomElementTagName = (jsxNode: types.JSXElement): boolean => {
+  const name = jsxNode.openingElement.name
+  return name.type === 'JSXIdentifier' && name.name.includes('-')
+}
+
+export const resolveAttributeNameForTag = (jsxNode: types.JSXElement, attrName: string): string => {
+  return isCustomElementTagName(jsxNode) ? attrName : convertToReactAttributeName(attrName)
+}
+
 export const convertToReactAttributeName = (attrName: string): string => {
   if (attrName.startsWith('data-') || attrName.startsWith('aria-')) {
     return attrName
@@ -140,7 +156,7 @@ export const addDynamicAttributeToJSXTag = (
   prefix: string = '',
   t = types
 ) => {
-  const reactName = convertToReactAttributeName(name)
+  const reactName = resolveAttributeNameForTag(jsxASTNode, name)
   // Same rule as `createDynamicValueExpression`: with no prefix the value IS the
   // binding (React hooks state), so it must match the sanitised name
   // `createStateHookAST` declared — `value={class}` does not parse. With a
@@ -467,6 +483,7 @@ const REACT_BOOLEAN_DOM_PROPS = new Set([
   'muted',
   'loop',
   'playsInline',
+  'autoPlay',
   'controls',
   'async',
   'defer',
@@ -486,7 +503,7 @@ export const addAttributeToJSXTag = (
   attrValue?: boolean | unknown,
   t = types
 ) => {
-  const reactAttrName = convertToReactAttributeName(attrName)
+  const reactAttrName = resolveAttributeNameForTag(jsxNode, attrName)
   const nameOfAttribute = t.jsxIdentifier(reactAttrName)
   let attributeDefinition
   let normalizedValue: boolean | unknown = attrValue
@@ -1170,15 +1187,59 @@ export const collectGlobalStateReferencesFromObjectStates = (
   return refs
 }
 
+/**
+ * The mount-time side-effect import for a package that cannot be imported at
+ * module scope because it touches `window` while it evaluates —
+ * self-registering web components such as `<lottie-player>` and
+ * `<model-viewer>`. Running it from an effect keeps it off the server render.
+ *
+ *   useEffect(() => {
+ *     import('@google/model-viewer').catch((error) => {
+ *       console.warn('[teleport] Failed to load "@google/model-viewer"', error)
+ *     })
+ *   }, [])
+ *
+ * Two details of that shape are load-bearing:
+ *
+ *   - The callback body is a BLOCK. A concise arrow body (`() => import(…)`)
+ *     also RETURNS the import's Promise, and React stores an effect's return
+ *     value as its cleanup function and calls it on unmount — so every mounted
+ *     copy of the component turned navigating away into
+ *     `TypeError: destroy is not a function`, thrown from React's commit phase
+ *     with no frame naming the component. Nothing is returned here.
+ *   - The rejection is handled. A chunk that fails to load (offline, a stale
+ *     deploy, a blocked CDN) would otherwise surface as an unhandled promise
+ *     rejection; the element simply stays unupgraded, which is a degraded page
+ *     rather than a broken one, and the warning is what makes that visible.
+ */
 export const generateDynamicWindowImport = (
   hookName = 'useEffect',
   dependency: string
 ): types.ExpressionStatement => {
+  const failureIdentifier = types.identifier('error')
+  const importCall = types.callExpression(types.import(), [types.stringLiteral(dependency)])
+  const guardedImport = types.callExpression(
+    types.memberExpression(importCall, types.identifier('catch')),
+    [
+      types.arrowFunctionExpression(
+        [failureIdentifier],
+        types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(
+              types.memberExpression(types.identifier('console'), types.identifier('warn')),
+              [types.stringLiteral(`[teleport] Failed to load "${dependency}"`), failureIdentifier]
+            )
+          ),
+        ])
+      ),
+    ]
+  )
+
   return types.expressionStatement(
     types.callExpression(types.identifier(hookName), [
       types.arrowFunctionExpression(
         [],
-        types.callExpression(types.identifier('import'), [types.stringLiteral(dependency)])
+        types.blockStatement([types.expressionStatement(guardedImport)])
       ),
       types.arrayExpression([]),
     ])

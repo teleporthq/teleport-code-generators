@@ -67,7 +67,10 @@ async function ai_custom_prompt(
   }
 
   try {
-    const result = await __ai_callProvider({ ...callParams, jsonMode: false })
+    // Streaming above never asks for JSON mode: a streamed reply is rendered
+    // token by token, and the providers that support the flag reject it
+    // together with `stream`.
+    const result = await __ai_callProvider({ ...callParams, jsonMode: config.jsonMode === true })
 
     return {
       response: result.content,

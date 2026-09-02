@@ -31,7 +31,10 @@ const buildChat = (streaming: boolean): UIDLAIAssistantChat =>
 
 /** Runs the generated route's coverage helper in isolation. */
 function coverageHelper(code: string): (answer: unknown) => boolean {
-  const start = code.indexOf('var UNKNOWN_INFORMATION_MESSAGE =')
+  const start = code.indexOf('var UNKNOWN_INFORMATION_MESSAGES =')
+  if (start < 0) {
+    throw new Error('the coverage helper is no longer where this test slices it from')
+  }
   const end =
     code.indexOf('\n    }', code.indexOf('function answeredFromKnowledge')) + '\n    }'.length
   const snippet = code.slice(start, end)
@@ -94,6 +97,28 @@ describe('ai-chat message route', () => {
         chatSettings: {},
       } as unknown as UIDLAIAssistantChat)
       expect(coverageHelper(noFallback)('anything at all')).toBe(true)
+    })
+
+    it('rejects the fallback of ANY language on a multilingual project', () => {
+      // The prompt hands the model one refusal sentence per language and lets
+      // it answer in the visitor's own. Matching only the main-language one
+      // would file a Spanish refusal as an answer the knowledge base covered.
+      const multilingual = generateMessageRouteCode({
+        ...buildChat(true),
+        localization: { mainLocale: 'en', locales: ['en', 'es'] },
+        chatSettings: {
+          unknownInformationMessage: UNKNOWN,
+          translations: {
+            en: { welcomeMessage: 'Hello!', unknownInformationMessage: UNKNOWN },
+            es: { welcomeMessage: '¡Hola!', unknownInformationMessage: 'No lo sé.' },
+          },
+        },
+      } as unknown as UIDLAIAssistantChat)
+
+      const answeredMultilingual = coverageHelper(multilingual)
+      expect(answeredMultilingual(UNKNOWN)).toBe(false)
+      expect(answeredMultilingual('No lo sé.')).toBe(false)
+      expect(answeredMultilingual('Vendemos vestidos de novia.')).toBe(true)
     })
   })
 })

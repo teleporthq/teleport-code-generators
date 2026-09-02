@@ -19,6 +19,7 @@ import * as types from '@babel/types'
 import { Resolver } from '@teleporthq/teleport-uidl-resolver'
 import { ReactMapping } from '@teleporthq/teleport-component-generator-react'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 export class ProjectPlugini18nFiles implements ProjectPlugin {
   projectType: ProjectType
@@ -48,6 +49,7 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
       dependencies: {},
       nodesLookup: {},
       localeReferences: [],
+      localeAttributeReferences: [],
       globalReferences: [],
       globalStateReferences: [],
       hoistedConstants: [],
@@ -112,26 +114,40 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files } = structure
 
-    const { translations = { en: {} } } = uidl.internationalization || {}
-    const promises: Array<Promise<Record<string, string>>> = []
+    const { translations = { en: {} }, languages = {} } = uidl.internationalization || {}
 
-    for (const locale of Object.keys(translations)) {
-      const translation = translations[locale]
+    // Union of both: `languages` is what `next.config.js` advertises as a
+    // routable locale, and EVERY page loads `locales/<locale>.json` from
+    // getStaticProps. A language with no translations yet would otherwise have
+    // no file at all and take the whole build down with a module-not-found.
+    const locales = Array.from(new Set([...Object.keys(translations), ...Object.keys(languages)]))
+
+    for (const locale of locales) {
+      const translation = translations[locale] || {}
+      // Declared per locale on purpose: a shared array would carry every earlier
+      // locale's entries into the next file (and re-render them), so each extra
+      // language cost one more full pass over all the previous ones.
+      const promises: Array<Promise<Record<string, string>>> = []
       for (const id of Object.keys(translation)) {
         const item = translation[id]
+
+        // Keys are sanitized here AND at every `translate.raw()` emission (see
+        // `StringUtils.sanitizeTranslationKey`) — a raw dotted key would make
+        // next-intl reject the whole messages file at runtime.
+        const messageKey = StringUtils.sanitizeTranslationKey(id)
 
         if (item?.type === 'element') {
           promises.push(
             new Promise((resolve) => {
               this.generateJSX(item, uidl.root.styleSetDefinitions, id).then(({ html, css }) => {
-                resolve({ [id]: css ? `${html} \n <style>${css}</style>` : html })
+                resolve({ [messageKey]: css ? `${html} \n <style>${css}</style>` : html })
               })
             })
           )
         }
 
         if (item?.type === 'static') {
-          promises.push(new Promise((resolve) => resolve({ [id]: String(item.content) })))
+          promises.push(new Promise((resolve) => resolve({ [messageKey]: String(item.content) })))
         }
       }
 

@@ -35,6 +35,24 @@ async function cart_get_total() {
     // storefronts exported before storefront tax existed, which correctly
     // resolves to "no tax".
     let storefrontTaxRate = 0
+    // The voucher the shopper applied, mirrored from the same localStorage the
+    // storefront provider reads. The place-order workflow uses ONLY its `id`,
+    // to re-read the row from the database — this copy is never trusted for
+    // pricing, because the merchant can edit or disable a voucher after it was
+    // applied. Absent on a storefront exported before vouchers existed, which
+    // correctly resolves to "no voucher".
+    let voucher: Record<string, unknown> | null = null
+    try {
+      const voucherRaw = localStorage.getItem('workflow_voucher')
+      if (voucherRaw) {
+        const parsedVoucher = JSON.parse(voucherRaw)
+        if (parsedVoucher && typeof parsedVoucher === 'object' && parsedVoucher.code) {
+          voucher = parsedVoucher
+        }
+      }
+    } catch (_voucherErr) {
+      /* ignore — malformed or unavailable storage reads as no voucher */
+    }
     try {
       const settingsRaw = localStorage.getItem('workflow_cart_settings')
       if (settingsRaw) {
@@ -72,6 +90,11 @@ async function cart_get_total() {
     let net = 0
     let gross = 0
     let itemCount = 0
+    // What the per-product discounts took off this cart, NET. Purely
+    // informational: the line prices below are ALREADY marked down, so this is
+    // never subtracted from anything — it is what the order row records as
+    // `product_discount_amount` for reporting.
+    let productDiscount = 0
 
     for (const item of cart) {
       const qty = item.quantity || 1
@@ -79,6 +102,12 @@ async function cart_get_total() {
       net += qty * price
       gross += qty * grossUnitPrice(price)
       itemCount += qty
+      // Rounded per UNIT before multiplying, matching the order line's own
+      // arithmetic so the two agree to the cent.
+      const unitDiscount = Number(item.discountAmount)
+      if (isFinite(unitDiscount) && unitDiscount > 0) {
+        productDiscount += qty * round(unitDiscount)
+      }
     }
 
     const roundedGross = round(gross)
@@ -105,8 +134,12 @@ async function cart_get_total() {
       // rounding, same source of truth.
       total: roundedGross,
       itemCount,
+      // NET sum of the per-product markdowns already reflected in the prices
+      // above. Recorded on the order for reporting; never subtracted again.
+      productDiscountTotal: round(productDiscount),
       deliveryConfig,
       taxConfig: { storefrontTaxRate },
+      voucher,
     }
   } catch (_err) {
     return {
@@ -114,8 +147,10 @@ async function cart_get_total() {
       tax: 0,
       total: 0,
       itemCount: 0,
+      productDiscountTotal: 0,
       deliveryConfig: null,
       taxConfig: { storefrontTaxRate: 0 },
+      voucher: null,
     }
   }
 }

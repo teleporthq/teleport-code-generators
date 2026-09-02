@@ -48,6 +48,20 @@ export const PlainHTMLMapping: Mapping = {
         },
       },
     },
+    // The UMD build on purpose: the html import plugin emits plain
+    // text/javascript script tags, and model-viewer.min.js is an ES module.
+    'model-viewer-node': {
+      elementType: 'model-viewer',
+      dependency: {
+        type: 'package',
+        path: '@google/model-viewer',
+        version: '4.3.1',
+        meta: {
+          importJustPath: true,
+          importAlias: 'https://unpkg.com/@google/model-viewer@4.3.1/dist/model-viewer-umd.min.js',
+        },
+      },
+    },
   },
   illegalClassNames: [],
 }

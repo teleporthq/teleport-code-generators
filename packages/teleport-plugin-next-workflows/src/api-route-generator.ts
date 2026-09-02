@@ -747,13 +747,12 @@ module.exports = async function handler(req, res) {
         const onEndNodes = onEndEdge ? __collectSegBranchNodes(onEndEdge.target, node.id) : [];
 
         const result = await nodeHandler(resolved, context, async function(chunkData) {
-          context[node.id] = { chunk: chunkData.chunk, fullResponse: chunkData.fullResponse, model: chunkData.model };
+          context[node.id] = { chunk: chunkData.chunk, fullResponse: chunkData.fullResponse };
           res.write('data: ' + JSON.stringify({
             type: 'chunk',
             nodeId: node.id,
             chunk: chunkData.chunk,
-            fullResponse: chunkData.fullResponse,
-            model: chunkData.model
+            fullResponse: chunkData.fullResponse
           }) + '\\n\\n');
           for (let si = 0; si < onStreamNodes.length; si++) {
             const sn = onStreamNodes[si];

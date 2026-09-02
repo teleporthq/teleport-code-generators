@@ -315,15 +315,29 @@ module.exports = async function handler(req, res) {
       grossLineSum += itemTotal;
     }
 
-    var discountAmount = 0;
-    if (SHOW_DISCOUNT && body.discountAmount) {
-      discountAmount = Number(body.discountAmount) || 0;
-    }
-
     // Hydrated order row (or \`{}\` for a fully body-driven call), read before the
     // totals below need it. \`orderRow\` further down is the same object under a
     // name the customer/payment fallbacks use.
     var orderShippingSource = hydratedOrder || {};
+
+    // Voucher discount.
+    //
+    // A discount STORED ON THE ORDER is money the buyer was not charged, so it
+    // is subtracted whatever \`SHOW_DISCOUNT\` says — that flag governs whether
+    // the template renders a discount ROW, and honouring it here would print a
+    // total larger than the card was debited. \`SHOW_DISCOUNT\` still gates a
+    // BODY-supplied amount, which is the manual/ad-hoc path a merchant opts
+    // into.
+    //
+    // The payment webhook calls this route with just an \`orderId\`, so the
+    // order row — not the body — is the usual source.
+    var discountAmount = 0;
+    if (SHOW_DISCOUNT && body.discountAmount != null && body.discountAmount !== '') {
+      discountAmount = Number(body.discountAmount) || 0;
+    } else if (orderShippingSource.discount_amount != null) {
+      discountAmount = Number(orderShippingSource.discount_amount) || 0;
+    }
+    if (!(discountAmount > 0)) { discountAmount = 0; }
 
     var taxRate = body.taxRate != null ? Number(body.taxRate) : DEFAULT_TAX_RATE;
     var subtotal;

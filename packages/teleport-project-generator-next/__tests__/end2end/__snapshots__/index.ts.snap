@@ -1,20 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[
-  `React Next Project Generator creates a next project and generates the named-slot for passing components 1`
-] = `
+exports[`React Next Project Generator creates a next project and generates the named-slot for passing components 1`] = `
 Object {
   "content": "import React, { useEffect } from 'react'
 import Head from 'next/head'
-
-import { useTranslations } from 'next-intl'
 
 import AppComponent from '../components/component'
 import Hero from '../components/hero'
 import Footer from '../components/footer'
 
 const Home = (props) => {
-  useEffect(() => import('@lottiefiles/lottie-player'), [])
+  useEffect(() => {
+    import('@lottiefiles/lottie-player').catch((error) => {
+      console.warn(
+        '[teleport] Failed to load \\"@lottiefiles/lottie-player\\"',
+        error
+      )
+    })
+  }, [])
   return (
     <>
       <div className=\\"home-container1\\">
@@ -85,16 +88,13 @@ export default Home
   "fileType": "js",
   "name": "index",
 }
-`
+`;
 
-exports[
-  `React Next Project Generator creates a next project and generates the named-slot for passing components 2`
-] = `
+exports[`React Next Project Generator creates a next project and generates the named-slot for passing components 2`] = `
 Object {
   "content": "import React from 'react'
 
 import PropTypes from 'prop-types'
-import { useTranslations } from 'next-intl'
 
 const Hero = (props) => {
   return (
@@ -298,4 +298,4 @@ export default Hero
   "fileType": "js",
   "name": "hero",
 }
-`
+`;

@@ -162,7 +162,7 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
         {
           name: 'settings',
           fileType: FileType.JS,
-          content: generateEcommerceSettingsApiRoute(settings),
+          content: generateEcommerceSettingsApiRoute(settings, invoiceSettings),
         },
       ],
     })

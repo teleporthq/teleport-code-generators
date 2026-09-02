@@ -6,6 +6,7 @@ import {
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils, RouteUtils } from '@teleporthq/teleport-plugin-common'
+import { StringUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { buildStructuredDataScript } from './structured-data-ast'
 
@@ -457,7 +458,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
     const refRawExpression = types.callExpression(
       types.memberExpression(types.identifier('translate'), types.identifier('raw')),
-      [types.stringLiteral(value.content.id)]
+      // Sanitized exactly like the messages-file keys — see
+      // `StringUtils.sanitizeTranslationKey`.
+      [types.stringLiteral(StringUtils.sanitizeTranslationKey(value.content.id))]
     )
     const expression = types.jsxExpressionContainer(refRawExpression)
     metaTag.openingElement.attributes.push(types.jsxAttribute(types.jsxIdentifier(key), expression))
@@ -496,7 +499,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
     const refRawExpression = types.callExpression(
       types.memberExpression(types.identifier('translate'), types.identifier('raw')),
-      [types.stringLiteral(title.content.id)]
+      // Sanitized exactly like the messages-file keys — see
+      // `StringUtils.sanitizeTranslationKey`.
+      [types.stringLiteral(StringUtils.sanitizeTranslationKey(title.content.id))]
     )
     const expression = types.jsxExpressionContainer(refRawExpression)
 

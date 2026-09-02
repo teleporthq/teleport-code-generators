@@ -96,9 +96,12 @@ describe('pagination plugin — search input URL two-way sync (searchUrlParamKey
     // useRouter is injected for the effects.
     expect(code).toContain('const router = useRouter()')
 
-    // Write-back (debounced query → URL), keyed on the DEBOUNCED value.
-    expect(code).toContain('__nextQuery.searchKeyword = String(ds_0_state.debouncedQuery)')
-    expect(code).toContain('if (__nextQuery.searchKeyword === router.query.searchKeyword) return')
+    // Write-back (debounced query → URL), keyed on the DEBOUNCED value and
+    // routed through the shared writer so it cannot race the page's own write.
+    expect(code).toContain('const __tqQuerySyncRef = useRef(')
+    expect(code).toContain(
+      '__tqWriteQueryParam("searchKeyword", ds_0_state.debouncedQuery === "" || ds_0_state.debouncedQuery == null ? undefined : ds_0_state.debouncedQuery)'
+    )
     expect(code).toContain('}, [ds_0_state.debouncedQuery, router.isReady])')
 
     // Read-back (URL → input), functional setState bail-out (loop-free).
@@ -115,6 +118,7 @@ describe('pagination plugin — search input URL two-way sync (searchUrlParamKey
     expect(code).not.toContain('searchKeyword')
     expect(code).not.toContain('window.location.search')
     expect(code).not.toContain('router.replace')
+    expect(code).not.toContain('__tqWriteQueryParam')
     expect(code).not.toContain('useRouter')
   })
 })

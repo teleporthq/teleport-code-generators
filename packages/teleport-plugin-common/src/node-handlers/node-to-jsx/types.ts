@@ -6,6 +6,7 @@ import {
   UIDLStateDefinition,
   UIDLGlobalReference,
   UIDLGlobalStateDefinition,
+  UIDLLocaleAttributeReference,
 } from '@teleporthq/teleport-types'
 
 export interface GlobalStateReferenceEntry {
@@ -26,6 +27,14 @@ export interface JSXGenerationParams {
   dependencies: Record<string, UIDLDependency>
   windowImports: Record<string, types.ExpressionStatement>
   localeReferences: types.JSXElement[]
+  /**
+   * Attributes bound to a translation key (`placeholder`, `alt`, `title`, …).
+   * Unlike a translated CHILD — which becomes a `<span>` the framework plugin
+   * fills with `dangerouslySetInnerHTML` — an attribute needs a plain string,
+   * so the attribute is emitted with the main-language text and recorded here
+   * for the framework's i18n plugin to rewrite into a translation lookup.
+   */
+  localeAttributeReferences: UIDLLocaleAttributeReference[]
   globalReferences: Array<UIDLGlobalReference['content']['id']>
   globalStateReferences: GlobalStateReferenceEntry[]
   hoistedConstants: HoistedConstant[]

@@ -15,6 +15,7 @@ import { audioStop } from './audio/audio-stop'
 import { aiCustomPrompt } from './ai/ai-custom-prompt'
 import { aiDetectLanguage } from './ai/ai-detect-language'
 import { aiGenerateTextEmbedding } from './ai/ai-generate-text-embedding'
+import { aiSelectDatabaseData } from './ai/ai-select-database-data'
 import { aiSentimentAnalysis } from './ai/ai-sentiment-analysis'
 import { aiSummarization } from './ai/ai-summarization'
 import { aiTextClassifier } from './ai/ai-text-classifier'
@@ -182,6 +183,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'ai-custom-prompt': aiCustomPrompt,
   'ai-detect-language': aiDetectLanguage,
   'ai-generate-text-embedding': aiGenerateTextEmbedding,
+  'ai-select-database-data': aiSelectDatabaseData,
   'ai-sentiment-analysis': aiSentimentAnalysis,
   'ai-summarization': aiSummarization,
   'ai-text-classifier': aiTextClassifier,

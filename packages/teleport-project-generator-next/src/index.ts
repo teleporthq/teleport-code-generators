@@ -22,6 +22,10 @@ import { createStateDataSourcePlugin } from './state-data-source-plugin'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
+import { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
+import { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+import { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
+import { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 import { createNextUrlSearchParamsPlugin } from './url-search-params-plugin'
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
@@ -47,6 +51,9 @@ import { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 import { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
 import { NextKanbanProjectPlugin } from './kanban/project-plugin'
 import { NextCountdownProjectPlugin } from './countdown/project-plugin'
+import { NextModelViewerProjectPlugin } from './model-viewer/project-plugin'
+import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
+import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { createNextWidgetProjectPlugins } from './widgets'
 import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
 import { NextScrollRailProjectPlugin } from './scroll-rail/project-plugin'
@@ -100,6 +107,9 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextDragDropProjectPlugin(),
   new NextKanbanProjectPlugin(),
   new NextCountdownProjectPlugin(),
+  new NextModelViewerProjectPlugin(),
+  new NextPlaySoundProjectPlugin(),
+  new NextPaginationScrollProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
 ]
 
@@ -122,6 +132,14 @@ const createNextProjectGenerator = () => {
   const nextPagesDataSourcePlugin = createNextPagesDataSourcePlugin()
   const stateDataSourcePlugin = createStateDataSourcePlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
+  const aiChatSessionPersistencePlugin = createAIChatSessionPersistencePlugin({
+    basePath: ['components'],
+  })
+  const aiChatLocalizedWelcomePlugin = createAIChatLocalizedWelcomePlugin({
+    basePath: ['components'],
+  })
+  const aiChatMarkdownStylesPlugin = createAIChatMarkdownStylesPlugin()
+  const aiChatOptionChipsStylesPlugin = createAIChatOptionChipsStylesPlugin()
   const nextUrlSearchParamsPlugin = createNextUrlSearchParamsPlugin()
   const nextLocaleFetcherPlugin = createNextLocaleFetcherPlugin()
   const nextFormSubmissionPlugin = createNextFormSubmissionPlugin()
@@ -152,6 +170,20 @@ const createNextProjectGenerator = () => {
         nextComponentInlineFetchPlugin,
         nextComponentDataSourcePlugin,
         nextInternationalizationPlugin,
+        // Chat-only: keeps the transcript alive across client-side
+        // navigation. MUST run before the welcome plugin, so a restored
+        // transcript still gets its greeting re-localized.
+        aiChatSessionPersistencePlugin,
+        // Runs on the ai-assistant-chat component only — see its own note for
+        // why the welcome message cannot go through the locale mapper above.
+        aiChatLocalizedWelcomePlugin,
+        // Also chat-only: appends descendant CSS for the runtime markdown
+        // children (links, lists, bold) the per-node UIDL styles cannot reach.
+        aiChatMarkdownStylesPlugin,
+        // Chat-only: the answer-chip states (`selected` / `inactive` /
+        // disabled) live in a data attribute the chat's scripts write, and an
+        // attribute selector cannot be expressed as a per-node UIDL style.
+        aiChatOptionChipsStylesPlugin,
         nextUrlSearchParamsPlugin,
         nextFormSubmissionPlugin,
         nextComponentWorkflowPlugin,
@@ -243,6 +275,10 @@ export { createNextProjectGenerator, NextProjectMapping, NextTemplate }
 export { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
 export { NextGlobalStateProjectPlugin } from './global-state/project-plugin'
 export { NextAIChatProjectPlugin } from './ai-chat/project-plugin'
+export { createAIChatLocalizedWelcomePlugin } from './ai-chat/component-plugin'
+export { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plugin'
+export { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
+export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'

@@ -1,5 +1,5 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { StorefrontTax } from '@teleporthq/teleport-shared'
+import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
 
 /**
  * Everything the product transform needs baked in at export time, beyond the
@@ -14,6 +14,18 @@ export interface EcommerceProductTransformOptions {
    * Resolved by the caller through `StorefrontTax.resolveStorefrontTaxRate`.
    */
   storefrontTaxRate?: number
+  /**
+   * TRUE when stock levels must never gate purchasability in the storefront:
+   * the merchant disabled stock management entirely OR opted into backorders
+   * (`stockManagementConfig.allowBackorders`). Resolved by the caller through
+   * `buildProductTransformOptions`. Baked into the generated transform as
+   * `ALLOW_BACKORDERS`: `outOfStock` then always reads 'false' and every
+   * EXISTING variant combination counts as in stock — a combination that does
+   * not exist at all stays unavailable (there is nothing to backorder).
+   * Mirrors the GUI rule in
+   * `apps/gui/app/project-page/features/e-commerce/utils/product-variants.ts`.
+   */
+  allowBackorders?: boolean
 }
 
 /**
@@ -69,9 +81,16 @@ export const generateEcommerceProductTransformationCode = (
   const taxHelperCode = StorefrontTax.generateStorefrontTaxHelperCode(
     options.storefrontTaxRate ?? 0
   )
+  const allowBackordersLiteral = options.allowBackorders === true ? 'true' : 'false'
 
   return `
 ${taxHelperCode}
+${ProductDiscounts.generateProductDiscountHelperCode()}
+
+// Baked from the merchant's stock settings: TRUE when stock never blocks a
+// purchase (stock management off OR backorders allowed). Regenerating the
+// project refreshes it — do not hand-edit. See EcommerceProductTransformOptions.
+var ALLOW_BACKORDERS = ${allowBackordersLiteral}
 
 // Category taxonomy (id -> {name, slug, translations}), baked in at export
 // time — see flattenCategoriesById in ecommerce-product.ts. Empty when the
@@ -88,6 +107,50 @@ function resolveCategoryName(categoryInfo, currentLang, mainLang) {
     if (override && override.name) return override.name
   }
   return categoryInfo.name
+}
+
+// The merchant's "Show 3D model by default" toggle, as every backend may hand
+// it back: a real boolean, 1/0, 'true'/'false'/'t'/'f' strings — and NULL /
+// absent / '' as ON, because a product that has a model shows it unless the
+// merchant switched it off. MUST mirror normalizeShowModelFlag in the GUI's
+// features/e-commerce/constants/product-model.ts.
+function normalizeShowModelFlag(raw) {
+  if (raw === null || raw === undefined || raw === '') return true
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'number') return raw !== 0
+  if (typeof raw === 'string') {
+    var token = raw.trim().toLowerCase()
+    return !(token === 'false' || token === 'f' || token === '0' || token === 'no' || token === 'off')
+  }
+  return true
+}
+
+// The product's media gallery in display order, HERO FIRST: the model when it
+// is shown by default, otherwise the images with the model last. Each entry is
+// { kind: 'image' | 'model', src, poster, thumbnail, alt }; 'thumbnail' is what
+// a strip draws and is never empty for an entry that can appear in one. MUST
+// mirror buildProductGalleryMedia in the GUI's
+// features/e-commerce/utils/product-gallery-media.ts.
+function buildProductGalleryMedia(params) {
+  var imageItems = []
+  for (var gi = 0; gi < params.images.length; gi++) {
+    imageItems.push({
+      kind: 'image',
+      src: params.images[gi],
+      poster: '',
+      thumbnail: params.images[gi],
+      alt: params.imageAlt || params.name,
+    })
+  }
+  if (!params.modelUrl) return imageItems
+  var modelItem = {
+    kind: 'model',
+    src: params.modelUrl,
+    poster: params.modelPoster || '',
+    thumbnail: params.modelPoster || params.mainImage || params.images[0] || '',
+    alt: params.name,
+  }
+  return params.showModel === 'true' ? [modelItem].concat(imageItems) : imageItems.concat([modelItem])
 }
 
 // ============================================================
@@ -315,6 +378,36 @@ function buildEcommerceProduct(record, options) {
   // Step 7: images = full resolved deduplicated array
   var images = resolvedImages
 
+  // -------------------------------------------------------
+  // 3D model (one per product; GUI: constants/product-model.ts)
+  // -------------------------------------------------------
+  // model_url / model_poster_url hold an asset id OR a raw URL like image_url.
+  // A poster the merchant never got (capture failed, plan cap) falls back to
+  // the main image so <model-viewer> always has something to paint first.
+  var modelUrl = resolveMediaUrl(record.model_url, assetMap)
+  var modelPoster = modelUrl ? resolveMediaUrl(record.model_poster_url, assetMap) || mainImage : null
+  var hasModel = modelUrl ? 'true' : 'false'
+  // STRING gate ('true'/'false') like outOfStock: whether the model replaces the
+  // main image on the card / details hero. A product whose only media is the
+  // model always shows it. An absent field must read as the IMAGE branch, so the
+  // builders gate the viewer on = 'true' and the image on != 'true'.
+  var showModel =
+    modelUrl && (normalizeShowModelFlag(record.show_model_by_default) || images.length === 0)
+      ? 'true'
+      : 'false'
+  var galleryMedia = buildProductGalleryMedia({
+    images: images,
+    mainImage: mainImage,
+    modelUrl: modelUrl,
+    modelPoster: modelPoster,
+    showModel: showModel,
+    imageAlt: imageAlt,
+    name: name,
+  })
+  // Everything that is not the hero — the details thumbnail strip. When the
+  // model is the hero the main image moves in here, so the modal stays reachable.
+  var galleryThumbnails = galleryMedia.slice(1)
+
   // Timestamps
   var rawCreatedAt = pickFirst(record.created_at, record.createdAt, record.created)
   var createdAt = normalizeTimestamp(rawCreatedAt)
@@ -332,7 +425,9 @@ function buildEcommerceProduct(record, options) {
   // string), leaving the Add to Cart button visible on out-of-stock
   // products. NULL/NaN quantity → 'false' (treated as "unlimited
   // stock", same as the upstream cart-availability rewriter).
-  var outOfStock = (quantity !== null && !isNaN(quantity) && quantity <= 0) ? 'true' : 'false'
+  // With ALLOW_BACKORDERS the merchant sells past zero (or does not track
+  // stock at all), so nothing is ever presented as out of stock.
+  var outOfStock = (!ALLOW_BACKORDERS && quantity !== null && !isNaN(quantity) && quantity <= 0) ? 'true' : 'false'
 
   // Per-value availability + default-selection flags, derived from the
   // purchasable combinations, so the storefront picker renders its
@@ -378,24 +473,45 @@ function buildEcommerceProduct(record, options) {
   // gross, because nothing writes them back.
   //
   // MUST mirror packages/renderer/src/utils/ecommerce-products.ts.
-  var displayPrice = grossMoney(price)
+  // The scheduled markdown in force right now, resolved from the raw column on
+  // every read so a discount starts and expires on its own. It comes off the NET
+  // price BEFORE tax: tax is a percentage of what is actually charged.
+  var activeDiscount = __pdResolveActive(record.discounts, Date.now())
+  var displayPrice = grossMoney(__pdDiscountedPrice(price, activeDiscount))
+  var defaultVariantNetPrice = firstVariant
+    ? safeNumber(formatVariantPrice(firstVariant.price, price), 0)
+    : 0
   var defaultVariantDisplayPrice = firstVariant
-    ? grossMoney(formatVariantPrice(firstVariant.price, price))
+    ? grossMoney(__pdDiscountedPrice(defaultVariantNetPrice, activeDiscount))
     : ''
   var variantsDisplay = []
   for (var dv = 0; dv < variants.length; dv++) {
     var dvRow = variants[dv]
+    // A null variant price INHERITS the product price, so discount and gross the
+    // RESOLVED value — otherwise an inheriting combination would fall back to
+    // the net base price in the picker while an overriding one showed gross.
+    var dvNetPrice = dvRow.price == null ? price : dvRow.price
     variantsDisplay.push({
       id: dvRow.id,
       options: dvRow.options,
-      // A null variant price INHERITS the product price, so gross the RESOLVED
-      // value — otherwise an inheriting combination would fall back to the net
-      // base price in the picker while an overriding one showed gross.
-      price: applyStorefrontTax(dvRow.price == null ? price : dvRow.price),
+      price: applyStorefrontTax(__pdDiscountedPrice(dvNetPrice, activeDiscount)),
+      // What this combination costs WITHOUT the discount, for the struck-through
+      // price beside it. Null when nothing is discounted, so the picker's click
+      // resolver can tell "no saving" from "a saving of zero".
+      originalPrice: activeDiscount ? applyStorefrontTax(dvNetPrice) : null,
       quantity: dvRow.quantity,
       image_url: dvRow.image_url,
     })
   }
+  // Discount display fields. Strings throughout: rendering conditions compare
+  // operands as strings, and a bound text node prints its value verbatim.
+  var hasDiscount = activeDiscount ? 'true' : 'false'
+  var discountLabel = activeDiscount
+    ? __pdDiscountLabel(activeDiscount, currencySymbol, getCurrencyInfo(currency).position)
+    : ''
+  var originalDisplayPrice = activeDiscount ? grossMoney(price) : ''
+  var originalDefaultVariantDisplayPrice =
+    activeDiscount && firstVariant ? grossMoney(defaultVariantNetPrice) : ''
   // Can this product be added to the cart at all, before the shopper touches the
   // picker? A STRING, same convention as outOfStock/requiresVariantSelection.
   //
@@ -457,6 +573,12 @@ function buildEcommerceProduct(record, options) {
     image_url: mainImage,
     galleryImages: galleryImages,
     images: images,
+    modelUrl: modelUrl,
+    modelPoster: modelPoster,
+    hasModel: hasModel,
+    showModel: showModel,
+    galleryMedia: galleryMedia,
+    galleryThumbnails: galleryThumbnails,
     createdAt: createdAt,
     updatedAt: updatedAt,
     created: created,
@@ -471,14 +593,23 @@ function buildEcommerceProduct(record, options) {
     defaultVariantPrice: defaultVariantPrice,
     displayPrice: displayPrice,
     defaultVariantDisplayPrice: defaultVariantDisplayPrice,
+    hasDiscount: hasDiscount,
+    discountLabel: discountLabel,
+    originalDisplayPrice: originalDisplayPrice,
+    originalDefaultVariantDisplayPrice: originalDefaultVariantDisplayPrice,
     hasPurchasableVariant: hasPurchasableVariant,
   }
 }
 
 // --- Variant availability helpers (mirror packages/renderer ecommerce-products) ---
-// A variant is in stock when its quantity is null (unlimited) or > 0.
+// A variant is in stock when its quantity is null (unlimited) or > 0. With
+// ALLOW_BACKORDERS every EXISTING combination is purchasable regardless of its
+// quantity — but a missing combination (null) is still not in stock: there is
+// no variant row to backorder.
 function isVariantInStock(v) {
-  return !v ? false : v.quantity == null || v.quantity > 0
+  if (!v) return false
+  if (ALLOW_BACKORDERS) return true
+  return v.quantity == null || v.quantity > 0
 }
 function variantCoversAllAxes(v, axisKeys) {
   if (!v || !v.options) return false
