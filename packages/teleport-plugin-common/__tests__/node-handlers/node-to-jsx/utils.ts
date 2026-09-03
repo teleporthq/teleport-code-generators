@@ -624,3 +624,94 @@ describe('createDynamicValueExpression — ctx reference (never emits an undecla
     )
   })
 })
+
+// An `expr` reference carries raw JavaScript, not the name of a binding. The
+// domain-to-UIDL mapper emits the literal `false` whenever a condition's
+// state/prop reference cannot be resolved (an orphaned or renamed definition),
+// documenting it as "renders nothing" — but the sanitiser that keeps a state
+// named `class` compiling used to rewrite it to `false_`, and the generated
+// page died server-side with `ReferenceError: false_ is not defined` before
+// rendering a single element.
+describe('createBinaryExpression — literal expr references', () => {
+  const render = (
+    key: string,
+    condition: { operation: string; operand?: string | number | boolean }
+  ): string =>
+    generate(
+      createBinaryExpression(condition, { key, type: 'boolean', isExpression: true }) as types.Node
+    ).code
+
+  // `'='` is what the domain-to-UIDL mapper actually writes for an equality
+  // condition, so this is the exact shape that crashed the generated page.
+  it('emits the unresolved-reference fallback as the literal false', () => {
+    expect(render('false', { operation: '=', operand: false })).toBe('false === false')
+    expect(render('false', { operation: '=', operand: true })).toBe('false === true')
+  })
+
+  it('keeps the boolean short forms for a strict-equality condition', () => {
+    expect(render('true', { operation: '===', operand: true })).toBe('true')
+    expect(render('false', { operation: '===', operand: false })).toBe('!false')
+  })
+
+  it('emits literal null, undefined and numbers', () => {
+    expect(render('null', { operation: '!==', operand: 'x' })).toBe(`null !== "x"`)
+    expect(render('undefined', { operation: '!==', operand: 'x' })).toBe(`undefined !== "x"`)
+    expect(render('0', { operation: '>', operand: 1 })).toBe('0 > 1')
+    expect(render('-2.5', { operation: '<', operand: 1 })).toBe('-2.5 < 1')
+  })
+
+  it('never sanitises a literal into an undefined binding', () => {
+    expect(render('false', { operation: '=', operand: false })).not.toContain('false_')
+  })
+
+  it('leaves a real expression body untouched', () => {
+    expect(render('chatMessage?.sender', { operation: '===', operand: 'ai' })).toBe(
+      `chatMessage?.sender === "ai"`
+    )
+  })
+
+  it('still sanitises a reserved BINDING name, which is not an expression', () => {
+    expect(
+      generate(
+        createBinaryExpression(
+          { operation: '===', operand: true },
+          {
+            key: 'class',
+            type: 'boolean',
+          }
+        ) as types.Node
+      ).code
+    ).toBe('class_')
+  })
+})
+
+describe('createConditionIdentifier — expr references are flagged as source', () => {
+  const params: JSXGenerationParams = {
+    propDefinitions: {},
+    stateDefinitions: {},
+    globalStateDefinitions: {},
+    dependencies: {},
+    nodesLookup: {},
+    windowImports: {},
+    localeReferences: [],
+    localeAttributeReferences: [],
+    globalReferences: [],
+    globalStateReferences: [],
+    hoistedConstants: [],
+  }
+  const options: JSXGenerationOptions = {
+    dynamicReferencePrefixMap: { prop: 'props', state: '', local: '' },
+  }
+
+  it('marks an expr VALUE reference', () => {
+    const result = createConditionIdentifier({ type: 'expr', content: 'false' }, params, options)
+
+    expect(result).toEqual({ key: 'false', type: 'boolean', isExpression: true })
+  })
+
+  it('does not mark a state reference', () => {
+    const result = createConditionIdentifier(dynamicNode('state', 'isActive'), params, options)
+
+    expect(result.isExpression).toBeUndefined()
+  })
+})
