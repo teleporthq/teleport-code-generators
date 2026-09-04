@@ -1,7 +1,13 @@
 import uidlSample from '../../../../examples/uidl-samples/tests.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import projectWithSlot from '../../../../examples/test-samples/project-with-slot.json'
-import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
+import {
+  createHTMLProjectGenerator,
+  pluginCloneGlobals,
+  pluginHomeReplace,
+  pluginSnapIntoView,
+  pluginScrollRail,
+} from '../../src'
 import HTMLTemplate from '../../src/project-template'
 import { FileType } from '@teleporthq/teleport-types'
 
@@ -70,6 +76,73 @@ describe('Html Project Generator', () => {
 
     expect(heroComponent).toBeDefined()
     expect(indexFile?.content).toContain(`This is amazing, because this is a named-slot`)
+  })
+
+  it('Snap into view: the native snap rule ships only when an element opts in', async () => {
+    const plain = createHTMLProjectGenerator()
+    plain.addPlugin(pluginSnapIntoView)
+    const untouched = await plain.generateProject(uidlSample, HTMLTemplate)
+    untouched.files.forEach((file) => expect(file.content).not.toContain('scroll-snap-type'))
+
+    const uidl = JSON.parse(JSON.stringify(uidlSample))
+    const about = uidl.root.node.content.children.find(
+      (child: { content: { value?: string } }) => child.content.value === 'About'
+    )
+    about.content.node.content.attrs = {
+      ...(about.content.node.content.attrs || {}),
+      'data-snap-into-view': { type: 'static', content: 'firm' },
+    }
+    const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginSnapIntoView)
+    const snapped = await generator.generateProject(uidl, HTMLTemplate)
+
+    const globalCss = snapped.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const aboutPage = snapped.files.find(
+      (file) => file.name === 'about' && file.fileType === FileType.HTML
+    )
+    const rulesCarrier = globalCss ? globalCss.content : aboutPage?.content || ''
+    expect(rulesCarrier).toContain('scroll-snap-type: y proximity')
+    expect(rulesCarrier).toContain('[data-snap-into-view="firm"]')
+    expect(rulesCarrier).toContain('[data-snap-into-view="gentle"]')
+    expect(rulesCarrier).not.toContain('mandatory')
+    expect(aboutPage?.content).toContain('data-snap-into-view="firm"')
+  })
+
+  it('Scroll rail: CSS in the global stylesheet, the wheel script per page, only when used', async () => {
+    const plain = createHTMLProjectGenerator()
+    plain.addPlugin(pluginScrollRail)
+    const untouched = await plain.generateProject(uidlSample, HTMLTemplate)
+    untouched.files.forEach((file) => {
+      expect(file.content).not.toContain('scroll-snap-type: x')
+      expect(file.content).not.toContain('data-scroll-rail-wheel')
+    })
+
+    const uidl = JSON.parse(JSON.stringify(uidlSample))
+    const about = uidl.root.node.content.children.find(
+      (child: { content: { value?: string } }) => child.content.value === 'About'
+    )
+    about.content.node.content.attrs = {
+      ...(about.content.node.content.attrs || {}),
+      'data-scroll-rail-snap': { type: 'static', content: 'gentle' },
+      'data-scroll-rail-wheel': { type: 'static', content: 'true' },
+    }
+    const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginScrollRail)
+    const railed = await generator.generateProject(uidl, HTMLTemplate)
+
+    const globalCss = railed.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const aboutPage = railed.files.find(
+      (file) => file.name === 'about' && file.fileType === FileType.HTML
+    )
+    const rulesCarrier = globalCss ? globalCss.content : aboutPage?.content || ''
+    expect(rulesCarrier).toContain('scroll-snap-type: x proximity')
+    expect(rulesCarrier).toContain('scroll-snap-align: start')
+    expect(aboutPage?.content).toContain('data-scroll-rail-snap="gentle"')
+    expect(aboutPage?.content).toContain("addEventListener('wheel'")
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

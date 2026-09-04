@@ -79,4 +79,27 @@ describe('Next generator with a Motion element', () => {
     const npmrc = outputFolder.files.find((file) => file.name === '.npmrc')
     expect(npmrc?.content).toContain('legacy-peer-deps=true')
   })
+
+  it('scroll trigger interpolates the FULL from/to state (canvas parity), with scrub + offset support', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const component = findFile(outputFolder, 'components', 'tq-motion')
+    const code = component?.content || ''
+
+    // The scroll path writes the whole interpolated state (transform families,
+    // opacity, filter) to the element — the historical y-only parallax is gone.
+    expect(code).toContain('applyScrollState')
+    expect(code).toContain('useMotionValueEvent')
+    expect(code).not.toContain('parallaxY')
+    expect(code).toMatch(/TRANSFORM_KEYS = \['x', 'y', 'scale', 'rotate'\]/)
+
+    // Scrub smoothing and the scroll-offset windows are wired.
+    expect(code).toContain('useSpring')
+    expect(code).toContain('SCROLL_OFFSET_RANGES')
+    for (const preset of ['pass', 'contained', 'enter', 'exit']) {
+      expect(code).toContain(preset)
+    }
+
+    // Blur interpolation mirrors the canvas runtime's BLUR_RE handling.
+    expect(code).toContain('blur(')
+  })
 })
