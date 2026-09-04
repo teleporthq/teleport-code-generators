@@ -251,6 +251,12 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     })
   ),
   cache: optional(object({ revalidate: number() })),
+  redirect: optional(
+    object({
+      destinationField: string(),
+      typeField: optional(string()),
+    })
+  ),
 })
 
 export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
@@ -407,6 +413,7 @@ export const localFontDecoder: Decoder<UIDLLocalFontAsset> = object({
 export const canonicalAssetDecoder: Decoder<UIDLCanonicalAsset> = object({
   type: constant('canonical' as const),
   path: string(),
+  dynamicOverride: optional(dynamicValueDecoder),
 })
 
 export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({

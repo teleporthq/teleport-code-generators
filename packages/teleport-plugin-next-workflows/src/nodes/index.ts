@@ -32,6 +32,7 @@ import { browserReadClipboard } from './browser/browser-read-clipboard'
 import { browserShare } from './browser/browser-share'
 import { browserShowNotification } from './browser/browser-show-notification'
 import { browserSpeechToText } from './browser/browser-speech-to-text'
+import { browserSpeechRecognition } from './browser/browser-speech-recognition'
 import { browserSubscribeToPush } from './browser/browser-subscribe-to-push'
 import { browserTextToSpeech } from './browser/browser-text-to-speech'
 import { browserWriteClipboard } from './browser/browser-write-clipboard'
@@ -200,6 +201,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'browser-share': browserShare,
   'browser-show-notification': browserShowNotification,
   'browser-speech-to-text': browserSpeechToText,
+  'browser-speech-recognition': browserSpeechRecognition,
   'browser-subscribe-to-push': browserSubscribeToPush,
   'browser-text-to-speech': browserTextToSpeech,
   'browser-write-clipboard': browserWriteClipboard,

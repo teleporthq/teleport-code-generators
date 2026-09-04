@@ -14,6 +14,8 @@ import * as StyleDeclarations from './utils/style-declarations'
 import * as StorefrontTax from './utils/storefront-tax'
 import * as ProductDiscounts from './utils/product-discounts'
 import * as EmailDate from './utils/email-date'
+import * as RichTextEmbeds from './utils/rich-text-embeds'
+import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as DataCache from './cache'
 
 export {
@@ -33,5 +35,7 @@ export {
   StorefrontTax,
   ProductDiscounts,
   EmailDate,
+  RichTextEmbeds,
+  RichTextEmbedsCodegen,
   DataCache,
 }

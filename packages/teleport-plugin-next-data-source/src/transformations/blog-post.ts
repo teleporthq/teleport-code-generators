@@ -77,6 +77,22 @@ function buildBlogPost(record, options) {
       ? coerceBoolean(record.allowComments, true)
       : true
 
+  // Per-post SEO overrides. The transform is the single normalization point —
+  // rows can also be written by the raw admin CRUD form, so whitespace and
+  // unknown redirect types are neutralized here. Absent columns (a table
+  // provisioned before the feature) read as undefined and normalize to null.
+  // robotsContent is null — never '' or false — for unset rows, so the
+  // page-level fallback (the \`??\` in the generated Head) can take over.
+  var noIndex = coerceBoolean(pickFirst(record.no_index, record.noIndex), false)
+  var canonicalUrl = normalizeSeoUrlField(pickFirst(record.canonical_url, record.canonicalUrl))
+  var redirectUrl = normalizeSeoUrlField(pickFirst(record.redirect_url, record.redirectUrl))
+  var rawRedirectType = pickFirst(record.redirect_type, record.redirectType)
+  var redirectType =
+    redirectUrl && (rawRedirectType === '301' || rawRedirectType === '302')
+      ? rawRedirectType
+      : null
+  var robotsContent = noIndex ? 'noindex' : null
+
   // The author's related-post picks. \`relatedPosts\` carries the TRANSFORMED
   // rows, not ids, so the details page's related-posts rail can map over it and
   // draw an article card per entry; \`relatedPostIds\` keeps the raw selection.
@@ -146,6 +162,11 @@ function buildBlogPost(record, options) {
     readingTimeMinutes: readingTimeMinutes,
     isFeatured: isFeatured,
     allowComments: allowComments,
+    noIndex: noIndex,
+    canonicalUrl: canonicalUrl,
+    redirectUrl: redirectUrl,
+    redirectType: redirectType,
+    robotsContent: robotsContent,
     publishedAt: publishedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -156,6 +177,14 @@ function buildBlogPost(record, options) {
 function transformBlogPosts(records, options) {
   if (!Array.isArray(records)) return []
   return records.map(function(record) { return buildBlogPost(record, options) })
+}
+
+// Trims a per-post SEO URL cell; blank/non-string values (including columns
+// that don't exist yet on tables provisioned before the feature) become null.
+function normalizeSeoUrlField(value) {
+  if (typeof value !== 'string') return null
+  var trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 // Batched fetch of the post rows a set of posts reference as "related", keyed by

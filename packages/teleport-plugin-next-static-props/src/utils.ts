@@ -223,5 +223,126 @@ const computePropsAST = (
     )
   )
 
-  return [declarationAST, notFoundAST, returnAST]
+  return [
+    declarationAST,
+    notFoundAST,
+    ...computeEntityRedirectAST(initialPropsData, skipI18n),
+    returnAST,
+  ]
+}
+
+/**
+ * Entity-level redirect for details pages (`initialPropsData.redirect`): when
+ * the fetched row's destination field holds a value, the page answers with an
+ * HTTP redirect instead of rendering. Placed AFTER the notFound check (a
+ * missing row still 404s) and emitted as an IfStatement wrapping its return —
+ * several downstream plugins (`addDynamicSeoPropsToGetStaticProps`, the
+ * parallel/inline-fetch plugins) locate the props return via
+ * `.find((s) => s.type === 'ReturnStatement')` on the try block, so this must
+ * never introduce another top-level ReturnStatement.
+ */
+const computeEntityRedirectAST = (
+  initialPropsData: UIDLInitialPropsData,
+  skipI18n?: boolean
+): types.Statement[] => {
+  const redirect = initialPropsData.redirect
+  if (!redirect?.destinationField) {
+    return []
+  }
+
+  const rowPath = [
+    'response',
+    ...ASTUtils.parseValuePath(initialPropsData.exposeAs.valuePath || []),
+  ]
+  const destinationAST = ASTUtils.generateMemberExpressionASTFromPath([
+    ...rowPath,
+    redirect.destinationField,
+  ])
+
+  // const entityRedirectUrl = response?.data?.[0]?.<destinationField>
+  const destinationDeclarationAST = types.variableDeclaration('const', [
+    types.variableDeclarator(types.identifier('entityRedirectUrl'), destinationAST),
+  ])
+
+  // Site-internal destinations must keep the visitor's locale: next.config.js
+  // redirects are locale-aware, data-fetching redirects are not, so a `/`
+  // destination is prefixed with the active non-default locale by hand.
+  const localeAwareDestinationAST = skipI18n
+    ? types.identifier('entityRedirectUrl')
+    : types.conditionalExpression(
+        types.logicalExpression(
+          '&&',
+          types.logicalExpression(
+            '&&',
+            types.optionalMemberExpression(
+              types.identifier('context'),
+              types.identifier('locale'),
+              false,
+              true
+            ),
+            types.binaryExpression(
+              '!==',
+              types.memberExpression(types.identifier('context'), types.identifier('locale')),
+              types.optionalMemberExpression(
+                types.identifier('context'),
+                types.identifier('defaultLocale'),
+                false,
+                true
+              )
+            )
+          ),
+          types.callExpression(
+            types.memberExpression(
+              types.identifier('entityRedirectUrl'),
+              types.identifier('startsWith')
+            ),
+            [types.stringLiteral('/')]
+          )
+        ),
+        types.templateLiteral(
+          [
+            types.templateElement({ raw: '/', cooked: '/' }, false),
+            types.templateElement({ raw: '', cooked: '' }, false),
+            types.templateElement({ raw: '', cooked: '' }, true),
+          ],
+          [
+            types.memberExpression(types.identifier('context'), types.identifier('locale')),
+            types.identifier('entityRedirectUrl'),
+          ]
+        ),
+        types.identifier('entityRedirectUrl')
+      )
+
+  // statusCode: real 301/302 — `permanent: true/false` would answer 308/307.
+  const statusCodeAST = redirect.typeField
+    ? types.conditionalExpression(
+        types.binaryExpression(
+          '===',
+          ASTUtils.generateMemberExpressionASTFromPath([...rowPath, redirect.typeField]),
+          types.stringLiteral('302')
+        ),
+        types.numericLiteral(302),
+        types.numericLiteral(301)
+      )
+    : types.numericLiteral(301)
+
+  const redirectReturnAST = types.returnStatement(
+    types.objectExpression([
+      types.objectProperty(
+        types.identifier('redirect'),
+        types.objectExpression([
+          types.objectProperty(types.identifier('destination'), localeAwareDestinationAST),
+          types.objectProperty(types.identifier('statusCode'), statusCodeAST),
+        ])
+      ),
+    ])
+  )
+
+  return [
+    destinationDeclarationAST,
+    types.ifStatement(
+      types.identifier('entityRedirectUrl'),
+      types.blockStatement([redirectReturnAST])
+    ),
+  ]
 }

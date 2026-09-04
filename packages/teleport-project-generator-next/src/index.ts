@@ -46,6 +46,7 @@ import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
+import { NextRichContentEmbedsProjectPlugin } from './rich-content-embeds/project-plugin'
 import { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
 import { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 import { NextDragDropProjectPlugin } from './drag-drop/project-plugin'
@@ -97,6 +98,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextCollapsibleTextProjectPlugin(),
   new NextDashboardLayoutPlugin(),
   new NextRichTextEditorProjectPlugin(),
+  new NextRichContentEmbedsProjectPlugin(),
   new NextCalendarKitProjectPlugin(),
   new NextDragDropProjectPlugin(),
   new NextKanbanProjectPlugin(),
@@ -279,6 +281,8 @@ export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
 export { createRichTextEditorComponentPlugin } from './rich-text-editor/component-plugin'
+export { NextRichContentEmbedsProjectPlugin } from './rich-content-embeds/project-plugin'
+export { generateRichContentEmbedsComponentCode } from './rich-content-embeds/embed-activator-component'
 export { NextCalendarKitProjectPlugin } from './calendar/project-plugin'
 export { CALENDARKIT_CSS, CALENDARKIT_VERSION } from './calendar/calendarkit-css'
 export { NextDragDropProjectPlugin } from './drag-drop/project-plugin'

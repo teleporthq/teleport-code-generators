@@ -28,6 +28,7 @@ import { generateColorPickerComponentCode } from '../src/widgets/color-picker-co
 import { generateFormFileInputComponentCode } from '../src/widgets/form-file-input-component'
 import { COLLAPSIBLE_TEXT_OVERFLOW_COMPONENT_SOURCE } from '../src/collapsible-text/collapsible-text-overflow-component'
 import { NAV_ACTIVE_LINK_COMPONENT_SOURCE } from '../src/nav-active-link/nav-active-link-component'
+import { generateRichContentEmbedsComponentCode } from '../src/rich-content-embeds/embed-activator-component'
 import { TRACKER_COMPONENT_SOURCE } from '../src/analytics/tracker-component'
 
 const EMITTED_COMPONENTS: Array<[string, string]> = [
@@ -35,6 +36,8 @@ const EMITTED_COMPONENTS: Array<[string, string]> = [
   ['tq-kanban', generateKanbanComponentCode()],
   ['tq-drag-drop', generateDragDropComponentCode()],
   ['rich-text-editor', generateRichTextEditorComponentCode()],
+  ['rich-text-editor (with embeds)', generateRichTextEditorComponentCode({ withEmbeds: true })],
+  ['rich-content-embeds', generateRichContentEmbedsComponentCode()],
   ['tq-motion', generateMotionComponentCode()],
   ['tq-signature', generateSignatureComponentCode()],
   ['tq-categories-filter', generateCategoriesFilterComponentCode()],
@@ -60,7 +63,7 @@ describe('emitted React components obey the Rules of Hooks', () => {
 
   it('covers every component source the generator can emit', () => {
     // A new widget added without a row here would ship unguarded.
-    expect(EMITTED_COMPONENTS).toHaveLength(16)
+    expect(EMITTED_COMPONENTS).toHaveLength(18)
   })
 })
 

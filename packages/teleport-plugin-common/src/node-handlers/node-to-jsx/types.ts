@@ -136,4 +136,12 @@ export interface ConditionalIdentifier {
   type: string
   prefix?: string
   referenceType?: string
+  /**
+   * True when `key` is raw JavaScript SOURCE (a UIDL `expr` reference) rather
+   * than the name of a binding. The two are emitted differently: a binding name
+   * has to survive the reserved-word sanitiser (`class` -> `class_`), while
+   * source must not be rewritten by it — the literal `false` is a value, and
+   * `false_` is an undefined variable that throws while the page renders.
+   */
+  isExpression?: boolean
 }

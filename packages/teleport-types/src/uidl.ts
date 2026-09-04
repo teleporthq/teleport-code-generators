@@ -588,6 +588,13 @@ export interface UIDLLocalFontAsset {
 export interface UIDLCanonicalAsset {
   type: 'canonical'
   path: string
+  /**
+   * A prop reference whose runtime value, when truthy, replaces the canonical
+   * href (and the mirrored og:url). Used by details pages whose entity rows
+   * carry their own canonical URL (e.g. a blog post's `canonical_url` column);
+   * `path` remains the fallback for rows without one.
+   */
+  dynamicOverride?: UIDLDynamicReference
 }
 
 export interface UIDLIconAsset {
@@ -664,6 +671,17 @@ export interface UIDLInitialPropsData {
   */
   cache?: {
     revalidate: number
+  }
+  /*
+    Entity-level redirect support for details pages. When set, the generated
+    getStaticProps/getServerSideProps returns a redirect whenever the fetched
+    row's `destinationField` (a field on the transformed entity, e.g.
+    `redirectUrl`) holds a non-empty value. `typeField` names the field holding
+    '301' | '302'; anything other than '302' redirects with statusCode 301.
+  */
+  redirect?: {
+    destinationField: string
+    typeField?: string
   }
 }
 
