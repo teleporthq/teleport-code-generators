@@ -67,17 +67,53 @@ async function data_update_item(config: any, context: any) {
   // guests.full_name from an un-prefilled guest_name input. OMIT such mappings so
   // the column keeps its stored value. (An intentional null — e.g. a route-param
   // sentinel degraded above — is preserved: only `undefined` is dropped.)
+  //
+  // A value the client→server hand-off could not carry (see pruneContext: any
+  // context entry over its budget crosses as { __truncated: true }) is dropped
+  // for the same reason and with the same result — the column KEEPS what it
+  // holds. Writing the placeholder instead destroys the stored value, which is
+  // how a rich-text field with an inlined image emptied a whole page of blocks.
+  const __isUnwritableValue = function (__v: any) {
+    if (__v === undefined) {
+      return true
+    }
+    if (!__v || typeof __v !== 'object') {
+      return false
+    }
+    return __v.__truncated === true || __v.__serializationError === true
+  }
+  const __warnDroppedMapping = function (__col: any) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[workflow] data-update-item kept the stored value of "' +
+          (__col || 'unknown') +
+          '": the new value was too large to reach the server (it stays as it was)'
+      )
+    }
+  }
   let effectiveColumnMappings: any = columnMappings
   if (Array.isArray(columnMappings)) {
     effectiveColumnMappings = columnMappings.filter(function (__m: any) {
-      return !(__m && typeof __m === 'object' && __m.value === undefined)
+      if (!(__m && typeof __m === 'object')) {
+        return true
+      }
+      if (!__isUnwritableValue(__m.value)) {
+        return true
+      }
+      if (__m.value !== undefined) {
+        __warnDroppedMapping(__m.column || __m.name || __m.field)
+      }
+      return false
     })
   } else if (columnMappings && typeof columnMappings === 'object') {
     effectiveColumnMappings = {}
     const __ck = Object.keys(columnMappings)
     for (let __ci = 0; __ci < __ck.length; __ci++) {
-      if ((columnMappings as any)[__ck[__ci]] !== undefined) {
-        ;(effectiveColumnMappings as any)[__ck[__ci]] = (columnMappings as any)[__ck[__ci]]
+      const __value = (columnMappings as any)[__ck[__ci]]
+      if (!__isUnwritableValue(__value)) {
+        ;(effectiveColumnMappings as any)[__ck[__ci]] = __value
+      } else if (__value !== undefined) {
+        __warnDroppedMapping(__ck[__ci])
       }
     }
   }

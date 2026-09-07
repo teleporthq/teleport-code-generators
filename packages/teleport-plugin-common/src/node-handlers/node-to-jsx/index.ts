@@ -2096,6 +2096,20 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     )
     repeaterItemsExpr = types.logicalExpression('||', expr, types.arrayExpression([]))
     params.globalReferences.push('ecommerce' as Parameters<typeof params.globalReferences.push>[0])
+  } else if (source === 'blogCategories') {
+    // The `Blog Categories` global. Unlike the store's taxonomy this one is NOT
+    // on a provider context — the generated `@/blog-context` module exposes it
+    // through a memoized `useBlogCategories()` hook, which the component plugin
+    // destructures into a plain `blogCategories` identifier when it sees this
+    // reference. → `blogCategories || []`.
+    repeaterItemsExpr = types.logicalExpression(
+      '||',
+      types.identifier('blogCategories'),
+      types.arrayExpression([])
+    )
+    params.globalReferences.push(
+      'blogCategories' as Parameters<typeof params.globalReferences.push>[0]
+    )
   } else {
     // Resolve any global-state reference encoded in `source` and register it
     // so the `next-global-state` component plugin destructures the matching

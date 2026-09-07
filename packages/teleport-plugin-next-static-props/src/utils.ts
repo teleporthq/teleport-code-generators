@@ -112,25 +112,44 @@ const computePropsAST = (
       - /blog-posts/page/${id}
   */
   const perPageCache = initialPropsData.cache
-  let cachePropertyAST: types.ObjectProperty | null = null
+  let revalidateSeconds: number | null = null
 
   // getServerSideProps re-runs on every request — there is no revalidate
   // window to configure, and Next.js errors if the prop is present.
   if (!useServerSideProps) {
     if (globalCache?.revalidate && !perPageCache?.revalidate) {
-      cachePropertyAST = types.objectProperty(
-        types.identifier('revalidate'),
-        types.numericLiteral(globalCache.revalidate)
-      )
+      revalidateSeconds = globalCache.revalidate
     }
 
     if (perPageCache?.revalidate) {
-      cachePropertyAST = types.objectProperty(
-        types.identifier('revalidate'),
-        types.numericLiteral(perPageCache.revalidate)
-      )
+      revalidateSeconds = perPageCache.revalidate
     }
   }
+
+  /*
+    A FRESH node per return: `revalidate` belongs on every branch of
+    getStaticProps, not only the one that renders.
+
+    `notFound` and `redirect` are cached exactly like props are, and a branch
+    that omits `revalidate` is cached with no expiry at all — Next.js never
+    re-runs getStaticProps for it. A page that redirected once then redirects
+    for ever: clearing `redirect_url` in the admin changes the database and
+    changes nothing a visitor sees, because the ISR entry is never revisited.
+    The same freeze turns an unpublished row's 404 permanent, so publishing it
+    later has no effect either.
+
+    On-demand revalidation (the `page-revalidate` node the admin's save runs)
+    is what makes the change appear immediately; this is the floor it falls
+    back to when that call cannot be made or fails, and the reason a redirect
+    is never permanent by accident.
+  */
+  const revalidateProperty = (): types.ObjectProperty | null =>
+    revalidateSeconds === null
+      ? null
+      : types.objectProperty(
+          types.identifier('revalidate'),
+          types.numericLiteral(revalidateSeconds)
+        )
 
   const localeAST = skipI18n
     ? []
@@ -185,9 +204,12 @@ const computePropsAST = (
     types.unaryExpression('!', responseMemberAST),
     types.blockStatement([
       types.returnStatement(
-        types.objectExpression([
-          types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
-        ])
+        types.objectExpression(
+          [
+            types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+            revalidateProperty(),
+          ].filter(Boolean)
+        )
       ),
     ])
   )
@@ -218,7 +240,7 @@ const computePropsAST = (
           false,
           false
         ),
-        cachePropertyAST,
+        revalidateProperty(),
       ].filter(Boolean)
     )
   )
@@ -226,7 +248,7 @@ const computePropsAST = (
   return [
     declarationAST,
     notFoundAST,
-    ...computeEntityRedirectAST(initialPropsData, skipI18n),
+    ...computeEntityRedirectAST(initialPropsData, skipI18n, revalidateProperty),
     returnAST,
   ]
 }
@@ -243,7 +265,8 @@ const computePropsAST = (
  */
 const computeEntityRedirectAST = (
   initialPropsData: UIDLInitialPropsData,
-  skipI18n?: boolean
+  skipI18n: boolean | undefined,
+  revalidateProperty: () => types.ObjectProperty | null
 ): types.Statement[] => {
   const redirect = initialPropsData.redirect
   if (!redirect?.destinationField) {
@@ -327,15 +350,21 @@ const computeEntityRedirectAST = (
     : types.numericLiteral(301)
 
   const redirectReturnAST = types.returnStatement(
-    types.objectExpression([
-      types.objectProperty(
-        types.identifier('redirect'),
-        types.objectExpression([
-          types.objectProperty(types.identifier('destination'), localeAwareDestinationAST),
-          types.objectProperty(types.identifier('statusCode'), statusCodeAST),
-        ])
-      ),
-    ])
+    types.objectExpression(
+      [
+        types.objectProperty(
+          types.identifier('redirect'),
+          types.objectExpression([
+            types.objectProperty(types.identifier('destination'), localeAwareDestinationAST),
+            types.objectProperty(types.identifier('statusCode'), statusCodeAST),
+          ])
+        ),
+        // Without this the redirect is cached with no expiry — see
+        // `revalidateProperty`. A redirect an editor can switch off must not
+        // outlive the row that asked for it.
+        revalidateProperty(),
+      ].filter(Boolean)
+    )
   )
 
   return [

@@ -86,6 +86,106 @@ const buildComputedExpression = (node: UIDLStructuredDataComputed): types.Expres
     )
   }
 
+  if (node.kind === 'aggregateRating') {
+    // A rating block is only valid schema.org with at least one review, so
+    // "no reviews" has to REMOVE the property — not emit `{}` and not emit a
+    // zeroed rating, either of which Google reports as an error on every
+    // product page in the catalogue.
+    //
+    //   <count> > 0 ? { '@type': 'AggregateRating', ... } : undefined
+    //
+    // `undefined` is what `JSON.stringify` drops, which is how the property
+    // disappears from the emitted document entirely.
+    const countField = buildPropExpression([...node.refPath, node.column])
+    const valueField = buildPropExpression([...node.refPath, node.ratingValueColumn || node.column])
+    return types.conditionalExpression(
+      types.binaryExpression('>', countField, types.numericLiteral(0)),
+      types.objectExpression([
+        types.objectProperty(types.stringLiteral('@type'), types.stringLiteral('AggregateRating')),
+        types.objectProperty(types.stringLiteral('ratingValue'), valueField),
+        types.objectProperty(types.stringLiteral('reviewCount'), countField),
+        types.objectProperty(types.stringLiteral('bestRating'), types.numericLiteral(5)),
+        types.objectProperty(types.stringLiteral('worstRating'), types.numericLiteral(1)),
+      ]),
+      types.identifier('undefined')
+    )
+  }
+
+  if (node.kind === 'namedEntity') {
+    // A `Brand` or an `author` with no `name` is a missing-required-field error
+    // that Google reports on EVERY page carrying it — and a nullable column
+    // (`brand`, `author_name`) is empty on plenty of real rows. So an absent
+    // value removes the whole object rather than emitting a typed shell.
+    //
+    //   <field> ? { '@type': <schemaType>, name: <field> } : undefined
+    return types.conditionalExpression(
+      entityField,
+      types.objectExpression([
+        types.objectProperty(
+          types.stringLiteral('@type'),
+          types.stringLiteral(node.schemaType || 'Thing')
+        ),
+        types.objectProperty(types.stringLiteral('name'), entityField),
+      ]),
+      types.identifier('undefined')
+    )
+  }
+
+  if (node.kind === 'reviewList') {
+    // The individual review snippets under a product's stars. The transform
+    // hands over a plain domain array; the schema.org shaping happens here so
+    // the data layer stays free of vocabulary it has no other use for.
+    //
+    //   Array.isArray(<field>) && <field>.length
+    //     ? <field>.map(r => ({ '@type': 'Review', … }))
+    //     : undefined
+    //
+    // `undefined` rather than `[]`: an empty `review` array is invalid
+    // structured data in exactly the way an empty `aggregateRating` is.
+    const reviewParam = types.identifier('r')
+    const reviewProp = (name: string): types.MemberExpression =>
+      types.memberExpression(reviewParam, types.identifier(name), false, false)
+    const mapCallback = types.arrowFunctionExpression(
+      [reviewParam],
+      types.objectExpression([
+        types.objectProperty(types.stringLiteral('@type'), types.stringLiteral('Review')),
+        types.objectProperty(
+          types.stringLiteral('author'),
+          types.objectExpression([
+            types.objectProperty(types.stringLiteral('@type'), types.stringLiteral('Person')),
+            types.objectProperty(types.stringLiteral('name'), reviewProp('author')),
+          ])
+        ),
+        types.objectProperty(
+          types.stringLiteral('reviewRating'),
+          types.objectExpression([
+            types.objectProperty(types.stringLiteral('@type'), types.stringLiteral('Rating')),
+            types.objectProperty(types.stringLiteral('ratingValue'), reviewProp('rating')),
+            types.objectProperty(types.stringLiteral('bestRating'), types.numericLiteral(5)),
+            types.objectProperty(types.stringLiteral('worstRating'), types.numericLiteral(1)),
+          ])
+        ),
+        types.objectProperty(types.stringLiteral('reviewBody'), reviewProp('body')),
+        types.objectProperty(types.stringLiteral('datePublished'), reviewProp('datePublished')),
+      ])
+    )
+    return types.conditionalExpression(
+      types.logicalExpression(
+        '&&',
+        types.callExpression(
+          types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+          [entityField]
+        ),
+        types.optionalMemberExpression(entityField, types.identifier('length'), false, true)
+      ),
+      types.callExpression(
+        types.optionalMemberExpression(entityField, types.identifier('map'), false, true),
+        [mapCallback]
+      ),
+      types.identifier('undefined')
+    )
+  }
+
   // concatUrl: `${urlPrefix}${<entity>.<column>}`
   const prefix = node.urlPrefix || ''
   return types.templateLiteral(

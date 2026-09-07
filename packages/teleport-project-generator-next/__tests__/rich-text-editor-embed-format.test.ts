@@ -226,8 +226,11 @@ describe('the generated editor survives being driven', () => {
 
   it('leaves an editor without embeds untouched by any of it', () => {
     expect(plain).not.toContain('forwardedRef')
-    expect(plain).not.toContain('formatsKey')
     expect(plain).not.toContain('lastEmittedRef')
     expect(plain).not.toContain('isEditorReady')
+    expect(plain).not.toContain('registerEmbedBlot')
+    // `formatsKey` is deliberately NOT in this list: memoising on the format
+    // names rather than on the array identity is what keeps the toolbar (and
+    // with it the image handler) stable, and both variants need that.
   })
 })

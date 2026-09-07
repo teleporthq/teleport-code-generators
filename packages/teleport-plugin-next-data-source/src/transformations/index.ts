@@ -1,13 +1,25 @@
-import type { GeneratorOptions } from '@teleporthq/teleport-types'
+import type { GeneratorOptions, UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import { StorefrontTax } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
+import { generateCustomPageTransformationCode } from './custom-page'
 import {
   generateEcommerceProductTransformationCode,
   type EcommerceProductTransformOptions,
 } from './ecommerce-product'
 
 export type { EcommerceProductTransformOptions }
+
+/**
+ * Everything a generated fetcher bakes in, for EITHER entity. One options object
+ * because `getTransformationCode` is called with a table name and has to be able
+ * to serve whichever transform that resolves to — the product fields are ignored
+ * for a blog table and vice versa.
+ */
+export interface EntityTransformOptions extends EcommerceProductTransformOptions {
+  /** Blog post-category taxonomy — see `blogSettings.categories`. */
+  blogCategories?: UIDLEcommerceCategory[]
+}
 
 /**
  * Stock never gates purchasability when the merchant disabled stock management
@@ -35,14 +47,15 @@ const resolveAllowBackorders = (
  * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
 export const buildProductTransformOptions = (
-  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings'>
-): EcommerceProductTransformOptions => ({
+  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings' | 'blogSettings'>
+): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
+  blogCategories: options.blogSettings?.categories,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
   allowBackorders: resolveAllowBackorders(options.ecommerceSettings),
 })
 
-export type TransformationType = 'blog-post' | 'ecommerce-product' | null
+export type TransformationType = 'blog-post' | 'ecommerce-product' | 'custom-page' | null
 
 /**
  * Strips a leading `schema.` qualifier from a table name so that only the
@@ -80,6 +93,9 @@ export const detectTransformationType = (tableName: string): TransformationType 
   if (bare === 'teleport_products') {
     return 'ecommerce-product'
   }
+  if (bare === 'teleport_pages') {
+    return 'custom-page'
+  }
   return null
 }
 
@@ -90,7 +106,7 @@ export const detectTransformationType = (tableName: string): TransformationType 
  */
 export const getTransformationCode = (
   tableName: string,
-  options: EcommerceProductTransformOptions = {}
+  options: EntityTransformOptions = {}
 ): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
@@ -101,9 +117,11 @@ export const getTransformationCode = (
 
   switch (type) {
     case 'blog-post':
-      return shared + generateBlogPostTransformationCode()
+      return shared + generateBlogPostTransformationCode({ categories: options.blogCategories })
     case 'ecommerce-product':
       return shared + generateEcommerceProductTransformationCode(options)
+    case 'custom-page':
+      return shared + generateCustomPageTransformationCode()
     default:
       return ''
   }
@@ -126,10 +144,22 @@ export const getTransformExpression = (tableName: string): string | null => {
       return 'await transformRecords(safeData, getClient, req.query)'
     case 'ecommerce-product':
       return 'await transformRecords(safeData, getClient, req.query)'
+    case 'custom-page':
+      return 'await transformRecords(safeData, getClient, req.query)'
     default:
       return null
   }
 }
+
+/**
+ * How many reviews a product page carries into its structured data.
+ *
+ * They are inlined TWICE — once into the page's props, once into the JSON-LD
+ * script rendered from them — so this number is paid for in bytes on every
+ * request. Five is what a review snippet shows; the rest are on the page itself,
+ * fetched by the reviews section's own paginated query.
+ */
+export const REVIEWS_PER_PRODUCT = 5
 
 /**
  * Returns the transform wrapper function code that handles asset map loading
@@ -142,7 +172,12 @@ export const getTransformWrapperCode = (tableName: string): string => {
     return ''
   }
 
-  const transformFn = type === 'blog-post' ? 'transformBlogPosts' : 'transformEcommerceProducts'
+  const transformFn =
+    type === 'blog-post'
+      ? 'transformBlogPosts'
+      : type === 'custom-page'
+      ? 'transformCustomPages'
+      : 'transformEcommerceProducts'
 
   // Products additionally get their purchasable variant combinations attached in
   // ONE batched query (keyed by product id). Blog posts have no such enrichment.
@@ -160,8 +195,11 @@ export const getTransformWrapperCode = (tableName: string): string => {
     type === 'ecommerce-product'
       ? `
   var variantsByProductId = null
+  // Declared OUTSIDE the try because the ratings lookup below reuses it. \`var\`
+  // would hoist it anyway, but relying on that would make this block break
+  // silently the day someone modernises it to \`let\`.
+  var __variantPids = []
   try {
-    var __variantPids = []
     for (var __i = 0; __i < records.length; __i++) {
       if (records[__i] && records[__i].id != null) __variantPids.push(records[__i].id)
     }
@@ -178,11 +216,41 @@ export const getTransformWrapperCode = (tableName: string): string => {
     variantsByProductId = await getVariantsMap(getClientFn, __variantPids)
   } catch (e) {
     // Leaves the map null — "unknown", never "none".
+  }
+  // The aggregate star rating for the same id set, in ONE more query. Reuses
+  // __variantPids so a details page's related cards get their ratings from the
+  // same round trip rather than one query per card.
+  //
+  // Unlike the variants map this stays {} on failure: "no rating to show" is
+  // both the empty answer and the safe answer, so there is no unknown state for
+  // a caller to reason about.
+  var ratingsByProductId = {}
+  try {
+    ratingsByProductId = await getRatingsMap(getClientFn, __variantPids)
+  } catch (e) {
+    // Leaves the map empty — the star rows simply stay hidden.
+  }
+  // The individual reviews behind the stars, for the product page's JSON-LD.
+  //
+  // Gated on the SINGLE-RECORD heuristic, unlike the two lookups above. Those
+  // feed something every card on the page draws; this feeds structured data,
+  // which only a details page emits — and a listing of 24 products would
+  // otherwise fetch and inline 120 review rows that nothing on it renders or
+  // markup-references.
+  var reviewsByProductId = {}
+  if (Array.isArray(records) && records.length === 1) {
+    try {
+      reviewsByProductId = await getProductReviewsMap(getClientFn, __variantPids, ${REVIEWS_PER_PRODUCT})
+    } catch (e) {
+      // Best-effort; the product simply ships without review snippets.
+    }
   }`
       : ''
 
   const variantOption =
-    type === 'ecommerce-product' ? ', variantsByProductId: variantsByProductId' : ''
+    type === 'ecommerce-product'
+      ? ', variantsByProductId: variantsByProductId, ratingsByProductId: ratingsByProductId, reviewsByProductId: reviewsByProductId'
+      : ''
 
   // Related items are resolved for a SINGLE-record fetch only — which is the
   // details page, the one surface that renders them (it looks the row up by
@@ -195,9 +263,13 @@ export const getTransformWrapperCode = (tableName: string): string => {
   // A one-product store's listing does pay for one extra query. That is the
   // whole cost of the heuristic, and it beats plumbing a page-role flag through
   // every fetcher.
+  // Custom pages have no related items and no variants: their transform only
+  // normalises the row's SEO fields.
+  const hasRelatedItems = type === 'blog-post' || type === 'ecommerce-product'
   const relatedMapVar = type === 'blog-post' ? 'relatedPostsById' : 'relatedProductsById'
   const relatedMapFn = type === 'blog-post' ? 'getRelatedPostsMap' : 'getRelatedProductsMap'
-  const relatedEnrichment = `
+  const relatedEnrichment = hasRelatedItems
+    ? `
   var ${relatedMapVar} = null
   if (Array.isArray(records) && records.length === 1) {
     try {
@@ -206,6 +278,8 @@ export const getTransformWrapperCode = (tableName: string): string => {
       // Best-effort; the related rail stays hidden behind its empty gate.
     }
   }`
+    : ''
+  const relatedOption = hasRelatedItems ? `, ${relatedMapVar}: ${relatedMapVar}` : ''
 
   return `
 async function transformRecords(records, getClientFn, reqQuery) {
@@ -217,7 +291,7 @@ async function transformRecords(records, getClientFn, reqQuery) {
   }${relatedEnrichment}${variantEnrichment}
   var currentLanguage = (reqQuery && reqQuery.lang) || null
   var mainLanguage = (reqQuery && reqQuery.mainLang) || null
-  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption}, ${relatedMapVar}: ${relatedMapVar} }
+  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption}${relatedOption} }
   return ${transformFn}(records, options)
 }
 `

@@ -39,6 +39,7 @@ import { browserWriteClipboard } from './browser/browser-write-clipboard'
 import { cacheGet } from './cache/cache-get'
 import { cacheSet } from './cache/cache-set'
 import { cacheInvalidate } from './cache/cache-invalidate'
+import { pageRevalidate } from './cache/page-revalidate'
 import { cartAddItem } from './cart/cart-add-item'
 import { cartClear } from './cart/cart-clear'
 import { cartGetItems } from './cart/cart-get-items'
@@ -97,6 +98,7 @@ import { navigationRefreshPage } from './navigation/navigation-refresh-page'
 import { paymentCancelPlan } from './payment/payment-cancel-plan'
 import { paymentChargeUser } from './payment/payment-charge-user'
 import { paymentCreateCustomer } from './payment/payment-create-customer'
+import { paymentRefund } from './payment/payment-refund'
 import { paymentCreateProduct } from './payment/payment-create-product'
 import { paymentCreateSubscription } from './payment/payment-create-subscription'
 import { paymentGetCustomer } from './payment/payment-get-customer'
@@ -262,6 +264,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'navigation-refresh-page': navigationRefreshPage,
   'payment-cancel-plan': paymentCancelPlan,
   'payment-charge-user': paymentChargeUser,
+  'payment-refund': paymentRefund,
   'payment-create-customer': paymentCreateCustomer,
   'payment-create-product': paymentCreateProduct,
   'payment-create-subscription': paymentCreateSubscription,
@@ -297,6 +300,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'cache-get': cacheGet,
   'cache-set': cacheSet,
   'cache-invalidate': cacheInvalidate,
+  'page-revalidate': pageRevalidate,
   'toast-show': toastShow,
   'transform-array': transformArray,
   'transform-calculate': transformCalculate,

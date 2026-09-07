@@ -23,6 +23,15 @@ export const USE_CART_HOOK: UIDLDependency = {
   },
 }
 
+/** The blog's baked category taxonomy — see `blog/blog-context-generator.ts`. */
+export const USE_BLOG_CATEGORIES_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '@/blog-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
   path: 'next-intl',
@@ -436,6 +445,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     const globalCtxProperties: Set<string> = new Set()
     let needsEcommerce = false
     let needsCart = false
+    let needsBlogCategories = false
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
       switch (globalRef) {
         case 'locale':
@@ -454,6 +464,9 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
           break
         case 'cart':
           needsCart = true
+          break
+        case 'blogCategories':
+          needsBlogCategories = true
           break
         default:
           break
@@ -485,6 +498,17 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       ])
       reactHooks.push(ecommerceHook)
       structure.dependencies.useEcommerce = { ...USE_ECOMMERCE_HOOK }
+    }
+
+    if (needsBlogCategories && !structure.dependencies.useBlogCategories) {
+      const blogCategoriesHook = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('blogCategories'),
+          types.callExpression(types.identifier('useBlogCategories'), [])
+        ),
+      ])
+      reactHooks.push(blogCategoriesHook)
+      structure.dependencies.useBlogCategories = { ...USE_BLOG_CATEGORIES_HOOK }
     }
 
     if (needsCart && !needsEcommerce && !structure.dependencies.useCart) {

@@ -31,6 +31,7 @@ import { createNextLocaleFetcherPlugin } from './internationalization/locale-fet
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
 import { NextCacheRuntimePlugin } from './cache/project-plugin'
+import { NextPageRevalidatePlugin } from './page-revalidate/project-plugin'
 import { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
 import {
   createNextWorkflowPlugin,
@@ -43,6 +44,7 @@ import { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin'
 import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
+import { NextBlogProjectPlugin } from './blog/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
@@ -88,9 +90,11 @@ import {
 export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextDataSourceDependenciesPlugin(),
   new NextCacheRuntimePlugin(),
+  new NextPageRevalidatePlugin(),
   new NextDataSourceUtilityPlugin(),
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
+  new NextBlogProjectPlugin(),
   new NextGlobalStateProjectPlugin(),
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
@@ -277,6 +281,7 @@ export { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styl
 export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
+export { NextBlogProjectPlugin } from './blog/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'

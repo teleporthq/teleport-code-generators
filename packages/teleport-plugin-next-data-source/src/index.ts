@@ -1403,4 +1403,4 @@ export * from './count-fetchers'
 // tax rate) — every package that emits a data-source fetcher has to derive
 // them the same way.
 export { buildProductTransformOptions } from './transformations'
-export type { EcommerceProductTransformOptions } from './transformations'
+export type { EcommerceProductTransformOptions, EntityTransformOptions } from './transformations'

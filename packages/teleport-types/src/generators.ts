@@ -20,6 +20,7 @@ import {
   UIDLStaticValue,
   UIDLWorkflows,
   UIDLAuthentication,
+  UIDLBlogSettings,
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
   UIDLAIAssistantChat,
@@ -232,6 +233,10 @@ export interface GeneratorOptions {
   // (the category taxonomy lives only in `ecommerceSettings.categories`,
   // baked at export time — there is no DB table for it).
   ecommerceSettings?: UIDLEcommerceSettings
+  // Blog post-category taxonomy — like `ecommerceSettings.categories`, it lives
+  // only in the UIDL (there is no DB table for it), so the blog-post transform
+  // needs it here to resolve a post's `category_ids` to display names.
+  blogSettings?: UIDLBlogSettings
   // Project-level invoice settings, plumbed down for the SAME reason: the
   // `teleport` data source fetcher bakes the storefront tax rate
   // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a

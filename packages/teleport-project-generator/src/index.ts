@@ -320,6 +320,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.ecommerceSettings && {
         ecommerceSettings: uidl.ecommerceSettings,
       }),
+      ...(uidl.blogSettings && {
+        blogSettings: uidl.blogSettings,
+      }),
       ...(uidl.invoiceSettings && {
         invoiceSettings: uidl.invoiceSettings,
       }),

@@ -147,10 +147,113 @@ ${embedToolbarEntry}  if (mediaGroup.length > 0) toolbar.push(mediaGroup)
   return toolbar
 }
 
+${IMAGE_UPLOAD_SOURCE}
 ${body}
 export default RichTextEditor
 `
 }
+
+/**
+ * The image button, rewritten to UPLOAD.
+ *
+ * Quill's built-in handler inlines the picked file as a base64 data URL, which
+ * makes the field's value hundreds of kilobytes or more. Two things then go
+ * wrong, both silently: the workflow runtime refuses to carry a value that big
+ * to a server segment (anything over its prune budget is replaced by a
+ * truncation placeholder, and the column is written with THAT), and every later
+ * read of the row pays for the blob. Uploading through the storage proxy stores
+ * a URL instead, so the value stays a few dozen bytes whatever the picture
+ * weighs.
+ *
+ * The data-URL fallback is deliberate: a project without runtime storage — or
+ * one whose storage is momentarily down — keeps the behaviour it had rather
+ * than dropping the author's image on the floor.
+ *
+ * Module scope, not a hook: react-quill rebuilds the editor whenever `modules`
+ * stops being deep-equal, and it compares functions by reference.
+ */
+const IMAGE_UPLOAD_SOURCE = `function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error || new Error('Could not read the file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function uploadRichTextImage(file) {
+  const formData = new FormData()
+  formData.append('file', file, file.name || 'image')
+
+  const response = await fetch('/api/runtime-storage/upload', {
+    method: 'POST',
+    body: formData,
+  })
+
+  // Read as text first: a gateway error answers with HTML, and a JSON parse
+  // failure would otherwise hide the status that explains it.
+  const raw = await response.text()
+  let data = {}
+  if (raw) {
+    try {
+      data = JSON.parse(raw)
+    } catch (parseError) {
+      data = {}
+    }
+  }
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Upload failed with status ' + response.status)
+  }
+
+  const files = Array.isArray(data.files) ? data.files : []
+  const uploaded = files[0] || {}
+  const url = uploaded.url || uploaded.publicUrl || uploaded.downloadUrl || ''
+  if (!url) {
+    throw new Error('Upload returned no file URL')
+  }
+  return url
+}
+
+// Called by Quill with \`this\` bound to the toolbar module, so it must stay a
+// plain function — an arrow would lose \`this.quill\`.
+function richTextImageHandler() {
+  const quill = this && this.quill
+  if (!quill) {
+    return
+  }
+
+  const input = document.createElement('input')
+  input.setAttribute('type', 'file')
+  input.setAttribute('accept', 'image/*')
+  input.onchange = async () => {
+    const file = input.files && input.files[0]
+    if (!file) {
+      return
+    }
+    // Taken BEFORE the await: the selection is gone by the time the upload
+    // resolves, and the picture has to land where the caret was.
+    const selection = quill.getSelection(true)
+    const index = selection ? selection.index : quill.getLength()
+
+    let src = ''
+    try {
+      src = await uploadRichTextImage(file)
+    } catch (uploadError) {
+      console.warn('[rich-text] image upload failed, embedding the file instead', uploadError)
+      try {
+        src = await readFileAsDataURL(file)
+      } catch (readError) {
+        console.error('[rich-text] could not read the picked image', readError)
+        return
+      }
+    }
+
+    quill.insertEmbed(index, 'image', src, 'user')
+    quill.setSelection(index + 1, 0, 'user')
+  }
+  input.click()
+}
+`
 
 const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) => {
   const {
@@ -166,12 +269,26 @@ const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) =>
   // quillFormats: [] → no formats (plain text)
   // quillFormats: [...] → specific formats
   const formats = quillFormats !== undefined ? quillFormats : null
-  const toolbar = useMemo(() => buildToolbarFromFormats(formats), [formats])
+  // Keyed on the format NAMES: a page renders \`quillFormats\` as a fresh array
+  // literal, so keying on the array itself rebuilds the toolbar every render.
+  const formatsKey = Array.isArray(formats) ? formats.join('\\u0000') : String(formats)
+  const toolbar = useMemo(() => buildToolbarFromFormats(formats), [formatsKey])
 
-  const modules = useMemo(
-    () => (toolbar !== undefined ? { toolbar } : {}),
-    [toolbar]
-  )
+  const modules = useMemo(() => {
+    if (toolbar === undefined) {
+      return {}
+    }
+    // \`false\` means "no toolbar at all" — it has no image button to rewrite.
+    if (!toolbar) {
+      return { toolbar }
+    }
+    return {
+      toolbar: {
+        container: toolbar,
+        handlers: { image: richTextImageHandler },
+      },
+    }
+  }, [toolbar])
 
   return (
     <div {...rest}>
@@ -225,15 +342,18 @@ const richTextEditorWithEmbedsBody = (
     if (toolbar === undefined) {
       return {}
     }
-    if (!embedsEnabled || !toolbar) {
+    // \`false\` means "no toolbar at all" — there is no button to hand a handler.
+    if (!toolbar) {
       return { toolbar }
+    }
+    const handlers = { image: richTextImageHandler }
+    if (embedsEnabled) {
+      handlers[${JSON.stringify(embedBlotName)}] = openEmbedDialog
     }
     return {
       toolbar: {
         container: toolbar,
-        handlers: {
-          ${JSON.stringify(embedBlotName)}: openEmbedDialog,
-        },
+        handlers,
       },
     }
   }, [toolbar, embedsEnabled, openEmbedDialog])
