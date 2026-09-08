@@ -178,9 +178,20 @@ const buildComputedExpression = (node: UIDLStructuredDataComputed): types.Expres
         ),
         types.optionalMemberExpression(entityField, types.identifier('length'), false, true)
       ),
-      types.callExpression(
+      // ⛔ An OPTIONAL CALL, not a plain call around an optional member. Both
+      // read the same in modern JS, but they are different nodes and Babel
+      // prints the second one parenthesised — `(a?.b?.map)(cb)`. Native V8 still
+      // resolves the receiver through those parentheses; SWC, which is what
+      // Next compiles this page with, lowers them to a CONDITIONAL as the
+      // callee (`(… ? void 0 : ref.map)(cb)`). A conditional is a value, not a
+      // reference, so `map` runs with `this === undefined` and the product page
+      // dies with "Array.prototype.map called on null or undefined" — but only
+      // on a product that HAS a review, because that is the only path that
+      // reaches the call.
+      types.optionalCallExpression(
         types.optionalMemberExpression(entityField, types.identifier('map'), false, true),
-        [mapCallback]
+        [mapCallback],
+        false
       ),
       types.identifier('undefined')
     )

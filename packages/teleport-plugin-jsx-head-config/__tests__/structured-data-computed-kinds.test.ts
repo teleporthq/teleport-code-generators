@@ -25,6 +25,18 @@ const entry = (extra: UIDLStructuredDataObject): UIDLStructuredDataObject => ({
   ...extra,
 })
 
+/** The emitted JavaScript, as text. */
+const renderSource = (document: UIDLStructuredDataObject): string => {
+  const { scriptTag } = buildStructuredDataScript(document)
+  const attribute = scriptTag.openingElement.attributes.find(
+    (attr) => types.isJSXAttribute(attr) && attr.name.name === 'dangerouslySetInnerHTML'
+  ) as types.JSXAttribute
+  const container = attribute.value as types.JSXExpressionContainer
+  const objectExpression = container.expression as types.ObjectExpression
+  const htmlProperty = objectExpression.properties[0] as types.ObjectProperty
+  return generate(htmlProperty.value as types.Expression).code
+}
+
 const render = (
   document: UIDLStructuredDataObject,
   props: Record<string, unknown>
@@ -93,6 +105,24 @@ describe('structured data — namedEntity', () => {
 })
 
 describe('structured data — reviewList', () => {
+  it('⛔ calls `map` INSIDE the optional chain, never through a parenthesised callee', () => {
+    // The defect this guards. `(reviews?.map)(cb)` and `reviews?.map(cb)` read
+    // the same and behave the same under native V8 — which is why executing the
+    // expression here, as every other test in this file does, cannot catch it.
+    //
+    // They are different AST nodes, and SWC (what Next compiles a generated page
+    // with) lowers the parenthesised one to a CONDITIONAL as the callee:
+    //   (ref === null || ref === void 0 ? void 0 : ref.map)(cb)
+    // A conditional is a value, not a reference, so `map` runs with
+    // `this === undefined` and the page dies with "Array.prototype.map called on
+    // null or undefined" — only on a product that HAS a review, since no other
+    // path reaches the call.
+    const source = renderSource(REVIEW_DOC)
+
+    expect(source).toContain('?.map(')
+    expect(source).not.toContain('?.map)')
+  })
+
   it('maps the domain array into schema.org Review objects', () => {
     const json = render(REVIEW_DOC, {
       ecommerceProduct: {
