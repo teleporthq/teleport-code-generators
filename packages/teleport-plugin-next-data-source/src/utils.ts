@@ -12,7 +12,7 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
-import type { EcommerceProductTransformOptions } from './transformations'
+import type { EntityTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
@@ -192,7 +192,7 @@ export const extractDataSourceIntoNextAPIFolder = (
   dataSources: Record<string, UIDLDataSource>,
   componentChunk: ChunkDefinition,
   extractedResources: GeneratorOptions['extractedResources'],
-  transformOptions: EcommerceProductTransformOptions = {}
+  transformOptions: EntityTransformOptions = {}
 ) => {
   try {
     // Validate node content structure
@@ -901,7 +901,7 @@ export const extractDataSourceIntoGetStaticProps = (
   dependencies: Record<string, any>,
   dynamicRouteAttr?: string,
   folderPath?: string[],
-  transformOptions: EcommerceProductTransformOptions = {}
+  transformOptions: EntityTransformOptions = {}
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content

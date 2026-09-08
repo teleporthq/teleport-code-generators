@@ -715,3 +715,36 @@ describe('createConditionIdentifier — expr references are flagged as source', 
     expect(result.isExpression).toBeUndefined()
   })
 })
+
+/*
+  An operand that is itself a BINDING rather than a literal — "is this row the
+  selected one", where the left side is the row being repeated and the right
+  side is a state holding the selected id. It is the only shape that can
+  express a comparison between two live values in a rendering condition, and
+  the Custom Pages live preview draws its selection ring with it.
+
+  Both runtimes have to agree: the editor's renderer resolves the same operand
+  through `state?.[operand.content.id]`.
+*/
+describe('createBinaryExpression — an operand that is a dynamic reference', () => {
+  const render = (operand: unknown, operation = '='): string =>
+    generate(
+      createBinaryExpression({ operation, operand } as never, {
+        key: 'block?.id',
+        type: 'string',
+        isExpression: true,
+      }) as types.Node
+    ).code
+
+  it('compares against the state itself, not against its name as a string', () => {
+    expect(render(dynamicNode('state', 'activeEntry'))).toBe('block?.id === activeEntry')
+  })
+
+  it('reaches a prop operand through props', () => {
+    expect(render(dynamicNode('prop', 'selectedId'))).toBe('block?.id === props.selectedId')
+  })
+
+  it('still treats a plain string operand as a literal', () => {
+    expect(render('activeEntry')).toBe('block?.id === "activeEntry"')
+  })
+})

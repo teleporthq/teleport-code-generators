@@ -40,8 +40,8 @@ describe('tracker — same-path double-count guard', () => {
     expect(TRACKER_COMPONENT_SOURCE).toContain(
       'const handleRouteChangeStart = (url) => trackRouteLeave(url)'
     )
-    expect(TRACKER_COMPONENT_SOURCE).toContain(
-      'const handleRouteChangeComplete = (url) => trackRouteChange(url)'
+    expect(TRACKER_COMPONENT_SOURCE).toMatch(
+      /const handleRouteChangeComplete = \(url\) =>[\s\S]*?trackRouteChange\(url\)/
     )
   })
 })

@@ -22,6 +22,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
       ASTUtils.addAttributeToJSXTag(htmlNode, 'lang', defaultLang)
     }
   }
+  addDirectionAttribute(htmlNode, uidl)
   const headNode = ASTBuilders.createJSXTag('Head')
   const bodyNode = ASTBuilders.createJSXTag('body')
 
@@ -94,6 +95,67 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   }
 
   return chunks
+}
+
+/**
+ * Writing direction on `<html>`.
+ *
+ * Next.js sets `lang` from the route locale for an internationalized project
+ * but never sets `dir`, and without it a right-to-left locale renders
+ * left-to-right — every logical property in the stylesheet resolves the wrong
+ * way, which is worse than not having written them.
+ *
+ * Both cases come from the editor (`globals.settings`), so the language table
+ * lives in one place:
+ *  - a single-language RTL project gets a literal `dir="rtl"`;
+ *  - an internationalized project with at least one RTL locale gets an
+ *    expression over the route locale, because the answer changes per request.
+ *
+ * A project with no RTL language gets NOTHING — the emitted document is
+ * byte-identical to what it was before this existed.
+ */
+const addDirectionAttribute = (htmlNode: types.JSXElement, uidl: ProjectUIDL, t = types) => {
+  const { dir, rtlLocales } = uidl.globals.settings
+
+  if (uidl.internationalization) {
+    if (!rtlLocales || rtlLocales.length === 0) {
+      return
+    }
+    // ['ar','he'].indexOf(this.props.__NEXT_DATA__ && this.props.__NEXT_DATA__.locale) !== -1
+    //   ? 'rtl' : 'ltr'
+    const nextData = t.memberExpression(
+      t.memberExpression(t.thisExpression(), t.identifier('props')),
+      t.identifier('__NEXT_DATA__')
+    )
+    const locale = t.logicalExpression(
+      '&&',
+      nextData,
+      t.memberExpression(nextData, t.identifier('locale'))
+    )
+    const expression = t.conditionalExpression(
+      t.binaryExpression(
+        '!==',
+        t.callExpression(
+          t.memberExpression(
+            t.arrayExpression(rtlLocales.map((code) => t.stringLiteral(code))),
+            t.identifier('indexOf')
+          ),
+          [locale as types.Expression]
+        ),
+        t.unaryExpression('-', t.numericLiteral(1))
+      ),
+      t.stringLiteral('rtl'),
+      t.stringLiteral('ltr')
+    )
+    htmlNode.openingElement.attributes.push(
+      t.jsxAttribute(t.jsxIdentifier('dir'), t.jsxExpressionContainer(expression))
+    )
+    return
+  }
+
+  if (dir) {
+    ASTUtils.addAttributeToJSXTag(htmlNode, 'dir', dir)
+  }
 }
 
 const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {

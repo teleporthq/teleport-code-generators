@@ -99,6 +99,45 @@ describe('data-update-item runtime output + null-safety', () => {
     expect(result.affected).toBe(0)
   })
 
+  /*
+    A value that could not cross the client→server hand-off arrives as the
+    pruner's placeholder. Written through, it REPLACES the stored content with
+    `{"__truncated":true}` — which is how a rich-text field carrying an inlined
+    image emptied a whole custom page's block tree. The column keeps what it has
+    instead, exactly like an undefined mapping.
+  */
+  it('keeps the stored value when the new one arrived truncated', async () => {
+    const calls = installFetch({ id: 'r1', updatedCount: 1 })
+    await handler(
+      {
+        tableName: 'teleport_pages',
+        filters: [{ field: 'id', operator: '=', value: 'p1' }],
+        columnMappings: [
+          { column: 'blocks', value: { __truncated: true, type: 'string' } },
+          { column: 'title', value: 'Launch' },
+        ],
+      },
+      {}
+    )
+    expect(calls).toHaveLength(1)
+    const sentMappings = calls[0].body.columnMappings as Array<{ column: string }>
+    expect(sentMappings.map((m) => m.column)).toEqual(['title'])
+  })
+
+  it('keeps the stored value when the new one could not be serialized', async () => {
+    const calls = installFetch({ id: 'r1', updatedCount: 1 })
+    const result = (await handler(
+      {
+        tableName: 'teleport_pages',
+        filters: [{ field: 'id', operator: '=', value: 'p1' }],
+        columnMappings: { blocks: { __serializationError: true } },
+      },
+      {}
+    )) as Record<string, unknown>
+    expect(calls).toHaveLength(0)
+    expect(result.updatedCount).toBe(0)
+  })
+
   it('preserves an explicit null columnMapping (intentional clear ≠ undefined)', async () => {
     const calls = installFetch({ id: 'r1', updatedCount: 1 })
     await handler(

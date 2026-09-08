@@ -1,4 +1,15 @@
 import { NodeHandlerGenerator, handlerToString } from '../types'
+import {
+  COMMERCE_TRACKING_HELPER_SOURCE,
+  assertHandlerHasNoModuleRefs,
+} from '../analytics/commerce-tracking'
+
+// AMBIENT, not imported. A cross-module call compiles to
+// `(0, commerce_tracking_1.trackCommerceStep)(...)`, which survives
+// `.toString()` and throws ReferenceError in the browser — the runtime has no
+// module scope. Declaring the name emits nothing and leaves a bare identifier
+// that the appended helper source defines. See `commerce-tracking.ts`.
+declare function trackCommerceStep(step: { name: string; detail?: Record<string, unknown> }): void
 
 async function cart_add_item(config: any) {
   const productId = config.productId
@@ -79,6 +90,16 @@ async function cart_add_item(config: any) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
       }
+      // Reported AFTER the write succeeds, so the funnel counts carts that were
+      // really changed rather than clicks that were merely attempted.
+      trackCommerceStep({
+        name: 'add_to_cart',
+        detail: {
+          currency,
+          value: price * quantity,
+          items: [{ item_id: productId, item_name: name, price, quantity }],
+        },
+      })
       return {
         id: cart[existingIndex].id,
         productId,
@@ -110,6 +131,14 @@ async function cart_add_item(config: any) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
       }
+      trackCommerceStep({
+        name: 'add_to_cart',
+        detail: {
+          currency,
+          value: price * initialQty,
+          items: [{ item_id: productId, item_name: name, price, quantity: initialQty }],
+        },
+      })
       return { id: newItem.id, productId, quantity: initialQty }
     }
   } catch (err: unknown) {
@@ -120,6 +149,11 @@ export const cartAddItem: NodeHandlerGenerator = {
   nodeType: 'cart-add-item',
   executionEnv: 'client',
   generateHandler(): string {
-    return handlerToString(cart_add_item)
+    // The helper is concatenated rather than imported: the handler ships as a
+    // serialized function body with no module scope. See `commerce-tracking.ts`.
+    return assertHandlerHasNoModuleRefs(
+      handlerToString(cart_add_item) + '\n' + COMMERCE_TRACKING_HELPER_SOURCE,
+      'cart-add-item'
+    )
   },
 }

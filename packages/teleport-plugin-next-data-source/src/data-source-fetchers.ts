@@ -33,7 +33,7 @@ import {
 } from './fetchers'
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
-import type { EcommerceProductTransformOptions } from './transformations'
+import type { EntityTransformOptions } from './transformations'
 import { DataCache } from '@teleporthq/teleport-shared'
 import type { DataSourceServerCacheOptions } from './cache/types'
 
@@ -84,7 +84,7 @@ export const getDataSourceDependencies = (
 export function generateDataSourceFetcher(
   dataSource: UIDLDataSource,
   tableName: string,
-  transformOptions: EcommerceProductTransformOptions = {}
+  transformOptions: EntityTransformOptions = {}
 ): string {
   if (!dataSource || typeof dataSource !== 'object') {
     throw new Error('Invalid data source: data source must be a valid object')
@@ -261,7 +261,7 @@ export function generateDataSourceFetcherWithCore(
   dataSource: UIDLDataSource,
   tableName: string,
   isApiRoute: boolean = false,
-  transformOptions: EcommerceProductTransformOptions = {},
+  transformOptions: EntityTransformOptions = {},
   cacheOptions?: DataSourceServerCacheOptions
 ): string {
   const apiHandler = generateDataSourceFetcher(dataSource, tableName, transformOptions)

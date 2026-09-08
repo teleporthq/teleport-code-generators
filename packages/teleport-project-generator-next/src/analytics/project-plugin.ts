@@ -7,11 +7,44 @@ const ENV_URL_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_URL'
 const ENV_PUBLIC_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY'
 const TELEPORT_SECRETS_PREFIX = 'teleporthq.secrets.'
 
+/** Host both the gtag script and the Tag Manager container are loaded from. */
+const GOOGLE_TAG_HOST = 'googletagmanager.com'
+/** The array both of them push into, and the one the mirror writes to. */
+const DATA_LAYER_GLOBAL = 'dataLayer'
+
+/**
+ * True when the project already loads something that reads `window.dataLayer` —
+ * a Google Analytics tag or a Tag Manager container, injected as script assets
+ * by the GUI's project mapper from the merchant's own ids.
+ */
+function hasDataLayerConsumer(uidl: ProjectPluginStructure['uidl']): boolean {
+  const assets = uidl.globals?.assets ?? []
+  return assets.some((asset) => {
+    if (asset.type !== 'script') {
+      return false
+    }
+    const path = 'path' in asset && typeof asset.path === 'string' ? asset.path : ''
+    const content = 'content' in asset && typeof asset.content === 'string' ? asset.content : ''
+    return path.indexOf(GOOGLE_TAG_HOST) !== -1 || content.indexOf(DATA_LAYER_GLOBAL) !== -1
+  })
+}
+
 // Growth visitor analytics. When `uidl.analytics.enabled` is set (paid plan +
 // analytics on at publish time), the published project ships a tiny
 // self-contained first-party tracker — no npm dependency — wired to the
 // pages-router navigation events. The real env values are substituted at
 // deploy time by the platform (replaceSecretsFromEnvFile).
+//
+// ⛔ It also ships when the merchant configured GA4 or Tag Manager and left OUR
+// analytics off. The commerce funnel is fired from serialized workflow handlers
+// that can only reach a global, and `window.tpTrackCommerce` is published by
+// this component — so without it a store with a GTM container gets NO
+// add_to_cart, begin_checkout or purchase events at all, which is precisely the
+// "run GA4/Ads out of the box" the funnel exists for. Emitting it is inert for
+// our own beacons: `isTrackingPossible()` refuses to send without the analytics
+// URL and key, and those env placeholders are deliberately NOT written on this
+// branch — a project whose analytics is off must not have them resolved at
+// deploy and quietly start reporting.
 export class NextAnalyticsProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     return structure
@@ -20,7 +53,8 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
   async runAfter(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, files } = structure
 
-    if (!uidl.analytics?.enabled) {
+    const teleportAnalyticsEnabled = !!uidl.analytics?.enabled
+    if (!teleportAnalyticsEnabled && !hasDataLayerConsumer(uidl)) {
       return structure
     }
 
@@ -46,7 +80,9 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
       ],
     })
 
-    this.addEnvVariables(uidl)
+    if (teleportAnalyticsEnabled) {
+      this.addEnvVariables(uidl)
+    }
     injectSiblingIntoApp(structure, {
       componentName: 'AnalyticsTracker',
       importStatement: `import AnalyticsTracker from '../components/analytics/AnalyticsTracker';\n`,

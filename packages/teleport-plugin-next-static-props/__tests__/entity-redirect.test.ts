@@ -18,8 +18,9 @@ const RESOURCE_ID = 'fetch-blog-post'
 const makeStructure = (params: {
   redirect?: { destinationField: string; typeField?: string }
   skipI18n?: boolean
+  revalidate?: number
 }): ComponentStructure => {
-  const { redirect, skipI18n } = params
+  const { redirect, skipI18n, revalidate } = params
   return {
     uidl: {
       name: 'BlogPostDetails',
@@ -31,6 +32,7 @@ const makeStructure = (params: {
         initialPropsData: {
           exposeAs: { name: 'blogPost', valuePath: ['data', '0'] },
           resource: { id: RESOURCE_ID, params: {} },
+          ...(revalidate ? { cache: { revalidate } } : {}),
           ...(redirect ? { redirect } : {}),
         },
       },
@@ -71,6 +73,36 @@ describe('teleport-plugin-next-static-props: entity redirect', () => {
     // The 404 for a missing row must win over the redirect check.
     expect(code.indexOf('notFound')).toBeLessThan(code.indexOf('entityRedirectUrl'))
     expect(code.indexOf('entityRedirectUrl')).toBeLessThan(code.indexOf('props:'))
+  })
+
+  /*
+    Without `revalidate`, an ISR entry has NO expiry: Next.js caches the branch
+    it took and never runs getStaticProps for that path again. A page that
+    redirected once would redirect for ever — clearing `redirect_url` in the
+    admin would change the row and change nothing a visitor sees — and a row
+    that 404'd would stay 404 after being published. Every branch carries the
+    window, not just the one that renders.
+  */
+  it('gives the redirect and the notFound the same revalidate window as the props', async () => {
+    const code = await generateCode(
+      makeStructure({
+        redirect: { destinationField: 'redirectUrl', typeField: 'redirectType' },
+        revalidate: 60,
+      })
+    )
+
+    expect(code.match(/revalidate: 60/g)).toHaveLength(3)
+    const redirectAt = code.indexOf('if (entityRedirectUrl)')
+    const propsAt = code.indexOf('props:')
+    // The one between the redirect check and the props return is the redirect's.
+    expect(code.indexOf('revalidate: 60', redirectAt)).toBeLessThan(propsAt)
+  })
+
+  it('emits no revalidate anywhere when the page has no cache window', async () => {
+    const code = await generateCode(
+      makeStructure({ redirect: { destinationField: 'redirectUrl', typeField: 'redirectType' } })
+    )
+    expect(code).not.toContain('revalidate')
   })
 
   it('keeps the props return as the ONLY top-level ReturnStatement in the try block', async () => {

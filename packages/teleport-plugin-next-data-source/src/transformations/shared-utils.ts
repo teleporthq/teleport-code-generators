@@ -248,6 +248,15 @@ function resolveMediaUrl(value, assetMap) {
   return isResolvedMediaUrl(resolved) ? resolved : null
 }
 
+// Trims a per-row SEO URL cell (blog posts, custom pages); blank/non-string
+// values — including columns that don't exist yet on tables provisioned before
+// the feature — become null.
+function normalizeSeoUrlField(value) {
+  if (typeof value !== 'string') return null
+  var trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 function resolveAssetUrls(values, assetMap) {
   if (!Array.isArray(values)) return []
   return values

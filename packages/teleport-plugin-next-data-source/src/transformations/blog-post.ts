@@ -1,13 +1,25 @@
+import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { generateCategoryTaxonomyCode } from './category-taxonomy'
+
+/** What the blog-post transform bakes in at export time beyond the row itself. */
+export interface BlogPostTransformOptions {
+  /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
+  categories?: UIDLEcommerceCategory[]
+}
+
 /**
  * Generates JavaScript code for blog post data transformation.
  * Transforms raw snake_case database records into the camelCase shape
  * that UIDL components expect.
  */
-export const generateBlogPostTransformationCode = (): string => {
+export const generateBlogPostTransformationCode = (
+  options: BlogPostTransformOptions = {}
+): string => {
   return `
 // ============================================================
 // Blog Post Transformation
 // ============================================================
+${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -24,6 +36,20 @@ function buildBlogPost(record, options) {
   var content = resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
+
+  // Assigned category ids -> resolved {id,name,slug} objects for the post-details
+  // BREADCRUMBS (and anything else mapping over them). The taxonomy itself is not
+  // in the DB (categories are authored in the GUI and live only in
+  // blogSettings.categories); resolved against BLOG_CATEGORIES_BY_ID, baked in at
+  // export time. Unknown/stale ids are silently dropped. \`category\` above stays
+  // the denormalized PRIMARY name.
+  var categories = resolveAssignedCategories(
+    record.category_ids,
+    BLOG_CATEGORIES_BY_ID,
+    currentLang,
+    mainLang,
+    category
+  )
   var metaTitle = resolveI18nField(record, 'meta_title', 'metaTitle', currentLang, mainLang) || null
   var metaDescription = resolveI18nField(record, 'meta_description', 'metaDescription', currentLang, mainLang) || null
   var featuredImageAlt = resolveI18nField(record, 'featured_image_alt', 'featuredImageAlt', currentLang, mainLang) || null
@@ -145,6 +171,7 @@ function buildBlogPost(record, options) {
     excerpt: excerpt,
     status: status,
     category: category,
+    categories: categories,
     tags: tags,
     relatedPostIds: relatedPostIds,
     relatedPosts: relatedPosts,
@@ -177,14 +204,6 @@ function buildBlogPost(record, options) {
 function transformBlogPosts(records, options) {
   if (!Array.isArray(records)) return []
   return records.map(function(record) { return buildBlogPost(record, options) })
-}
-
-// Trims a per-post SEO URL cell; blank/non-string values (including columns
-// that don't exist yet on tables provisioned before the feature) become null.
-function normalizeSeoUrlField(value) {
-  if (typeof value !== 'string') return null
-  var trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
 }
 
 // Batched fetch of the post rows a set of posts reference as "related", keyed by

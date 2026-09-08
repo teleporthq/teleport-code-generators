@@ -286,6 +286,7 @@ export interface ProjectUIDL {
   globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>
   invoiceSettings?: UIDLInvoiceSettings
   ecommerceSettings?: UIDLEcommerceSettings
+  blogSettings?: UIDLBlogSettings
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
 }
@@ -530,6 +531,22 @@ export interface UIDLGlobalProjectValues {
   settings: {
     title: string
     language: string
+    /**
+     * Writing direction for the project's DEFAULT language, when it is not
+     * internationalized. Next.js sets `lang` on `<html>` from the route locale
+     * for an i18n project but never sets `dir`, so both cases are answered here
+     * and in `rtlLocales` below.
+     */
+    dir?: 'ltr' | 'rtl'
+    /**
+     * The RIGHT-TO-LEFT subset of an internationalized project's locales.
+     *
+     * Absent or empty means the project has none, and `<html>` is then emitted
+     * exactly as before — an LTR project's output is byte-identical. The list
+     * comes from the editor rather than being derived here so the language
+     * table lives in one place.
+     */
+    rtlLocales?: string[]
   }
   customCode?: {
     head?: string
@@ -759,13 +776,35 @@ export type UIDLStructuredDataNode =
  * - `itemCondition`: maps `<entity>.<column>` (new/refurbished/used) to the
  *   matching schema.org condition URL, defaulting to NewCondition.
  * - `concatUrl`: `` `${urlPrefix}${<entity>.<column>}` `` (e.g. product URL).
+ * - `aggregateRating`: the whole `AggregateRating` object when
+ *   `<entity>.<column>` (the review COUNT) is above zero, and `undefined`
+ *   otherwise — which `JSON.stringify` then drops. A rating block is only valid
+ *   schema.org when it has at least one review, so "no reviews" has to remove
+ *   the property rather than emit it empty or zeroed.
+ * - `namedEntity`: `{ '@type': <schemaType>, name: <entity>.<column> }`, or
+ *   `undefined` when the field is empty. Same reason as above: a `Brand` or a
+ *   `Person` with no `name` is a missing-required-field error on every page
+ *   that emits it, so an absent value has to remove the whole object.
+ * - `reviewList`: `<entity>.<column>` (an array of `{ author, rating, body,
+ *   datePublished }`) mapped into schema.org `Review` objects, or `undefined`
+ *   when the array is missing or empty.
  */
 export interface UIDLStructuredDataComputed {
   type: 'computed'
-  kind: 'availability' | 'itemCondition' | 'concatUrl'
+  kind:
+    | 'availability'
+    | 'itemCondition'
+    | 'concatUrl'
+    | 'aggregateRating'
+    | 'namedEntity'
+    | 'reviewList'
   refPath: string[]
   column: string
   urlPrefix?: string
+  /** `aggregateRating` only: the field holding the average score. */
+  ratingValueColumn?: string
+  /** `namedEntity` only: the schema.org type of the emitted object. */
+  schemaType?: string
 }
 
 export type PropDefaultValueTypes =
@@ -896,7 +935,16 @@ export interface UIDLGlobalReference {
   type: 'dynamic'
   content: {
     referenceType: 'global'
-    id: 'locale' | 'locales' | 'currentUser' | 'userIsLoggedIn' | 'ecommerce' | 'cart'
+    id:
+      | 'locale'
+      | 'locales'
+      | 'currentUser'
+      | 'userIsLoggedIn'
+      | 'ecommerce'
+      // The blog's baked category taxonomy, resolved through the generated
+      // `@/blog-context` module's `useBlogCategories()` hook.
+      | 'blogCategories'
+      | 'cart'
     refPath?: string[]
   }
 }
@@ -1868,6 +1916,20 @@ export interface UIDLEcommerceSettings {
   // reads as "off" and behaves exactly as it did.
   vouchersEnabled?: boolean
   // Nested category tree for the storefront category filter (see above).
+  categories?: UIDLEcommerceCategory[]
+}
+
+/**
+ * Everything the BLOG needs baked into the generated project that is not a
+ * database row. Today that is only the post-category taxonomy: it lives in the
+ * project document, never in a table, so the generated blog listing's category
+ * filter and the post-details breadcrumbs would have nothing to read without it.
+ *
+ * Present only for a project that activated the blog. The nodes are the SAME
+ * shape as `UIDLEcommerceCategory` (one taxonomy model, one set of helpers), and
+ * the tree is exposed at runtime as the `Blog Categories` global.
+ */
+export interface UIDLBlogSettings {
   categories?: UIDLEcommerceCategory[]
 }
 

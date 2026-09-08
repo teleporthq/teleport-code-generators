@@ -13,7 +13,7 @@ import {
   UIDLStateModifierEvent,
   UIDLStaticValue,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { FontPreconnect, UIDLUtils } from '@teleporthq/teleport-shared'
 
 // tslint:disable-next-line no-any
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
@@ -189,6 +189,23 @@ export const appendAssetsAST = (
   headNode: types.JSXElement,
   bodyNode: types.JSXElement
 ) => {
+  // Preconnect hints first: they only help if the browser sees them BEFORE the
+  // stylesheet link that triggers the two-hop font fetch. See
+  // `resolveFontPreconnectHints` for why the second one carries `crossorigin`.
+  FontPreconnect.resolveFontPreconnectHints(
+    assets.map((asset) =>
+      'path' in asset ? UIDLUtils.prefixAssetsPath(asset.path, options?.assets) : undefined
+    )
+  ).forEach((hint) => {
+    const preconnectTag = createJSXTag('link')
+    addAttributeToJSXTag(preconnectTag, 'rel', 'preconnect')
+    addAttributeToJSXTag(preconnectTag, 'href', hint.href)
+    if (hint.crossorigin) {
+      addAttributeToJSXTag(preconnectTag, 'crossOrigin', 'anonymous')
+    }
+    addChildJSXTag(headNode, preconnectTag)
+  })
+
   assets.forEach((asset) => {
     let assetPath
     if ('path' in asset) {

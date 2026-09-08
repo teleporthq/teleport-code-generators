@@ -702,7 +702,21 @@ async function loadOrderItems(orderId) {
   try {
     const result = await db.query(ORDER_ITEMS_QUERY, [orderId])
     const rows = (result && result.rows) || []
+    // \`p.image_url\` / \`v.image_url\` are stored verbatim, so a merchant who
+    // reused a project asset gets its ID back here. An email has no origin to
+    // resolve a bare id against — it would render as a broken thumbnail in
+    // every inbox — so it becomes an absolute URL first, or nothing at all.
+    // A failure is not worth losing the notification over: the lines still go
+    // out, without pictures.
+    var imageValues = rows.map(function (row) { return row.image_url })
+    var assetUrlMap = {}
+    try {
+      assetUrlMap = await assetUrls.loadAssetUrlMapFromDb(db, imageValues)
+    } catch (assetError) {
+      assetUrlMap = {}
+    }
     return rows.map(function (row) {
+      const imageUrl = assetUrls.resolveMediaUrl(row.image_url, assetUrlMap) || ''
       const qty = Number(row.quantity) || 1
       const unit = Number(row.unit_price) || 0
       const total = row.total_price != null ? Number(row.total_price) : unit * qty
@@ -713,12 +727,12 @@ async function loadOrderItems(orderId) {
         quantity: qty,
         unitPrice: unit,
         totalPrice: total,
-        image: row.image_url || '',
+        image: imageUrl,
         product_name: label || 'Item',
         unit_price: unit.toFixed(2),
         line_total: total.toFixed(2),
         currency: row.currency || '',
-        image_url: row.image_url || '',
+        image_url: imageUrl,
       }
     })
   } catch (err) {
@@ -738,7 +752,12 @@ async function loadOrderItems() {
   // utils/ecommerce/email-sender module, which encapsulates the
   // provider switch + logging + error normalisation.
   return `var sender = require('../../../utils/ecommerce/email-sender')
-${storefrontTaxHelper}
+${
+  dbImport
+    ? `var assetUrls = require('../../../utils/ecommerce/asset-urls')
+`
+    : ''
+}${storefrontTaxHelper}
 
 // Re-prices one payload's item rows for display. Returns the SAME array when the
 // store adds no tax, so an untaxed project renders byte-identical output.

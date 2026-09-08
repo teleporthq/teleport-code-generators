@@ -8,7 +8,7 @@ import {
   getTransformationCode,
   getTransformExpression,
   getTransformWrapperCode,
-  type EcommerceProductTransformOptions,
+  type EntityTransformOptions,
 } from '../transformations'
 import {
   generateSortFallbackFieldHelper,
@@ -57,7 +57,7 @@ export const validateTeleportConfig = (
 export const generateTeleportFetcher = (
   config: Record<string, unknown>,
   tableName: string,
-  transformOptions: EcommerceProductTransformOptions = {}
+  transformOptions: EntityTransformOptions = {}
 ): string => {
   const dbConfig = config as TeleportDBConfig
   const schema = dbConfig.options?.schema
