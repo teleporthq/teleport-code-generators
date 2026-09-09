@@ -3,6 +3,7 @@ import {
   generateDateFormatterCode,
   generateSafeJSONParseCode,
   generateSearchEscapeHelpersCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateSupabaseConfig = (
@@ -127,6 +128,8 @@ const getClient = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateSearchEscapeHelpersCode()}
 
 // Helper function to process filter values
@@ -144,12 +147,12 @@ const applyFilters = (queryRef, filters) => {
   const parsedFilters = safeJSONParse(filters)
   
   if (Array.isArray(parsedFilters)) {
-    parsedFilters.forEach((filter) => {
-      if (!filter.source || filter.destination === undefined) return
-      
-      const field = filter.source
-      const value = filter.destination
-      const operand = filter.operand || '='
+    const filterTree = normalizeFilterTree(parsedFilters)
+    
+    const applyCondition = (condition) => {
+      const field = condition.source
+      const value = condition.destination
+      const operand = condition.operand
       
       if (Array.isArray(value)) {
         const processedValues = value.map(processFilterValue)
@@ -158,43 +161,103 @@ const applyFilters = (queryRef, filters) => {
         } else {
           queryRef = queryRef.in(field, processedValues)
         }
-      } else {
-        const processedValue = processFilterValue(value)
-        
-        // Handle null values
-        if (processedValue === null) {
-          if (operand === '=') {
-            queryRef = queryRef.is(field, null)
-          } else if (operand === '!=') {
-            queryRef = queryRef.not(field, 'is', null)
-          }
-        } else {
-          // Map operand to Supabase methods
-          switch (operand) {
-            case '=':
-              queryRef = queryRef.eq(field, processedValue)
-              break
-            case '!=':
-              queryRef = queryRef.neq(field, processedValue)
-              break
-            case '>':
-              queryRef = queryRef.gt(field, processedValue)
-              break
-            case '>=':
-              queryRef = queryRef.gte(field, processedValue)
-              break
-            case '<':
-              queryRef = queryRef.lt(field, processedValue)
-              break
-            case '<=':
-              queryRef = queryRef.lte(field, processedValue)
-              break
-            default:
-              queryRef = queryRef.eq(field, processedValue)
-          }
-        }
+        return
       }
-    })
+      
+      const processedValue = processFilterValue(value)
+      
+      // Handle null values
+      if (processedValue === null) {
+        if (operand === '=') {
+          queryRef = queryRef.is(field, null)
+        } else if (operand === '!=') {
+          queryRef = queryRef.not(field, 'is', null)
+        }
+        return
+      }
+      
+      // Map operand to Supabase methods
+      switch (operand) {
+        case '!=':
+          queryRef = queryRef.neq(field, processedValue)
+          break
+        case '>':
+          queryRef = queryRef.gt(field, processedValue)
+          break
+        case '>=':
+          queryRef = queryRef.gte(field, processedValue)
+          break
+        case '<':
+          queryRef = queryRef.lt(field, processedValue)
+          break
+        case '<=':
+          queryRef = queryRef.lte(field, processedValue)
+          break
+        default:
+          queryRef = queryRef.eq(field, processedValue)
+      }
+    }
+    
+    // An OR group cannot be expressed by chaining (chained filters are ANDed),
+    // so it is emitted as one PostgREST or=(...) expression instead.
+    const POSTGREST_OPERANDS = { '=': 'eq', '!=': 'neq', '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte' }
+    
+    const toExprValue = (value) => {
+      if (value === null || value === undefined) return 'null'
+      const asString = String(value)
+      return /[,.:()"\\s]/.test(asString) ? '"' + asString.replace(/"/g, '\\\\"') + '"' : asString
+    }
+    
+    const conditionToExpr = (condition) => {
+      const field = condition.source
+      const value = condition.destination
+      const operand = condition.operand
+      
+      if (Array.isArray(value)) {
+        const list = '(' + value.map((entry) => toExprValue(processFilterValue(entry))).join(',') + ')'
+        return operand === '!=' ? field + '.not.in.' + list : field + '.in.' + list
+      }
+      
+      const processedValue = processFilterValue(value)
+      if (processedValue === null) {
+        return operand === '!=' ? field + '.not.is.null' : field + '.is.null'
+      }
+      
+      return field + '.' + (POSTGREST_OPERANDS[operand] || 'eq') + '.' + toExprValue(processedValue)
+    }
+    
+    const nodeToExpr = (node) => {
+      if (node.type === 'group') {
+        const parts = node.children.map(nodeToExpr).filter(Boolean)
+        if (parts.length === 0) return null
+        if (parts.length === 1) return parts[0]
+        return (node.operator === 'or' ? 'or' : 'and') + '(' + parts.join(',') + ')'
+      }
+      return conditionToExpr(node)
+    }
+    
+    const applyNode = (node) => {
+      if (node.type !== 'group') {
+        applyCondition(node)
+        return
+      }
+      if (node.operator === 'and') {
+        node.children.forEach(applyNode)
+        return
+      }
+      if (node.children.length === 1) {
+        applyNode(node.children[0])
+        return
+      }
+      const parts = node.children.map(nodeToExpr).filter(Boolean)
+      if (parts.length > 0) {
+        queryRef = queryRef.or(parts.join(','))
+      }
+    }
+    
+    if (filterTree) {
+      applyNode(filterTree)
+    }
   } else {
     // Old format: object with key-value pairs (backward compatibility)
     Object.entries(parsedFilters).forEach(([key, value]) => {

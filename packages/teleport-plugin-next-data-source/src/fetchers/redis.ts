@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateRedisConfig = (
@@ -69,6 +70,8 @@ export const generateRedisFetcher = (config: Record<string, unknown>): string =>
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -88,14 +91,12 @@ export default async function handler(req, res) {
     
     // Extract pattern from filters if available (new format)
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
-      if (Array.isArray(parsedFilters)) {
-        const patternFilter = parsedFilters.find(f => f.source === 'pattern')
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
+      if (filterTree) {
+        const patternFilter = flattenFilterConditions(filterTree).find((f) => f.source === 'pattern')
         if (patternFilter) {
           pattern = patternFilter.destination || pattern
         }
-      } else {
-        pattern = parsedFilters.pattern || pattern
       }
     }
     

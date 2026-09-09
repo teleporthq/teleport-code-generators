@@ -104,6 +104,81 @@ const buildNonEmptyFilterDestinationPredicate = (): types.ArrowFunctionExpressio
   )
 }
 
+// Same idea one level up: a filter entry survives if it is a group that still
+// has children, or a condition whose destination resolved to something real.
+const buildSurvivingFilterNodePredicate = (): types.ArrowFunctionExpression => {
+  const f = types.identifier('__f')
+  const emptyDestination = buildNonEmptyFilterDestinationPredicate().body as types.Expression
+  return types.arrowFunctionExpression(
+    [f],
+    types.conditionalExpression(
+      types.binaryExpression(
+        '===',
+        types.memberExpression(f, types.identifier('type')),
+        types.stringLiteral('group')
+      ),
+      types.binaryExpression(
+        '>',
+        types.memberExpression(
+          types.memberExpression(f, types.identifier('children')),
+          types.identifier('length')
+        ),
+        types.numericLiteral(0)
+      ),
+      emptyDestination
+    )
+  )
+}
+
+// The inspector authors filters as a TREE — a root `and` group whose children
+// are conditions or nested `or` groups. Emitting the tree (rather than mapping
+// each entry as if it were a condition, which turned every group into an empty
+// `{ source: '', destination: '', operand: '' }` row that the predicate then
+// dropped) is what lets the data-source runtime honour the filter at all.
+const buildFilterNodeExpression = (
+  entry: { type?: string; operator?: string; children?: unknown[] } & {
+    source?: string
+    destination?: unknown
+    operand?: string
+  },
+  dynamicReferencePrefixMap: Record<string, string>
+): types.Expression => {
+  if (entry && entry.type === 'group' && Array.isArray(entry.children)) {
+    const childExpressions = entry.children.map((child) =>
+      buildFilterNodeExpression(child as never, dynamicReferencePrefixMap)
+    )
+    return types.objectExpression([
+      types.objectProperty(types.identifier('type'), types.stringLiteral('group')),
+      types.objectProperty(
+        types.identifier('operator'),
+        types.stringLiteral(entry.operator === 'or' ? 'or' : 'and')
+      ),
+      types.objectProperty(
+        types.identifier('children'),
+        types.callExpression(
+          types.memberExpression(
+            types.arrayExpression(childExpressions),
+            types.identifier('filter')
+          ),
+          [buildSurvivingFilterNodePredicate()]
+        )
+      ),
+    ])
+  }
+
+  return types.objectExpression([
+    types.objectProperty(types.identifier('type'), types.stringLiteral('condition')),
+    types.objectProperty(types.identifier('source'), types.stringLiteral(entry?.source || '')),
+    types.objectProperty(
+      types.identifier('destination'),
+      ASTUtils.convertFilterDestinationToExpression(entry?.destination, {
+        dynamicReferencePrefixMap,
+      })
+    ),
+    types.objectProperty(types.identifier('operand'), types.stringLiteral(entry?.operand || '')),
+  ])
+}
+
 // Global references in the UIDL come in two shapes:
 // Shape A: { id: "ecommerce", refPath: ["Cart", "total"] }
 // Shape B: { id: undefined, refPath: ["E-commerce", "Settings", "Delivery", "..."] }
@@ -1822,24 +1897,8 @@ const generateDataSourceNode: NodeToJSX<
         if (property.type === 'static') {
           // Special handling for filters array - convert dynamic destinations
           if (attrKey === 'filters' && Array.isArray(property.content)) {
-            const filterEntries = property.content.map(
-              (filter: { source?: string; destination?: unknown; operand?: string }) =>
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('source'),
-                    types.stringLiteral(filter.source || '')
-                  ),
-                  types.objectProperty(
-                    types.identifier('destination'),
-                    ASTUtils.convertFilterDestinationToExpression(filter.destination, {
-                      dynamicReferencePrefixMap: options.dynamicReferencePrefixMap,
-                    })
-                  ),
-                  types.objectProperty(
-                    types.identifier('operand'),
-                    types.stringLiteral(filter.operand || '')
-                  ),
-                ])
+            const filterEntries = property.content.map((filter: never) =>
+              buildFilterNodeExpression(filter, options.dynamicReferencePrefixMap)
             )
             // Drop conditions whose destination resolves to an empty value at
             // runtime (empty string / null / undefined, or an empty
@@ -1848,15 +1907,23 @@ const generateDataSourceNode: NodeToJSX<
             // path's `buildNonEmptyDestinationPredicate` (kept inline here
             // because teleport-plugin-common must not depend on the
             // next-data-source plugin).
+            // JSON.stringify because these params are handed to
+            // `new URLSearchParams(params)`, which would otherwise stringify the
+            // array to '[object Object]' and lose every filter in transit.
             acc.push(
               types.objectProperty(
                 types.stringLiteral(attrKey),
                 types.callExpression(
-                  types.memberExpression(
-                    types.arrayExpression(filterEntries),
-                    types.identifier('filter')
-                  ),
-                  [buildNonEmptyFilterDestinationPredicate()]
+                  types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                  [
+                    types.callExpression(
+                      types.memberExpression(
+                        types.arrayExpression(filterEntries),
+                        types.identifier('filter')
+                      ),
+                      [buildSurvivingFilterNodePredicate()]
+                    ),
+                  ]
                 )
               )
             )
