@@ -1,4 +1,8 @@
-import { generateSortFilterHelperCode, generateSafeJSONParseCode } from '../utils'
+import {
+  generateSortFilterHelperCode,
+  generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
+} from '../utils'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateGoogleSheetsConfig = (
@@ -52,6 +56,8 @@ export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): st
 ${generateSafeJSONParseCode()}
 
 ${generateSortFilterHelperCode()}
+
+${generateFilterTreeHelpersCode()}
 
 ${generateHeaderDetectionCode()}
 
@@ -280,18 +286,16 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        filteredData = filteredData.filter((item) => {
-          return parsedFilters.every((filter) => {
-            if (!filter.source || filter.destination === undefined) return true
-            
+      if (filterTree) {
+        filteredData = filteredData.filter((item) =>
+          evaluateFilterTree(filterTree, (condition) => {
             // Map label to column ID
-            const field = labelToIdMap[filter.source] || filter.source
+            const field = labelToIdMap[condition.source] || condition.source
             const value = getNestedValue(item, field)
-            const target = filter.destination
-            const operand = filter.operand || '='
+            const target = condition.destination
+            const operand = condition.operand
             
             if (Array.isArray(target)) {
               if (operand === '!=') {
@@ -302,19 +306,7 @@ export default async function handler(req, res) {
             
             return compareValues(value, target, operand)
           })
-        })
-      } else {
-        filteredData = filteredData.filter((item) => {
-          return Object.entries(parsedFilters).every(([key, value]) => {
-            // Map label to column ID
-            const field = labelToIdMap[key] || key
-            const itemValue = getNestedValue(item, field)
-            if (Array.isArray(value)) {
-              return value.includes(itemValue)
-            }
-            return compareValues(itemValue, value, '=')
-          })
-        })
+        )
       }
     }
     

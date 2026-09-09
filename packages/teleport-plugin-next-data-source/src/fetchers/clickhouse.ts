@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateClickHouseConfig = (
@@ -59,6 +60,8 @@ const getClient = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -106,48 +109,35 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        parsedFilters.forEach((filter) => {
-          if (!filter.source || filter.destination === undefined) return
-          
-          const field = sanitizeIdentifier(filter.source)
-          const value = filter.destination
-          const operand = filter.operand || '='
+      if (filterTree) {
+        const buildCondition = (condition) => {
+          const field = sanitizeIdentifier(condition.source)
+          const value = condition.destination
+          const operand = condition.operand
           
           if (Array.isArray(value)) {
-            if (value.length === 0) return
+            if (value.length === 0) return null
             const formattedValues = value.map(formatClickHouseValue).join(', ')
-            if (operand === '!=') {
-              conditions.push(\`\${field} NOT IN (\${formattedValues})\`)
-            } else {
-              conditions.push(\`\${field} IN (\${formattedValues})\`)
-            }
-          } else {
-            if (value === null) {
-              if (operand === '=') {
-                conditions.push(\`\${field} IS NULL\`)
-              } else if (operand === '!=') {
-                conditions.push(\`\${field} IS NOT NULL\`)
-              }
-            } else {
-              const validOps = ['=', '!=', '>', '<', '>=', '<=']
-              const sqlOperator = validOps.includes(operand) ? operand : '='
-              conditions.push(\`\${field} \${sqlOperator} \${formatClickHouseValue(value)}\`)
-            }
+            return operand === '!='
+              ? \`\${field} NOT IN (\${formattedValues})\`
+              : \`\${field} IN (\${formattedValues})\`
           }
-        })
-      } else {
-        Object.entries(parsedFilters).forEach(([key, value]) => {
-          const field = sanitizeIdentifier(key)
-          if (Array.isArray(value)) {
-            const formattedValues = value.map(formatClickHouseValue).join(', ')
-            conditions.push(\`\${field} IN (\${formattedValues})\`)
-          } else {
-            conditions.push(\`\${field} = \${formatClickHouseValue(value)}\`)
+          
+          if (value === null) {
+            if (operand === '=') return \`\${field} IS NULL\`
+            if (operand === '!=') return \`\${field} IS NOT NULL\`
+            return null
           }
-        })
+          
+          const validOps = ['=', '!=', '>', '<', '>=', '<=']
+          const sqlOperator = validOps.includes(operand) ? operand : '='
+          return \`\${field} \${sqlOperator} \${formatClickHouseValue(value)}\`
+        }
+        
+        const clause = buildFilterTreeClause(filterTree, buildCondition)
+        if (clause) conditions.push(clause)
       }
     }
     

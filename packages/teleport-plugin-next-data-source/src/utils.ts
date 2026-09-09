@@ -596,6 +596,146 @@ const dateReplacer = (key, value) => {
 }`
 }
 
+/**
+ * Every leaf condition of a filters array, unwrapping any `{ type: 'group' }`
+ * envelopes the inspector wrapped them in. Generator-side checks that ask
+ * "does any destination reference state / a route param?" must look through
+ * groups — asking `entry.destination` of a group silently answers "no", which
+ * is how a dynamic filter ends up baked into initialData at build time.
+ */
+export const collectFilterLeafConditions = (entries: unknown): unknown[] => {
+  if (!Array.isArray(entries)) {
+    return []
+  }
+  const leaves: unknown[] = []
+  const walk = (entry: unknown): void => {
+    if (!entry || typeof entry !== 'object') {
+      return
+    }
+    const node = entry as { type?: string; children?: unknown[] }
+    if (node.type === 'group') {
+      ;(node.children || []).forEach(walk)
+      return
+    }
+    leaves.push(entry)
+  }
+  entries.forEach(walk)
+  return leaves
+}
+
+/**
+ * Rebuilds a filters array keeping its group structure, dropping leaf
+ * conditions that `keepCondition` rejects and any group left empty by that.
+ * Used so the SSG emit can discard unresolvable dynamic destinations without
+ * flattening an `or` group into ANDs on the way.
+ */
+export const pruneFilterTree = (
+  entries: unknown[],
+  keepCondition: (condition: unknown) => boolean
+): unknown[] => {
+  const prune = (entry: unknown): unknown | null => {
+    if (!entry || typeof entry !== 'object') {
+      return null
+    }
+    const node = entry as { type?: string; children?: unknown[] }
+    if (node.type === 'group') {
+      const children = (node.children || []).map(prune).filter(Boolean)
+      if (children.length === 0) {
+        return null
+      }
+      return { ...node, children }
+    }
+    return keepCondition(entry) ? entry : null
+  }
+  return entries.map(prune).filter(Boolean) as unknown[]
+}
+
+/**
+ * Runtime helpers for the filter TREE the GUI authors.
+ *
+ * The inspector emits filters as a tree — a root `{ type: 'group', operator,
+ * children }` whose children are `{ type: 'condition', source, destination,
+ * operand }` leaves or further groups (an `or` group nested inside the root
+ * `and` is how "A and (B or C)" is expressed). Older projects, and params built
+ * by hand, still send a flat array of bare conditions or a plain `{ key: value }`
+ * map.
+ *
+ * Every fetcher used to hand-roll `parsedFilters.forEach(f => { if (!f.source)
+ * return ... })`, which silently DROPPED any group — a group has no `.source`,
+ * so the whole filter became a no-op and the page rendered unfiltered rows.
+ * These helpers exist so no fetcher has to know the shape: `normalizeFilterTree`
+ * turns all three input forms into one tree, and the walkers below consume it.
+ */
+export const generateFilterTreeHelpersCode = (): string => {
+  return `const normalizeFilterTree = (parsed) => {
+  if (parsed === null || parsed === undefined) return null
+
+  const toNode = (entry) => {
+    if (!entry || typeof entry !== 'object') return null
+    if (entry.type === 'group') {
+      const children = Array.isArray(entry.children)
+        ? entry.children.map(toNode).filter(Boolean)
+        : []
+      if (children.length === 0) return null
+      return { type: 'group', operator: entry.operator === 'or' ? 'or' : 'and', children }
+    }
+    if (!entry.source || entry.destination === undefined) return null
+    return {
+      type: 'condition',
+      source: entry.source,
+      destination: entry.destination,
+      operand: entry.operand || '=',
+    }
+  }
+
+  const children = Array.isArray(parsed)
+    ? parsed.map(toNode).filter(Boolean)
+    : Object.entries(parsed).map(([source, destination]) =>
+        toNode({ source, destination, operand: '=' })
+      ).filter(Boolean)
+
+  if (children.length === 0) return null
+  // A single root group is already the tree; wrapping it in another and-group
+  // would only add a redundant level.
+  if (children.length === 1 && children[0].type === 'group') return children[0]
+  return { type: 'group', operator: 'and', children }
+}
+
+const evaluateFilterTree = (node, testCondition) => {
+  if (!node) return true
+  if (node.type === 'group') {
+    if (node.children.length === 0) return true
+    return node.operator === 'or'
+      ? node.children.some((child) => evaluateFilterTree(child, testCondition))
+      : node.children.every((child) => evaluateFilterTree(child, testCondition))
+  }
+  return testCondition(node)
+}
+
+const buildFilterTreeClause = (node, buildCondition) => {
+  if (!node) return null
+  if (node.type === 'group') {
+    const parts = []
+    for (const child of node.children) {
+      const clause = buildFilterTreeClause(child, buildCondition)
+      if (clause) parts.push(clause)
+    }
+    if (parts.length === 0) return null
+    if (parts.length === 1) return parts[0]
+    return '(' + parts.join(node.operator === 'or' ? ' OR ' : ' AND ') + ')'
+  }
+  return buildCondition(node)
+}
+
+const flattenFilterConditions = (node) => {
+  if (!node) return []
+  if (node.type === 'group') {
+    return node.children.reduce((acc, child) => acc.concat(flattenFilterConditions(child)), [])
+  }
+  return [node]
+}`
+}
+
 export const generateSortFilterHelperCode = (): string => {
   return `function getNestedValue(obj, path) {
   if (!obj || typeof obj !== 'object') return undefined
@@ -801,13 +941,14 @@ export const hasUnresolvableDynamicParams = (
     }
 
     if (param.type === 'static' && Array.isArray(param.content)) {
-      const hasDynamicDestinations = param.content.some(
+      const leafConditions = collectFilterLeafConditions(param.content)
+      const hasDynamicDestinations = leafConditions.some(
         (item: any) =>
           item && typeof item === 'object' && ASTUtils.isUIDLDynamicReference(item?.destination)
       )
 
       if (hasDynamicDestinations && dynamicRouteAttr) {
-        const allResolvable = param.content.every((item: any) => {
+        const allResolvable = leafConditions.every((item: any) => {
           if (!item || typeof item !== 'object') {
             return true
           }
@@ -1165,9 +1306,9 @@ export const extractDataSourceIntoGetStaticProps = (
     // tslint:disable-next-line:no-any
     const resourceParamsForFilters = (node.content as any).resource?.params || {}
     const nodeFilters = resourceParamsForFilters.filters?.content || []
-    const hasDynamicFilterDestinations =
-      Array.isArray(nodeFilters) &&
-      nodeFilters.some((f: any) => ASTUtils.isUIDLDynamicReference(f?.destination))
+    const hasDynamicFilterDestinations = collectFilterLeafConditions(nodeFilters).some((f: any) =>
+      ASTUtils.isUIDLDynamicReference(f?.destination)
+    )
 
     // Update all target JSX nodes with initialData (only those that don't already have it)
     for (const jsxNode of nodesToUpdate) {
@@ -1291,9 +1432,12 @@ export const extractDataSourceIntoGetStaticProps = (
           if (key === 'sorts' || key === 'filters' || key === 'queryColumns') {
             let itemsToProcess = validItems
             if (key === 'filters') {
-              // Keep filter items that are either static or route-resolvable (via dynamicRouteAttr)
-              // Filter out items with unresolvable dynamic destinations
-              itemsToProcess = validItems.filter((item: any) => {
+              // Keep filter conditions that are either static or route-resolvable
+              // (via dynamicRouteAttr) and drop the ones with unresolvable dynamic
+              // destinations. Pruned through the tree so a condition nested in a
+              // group is judged on its own destination, and an `or` group keeps
+              // its shape on the way to the data source.
+              itemsToProcess = pruneFilterTree(validItems, (item: any) => {
                 if (!ASTUtils.isUIDLDynamicReference(item?.destination)) {
                   return true
                 }
@@ -1310,36 +1454,49 @@ export const extractDataSourceIntoGetStaticProps = (
             const hasRouteResolvableFilters =
               key === 'filters' &&
               dynamicRouteAttr &&
-              itemsToProcess.some(
+              collectFilterLeafConditions(itemsToProcess).some(
                 (item: any) =>
                   item &&
                   typeof item === 'object' &&
                   ASTUtils.isUIDLDynamicReference(item?.destination)
               )
 
-            const arrayExpr = types.arrayExpression(
-              itemsToProcess.map((item: any) => {
-                if (typeof item === 'string') {
-                  return types.stringLiteral(item)
-                }
-                if (typeof item === 'number') {
-                  return types.numericLiteral(item)
-                }
-                if (typeof item === 'boolean') {
-                  return types.booleanLiteral(item)
-                }
-                if (typeof item === 'object' && item !== null) {
-                  if (
-                    hasRouteResolvableFilters &&
-                    ASTUtils.isUIDLDynamicReference(item?.destination)
-                  ) {
-                    return buildFilterObjectAST(item, dynamicRouteAttr)
-                  }
-                  return ASTUtils.objectToObjectExpression(item)
-                }
+            // Recurses through groups so a route-resolvable destination nested
+            // inside one still gets its `context.params.*` AST instead of being
+            // emitted as a raw UIDL dynamic-reference object.
+            const buildFilterEntryAST = (item: any): types.Expression => {
+              if (typeof item === 'string') {
+                return types.stringLiteral(item)
+              }
+              if (typeof item === 'number') {
+                return types.numericLiteral(item)
+              }
+              if (typeof item === 'boolean') {
+                return types.booleanLiteral(item)
+              }
+              if (typeof item !== 'object' || item === null) {
                 return types.nullLiteral()
-              })
-            )
+              }
+              if (item.type === 'group' && Array.isArray(item.children)) {
+                return types.objectExpression([
+                  types.objectProperty(types.identifier('type'), types.stringLiteral('group')),
+                  types.objectProperty(
+                    types.identifier('operator'),
+                    types.stringLiteral(item.operator === 'or' ? 'or' : 'and')
+                  ),
+                  types.objectProperty(
+                    types.identifier('children'),
+                    types.arrayExpression(item.children.map(buildFilterEntryAST))
+                  ),
+                ])
+              }
+              if (hasRouteResolvableFilters && ASTUtils.isUIDLDynamicReference(item?.destination)) {
+                return buildFilterObjectAST(item, dynamicRouteAttr)
+              }
+              return ASTUtils.objectToObjectExpression(item)
+            }
+
+            const arrayExpr = types.arrayExpression(itemsToProcess.map(buildFilterEntryAST))
             // Wrap in JSON.stringify()
             astValue = types.callExpression(
               types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),

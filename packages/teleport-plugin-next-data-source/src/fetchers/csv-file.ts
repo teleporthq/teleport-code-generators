@@ -2,6 +2,7 @@ import {
   generateDateFormatterCode,
   generateSortFilterHelperCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
@@ -86,17 +87,15 @@ const generateHandlerBody = (): string => {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        filteredData = filteredData.filter((item) => {
-          return parsedFilters.every((filter) => {
-            if (!filter.source || filter.destination === undefined) return true
-            
-            const field = labelToIdMap[filter.source] || filter.source
+      if (filterTree) {
+        filteredData = filteredData.filter((item) =>
+          evaluateFilterTree(filterTree, (condition) => {
+            const field = labelToIdMap[condition.source] || condition.source
             const value = getNestedValue(item, field)
-            const target = filter.destination
-            const operand = filter.operand || '='
+            const target = condition.destination
+            const operand = condition.operand
             
             if (Array.isArray(target)) {
               if (operand === '!=') {
@@ -107,18 +106,7 @@ const generateHandlerBody = (): string => {
             
             return compareValues(value, target, operand)
           })
-        })
-      } else {
-        filteredData = filteredData.filter((item) => {
-          return Object.entries(parsedFilters).every(([key, value]) => {
-            const field = labelToIdMap[key] || key
-            const itemValue = getNestedValue(item, field)
-            if (Array.isArray(value)) {
-              return value.includes(itemValue)
-            }
-            return compareValues(itemValue, value, '=')
-          })
-        })
+        )
       }
     }
     
@@ -227,6 +215,8 @@ ${generateDateFormatterCode()}
 
 ${generateSortFilterHelperCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateHeaderDetectionCode()}
 
 function parseCSVLine(line) {
@@ -334,6 +324,8 @@ ${generateSafeJSONParseCode()}
 ${generateDateFormatterCode()}
 
 ${generateSortFilterHelperCode()}
+
+${generateFilterTreeHelpersCode()}
 
 export default async function handler(req, res) {${generateHandlerBody()}
 }

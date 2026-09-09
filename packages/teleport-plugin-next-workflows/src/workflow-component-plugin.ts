@@ -1685,7 +1685,11 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
       const newObj = Object.assign({}, currentObj);
       newObj[config.objectPropertyPath] = propValue;
       if (context && context.__stateValues) context.__stateValues[prop] = newObj;
-      if (stateSetters[prop]) { stateSetters[prop](newObj); }
+      if (stateSetters[prop]) {
+        stateSetters[prop](newObj);
+        // Same reason as the scalar write below.
+        stateValuesRef.current[prop] = newObj;
+      }
       else { console.warn('[workflow] state-update: no setter for "' + prop + '" in this page/component (available: ' + Object.keys(stateSetters).join(', ') + ') - update skipped. The workflow probably runs in a container that does not own this state.'); }
       return Promise.resolve({ success: true, property: prop, value: newObj });
     }
@@ -1701,7 +1705,19 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
       return Promise.resolve({ success: true, property: prop, value: value });
     }
     if (context && context.__stateValues) context.__stateValues[prop] = value;
-    if (stateSetters[prop]) { stateSetters[prop](value); }
+    if (stateSetters[prop]) {
+      stateSetters[prop](value);
+      // Also the ref that \`state-get-local-state\` reads. The setter only
+      // schedules a render, and the ref is rebuilt FROM state on that render,
+      // so until then it still holds the pre-write value — which made a
+      // write-then-read within one run return the previous value. The chat's
+      // option chips are built on exactly that sequence (write the chip text
+      // into the input state, then invoke the node that reads it back), so
+      // clicking one re-sent the message before it. Writing here keeps the ref
+      // meaning "latest known", which is what its reader already assumes, and
+      // the scheduled render overwrites it with the same value.
+      stateValuesRef.current[prop] = value;
+    }
     else { console.warn('[workflow] state-update: no setter for "' + prop + '" in this page/component (available: ' + Object.keys(stateSetters).join(', ') + ') - update skipped. The workflow probably runs in a container that does not own this state.'); }
     return Promise.resolve({ success: true, property: prop, value: value });
   }
@@ -1743,7 +1759,11 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
         ? __defaultValueForType(stateTypes[key])
         : __coerceValue(u.value, key);
       if (context && context.__stateValues) context.__stateValues[key] = val;
-      if (stateSetters[key]) stateSetters[key](val);
+      if (stateSetters[key]) {
+        stateSetters[key](val);
+        // Same reason as the single-key writes above.
+        stateValuesRef.current[key] = val;
+      }
       updatedKeys.push(key);
     }
     return Promise.resolve({ updatedKeys: updatedKeys, updateCount: updatedKeys.length });
