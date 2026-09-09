@@ -7,15 +7,12 @@
   "description": "Code generators and UIDL definition library",
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
-    "clean": "lerna run clean --parallel",
-    "link": "lerna link",
-    "build": "yarn run clean && yarn run link && lerna run build ",
-    "dev": "yarn run link && lerna run build && node scripts/watcher.mjs",
+    "clean": "turbo run clean",
+    "build": "turbo run build",
+    "dev": "turbo watch build",
     "test": "jest --silent=false",
-    "test:perf": "jest __tests__/performance",
     "test:clearcache": "jest --clearCache",
     "test:coverage": "yarn run test -- --coverage --no-cache",
-    "upload:coverage": "codecov",
     "commitizen": "git-cz",
     "add-contributor": "all-contributors add",
     "changelog": "lerna-changelog",
@@ -23,7 +20,7 @@
     "many:check": "manypkg check",
     "many:fix": "manypkg fix",
     "publish": "lerna publish from-package --no-verify-access",
-    "standalone": "lerna run standalone --scope teleport-test",
+    "standalone": "turbo run standalone",
     "local:adduser": "npm adduser --registry http://localhost:4873",
     "local:publish": "lerna exec --bail=false  -- npm publish -f --registry http://localhost:4873",
     "local:unpublish": "lerna exec --bail=false -- npm unpublish -f --registry http://localhost:4873"
@@ -36,6 +33,7 @@
   "engines": {
     "node": ">=20.x"
   },
+  "packageManager": "yarn@1.22.22",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -52,7 +50,6 @@
     "@types/rimraf": "^2.0.3",
     "all-contributors-cli": "^6.13.0",
     "chalk": "^2.4.2",
-    "chokidar": "^3.0.2",
     "codecov": "^3.8.3",
     "commitizen": "^4.2.5",
     "cz-conventional-changelog": "^3.3.0",
@@ -67,6 +64,7 @@
     "ts-jest": "^26.5.6",
     "tslint": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
+    "turbo": "^2.10.12",
     "typescript": "^4.3.5"
   },
   "config": {
