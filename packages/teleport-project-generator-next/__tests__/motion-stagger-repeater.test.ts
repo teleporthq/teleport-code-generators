@@ -237,14 +237,18 @@ describe('generated TqMotion source', () => {
 describe('generated cssFromState (canvas parity)', () => {
   const cssFromState = extractCssFromState()
 
-  it('collapses the transform family into one string, in the canvas order', () => {
+  it("writes the individual transform properties — the author's transform survives (canvas parity)", () => {
     expect(cssFromState({ opacity: 0, y: 30, scale: 0.8 })).toEqual({
       opacity: 0,
-      transform: 'translateY(30px) scale(0.8)',
+      translate: '0px 30px',
+      scale: '0.8',
     })
     expect(cssFromState({ x: -10, y: 4, scale: 2, rotate: -8 })).toEqual({
-      transform: 'translateX(-10px) translateY(4px) scale(2) rotate(-8deg)',
+      translate: '-10px 4px',
+      scale: '2',
+      rotate: '-8deg',
     })
+    expect(cssFromState({ x: '-25%' })).toEqual({ translate: '-25% 0px' })
   })
 
   it('passes non-transform properties through untouched', () => {

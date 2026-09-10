@@ -345,6 +345,44 @@ describe('insertLink', () => {
     expect(styledChild.content.referencedStyles?.TQ_tile).toBeDefined()
   })
 
+  it('keeps scroll-runtime attributes on the styled element, never on the box-less link wrapper', () => {
+    const child = elementNode('container')
+    child.content.abilities = { link: urlMockedDefinition() }
+    child.content.attrs = {
+      'data-scroll-bind': {
+        type: 'static',
+        content: '[{"prop":"opacity","at":[0,1],"values":[0,1]}]',
+      },
+      'data-scroll-bind-rel': { type: 'static', content: '[]' },
+      'data-snap-into-view': { type: 'static', content: 'gentle' },
+      'data-chapter-window': { type: 'static', content: '0.5-1' },
+      'data-analytics': { type: 'static', content: 'cta' },
+    }
+    const parent = elementNode('container', {}, [child])
+    parent.content.style = { display: { type: 'static', content: 'flex' } }
+
+    const result = insertLinks(parent, {}, false)
+    const wrapper = result.content.children[0] as UIDLElementNode
+    const styledChild = wrapper.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
+    expect(Object.keys(wrapper.content.attrs)).not.toEqual(
+      expect.arrayContaining([
+        'data-scroll-bind',
+        'data-scroll-bind-rel',
+        'data-snap-into-view',
+        'data-chapter-window',
+      ])
+    )
+    expect(styledChild.content.attrs['data-scroll-bind'].content).toContain('opacity')
+    expect(styledChild.content.attrs['data-scroll-bind-rel']).toBeDefined()
+    expect(styledChild.content.attrs['data-snap-into-view'].content).toBe('gentle')
+    expect(styledChild.content.attrs['data-chapter-window'].content).toBe('0.5-1')
+    // ordinary data attributes still travel to the anchor
+    expect(wrapper.content.attrs['data-analytics'].content).toBe('cta')
+    expect(styledChild.content.attrs['data-analytics']).toBeUndefined()
+  })
+
   it('does not mark the link wrapper display:contents when the referenced parent is not flex/grid', () => {
     const child = elementNode('container')
     child.content.abilities = { link: navlinkMockedDefinition() }
