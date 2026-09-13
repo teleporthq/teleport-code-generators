@@ -67,7 +67,7 @@ describe('emitted React components obey the Rules of Hooks', () => {
 
   it('covers every component source the generator can emit', () => {
     // A new widget added without a row here would ship unguarded.
-    expect(EMITTED_COMPONENTS).toHaveLength(18)
+    expect(EMITTED_COMPONENTS).toHaveLength(20)
   })
 })
 
