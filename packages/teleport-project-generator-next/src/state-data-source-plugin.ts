@@ -9,7 +9,7 @@ import {
   UIDLStateDataSourceBinding,
   UIDLFilterConfigEntry,
 } from '@teleporthq/teleport-types'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import {
   generateDataSourceFetcherWithCore,
@@ -1074,11 +1074,12 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
       tryBlock = created.tryBlock
     }
 
-    // Compute folder depth for import paths
-    // componentFolderPath contains subfolders within pages/ (e.g. ['admin'] for pages/admin/X.js)
-    const componentFolderPath = (uidl.outputOptions as any)?.folderPath || []
-    const depth = (componentFolderPath.length || 0) + 1
-    const relativePrefix = '../'.repeat(depth)
+    // Relative path from the page back to the project root. `folderPath` holds
+    // the subfolders WITHIN pages/ (e.g. ['admin'] for pages/admin/X.js).
+    const relativePrefix = GenericUtils.generatePageToRootPrefix({
+      folderPath: uidl.outputOptions?.folderPath,
+      pagesPath: options.pagesPath,
+    })
 
     const extractedResources = options.extractedResources
 

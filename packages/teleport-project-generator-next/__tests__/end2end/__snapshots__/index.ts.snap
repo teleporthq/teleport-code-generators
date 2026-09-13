@@ -154,7 +154,13 @@ const Hero = (props) => {
             </button>
           </div>
         </div>
-        <img alt={props.imageAlt} src={props.imageSrc} className=\\"hero-image\\" />
+        <img
+          loading=\\"lazy\\"
+          decoding=\\"async\\"
+          alt={props.imageAlt}
+          src={props.imageSrc}
+          className=\\"hero-image\\"
+        />
       </div>
       <style jsx>
         {\`

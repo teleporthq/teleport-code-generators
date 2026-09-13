@@ -1,13 +1,25 @@
+import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { generateCategoryTaxonomyCode } from './category-taxonomy'
+
+/** What the blog-post transform bakes in at export time beyond the row itself. */
+export interface BlogPostTransformOptions {
+  /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
+  categories?: UIDLEcommerceCategory[]
+}
+
 /**
  * Generates JavaScript code for blog post data transformation.
  * Transforms raw snake_case database records into the camelCase shape
  * that UIDL components expect.
  */
-export const generateBlogPostTransformationCode = (): string => {
+export const generateBlogPostTransformationCode = (
+  options: BlogPostTransformOptions = {}
+): string => {
   return `
 // ============================================================
 // Blog Post Transformation
 // ============================================================
+${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -24,6 +36,20 @@ function buildBlogPost(record, options) {
   var content = resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
+
+  // Assigned category ids -> resolved {id,name,slug} objects for the post-details
+  // BREADCRUMBS (and anything else mapping over them). The taxonomy itself is not
+  // in the DB (categories are authored in the GUI and live only in
+  // blogSettings.categories); resolved against BLOG_CATEGORIES_BY_ID, baked in at
+  // export time. Unknown/stale ids are silently dropped. \`category\` above stays
+  // the denormalized PRIMARY name.
+  var categories = resolveAssignedCategories(
+    record.category_ids,
+    BLOG_CATEGORIES_BY_ID,
+    currentLang,
+    mainLang,
+    category
+  )
   var metaTitle = resolveI18nField(record, 'meta_title', 'metaTitle', currentLang, mainLang) || null
   var metaDescription = resolveI18nField(record, 'meta_description', 'metaDescription', currentLang, mainLang) || null
   var featuredImageAlt = resolveI18nField(record, 'featured_image_alt', 'featuredImageAlt', currentLang, mainLang) || null
@@ -77,6 +103,22 @@ function buildBlogPost(record, options) {
       ? coerceBoolean(record.allowComments, true)
       : true
 
+  // Per-post SEO overrides. The transform is the single normalization point —
+  // rows can also be written by the raw admin CRUD form, so whitespace and
+  // unknown redirect types are neutralized here. Absent columns (a table
+  // provisioned before the feature) read as undefined and normalize to null.
+  // robotsContent is null — never '' or false — for unset rows, so the
+  // page-level fallback (the \`??\` in the generated Head) can take over.
+  var noIndex = coerceBoolean(pickFirst(record.no_index, record.noIndex), false)
+  var canonicalUrl = normalizeSeoUrlField(pickFirst(record.canonical_url, record.canonicalUrl))
+  var redirectUrl = normalizeSeoUrlField(pickFirst(record.redirect_url, record.redirectUrl))
+  var rawRedirectType = pickFirst(record.redirect_type, record.redirectType)
+  var redirectType =
+    redirectUrl && (rawRedirectType === '301' || rawRedirectType === '302')
+      ? rawRedirectType
+      : null
+  var robotsContent = noIndex ? 'noindex' : null
+
   // The author's related-post picks. \`relatedPosts\` carries the TRANSFORMED
   // rows, not ids, so the details page's related-posts rail can map over it and
   // draw an article card per entry; \`relatedPostIds\` keeps the raw selection.
@@ -129,6 +171,7 @@ function buildBlogPost(record, options) {
     excerpt: excerpt,
     status: status,
     category: category,
+    categories: categories,
     tags: tags,
     relatedPostIds: relatedPostIds,
     relatedPosts: relatedPosts,
@@ -146,6 +189,11 @@ function buildBlogPost(record, options) {
     readingTimeMinutes: readingTimeMinutes,
     isFeatured: isFeatured,
     allowComments: allowComments,
+    noIndex: noIndex,
+    canonicalUrl: canonicalUrl,
+    redirectUrl: redirectUrl,
+    redirectType: redirectType,
+    robotsContent: robotsContent,
     publishedAt: publishedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,

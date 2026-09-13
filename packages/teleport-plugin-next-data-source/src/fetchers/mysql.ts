@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
 
@@ -64,59 +65,46 @@ const getConnection = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateSearchEscapeHelpersCode()}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {
   if (!filters) return
   
-  const parsedFilters = safeJSONParse(filters)
+  const filterTree = normalizeFilterTree(safeJSONParse(filters))
+  if (!filterTree) return
   
-  if (Array.isArray(parsedFilters)) {
-    parsedFilters.forEach((filter) => {
-      if (!filter.source || filter.destination === undefined) return
-      
-      const field = mysql.escapeId(filter.source)
-      const value = filter.destination
-      const operand = filter.operand || '='
-      
-      if (Array.isArray(value)) {
-        if (value.length === 0) return
-        const placeholders = value.map(() => '?').join(', ')
-        queryParams.push(...value)
-        if (operand === '!=') {
-          conditions.push(\`\${field} NOT IN (\${placeholders})\`)
-        } else {
-          conditions.push(\`\${field} IN (\${placeholders})\`)
-        }
-      } else {
-        if (value === null) {
-          if (operand === '=') {
-            conditions.push(\`\${field} IS NULL\`)
-          } else if (operand === '!=') {
-            conditions.push(\`\${field} IS NOT NULL\`)
-          }
-        } else {
-          // Validate operator to prevent SQL injection
-          const validOps = ['=', '!=', '>', '<', '>=', '<=']
-          const sqlOperator = validOps.includes(operand) ? operand : '='
-          conditions.push(\`\${field} \${sqlOperator} ?\`)
-          queryParams.push(value)
-        }
-      }
-    })
-  } else {
-    Object.entries(parsedFilters).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        const placeholders = value.map(() => '?').join(', ')
-        queryParams.push(...value)
-        conditions.push(\`\${mysql.escapeId(key)} IN (\${placeholders})\`)
-      } else {
-        conditions.push(\`\${mysql.escapeId(key)} = ?\`)
-        queryParams.push(value)
-      }
-    })
+  const buildCondition = (condition) => {
+    const field = mysql.escapeId(condition.source)
+    const value = condition.destination
+    const operand = condition.operand
+    
+    if (Array.isArray(value)) {
+      if (value.length === 0) return null
+      const placeholders = value.map(() => '?').join(', ')
+      queryParams.push(...value)
+      return operand === '!='
+        ? \`\${field} NOT IN (\${placeholders})\`
+        : \`\${field} IN (\${placeholders})\`
+    }
+    
+    if (value === null) {
+      if (operand === '=') return \`\${field} IS NULL\`
+      if (operand === '!=') return \`\${field} IS NOT NULL\`
+      return null
+    }
+    
+    // Validate operator to prevent SQL injection
+    const validOps = ['=', '!=', '>', '<', '>=', '<=']
+    const sqlOperator = validOps.includes(operand) ? operand : '='
+    queryParams.push(value)
+    return \`\${field} \${sqlOperator} ?\`
   }
+  
+  const clause = buildFilterTreeClause(filterTree, buildCondition)
+  if (clause) conditions.push(clause)
 }
 
 ${generateDateFormatterCode()}

@@ -69,6 +69,63 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
   return dependencyPrefix
 }
 
+/**
+ * The folder every framework-agnostic page path in this repo is relative to by
+ * default. Next.js is the only target that emits pages through the plugins
+ * below, and its pages root is `pages/` (see the `pages.path` of the strategy
+ * in teleport-project-generator-next). Used only as a fallback for callers that
+ * do not receive `GeneratorOptions.pagesPath`.
+ */
+export const DEFAULT_PAGES_PATH = ['pages']
+
+/**
+ * Import prefix from a PAGE file to a folder that lives at the PROJECT ROOT
+ * (`resources/`, `utils/`, `components/` ...). Returns a prefix ending in '/',
+ * so callers append the file name: `${prefix}${fileName}`.
+ *
+ * ⛔ A page's `outputOptions.folderPath` is relative to the PAGES ROOT
+ * (`['resources']` for `pages/resources/[id].js`), while every folder path in
+ * the project strategy is relative to the PROJECT ROOT. Handing those two
+ * coordinate systems to a single `path.relative()` call cancels segments that
+ * only LOOK common: `relative('/resources/[id]', '/resources/fetch_items')`
+ * returned `'../fetch_items'`, which resolves to `pages/fetch_items` — a
+ * "Module not found: Can't resolve '../fetch_items'" at `next build` time for
+ * every page whose folder happens to be named after a root folder (a
+ * `/resources/[id]` route against the `resources/` folder, a `/utils/[id]` one
+ * against `utils/`, ...). Every other page built fine, which is exactly why it
+ * survived so long.
+ *
+ * Rebasing the page folder onto the pages root puts both sides in the same
+ * coordinate system, so only genuinely shared ancestors are cancelled. The math
+ * runs through `generateLocalDependenciesPrefix` — plain array bookkeeping, no
+ * `path.relative()` — so it is also immune to the truncated `relative()` that
+ * Next's compiled `path-browserify` ships (see `localRelativePath` above).
+ */
+export const generatePageDependenciesPrefix = (params: {
+  toPath: string[]
+  folderPath?: string[]
+  pagesPath?: string[]
+}): string => {
+  const { toPath, folderPath, pagesPath } = params
+  // `folderPath` comes straight out of the UIDL, where it can be absent (or a
+  // JSON null) for a page at the pages root — never let that throw on a spread.
+  return generateLocalDependenciesPrefix(
+    [...(pagesPath || DEFAULT_PAGES_PATH), ...(folderPath || [])],
+    toPath
+  )
+}
+
+/**
+ * Prefix from a PAGE file back to the PROJECT ROOT ('../', '../../', ...), for
+ * callers that build the rest of the path themselves
+ * (`${prefix}utils/workflows/runtime`). Same coordinate-system correction as
+ * `generatePageDependenciesPrefix`, which it delegates to.
+ */
+export const generatePageToRootPrefix = (params: {
+  folderPath?: string[]
+  pagesPath?: string[]
+}): string => generatePageDependenciesPrefix({ ...params, toPath: [] })
+
 const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
   const pathsClone: string[][] = JSON.parse(JSON.stringify(paths))
 

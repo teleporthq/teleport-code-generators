@@ -11,6 +11,7 @@ import {
   union,
   boolean,
   anyJson,
+  constant,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -44,9 +45,19 @@ export const webManifestDecoder: Decoder<WebManifest> = object({
 })
 
 export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = object({
+  // ⛔ THIS DECODER IS THE SCHEMA. `object()` drops every key it does not name,
+  // and the validated result REPLACES the input UIDL (see the project
+  // generator's `cleanedUIDL = projectUIDL`) — so a field added to the type and
+  // written by the editor but missed here reaches the generator as `undefined`,
+  // with nothing logged and nothing failing.
   settings: object({
     title: string(),
     language: string(),
+    // Writing direction for a single-language project, and the right-to-left
+    // subset of an internationalized one's locales. Both absent for the
+    // overwhelming majority of projects — see `text-direction.ts` in the editor.
+    dir: optional(union(constant('ltr' as const), constant('rtl' as const))),
+    rtlLocales: optional(array(string())),
   }),
   customCode: optional(
     object({
@@ -112,6 +123,7 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   globalStateDefinitions: optional(anyJson()),
   invoiceSettings: optional(anyJson()),
   ecommerceSettings: optional(anyJson()),
+  blogSettings: optional(anyJson()),
   aiAssistantChat: optional(anyJson()),
   // Growth visitor analytics flag (`{ enabled: true }`). Consumed by
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be

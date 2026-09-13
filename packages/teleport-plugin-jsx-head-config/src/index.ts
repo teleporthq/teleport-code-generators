@@ -93,6 +93,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
       uidl.seo.assets.forEach((asset) => {
         if (asset.type === 'canonical') {
+          const canonicalOverride = () => buildCanonicalOverrideExpression(asset.dynamicOverride)
           const { origin, pathname } = parseCanonicalUrl(asset.path)
           const isRootPath = pathname === '/'
           const { staticParts: pathParts, paramNames } = parseDynamicSegments(pathname)
@@ -158,7 +159,11 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               ]
             }
 
-            const canonicalHrefExpr = types.templateLiteral(quasis, expressions)
+            const localeCanonicalOverride = canonicalOverride()
+            const localeTemplateExpr = types.templateLiteral(quasis, expressions)
+            const canonicalHrefExpr = localeCanonicalOverride
+              ? types.logicalExpression('||', localeCanonicalOverride, localeTemplateExpr)
+              : localeTemplateExpr
             canonicalLink.openingElement.attributes.push(
               types.jsxAttribute(
                 types.jsxIdentifier('href'),
@@ -200,10 +205,15 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               ),
               ...paramNames.map((name) => buildRouterQueryParam(name)),
             ]
+            const ogUrlOverride = canonicalOverride()
+            const ogUrlTemplateExpr = types.templateLiteral(ogUrlQuasis, ogUrlExpressions)
+            const ogUrlContentExpr = ogUrlOverride
+              ? types.logicalExpression('||', ogUrlOverride, ogUrlTemplateExpr)
+              : ogUrlTemplateExpr
             ogUrlMeta.openingElement.attributes.push(
               types.jsxAttribute(
                 types.jsxIdentifier('content'),
-                types.jsxExpressionContainer(types.templateLiteral(ogUrlQuasis, ogUrlExpressions))
+                types.jsxExpressionContainer(ogUrlContentExpr)
               )
             )
             headASTTags.push(ogUrlMeta)
@@ -229,25 +239,26 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
             // No i18n but has dynamic params — needs router.query interpolation
             const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
             ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-            addDynamicHrefAttribute(canonicalLink, asset.path)
+            addDynamicHrefAttribute(canonicalLink, asset.path, canonicalOverride())
             headASTTags.push(canonicalLink)
 
             // og:url meta tag — mirrors the canonical href
             const ogUrlMeta = ASTBuilders.createSelfClosingJSXTag('meta')
             ASTUtils.addAttributeToJSXTag(ogUrlMeta, 'property', 'og:url')
-            addDynamicContentAttribute(ogUrlMeta, asset.path)
+            addDynamicContentAttribute(ogUrlMeta, asset.path, canonicalOverride())
             headASTTags.push(ogUrlMeta)
           } else {
-            // No i18n or single locale — static canonical
+            // No i18n or single locale — static canonical (an entity override,
+            // when present, turns the attribute into `{override || 'path'}`)
             const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
             ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-            ASTUtils.addAttributeToJSXTag(canonicalLink, 'href', asset.path)
+            addDynamicHrefAttribute(canonicalLink, asset.path, canonicalOverride())
             headASTTags.push(canonicalLink)
 
             // og:url meta tag — mirrors the canonical href
             const ogUrlMeta = ASTBuilders.createSelfClosingJSXTag('meta')
             ASTUtils.addAttributeToJSXTag(ogUrlMeta, 'property', 'og:url')
-            ASTUtils.addAttributeToJSXTag(ogUrlMeta, 'content', asset.path)
+            addDynamicContentAttribute(ogUrlMeta, asset.path, canonicalOverride())
             headASTTags.push(ogUrlMeta)
           }
         }
@@ -386,6 +397,45 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     )
   }
 
+  /** `['blogPost', 'canonicalUrl']` -> `props?.blogPost?.canonicalUrl` */
+  const buildPropsChainExpression = (refPath: string[]): types.Expression => {
+    return refPath.reduce<types.Expression>(
+      (acc, pathItem) =>
+        types.optionalMemberExpression(acc, types.identifier(pathItem), false, true),
+      types.identifier('props')
+    )
+  }
+
+  const buildLiteralExpression = (value: string | number | boolean): types.Expression => {
+    if (typeof value === 'number') {
+      return types.numericLiteral(value)
+    }
+    if (typeof value === 'boolean') {
+      return types.booleanLiteral(value)
+    }
+    return types.stringLiteral(value)
+  }
+
+  /**
+   * A canonical asset's `dynamicOverride` is a per-entity prop reference (a
+   * details-page row's own canonical URL). Returns the `props?.…` chain to
+   * `||`-wrap around the page-level href expression, or null when the asset
+   * has no usable override. Built fresh on every call — the canonical href and
+   * the og:url mirror each need their own AST nodes.
+   */
+  const buildCanonicalOverrideExpression = (
+    dynamicOverride?: UIDLDynamicReference
+  ): types.Expression | null => {
+    if (
+      dynamicOverride?.type !== 'dynamic' ||
+      dynamicOverride.content.referenceType !== 'prop' ||
+      !dynamicOverride.content.refPath?.length
+    ) {
+      return null
+    }
+    return buildPropsChainExpression(dynamicOverride.content.refPath)
+  }
+
   /**
    * Adds an href attribute to a JSX tag. If the href contains ${paramName} patterns,
    * generates a template literal with router.query.paramName expressions.
@@ -394,31 +444,46 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
   const addDynamicAttributeToTag = (
     tag: types.JSXElement,
     attrName: string,
-    value: string
+    value: string,
+    overrideExpr?: types.Expression | null
   ): void => {
     const { staticParts, paramNames } = parseDynamicSegments(value)
-    if (paramNames.length === 0) {
+    if (paramNames.length === 0 && !overrideExpr) {
       ASTUtils.addAttributeToJSXTag(tag, attrName, value)
       return
     }
-    const quasis = staticParts.map((part, i) =>
-      types.templateElement({ raw: part, cooked: part }, i === staticParts.length - 1)
-    )
-    const expressions = paramNames.map((name) => buildRouterQueryParam(name))
+    const baseExpr: types.Expression =
+      paramNames.length === 0
+        ? types.stringLiteral(value)
+        : types.templateLiteral(
+            staticParts.map((part, i) =>
+              types.templateElement({ raw: part, cooked: part }, i === staticParts.length - 1)
+            ),
+            paramNames.map((name) => buildRouterQueryParam(name))
+          )
+    // The override wraps the WHOLE fallback expression: an entity-supplied URL
+    // must never be spliced into the page-level template (locale prefixes,
+    // route params) — it either fully replaces the href or is absent.
+    const attrExpr = overrideExpr ? types.logicalExpression('||', overrideExpr, baseExpr) : baseExpr
     tag.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier(attrName),
-        types.jsxExpressionContainer(types.templateLiteral(quasis, expressions))
-      )
+      types.jsxAttribute(types.jsxIdentifier(attrName), types.jsxExpressionContainer(attrExpr))
     )
   }
 
-  const addDynamicHrefAttribute = (tag: types.JSXElement, href: string): void => {
-    addDynamicAttributeToTag(tag, 'href', href)
+  const addDynamicHrefAttribute = (
+    tag: types.JSXElement,
+    href: string,
+    overrideExpr?: types.Expression | null
+  ): void => {
+    addDynamicAttributeToTag(tag, 'href', href, overrideExpr)
   }
 
-  const addDynamicContentAttribute = (tag: types.JSXElement, content: string): void => {
-    addDynamicAttributeToTag(tag, 'content', content)
+  const addDynamicContentAttribute = (
+    tag: types.JSXElement,
+    content: string,
+    overrideExpr?: types.Expression | null
+  ): void => {
+    addDynamicAttributeToTag(tag, 'content', content, overrideExpr)
   }
 
   const addAttributeToMetaTag = (
@@ -442,15 +507,20 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     }
 
     if (value.content.referenceType === 'prop') {
-      let content = `props`
-      value.content.refPath?.forEach((pathItem) => {
-        content = content.concat(`?.${pathItem}`)
-      })
+      const propChain = buildPropsChainExpression(value.content.refPath || [])
+      // `fallback` keeps the attribute meaningful for rows that don't carry the
+      // field (e.g. a robots meta inheriting the page-level default) — without
+      // it an undefined prop renders a content-less tag.
+      const fallback = 'fallback' in value.content ? value.content.fallback : undefined
+      const contentExpression =
+        fallback === undefined || fallback === null
+          ? propChain
+          : types.logicalExpression('??', propChain, buildLiteralExpression(fallback))
 
       metaTag.openingElement.attributes.push(
         types.jsxAttribute(
           types.jsxIdentifier(key),
-          types.jsxExpressionContainer(types.identifier(content))
+          types.jsxExpressionContainer(contentExpression)
         )
       )
       return { translationUsed: false }

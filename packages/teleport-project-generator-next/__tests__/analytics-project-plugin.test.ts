@@ -15,7 +15,21 @@ const MyApp = ({ Component, pageProps }) => {
 export default MyApp
 `
 
-function makeStructure(analyticsEnabled: boolean): ProjectPluginStructure {
+// The script assets the GUI's project mapper injects from a merchant's own
+// Google ids. Either one makes `window.dataLayer` a real array on the page.
+const GTAG_ASSET = {
+  type: 'script',
+  path: 'https://www.googletagmanager.com/gtag/js?id=G-ABC123',
+  options: { target: 'body', async: true },
+}
+const GTM_ASSET = {
+  type: 'script',
+  content:
+    "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime()});})(window,document,'script','dataLayer','GTM-XYZ')",
+  options: { target: 'body' },
+}
+
+function makeStructure(analyticsEnabled: boolean, assets: unknown[] = []): ProjectPluginStructure {
   const files = new Map()
   files.set('_app', {
     path: ['pages'],
@@ -25,7 +39,7 @@ function makeStructure(analyticsEnabled: boolean): ProjectPluginStructure {
   return {
     uidl: {
       name: 'test-project',
-      globals: { settings: { title: 'Test', language: 'en' }, assets: [] },
+      globals: { settings: { title: 'Test', language: 'en' }, assets },
       root: {} as never,
       ...(analyticsEnabled ? { analytics: { enabled: true } } : {}),
     },
@@ -48,6 +62,53 @@ describe('NextAnalyticsProjectPlugin', () => {
 
     const appFile = structure.files.get('_app').files[0]
     expect(appFile.content).not.toContain('AnalyticsTracker')
+  })
+
+  it('⛔ still emits it when the merchant has GTM but our analytics is off', async () => {
+    // The commerce funnel is fired from serialized workflow handlers that can
+    // only reach a global, and this component is what publishes
+    // `window.tpTrackCommerce`. Without it a store with a Tag Manager container
+    // records no add_to_cart, begin_checkout or purchase at all.
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(false, [GTM_ASSET])
+
+    await plugin.runAfter(structure)
+
+    expect(structure.files.has('teleport-analytics-tracker')).toBe(true)
+    expect(structure.files.get('_app').files[0].content).toContain('AnalyticsTracker')
+  })
+
+  it('does the same for a plain gtag tag', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(false, [GTAG_ASSET])
+
+    await plugin.runAfter(structure)
+
+    expect(structure.files.has('teleport-analytics-tracker')).toBe(true)
+  })
+
+  it('⛔ writes NO analytics env placeholders on the GTM-only branch', async () => {
+    // They would be resolved against project secrets at deploy time, which is
+    // how a store with analytics switched OFF would quietly start reporting.
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(false, [GTM_ASSET])
+
+    await plugin.runAfter(structure)
+
+    const env = (structure.uidl.globals as { env?: Record<string, string> }).env ?? {}
+    expect(env.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL).toBeUndefined()
+    expect(env.NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY).toBeUndefined()
+  })
+
+  it('ignores an unrelated third-party script', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(false, [
+      { type: 'script', path: 'https://example.com/widget.js', options: { target: 'body' } },
+    ])
+
+    await plugin.runAfter(structure)
+
+    expect(structure.files.has('teleport-analytics-tracker')).toBe(false)
   })
 
   it('emits the tracker lib + component and wires the env placeholders', async () => {

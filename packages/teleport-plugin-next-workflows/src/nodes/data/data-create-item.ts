@@ -30,6 +30,49 @@ async function data_create_item(config: any, context: any) {
     }
   }
 
+  // A value the client→server hand-off could not carry (see pruneContext: any
+  // context entry over its budget crosses as { __truncated: true }) must never
+  // be INSERTed — the placeholder object would be stored as the column's
+  // content. Dropping the mapping leaves the column at its default, which is
+  // recoverable; a row whose body reads {"__truncated":true} is not.
+  const __isUnwritableValue = function (__v: any) {
+    return (
+      !!__v &&
+      typeof __v === 'object' &&
+      (__v.__truncated === true || __v.__serializationError === true)
+    )
+  }
+  const __warnDroppedMapping = function (__col: any) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[workflow] data-create-item left "' +
+          (__col || 'unknown') +
+          '" unset: the value was too large to reach the server'
+      )
+    }
+  }
+  let effectiveColumnMappings: any = columnMappings
+  if (Array.isArray(columnMappings)) {
+    effectiveColumnMappings = columnMappings.filter(function (__m: any) {
+      if (!(__m && typeof __m === 'object') || !__isUnwritableValue(__m.value)) {
+        return true
+      }
+      __warnDroppedMapping(__m.column || __m.name || __m.field)
+      return false
+    })
+  } else if (columnMappings && typeof columnMappings === 'object') {
+    effectiveColumnMappings = {}
+    const __ck = Object.keys(columnMappings)
+    for (let __ci = 0; __ci < __ck.length; __ci++) {
+      const __value = (columnMappings as any)[__ck[__ci]]
+      if (__isUnwritableValue(__value)) {
+        __warnDroppedMapping(__ck[__ci])
+      } else {
+        ;(effectiveColumnMappings as any)[__ck[__ci]] = __value
+      }
+    }
+  }
+
   // Surface the workflow's anonymous-user UUID to the data-api so a
   // guest-checkout INSERT can recover its `user_id` from the
   // resolve-user output instead of being NULL'd by the UUID
@@ -59,7 +102,7 @@ async function data_create_item(config: any, context: any) {
   }
 
   try {
-    const reqBody: any = { tableName, columnMappings }
+    const reqBody: any = { tableName, columnMappings: effectiveColumnMappings }
     if (__anonymousUserId) {
       reqBody.__anonymousUserId = __anonymousUserId
     }

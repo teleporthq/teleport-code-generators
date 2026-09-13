@@ -7,6 +7,7 @@ import {
   rmSync,
   existsSync,
   readdirSync,
+  statSync,
 } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -19,6 +20,7 @@ import {
   ProjectPlugin,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
+import { LocalImports } from '@teleporthq/teleport-shared'
 import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css-modules'
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
@@ -231,6 +233,80 @@ const cleanGeneratedFiles = (projectDir: string): boolean => {
   return hadNextCache
 }
 
+// Directories inside the generated project that were never produced by the
+// generator — scanning them would only report other people's code.
+const IMPORT_SCAN_SKIPPED_DIRS = new Set([
+  'node_modules',
+  '.next',
+  '.git',
+  // Editor/agent scaffolding the clean deliberately preserves (PRESERVE_ON_CLEAN)
+  '.vscode',
+  '.claude',
+])
+
+// Extensions whose CONTENT is parsed for import specifiers. Everything else is
+// still collected (an import has to be able to resolve to a .css/.json/asset
+// file), just not read from disk.
+const IMPORT_SCAN_READ_EXTENSIONS = ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx']
+
+const collectFilesForImportScan = (
+  dir: string,
+  prefix = ''
+): Array<{ path: string; content: string }> => {
+  const entries: Array<{ path: string; content: string }> = []
+
+  for (const entry of readdirSync(dir)) {
+    const absolute = join(dir, entry)
+
+    if (statSync(absolute).isDirectory()) {
+      if (IMPORT_SCAN_SKIPPED_DIRS.has(entry)) {
+        continue
+      }
+      entries.push(...collectFilesForImportScan(absolute, `${prefix}${entry}/`))
+      continue
+    }
+
+    const shouldRead = IMPORT_SCAN_READ_EXTENSIONS.some((extension) => entry.endsWith(extension))
+    entries.push({
+      path: `${prefix}${entry}`,
+      content: shouldRead ? readFileSync(absolute, 'utf8') : '',
+    })
+  }
+
+  return entries
+}
+
+// Fail the run when a generated file imports something that was never written.
+// `next build` reports this as "Module not found: Can't resolve '<specifier>'"
+// minutes later (or only once it reaches Vercel) with no hint about which
+// plugin computed the path — this reports it right where it was generated. The
+// project generator logs the same finding during generation; the exit code is
+// what makes it impossible to scroll past.
+const verifyLocalImports = (projectDir: string): void => {
+  if (!existsSync(projectDir)) {
+    return
+  }
+
+  let unresolved: LocalImports.UnresolvedLocalImport[] = []
+
+  try {
+    unresolved = LocalImports.findUnresolvedLocalImports(collectFilesForImportScan(projectDir))
+  } catch (error) {
+    // Never turn a good generation into a failed run because the CHECK broke.
+    console.info(chalk.yellow(`\n[standalone] could not verify local imports: ${error}\n`))
+    return
+  }
+
+  if (unresolved.length === 0) {
+    return
+  }
+
+  console.info(
+    chalk.red(`\n[standalone] ${LocalImports.formatUnresolvedLocalImports(unresolved)}\n`)
+  )
+  process.exitCode = 1
+}
+
 const run = async () => {
   // Reported twice in one session: the warning below is printed BEFORE ~1500
   // lines of generation output, so it scrolls away and the next thing anyone
@@ -338,6 +414,11 @@ const run = async () => {
       //   uidl: flotiqUIDL,
       // }),
     ])
+
+    if (generatedProjectDir) {
+      verifyLocalImports(generatedProjectDir)
+    }
+
     // ⛔ The clean deletes `.next`, so nothing this script does can recreate it.
     // If it is back by the time generation finishes, a dev server was WATCHING
     // the regeneration — and it rebuilt the cache during the window where

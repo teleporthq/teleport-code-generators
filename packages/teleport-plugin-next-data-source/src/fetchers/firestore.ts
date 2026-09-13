@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateFirestoreConfig = (
@@ -73,6 +74,8 @@ const getFirestore = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateDateFormatterCode()}
 
 export default async function handler(req, res) {
@@ -83,46 +86,49 @@ export default async function handler(req, res) {
     let queryRef = firestore.collection('${tableName}')
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        parsedFilters.forEach((filter) => {
-          if (!filter.source || filter.destination === undefined) return
-          
-          const field = filter.source
-          const value = filter.destination
-          const operand = filter.operand || '='
-          
-          // Map operands to Firestore operators
-          const operatorMap = {
-            '=': '==',
-            '!=': '!=',
-            '>': '>',
-            '<': '<',
-            '>=': '>=',
-            '<=': '<=',
-          }
+      if (filterTree) {
+        // Chained .where() calls are ANDed, so an OR group is built with
+        // Firestore's composite Filter API instead.
+        const operatorMap = {
+          '=': '==',
+          '!=': '!=',
+          '>': '>',
+          '<': '<',
+          '>=': '>=',
+          '<=': '<=',
+        }
+        
+        const buildCondition = (condition) => {
+          const field = condition.source
+          const value = condition.destination
+          const operand = condition.operand
           
           if (Array.isArray(value)) {
-            if (value.length === 0) return
-            if (operand === '!=') {
-              queryRef = queryRef.where(field, 'not-in', value)
-            } else {
-              queryRef = queryRef.where(field, 'in', value)
-            }
-          } else {
-            const firestoreOp = operatorMap[operand] || '=='
-            queryRef = queryRef.where(field, firestoreOp, value)
+            if (value.length === 0) return null
+            return admin.firestore.Filter.where(field, operand === '!=' ? 'not-in' : 'in', value)
           }
-        })
-      } else {
-        Object.entries(parsedFilters).forEach(([key, value]) => {
-          if (Array.isArray(value)) {
-            queryRef = queryRef.where(key, 'in', value)
-          } else {
-            queryRef = queryRef.where(key, '==', value)
+          
+          return admin.firestore.Filter.where(field, operatorMap[operand] || '==', value)
+        }
+        
+        const buildNode = (node) => {
+          if (node.type === 'group') {
+            const parts = node.children.map(buildNode).filter(Boolean)
+            if (parts.length === 0) return null
+            if (parts.length === 1) return parts[0]
+            return node.operator === 'or'
+              ? admin.firestore.Filter.or(...parts)
+              : admin.firestore.Filter.and(...parts)
           }
-        })
+          return buildCondition(node)
+        }
+        
+        const filterExpression = buildNode(filterTree)
+        if (filterExpression) {
+          queryRef = queryRef.where(filterExpression)
+        }
       }
     }
     

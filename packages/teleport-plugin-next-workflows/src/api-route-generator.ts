@@ -975,6 +975,7 @@ const CLIENT_ONLY_NODES = new Set([
   'browser-text-to-speech',
   'browser-get-media-devices',
   'browser-speech-to-text',
+  'browser-speech-recognition',
   'general-trigger-download',
   'general-extract-form-data',
   'general-emit-custom-event',

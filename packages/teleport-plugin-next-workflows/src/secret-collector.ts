@@ -21,6 +21,9 @@ const KNOWN_SECRET_FIELDS: Record<string, string[]> = {
   'sms-smsapi': ['accessToken'],
   'general-http-request': [],
   'payment-charge-user': ['secretKey', 'clientId', 'clientSecret'],
+  // Same credentials as the charge: a refund goes back through the provider
+  // that took the money.
+  'payment-refund': ['secretKey', 'clientId', 'clientSecret'],
   'payment-subscribe-to-plan': ['secretKey'],
   'payment-cancel-plan': ['secretKey'],
   'payment-create-customer': ['secretKey', 'clientId', 'clientSecret'],

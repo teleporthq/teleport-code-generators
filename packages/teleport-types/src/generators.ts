@@ -20,6 +20,7 @@ import {
   UIDLStaticValue,
   UIDLWorkflows,
   UIDLAuthentication,
+  UIDLBlogSettings,
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
   UIDLAIAssistantChat,
@@ -201,6 +202,20 @@ export interface GeneratorOptions {
     tokens?: UIDLDesignTokens
   }
   resources?: { items: UIDLResources['items']; cache: UIDLResources['cache']; path: string[] }
+  /**
+   * PROJECT-ROOT-relative folder the framework serves pages from
+   * (`['pages']` for Next) — i.e. the project strategy's `pages.path`.
+   *
+   * A page UIDL's `outputOptions.folderPath` is relative to THAT folder, while
+   * every other path in these options (`resources.path`, the data-source and
+   * workflow util folders, ...) is relative to the PROJECT ROOT. A page plugin
+   * that needs an import path between the two has to rebase the page folder on
+   * this one first — see `GenericUtils.generatePageDependenciesPrefix`, which
+   * exists because mixing the two coordinate systems silently produced
+   * `../fetch_items` (resolving inside `pages/`) for a page in
+   * `pages/resources/` importing the root `resources/` folder.
+   */
+  pagesPath?: string[]
   dataSources?: Record<string, UIDLDataSource>
   forms?: UIDLForms
   globalAssets?: UIDLGlobalAsset[]
@@ -218,6 +233,10 @@ export interface GeneratorOptions {
   // (the category taxonomy lives only in `ecommerceSettings.categories`,
   // baked at export time — there is no DB table for it).
   ecommerceSettings?: UIDLEcommerceSettings
+  // Blog post-category taxonomy — like `ecommerceSettings.categories`, it lives
+  // only in the UIDL (there is no DB table for it), so the blog-post transform
+  // needs it here to resolve a post's `category_ids` to display names.
+  blogSettings?: UIDLBlogSettings
   // Project-level invoice settings, plumbed down for the SAME reason: the
   // `teleport` data source fetcher bakes the storefront tax rate
   // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a

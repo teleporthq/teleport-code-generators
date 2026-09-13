@@ -1,5 +1,6 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
+import { ProductDiscounts, ProductRatings, StorefrontTax } from '@teleporthq/teleport-shared'
+import { generateCategoryTaxonomyCode } from './category-taxonomy'
 
 /**
  * Everything the product transform needs baked in at export time, beyond the
@@ -29,47 +30,6 @@ export interface EcommerceProductTransformOptions {
 }
 
 /**
- * Flattens the nested category tree (`ecommerceSettings.categories`, baked at
- * export time) into an `id -> {name, slug, translations}` lookup map,
- * JSON-embedded into the generated transform below so a product's
- * `category_ids` can be resolved to display names with no runtime DB lookup
- * (there is no DB table for the taxonomy — it lives only in the UIDL).
- * `translations` is carried through unresolved (a per-language `{name,
- * description}` map) so `buildEcommerceProduct` can resolve it against the
- * SAME per-request `currentLanguage`/`mainLanguage` used for every other i18n
- * field — `slug` is never localized (it's the language-neutral join key).
- * Tolerant of a missing/malformed tree.
- */
-const flattenCategoriesById = (
-  categories: UIDLEcommerceCategory[] | undefined
-): Record<
-  string,
-  { name: string; slug: string; translations?: UIDLEcommerceCategory['translations'] }
-> => {
-  const byId: Record<
-    string,
-    { name: string; slug: string; translations?: UIDLEcommerceCategory['translations'] }
-  > = {}
-  const visit = (nodes: UIDLEcommerceCategory[] | undefined): void => {
-    if (!Array.isArray(nodes)) {
-      return
-    }
-    for (const node of nodes) {
-      if (node && typeof node.id === 'string') {
-        byId[node.id] = {
-          name: node.name || '',
-          slug: node.slug || '',
-          translations: node.translations,
-        }
-        visit(node.children)
-      }
-    }
-  }
-  visit(categories)
-  return byId
-}
-
-/**
  * Generates JavaScript code for e-commerce product data transformation.
  * Transforms raw snake_case database records into the camelCase shape
  * that UIDL components expect.
@@ -77,7 +37,6 @@ const flattenCategoriesById = (
 export const generateEcommerceProductTransformationCode = (
   options: EcommerceProductTransformOptions = {}
 ): string => {
-  const categoriesByIdJson = JSON.stringify(flattenCategoriesById(options.categories))
   const taxHelperCode = StorefrontTax.generateStorefrontTaxHelperCode(
     options.storefrontTaxRate ?? 0
   )
@@ -86,29 +45,14 @@ export const generateEcommerceProductTransformationCode = (
   return `
 ${taxHelperCode}
 ${ProductDiscounts.generateProductDiscountHelperCode()}
+${ProductRatings.generateProductRatingHelperCode()}
 
 // Baked from the merchant's stock settings: TRUE when stock never blocks a
 // purchase (stock management off OR backorders allowed). Regenerating the
 // project refreshes it — do not hand-edit. See EcommerceProductTransformOptions.
 var ALLOW_BACKORDERS = ${allowBackordersLiteral}
 
-// Category taxonomy (id -> {name, slug, translations}), baked in at export
-// time — see flattenCategoriesById in ecommerce-product.ts. Empty when the
-// store has no category taxonomy, or products.category_ids simply resolves
-// to nothing.
-var PRODUCT_CATEGORIES_BY_ID = ${categoriesByIdJson}
-
-// Resolve a baked category's name to currentLang/mainLang from its
-// translations map (same per-request locale as every other i18n field via
-// resolveI18nField), falling back to the main-language name.
-function resolveCategoryName(categoryInfo, currentLang, mainLang) {
-  if (currentLang && mainLang && currentLang !== mainLang && categoryInfo.translations) {
-    var override = categoryInfo.translations[currentLang]
-    if (override && override.name) return override.name
-  }
-  return categoryInfo.name
-}
-
+${generateCategoryTaxonomyCode('PRODUCT_CATEGORIES_BY_ID', options.categories)}
 // The merchant's "Show 3D model by default" toggle, as every backend may hand
 // it back: a real boolean, 1/0, 'true'/'false'/'t'/'f' strings — and NULL /
 // absent / '' as ON, because a product that has a model shows it unless the
@@ -251,24 +195,17 @@ function buildEcommerceProduct(record, options) {
     visibleProperties.push(classifyProductProperty(propKey, propValue))
   })
 
-  // Assigned category ids -> resolved {id,name,slug} objects for the
-  // storefront category pills mapper. The taxonomy itself is not in the DB
-  // (categories are authored in the GUI and live only in
-  // ecommerceSettings.categories); resolved here against PRODUCT_CATEGORIES_BY_ID,
-  // baked in at export time (see flattenCategoriesById). Unknown/stale ids
-  // (a deleted category) are silently dropped.
-  var categoryIds = parseJsonArray(record.category_ids)
-  var categories = []
-  for (var ci = 0; ci < categoryIds.length; ci++) {
-    var categoryInfo = PRODUCT_CATEGORIES_BY_ID[categoryIds[ci]]
-    if (categoryInfo) {
-      categories.push({
-        id: categoryIds[ci],
-        name: resolveCategoryName(categoryInfo, currentLang, mainLang),
-        slug: categoryInfo.slug,
-      })
-    }
-  }
+  // Assigned category ids -> resolved {id,name,slug} objects for the storefront
+  // category pills mapper and the product-details breadcrumbs. The taxonomy
+  // itself is not in the DB (categories are authored in the GUI and live only in
+  // ecommerceSettings.categories); resolved against PRODUCT_CATEGORIES_BY_ID,
+  // baked in at export time. Unknown/stale ids are silently dropped.
+  var categories = resolveAssignedCategories(
+    record.category_ids,
+    PRODUCT_CATEGORIES_BY_ID,
+    currentLang,
+    mainLang
+  )
 
   // Purchasable variant COMBINATIONS for this product ({id, options map, price,
   // stock, image}). Empty for flat products. Fetched in ONE batched query by
@@ -323,6 +260,9 @@ function buildEcommerceProduct(record, options) {
       // card's picker. The batched query includes the related ids for exactly
       // this reason (see getTransformWrapperCode).
       variantsByProductId: options.variantsByProductId,
+      // Same reason: a related card draws its own star row, and the batched
+      // aggregate already covered its id.
+      ratingsByProductId: options.ratingsByProductId,
     }
     for (var rp = 0; rp < relatedProductIds.length; rp++) {
       var relatedId = relatedProductIds[rp]
@@ -531,6 +471,31 @@ function buildEcommerceProduct(record, options) {
     (requiresVariantSelection !== 'true' || !variantsResolved || hasInStockCombination)
       ? 'true'
       : 'false'
+  // Aggregate review rating, from ONE batched COUNT/AVG over approved reviews
+  // that transformRecords runs for every product on the page (keyed by product
+  // id in options.ratingsByProductId).
+  //
+  // ⛔ An ABSENT entry and a NULL map both mean "no rating to show", never "0
+  // stars": a product nobody has reviewed and a product whose rating query
+  // failed must both render with no stars at all. "0.0 out of 5" is the single
+  // worst thing a storefront can say about a product by accident.
+  //
+  // MUST mirror buildProductRatingFields in the GUI's
+  // features/e-commerce/utils/product-ratings.ts.
+  var ratingsByProductId = options.ratingsByProductId || {}
+  var ratingFields = __prBuildRatingFields(id != null ? ratingsByProductId[id] : null)
+
+  // The individual reviews behind those stars, for the product page's JSON-LD.
+  // Fetched ONLY for a single-product request (see getTransformWrapperCode), so
+  // this is an empty array on every listing — which is correct: a listing emits
+  // no Product markup to put them in.
+  //
+  // Not rendered anywhere. That is why there is no canvas mirror for it: the
+  // three-mirror rule exists for fields the editor DRAWS, and structured data
+  // is a publish-time concern the canvas has no equivalent of.
+  var reviewsByProductId = options.reviewsByProductId || {}
+  var reviews = (id != null && reviewsByProductId[id]) || []
+
   // Stringified companions: a data-* attr bound to an ARRAY renders
   // '[object Object]', so the picker's on-mount/click workflows read the
   // combinations + axes from these JSON strings via getAttribute.
@@ -598,6 +563,22 @@ function buildEcommerceProduct(record, options) {
     originalDisplayPrice: originalDisplayPrice,
     originalDefaultVariantDisplayPrice: originalDefaultVariantDisplayPrice,
     hasPurchasableVariant: hasPurchasableVariant,
+    // Aggregate review rating — see the ratingFields block above.
+    ratingAverage: ratingFields.ratingAverage,
+    ratingCount: ratingFields.ratingCount,
+    ratingAverageLabel: ratingFields.ratingAverageLabel,
+    ratingCountLabel: ratingFields.ratingCountLabel,
+    hasRatings: ratingFields.hasRatings,
+    ratingStar1: ratingFields.ratingStar1,
+    ratingStar2: ratingFields.ratingStar2,
+    ratingStar3: ratingFields.ratingStar3,
+    ratingStar4: ratingFields.ratingStar4,
+    ratingStar5: ratingFields.ratingStar5,
+    // Domain-shaped, not schema.org-shaped: the head-config plugin's
+    // 'reviewList' computed kind does the vocabulary. NO BACKTICKS ANYWHERE IN
+    // THIS FILE — it is one template literal, and a backtick in a comment ends
+    // the string.
+    reviews: reviews,
   }
 }
 
@@ -863,6 +844,124 @@ async function getRelatedProductsMap(getClientFn, records) {
     }
   } catch (e) {
     // Leaves relatedProducts empty rather than failing the page.
+  } finally {
+    if (client) {
+      try { await client.end() } catch (e) { /* ignore */ }
+    }
+  }
+  return map
+}
+
+// Aggregate review rating for every product on the page, keyed by product id,
+// so a card can draw its star row without a query per product.
+//
+// APPROVED ONLY, and 'approved' is a fixed literal rather than a bound value
+// because nothing may ever widen it: a pending review is one the merchant has
+// not agreed to publish, and a rejected one is a review they actively removed.
+//
+// Unlike getVariantsMap this returns an EMPTY MAP on failure rather than null.
+// The two "unknown" answers differ because the consequences differ: an unknown
+// variant map must stay permissive (never make a catalogue unbuyable), whereas
+// an unknown rating has exactly one safe rendering — no stars — which is also
+// what a product with no reviews shows. Collapsing both onto {} means every
+// caller has one case to handle instead of two.
+async function getRatingsMap(getClientFn, productIds) {
+  var map = {}
+  if (!Array.isArray(productIds) || productIds.length === 0) return map
+  var uniqueIds = []
+  var seenIds = {}
+  for (var u = 0; u < productIds.length; u++) {
+    var pid0 = productIds[u]
+    if (pid0 != null && !seenIds[pid0]) { seenIds[pid0] = true; uniqueIds.push(pid0) }
+  }
+  if (uniqueIds.length === 0) return map
+  var client
+  try {
+    client = getClientFn()
+    await client.connect()
+    var result = await client.query(
+      "SELECT product_id, AVG(rating)::float AS average, COUNT(*)::int AS count " +
+        'FROM teleport_product_reviews ' +
+        "WHERE status = 'approved' AND rating IS NOT NULL AND product_id = ANY($1) " +
+        'GROUP BY product_id',
+      [uniqueIds]
+    )
+    if (result && result.rows) {
+      for (var r = 0; r < result.rows.length; r++) {
+        var row = result.rows[r]
+        if (row && row.product_id != null) {
+          map[row.product_id] = { average: row.average, count: row.count }
+        }
+      }
+    }
+  } catch (e) {
+    // teleport_product_reviews may not exist (reviews were never enabled), or
+    // the query may have failed. Either way there is no rating to show, which
+    // is exactly what an empty map produces.
+    map = {}
+  } finally {
+    if (client) {
+      try { await client.end() } catch (e) { /* ignore */ }
+    }
+  }
+  return map
+}
+
+// The most recent APPROVED reviews for a product, for the product page's
+// structured data. Keyed by product id like every other batched lookup, though
+// in practice it is only ever called with one id.
+//
+// Three filters, and each one exists because of what the output is used for:
+//  - APPROVED only, as a fixed literal, for the same reason the aggregate is:
+//    a pending review is one the merchant has not agreed to publish.
+//  - A NON-EMPTY reviewer name. Google requires author.name on a review
+//    snippet, and an anonymous row would produce a Review object it rejects —
+//    taking the whole Product block down with it on some validators.
+//  - A CAP. The reviews are inlined into the page's props and then into its
+//    HTML twice over (once as data, once as JSON-LD); a product with four
+//    hundred reviews would otherwise put all of them in both.
+async function getProductReviewsMap(getClientFn, productIds, perProduct) {
+  var map = {}
+  if (!Array.isArray(productIds) || productIds.length === 0) return map
+  var uniqueIds = []
+  var seenIds = {}
+  for (var u = 0; u < productIds.length; u++) {
+    var pid0 = productIds[u]
+    if (pid0 != null && !seenIds[pid0]) { seenIds[pid0] = true; uniqueIds.push(pid0) }
+  }
+  if (uniqueIds.length === 0) return map
+  var client
+  try {
+    client = getClientFn()
+    await client.connect()
+    var result = await client.query(
+      'SELECT product_id, reviewer_name, rating, content, created_at ' +
+        'FROM teleport_product_reviews ' +
+        "WHERE status = 'approved' AND rating IS NOT NULL " +
+        "AND reviewer_name IS NOT NULL AND btrim(reviewer_name) <> '' " +
+        'AND product_id = ANY($1) ' +
+        'ORDER BY created_at DESC',
+      [uniqueIds]
+    )
+    var cap = typeof perProduct === 'number' && perProduct > 0 ? perProduct : 5
+    if (result && result.rows) {
+      for (var r = 0; r < result.rows.length; r++) {
+        var row = result.rows[r]
+        if (!row || row.product_id == null) continue
+        var bucket = map[row.product_id] || (map[row.product_id] = [])
+        if (bucket.length >= cap) continue
+        bucket.push({
+          author: String(row.reviewer_name).trim(),
+          rating: Number(row.rating),
+          body: row.content == null ? '' : String(row.content),
+          datePublished: row.created_at ? new Date(row.created_at).toISOString() : null,
+        })
+      }
+    }
+  } catch (e) {
+    // The reviews table may not exist (reviews were never enabled). No reviews
+    // to show is both the empty answer and the safe one.
+    map = {}
   } finally {
     if (client) {
       try { await client.end() } catch (e) { /* ignore */ }

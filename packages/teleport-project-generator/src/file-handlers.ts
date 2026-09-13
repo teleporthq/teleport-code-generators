@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils, FontPreconnect } from '@teleporthq/teleport-shared'
 import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   GeneratedFile,
@@ -230,6 +230,23 @@ const createHTMLEntryFileChunks = (
       HASTUtils.addAttributeToNode(metaTag, key, prefixedURL)
     })
     HASTUtils.addChildNode(headNode, metaTag)
+  })
+
+  // Preconnect hints first: they only help if the browser sees them BEFORE the
+  // stylesheet link that triggers the two-hop font fetch. Mirrors the JSX head
+  // builder in teleport-plugin-common, and shares its resolver.
+  FontPreconnect.resolveFontPreconnectHints(
+    assets.map((asset) =>
+      'path' in asset ? UIDLUtils.prefixAssetsPath(asset.path, options.assets) : undefined
+    )
+  ).forEach((hint) => {
+    const preconnectTag = HASTBuilders.createHTMLNode('link')
+    HASTUtils.addAttributeToNode(preconnectTag, 'rel', 'preconnect')
+    HASTUtils.addAttributeToNode(preconnectTag, 'href', hint.href)
+    if (hint.crossorigin) {
+      HASTUtils.addBooleanAttributeToNode(preconnectTag, 'crossorigin')
+    }
+    HASTUtils.addChildNode(headNode, preconnectTag)
   })
 
   assets.forEach((asset) => {

@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
 
@@ -41,6 +42,8 @@ export const generateTursoFetcher = (
   return `import { createClient } from '@libsql/client'
 
 ${generateSafeJSONParseCode()}
+
+${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
 
@@ -92,52 +95,37 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        parsedFilters.forEach((filter) => {
-          if (!filter.source || filter.destination === undefined) return
-          
-          const field = sanitizeIdentifier(filter.source)
-          const value = filter.destination
-          const operand = filter.operand || '='
+      if (filterTree) {
+        const buildCondition = (condition) => {
+          const field = sanitizeIdentifier(condition.source)
+          const value = condition.destination
+          const operand = condition.operand
           
           if (Array.isArray(value)) {
-            if (value.length === 0) return
+            if (value.length === 0) return null
             const placeholders = value.map(() => '?').join(', ')
             queryParams.push(...value)
-            if (operand === '!=') {
-              whereClauses.push(\`\${field} NOT IN (\${placeholders})\`)
-            } else {
-              whereClauses.push(\`\${field} IN (\${placeholders})\`)
-            }
-          } else {
-            if (value === null) {
-              if (operand === '=') {
-                whereClauses.push(\`\${field} IS NULL\`)
-              } else if (operand === '!=') {
-                whereClauses.push(\`\${field} IS NOT NULL\`)
-              }
-            } else {
-              const validOps = ['=', '!=', '>', '<', '>=', '<=']
-              const sqlOperator = validOps.includes(operand) ? operand : '='
-              whereClauses.push(\`\${field} \${sqlOperator} ?\`)
-              queryParams.push(value)
-            }
+            return operand === '!='
+              ? \`\${field} NOT IN (\${placeholders})\`
+              : \`\${field} IN (\${placeholders})\`
           }
-        })
-      } else {
-        Object.entries(parsedFilters).forEach(([key, value]) => {
-          const field = sanitizeIdentifier(key)
-          if (Array.isArray(value)) {
-            const placeholders = value.map(() => '?').join(', ')
-            queryParams.push(...value)
-            whereClauses.push(\`\${field} IN (\${placeholders})\`)
-          } else {
-            whereClauses.push(\`\${field} = ?\`)
-            queryParams.push(value)
+          
+          if (value === null) {
+            if (operand === '=') return \`\${field} IS NULL\`
+            if (operand === '!=') return \`\${field} IS NOT NULL\`
+            return null
           }
-        })
+          
+          const validOps = ['=', '!=', '>', '<', '>=', '<=']
+          const sqlOperator = validOps.includes(operand) ? operand : '='
+          queryParams.push(value)
+          return \`\${field} \${sqlOperator} ?\`
+        }
+        
+        const clause = buildFilterTreeClause(filterTree, buildCondition)
+        if (clause) whereClauses.push(clause)
       }
     }
     

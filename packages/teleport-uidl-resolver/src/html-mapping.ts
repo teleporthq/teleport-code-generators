@@ -19,6 +19,18 @@ export const HTMLMapping: Mapping = {
       elementType: 'img',
       attrs: {
         src: { type: 'dynamic', content: { referenceType: 'attr', id: 'url' } },
+        // Deferred decoding + off-screen loading as the DEFAULT for every
+        // image. A generated page routinely carries dozens (a product grid, a
+        // gallery, a long landing page) and eagerly fetching all of them
+        // competes with the one image that actually matters for LCP.
+        //
+        // The exception is the above-the-fold hero, which must load eagerly or
+        // this trade goes the wrong way. That is set as an attribute ON THE
+        // NODE (see `applyImagePriorityHints` in the GUI mapper), and a UIDL
+        // attribute overrides a mapping one — so the hero's `eager` wins here
+        // and an author's own `loading` value wins over both.
+        loading: { type: 'static', content: 'lazy' },
+        decoding: { type: 'static', content: 'async' },
       },
       selfClosing: true,
     },

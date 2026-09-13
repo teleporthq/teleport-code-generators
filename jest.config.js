@@ -45,6 +45,10 @@ module.exports = {
   // entire handlers directory is excluded from instrumentation.
   "coveragePathIgnorePatterns": [
     "/node_modules/",
-    "/packages/teleport-plugin-next-workflows/src/nodes/"
+    "/packages/teleport-plugin-next-workflows/src/nodes/",
+    // The rich-text embed helpers are emitted into generated projects via
+    // fn.toString(); istanbul's `cov_xxx()` calls would travel with them into a
+    // scope that cannot resolve the counter.
+    "/packages/teleport-shared/src/utils/rich-text-embeds.ts"
   ]
 }

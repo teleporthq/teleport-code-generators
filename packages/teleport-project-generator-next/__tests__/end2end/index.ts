@@ -48,10 +48,11 @@ describe('React Next Project Generator', () => {
   it('runs without crashing and adding external dependencies', async () => {
     const outputFolder = await generator.generateProject(uidlSampleWithDependencies, template)
 
-    const pages = outputFolder.subFolders[1]
+    const pages = outputFolder.subFolders.find((folder) => folder.name === 'pages')
+    const indexPage = pages?.files.find((file) => file.name === 'index')
 
-    expect(pages.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
-    expect(pages.files[0].content).toContain(`Page 1<Modal></Modal>`)
+    expect(indexPage?.content).toContain(`import Script from 'dangerous-html/react'`)
+    expect(indexPage?.content).toContain(`Page 1<Modal></Modal>`)
   })
 
   it('runs without crashing', async () => {
@@ -62,12 +63,13 @@ describe('React Next Project Generator', () => {
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.files[0].name).toBe('package')
 
-    const components = outputFolder.subFolders[0]
-    const pages = outputFolder.subFolders[1]
+    const components = outputFolder.subFolders.find((folder) => folder.name === 'components')
+    const pages = outputFolder.subFolders.find((folder) => folder.name === 'pages')
+    const fileNames = (folder?: GeneratedFolder) => (folder?.files || []).map((file) => file.name)
 
-    expect(components.files[0].name).toBe('one-component')
-    expect(pages.files[0].name).toBe('index')
-    expect(pages.files[1].name).toBe('about')
+    expect(fileNames(components)).toContain('one-component')
+    expect(fileNames(pages)).toContain('index')
+    expect(fileNames(pages)).toContain('about')
   })
 
   it('runs without crashing and adds import of style sheet in _app.js', async () => {

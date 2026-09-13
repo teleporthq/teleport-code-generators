@@ -3,6 +3,7 @@ import {
   generateDateFormatterCode,
   generateSafeJSONParseCode,
   generateSearchEscapeHelpersCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 import {
   generateSortFallbackFieldHelper,
@@ -62,77 +63,66 @@ const getClient = () => {
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 ${generateSearchEscapeHelpersCode()}
 
-// Helper function to process filters and build conditions
+// Builds one SQL clause for the whole filter tree, so an OR group nested in
+// the root AND keeps its meaning instead of being flattened into ANDs.
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
   
-  const parsedFilters = safeJSONParse(filters)
+  const filterTree = normalizeFilterTree(safeJSONParse(filters))
+  if (!filterTree) return paramIndex
   
-  if (Array.isArray(parsedFilters)) {
-    parsedFilters.forEach((filter) => {
-      if (!filter.source || filter.destination === undefined) return
-      
-      const field = filter.source
-      const value = filter.destination
-      const operand = filter.operand || '='
-      
-      if (Array.isArray(value)) {
-        if (value.length === 0) return
-        if (operand === 'array_overlap') {
-          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
-          queryParams.push(value.map((entry) => String(entry)))
-          paramIndex++
-          return
-        }
-        const placeholders = value.map(() => \`$\${paramIndex++}\`)
-        queryParams.push(...value)
-        if (operand === '!=') {
-          conditions.push(\`\${field} NOT IN (\${placeholders.join(', ')})\`)
-        } else {
-          conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
-        }
-      } else {
-        if (operand === 'array_overlap') {
-          if (value === '' || value === null || value === undefined) return
-          // A single comma-joined string (the multi-select Category Filter's
-          // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
-          const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
-          if (overlapValues.length === 0) return
-          conditions.push(\`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`)
-          queryParams.push(overlapValues)
-          paramIndex++
-          return
-        }
-        if (value === null) {
-          if (operand === '=') {
-            conditions.push(\`\${field} IS NULL\`)
-          } else if (operand === '!=') {
-            conditions.push(\`\${field} IS NOT NULL\`)
-          }
-        } else {
-          const validOps = ['=', '!=', '>', '<', '>=', '<=']
-          const sqlOperator = validOps.includes(operand) ? operand : '='
-          conditions.push(\`\${field} \${sqlOperator} $\${paramIndex}\`)
-          queryParams.push(value)
-          paramIndex++
-        }
-      }
-    })
-  } else {
-    Object.entries(parsedFilters).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        const placeholders = value.map(() => \`$\${paramIndex++}\`)
-        queryParams.push(...value)
-        conditions.push(\`\${key} IN (\${placeholders.join(', ')})\`)
-      } else {
-        conditions.push(\`\${key} = $\${paramIndex}\`)
-        queryParams.push(value)
+  const buildCondition = (condition) => {
+    const field = condition.source
+    const value = condition.destination
+    const operand = condition.operand
+    
+    if (Array.isArray(value)) {
+      if (value.length === 0) return null
+      if (operand === 'array_overlap') {
+        const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+        queryParams.push(value.map((entry) => String(entry)))
         paramIndex++
+        return clause
       }
-    })
+      const placeholders = value.map(() => \`$\${paramIndex++}\`)
+      queryParams.push(...value)
+      return operand === '!='
+        ? \`\${field} NOT IN (\${placeholders.join(', ')})\`
+        : \`\${field} IN (\${placeholders.join(', ')})\`
+    }
+    
+    if (operand === 'array_overlap') {
+      if (value === '' || value === null || value === undefined) return null
+      // A single comma-joined string (the multi-select Category Filter's
+      // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
+      const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
+      if (overlapValues.length === 0) return null
+      const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+      queryParams.push(overlapValues)
+      paramIndex++
+      return clause
+    }
+    
+    if (value === null) {
+      if (operand === '=') return \`\${field} IS NULL\`
+      if (operand === '!=') return \`\${field} IS NOT NULL\`
+      return null
+    }
+    
+    const validOps = ['=', '!=', '>', '<', '>=', '<=']
+    const sqlOperator = validOps.includes(operand) ? operand : '='
+    const clause = \`\${field} \${sqlOperator} $\${paramIndex}\`
+    queryParams.push(value)
+    paramIndex++
+    return clause
   }
+  
+  const clause = buildFilterTreeClause(filterTree, buildCondition)
+  if (clause) conditions.push(clause)
   
   return paramIndex
 }

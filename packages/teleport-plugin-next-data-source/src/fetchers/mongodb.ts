@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateMongoDBConfig = (
@@ -73,95 +74,79 @@ export const generateMongoDBFetcher = (
 
 ${generateSafeJSONParseCode()}
 
+${generateFilterTreeHelpersCode()}
+
 // Helper function to process filters
 const processFilters = (filters, filter) => {
   if (!filters) return
   
-  const parsedFilters = safeJSONParse(filters)
+  const filterTree = normalizeFilterTree(safeJSONParse(filters))
+  if (!filterTree) return
   
-  if (Array.isArray(parsedFilters)) {
-    parsedFilters.forEach((filterItem) => {
-      if (!filterItem.source || filterItem.destination === undefined) return
-      
-      const field = filterItem.source
-      const value = filterItem.destination
-      const operand = filterItem.operand || '='
-      
-      // Handle _id specially
-      const processValue = (v) => {
-        if (field === '_id' && typeof v === 'string') {
-          try {
-            return new ObjectId(v)
-          } catch (e) {
-            return v
-          }
-        }
+  const processValue = (field, v) => {
+    if (field === '_id' && typeof v === 'string') {
+      try {
+        return new ObjectId(v)
+      } catch (e) {
         return v
       }
-      
-      if (Array.isArray(value)) {
-        const processedValues = value.map(processValue)
-        if (operand === '!=') {
-          filter[field] = { $nin: processedValues }
-        } else {
-          filter[field] = { $in: processedValues }
-        }
-      } else {
-        const processedValue = processValue(value)
-        
-        // Handle null values
-        if (processedValue === null) {
-          if (operand === '=') {
-            filter[field] = null
-          } else if (operand === '!=') {
-            filter[field] = { $ne: null }
-          }
-        } else {
-          // Map operand to MongoDB operators
-          switch (operand) {
-            case '=':
-              filter[field] = processedValue
-              break
-            case '!=':
-              filter[field] = { $ne: processedValue }
-              break
-            case '>':
-              filter[field] = { $gt: processedValue }
-              break
-            case '>=':
-              filter[field] = { $gte: processedValue }
-              break
-            case '<':
-              filter[field] = { $lt: processedValue }
-              break
-            case '<=':
-              filter[field] = { $lte: processedValue }
-              break
-            default:
-              filter[field] = processedValue
-          }
-        }
-      }
-    })
-  } else {
-    Object.entries(parsedFilters).forEach(([key, value]) => {
-      if (key === '_id') {
-        if (Array.isArray(value)) {
-          filter[key] = {
-            $in: value.map((id) => (typeof id === 'string' ? new ObjectId(id) : id))
-          }
-        } else if (typeof value === 'string') {
-          filter[key] = new ObjectId(value)
-        } else {
-          filter[key] = value
-        }
-      } else if (Array.isArray(value)) {
-        filter[key] = { $in: value }
-      } else {
-        filter[key] = value
-      }
-    })
+    }
+    return v
   }
+  
+  const buildCondition = (condition) => {
+    const field = condition.source
+    const value = condition.destination
+    const operand = condition.operand
+    
+    if (Array.isArray(value)) {
+      const processedValues = value.map((entry) => processValue(field, entry))
+      return operand === '!='
+        ? { [field]: { $nin: processedValues } }
+        : { [field]: { $in: processedValues } }
+    }
+    
+    const processedValue = processValue(field, value)
+    
+    if (processedValue === null) {
+      if (operand === '=') return { [field]: null }
+      if (operand === '!=') return { [field]: { $ne: null } }
+      return null
+    }
+    
+    switch (operand) {
+      case '!=':
+        return { [field]: { $ne: processedValue } }
+      case '>':
+        return { [field]: { $gt: processedValue } }
+      case '>=':
+        return { [field]: { $gte: processedValue } }
+      case '<':
+        return { [field]: { $lt: processedValue } }
+      case '<=':
+        return { [field]: { $lte: processedValue } }
+      default:
+        return { [field]: processedValue }
+    }
+  }
+  
+  const buildNode = (node) => {
+    if (node.type === 'group') {
+      const parts = node.children.map(buildNode).filter(Boolean)
+      if (parts.length === 0) return null
+      if (parts.length === 1) return parts[0]
+      return node.operator === 'or' ? { $or: parts } : { $and: parts }
+    }
+    return buildCondition(node)
+  }
+  
+  const query = buildNode(filterTree)
+  if (!query) return
+  
+  // Merged under $and rather than assigned onto filter directly: the search
+  // above may already own filter.$or, and two conditions on the same field
+  // would otherwise overwrite each other.
+  filter.$and = (filter.$and || []).concat([query])
 }
 
 ${generateDateFormatterCode()}

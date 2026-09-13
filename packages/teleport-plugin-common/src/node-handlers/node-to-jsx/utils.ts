@@ -806,6 +806,7 @@ export const createConditionIdentifier = (
     return {
       key: dynamicReference.content,
       type: 'boolean',
+      isExpression: true,
     }
   }
 
@@ -920,6 +921,7 @@ export const createConditionIdentifier = (
       return {
         key: id,
         type: 'boolean',
+        isExpression: true,
       }
 
     default:
@@ -1085,6 +1087,63 @@ const createLengthExpression = (
     : t.memberExpression(target, t.identifier('length'))
 }
 
+/**
+ * A UIDL `expr` reference whose whole body is a JavaScript LITERAL.
+ *
+ * `expr` content is source, not a name, so it must never reach the reserved
+ * word sanitiser: the domain-to-UIDL mapper emits the literal `false` as its
+ * "this condition could not be resolved" fallback (an orphaned state/prop
+ * reference), and `t.identifier(createSafeJSIdentifierPath('false'))` prints
+ * `false_` — an undefined binding that throws
+ * `ReferenceError: false_ is not defined` while the page is rendering, taking
+ * the whole page down instead of quietly rendering nothing.
+ *
+ * Only complete literals are matched. Anything else (`chatMessage?.sender`,
+ * `props.product?.slug`) keeps the historical verbatim-identifier printing,
+ * including the sanitiser pass that a state genuinely named `class` relies on.
+ */
+const NUMERIC_LITERAL_RE = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/
+
+const createJSLiteralExpression = (source: string, t = types): types.Expression | null => {
+  switch (source) {
+    case 'true':
+      return t.booleanLiteral(true)
+    case 'false':
+      return t.booleanLiteral(false)
+    case 'null':
+      return t.nullLiteral()
+    case 'undefined':
+      return t.identifier('undefined')
+    default:
+      return NUMERIC_LITERAL_RE.test(source) ? t.numericLiteral(Number(source)) : null
+  }
+}
+
+/** The left-hand side of one condition, as an AST node. */
+const createConditionalIdentifierExpression = (
+  conditionalIdentifier: ConditionalIdentifier,
+  t = types
+): types.Expression => {
+  // Same rule as `createDynamicValueExpression`: an un-prefixed key is the
+  // binding itself and must be identifier-safe; a prefixed one is a member
+  // access that has to keep the UIDL's original spelling.
+  if (conditionalIdentifier.prefix) {
+    return t.memberExpression(
+      t.identifier(conditionalIdentifier.prefix),
+      t.identifier(conditionalIdentifier.key)
+    )
+  }
+
+  if (conditionalIdentifier.isExpression) {
+    const literal = createJSLiteralExpression(conditionalIdentifier.key, t)
+    if (literal) {
+      return literal
+    }
+  }
+
+  return t.identifier(JSIdentifiers.createSafeJSIdentifierPath(conditionalIdentifier.key))
+}
+
 export const createBinaryExpression = (
   condition: {
     operation: string
@@ -1096,15 +1155,7 @@ export const createBinaryExpression = (
   t = types
 ) => {
   const { operand, operation, containsField } = condition
-  // Same rule as `createDynamicValueExpression`: an un-prefixed key is the
-  // binding itself and must be identifier-safe; a prefixed one is a member
-  // access that has to keep the UIDL's original spelling.
-  const identifier = conditionalIdentifier.prefix
-    ? t.memberExpression(
-        t.identifier(conditionalIdentifier.prefix),
-        t.identifier(conditionalIdentifier.key)
-      )
-    : t.identifier(JSIdentifiers.createSafeJSIdentifierPath(conditionalIdentifier.key))
+  const identifier = createConditionalIdentifierExpression(conditionalIdentifier, t)
 
   // Array/Object operators
   if (operation === 'isEmpty') {

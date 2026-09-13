@@ -4,12 +4,15 @@ import {
   ProjectPluginStructure,
   UIDLElement,
 } from '@teleporthq/teleport-types'
+import { RichTextEmbeds } from '@teleporthq/teleport-shared'
 import { traverseProjectElements } from '../uidl-element-traversal'
+import { ensureEmbedRuntimeModule } from '../rich-content-embeds/runtime-module'
 import { generateRichTextEditorComponentCode } from './component-generator'
 
 interface RichTextEditorUsageInfo {
   themes: Set<string>
   hasFormulaFormat: boolean
+  hasEmbedFormat: boolean
 }
 
 /**
@@ -22,6 +25,7 @@ const detectRichTextEditorUsage = (
   const info: RichTextEditorUsageInfo = {
     themes: new Set<string>(),
     hasFormulaFormat: false,
+    hasEmbedFormat: false,
   }
 
   let found = false
@@ -45,16 +49,22 @@ const detectRichTextEditorUsage = (
       info.themes.add('snow') // default
     }
 
-    // Detect formula format
+    // Detect the formats that pull extra machinery into the project: KaTeX for
+    // `formula`, and the whole code-embed layer for `tq-embed`.
     const formatsAttr = attrs.quillFormats
     if (formatsAttr && formatsAttr.type === 'raw') {
       try {
         const formats = JSON.parse((formatsAttr as any).content)
-        if (Array.isArray(formats) && formats.includes('formula')) {
-          info.hasFormulaFormat = true
+        if (Array.isArray(formats)) {
+          if (formats.indexOf('formula') !== -1) {
+            info.hasFormulaFormat = true
+          }
+          if (formats.indexOf(RichTextEmbeds.EMBED_BLOT_NAME) !== -1) {
+            info.hasEmbedFormat = true
+          }
         }
       } catch {
-        // Parsing failed — no formula
+        // Parsing failed — neither format is in play
       }
     }
   }
@@ -87,7 +97,12 @@ export class NextRichTextEditorProjectPlugin implements ProjectPlugin {
     }
 
     // 1. Generate the RichTextEditor component file
-    const componentContent = generateRichTextEditorComponentCode()
+    if (usage.hasEmbedFormat) {
+      ensureEmbedRuntimeModule(structure)
+    }
+    const componentContent = generateRichTextEditorComponentCode({
+      withEmbeds: usage.hasEmbedFormat,
+    })
     files.set('rich-text-editor-component', {
       path: ['components'],
       files: [

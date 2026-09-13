@@ -6,14 +6,11 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
-import { ASTStatementOrder, StringUtils } from '@teleporthq/teleport-shared'
+import { ASTStatementOrder, GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
-import {
-  buildProductTransformOptions,
-  type EcommerceProductTransformOptions,
-} from './transformations'
+import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
 import {
@@ -3223,7 +3220,7 @@ function applyServerCacheToDataSourceModules(
   registry: StateRegistry,
   // tslint:disable-next-line:no-any
   dataSources: Record<string, any>,
-  transformOptions: EcommerceProductTransformOptions = {},
+  transformOptions: EntityTransformOptions = {},
   // Accumulated across every page/component this generation has processed. The
   // module is shared project-wide, so merging only the CURRENT page's usages
   // would let page ORDER decide the TTL: a page asking for 300s processed after
@@ -3309,7 +3306,7 @@ function ensureAPIRouteExists(
   extractedResources: any,
   usage: DataSourceUsage,
   dataSources: Record<string, any>,
-  transformOptions: EcommerceProductTransformOptions = {}
+  transformOptions: EntityTransformOptions = {}
 ): void {
   // Generate file name for the API route
   const fileName = generateSafeFileName(
@@ -3597,8 +3594,7 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
-          const depth = (folderPath ? folderPath.length : 0) + 1
-          const relativePrefix = '../'.repeat(depth)
+          const relativePrefix = GenericUtils.generatePageToRootPrefix({ folderPath })
           dependencies[fetcherImportName] = {
             type: 'local',
             path: `${relativePrefix}utils/data-sources/${fileName}`,
@@ -3815,8 +3811,7 @@ function updateGetStaticProps(
 
         // Add import dependency for the fetcher
         if (!dependencies[fetcherImportName]) {
-          const depth = (folderPath ? folderPath.length : 0) + 1
-          const relativePrefix = '../'.repeat(depth)
+          const relativePrefix = GenericUtils.generatePageToRootPrefix({ folderPath })
           dependencies[fetcherImportName] = {
             type: 'local',
             path: `${relativePrefix}utils/data-sources/${fileName}`,

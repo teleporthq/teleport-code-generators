@@ -30,6 +30,7 @@ import { generateScrollSceneComponentCode } from '../src/widgets/scroll-scene-co
 import { generateScrollVideoComponentCode } from '../src/widgets/scroll-video-component'
 import { COLLAPSIBLE_TEXT_OVERFLOW_COMPONENT_SOURCE } from '../src/collapsible-text/collapsible-text-overflow-component'
 import { NAV_ACTIVE_LINK_COMPONENT_SOURCE } from '../src/nav-active-link/nav-active-link-component'
+import { generateRichContentEmbedsComponentCode } from '../src/rich-content-embeds/embed-activator-component'
 import { TRACKER_COMPONENT_SOURCE } from '../src/analytics/tracker-component'
 
 const EMITTED_COMPONENTS: Array<[string, string]> = [
@@ -37,6 +38,8 @@ const EMITTED_COMPONENTS: Array<[string, string]> = [
   ['tq-kanban', generateKanbanComponentCode()],
   ['tq-drag-drop', generateDragDropComponentCode()],
   ['rich-text-editor', generateRichTextEditorComponentCode()],
+  ['rich-text-editor (with embeds)', generateRichTextEditorComponentCode({ withEmbeds: true })],
+  ['rich-content-embeds', generateRichContentEmbedsComponentCode()],
   ['tq-motion', generateMotionComponentCode()],
   ['tq-scroll-scene', generateScrollSceneComponentCode()],
   ['tq-scroll-video', generateScrollVideoComponentCode()],

@@ -2,6 +2,74 @@ import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport
 import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
 import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
 
+/**
+ * Records where this VISIT came from, so the checkout can stamp it onto the
+ * order and a merchant can report revenue per campaign.
+ *
+ * ALWAYS emitted, unlike the database-cart helpers: attribution has nothing to
+ * do with where the cart is stored, and the provider's mount effect calls this
+ * unconditionally — gating it would be a ReferenceError on every
+ * localStorage-only store.
+ *
+ * The reader half is baked into the place-order workflow by the editor
+ * (features/workflows/templates/builders/ecommerce/order-attribution-script.ts).
+ * ⚠️ ATTRIBUTION_KEY and the key that module reads MUST match.
+ *
+ * SESSION storage, not local: attribution belongs to a visit. A shopper who
+ * arrives from a campaign today and returns directly next week is a direct
+ * visit the second time, and localStorage would credit the campaign forever.
+ *
+ * Writes only when nothing is stored yet — that is what makes it FIRST touch.
+ * A shopper who lands on a campaign URL, browses, and checks out three pages
+ * later has a clean address bar by then, so reading the URL at checkout would
+ * attribute every one of those orders to nothing.
+ */
+const ORDER_ATTRIBUTION_WRITER = `
+const ATTRIBUTION_KEY = 'tq_attribution'
+
+function captureOrderAttribution() {
+  if (typeof window === 'undefined') return
+  try {
+    if (window.sessionStorage.getItem(ATTRIBUTION_KEY)) return
+    const params = new URLSearchParams(window.location.search || '')
+    // Capped to the column width: a 4KB UTM value is a broken link or an
+    // attack, and a rejected INSERT would fail the whole checkout.
+    const read = function (key) {
+      const value = params.get(key)
+      return value ? String(value).slice(0, 255) : null
+    }
+    let referrerHost = null
+    try {
+      if (document.referrer) {
+        const parsed = new URL(document.referrer)
+        // Same-origin referrers are internal navigation, not a traffic source.
+        if (parsed.host && parsed.host !== window.location.host) {
+          referrerHost = parsed.host.slice(0, 255)
+        }
+      }
+    } catch (e) {
+      referrerHost = null
+    }
+    window.sessionStorage.setItem(
+      ATTRIBUTION_KEY,
+      JSON.stringify({
+        utm_source: read('utm_source'),
+        utm_medium: read('utm_medium'),
+        utm_campaign: read('utm_campaign'),
+        utm_term: read('utm_term'),
+        utm_content: read('utm_content'),
+        // The path only: a query string can carry an email or a token, and this
+        // is written into the merchant's database.
+        landing_path: String(window.location.pathname || '/').slice(0, 512),
+        referrer_host: referrerHost,
+      })
+    )
+  } catch (e) {
+    /* private mode, disabled storage: the order is simply unattributed */
+  }
+}
+`
+
 export const generateEcommerceContextFileContent = (
   ecommerceSettings: UIDLEcommerceSettings,
   invoiceSettings?: UIDLInvoiceSettings,
@@ -22,7 +90,15 @@ export const generateEcommerceContextFileContent = (
   // context (emitted just so cart-hook imports resolve) must NOT publish a
   // defaults-shaped payload that the workflow node would mistake for real
   // merchant settings.
-  emitWorkflowSettingsGlobal?: boolean
+  emitWorkflowSettingsGlobal?: boolean,
+  // When true, `utils/ecommerce/asset-urls` and the `/api/ecommerce/assets`
+  // route it calls are part of this project, so cart hydration can turn a
+  // product image stored as a PROJECT-ASSET ID into a URL the browser can
+  // load. Off for a datasource that has no `teleport_assets` mirror to read
+  // (and for the settings-less fallback context, which has no enrichment at
+  // all): the stored value is then used exactly as the row holds it, which is
+  // what those stores always did — their media is direct URLs.
+  assetLookupEnabled?: boolean
 ): string => {
   const settingsJson = JSON.stringify(buildSettingsObject(ecommerceSettings, invoiceSettings))
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
@@ -72,6 +148,29 @@ export const generateEcommerceContextFileContent = (
   // `taxIncludedInPrice` as "added on top", matching every other legacy-document
   // coercion of that field.
   const storefrontTaxRate = resolveStorefrontTaxRate(invoiceSettings)
+
+  // Cart hydration re-reads every line off `teleport_products`, so the media it
+  // stamps back onto the line is whatever that column holds — a URL for a stock
+  // photo, a bare PROJECT-ASSET ID when the merchant picked an image that
+  // already lived in the project. The id has to become a URL here or the cart
+  // and checkout thumbnails render `<img src="<uuid>">`, which the browser
+  // resolves against the site origin and 404s.
+  //
+  // One batched lookup per hydration pass, and none at all for a store whose
+  // media is direct URLs (`loadAssetUrlMap` finds nothing to resolve and never
+  // touches the network). See `utils/ecommerce/asset-urls`.
+  const assetMapLines = assetLookupEnabled
+    ? [
+        '    var assetUrlMap = await loadAssetUrlMap(prepared.map(function(entry) { return entry.rawImage }))',
+      ]
+    : []
+  // `resolveMediaUrl` reports anything that did not become a loadable URL as
+  // ABSENT, falling back to the URL the line already carried. That is what
+  // stops a lookup outage from blanking a thumbnail an earlier pass resolved,
+  // and what stops a bare id from ever reaching the `<img src>`.
+  const resolveImageLines = assetLookupEnabled
+    ? ['      var image = resolveMediaUrl(entry.rawImage, assetUrlMap, item.image)']
+    : ['      var image = entry.rawImage']
 
   const enrichFnCode = dataSourceId
     ? [
@@ -199,18 +298,31 @@ export const generateEcommerceContextFileContent = (
         '      if (tqLineChanged(before, after)) { didChange = true }',
         '      return after',
         '    }',
-        '    var enriched = items.map(function(item) {',
+        // Each line paired with the row it was re-read from, plus the media
+        // value EXACTLY as the row holds it — a URL for a stock photo, a bare
+        // project-asset id when the merchant picked an image that already lived
+        // in the project. Collected in one pass so the whole cart's asset ids
+        // resolve in ONE lookup instead of one per line.
+        '    var prepared = items.map(function(item) {',
         '      var product = productMap[item.productId]',
-        '      if (!product && item.name) return item',
-        '      if (!product) return item',
+        '      if (!product) return { item: item, product: null, variant: null, rawImage: null }',
         '      var variant = item.variantId ? variantMap[item.variantId] : null',
+        '      var rawImage = product.image_url || product.imageUrl || null',
+        '      if (variant && variant.image_url) rawImage = variant.image_url',
+        '      return { item: item, product: product, variant: variant, rawImage: rawImage }',
+        '    })',
+        ...assetMapLines,
+        '    var enriched = prepared.map(function(entry) {',
+        '      var item = entry.item',
+        '      var product = entry.product',
+        '      if (!product) return item',
+        '      var variant = entry.variant',
         '      var price = product.price != null ? Number(product.price) : 0',
-        '      var image = product.image_url || product.imageUrl || null',
+        ...resolveImageLines,
         '      var variantLabel = item.variant || ""',
         '      var variantSwatches = item.variantSwatches || []',
         '      if (variant) {',
         '        if (variant.price != null) price = Number(variant.price)',
-        '        if (variant.image_url) image = variant.image_url',
         '        variantLabel = tqBuildVariantLabel(product.variant_options, variant.options)',
         '        variantSwatches = tqBuildVariantSwatches(product.variant_options, variant.options)',
         '      }',
@@ -304,17 +416,26 @@ function getOrCreateSessionId() {
 // Local state is the source of truth; the DB is a cross-session backup. This
 // pushes the current cart to the server and never throws or blocks the UI.
 function persistCartToDb(items) {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') return Promise.resolve(null)
   try {
     const payload = (items || []).map(function (i) {
       return { productId: i.productId, variantId: i.variantId || null, quantity: i.quantity }
     })
-    fetch('/api/cart/sync', {
+    // Resolves with the server's answer so the caller can react to a MERGE: on
+    // the first sync after sign-in the server claims the guest cart, refuses to
+    // overwrite the union with this (pre-login) snapshot, and hands back the
+    // merged lines instead. Ignoring that answer would leave the tab showing
+    // half the cart the database now holds.
+    return fetch('/api/cart/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId() }),
-    }).catch(function () {})
-  } catch (e) {}
+    })
+      .then(function (res) { return res.ok ? res.json() : null })
+      .catch(function () { return null })
+  } catch (e) {
+    return Promise.resolve(null)
+  }
 }
 `
     : ''
@@ -324,6 +445,44 @@ function persistCartToDb(items) {
   // just deliberately emptied (see CART_CLEARED_AT_KEY below).
   const cartDbMountEffect = cartDbEnabled
     ? `
+  // Applies a cart the SERVER holds to this tab: state, meta and localStorage,
+  // then the async enrichment pass. One implementation, because the two callers
+  // (first-visit hydrate, post-sign-in merge) must produce identical results —
+  // a shopper should not be able to tell which path filled their cart.
+  const applyServerCart = useCallback((dbItems) => {
+    const rows = dbItems || []
+    if (!rows.length) return
+    const mapped = rows.map(function (d) {
+      const vid = d.variantId || null
+      return {
+        id: d.productId + (vid ? '__' + vid : ''),
+        productId: d.productId,
+        variantId: vid,
+        quantity: d.quantity,
+      }
+    })
+    setCartItems(mapped)
+    setCartMeta(computeCartMeta(mapped))
+    saveCartToStorage(mapped)
+    enrichCartItems(mapped).then(function (enriched) {
+      if (enriched !== mapped) {
+        setCartItems(enriched)
+        setCartMeta(computeCartMeta(enriched))
+        saveCartToStorage(enriched)
+      }
+    })
+  }, [])
+
+  // The sync endpoint answers with the merged cart on the FIRST sync after a
+  // guest signs in — it has just claimed the guest cart and refuses to let this
+  // tab's pre-login snapshot overwrite the union. Anything else is a normal
+  // sync with nothing to adopt.
+  const adoptMergedCart = useCallback((response) => {
+    if (response && response.merged) {
+      applyServerCart(response.items)
+    }
+  }, [applyServerCart])
+
   const cartDbInitRef = useRef(false)
   useEffect(() => {
     if (cartDbInitRef.current) return
@@ -331,7 +490,10 @@ function persistCartToDb(items) {
     if (typeof window === 'undefined') return
     const local = loadCartFromStorage()
     if (local && local.length > 0) {
-      persistCartToDb(local)
+      // The push doubles as the guest-cart claim: on the first sync after
+      // sign-in the server merges the guest cart into the account's and answers
+      // with the union instead of accepting this snapshot.
+      persistCartToDb(local).then(adoptMergedCart)
       return
     }
     // "Empty local cart" is ambiguous: it means either "first visit on this
@@ -351,27 +513,7 @@ function persistCartToDb(items) {
       })
         .then(function (res) { return res.ok ? res.json() : { items: [] } })
         .then(function (data) {
-          const dbItems = (data && data.items) || []
-          if (!dbItems.length) return
-          const mapped = dbItems.map(function (d) {
-            const vid = d.variantId || null
-            return {
-              id: d.productId + (vid ? '__' + vid : ''),
-              productId: d.productId,
-              variantId: vid,
-              quantity: d.quantity,
-            }
-          })
-          setCartItems(mapped)
-          setCartMeta(computeCartMeta(mapped))
-          saveCartToStorage(mapped)
-          enrichCartItems(mapped).then(function (enriched) {
-            if (enriched !== mapped) {
-              setCartItems(enriched)
-              setCartMeta(computeCartMeta(enriched))
-              saveCartToStorage(enriched)
-            }
-          })
+          applyServerCart(data && data.items)
         })
         .catch(function () {})
     } catch (e) {}
@@ -398,7 +540,7 @@ function persistCartToDb(items) {
     if (cartPersistTimerRef.current) clearTimeout(cartPersistTimerRef.current)
     const snapshot = cartItems || []
     cartPersistTimerRef.current = setTimeout(function () {
-      persistCartToDb(snapshot)
+      persistCartToDb(snapshot).then(adoptMergedCart)
     }, 300)
     return function () {
       if (cartPersistTimerRef.current) clearTimeout(cartPersistTimerRef.current)
@@ -422,8 +564,30 @@ if (typeof window !== 'undefined') {
 `
     : ''
 
+  // The last gate before a stored media value becomes an `<img src>`.
+  //
+  // Hydration resolves every line it can re-read, but a line whose product row
+  // has since been DELETED is returned untouched — there is nothing left to
+  // resolve it from — and a cart written before this resolution existed still
+  // holds the bare id. Rendering that id puts `<img src="<uuid>">` on the page
+  // and the browser asks the site for `/<uuid>`. Being a display projection,
+  // this drops it exactly like the other fields it shadows, and nothing that is
+  // stored or charged changes.
+  const displayImageLine = assetLookupEnabled
+    ? `
+          image: isDirectAssetUrl(item.image) ? item.image : null,`
+    : ''
+
+  // Emitted alongside `assetMapLines` / `resolveImageLines`, never on its own:
+  // an import of a module the project plugin did not write would fail the build
+  // ("Module not found: Can't resolve './utils/ecommerce/asset-urls'").
+  const assetUrlsImport = assetLookupEnabled
+    ? "import { isDirectAssetUrl, loadAssetUrlMap, resolveMediaUrl } from './utils/ecommerce/asset-urls'\n"
+    : ''
+
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
+${assetUrlsImport}${ORDER_ATTRIBUTION_WRITER}
 
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'
@@ -694,6 +858,10 @@ export const EcommerceProvider = ({ children }) => {
 
   const enrichRef = useRef(false)
   useEffect(() => {
+    // First-touch attribution, before anything can navigate away from the
+    // landing URL. Idempotent and cheap on a revisit; the checkout reads it back
+    // and stamps it onto the order.
+    captureOrderAttribution()
     const items = loadCartFromStorage()
     setCartItems(items)
     setCartMeta(computeCartMeta(items))
@@ -984,7 +1152,7 @@ ${
   const displayCartItems = useMemo(
     () =>
       cartItems.map((item) =>
-        Object.assign({}, item, {
+        Object.assign({}, item, {${displayImageLine}
           unitPrice: formatCartMoney(cartItemDisplayPrice(item)),
           price: formatCartMoney(cartItemLineTotal(item)),
           // The price this line was marked down FROM. \`originalPrice\` is stored

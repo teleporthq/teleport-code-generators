@@ -82,6 +82,7 @@ export interface NextPartialGeneratorOptions {
   projectStyleSet?: GeneratorOptions['projectStyleSet']
   projectComponents?: Record<string, ComponentUIDL>
   projectRouteDefinition?: GeneratorOptions['projectRouteDefinition']
+  pagesPath?: GeneratorOptions['pagesPath']
   internationalization?: GeneratorOptions['internationalization']
   dataSources?: GeneratorOptions['dataSources']
   forms?: GeneratorOptions['forms']
@@ -584,6 +585,7 @@ export const useGlobalContext = () => {
       ...(this.sharedOptions.projectRouteDefinition && {
         projectRouteDefinition: this.sharedOptions.projectRouteDefinition,
       }),
+      ...(this.sharedOptions.pagesPath && { pagesPath: this.sharedOptions.pagesPath }),
       ...(this.sharedOptions.internationalization && {
         internationalization: this.sharedOptions.internationalization,
       }),

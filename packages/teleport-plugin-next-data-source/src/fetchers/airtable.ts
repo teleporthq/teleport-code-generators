@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateAirtableConfig = (
@@ -39,6 +40,8 @@ export const generateAirtableFetcher = (
   return `import fetch from 'node-fetch'
 
 ${generateSafeJSONParseCode()}
+
+${generateFilterTreeHelpersCode()}
 
 ${generateDateFormatterCode()}
 
@@ -112,15 +115,13 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        const conditions = parsedFilters.map((filter) => {
-          if (!filter.source || filter.destination === undefined) return null
-          
-          const field = filter.source
-          const value = filter.destination
-          const operand = filter.operand || '='
+      if (filterTree) {
+        const buildCondition = (condition) => {
+          const field = condition.source
+          const value = condition.destination
+          const operand = condition.operand
           
           if (Array.isArray(value)) {
             if (value.length === 0) return null
@@ -128,37 +129,35 @@ export default async function handler(req, res) {
             return arrayConditions.length > 1
               ? \`OR(\${arrayConditions.join(',')})\`
               : arrayConditions[0]
-          } else {
-            const operatorMap = {
-              '=': '=',
-              '!=': '!=',
-              '>': '>',
-              '<': '<',
-              '>=': '>=',
-              '<=': '<=',
-            }
-            const airtableOp = operatorMap[operand] || '='
-            return \`{\${field}}\${airtableOp}\${formatAirtableValue(value)}\`
           }
-        }).filter(Boolean)
-        
-        if (conditions.length > 0) {
-          const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
-          formulaParts.push(filterFormula)
+          
+          const operatorMap = {
+            '=': '=',
+            '!=': '!=',
+            '>': '>',
+            '<': '<',
+            '>=': '>=',
+            '<=': '<=',
+          }
+          const airtableOp = operatorMap[operand] || '='
+          return \`{\${field}}\${airtableOp}\${formatAirtableValue(value)}\`
         }
-      } else {
-        const conditions = Object.entries(parsedFilters).map(([field, value]) => {
-          if (Array.isArray(value)) {
-            const arrayConditions = value.map((v) => \`{\${field}}=\${formatAirtableValue(v)}\`)
-            return arrayConditions.length > 1
-              ? \`OR(\${arrayConditions.join(',')})\`
-              : arrayConditions[0]
-          } else {
-            return \`{\${field}}=\${formatAirtableValue(value)}\`
+        
+        // Airtable spells its logic as AND(a,b) / OR(a,b) rather than infix, so
+        // the tree is walked here instead of with buildFilterTreeClause.
+        const buildNode = (node) => {
+          if (node.type === 'group') {
+            const parts = node.children.map(buildNode).filter(Boolean)
+            if (parts.length === 0) return null
+            if (parts.length === 1) return parts[0]
+            return node.operator === 'or'
+              ? \`OR(\${parts.join(',')})\`
+              : \`AND(\${parts.join(',')})\`
           }
-        })
-
-        const filterFormula = conditions.length > 1 ? \`AND(\${conditions.join(',')})\` : conditions[0]
+          return buildCondition(node)
+        }
+        
+        const filterFormula = buildNode(filterTree)
         if (filterFormula) {
           formulaParts.push(filterFormula)
         }

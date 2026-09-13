@@ -19,6 +19,7 @@ import {
 } from './ecommerce-api-routes-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
 import { generateCartApiRoute } from './cart-api-routes-generator'
+import { generateAssetsApiRoute, generateAssetUrlsModule } from './asset-urls-generator'
 
 export class NextEcommerceProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
@@ -38,7 +39,15 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       // providers / delivery) and wrap _app, so the references resolve and a
       // basic cart still works. Projects that never reference it are untouched.
       if (projectReferencesEcommerceContext(files)) {
-        this.generateContextFile({} as UIDLEcommerceSettings, undefined, files, null, false, false)
+        this.generateContextFile(
+          {} as UIDLEcommerceSettings,
+          undefined,
+          files,
+          null,
+          false,
+          false,
+          false
+        )
         this.injectProviderIntoApp(files)
       }
       return structure
@@ -51,6 +60,15 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     const cartRoute = generateCartApiRoute(dataSourceType, dataSourceConfig)
     const cartDbEnabled = cartRoute !== null
 
+    // Product media stored as a PROJECT-ASSET ID only becomes a URL if the
+    // project also ships the `teleport_assets` reader — the shared
+    // `utils/ecommerce/asset-urls` module and the `/api/ecommerce/assets` route
+    // below. Both come from the same generator, so this ONE flag decides
+    // whether the cart provider resolves ids or uses the stored value verbatim
+    // (which is all a non-Postgres store ever needed: its media is direct URLs).
+    const assetsRoute = generateAssetsApiRoute(dataSourceType, dataSourceConfig)
+    const assetLookupEnabled = !!dataSourceId && assetsRoute !== null
+
     this.generateContextFile(
       ecommerceSettings,
       uidl.invoiceSettings,
@@ -59,7 +77,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       cartDbEnabled,
       // Publish the workflow settings global — this branch also emits the
       // /api/ecommerce/settings route with the identical payload.
-      true
+      true,
+      assetLookupEnabled
     )
     this.generateApiRoutes(
       ecommerceSettings,
@@ -68,6 +87,9 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       dataSourceConfig,
       files
     )
+    if (assetsRoute) {
+      this.generateAssetUrlFiles(assetsRoute, files)
+    }
     if (cartRoute) {
       files.set('ecommerce-api-cart', {
         path: ['pages', 'api', 'cart'],
@@ -125,14 +147,16 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     files: Map<string, any>,
     dataSourceId: string | null,
     cartDbEnabled: boolean,
-    emitWorkflowSettingsGlobal: boolean
+    emitWorkflowSettingsGlobal: boolean,
+    assetLookupEnabled: boolean
   ): void {
     const content = generateEcommerceContextFileContent(
       ecommerceSettings,
       invoiceSettings,
       dataSourceId,
       cartDbEnabled,
-      emitWorkflowSettingsGlobal
+      emitWorkflowSettingsGlobal,
+      assetLookupEnabled
     )
     files.set('ecommerce-context', {
       path: [],
@@ -141,6 +165,40 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           name: 'ecommerce-context',
           fileType: FileType.JS,
           content,
+        },
+      ],
+    })
+  }
+
+  /**
+   * The two halves of project-asset resolution: the shared
+   * `utils/ecommerce/asset-urls` module (id → URL contract, plus the browser's
+   * batched lookup) and the `/api/ecommerce/assets` route that reads the
+   * `teleport_assets` mirror for it.
+   *
+   * Emitted together, and only when the datasource can answer the route —
+   * `generateEcommerceContextFileContent` gates its `import` on exactly the
+   * same condition, so the module is never imported without being written and
+   * never written without a caller.
+   */
+  private generateAssetUrlFiles(assetsRoute: string, files: Map<string, any>): void {
+    files.set('ecommerce-asset-urls', {
+      path: ['utils', 'ecommerce'],
+      files: [
+        {
+          name: 'asset-urls',
+          fileType: FileType.JS,
+          content: generateAssetUrlsModule(),
+        },
+      ],
+    })
+    files.set('ecommerce-api-assets', {
+      path: ['pages', 'api', 'ecommerce'],
+      files: [
+        {
+          name: 'assets',
+          fileType: FileType.JS,
+          content: assetsRoute,
         },
       ],
     })

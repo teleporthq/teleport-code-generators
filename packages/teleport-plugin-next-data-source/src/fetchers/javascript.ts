@@ -2,6 +2,7 @@ import {
   generateDateFormatterCode,
   generateSortFilterHelperCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
 } from '../utils'
 
 export const validateJavaScriptConfig = (
@@ -47,6 +48,8 @@ ${generateDateFormatterCode()}
 
 ${generateSortFilterHelperCode()}
 
+${generateFilterTreeHelpersCode()}
+
 export default async function handler(req, res) {
   try {
     const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts } = req.query
@@ -87,17 +90,14 @@ export default async function handler(req, res) {
       
       if (filters) {
         try {
-          const parsedFilters = safeJSONParse(filters)
+          const filterTree = normalizeFilterTree(safeJSONParse(filters))
           
-          if (Array.isArray(parsedFilters)) {
-            data = data.filter((item) => {
-              return parsedFilters.every((filter) => {
-                if (!filter.source || filter.destination === undefined) return true
-                
-                const field = filter.source
-                const value = getNestedValue(item, field)
-                const target = filter.destination
-                const operand = filter.operand || '='
+          if (filterTree) {
+            data = data.filter((item) =>
+              evaluateFilterTree(filterTree, (condition) => {
+                const value = getNestedValue(item, condition.source)
+                const target = condition.destination
+                const operand = condition.operand
                 
                 if (Array.isArray(target)) {
                   if (operand === '!=') {
@@ -108,17 +108,7 @@ export default async function handler(req, res) {
                 
                 return compareValues(value, target, operand)
               })
-            })
-          } else {
-            data = data.filter((item) => {
-              return Object.entries(parsedFilters).every(([key, value]) => {
-                const itemValue = getNestedValue(item, key)
-                if (Array.isArray(value)) {
-                  return value.includes(itemValue)
-                }
-                return compareValues(itemValue, value, '=')
-              })
-            })
+            )
           }
         } catch (err) {
           console.error('Error parsing filters:', err)

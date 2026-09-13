@@ -2,6 +2,7 @@ import {
   replaceSecretReference,
   generateDateFormatterCode,
   generateSafeJSONParseCode,
+  generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
 
@@ -55,6 +56,8 @@ const getClient = () => {
 }
 
 ${generateSafeJSONParseCode()}
+
+${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
 
@@ -119,54 +122,39 @@ export default async function handler(req, res) {
     }
     
     if (filters) {
-      const parsedFilters = safeJSONParse(filters)
+      const filterTree = normalizeFilterTree(safeJSONParse(filters))
       
-      if (Array.isArray(parsedFilters)) {
-        parsedFilters.forEach((filter) => {
-          if (!filter.source || filter.destination === undefined) return
-          
-          const field = sanitizeIdentifier(filter.source)
-          const value = filter.destination
-          const operand = filter.operand || '='
+      if (filterTree) {
+        const buildCondition = (condition) => {
+          const field = sanitizeIdentifier(condition.source)
+          const value = condition.destination
+          const operand = condition.operand
           
           if (Array.isArray(value)) {
-            if (value.length === 0) return
+            if (value.length === 0) return null
             const placeholders = value.map(() => \`$\${paramIndex++}\`)
             queryParams.push(...value)
-            if (operand === '!=') {
-              conditions.push(\`\${field} NOT IN (\${placeholders.join(', ')})\`)
-            } else {
-              conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
-            }
-          } else {
-            if (value === null) {
-              if (operand === '=') {
-                conditions.push(\`\${field} IS NULL\`)
-              } else if (operand === '!=') {
-                conditions.push(\`\${field} IS NOT NULL\`)
-              }
-            } else {
-              const validOps = ['=', '!=', '>', '<', '>=', '<=']
-              const sqlOperator = validOps.includes(operand) ? operand : '='
-              conditions.push(\`\${field} \${sqlOperator} $\${paramIndex}\`)
-              queryParams.push(value)
-              paramIndex++
-            }
+            return operand === '!='
+              ? \`\${field} NOT IN (\${placeholders.join(', ')})\`
+              : \`\${field} IN (\${placeholders.join(', ')})\`
           }
-        })
-      } else {
-        Object.entries(parsedFilters).forEach(([key, value]) => {
-          const field = sanitizeIdentifier(key)
-          if (Array.isArray(value)) {
-            const placeholders = value.map(() => \`$\${paramIndex++}\`)
-            queryParams.push(...value)
-            conditions.push(\`\${field} IN (\${placeholders.join(', ')})\`)
-          } else {
-            conditions.push(\`\${field} = $\${paramIndex}\`)
-            queryParams.push(value)
-            paramIndex++
+          
+          if (value === null) {
+            if (operand === '=') return \`\${field} IS NULL\`
+            if (operand === '!=') return \`\${field} IS NOT NULL\`
+            return null
           }
-        })
+          
+          const validOps = ['=', '!=', '>', '<', '>=', '<=']
+          const sqlOperator = validOps.includes(operand) ? operand : '='
+          const clause = \`\${field} \${sqlOperator} $\${paramIndex}\`
+          queryParams.push(value)
+          paramIndex++
+          return clause
+        }
+        
+        const clause = buildFilterTreeClause(filterTree, buildCondition)
+        if (clause) conditions.push(clause)
       }
     }
     

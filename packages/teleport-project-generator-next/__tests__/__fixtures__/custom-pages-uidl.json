@@ -1,0 +1,2421 @@
+{
+  "route": {
+    "value": "pages/Custom-Page",
+    "seo": {
+      "title": {
+        "type": "dynamic",
+        "content": {
+          "referenceType": "prop",
+          "id": "root",
+          "refPath": [
+            "teleportPage",
+            "metaTitle"
+          ],
+          "defaultValue": ""
+        },
+        "id": "TQ_V6zzlCua3t",
+        "pos": ""
+      },
+      "metaTags": [
+        {
+          "name": "description",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "metaDescription"
+              ],
+              "defaultValue": ""
+            },
+            "id": "TQ_ug-Cz6Uc6R",
+            "pos": ""
+          }
+        },
+        {
+          "name": "robots",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "robotsContent"
+              ],
+              "fallback": "index, follow"
+            }
+          }
+        },
+        {
+          "property": "og:title",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogTitle"
+              ],
+              "fallback": ""
+            }
+          }
+        },
+        {
+          "property": "og:description",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogDescription"
+              ],
+              "fallback": ""
+            }
+          }
+        },
+        {
+          "property": "og:image",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogImage"
+              ],
+              "fallback": ""
+            }
+          }
+        },
+        {
+          "property": "og:type",
+          "content": "website"
+        },
+        {
+          "name": "twitter:title",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogTitle"
+              ],
+              "fallback": ""
+            }
+          }
+        },
+        {
+          "name": "twitter:description",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogDescription"
+              ],
+              "fallback": ""
+            }
+          }
+        },
+        {
+          "name": "twitter:image",
+          "content": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "ogImage"
+              ],
+              "fallback": ""
+            }
+          }
+        }
+      ],
+      "assets": [
+        {
+          "type": "canonical",
+          "path": "https://custom-pages.teleporthq.dev/pages/[slug]",
+          "dynamicOverride": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "root",
+              "refPath": [
+                "teleportPage",
+                "canonicalUrl"
+              ]
+            }
+          }
+        }
+      ],
+      "structuredData": [
+        "{\"@context\":\"https://schema.org\",\"@type\":\"BreadcrumbList\",\"itemListElement\":[{\"@type\":\"ListItem\",\"position\":1,\"name\":\"Home\",\"item\":\"https://custom-pages.teleporthq.dev\"},{\"@type\":\"ListItem\",\"position\":2,\"name\":\"Custom-Page\",\"item\":\"https://custom-pages.teleporthq.dev/pages/[slug]\"}]}"
+      ]
+    },
+    "pageId": "TQ_HUQcjJrs2R",
+    "pageOptions": {
+      "stateDefinitions": {},
+      "propDefinitions": {},
+      "navLink": "/pages/[slug]",
+      "dynamicRouteAttribute": "slug",
+      "lastmod": "2026-09-04",
+      "initialPropsData": {
+        "exposeAs": {
+          "name": "teleportPage",
+          "valuePath": [
+            "data",
+            "0"
+          ]
+        },
+        "resource": {
+          "id": "TQ_dscustompagesteleportpagesDetail",
+          "params": {
+            "filters": {
+              "type": "expr",
+              "content": "JSON.stringify([{\"type\":\"condition\",\"source\":\"slug\",\"destination\":params['slug'],\"operand\":\"=\"},{\"type\":\"condition\",\"source\":\"status\",\"destination\":\"published\",\"operand\":\"=\"}])"
+            },
+            "limit": {
+              "type": "static",
+              "content": 1
+            }
+          }
+        },
+        "cache": {
+          "revalidate": 60
+        },
+        "redirect": {
+          "destinationField": "redirectUrl",
+          "typeField": "redirectType"
+        }
+      },
+      "initialPathsData": {
+        "exposeAs": {
+          "name": "teleportPagePaths",
+          "valuePath": [
+            "data"
+          ],
+          "itemValuePath": [
+            "slug"
+          ]
+        },
+        "resource": {
+          "id": "TQ_dscustompagesteleportpagesPaths",
+          "params": {
+            "filters": {
+              "type": "static",
+              "content": "[{\"type\":\"condition\",\"source\":\"status\",\"destination\":\"published\",\"operand\":\"=\"},{\"type\":\"condition\",\"source\":\"redirect_url\",\"destination\":null,\"operand\":\"=\"}]"
+            }
+          }
+        }
+      },
+      "detailsPageInfo": {
+        "dataSourceId": "ds-custom-pages",
+        "dataSourceName": "Test DB",
+        "dataSourceType": "teleport",
+        "tableName": "teleport_pages",
+        "differentiatorColumn": "slug",
+        "featureIdentifier": "teleportPage"
+      }
+    }
+  },
+  "pageNode": {
+    "type": "conditional",
+    "content": {
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "attrs": {
+            "data-tq-custom-pages-details": {
+              "type": "static",
+              "content": "v2"
+            }
+          },
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "minHeight": {
+              "type": "static",
+              "content": "100vh"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            }
+          },
+          "children": [
+            {
+              "type": "cms-list-repeater",
+              "content": {
+                "elementType": "cms-list-repeater",
+                "nodes": {
+                  "list": {
+                    "type": "element",
+                    "content": {
+                      "elementType": "fragment",
+                      "name": "ThqItemsElm",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "conditional",
+                          "content": {
+                            "node": {
+                              "type": "element",
+                              "content": {
+                                "elementType": "container",
+                                "semanticType": "div",
+                                "name": "ThqSection-BlockElm",
+                                "referencedStyles": {},
+                                "abilities": {},
+                                "style": {
+                                  "display": {
+                                    "type": "static",
+                                    "content": "flex"
+                                  },
+                                  "flexDirection": {
+                                    "type": "static",
+                                    "content": "column"
+                                  },
+                                  "width": {
+                                    "type": "static",
+                                    "content": "100%"
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "component",
+                                      "dependency": {
+                                        "type": "local"
+                                      },
+                                      "semanticType": "custom-page-section",
+                                      "name": "ThqCustom-Page-SectionElm",
+                                      "referencedStyles": {},
+                                      "abilities": {},
+                                      "attrs": {
+                                        "block": {
+                                          "type": "expr",
+                                          "content": "block"
+                                        }
+                                      },
+                                      "children": []
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "reference": {
+                              "type": "expr",
+                              "content": "block?.component"
+                            },
+                            "condition": {
+                              "conditions": [
+                                {
+                                  "operation": "=",
+                                  "operand": "tq:section"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "conditional",
+                          "content": {
+                            "node": {
+                              "type": "element",
+                              "content": {
+                                "elementType": "container",
+                                "semanticType": "div",
+                                "name": "ThqContent-BlockElm",
+                                "referencedStyles": {},
+                                "abilities": {},
+                                "style": {
+                                  "display": {
+                                    "type": "static",
+                                    "content": "flex"
+                                  },
+                                  "flexDirection": {
+                                    "type": "static",
+                                    "content": "column"
+                                  },
+                                  "width": {
+                                    "type": "static",
+                                    "content": "100%"
+                                  },
+                                  "maxWidth": {
+                                    "type": "static",
+                                    "content": "1200px"
+                                  },
+                                  "margin": {
+                                    "type": "static",
+                                    "content": "0 auto"
+                                  },
+                                  "padding": {
+                                    "type": "static",
+                                    "content": "24px"
+                                  },
+                                  "boxSizing": {
+                                    "type": "static",
+                                    "content": "border-box"
+                                  },
+                                  "minWidth": {
+                                    "type": "static",
+                                    "content": "0"
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "component",
+                                      "dependency": {
+                                        "type": "local"
+                                      },
+                                      "semanticType": "custom-page-block",
+                                      "name": "ThqCustom-Page-BlockElm",
+                                      "referencedStyles": {},
+                                      "abilities": {},
+                                      "attrs": {
+                                        "block": {
+                                          "type": "expr",
+                                          "content": "block"
+                                        }
+                                      },
+                                      "children": []
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "reference": {
+                              "type": "expr",
+                              "content": "block?.component"
+                            },
+                            "condition": {
+                              "conditions": [
+                                {
+                                  "operation": "!==",
+                                  "operand": "tq:section"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "source": "(function (__tqJsonArray) { if (Array.isArray(__tqJsonArray)) { return __tqJsonArray; } if (typeof __tqJsonArray !== \"string\" || !__tqJsonArray.trim()) { return []; } try { var __tqParsed = JSON.parse(__tqJsonArray); return Array.isArray(__tqParsed) ? __tqParsed : []; } catch (__tqError) { return []; } })(props.teleportPage?.blocks || [])",
+                "renderPropIdentifier": "block",
+                "isCMSListRepeater": false,
+                "paginated": false,
+                "searchEnabled": false
+              }
+            }
+          ]
+        }
+      },
+      "value": "pages/Custom-Page",
+      "reference": {
+        "type": "dynamic",
+        "content": {
+          "referenceType": "state",
+          "id": "route"
+        }
+      },
+      "importDefinitions": {}
+    }
+  },
+  "components": {
+    "Hero": {
+      "propDefinitions": {
+        "heading": {
+          "id": "hero-heading-prop",
+          "defaultValue": "Default heading",
+          "type": "string"
+        },
+        "story": {
+          "id": "hero-story-prop",
+          "defaultValue": "Prop Content",
+          "type": "richtext"
+        }
+      },
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "text",
+          "semanticType": "h2",
+          "name": "ThqHero-HeadingElm",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "heading",
+                "refPath": []
+              }
+            }
+          ]
+        }
+      },
+      "name": "Hero",
+      "styleSetDefinitions": {}
+    },
+    "custom-page-block": {
+      "propDefinitions": {
+        "block": {
+          "id": "TQ_yduVj8PfUK",
+          "defaultValue": {
+            "id": "",
+            "component": "",
+            "props": {}
+          },
+          "type": "object"
+        }
+      },
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "attrs": {
+            "data-tq-custom-pages-block-component": {
+              "type": "static",
+              "content": "v2"
+            },
+            "data-tq-blocks-registry-hash": {
+              "type": "static",
+              "content": "98c9f8fd"
+            }
+          },
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "minWidth": {
+              "type": "static",
+              "content": "0"
+            }
+          },
+          "children": [
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-HeadingElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:heading"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "adafc401"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h1",
+                              "name": "ThqBlock-Heading-H1Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "48px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.15"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "700"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "=",
+                                "operand": "h1"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h2",
+                              "name": "ThqBlock-Heading-H2Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "36px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.2"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "700"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "!==",
+                                "operand": "h1"
+                              },
+                              {
+                                "operation": "!==",
+                                "operand": "h3"
+                              },
+                              {
+                                "operation": "!==",
+                                "operand": "h4"
+                              },
+                              {
+                                "operation": "!==",
+                                "operand": "h5"
+                              },
+                              {
+                                "operation": "!==",
+                                "operand": "h6"
+                              }
+                            ],
+                            "matchingCriteria": "all"
+                          }
+                        }
+                      },
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h3",
+                              "name": "ThqBlock-Heading-H3Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "28px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.25"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "600"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "=",
+                                "operand": "h3"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h4",
+                              "name": "ThqBlock-Heading-H4Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "22px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.3"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "600"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "=",
+                                "operand": "h4"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h5",
+                              "name": "ThqBlock-Heading-H5Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "18px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.35"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "600"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "=",
+                                "operand": "h5"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "type": "conditional",
+                        "content": {
+                          "node": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h6",
+                              "name": "ThqBlock-Heading-H6Elm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "0"
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "16px"
+                                },
+                                "lineHeight": {
+                                  "type": "static",
+                                  "content": "1.4"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "600"
+                                },
+                                "textAlign": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "fallback": "",
+                                    "refPath": [
+                                      "props",
+                                      "align"
+                                    ]
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "block",
+                                    "refPath": [
+                                      "props",
+                                      "text"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "reference": {
+                            "type": "expr",
+                            "content": "props.block?.props?.level"
+                          },
+                          "condition": {
+                            "conditions": [
+                              {
+                                "operation": "=",
+                                "operand": "h6"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:heading"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-TextElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:text"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "6ba7b0d1"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "text",
+                          "semanticType": "p",
+                          "name": "ThqBlock-TextElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "style": {
+                            "margin": {
+                              "type": "static",
+                              "content": "0"
+                            },
+                            "fontSize": {
+                              "type": "static",
+                              "content": "18px"
+                            },
+                            "lineHeight": {
+                              "type": "static",
+                              "content": "1.7"
+                            },
+                            "whiteSpace": {
+                              "type": "static",
+                              "content": "pre-line"
+                            },
+                            "textAlign": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "align"
+                                ]
+                              }
+                            }
+                          },
+                          "children": [
+                            {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "refPath": [
+                                  "props",
+                                  "content"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:text"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-Rich-textElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:rich-text"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "ca02520c"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "html-node",
+                          "name": "ThqBlock-Rich-TextElm",
+                          "referencedStyles": {},
+                          "attrs": {
+                            "html": {
+                              "type": "raw",
+                              "content": "",
+                              "dynamic": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "prop",
+                                  "id": "block",
+                                  "fallback": "",
+                                  "refPath": [
+                                    "props",
+                                    "content"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "style": {
+                            "fontSize": {
+                              "type": "static",
+                              "content": "18px"
+                            },
+                            "lineHeight": {
+                              "type": "static",
+                              "content": "1.7"
+                            },
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:rich-text"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-ImageElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:image"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "b0b436cf"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "image",
+                          "name": "ThqBlock-ImageElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "attrs": {
+                            "src": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "src"
+                                ]
+                              }
+                            },
+                            "alt": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "alt"
+                                ]
+                              }
+                            }
+                          },
+                          "style": {
+                            "display": {
+                              "type": "static",
+                              "content": "block"
+                            },
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "auto"
+                            },
+                            "margin": {
+                              "type": "static",
+                              "content": "0 auto"
+                            },
+                            "borderRadius": {
+                              "type": "static",
+                              "content": "8px"
+                            },
+                            "objectFit": {
+                              "type": "static",
+                              "content": "cover"
+                            },
+                            "maxWidth": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "width"
+                                ]
+                              }
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:image"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-ButtonElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:button"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "223f2aad"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "name": "ThqBlock-Button-RowElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "style": {
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            }
+                          },
+                          "children": [
+                            {
+                              "type": "conditional",
+                              "content": {
+                                "node": {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "name": "ThqBlock-Button-new-tabElm",
+                                    "referencedStyles": {},
+                                    "abilities": {
+                                      "link": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block"
+                                        }
+                                      }
+                                    },
+                                    "style": {
+                                      "display": {
+                                        "type": "static",
+                                        "content": "inline-flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "justifyContent": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "14px 28px"
+                                      },
+                                      "borderRadius": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "fontSize": {
+                                        "type": "static",
+                                        "content": "16px"
+                                      },
+                                      "fontWeight": {
+                                        "type": "static",
+                                        "content": "600"
+                                      },
+                                      "lineHeight": {
+                                        "type": "static",
+                                        "content": "1"
+                                      },
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      },
+                                      "cursor": {
+                                        "type": "static",
+                                        "content": "pointer"
+                                      },
+                                      "backgroundColor": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block",
+                                          "fallback": "",
+                                          "refPath": [
+                                            "props",
+                                            "background"
+                                          ]
+                                        }
+                                      },
+                                      "color": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block",
+                                          "fallback": "",
+                                          "refPath": [
+                                            "props",
+                                            "textColor"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "name": "ThqBlock-Button-LabelElm",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "prop",
+                                                "id": "block",
+                                                "refPath": [
+                                                  "props",
+                                                  "label"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                },
+                                "reference": {
+                                  "type": "expr",
+                                  "content": "props.block?.props?.newTab"
+                                },
+                                "condition": {
+                                  "conditions": [
+                                    {
+                                      "operation": "=",
+                                      "operand": true
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            {
+                              "type": "conditional",
+                              "content": {
+                                "node": {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "name": "ThqBlock-ButtonElm",
+                                    "referencedStyles": {},
+                                    "abilities": {
+                                      "link": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block"
+                                        }
+                                      }
+                                    },
+                                    "style": {
+                                      "display": {
+                                        "type": "static",
+                                        "content": "inline-flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "justifyContent": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "14px 28px"
+                                      },
+                                      "borderRadius": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "fontSize": {
+                                        "type": "static",
+                                        "content": "16px"
+                                      },
+                                      "fontWeight": {
+                                        "type": "static",
+                                        "content": "600"
+                                      },
+                                      "lineHeight": {
+                                        "type": "static",
+                                        "content": "1"
+                                      },
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      },
+                                      "cursor": {
+                                        "type": "static",
+                                        "content": "pointer"
+                                      },
+                                      "backgroundColor": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block",
+                                          "fallback": "",
+                                          "refPath": [
+                                            "props",
+                                            "background"
+                                          ]
+                                        }
+                                      },
+                                      "color": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "prop",
+                                          "id": "block",
+                                          "fallback": "",
+                                          "refPath": [
+                                            "props",
+                                            "textColor"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "name": "ThqBlock-Button-LabelElm",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "prop",
+                                                "id": "block",
+                                                "refPath": [
+                                                  "props",
+                                                  "label"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                },
+                                "reference": {
+                                  "type": "expr",
+                                  "content": "props.block?.props?.newTab"
+                                },
+                                "condition": {
+                                  "conditions": [
+                                    {
+                                      "operation": "!==",
+                                      "operand": true
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:button"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-VideoElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:video"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "0fd9f60a"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "video",
+                          "name": "ThqBlock-VideoElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "attrs": {
+                            "src": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "src"
+                                ]
+                              }
+                            },
+                            "poster": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "poster"
+                                ]
+                              }
+                            },
+                            "controls": {
+                              "type": "static",
+                              "content": "true"
+                            }
+                          },
+                          "style": {
+                            "display": {
+                              "type": "static",
+                              "content": "block"
+                            },
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "auto"
+                            },
+                            "borderRadius": {
+                              "type": "static",
+                              "content": "8px"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "#000000"
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:video"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-SeparatorElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:separator"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "1b8245a9"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "separator",
+                          "name": "ThqBlock-SeparatorElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "1px"
+                            },
+                            "margin": {
+                              "type": "static",
+                              "content": "0"
+                            },
+                            "border": {
+                              "type": "static",
+                              "content": "none"
+                            },
+                            "backgroundColor": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "color"
+                                ]
+                              }
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:separator"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-SpacerElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "tq:spacer"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "2c913659"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "name": "ThqBlock-SpacerElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "height"
+                                ]
+                              }
+                            },
+                            "flexShrink": {
+                              "type": "static",
+                              "content": "0"
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "tq:spacer"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "name": "ThqBlock-HeroElm",
+                    "referencedStyles": {},
+                    "abilities": {},
+                    "attrs": {
+                      "data-tq-block-branch": {
+                        "type": "static",
+                        "content": "TQ_m0_3O5zikS"
+                      },
+                      "data-tq-block-branch-hash": {
+                        "type": "static",
+                        "content": "c910325b"
+                      }
+                    },
+                    "style": {
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "width": {
+                        "type": "static",
+                        "content": "100%"
+                      },
+                      "minWidth": {
+                        "type": "static",
+                        "content": "0"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "component",
+                          "dependency": {
+                            "type": "local"
+                          },
+                          "semanticType": "Hero",
+                          "name": "ThqHeroElm",
+                          "referencedStyles": {},
+                          "abilities": {},
+                          "attrs": {
+                            "heading": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "block",
+                                "fallback": "",
+                                "refPath": [
+                                  "props",
+                                  "heading"
+                                ]
+                              }
+                            },
+                            "story": {
+                              "type": "element",
+                              "content": {
+                                "elementType": "fragment",
+                                "name": "ThqBlock-Rich-Text-storyElm",
+                                "referencedStyles": {},
+                                "abilities": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "html-node",
+                                      "name": "ThqBlock-Rich-Text-Value-storyElm",
+                                      "referencedStyles": {},
+                                      "attrs": {
+                                        "html": {
+                                          "type": "raw",
+                                          "content": "",
+                                          "dynamic": {
+                                            "type": "dynamic",
+                                            "content": {
+                                              "referenceType": "prop",
+                                              "id": "block",
+                                              "fallback": "",
+                                              "refPath": [
+                                                "props",
+                                                "story"
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "children": [],
+                                      "style": {
+                                        "display": {
+                                          "type": "static",
+                                          "content": "inline-block"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "id": "TQ_pwr41w6FMK",
+                              "pos": ""
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "reference": {
+                  "type": "expr",
+                  "content": "props.block?.component"
+                },
+                "condition": {
+                  "conditions": [
+                    {
+                      "operation": "=",
+                      "operand": "TQ_m0_3O5zikS"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "name": "custom-page-block",
+      "styleSetDefinitions": {}
+    },
+    "custom-page-section": {
+      "propDefinitions": {
+        "block": {
+          "id": "TQ_Zb1tSSDkjV",
+          "defaultValue": {
+            "id": "",
+            "component": "tq:section",
+            "props": {},
+            "children": []
+          },
+          "type": "object"
+        }
+      },
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "attrs": {
+            "data-tq-custom-pages-section-component": {
+              "type": "static",
+              "content": "v2"
+            }
+          },
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "minWidth": {
+              "type": "static",
+              "content": "0"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "section",
+                "name": "ThqSection-BandElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "boxSizing": {
+                    "type": "static",
+                    "content": "border-box"
+                  },
+                  "padding": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "block",
+                      "fallback": "",
+                      "refPath": [
+                        "props",
+                        "padding"
+                      ]
+                    }
+                  },
+                  "backgroundColor": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "block",
+                      "fallback": "",
+                      "refPath": [
+                        "props",
+                        "background"
+                      ]
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "container",
+                      "semanticType": "div",
+                      "name": "ThqSection-GridElm",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "display": {
+                          "type": "static",
+                          "content": "grid"
+                        },
+                        "gridTemplateColumns": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "block",
+                            "fallback": "",
+                            "refPath": [
+                              "props",
+                              "layout"
+                            ]
+                          }
+                        },
+                        "gap": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "block",
+                            "fallback": "",
+                            "refPath": [
+                              "props",
+                              "gap"
+                            ]
+                          }
+                        },
+                        "alignItems": {
+                          "type": "static",
+                          "content": "start"
+                        },
+                        "width": {
+                          "type": "static",
+                          "content": "100%"
+                        },
+                        "maxWidth": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "block",
+                            "fallback": "",
+                            "refPath": [
+                              "props",
+                              "maxWidth"
+                            ]
+                          }
+                        },
+                        "margin": {
+                          "type": "static",
+                          "content": "0 auto"
+                        },
+                        "minWidth": {
+                          "type": "static",
+                          "content": "0"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "cms-list-repeater",
+                          "content": {
+                            "elementType": "cms-list-repeater",
+                            "nodes": {
+                              "list": {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "custom-page-block",
+                                  "name": "ThqCustom-page-blockElm",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "attrs": {
+                                    "block": {
+                                      "type": "expr",
+                                      "content": "sectionBlock"
+                                    }
+                                  },
+                                  "children": []
+                                }
+                              }
+                            },
+                            "source": "(function (__tqJsonArray) { if (Array.isArray(__tqJsonArray)) { return __tqJsonArray; } if (typeof __tqJsonArray !== \"string\" || !__tqJsonArray.trim()) { return []; } try { var __tqParsed = JSON.parse(__tqJsonArray); return Array.isArray(__tqParsed) ? __tqParsed : []; } catch (__tqError) { return []; } })(props['block']?.['children'] || [])",
+                            "renderPropIdentifier": "sectionBlock",
+                            "isCMSListRepeater": false,
+                            "paginated": false,
+                            "searchEnabled": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "custom-page-section",
+      "styleSetDefinitions": {}
+    }
+  },
+  "resources": {
+    "items": {
+      "TQ_dscustompagesteleportpagesDetail": {
+        "id": "TQ_dscustompagesteleportpagesDetail",
+        "name": "fetch_teleport_pages_detail",
+        "path": {
+          "baseUrl": {
+            "type": "static",
+            "content": "/api/data-source"
+          },
+          "route": {
+            "type": "static",
+            "content": "/ds-custom-pages/teleport_pages"
+          }
+        },
+        "params": {
+          "dataSourceId": {
+            "type": "static",
+            "content": "ds-custom-pages"
+          },
+          "dataSourceType": {
+            "type": "static",
+            "content": "teleport"
+          },
+          "tableName": {
+            "type": "static",
+            "content": "teleport_pages"
+          }
+        }
+      },
+      "TQ_dscustompagesteleportpagesPaths": {
+        "id": "TQ_dscustompagesteleportpagesPaths",
+        "name": "fetch_teleport_pages_paths",
+        "path": {
+          "baseUrl": {
+            "type": "static",
+            "content": "/api/data-source"
+          },
+          "route": {
+            "type": "static",
+            "content": "/ds-custom-pages/teleport_pages"
+          }
+        },
+        "params": {
+          "dataSourceId": {
+            "type": "static",
+            "content": "ds-custom-pages"
+          },
+          "dataSourceType": {
+            "type": "static",
+            "content": "teleport"
+          },
+          "tableName": {
+            "type": "static",
+            "content": "teleport_pages"
+          }
+        }
+      }
+    }
+  }
+}

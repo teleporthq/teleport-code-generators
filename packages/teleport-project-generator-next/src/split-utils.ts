@@ -124,6 +124,10 @@ export const splitProjectUIDL = (
   // --- Build shared options ---
   const sharedOptions: NextPartialGeneratorOptions = {
     projectRouteDefinition: routeDefinition,
+    // Page folder paths in `outputOptions.folderPath` are relative to this
+    // folder — page plugins need it to reach project-root folders. Mirrors the
+    // full project generator (see `GenericUtils.generatePageDependenciesPrefix`).
+    pagesPath,
     projectComponents: components,
     ...(designLanguage && { designLanguage }),
     ...(Object.keys(styleSetDefinitions).length > 0 && {
