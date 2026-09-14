@@ -227,29 +227,43 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     // any code is emitted.
     assertWorkflowsAreSecure(uidl.workflows)
 
-    if (uidl.workflows?.workflows) {
+    if (uidl.workflows) {
       const pageRouteMap = this.buildPageRouteMap(uidl, strategy)
 
-      const unresolvedPageIds = new Set<string>()
-      for (const wf of Object.values(uidl.workflows.workflows) as any[]) {
-        for (const node of wf.nodes || []) {
-          if (node.type === 'navigation-go-to-page' && node.config?.pageId) {
-            const resolved = pageRouteMap[node.config.pageId]
-            if (resolved) {
-              node.config.pageId = resolved
-            } else {
-              // The page id isn't in the route map (e.g. an auth page like
-              // sign-in registered outside routeDef/authPages). The mapper
-              // already stamped the real route on `targetPage.staticUrl`, so
-              // prefer that over leaving a raw page id that 404s at runtime.
-              const staticUrl = (node.config.targetPage as { staticUrl?: unknown } | undefined)
-                ?.staticUrl
-              if (typeof staticUrl === 'string' && staticUrl.charAt(0) === '/') {
-                node.config.pageId = staticUrl
-              } else {
-                unresolvedPageIds.add(node.config.pageId)
-              }
+      // CUSTOM NODES are walked alongside workflows. They used to be skipped,
+      // so a `navigation-go-to-page` inside a shared custom node reached
+      // `custom-nodes.js` still carrying its raw page id and the runtime fell
+      // through to `targetPage.staticUrl` — the mapper's best guess, which is
+      // '/home' for the home page even though Next serves it at '/', and which
+      // keeps pointing at a page the user has since DELETED. Both 404.
+      const goToPageNodes: Array<{ config: Record<string, any> }> = []
+      const nodeOwners = [uidl.workflows.workflows, uidl.workflows.customNodes]
+      for (const owner of nodeOwners) {
+        for (const entry of Object.values(owner || {}) as any[]) {
+          for (const node of entry?.nodes || []) {
+            if (node.type === 'navigation-go-to-page' && node.config?.pageId) {
+              goToPageNodes.push(node)
             }
+          }
+        }
+      }
+
+      const unresolvedPageIds = new Set<string>()
+      for (const node of goToPageNodes) {
+        const resolved = pageRouteMap[node.config.pageId]
+        if (resolved) {
+          node.config.pageId = resolved
+        } else {
+          // The page id isn't in the route map (e.g. an auth page like
+          // sign-in registered outside routeDef/authPages). The mapper
+          // already stamped the real route on `targetPage.staticUrl`, so
+          // prefer that over leaving a raw page id that 404s at runtime.
+          const staticUrl = (node.config.targetPage as { staticUrl?: unknown } | undefined)
+            ?.staticUrl
+          if (typeof staticUrl === 'string' && staticUrl.charAt(0) === '/') {
+            node.config.pageId = staticUrl
+          } else {
+            unresolvedPageIds.add(node.config.pageId)
           }
         }
       }
@@ -262,15 +276,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
             for (const pid of unresolvedPageIds) {
               pageRouteMap[pid] = defaultRouteUrl
             }
-            for (const wf of Object.values(uidl.workflows.workflows) as any[]) {
-              for (const node of wf.nodes || []) {
-                if (
-                  node.type === 'navigation-go-to-page' &&
-                  node.config?.pageId &&
-                  unresolvedPageIds.has(node.config.pageId)
-                ) {
-                  node.config.pageId = pageRouteMap[node.config.pageId]
-                }
+            for (const node of goToPageNodes) {
+              if (unresolvedPageIds.has(node.config.pageId)) {
+                node.config.pageId = pageRouteMap[node.config.pageId]
               }
             }
           }
