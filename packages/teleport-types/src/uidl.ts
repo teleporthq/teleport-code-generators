@@ -561,6 +561,11 @@ export interface UIDLGlobalProjectValues {
       skipRoutes?: string[]
       /** The preset's own choices, in words (e.g. { color: 'dark' }); the generator fills defaults. */
       options?: Record<string, string>
+      /** "Design your own": how the page arrives and leaves (opacity, x, y, scale, blur); duration/easing above. */
+      custom?: {
+        arrive: Record<string, number>
+        leave: Record<string, number>
+      }
     }
   }
   customCode?: {

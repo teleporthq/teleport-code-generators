@@ -6,6 +6,7 @@ import {
   pageTransitionVariants,
   resolvePageTransitionOptions,
   reversePageTransitionPreset,
+  sanitizePageTransitionCustom,
 } from './page-transition-variants'
 
 export interface PageTransitionConfig {
@@ -14,6 +15,7 @@ export interface PageTransitionConfig {
   easing: string
   skipRoutes?: string[]
   options?: Record<string, string>
+  custom?: { arrive?: Record<string, number>; leave?: Record<string, number> }
 }
 
 /** The same curves the motion widget plays, so a route transition shares the site's motion character. */
@@ -64,6 +66,16 @@ export const generatePageTransitionComponentCode = (config: PageTransitionConfig
         )
       : undefined
   const options = resolvePageTransitionOptions(preset, chosen)
+  // "Design your own" carries its states in the UIDL; duration and easing already sit in their own fields.
+  const custom =
+    preset === 'custom'
+      ? sanitizePageTransitionCustom({
+          durationSeconds: duration,
+          easing: config.easing,
+          arrive: config.custom?.arrive as never,
+          leave: config.custom?.leave as never,
+        })
+      : null
   return `import React from 'react'
 import { useRouter } from 'next/router'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
@@ -79,6 +91,7 @@ ${pageTransitionSkipPattern.toString()}
 const PRESET = '${preset}'
 // The preset's choices, resolved to words the variants understand.
 const OPTIONS = ${JSON.stringify(options)}
+const CUSTOM = ${JSON.stringify(custom)}
 const ORIGIN_FROM_POINTER = ${options.origin !== 'center'}
 const DURATION = ${duration}
 const EASE = [${curve.join(', ')}]
@@ -111,7 +124,7 @@ const TqPageTransition = ({ children }) => {
   const popRef = React.useRef(false)
   const pointerRef = React.useRef(null)
   const variants = React.useMemo(
-    () => (context.skip ? INSTANT : pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS)),
+    () => (context.skip ? INSTANT : pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined)),
     [context]
   )
 
@@ -143,7 +156,7 @@ const TqPageTransition = ({ children }) => {
       // A reveal clears its clip-path once settled (a permanent clip would cut
       // off fixed descendants on a short page); the exit needs it back as its
       // starting point.
-      const settled = pageTransitionVariants(PRESET, SLIDE_PX, next, OPTIONS)
+      const settled = pageTransitionVariants(PRESET, SLIDE_PX, next, OPTIONS, CUSTOM || undefined)
       if (settled && settled.animate.clipPath && pageRef.current) {
         pageRef.current.style.clipPath = settled.animate.clipPath
       }

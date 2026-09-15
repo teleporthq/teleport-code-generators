@@ -69,6 +69,12 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
         easing: string(),
         skipRoutes: optional(array(string())),
         options: optional(dict(string())),
+        custom: optional(
+          object({
+            arrive: dict(number()),
+            leave: dict(number()),
+          })
+        ),
       })
     ),
   }),

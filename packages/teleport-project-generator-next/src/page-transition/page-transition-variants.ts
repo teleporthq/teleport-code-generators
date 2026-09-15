@@ -44,11 +44,27 @@ export function reversePageTransitionPreset(preset: string): string {
   return pairs[preset] || preset
 }
 
+export interface PageTransitionCustomState {
+  opacity: number
+  x: number
+  y: number
+  scale: number
+  blur: number
+}
+
+export interface PageTransitionCustom {
+  durationSeconds: number
+  easing: string
+  arrive: PageTransitionCustomState
+  leave: PageTransitionCustomState
+}
+
 export function pageTransitionVariants(
   preset: string,
   slidePx: number,
   context?: PageTransitionContext,
-  options?: Record<string, string>
+  options?: Record<string, string>,
+  custom?: PageTransitionCustom
 ): PageTransitionVariants | null {
   const reverse = context ? context.reverse : false
   const originX = context ? context.originX : '50%'
@@ -63,6 +79,30 @@ export function pageTransitionVariants(
   const shrink = bold ? 0.85 : 0.94
   const zoomOut = bold ? 0.85 : 0.96
   const zoomIn = bold ? 1.15 : 1.04
+  if (name === 'custom') {
+    // Neutral in the middle; the two ends are exactly the user's values.
+    const c = custom || {
+      arrive: { opacity: 0, x: 0, y: 24, scale: 1, blur: 0 },
+      leave: { opacity: 0, x: 0, y: -24, scale: 1, blur: 0 },
+    }
+    return {
+      initial: {
+        opacity: c.arrive.opacity,
+        x: c.arrive.x,
+        y: c.arrive.y,
+        scale: c.arrive.scale,
+        filter: 'blur(' + c.arrive.blur + 'px)',
+      },
+      animate: { opacity: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' },
+      exit: {
+        opacity: c.leave.opacity,
+        x: c.leave.x,
+        y: c.leave.y,
+        scale: c.leave.scale,
+        filter: 'blur(' + c.leave.blur + 'px)',
+      },
+    }
+  }
   if (name === 'fade') {
     return { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
   }
@@ -278,4 +318,54 @@ export function pageTransitionCoverColor(color: string | undefined): string {
     return color.indexOf('--') === 0 ? 'var(' + color + ', ' + dark + ')' : color
   }
   return 'var(--dl-color-theme-primary1, ' + dark + ')'
+}
+
+const CUSTOM_EASINGS = [
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'linear',
+  'spring',
+  'back',
+  'bounce',
+]
+
+const DEFAULT_CUSTOM: PageTransitionCustom = {
+  durationSeconds: 0.35,
+  easing: 'ease-out',
+  arrive: { opacity: 0, x: 0, y: 24, scale: 1, blur: 0 },
+  leave: { opacity: 0, x: 0, y: -24, scale: 1, blur: 0 },
+}
+
+const clamp = (value: unknown, min: number, max: number, fallback: number): number => {
+  const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  return Math.min(max, Math.max(min, n))
+}
+
+const sanitizeCustomState = (
+  input: Partial<PageTransitionCustomState> | undefined,
+  fallback: PageTransitionCustomState
+): PageTransitionCustomState => ({
+  opacity: clamp(input?.opacity, 0, 1, fallback.opacity),
+  x: clamp(input?.x, -400, 400, fallback.x),
+  y: clamp(input?.y, -400, 400, fallback.y),
+  scale: clamp(input?.scale, 0.25, 2, fallback.scale),
+  blur: clamp(input?.blur, 0, 60, fallback.blur),
+})
+
+/** Every custom value inside its range and a known easing; mirrored verbatim from teleport-gui. Runs at generation time. */
+export function sanitizePageTransitionCustom(
+  input: Partial<PageTransitionCustom> | undefined
+): PageTransitionCustom {
+  const easing =
+    typeof input?.easing === 'string' && CUSTOM_EASINGS.indexOf(input.easing) >= 0
+      ? input.easing
+      : DEFAULT_CUSTOM.easing
+  return {
+    durationSeconds: clamp(input?.durationSeconds, 0.05, 3, DEFAULT_CUSTOM.durationSeconds),
+    easing,
+    arrive: sanitizeCustomState(input?.arrive, DEFAULT_CUSTOM.arrive),
+    leave: sanitizeCustomState(input?.leave, DEFAULT_CUSTOM.leave),
+  }
 }

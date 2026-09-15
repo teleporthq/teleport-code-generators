@@ -19,6 +19,7 @@ const buildUidl = (pageTransition?: {
   easing: string
   skipRoutes?: string[]
   options?: Record<string, string>
+  custom?: { arrive: Record<string, number>; leave: Record<string, number> }
 }) => {
   const uidl = JSON.parse(JSON.stringify(uidlSample)) as ProjectUIDL
   if (pageTransition) {
@@ -208,7 +209,9 @@ describe('Next generator preset options', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain('const OPTIONS = {"distance":"bold"}')
-    expect(wrapper).toContain('pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS)')
+    expect(wrapper).toContain(
+      'pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined)'
+    )
     expect(wrapper).toContain('const ORIGIN_FROM_POINTER = true')
   })
 
@@ -341,5 +344,42 @@ describe('Next generator preset options', () => {
       )?.initial.filter
     ).toBe('blur(28px)')
     expect(resolvePageTransitionOptions('curtain', { color: 'neon' })).toEqual({ color: 'brand' })
+  })
+})
+
+describe('Next generator design-your-own preset', () => {
+  const generator = createNextProjectGenerator()
+
+  it('ships the sanitized states and plays them through the same variants', async () => {
+    const output = await generator.generateProject(
+      buildUidl({
+        preset: 'custom',
+        duration: 0.8,
+        easing: 'bounce',
+        custom: {
+          arrive: { opacity: 0.2, x: 40, y: 0, scale: 0.9, blur: 8 },
+          leave: { opacity: 0, x: -9999, y: 0, scale: 1.1, blur: 0 },
+        },
+      }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain("const PRESET = 'custom'")
+    expect(wrapper).toContain('"arrive":{"opacity":0.2,"x":40,"y":0,"scale":0.9,"blur":8}')
+    expect(wrapper).toContain('"leave":{"opacity":0,"x":-400,"y":0,"scale":1.1,"blur":0}')
+    expect(wrapper).toContain(
+      'pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined)'
+    )
+    expect(wrapper).toContain('const DURATION = 0.8')
+  })
+
+  it('leaves every other preset with no custom states', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'fade', duration: 0.35, easing: 'ease-out' }),
+      template()
+    )
+    expect(findFile(output, 'components', 'tq-page-transition')?.content).toContain(
+      'const CUSTOM = null'
+    )
   })
 })
