@@ -34,36 +34,52 @@
  */
 
 /**
- * ⛔ EXACTLY ONE PARAMETER. Not a style choice.
+ * ⛔ A STRING LITERAL, not `someFunction.toString()`. Not a style choice.
  *
- * When this package is minified by a consumer, the handler's own entry function
- * loses its conventional name, and `resolveHandlerEntryName` then identifies the
- * entry by ARITY: it prefers a 2-param declaration, because every real handler
- * entry is `(config, context)`. A 2-param helper concatenated after a 1-param
- * entry therefore WINS, and the generated workflow calls the tracking helper
- * where it meant to call add-to-cart.
+ * The helper used to be a real TypeScript function read back through
+ * `.toString()`. Its ONLY reference was that read, so when a consumer bundles
+ * and minifies this package (teleport-gui's browser packer worker, webpack +
+ * Terser) the minifier inlined the single-use declaration into the call site
+ * and dropped the now-pointless name:
  *
- * One object parameter keeps the helper out of that contest, and the resolver's
- * positional fallback then correctly picks the entry, which is emitted first.
- * `resolve-handler-entry-name.test.ts` checks every registered node type against
- * exactly this, and is what caught it.
+ *   COMMERCE_TRACKING_HELPER_SOURCE = function(e){ ... }.toString()
  *
- * Not exported either: exporting invites the cross-module call this file exists
- * to prevent. It is here to be read by `.toString()` below, nothing else.
+ * The emitted text was therefore an ANONYMOUS function expression, and every
+ * consumer of this constant appends it as a STATEMENT after a handler. A
+ * statement-position `function(e){…}` is not parseable, so `next build` of the
+ * generated project died in `utils/workflows/node-handlers-client.js` with
+ * SWC's "Expected ident" — for any store with an add-to-cart or
+ * remove-from-cart workflow, and only in a minified build, so no local run and
+ * no source-reading test could see it.
+ *
+ * A string literal is immune: a minifier never rewrites the contents of one.
+ * It also keeps the emitted name EXACTLY `trackCommerceStep`, which is the name
+ * every caller's ambient `declare function` leaves in its serialized body, so
+ * no bundler-name aliasing is needed either.
+ *
+ * ⛔ EXACTLY ONE PARAMETER, for the same reason the arity mattered before:
+ * `resolveHandlerEntryName` identifies a minified handler's entry point by
+ * ARITY, preferring a 2-param declaration because every real entry is
+ * `(config, context)`. A 2-param helper concatenated after a 1-param entry
+ * would WIN, and the generated workflow would call the tracking helper where it
+ * meant to call add-to-cart. One object parameter keeps the helper out of that
+ * contest. `resolve-handler-entry-name.test.ts` checks every registered node
+ * type against exactly this, and is what caught it.
+ *
+ * Declared with `function` (not `var f = function`) so that concatenating it
+ * after a handler stays a plain, re-declarable statement in whatever scope the
+ * emitters splice it into.
  */
-function trackCommerceStep(step: { name: string; detail?: Record<string, unknown> }): void {
+export const COMMERCE_TRACKING_HELPER_SOURCE = `function trackCommerceStep(step) {
   try {
-    const tracker = (globalThis as Record<string, unknown>).tpTrackCommerce
+    var tracker = globalThis.tpTrackCommerce;
     if (typeof tracker === 'function') {
-      ;(tracker as (n: string, d?: Record<string, unknown>) => void)(step.name, step.detail)
+      tracker(step.name, step.detail);
     }
-  } catch (e) {
+  } catch (err) {
     /* analytics must never break a cart or a checkout */
   }
-}
-
-/** ES5 source of the helper, for concatenating after a serialized handler. */
-export const COMMERCE_TRACKING_HELPER_SOURCE = trackCommerceStep.toString()
+}`
 
 /**
  * Matches the two shapes TypeScript's CJS emit produces for a cross-module

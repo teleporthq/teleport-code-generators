@@ -80,6 +80,31 @@ async function zzz(config, context) { return one_param_helper(config); }
     )
   })
 
+  /**
+   * The shipped break this guards: a helper read back through
+   * `helper.toString()` had that read as its ONLY reference, so a consumer's
+   * minifier inlined the declaration and dropped the name. The concatenated
+   * handler then carried `function(e){...}` in STATEMENT position, and
+   * `next build` of the generated project failed with SWC's "Expected ident"
+   * in utils/workflows/node-handlers-client.js — visible only in a minified
+   * build, so nothing reading the unminified source could catch it.
+   */
+  it('rejects a helper that a minifier left anonymous in statement position', () => {
+    const source = `async function cart_add_item(config) { trackCommerceStep({ name: 'add_to_cart' }); }
+function(e){try{const t=globalThis.tpTrackCommerce;"function"==typeof t&&t(e.name,e.detail)}catch(e){}}`
+    expect(() => resolveHandlerEntryName(source, 'cart-add-item')).toThrow(
+      /anonymous function where a statement is expected/
+    )
+  })
+
+  it('accepts an anonymous function that is an expression, not a statement', () => {
+    // `wrapWithGuard`'s re-declaration guard and any inline callback keep the
+    // `function` keyword off the start of a line — those are valid and common.
+    const source = `var util = typeof util !== 'undefined' ? util : function (val) { return val; };
+async function my_node_type(config, context) { return [config].map(function (c) { return c; }); }`
+    expect(resolveHandlerEntryName(source, 'my-node-type')).toBe('my_node_type')
+  })
+
   // Full-registry regression: every node type's generateHandler()/
   // generateServerHandler() output must resolve to a real, callable function
   // both normally AND after its entry function's declared name is renamed

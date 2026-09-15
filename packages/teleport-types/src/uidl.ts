@@ -873,6 +873,18 @@ export interface UIDLDetailsPageInfo {
   tableName: string
   differentiatorColumn: string
   featureIdentifier: string
+  /**
+   * Where the array of records sits inside the payload the data source returns,
+   * for a source that wraps its list (`{ "results": [...] }` -> `['results']`).
+   *
+   * Absent when the payload IS the list, which is the case for every database
+   * table — so an absent value must keep meaning "use the payload as-is".
+   *
+   * Carried per details page and sent to the fetcher as a request param, never
+   * baked into the data source's own fetcher: the same source still serves list
+   * bindings that are authored against the unwrapped response shape.
+   */
+  collectionPath?: string[]
 }
 
 export interface UIDLPageOptions {

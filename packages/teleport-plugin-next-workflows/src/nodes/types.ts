@@ -4,6 +4,20 @@ export function handlerToString(fn: HandlerFn): string {
   return fn.toString()
 }
 
+// A `function` keyword opening a line with no name after it: an anonymous
+// function EXPRESSION sitting where the emitters splice a STATEMENT, which
+// makes the whole generated handler file unparseable ("Expected ident" from
+// SWC when the generated project builds).
+//
+// A minifier produces exactly this when it inlines a single-use function into
+// the `.toString()` that reads it — `export const SRC = helper.toString()`
+// becomes `export const SRC = function(e){…}.toString()`, and the name is gone
+// because nothing referenced it. It is invisible to every test that reads the
+// unminified source, and only a consumer's production bundle (teleport-gui's
+// packer worker) is minified, so it reaches a shopper's build untouched.
+// `commerce-tracking.ts` explains the shape a helper must use instead.
+const ANONYMOUS_FUNCTION_STATEMENT = /(?:^|\n)[ \t]*(?:async[ \t]+)?function[ \t]*\(/
+
 // Resolves the name a handler's entry function is ACTUALLY declared with in
 // `source`, rather than assuming it always equals the
 // `nodeType.replace(/-/g, '_')` convention name.
@@ -23,6 +37,15 @@ export function handlerToString(fn: HandlerFn): string {
 // of a string literal — so the convention name is still correct for those;
 // this only needs to look further when it's genuinely absent from `source`.
 export function resolveHandlerEntryName(source: string, nodeType: string): string {
+  if (ANONYMOUS_FUNCTION_STATEMENT.test(source)) {
+    throw new Error(
+      `The "${nodeType}" handler contains an anonymous function where a statement is ` +
+        'expected, so the generated handler file would not parse. A minifier that inlined ' +
+        'a single-use function into the `.toString()` reading it produces this; build the ' +
+        'emitted source from a string literal instead (see commerce-tracking.ts).'
+    )
+  }
+
   const conventionName = nodeType.replace(/-/g, '_')
   const conventionNameUsed = new RegExp(`(?:^|[^\\w$])${conventionName}\\s*\\(`).test(source)
   if (conventionNameUsed) {

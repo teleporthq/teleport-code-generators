@@ -228,3 +228,32 @@ describe('commerce analytics — the helper arity rule', () => {
     expect(params === '' ? 0 : params.split(',').length).toBe(1)
   })
 })
+
+describe('commerce analytics — the helper survives minification', () => {
+  /**
+   * The helper used to be `trackCommerceStep.toString()` on a real function
+   * whose only reference WAS that read. A consumer's minifier (teleport-gui's
+   * packer worker, webpack + Terser) therefore inlined the single-use
+   * declaration and dropped the name, so the constant held an ANONYMOUS
+   * function expression — which every caller appends as a STATEMENT. `next
+   * build` of the generated store then died in
+   * utils/workflows/node-handlers-client.js with SWC's "Expected ident", for
+   * any project with an add-to-cart or remove-from-cart workflow.
+   *
+   * A string literal is the fix: a minifier never rewrites the contents of
+   * one, so the declaration and its name always reach the generated project
+   * intact. These assertions are what break if someone reintroduces a
+   * `.toString()`.
+   */
+  it('is a statement-level declaration under the exact name callers reference', () => {
+    // Callers leave a bare `trackCommerceStep` identifier in their serialized
+    // body (via `declare function`), so the emitted name has to match exactly.
+    expect(COMMERCE_TRACKING_HELPER_SOURCE.startsWith('function trackCommerceStep(')).toBe(true)
+  })
+
+  it('carries no anonymous function in statement position', () => {
+    expect(COMMERCE_TRACKING_HELPER_SOURCE).not.toMatch(
+      /(?:^|\n)[ \t]*(?:async[ \t]+)?function[ \t]*\(/
+    )
+  })
+})

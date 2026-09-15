@@ -1,4 +1,5 @@
 import {
+  generateCollectionPathHelperCode,
   generateDateFormatterCode,
   generateSortFilterHelperCode,
   generateSafeJSONParseCode,
@@ -74,6 +75,7 @@ interface RESTAPIConfig {
   headers?: Record<string, string>
   authorization?: Authorization
   bodyType?: string
+  body?: string
 }
 
 export const generateRESTAPIFetcher = (config: Record<string, unknown>): string => {
@@ -90,9 +92,11 @@ ${generateSortFilterHelperCode()}
 
 ${generateFilterTreeHelpersCode()}
 
+${generateCollectionPathHelperCode()}
+
 export default async function handler(req, res) {
   try {
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset, collectionPath } = req.query
     
     const url = ${JSON.stringify(restConfig.url)}
     const method = ${JSON.stringify(restConfig.method || 'GET')}
@@ -114,6 +118,17 @@ export default async function handler(req, res) {
           ? 'JSON.stringify(req.body)'
           : 'req.body'
       }
+    }${
+      // A server-side call (getStaticProps -> fetchData -> handler) has no
+      // request body, so without this the configured body was silently dropped
+      // and the endpoint was called with none — while the editor, which always
+      // sends it, showed the rows the body produces. Only fills the gap: a
+      // caller that DID supply a body still wins, above.
+      restConfig.body
+        ? ` else {
+      options.body = ${JSON.stringify(restConfig.body)}
+    }`
+        : ''
     }
     `
         : ''
@@ -130,6 +145,8 @@ export default async function handler(req, res) {
     }
     
     let data = await response.json()
+    
+    data = resolveCollectionPath(data, collectionPath)
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {

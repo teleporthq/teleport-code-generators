@@ -1,4 +1,5 @@
 import {
+  generateCollectionPathHelperCode,
   generateDateFormatterCode,
   generateSortFilterHelperCode,
   generateSafeJSONParseCode,
@@ -42,6 +43,7 @@ interface JavaScriptConfig {
 
 export const generateJavaScriptFetcher = (config: Record<string, unknown>): string => {
   const jsConfig = config as JavaScriptConfig
+
   return `${generateSafeJSONParseCode()}
 
 ${generateDateFormatterCode()}
@@ -50,13 +52,15 @@ ${generateSortFilterHelperCode()}
 
 ${generateFilterTreeHelpersCode()}
 
+${generateCollectionPathHelperCode()}
+
 export default async function handler(req, res) {
   try {
-    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts } = req.query
+    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts, collectionPath } = req.query
     
     const code = ${JSON.stringify(jsConfig.code)}
     const executeCode = new Function('return ' + code)
-    let data = executeCode()
+    let data = resolveCollectionPath(executeCode(), collectionPath)
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
@@ -212,8 +216,11 @@ export const generateJavaScriptCountFetcher = (_config: any): string => {
   return `
 async function getCount(req, res) {
   try {
-    const { query, queryColumns } = req.query
-    const fakeReq = { query: { query, queryColumns }, method: 'GET' }
+    // See the REST count fetcher: this counts by re-running the fetch handler,
+    // so \`collectionPath\` has to reach it or the handler measures the wrapper
+    // object instead of the records and the count comes back 0.
+    const { query, queryColumns, collectionPath } = req.query
+    const fakeReq = { query: { query, queryColumns, collectionPath }, method: 'GET' }
     let result = null
     let statusCode = 200
     
