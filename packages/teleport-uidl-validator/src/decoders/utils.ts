@@ -519,6 +519,7 @@ export const detailsPageInfoDecoder: Decoder<UIDLDetailsPageInfo> = object({
   tableName: string(),
   differentiatorColumn: string(),
   featureIdentifier: string(),
+  collectionPath: optional(array(string())),
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({

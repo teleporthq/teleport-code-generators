@@ -566,6 +566,45 @@ export const generateSafeJSONParseCode = (): string => {
 }`
 }
 
+/**
+ * Runtime helper that narrows a fetched payload down to the array of records.
+ *
+ * Emitted into the REST API and JavaScript fetchers, which are the only two
+ * whose payload shape is whatever the remote end decided. `collectionPath`
+ * arrives as a request param — the JSON-encoded array the UIDL carries
+ * (`["results"]`), or an already-parsed array, or not at all. Only a details
+ * page sends one; every other caller gets the payload untouched.
+ *
+ * Returns the payload UNCHANGED when there is no path, and also when the path
+ * does not lead to an array — a source whose response shape drifted then keeps
+ * behaving exactly as it did before the path was introduced, instead of
+ * collapsing to an empty result the caller cannot explain.
+ */
+export const generateCollectionPathHelperCode = (): string => {
+  return `const resolveCollectionPath = (payload, rawPath) => {
+  if (!rawPath) return payload
+  let path = rawPath
+  if (typeof path === 'string') {
+    try {
+      path = JSON.parse(path)
+    } catch {
+      path = path.split('.').filter(Boolean)
+    }
+  }
+  if (!Array.isArray(path) || path.length === 0) return payload
+
+  let current = payload
+  for (const segment of path) {
+    if (!current || typeof current !== 'object' || Array.isArray(current) || !(segment in current)) {
+      return payload
+    }
+    current = current[segment]
+  }
+
+  return Array.isArray(current) ? current : payload
+}`
+}
+
 export const generateDateFormatterCode = (): string => {
   return `const formatDateValue = (date) => {
   const options = {

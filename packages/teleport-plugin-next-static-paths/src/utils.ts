@@ -33,6 +33,108 @@ export const generateInitialPathsAST = (
   )
 }
 
+const methodCall = (
+  target: types.Expression,
+  method: string,
+  args: types.Expression[]
+): types.CallExpression =>
+  types.callExpression(types.memberExpression(target, types.identifier(method), false), args)
+
+/**
+ * `paths` for a details page: one entry per record, keyed on the URL attribute.
+ *
+ * Emitted as read the differentiator off every record, DROP the unusable ones,
+ * DEDUPE, then build the params — rather than mapping records straight to
+ * params. A database primary key or slug is never empty and never repeats, so
+ * for a table-backed page the two filters remove nothing and the resulting
+ * `paths` is exactly what it has always been.
+ *
+ * They matter for a source that is not a table. A record whose differentiator
+ * is missing used to reach `undefined.toString()`, which threw — and the throw
+ * is swallowed by the `try/catch` around the whole function, so ONE bad record
+ * silently cost the page EVERY pre-rendered path, not just its own. A repeated
+ * differentiator produced duplicate entries for a route that can only resolve
+ * to one of them. Both are ordinary in a REST payload, a spreadsheet or a CSV
+ * file, so neither can be allowed to take the build's output with it.
+ *
+ * Dropped records are not lost: `fallback: 'blocking'` still serves them on
+ * demand if their route is ever requested.
+ */
+const generatePathsFromItemsAST = (
+  initialData: UIDLInitialPathsData,
+  dynamicRouteAttribute?: string
+): types.Expression => {
+  const items = types.logicalExpression(
+    '||',
+    ASTUtils.generateMemberExpressionASTFromPath([
+      'response',
+      ...ASTUtils.parseValuePath(initialData.exposeAs?.valuePath || []),
+    ]),
+    types.arrayExpression()
+  )
+
+  const differentiators = methodCall(items, 'map', [
+    types.arrowFunctionExpression(
+      [types.identifier('item')],
+      ASTUtils.generateMemberExpressionASTFromPath([
+        'item',
+        ...(initialData.exposeAs?.itemValuePath || []),
+      ]) as types.Expression
+    ),
+  ])
+
+  // value !== null && value !== undefined && String(value) !== ''
+  const isUsable = types.logicalExpression(
+    '&&',
+    types.logicalExpression(
+      '&&',
+      types.binaryExpression('!==', types.identifier('value'), types.nullLiteral()),
+      types.binaryExpression('!==', types.identifier('value'), types.identifier('undefined'))
+    ),
+    types.binaryExpression(
+      '!==',
+      types.callExpression(types.identifier('String'), [types.identifier('value')]),
+      types.stringLiteral('')
+    )
+  )
+
+  const usable = methodCall(differentiators, 'filter', [
+    types.arrowFunctionExpression([types.identifier('value')], isUsable),
+  ])
+
+  const unique = methodCall(usable, 'filter', [
+    types.arrowFunctionExpression(
+      [types.identifier('value'), types.identifier('index'), types.identifier('all')],
+      types.binaryExpression(
+        '===',
+        methodCall(types.identifier('all'), 'indexOf', [types.identifier('value')]),
+        types.identifier('index')
+      )
+    ),
+  ])
+
+  return methodCall(unique, 'map', [
+    types.arrowFunctionExpression(
+      [types.identifier('value')],
+      types.objectExpression([
+        types.objectProperty(
+          types.identifier('params'),
+          types.objectExpression([
+            types.objectProperty(
+              types.identifier(dynamicRouteAttribute || initialData.exposeAs.name),
+              methodCall(types.identifier('value'), 'toString', []),
+              false,
+              false
+            ),
+          ]),
+          false,
+          false
+        ),
+      ])
+    ),
+  ])
+}
+
 const computePropsAST = (
   initialData: UIDLInitialPathsData,
   resourceImportName: string,
@@ -145,53 +247,7 @@ const computePropsAST = (
                 ),
               ]
             )
-          : types.callExpression(
-              types.memberExpression(
-                types.logicalExpression(
-                  '||',
-                  ASTUtils.generateMemberExpressionASTFromPath([
-                    'response',
-                    ...ASTUtils.parseValuePath(initialData.exposeAs?.valuePath || []),
-                  ]),
-                  types.arrayExpression()
-                ),
-                types.identifier('map'),
-                false
-              ),
-              [
-                types.arrowFunctionExpression(
-                  [types.identifier('item')],
-                  types.blockStatement([
-                    types.returnStatement(
-                      types.objectExpression([
-                        types.objectProperty(
-                          types.identifier('params'),
-                          types.objectExpression([
-                            types.objectProperty(
-                              types.identifier(dynamicRouteAttribute || initialData.exposeAs.name),
-                              types.callExpression(
-                                types.memberExpression(
-                                  ASTUtils.generateMemberExpressionASTFromPath([
-                                    'item',
-                                    ...(initialData.exposeAs?.itemValuePath || []),
-                                  ]),
-                                  types.identifier('toString')
-                                ),
-                                []
-                              ),
-                              false,
-                              false
-                            ),
-                          ]),
-                          false,
-                          false
-                        ),
-                      ])
-                    ),
-                  ])
-                ),
-              ]
-            ),
+          : generatePathsFromItemsAST(initialData, dynamicRouteAttribute),
         false,
         false
       ),
