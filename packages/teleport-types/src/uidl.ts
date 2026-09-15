@@ -547,6 +547,21 @@ export interface UIDLGlobalProjectValues {
      * table lives in one place.
      */
     rtlLocales?: string[]
+    /**
+     * The site-wide route transition, already resolved by the editor: which
+     * preset, how many seconds, which easing name. Absent means pages switch
+     * instantly and `_app` is emitted exactly as before.
+     */
+    pageTransition?: {
+      /** 'fade' | 'slide' | 'wipe' today; a generator ignores names it does not know. */
+      preset: string
+      duration: number
+      easing: string
+      /** Routes that appear instantly (leaving them still plays); `[param]` segments match any value. */
+      skipRoutes?: string[]
+      /** The preset's own choices, in words (e.g. { color: 'dark' }); the generator fills defaults. */
+      options?: Record<string, string>
+    }
   }
   customCode?: {
     head?: string

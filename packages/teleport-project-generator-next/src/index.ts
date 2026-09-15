@@ -59,6 +59,7 @@ import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
 import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { createNextWidgetProjectPlugins } from './widgets'
 import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
+import { NextPageTransitionProjectPlugin } from './page-transition/project-plugin'
 import { NextScrollRailProjectPlugin } from './scroll-rail/project-plugin'
 import { NextBodyCodeProjectPlugin } from './body-code/project-plugin'
 import {
@@ -103,6 +104,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextAnalyticsProjectPlugin(),
   new NextNavActiveLinkProjectPlugin(),
   new NextSnapIntoViewProjectPlugin(),
+  new NextPageTransitionProjectPlugin(),
   new NextScrollRailProjectPlugin(),
   new NextBodyCodeProjectPlugin(),
   new NextCollapsibleTextProjectPlugin(),
