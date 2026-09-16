@@ -348,13 +348,18 @@ function buildInvoiceDataScope(invoiceData) {
     var lineStored = Number(it.totalPrice || it.total_price);
     if (!isFinite(lineStored) || lineStored === 0) lineStored = qty * unitStored;
 
-    var unitNet = computeNetFromGrossValue(unitStored, taxRate, taxIncluded);
-    var lineNet = computeNetFromGrossValue(lineStored, taxRate, taxIncluded);
+    // A line on an order priced by region carries its own rate and inclusion
+    // mode (a food line at 7% beside a tools line at 19%); every other line is
+    // taxed at the invoice's single rate.
+    var lineRate = typeof it.taxIncluded === 'boolean' ? Number(it.taxRate) || 0 : taxRate;
+    var lineIncluded = typeof it.taxIncluded === 'boolean' ? it.taxIncluded : taxIncluded;
+    var unitNet = computeNetFromGrossValue(unitStored, lineRate, lineIncluded);
+    var lineNet = computeNetFromGrossValue(lineStored, lineRate, lineIncluded);
     // Per-unit VAT mirrors the GUI helper: derived from the NET unit
     // price at the configured rate (rather than dividing line VAT by qty,
     // which yields odd values when qty is 0 or missing).
-    var unitVat = computeLineVatAmountValue(unitStored, taxRate, taxIncluded);
-    var lineVat = computeLineVatAmountValue(lineStored, taxRate, taxIncluded);
+    var unitVat = computeLineVatAmountValue(unitStored, lineRate, lineIncluded);
+    var lineVat = computeLineVatAmountValue(lineStored, lineRate, lineIncluded);
     var unitGross = unitNet + unitVat;
     var lineGross = lineNet + lineVat;
 

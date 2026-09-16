@@ -1,3 +1,4 @@
+import { RegionalPricing } from '@teleporthq/teleport-shared'
 import { cartClear } from '../src/nodes/cart/cart-clear'
 
 // Regression: after a cash-on-delivery order the buyer's cart came back.
@@ -41,5 +42,16 @@ describe('cart-clear mirrors the empty cart into the database cart', () => {
 
   it('stamps the clear so the provider can tell it apart from a first visit', () => {
     expect(handlerCode).toContain("localStorage.setItem('workflow_cart_cleared_at'")
+  })
+
+  it('forgets the shipping method picked for the emptied cart', () => {
+    // Otherwise the next order silently pre-selects (and charges) a rate the
+    // buyer chose for a previous one instead of the cheapest.
+    expect(handlerCode).toContain(
+      `localStorage.removeItem('${RegionalPricing.SHIPPING_RATE_STORAGE_KEY}')`
+    )
+    expect(handlerCode).toContain(
+      `dispatchEvent(new CustomEvent('${RegionalPricing.SHIPPING_RATE_CHANGED_EVENT}'))`
+    )
   })
 })
