@@ -25,6 +25,7 @@ import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
 import { formControlPropertyReads } from './trigger-generator'
 import { restoreControlledSelectValue } from './controlled-select'
+import { resolveScrollPoint } from './scroll-points'
 
 interface WorkflowPluginConfig {
   isPage?: boolean
@@ -89,7 +90,11 @@ const resolveLifecycleTriggerElementId = (
   triggerType: string,
   config: Record<string, unknown>
 ): string | null => {
-  if (triggerType !== 'event-element-visible' && triggerType !== 'event-chapter-reached') {
+  if (
+    triggerType !== 'event-element-visible' &&
+    triggerType !== 'event-chapter-reached' &&
+    triggerType !== 'event-scene-scrolled-past'
+  ) {
     return null
   }
   return ((config.elementHtmlId || config.nodeId) as string) || null
@@ -2197,6 +2202,88 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
         `        cleanups.push(function() { __chRoot_${safeId}.removeEventListener('tq-chapter-reached', __chH_${safeId}); });\n` +
         `      }\n` +
         `    }`
+      )
+    }
+
+    case 'event-scene-scrolled-past': {
+      // The published TqScrollScene announces every point passed on the way
+      // down as `tq-scene-point-passed` on its track (the element with the
+      // scene's id) and stamps the furthest point passed as `data-scene-point`.
+      // The bound element is resolved to its track; announcements bubbling up
+      // from a scene nested inside it are ignored; a listener that attaches
+      // after the point was passed fires from the stamp instead of waiting.
+      const elementId = resolveLifecycleTriggerElementId(trigger.type, config) ?? ''
+      const point = resolveScrollPoint(config.point)
+      const once = config.once !== false
+      return (
+        `    // Scene scrolled past (${wf.name || wf.id})\n` +
+        `    const __spEl_${safeId} = document.getElementById('${elementId}');\n` +
+        `    if (__spEl_${safeId}) {\n` +
+        `      const __spRoot_${safeId} = __spEl_${safeId}.closest('[data-scene-track]') || __spEl_${safeId};\n` +
+        `      const __spFire_${safeId} = function(progress) {\n` +
+        `        const triggerContext = { elementId: '${elementId}', point: '${point.key}', progress: progress, timestamp: Date.now() };\n` +
+        `        ${execCall};\n` +
+        `      };\n` +
+        `      const __spH_${safeId} = function(event) {\n` +
+        `        if (event.target !== __spRoot_${safeId}) { return; }\n` +
+        `        const detail = event.detail || {};\n` +
+        `        if (detail.point !== '${point.key}') { return; }\n` +
+        (once
+          ? `        __spRoot_${safeId}.removeEventListener('tq-scene-point-passed', __spH_${safeId});\n`
+          : '') +
+        `        __spFire_${safeId}(detail.progress);\n` +
+        `      };\n` +
+        `      const __spStamp_${safeId} = ['quarter', 'half', 'three-quarters', 'end'].indexOf(__spRoot_${safeId}.getAttribute('data-scene-point') || '') + 1;\n` +
+        `      if (__spStamp_${safeId} >= ${point.rank}) {\n` +
+        `        __spFire_${safeId}(${point.at});\n` +
+        `      }\n` +
+        (once ? `      if (__spStamp_${safeId} < ${point.rank}) {\n` : `      {\n`) +
+        `        __spRoot_${safeId}.addEventListener('tq-scene-point-passed', __spH_${safeId});\n` +
+        `        cleanups.push(function() { __spRoot_${safeId}.removeEventListener('tq-scene-point-passed', __spH_${safeId}); });\n` +
+        `      }\n` +
+        `    }`
+      )
+    }
+
+    case 'event-page-scrolled-past': {
+      // Page progress = scrollY over the scrollable height; a page that cannot
+      // scroll is entirely in view, so every point counts as passed. Checked
+      // once on attach (an anchor link or a restored scroll may open the page
+      // already past the point), then on scroll and resize, one check per
+      // frame. Going back above the point re-arms it; `once` detaches after
+      // the first pass.
+      const point = resolveScrollPoint(config.point)
+      const once = config.once !== false
+      return (
+        `    // Page scrolled past (${wf.name || wf.id})\n` +
+        `    const __ppProgress_${safeId} = function() {\n` +
+        `      const max = document.documentElement.scrollHeight - window.innerHeight;\n` +
+        `      return max <= 0 ? 1 : Math.min(1, Math.max(0, window.scrollY / max));\n` +
+        `    };\n` +
+        `    let __ppPassed_${safeId} = false;\n` +
+        `    let __ppTick_${safeId} = false;\n` +
+        `    const __ppOnScroll_${safeId} = function() {\n` +
+        `      if (__ppTick_${safeId}) { return; }\n` +
+        `      __ppTick_${safeId} = true;\n` +
+        `      requestAnimationFrame(function() { __ppTick_${safeId} = false; __ppCheck_${safeId}(); });\n` +
+        `    };\n` +
+        `    const __ppStop_${safeId} = function() {\n` +
+        `      window.removeEventListener('scroll', __ppOnScroll_${safeId});\n` +
+        `      window.removeEventListener('resize', __ppOnScroll_${safeId});\n` +
+        `    };\n` +
+        `    const __ppCheck_${safeId} = function() {\n` +
+        `      const progress = __ppProgress_${safeId}();\n` +
+        `      if (progress < ${point.at} - 0.000001) { __ppPassed_${safeId} = false; return; }\n` +
+        `      if (__ppPassed_${safeId}) { return; }\n` +
+        `      __ppPassed_${safeId} = true;\n` +
+        (once ? `      __ppStop_${safeId}();\n` : '') +
+        `      const triggerContext = { point: '${point.key}', progress: progress, url: window.location.href, timestamp: Date.now() };\n` +
+        `      ${execCall};\n` +
+        `    };\n` +
+        `    window.addEventListener('scroll', __ppOnScroll_${safeId}, { passive: true });\n` +
+        `    window.addEventListener('resize', __ppOnScroll_${safeId});\n` +
+        `    cleanups.push(__ppStop_${safeId});\n` +
+        `    __ppCheck_${safeId}();`
       )
     }
 

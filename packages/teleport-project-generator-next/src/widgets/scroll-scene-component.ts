@@ -17,6 +17,7 @@
  */
 import { settledMomentForLanes } from './scroll-scene-moment'
 import { activeChapterIndex } from './scroll-scene-chapter-index'
+import { passedScenePoints, scenePointList, scenePointRank } from './scroll-scene-points'
 
 export const generateScrollSceneComponentCode = (): string => {
   return `import React from 'react'
@@ -28,6 +29,11 @@ const SCROLL_BIND_ATTR = 'data-scroll-bind'
 const CHAPTER_REACHED_EVENT = 'tq-chapter-reached'
 const CHAPTER_ACTIVE_ATTR = 'data-chapter-active'
 const CHAPTER_COUNT_ATTR = 'data-chapter-count'
+// Scrolling DOWN past a quarter / halfway / three quarters / the end of the
+// scene is announced on the track (the element with the scene's id), bubbling;
+// the furthest point passed so far is stamped for listeners that attach later.
+const SCENE_POINT_EVENT = 'tq-scene-point-passed'
+const SCENE_POINT_ATTR = 'data-scene-point'
 
 const LANE_PROPS = [
   'x',
@@ -117,6 +123,12 @@ const isValidLane = (lane) => {
 ${settledMomentForLanes.toString()}
 
 ${activeChapterIndex.toString()}
+
+${scenePointList.toString()}
+
+${passedScenePoints.toString()}
+
+${scenePointRank.toString()}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()
@@ -290,6 +302,51 @@ const TqScrollScene = ({
     onScreen: false,
     pending: null,
   })
+  const scenePointStateRef = React.useRef({ last: null, pending: [], scheduled: false })
+
+  // Announces the points passed on the way down, in scroll order, one
+  // microtask later (the ancestors' effects, where generated listeners attach,
+  // have run by then). The stamp is written with the dispatch, never before it,
+  // so a listener attaching in the same effect flush sees no stamp and gets the
+  // event, while one attaching later reads the stamp and nothing is announced
+  // twice. The first announcement measures from below the scene, so a page
+  // that opens already past a point (an anchor link, a restored scroll) counts
+  // it as passed. Going up announces nothing; the next way down announces again.
+  const announceScenePoints = (p) => {
+    const state = scenePointStateRef.current
+    const from = state.last === null ? -1 : state.last
+    state.last = p
+    const passed = passedScenePoints(from, p)
+    if (passed.length === 0) {
+      return
+    }
+    state.pending = state.pending.concat(passed)
+    if (state.scheduled) {
+      return
+    }
+    state.scheduled = true
+    Promise.resolve().then(() => {
+      const current = scenePointStateRef.current
+      current.scheduled = false
+      const batch = current.pending
+      current.pending = []
+      const track = trackRef.current
+      if (!track) {
+        return
+      }
+      for (const key of batch) {
+        if (scenePointRank(key) > scenePointRank(track.getAttribute(SCENE_POINT_ATTR) || '')) {
+          track.setAttribute(SCENE_POINT_ATTR, key)
+        }
+        track.dispatchEvent(
+          new CustomEvent(SCENE_POINT_EVENT, {
+            bubbles: true,
+            detail: { point: key, progress: current.last },
+          })
+        )
+      }
+    })
+  }
 
   // The chapters in document order with the moment each one is on stage —
   // the same moment chapter snap and anchor navigation aim at; a chapter
@@ -415,6 +472,7 @@ const TqScrollScene = ({
         trackRef.current.style.setProperty('--scene-progress', String(Math.round(p * 1000) / 1000))
       }
       announceChapter(p)
+      announceScenePoints(p)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [exposeProgress]
@@ -606,6 +664,11 @@ const TqScrollScene = ({
       state.records = null
       state.index = -1
       stampChapter(null, 0, 0)
+      const points = scenePointStateRef.current
+      points.last = null
+      points.pending = []
+      points.scheduled = false
+      track.removeAttribute(SCENE_POINT_ATTR)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion, reducedMotion, pin, applyAll, restack])
