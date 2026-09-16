@@ -89,7 +89,7 @@ const resolveLifecycleTriggerElementId = (
   triggerType: string,
   config: Record<string, unknown>
 ): string | null => {
-  if (triggerType !== 'event-element-visible') {
+  if (triggerType !== 'event-element-visible' && triggerType !== 'event-chapter-reached') {
     return null
   }
   return ((config.elementHtmlId || config.nodeId) as string) || null
@@ -2157,6 +2157,45 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
         `      }, { threshold: ${threshold} });\n` +
         `      __obs_${safeId}.observe(__visEl_${safeId});\n` +
         `      cleanups.push(function() { __obs_${safeId}.disconnect(); });\n` +
+        `    }`
+      )
+    }
+
+    case 'event-chapter-reached': {
+      // The published TqScrollScene announces the chapter on stage as a
+      // `tq-chapter-reached` event on the CHAPTER element (a direct child of the
+      // scene) and stamps `data-chapter-active` / `data-chapter-count` on it.
+      // The bound element is resolved to its chapter root, so a descendant the
+      // author picked still listens where the event lands; events bubbling up
+      // from a scene nested inside the chapter are ignored; and a listener that
+      // attaches after the announcement reads the stamp instead of waiting for
+      // a change that already happened.
+      const elementId = resolveLifecycleTriggerElementId(trigger.type, config) ?? ''
+      const once = config.once !== false
+      return (
+        `    // Chapter reached (${wf.name || wf.id})\n` +
+        `    const __chEl_${safeId} = document.getElementById('${elementId}');\n` +
+        `    if (__chEl_${safeId}) {\n` +
+        `      const __chRoot_${safeId} = __chEl_${safeId}.closest('[data-scene-stage] > *, [data-scene-track] > *') || __chEl_${safeId};\n` +
+        `      const __chFire_${safeId} = function(detail) {\n` +
+        `        const triggerContext = { elementId: '${elementId}', chapterIndex: detail.chapterIndex, chapterCount: detail.chapterCount, progress: detail.progress, direction: detail.direction, timestamp: Date.now() };\n` +
+        `        ${execCall};\n` +
+        `      };\n` +
+        `      const __chH_${safeId} = function(event) {\n` +
+        `        if (event.target !== __chRoot_${safeId}) { return; }\n` +
+        (once
+          ? `        __chRoot_${safeId}.removeEventListener('tq-chapter-reached', __chH_${safeId});\n`
+          : '') +
+        `        __chFire_${safeId}(event.detail || {});\n` +
+        `      };\n` +
+        `      const __chStamp_${safeId} = __chRoot_${safeId}.getAttribute('data-chapter-active');\n` +
+        `      if (__chStamp_${safeId}) {\n` +
+        `        __chFire_${safeId}({ chapterIndex: Number(__chStamp_${safeId}), chapterCount: Number(__chRoot_${safeId}.getAttribute('data-chapter-count')) || undefined });\n` +
+        `      }\n` +
+        (once ? `      if (!__chStamp_${safeId}) {\n` : `      {\n`) +
+        `        __chRoot_${safeId}.addEventListener('tq-chapter-reached', __chH_${safeId});\n` +
+        `        cleanups.push(function() { __chRoot_${safeId}.removeEventListener('tq-chapter-reached', __chH_${safeId}); });\n` +
+        `      }\n` +
         `    }`
       )
     }

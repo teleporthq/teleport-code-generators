@@ -88,6 +88,12 @@ describe('Next generator with a Scroll Scene element', () => {
     // direction of travel.
     expect(component?.content).toContain('data-chapter-moment')
     expect(component?.content).toContain('function settledMomentForLanes')
+    expect(component?.content).toContain('function activeChapterIndex')
+    expect(component?.content).toContain("'tq-chapter-reached'")
+    expect(component?.content).toContain("'data-chapter-active'")
+    expect(component?.content).toContain("'data-chapter-count'")
+    expect(component?.content).toContain('chapterElements')
+    expect(component?.content).toContain('chapterStateRef.current.records = null')
     expect(component?.content).toContain('const candidates = ahead.length > 0 ? ahead : moments')
     expect(component?.content).toContain('scrollToChapter')
     // Gentle chapter snap: settle-on-pause exists and is opt-in via the

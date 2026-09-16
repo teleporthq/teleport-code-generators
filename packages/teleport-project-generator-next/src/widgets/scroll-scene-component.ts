@@ -16,12 +16,18 @@
  * when an ancestor's overflow silently disables the sticky pinning.
  */
 import { settledMomentForLanes } from './scroll-scene-moment'
+import { activeChapterIndex } from './scroll-scene-chapter-index'
 
 export const generateScrollSceneComponentCode = (): string => {
   return `import React from 'react'
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 
 const SCROLL_BIND_ATTR = 'data-scroll-bind'
+// A chapter coming on stage is announced on the chapter element (bubbling), so
+// a workflow trigger bound to the chapter can listen without knowing the scene.
+const CHAPTER_REACHED_EVENT = 'tq-chapter-reached'
+const CHAPTER_ACTIVE_ATTR = 'data-chapter-active'
+const CHAPTER_COUNT_ATTR = 'data-chapter-count'
 
 const LANE_PROPS = [
   'x',
@@ -109,6 +115,8 @@ const isValidLane = (lane) => {
 }
 
 ${settledMomentForLanes.toString()}
+
+${activeChapterIndex.toString()}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()
@@ -272,6 +280,126 @@ const TqScrollScene = ({
   const boundRef = React.useRef([])
   const progressRef = React.useRef(0)
   const shouldReduceMotion = useReducedMotion()
+  const chapterHelpersRef = React.useRef(null)
+  const chapterStateRef = React.useRef({
+    records: null,
+    moments: null,
+    index: -1,
+    element: null,
+    lastProgress: 0,
+    onScreen: false,
+    pending: null,
+  })
+
+  // The chapters in document order with the moment each one is on stage —
+  // the same moment chapter snap and anchor navigation aim at; a chapter
+  // without a moment of its own takes the start of its even share.
+  const chapterRecords = () => {
+    const track = trackRef.current
+    const helpers = chapterHelpersRef.current
+    if (!track || !helpers) {
+      return []
+    }
+    const chapters = helpers.chapterElements(track)
+    return chapters.map((element, index) => {
+      const moment = helpers.chapterProgress(element)
+      return {
+        element,
+        moment:
+          moment === null ? index / chapters.length : Math.min(1, Math.max(0, moment)),
+      }
+    })
+  }
+
+  // Announces chapters as the visitor passes their moments: every chapter
+  // between the last announced one and the one now on stage gets its
+  // tq-chapter-reached (bubbling) in travel order, so a jump past a chapter
+  // still counts as reaching it. The current chapter carries
+  // data-chapter-active / data-chapter-count for listeners that attach later.
+  // Dispatch is deferred to a microtask: the ancestors' effects (where the
+  // generated listeners attach) have run by then, and nothing is a frame late.
+  const announceChapter = (p) => {
+    const state = chapterStateRef.current
+    if (state.records === null) {
+      state.records = chapterRecords()
+      state.moments = state.records.map((record) => record.moment)
+      // A rebuilt list may hold NEW elements for the same chapters (a repeater
+      // re-rendered): the stamp moves to the current chapter's new element
+      // without announcing it again.
+      const current = state.index >= 0 ? state.records[state.index] : null
+      if (current && current.element !== state.element) {
+        stampChapter(current.element, state.index + 1, state.records.length)
+      } else if (!current && state.index >= 0) {
+        state.index = -1
+        state.element = null
+      }
+    }
+    const direction = p >= state.lastProgress ? 'down' : 'up'
+    state.lastProgress = p
+    if (state.moments.length === 0 || !state.onScreen) {
+      return
+    }
+    const next = activeChapterIndex(state.moments, p)
+    if (next === state.index) {
+      return
+    }
+    const from = state.index
+    state.index = next
+    if (next === -1) {
+      stampChapter(null, 0, 0)
+      return
+    }
+    const passed = []
+    if (from < next) {
+      for (let index = from + 1; index <= next; index++) {
+        passed.push(index)
+      }
+    } else {
+      for (let index = from - 1; index >= next; index--) {
+        passed.push(index)
+      }
+    }
+    stampChapter(state.records[next].element, next + 1, state.records.length)
+    state.pending = { passed, progress: p, direction }
+    Promise.resolve().then(() => {
+      const batch = chapterStateRef.current.pending
+      if (!batch) {
+        return
+      }
+      chapterStateRef.current.pending = null
+      const records = chapterStateRef.current.records || []
+      for (const index of batch.passed) {
+        const record = records[index]
+        if (!record) {
+          continue
+        }
+        record.element.dispatchEvent(
+          new CustomEvent(CHAPTER_REACHED_EVENT, {
+            bubbles: true,
+            detail: {
+              chapterIndex: index + 1,
+              chapterCount: records.length,
+              progress: batch.progress,
+              direction: batch.direction,
+            },
+          })
+        )
+      }
+    })
+  }
+
+  const stampChapter = (element, chapterIndex, chapterCount) => {
+    const state = chapterStateRef.current
+    if (state.element && state.element !== element) {
+      state.element.removeAttribute(CHAPTER_ACTIVE_ATTR)
+      state.element.removeAttribute(CHAPTER_COUNT_ATTR)
+    }
+    state.element = element
+    if (element) {
+      element.setAttribute(CHAPTER_ACTIVE_ATTR, String(chapterIndex))
+      element.setAttribute(CHAPTER_COUNT_ATTR, String(chapterCount))
+    }
+  }
 
   const applyAll = React.useCallback(
     (p) => {
@@ -286,7 +414,9 @@ const TqScrollScene = ({
       if (exposeProgress && trackRef.current) {
         trackRef.current.style.setProperty('--scene-progress', String(Math.round(p * 1000) / 1000))
       }
+      announceChapter(p)
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [exposeProgress]
   )
 
@@ -405,12 +535,9 @@ const TqScrollScene = ({
     boundRef.current = collectBound(track)
     restack()
 
-    if (shouldReduceMotion) {
-      applyAll(reducedMotion === 'static' ? 0 : 1)
-      return undefined
-    }
-
-    applyAll(progress.get())
+    // Chapters are announced for reduced-motion visitors too (their workflows
+    // must still run), from the one progress the scene settles on.
+    applyAll(shouldReduceMotion ? (reducedMotion === 'static' ? 0 : 1) : progress.get())
 
     // Repeater items render after mount, and bindings may be rewritten in
     // place on existing elements (attribute-only mutations) — watch both,
@@ -419,6 +546,7 @@ const TqScrollScene = ({
     const observer = new MutationObserver(() => {
       boundRef.current = collectBound(track)
       restack()
+      chapterStateRef.current.records = null
       applyAll(progressRef.current)
     })
     observer.observe(track, {
@@ -427,6 +555,23 @@ const TqScrollScene = ({
       attributes: true,
       attributeFilter: ['data-scroll-bind'],
     })
+
+    // Chapters are only announced while the scene is on screen: progress is 0
+    // for every scene still below the fold, so the observer owns that fact and
+    // re-evaluates the moment the scene arrives.
+    const visibility =
+      typeof IntersectionObserver === 'function'
+        ? new IntersectionObserver((entries) => {
+            chapterStateRef.current.onScreen = entries.some((entry) => entry.isIntersecting)
+            announceChapter(progressRef.current)
+          })
+        : null
+    if (visibility) {
+      visibility.observe(track)
+    } else {
+      chapterStateRef.current.onScreen = true
+      announceChapter(progressRef.current)
+    }
 
     if (process.env.NODE_ENV !== 'production' && pin) {
       let ancestor = track.parentElement
@@ -449,7 +594,19 @@ const TqScrollScene = ({
       }
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (visibility) {
+        visibility.disconnect()
+      }
+      // An announcement still pending is dropped with the effect; the re-run
+      // starts from nothing announced, so the chapter on stage is announced again.
+      const state = chapterStateRef.current
+      state.pending = null
+      state.records = null
+      state.index = -1
+      stampChapter(null, 0, 0)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion, reducedMotion, pin, applyAll, restack])
 
@@ -458,7 +615,6 @@ const TqScrollScene = ({
   // (data-chapter-window when the editor recorded one, else the span of its
   // data-scroll-bind stops), and a progress maps to the document position
   // trackTop + progress * (trackHeight - viewport).
-  const chapterHelpersRef = React.useRef(null)
   if (chapterHelpersRef.current === null) {
     const chapterProgress = (chapterRoot) => {
       // 1. The author's own snap point ("Snap here" on the timeline) wins.
@@ -499,20 +655,22 @@ const TqScrollScene = ({
     chapterHelpersRef.current = {
       stageOf: (track) => track.querySelector(':scope > [data-scene-stage]'),
       chapterProgress,
-      chapterMoments: (track) => {
+      // The chapters: the stage's children when the scene pins, the track's own
+      // children when it does not. Never the style tag or the background video.
+      chapterElements: (track) => {
         const stage = chapterHelpersRef.current.stageOf(track)
-        if (!stage) {
-          return []
-        }
+        const host = stage || track
+        return Array.from(host.children).filter(
+          (child) =>
+            !!child.getAttribute &&
+            child.tagName !== 'STYLE' &&
+            !child.hasAttribute('data-scroll-video') &&
+            !child.hasAttribute('data-scene-stage')
+        )
+      },
+      chapterMoments: (track) => {
         const moments = []
-        for (const child of Array.from(stage.children)) {
-          if (
-            !child.getAttribute ||
-            child.tagName === 'STYLE' ||
-            child.hasAttribute('data-scroll-video')
-          ) {
-            continue
-          }
+        for (const child of chapterHelpersRef.current.chapterElements(track)) {
           const progress = chapterProgress(child)
           if (progress !== null) {
             moments.push(Math.min(1, Math.max(0, progress)))
