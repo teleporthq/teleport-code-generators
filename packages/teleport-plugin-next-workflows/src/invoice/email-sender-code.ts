@@ -14,9 +14,15 @@ export const generateEmailSenderCode = (emailDelivery: UIDLInvoiceEmailDelivery)
   return `/**
  * Invoice Email Sender
  * Provider: ${emailDelivery.provider}
+ *
+ * \`sendInvoiceEmail\` is the public entry: it builds the message once, hands
+ * it to the provider function and records the attempt in the sent-email
+ * ledger. The provider function never builds the message itself, so the row
+ * carries exactly the subject and body that went out.
  */
 
 var pdfGenerator = require('./pdf-generator');
+var sentEmailLog = require('../email/sent-email-log');
 var replacePlaceholders = pdfGenerator.replacePlaceholders;
 
 var SECRET_KEYS = ${secretKeysJson};
@@ -35,10 +41,51 @@ function buildEmailData(invoiceData) {
     body: replacePlaceholders(${JSON.stringify(bodyTemplate)}, data),
     to: invoiceData.customerEmail || '',
     from: ${JSON.stringify(fromName ? `${fromName} <${fromEmail}>` : fromEmail)},
+    templateData: data,
   };
 }
 
+function attachmentName(invoiceData) {
+  return (invoiceData.invoiceNumber || 'invoice') + '.pdf';
+}
+
 ${generateProviderSendFunction(emailDelivery.provider)}
+
+async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+  var emailData = buildEmailData(invoiceData);
+  if (!emailData.to) return { success: false, error: 'No customer email provided' };
+  var result;
+  try {
+    result = await sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer);
+  } catch (err) {
+    result = { success: false, error: err && err.message ? err.message : String(err) };
+  }
+  sentEmailLog.recordSentEmail({
+    emailType: 'invoice-email',
+    audience: 'customer',
+    to: emailData.to,
+    from: emailData.from,
+    subject: emailData.subject,
+    html: emailData.body,
+    payload: emailData.templateData,
+    attachments: [{
+      filename: attachmentName(invoiceData),
+      contentType: 'application/pdf',
+      sizeBytes: pdfBuffer && pdfBuffer.length ? pdfBuffer.length : null,
+      url: invoiceData.pdfUrl || null,
+    }],
+    provider: ${JSON.stringify(emailDelivery.provider)},
+    providerMessageId: result && result.messageId,
+    status: result && result.success ? 'sent' : 'failed',
+    error: result && !result.success ? result.error : null,
+    source: 'invoice',
+    sourceRef: 'api/invoices/generate',
+    orderId: invoiceData.orderId,
+    referenceType: 'invoice',
+    referenceId: invoiceData.id,
+  });
+  return result;
+}
 
 module.exports = { sendInvoiceEmail };
 `
@@ -48,22 +95,19 @@ function generateProviderSendFunction(provider: string): string {
   switch (provider) {
     case 'resend':
       return `
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   try {
     var Resend = require('resend').Resend;
     var apiKey = resolveSecretKey('apiKey');
     if (!apiKey) return { success: false, error: 'Resend API key not configured' };
     var resend = new Resend(apiKey);
-    var emailData = buildEmailData(invoiceData);
-    if (!emailData.to) return { success: false, error: 'No customer email provided' };
-
     var payload = {
       from: emailData.from,
       to: [emailData.to],
       subject: emailData.subject,
       html: emailData.body,
       attachments: [{
-        filename: (invoiceData.invoiceNumber || 'invoice') + '.pdf',
+        filename: attachmentName(invoiceData),
         content: pdfBuffer.toString('base64'),
       }],
     };
@@ -77,15 +121,12 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     case 'sendgrid':
       return `
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   try {
     var sgMail = require('@sendgrid/mail');
     var apiKey = resolveSecretKey('apiKey');
     if (!apiKey) return { success: false, error: 'SendGrid API key not configured' };
     sgMail.setApiKey(apiKey);
-    var emailData = buildEmailData(invoiceData);
-    if (!emailData.to) return { success: false, error: 'No customer email provided' };
-
     var msg = {
       to: emailData.to,
       from: emailData.from,
@@ -93,7 +134,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
       html: emailData.body,
       attachments: [{
         content: pdfBuffer.toString('base64'),
-        filename: (invoiceData.invoiceNumber || 'invoice') + '.pdf',
+        filename: attachmentName(invoiceData),
         type: 'application/pdf',
         disposition: 'attachment',
       }],
@@ -107,7 +148,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     case 'mailgun':
       return `
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   try {
     var Mailgun = require('mailgun.js');
     var formData = require('form-data');
@@ -118,9 +159,6 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     var mailgun = new Mailgun(formData);
     var mg = mailgun.client({ username: 'api', key: apiKey });
-    var emailData = buildEmailData(invoiceData);
-    if (!emailData.to) return { success: false, error: 'No customer email provided' };
-
     var msg = {
       from: emailData.from,
       to: [emailData.to],
@@ -128,7 +166,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
       html: emailData.body,
       attachment: [{
         data: pdfBuffer,
-        filename: (invoiceData.invoiceNumber || 'invoice') + '.pdf',
+        filename: attachmentName(invoiceData),
         contentType: 'application/pdf',
       }],
     };
@@ -141,22 +179,19 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     case 'postmark':
       return `
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   try {
     var postmark = require('postmark');
     var serverToken = resolveSecretKey('serverToken');
     if (!serverToken) return { success: false, error: 'Postmark server token not configured' };
     var client = new postmark.ServerClient(serverToken);
-    var emailData = buildEmailData(invoiceData);
-    if (!emailData.to) return { success: false, error: 'No customer email provided' };
-
     var msg = {
       From: emailData.from,
       To: emailData.to,
       Subject: emailData.subject,
       HtmlBody: emailData.body,
       Attachments: [{
-        Name: (invoiceData.invoiceNumber || 'invoice') + '.pdf',
+        Name: attachmentName(invoiceData),
         Content: pdfBuffer.toString('base64'),
         ContentType: 'application/pdf',
       }],
@@ -190,7 +225,7 @@ function parseFromString(from) {
   return { name: '', email: str };
 }
 
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   var invoiceNumber = invoiceData && invoiceData.invoiceNumber ? invoiceData.invoiceNumber : '(no number)';
   try {
     console.info('[invoice-email][mailersend] begin — invoice=' + invoiceNumber +
@@ -201,12 +236,6 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
       console.error('[invoice-email][mailersend] skip — API key not configured (set \`apiKey\` secret or INVOICE_MAILERSEND_APIKEY env)');
       return { success: false, error: 'MailerSend API key not configured' };
     }
-    var emailData = buildEmailData(invoiceData);
-    if (!emailData.to) {
-      console.error('[invoice-email][mailersend] skip — invoiceData.customerEmail is empty (order hydrating yielded no billing_email; set it on the order row or pass customerEmail in the generate payload)');
-      return { success: false, error: 'No customer email provided' };
-    }
-
     var MailerSend = require('mailersend').MailerSend;
     var EmailParams = require('mailersend').EmailParams;
     var Sender = require('mailersend').Sender;
@@ -224,7 +253,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     var attachment = new Attachment(
       pdfBuffer.toString('base64'),
-      (invoiceData.invoiceNumber || 'invoice') + '.pdf',
+      attachmentName(invoiceData),
       'attachment'
     );
 
@@ -267,7 +296,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
 
     default:
       return `
-async function sendInvoiceEmail() {
+async function sendInvoiceEmailWithProvider() {
   return { success: false, error: 'Unsupported email provider: ${provider}' };
 }`
   }

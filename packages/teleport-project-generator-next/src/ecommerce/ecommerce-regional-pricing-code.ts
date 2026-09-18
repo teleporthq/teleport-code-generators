@@ -84,9 +84,10 @@ const REGIONAL_CONFIG_MAX_AGE_MS = 5 * 60 * 1000
 const REGIONAL_CONFIG_RETRY_MS = 15 * 1000
 
 // All three tables, or nothing. Pricing from half a configuration — zones whose
-// rates failed to load — would refuse to ship anywhere, so any failed read
-// (including a store whose tables were never created) leaves the store on its
-// single flat fee and default rate, which is what it displays and charges.
+// rates failed to load — would charge the store fee where a zone's own rates
+// apply, so any failed read (including a store whose tables were never created)
+// leaves the store on its single flat fee and default rate, which is what it
+// displays and charges.
 //
 // The rows are kept exactly as the API returned them: \`cart-get-total\`
 // normalizes its own copy, so it never has to trust a shape this module chose.

@@ -1112,9 +1112,14 @@ const WELCOME_EMAIL_SITE_NAME = ${JSON.stringify(welcome.siteName || '')};
 
 ${generateFillTemplateFn()}
 
-${generateProviderSendFunction(welcomeProvider)}
+${generateProviderSendFunction(welcomeProvider, {
+  emailType: 'welcome',
+  source: 'signup',
+  sourceRef: 'api/auth/signup',
+  relativePrefix: '../../..',
+})}
 
-async function sendWelcomeEmail(toEmail, tokenValues) {
+async function sendWelcomeEmail(toEmail, tokenValues, userId) {
   if (!WELCOME_EMAIL_PROVIDER || !WELCOME_EMAIL_BODY_HTML || !toEmail) { return; }
   var apiKey = WELCOME_EMAIL_SECRET_ENV_NAME ? process.env[WELCOME_EMAIL_SECRET_ENV_NAME] : '';
   if (apiKey && String(apiKey).indexOf('teleporthq.secrets.') === 0) { apiKey = ''; }
@@ -1123,7 +1128,7 @@ async function sendWelcomeEmail(toEmail, tokenValues) {
   if (!from) { console.warn('[account-signup] welcome email skipped: sender not configured'); return; }
   var subject = fillTemplate(WELCOME_EMAIL_SUBJECT, tokenValues);
   var html = fillTemplate(WELCOME_EMAIL_BODY_HTML, tokenValues);
-  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey });
+  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 `
 
@@ -1162,11 +1167,17 @@ async function sendWelcomeEmail(toEmail, tokenValues) {
         userName: name || (newUser && newUser.name) || 'there',
         userEmail: email,
         siteName: __welcomeSiteName,
-      });
+      }, newUser && newUser.id);
     } catch (welcomeErr) {
       console.error('[account-signup] welcome email failed:', welcomeErr && welcomeErr.message ? welcomeErr.message : welcomeErr);
     }
-
+${
+  welcomeProvider
+    ? `    // Land the welcome email's ledger row before replying.
+    if (typeof __sentEmailLog !== 'undefined') { await __sentEmailLog.settleSentEmailLog(); }
+`
+    : ''
+}
     res.status(201).json({ user: sanitizeUser(newUser) });`
   } else {
     createUserCall = `    res.status(501).json({ error: 'No data source configured for user storage' });`

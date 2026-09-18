@@ -119,13 +119,20 @@ describe('cart-get-total — regional pricing', () => {
     })
   })
 
-  it('reports an address no zone covers as unavailable', async () => {
+  it('prices an address no zone lists at the store fee and default rate', async () => {
     mount(
       { workflow_cart: CART, workflow_cart_settings: settingsWith(REGIONAL) },
       { billingCountry: 'Brazil', state: '' }
     )
     const out = await runHandler()
-    expect(out.regional).toMatchObject({ status: 'unavailable', shippingGross: 0 })
+    expect(out.regional).toMatchObject({
+      status: 'ok',
+      zoneName: '',
+      rateName: '',
+      codAvailable: true,
+      shippingNet: 5,
+      shippingGross: 5,
+    })
     // Brazil has no tax row: the store default applies.
     expect(out.tax).toBe(20)
   })
@@ -137,7 +144,9 @@ describe('cart-get-total — regional pricing', () => {
     )
     const out = await runHandler()
     expect(out.regional).toMatchObject({
-      status: 'unavailable',
+      status: 'ok',
+      zoneName: '',
+      shippingGross: 5,
       destination: { countryCode: 'BR' },
     })
   })

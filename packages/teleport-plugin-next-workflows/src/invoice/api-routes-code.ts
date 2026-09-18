@@ -21,7 +21,12 @@ export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings):
 
 var dataAccess = require('../../../utils/invoices/data-access');
 var pdfGenerator = require('../../../utils/invoices/pdf-generator');
-${emailEnabled ? `var emailSender = require('../../../utils/invoices/email-sender');` : ''}
+${
+  emailEnabled
+    ? `var emailSender = require('../../../utils/invoices/email-sender');
+var sentEmailLog = require('../../../utils/email/sent-email-log');`
+    : ''
+}
 
 var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 var DEFAULT_TAX_RATE = ${defaultTaxRate};
@@ -631,7 +636,14 @@ ${
       currency: currency,
     });
 
-    res.status(200).json({
+${
+  emailEnabled
+    ? `    // The email's ledger row is written in the background — land it before
+    // replying, a serverless function may be frozen the instant it responds.
+    await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}    res.status(200).json({
       success: true,
       invoiceId: invoiceData.id,
       invoiceNumber: invoiceNumber,
@@ -651,7 +663,12 @@ ${
     });
   } catch (error) {
     console.error('[invoice] Generation threw:', error && error.stack ? error.stack : error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to generate invoice' });
+${
+  emailEnabled
+    ? `    await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}    res.status(500).json({ success: false, error: error.message || 'Failed to generate invoice' });
   }
 };
 `

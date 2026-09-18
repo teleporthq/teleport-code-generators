@@ -203,6 +203,9 @@ async function data_create_item(config: any, context: any) {
       //    email template's `<!--tq:each items-->` row block binds to.
       // One payload therefore feeds both renderers without either having to
       // know which template style the merchant is on.
+      //
+      // The product + variant ids ride along so the endpoint can price each
+      // line at the rate the order's tax breakdown recorded for it.
       const orderCurrency = item.currency || ''
       const normalisedItems = cartItems.map(function (it: any) {
         const unitPrice = Number(it.unitPrice != null ? it.unitPrice : it.price) || 0
@@ -223,6 +226,8 @@ async function data_create_item(config: any, context: any) {
           line_total: lineTotal.toFixed(2),
           currency: orderCurrency,
           image_url: imageUrl,
+          product_id: it.productId || it.product_id || '',
+          variant_id: it.variantId || it.variant_id || '',
         }
       })
 
@@ -289,6 +294,9 @@ async function data_create_item(config: any, context: any) {
             shippingAddress,
             items: normalisedItems,
             orderDate: item.created_at || item.placed_at || '',
+            // The rate each line was charged at, on an order priced by region
+            // (the column is on the row this INSERT just wrote); null otherwise.
+            taxBreakdown: item.tax_breakdown || null,
           }),
         }).catch(function () {
           /* notifications must never break checkout */

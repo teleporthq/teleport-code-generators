@@ -62,6 +62,7 @@ import {
   getDatabaseDriverDependencies,
 } from './auth-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
+import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
 import { generateWebhookFiles } from './webhook-generator'
 import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
 import {
@@ -346,6 +347,12 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     const allWorkflows = uidl.workflows.workflows
     const customNodes = uidl.workflows.customNodes || {}
     const usedNodeTypes = collectUsedNodeTypes(uidl.workflows)
+
+    // Server routes that run a mail-sending node require the sent-email
+    // ledger module (see generateNodeHandlersForSegment).
+    if (hasEmailSendingNodeType(usedNodeTypes)) {
+      ensureSentEmailLogModule(structure)
+    }
 
     files.set('workflow-runtime-utils', {
       path: ['utils', 'workflows'],
@@ -683,6 +690,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         if (!dependencies[pkg]) {
           dependencies[pkg] = version
         }
+      }
+      // A configured provider means the route records its sends.
+      if (Object.keys(providerDeps).length > 0) {
+        ensureSentEmailLogModule(structure)
       }
     }
 
@@ -1669,6 +1680,10 @@ module.exports = __customNodeRegistry;
         if (!dependencies[pkg]) {
           dependencies[pkg] = version
         }
+      }
+      // A configured provider means the route records its sends.
+      if (Object.keys(welcomeProviderDeps).length > 0) {
+        ensureSentEmailLogModule(structure)
       }
     }
 

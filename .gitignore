@@ -37,3 +37,6 @@ node_modules/
 .changelog
 
 packages/teleport-test/config.json
+
+# Stamped beside the dev fixture by the editor's "save to code generators" export
+examples/uidl-samples/project.meta.json

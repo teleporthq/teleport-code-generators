@@ -21,6 +21,7 @@ export {
 } from './api-route-generator'
 export { generateTriggerCode } from './trigger-generator'
 export { generatePgClientCode } from './pg-client-code'
+export { ensureSentEmailLogModule } from './sent-email-log'
 export {
   SESSION_TOKEN_RESOLVER_FN,
   generateSessionTokenResolverCode,

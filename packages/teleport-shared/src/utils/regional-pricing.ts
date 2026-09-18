@@ -12,9 +12,11 @@
  *
  * The rules the feature rests on:
  *
- *  - The tables are OPT-IN. No active zone means the store's single flat
- *    delivery fee; no active tax row means the store's single default rate.
- *    Either on its own reproduces what the store charged before regions existed.
+ *  - The store's Delivery Settings price every delivered order — the flat fee
+ *    and, when switched on, the free-delivery threshold — and a zone OVERRIDES
+ *    them for the countries it lists (a rest-of-world zone, for every country
+ *    no other zone lists). No active tax row means the store's single default
+ *    rate. Empty tables reproduce what the store charged before regions existed.
  *  - Tax stays folded into the prices a shopper reads, exactly like the store
  *    default: `goodsTax` is only the tax ADDED on top. A region whose prices
  *    already include tax contributes to the breakdown, never to the total.
@@ -22,8 +24,12 @@
  *  - Tax follows the checkout address for every order. Fulfilment only decides
  *    shipping: a store-pickup order never pays it, and is never refused for an
  *    address no zone covers.
- *  - A destination no zone covers is UNAVAILABLE, and a zone with no rate that
- *    fits the basket is NO-RATE. Checkout refuses both; neither is priced at 0.
+ *  - A zone with no active rate charges the store's delivery fee under its own
+ *    threshold and cash-on-delivery rule. A zone whose rates exist but none
+ *    fits the basket is NO-RATE, which checkout refuses rather than pricing at 0.
+ *  - A zone marked "do not ship" is UNAVAILABLE: the merchant's explicit
+ *    refusal (on a rest-of-world zone, "only my zones"). Store pickup is never
+ *    refused, since a pickup order is never priced as a delivery.
  *
  * Everything is prefixed `__rp` so the block can be concatenated into any
  * generated module without colliding with its locals.
@@ -130,6 +136,7 @@ var __rpNormalizeZones = function (rows) {
       name: __rpText(row.name),
       countries: __rpParseCountries(row.countries),
       isRestOfWorld: __rpBool(row.is_rest_of_world, false),
+      doNotShip: __rpBool(row.do_not_ship, false),
       freeShippingThreshold: threshold === null || threshold < 0 ? null : threshold,
       codEnabled: __rpBool(row.cod_enabled, true),
       sortOrder: __rpNumber(row.sort_order) || 0
@@ -299,6 +306,14 @@ var __rpInRange = function (basis, min, max) {
   return true;
 };
 
+// The store's own Delivery Settings: what every order no zone overrides pays.
+var __rpStoreShipping = function (store) {
+  return {
+    base: __rpRound(__rpSafeRate(store.deliveryPrice), 2),
+    threshold: store.freeDeliveryEnabled === true ? __rpRound(__rpSafeRate(store.freeDeliveryThreshold), 2) : null
+  };
+};
+
 var __rpResolveZone = function (zones, countryCode) {
   var restOfWorld = null;
   for (var i = 0; i < zones.length; i++) {
@@ -436,49 +451,57 @@ var __rpQuote = function (input) {
   var threshold = null;
   var codAvailable = true;
 
-  if (zonesActive) {
-    if (!destination || !destination.countryCode) {
-      status = 'pending';
+  if (zonesActive && (!destination || !destination.countryCode)) {
+    status = 'pending';
+  } else if (delivering) {
+    var matched = zonesActive ? __rpResolveZone(zones, destination.countryCode) : null;
+    if (!matched) {
+      // No zone lists this country (or there are none): the store's own
+      // delivery settings, exactly as before regions existed.
+      var storeShipping = __rpStoreShipping(store);
+      shippingBase = storeShipping.base;
+      threshold = storeShipping.threshold;
+    } else if (matched.doNotShip) {
+      zone = { id: matched.id, name: matched.name };
+      status = 'unavailable';
     } else {
-      var matched = __rpResolveZone(zones, destination.countryCode);
-      if (!matched) {
-        status = 'unavailable';
+      zone = { id: matched.id, name: matched.name };
+      codAvailable = matched.codEnabled;
+      threshold = matched.freeShippingThreshold;
+      var basisWeight = Math.round(weightKg * 1000) / 1000;
+      var rates = __rpRows(config.rates);
+      var zoneHasRates = false;
+      for (var r = 0; r < rates.length; r++) {
+        var candidate = rates[r];
+        if (candidate.zoneId !== matched.id) continue;
+        zoneHasRates = true;
+        if (candidate.type === 'price' && !__rpInRange(basisPrice, candidate.min, candidate.max)) continue;
+        if (candidate.type === 'weight' && !__rpInRange(basisWeight, candidate.min, candidate.max)) continue;
+        options.push({
+          id: candidate.id,
+          name: candidate.name,
+          estimatedDays: candidate.estimatedDays,
+          price: __rpRound(candidate.price, moneyDecimals),
+          sortOrder: candidate.sortOrder
+        });
+      }
+      options.sort(__rpByPrice);
+      if (!zoneHasRates) {
+        // No rate at all (none, or only switched-off ones): the store fee,
+        // under this zone's own threshold and cash-on-delivery rule.
+        shippingBase = __rpStoreShipping(store).base;
+      } else if (options.length === 0) {
+        status = 'no-rate';
       } else {
-        zone = { id: matched.id, name: matched.name };
-        codAvailable = matched.codEnabled;
-        threshold = matched.freeShippingThreshold;
-        var basisWeight = Math.round(weightKg * 1000) / 1000;
-        var rates = __rpRows(config.rates);
-        for (var r = 0; r < rates.length; r++) {
-          var candidate = rates[r];
-          if (candidate.zoneId !== matched.id) continue;
-          if (candidate.type === 'price' && !__rpInRange(basisPrice, candidate.min, candidate.max)) continue;
-          if (candidate.type === 'weight' && !__rpInRange(basisWeight, candidate.min, candidate.max)) continue;
-          options.push({
-            id: candidate.id,
-            name: candidate.name,
-            estimatedDays: candidate.estimatedDays,
-            price: __rpRound(candidate.price, moneyDecimals),
-            sortOrder: candidate.sortOrder
-          });
+        var selected = options[0];
+        for (var o = 0; o < options.length; o++) {
+          if (options[o].id === source.selectedRateId) { selected = options[o]; break; }
         }
-        options.sort(__rpByPrice);
-        if (options.length === 0) {
-          status = 'no-rate';
-        } else {
-          var selected = options[0];
-          for (var o = 0; o < options.length; o++) {
-            if (options[o].id === source.selectedRateId) { selected = options[o]; break; }
-          }
-          selectedRateId = selected.id;
-          rateName = selected.name;
-          shippingBase = selected.price;
-        }
+        selectedRateId = selected.id;
+        rateName = selected.name;
+        shippingBase = selected.price;
       }
     }
-  } else if (delivering) {
-    shippingBase = __rpRound(__rpSafeRate(store.deliveryPrice), 2);
-    if (store.freeDeliveryEnabled === true) threshold = __rpRound(__rpSafeRate(store.freeDeliveryThreshold), 2);
   }
 
   var thresholdReached = status === 'ok' && threshold !== null && basisPrice >= threshold;
