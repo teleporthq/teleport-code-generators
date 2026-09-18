@@ -491,10 +491,12 @@ ${PROGRESS_SOURCE}
 ${MotionRuntime.scrollVideoEngineSource()}
 
 const initVideo = (host) => {
-  const video = host.querySelector(':scope > video')
-  if (!video) {
+  const streamed = host.querySelector(':scope > video')
+  if (!streamed) {
     return
   }
+  // The element on screen: the streamed one until the clip held in memory takes over.
+  let video = streamed
   const text = (name, fallback) => {
     const value = host.getAttribute('data-scroll-video-' + name)
     return value === null || value === '' ? fallback : value
@@ -509,8 +511,8 @@ const initVideo = (host) => {
   if (!activeSrc) {
     return
   }
-  if (video.getAttribute('src') !== activeSrc) {
-    video.setAttribute('src', activeSrc)
+  if (streamed.getAttribute('src') !== activeSrc) {
+    streamed.setAttribute('src', activeSrc)
   }
   const smoothing = Number(text('smoothing', '0.2')) || 0
   const bounds = normalizeWindow(text('window-start', '0'), text('window-end', '100'))
@@ -529,10 +531,11 @@ const initVideo = (host) => {
     lastClip = clipProgress
     video.currentTime = clipProgress * duration
   }
-  video.addEventListener('loadedmetadata', () => {
+  const onMetadata = () => {
     lastClip = -1
     seekTo(pendingClip)
-  })
+  }
+  streamed.addEventListener('loadedmetadata', onMetadata)
 
   if (prefersReducedMotion()) {
     // 'poster': never seek, the poster keeps painting until a seek happens.
@@ -541,10 +544,15 @@ const initVideo = (host) => {
     }
     return
   }
+  bufferWholeClip(host, streamed, activeSrc, (copy) => {
+    video = copy
+    onMetadata()
+  })
 
+  const backToStart = text('back-to-start', 'false') === 'true'
   const driveTo = (drivingProgress) => {
     const local = (clamp01(drivingProgress) * 100 - bounds.start) / (bounds.end - bounds.start)
-    seekTo(clamp01(local))
+    seekTo(clipPositionFor(local, backToStart))
   }
   // Inside a scene the clip follows the scene's track; pinned when the stage is sticky.
   const sceneTrack = host.closest('[data-scene-track]')

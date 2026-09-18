@@ -1,4 +1,5 @@
 // Packs the motion fixture through the REAL download entry point (packProject, built dist).
+// node pack-site.cjs <out-dir> [next] — the static HTML site by default, the Next project with `next`.
 const path = require('path')
 const fs = require('fs')
 const CG = path.resolve(__dirname, '../../../..')
@@ -159,7 +160,7 @@ home.content.node.content.style = {
 ;(async () => {
   const outputPath = process.argv[2]
   const result = await packProject(uidl, {
-    projectType: ProjectType.HTML,
+    projectType: process.argv[3] === 'next' ? ProjectType.NEXT : ProjectType.HTML,
     publisher: PublisherType.DISK,
     publishOptions: { outputPath, projectSlug: 'site' },
   })

@@ -347,18 +347,40 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol
     linked
   )
 
-  // scroll video
-  await page.evaluate(() => document.querySelector('#clip video').load?.())
-  await page
-    .waitForFunction(() => document.querySelector('#clip video').readyState >= 1, null, {
-      timeout: 15000,
-    })
+  // scroll video: once its scene is near, the clip is held in memory and a copy playing from it
+  // takes the streamed element's place (bufferWholeClip in teleport-shared)
+  await scrollToProgress('film', 0.02)
+  const held = await page
+    .waitForFunction(
+      () => {
+        const videos = Array.from(document.querySelectorAll('#clip video'))
+        const shown = videos.filter((v) => getComputedStyle(v).display !== 'none')
+        return (
+          shown.length === 1 &&
+          shown[0].currentSrc.startsWith('blob:') &&
+          shown[0].readyState >= 1 && {
+            videos: videos.length,
+            streamedReleased: !videos[0].getAttribute('src'),
+          }
+        )
+      },
+      null,
+      { timeout: 15000 }
+    )
+    .then((handle) => handle.jsonValue())
     .catch(() => null)
+  check(
+    'scroll video: the clip is held in memory, one element on screen, the streamed one let go',
+    !!held && held.videos === 2 && held.streamedReleased,
+    held
+  )
   const videoAt = async (p) => {
     await scrollToProgress('film', p)
     await page.waitForTimeout(300)
     return page.evaluate(() => {
-      const v = document.querySelector('#clip video')
+      const v = Array.from(document.querySelectorAll('#clip video')).find(
+        (candidate) => getComputedStyle(candidate).display !== 'none'
+      )
       return {
         t: Number(v.currentTime.toFixed(2)),
         d: Number((v.duration || 0).toFixed(2)),

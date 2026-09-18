@@ -17,7 +17,10 @@ import { MotionRuntime } from '@teleporthq/teleport-shared'
  * Guardrails baked in: prefers-reduced-motion holds the poster (or the final
  * frame with reducedMotion='end'), all measuring work lives in useEffect so
  * SSR never touches the DOM, and seeks requested before metadata arrives are
- * replayed on loadedmetadata.
+ * replayed on loadedmetadata. The rendered <video> streams so the first frame
+ * shows at once; the clip is then held in memory (bufferWholeClip, shared with
+ * the HTML export), whose copy is added next to it outside React's children
+ * and removed by the effect's cleanup.
  */
 export const generateScrollVideoComponentCode = (): string => {
   return `import React from 'react'
@@ -32,6 +35,7 @@ const TqScrollVideo = ({
   windowStart = 0,
   windowEnd = 100,
   reducedMotion = 'poster',
+  backToStart = false,
   style,
   ...rest
 }) => {
@@ -50,12 +54,14 @@ const TqScrollVideo = ({
 
   React.useEffect(() => {
     const host = hostRef.current
-    const video = videoRef.current
-    if (!host || !video || !activeSrc) {
+    const streamed = videoRef.current
+    if (!host || !streamed || !activeSrc) {
       return undefined
     }
 
     const bounds = normalizeWindow(windowStart, windowEnd)
+    // The element on screen: the streamed one until the clip held in memory takes over.
+    let video = streamed
     let lastClip = -1
     let pendingClip = 0
 
@@ -76,7 +82,7 @@ const TqScrollVideo = ({
       lastClip = -1
       seekTo(pendingClip)
     }
-    video.addEventListener('loadedmetadata', onMetadata)
+    streamed.addEventListener('loadedmetadata', onMetadata)
 
     const prefersReduced =
       typeof window.matchMedia === 'function' &&
@@ -86,12 +92,17 @@ const TqScrollVideo = ({
         seekTo(1)
       }
       // 'poster': never seek — the poster keeps painting until a seek happens.
-      return () => video.removeEventListener('loadedmetadata', onMetadata)
+      return () => streamed.removeEventListener('loadedmetadata', onMetadata)
     }
+
+    const stopBuffering = bufferWholeClip(host, streamed, activeSrc, (copy) => {
+      video = copy
+      onMetadata()
+    })
 
     const driveTo = (drivingProgress) => {
       const local = (clamp01(drivingProgress) * 100 - bounds.start) / (bounds.end - bounds.start)
-      seekTo(clamp01(local))
+      seekTo(clipPositionFor(local, backToStart === true || backToStart === 'true'))
     }
 
     const sceneTrack = host.closest('[data-scene-track]')
@@ -147,9 +158,10 @@ const TqScrollVideo = ({
       if (rafId) {
         window.cancelAnimationFrame(rafId)
       }
-      video.removeEventListener('loadedmetadata', onMetadata)
+      streamed.removeEventListener('loadedmetadata', onMetadata)
+      stopBuffering()
     }
-  }, [activeSrc, smoothing, windowStart, windowEnd, reducedMotion])
+  }, [activeSrc, smoothing, windowStart, windowEnd, reducedMotion, backToStart])
 
   if (!src) {
     return <div ref={hostRef} style={style} data-scroll-video="" {...rest} />
@@ -182,7 +194,7 @@ const TqScrollVideo = ({
         poster={poster || undefined}
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         style={{
           position: 'absolute',
           inset: 0,

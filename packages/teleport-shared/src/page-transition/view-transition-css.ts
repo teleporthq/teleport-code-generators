@@ -1,9 +1,11 @@
-import { PageTransition } from '@teleporthq/teleport-shared'
+import * as PageTransition from './variants'
 
 /**
- * A site's page transition, for a static HTML export: cross-document View
- * Transitions, which the browser plays between two ordinary pages with no
- * script driving it.
+ * A site's page transition as View Transitions CSS. The static HTML export
+ * plays it between two ordinary pages (cross-document View Transitions, no
+ * script driving it); the Next export uses the same rules for the one kind of
+ * navigation it plays as a View Transition, an image flying from a list into
+ * its details page (see morph-source.ts).
  *
  * The states are not written here. They come from the same registry the Next
  * export's TqPageTransition is generated from (teleport-shared), evaluated once
@@ -105,16 +107,22 @@ const animationsFor = (
   }
 }
 
+/** The name of the one image that flies from the leaving page into the arriving page. */
+export const MORPH_NAME = 'tq-morph'
+
 export interface ViewTransitionPlan {
   css: string
   /** The back button plays a different preset, so the page has to tell the stylesheet which way it came. */
   needsDirection: boolean
   /** The reveal grows from where the visitor pressed, so the page has to hand that point over. */
   needsOrigin: boolean
+  /** A picture flies from the followed link into the next page; off when the author turned it off. */
+  flies: boolean
 }
 
 export const viewTransitionPlan = (
-  config: PageTransition.PageTransitionConfig
+  config: PageTransition.PageTransitionConfig,
+  target: { crossDocument: boolean } = { crossDocument: true }
 ): ViewTransitionPlan | null => {
   const preset = String(config.preset).replace(/[^a-z-]/g, '')
   const chosen =
@@ -153,7 +161,9 @@ export const viewTransitionPlan = (
 
   const timing = `${duration}s cubic-bezier(${curve.join(', ')})`
   const rules = [
-    '@view-transition {\n  navigation: auto;\n}',
+    // Opting every page in is for page-to-page navigations only; a single-page
+    // app starts its own transitions and must not turn full reloads into them.
+    ...(target.crossDocument ? ['@view-transition {\n  navigation: auto;\n}'] : []),
     '::view-transition-old(root),\n::view-transition-new(root) {\n  mix-blend-mode: normal;\n}',
     `::view-transition-old(root) {\n  animation: tq-page-leave ${timing} both;\n}`,
     `::view-transition-new(root) {\n  animation: tq-page-arrive ${timing} ${duration}s both;\n}`,
@@ -175,10 +185,30 @@ export const viewTransitionPlan = (
       keyframes('tq-page-arrive-back', back.arrive[0], back.arrive[1])
     )
   }
+  // The flying image spans both halves (the leaving page's and the arriving
+  // page's), and a card's 4:3 picture grows into a 16:9 hero cropped, never
+  // stretched. A picture the arriving page does not show has nowhere to land:
+  // it leaves with its page instead of lingering over the next one.
+  const flies = config.flyingPictures !== false
+  if (flies) {
+    rules.push(
+      `::view-transition-group(${MORPH_NAME}) {\n  animation-duration: ${
+        duration * 2
+      }s;\n  animation-timing-function: cubic-bezier(${curve.join(', ')});\n}`,
+      `::view-transition-old(${MORPH_NAME}),\n::view-transition-new(${MORPH_NAME}) {\n  height: 100%;\n  object-fit: cover;\n  overflow: clip;\n  animation-duration: ${
+        duration * 2
+      }s;\n}`,
+      `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-page-leave ${timing} both, tq-morph-away ${timing} both;\n}`,
+      `::view-transition-new(${MORPH_NAME}):only-child {\n  animation: tq-page-arrive ${timing} ${duration}s both, tq-morph-in ${timing} ${duration}s both;\n}`,
+      '@keyframes tq-morph-away {\n  to { opacity: 0; }\n}',
+      '@keyframes tq-morph-in {\n  from { opacity: 0; }\n}'
+    )
+  }
   const indented = rules.map((rule) => rule.replace(/^/gm, '  ')).join('\n')
   return {
     css: `@media (prefers-reduced-motion: no-preference) {\n${indented}\n}\n`,
     needsDirection,
     needsOrigin,
+    flies,
   }
 }

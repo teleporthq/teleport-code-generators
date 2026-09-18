@@ -1,4 +1,5 @@
 import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
+import { MotionRuntime } from '@teleporthq/teleport-shared'
 import uidlSample from '../../../examples/test-samples/project-sample.json'
 import { createNextProjectGenerator } from '../src'
 import NextTemplate from '../src/project-template'
@@ -83,6 +84,29 @@ describe('Next generator with a Scroll Video element', () => {
     expect(content).toContain('playsInline')
     expect(content).toContain('currentTime')
     expect(content).toContain('export default TqScrollVideo')
+  })
+
+  it('holds the clip in memory with the helper the static export runs, and asks the page for the first frame only', async () => {
+    const outputFolder = await generator.generateProject(buildUidl(), template)
+    const content = findFile(outputFolder, 'components', 'tq-scroll-video')?.content as string
+    expect(content).toContain(MotionRuntime.scrollVideoEngineSource())
+    expect(content).toContain(
+      'const stopBuffering = bufferWholeClip(host, streamed, activeSrc, (copy) => {'
+    )
+    // the copy it adds next to the rendered <video> goes with the effect
+    expect(content).toContain('stopBuffering()')
+    expect(content).toContain('preload="metadata"')
+    expect(content).not.toContain('preload="auto"')
+  })
+
+  it('plays the clip there and back when the editor says "play back to the start"', async () => {
+    const outputFolder = await generator.generateProject(buildUidl(), template)
+    const content = findFile(outputFolder, 'components', 'tq-scroll-video')?.content as string
+    expect(content).toContain('backToStart = false,')
+    expect(content).toContain(
+      "seekTo(clipPositionFor(local, backToStart === true || backToStart === 'true'))"
+    )
+    expect(content).toContain('reducedMotion, backToStart])')
   })
 
   it('the wrapper carries NO inline position — the authored backdrop class must win', async () => {

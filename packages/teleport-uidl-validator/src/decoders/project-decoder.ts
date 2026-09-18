@@ -75,6 +75,8 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
             leave: dict(number()),
           })
         ),
+        // Sent only as false, when the author turned the flying pictures off.
+        flyingPictures: optional(boolean()),
       })
     ),
   }),

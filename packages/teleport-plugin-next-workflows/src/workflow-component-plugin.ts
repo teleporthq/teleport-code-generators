@@ -24,6 +24,7 @@ import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
 import { formControlPropertyReads } from './trigger-generator'
+import { elementVisibleObserverCode } from './element-visible-trigger'
 import { restoreControlledSelectValue } from './controlled-select'
 import { resolveScrollPoint } from './scroll-points'
 
@@ -2145,22 +2146,17 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
       // so the observer was never constructed and the cookie-consent banner
       // could never appear on any page (run a15472af: 408 dead lookups).
       const elementId = (config.elementHtmlId || config.nodeId) as string
-      const threshold = (config.threshold as number) || 0
-      const once = config.once as boolean
+      const observer = elementVisibleObserverCode(
+        `__obs_${safeId}`,
+        config,
+        `const triggerContext = { elementId: '${elementId}', timestamp: Date.now(), intersectionRatio: entry.intersectionRatio };\n      ${execCall};`
+      )
       return (
         `    // Element visible (${wf.name || wf.id})\n` +
         `    const __visEl_${safeId} = document.getElementById('${elementId}');\n` +
         `    if (__visEl_${safeId}) {\n` +
-        `      const __obs_${safeId} = new IntersectionObserver(function(entries) {\n` +
-        `        entries.forEach(function(entry) {\n` +
-        `          if (entry.isIntersecting) {\n` +
-        `            const triggerContext = { elementId: '${elementId}', timestamp: Date.now(), intersectionRatio: entry.intersectionRatio };\n` +
-        `            ${execCall};\n` +
-        (once ? `            __obs_${safeId}.disconnect();\n` : '') +
-        `          }\n` +
-        `        });\n` +
-        `      }, { threshold: ${threshold} });\n` +
-        `      __obs_${safeId}.observe(__visEl_${safeId});\n` +
+        observer.trimEnd().replace(/^/gm, '      ') +
+        `\n      __obs_${safeId}.observe(__visEl_${safeId});\n` +
         `      cleanups.push(function() { __obs_${safeId}.disconnect(); });\n` +
         `    }`
       )

@@ -7,41 +7,7 @@ const { packProject } = require(CG + '/packages/teleport-code-generator/dist/cjs
 const { ProjectType, PublisherType } = require(CG + '/packages/teleport-types/dist/cjs/index.js')
 const { chromium } = require(path.resolve(CG, '../teleport-gui/node_modules/playwright-core'))
 const out = process.argv[2]
-const s = (content) => ({ type: 'static', content })
-const el = (elementType, name, attrs, style, children) => ({
-  type: 'element',
-  content: {
-    elementType,
-    name,
-    attrs,
-    style: Object.fromEntries(Object.entries(style).map(([k, v]) => [k, s(v)])),
-    children,
-  },
-})
-const linkTo = (id, label, routeName) => {
-  const node = el('text', id, { id: s(id) }, { padding: '16px', fontSize: '24px' }, [
-    { type: 'static', content: label },
-  ])
-  node.content.semanticType = 'span'
-  node.content.abilities = { link: { type: 'navlink', content: { routeName: s(routeName) } } }
-  return node
-}
-const siteWith = (pageTransition) => {
-  const uidl = JSON.parse(fs.readFileSync(CG + '/examples/uidl-samples/tests.json', 'utf8'))
-  const [home, about] = uidl.root.node.content.children
-  home.content.node.content.children = [
-    el('container', 'hero', {}, { height: '140vh', background: '#f4f1ea', padding: '40px' }, [
-      linkTo('to-about', 'About', 'About'),
-    ]),
-  ]
-  about.content.node.content.children = [
-    el('container', 'body', {}, { height: '100vh', background: '#dde4ee', padding: '40px' }, [
-      linkTo('to-home', 'Home', 'Home'),
-    ]),
-  ]
-  uidl.globals.settings = { ...uidl.globals.settings, pageTransition }
-  return uidl
-}
+const { siteWith, writePictures } = require('./transition-site.cjs')
 const results = []
 const check = (name, ok, detail) => {
   results.push(ok)
@@ -105,7 +71,9 @@ const pick = (frame, keys) =>
       return res.end()
     }
     res.writeHead(200, {
-      'Content-Type': file.endsWith('.css')
+      'Content-Type': file.endsWith('.svg')
+        ? 'image/svg+xml'
+        : file.endsWith('.css')
         ? 'text/css'
         : file.endsWith('.js')
         ? 'text/javascript'
@@ -117,15 +85,18 @@ const pick = (frame, keys) =>
   const base = `http://localhost:${server.address().port}`
   const browser = await chromium.launch({ channel: 'chrome' })
   console.log('Chrome', browser.version())
-  const visit = async (name, pageTransition, run, contextOptions) => {
+  const visit = async (name, pageTransition, run, contextOptions, withPictures) => {
     const folder = path.join(out, name)
     fs.rmSync(folder, { recursive: true, force: true })
-    await packProject(siteWith(pageTransition), {
+    await packProject(siteWith(pageTransition, withPictures), {
       projectType: ProjectType.HTML,
       publisher: PublisherType.DISK,
       publishOptions: { outputPath: folder, projectSlug: 'site' },
     })
     root = path.join(folder, 'site')
+    if (withPictures) {
+      writePictures(root)
+    }
     const context = await browser.newContext({
       viewport: { width: 1200, height: 800 },
       ...(contextOptions || {}),
@@ -141,6 +112,62 @@ const pick = (frame, keys) =>
     await context.close()
   }
   const byPseudo = (record, pseudo) => (record.animations || []).find((a) => a.pseudo === pseudo)
+
+  await visit(
+    'morph',
+    { preset: 'slide-up', duration: 0.3, easing: 'ease-out' },
+    async (page, probe) => {
+      await page.click('#card-photo')
+      let r = await probe()
+      const group = byPseudo(r, '::view-transition-group(tq-morph)')
+      check(
+        'morph: the card picture flies into the same picture on the next page, over both halves',
+        r.transition &&
+          !!group &&
+          group.duration === 600 &&
+          !!byPseudo(r, '::view-transition-old(root)'),
+        {
+          group: group && [group.pseudo, group.duration],
+          animations: (r.animations || []).map((a) => a.pseudo),
+        }
+      )
+      const named = await page.evaluate(
+        () => Array.from(document.images).filter((image) => image.style.viewTransitionName).length
+      )
+      check('morph: nothing keeps the name once the flight is over', named === 0, { named })
+      await page.goBack()
+      r = await probe()
+      check(
+        'morph: going back plays the preset without a flight',
+        r.transition && !byPseudo(r, '::view-transition-group(tq-morph)'),
+        { animations: (r.animations || []).map((a) => a.pseudo) }
+      )
+      await page.click('#to-about')
+      r = await probe()
+      check(
+        'morph: following the plain text link flies the card picture too (same destination)',
+        r.transition && !!byPseudo(r, '::view-transition-group(tq-morph)'),
+        { animations: (r.animations || []).map((a) => a.pseudo) }
+      )
+      await page.goBack()
+      await probe()
+      await page.click('#stray-photo')
+      r = await probe()
+      const stray = (r.animations || []).filter(
+        (a) => a.pseudo === '::view-transition-old(tq-morph)'
+      )
+      check(
+        'morph: a picture the next page does not show leaves with its page (0.3 s), not over the next one',
+        r.transition &&
+          stray.map((a) => a.name).join(' ') === 'tq-page-leave tq-morph-away' &&
+          stray.every((a) => a.duration === 300 && !a.delay) &&
+          !byPseudo(r, '::view-transition-new(tq-morph)'),
+        { stray: stray.map((a) => [a.name, a.duration, a.delay]) }
+      )
+    },
+    undefined,
+    true
+  )
 
   await visit(
     'slide',
@@ -210,7 +237,12 @@ const pick = (frame, keys) =>
     { preset: 'fade', duration: 0.25, easing: 'ease' },
     async (page, probe, site) => {
       const html = fs.readFileSync(path.join(site, 'index.html'), 'utf8')
-      check('fade: no script is shipped, the stylesheet does it all', !/pagereveal/.test(html))
+      check(
+        'fade: no direction or origin script, only the flying-image one',
+        /pageswap/.test(html) &&
+          !/data-tq-nav', 'back'/.test(html) &&
+          !/tq-page-transition-origin/.test(html)
+      )
       await page.click('#to-about')
       const r = await probe()
       const leave = byPseudo(r, '::view-transition-old(root)')

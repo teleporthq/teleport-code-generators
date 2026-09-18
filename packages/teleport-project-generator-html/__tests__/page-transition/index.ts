@@ -2,8 +2,10 @@ import { FileType, GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-typ
 import uidlSample from '../../../../examples/uidl-samples/tests.json'
 import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
 import { pluginPageTransition } from '../../src/plugin-page-transition'
-import { viewTransitionPlan } from '../../src/page-transition/view-transition-css'
+import { PageTransition } from '@teleporthq/teleport-shared'
 import HTMLTemplate from '../../src/project-template'
+
+const { viewTransitionPlan } = PageTransition
 
 const projectWith = (pageTransition?: Record<string, unknown>): ProjectUIDL => {
   const uidl = JSON.parse(JSON.stringify(uidlSample))
@@ -152,6 +154,68 @@ describe('The page transition of a static HTML export: what the stylesheet says'
   })
 })
 
+describe('The flying image between pages', () => {
+  it('spans both halves of the transition and is cropped, never stretched', () => {
+    const plan = viewTransitionPlan({ preset: 'fade', duration: 0.4, easing: 'ease-out' })
+    expect(plan?.css).toContain(
+      '::view-transition-group(tq-morph) {\n    animation-duration: 0.8s;\n    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);'
+    )
+    expect(plan?.css).toContain('object-fit: cover;')
+  })
+
+  it('a picture the next page does not show leaves with its page instead of lingering', () => {
+    const plan = viewTransitionPlan({ preset: 'slide-up', duration: 0.3, easing: 'ease-out' })
+    expect(plan?.css).toContain(
+      '::view-transition-old(tq-morph):only-child {\n    animation: tq-page-leave 0.3s cubic-bezier(0, 0, 0.58, 1) both, tq-morph-away 0.3s cubic-bezier(0, 0, 0.58, 1) both;'
+    )
+    expect(plan?.css).toContain(
+      '::view-transition-new(tq-morph):only-child {\n    animation: tq-page-arrive 0.3s cubic-bezier(0, 0, 0.58, 1) 0.3s both, tq-morph-in 0.3s cubic-bezier(0, 0, 0.58, 1) 0.3s both;'
+    )
+  })
+
+  it('a single-page app gets the same rules without opting every page load in', () => {
+    const plan = viewTransitionPlan(
+      { preset: 'slide-left', duration: 0.3, easing: 'ease-out' },
+      { crossDocument: false }
+    )
+    expect(plan?.css).not.toContain('@view-transition')
+    expect(plan?.css).toContain('::view-transition-old(root)')
+    expect(plan?.css).toContain('::view-transition-group(tq-morph)')
+  })
+
+  it('names the image on the leaving page and its twin on the arriving one, forward only', async () => {
+    const folder = await generate(
+      projectWith({ preset: 'slide-up', duration: 0.3, easing: 'ease-out' })
+    )
+    const home = fileOf(folder, 'index', FileType.HTML)
+    expect(home).toContain('var image = tqMorphSource(activation.entry.url, clicked)')
+    expect(home).toContain("activation.navigationType === 'traverse'")
+    expect(home).toContain(
+      'var morphTarget = !back && !reduced && morphSrc ? tqMorphTarget(morphSrc) : null'
+    )
+    // the helpers the script calls are in the page
+    expect(home).toContain('function tqMorphSource(destination, clicked)')
+    expect(home).toContain('function tqMorphTarget(src)')
+  })
+
+  it('turned off by the author, no picture flies: no rules for it, nothing names one', async () => {
+    const off = { preset: 'circle', duration: 0.3, easing: 'ease-out', flyingPictures: false }
+    const plan = viewTransitionPlan(off)
+    expect(plan?.flies).toBe(false)
+    expect(plan?.css).not.toContain('tq-morph')
+    // the transition itself is untouched
+    expect(plan?.css).toContain('::view-transition-old(root)')
+    const folder = await generate(projectWith(off))
+    expect(fileOf(folder, 'style', FileType.CSS)).not.toContain('tq-morph')
+    const home = fileOf(folder, 'index', FileType.HTML)
+    expect(home).not.toContain('tqMorph')
+    expect(home).not.toContain("addEventListener('pageswap'")
+    // the circle still grows from the press, and the page still hears when it is revealed
+    expect(home).toContain('tq-page-transition-origin')
+    expect(home).toContain("addEventListener('pagereveal'")
+  })
+})
+
 describe('The page transition of a static HTML export: what the pages get', () => {
   it('adds nothing when the project chose no transition', async () => {
     for (const uidl of [
@@ -166,7 +230,7 @@ describe('The page transition of a static HTML export: what the pages get', () =
     }
   })
 
-  it('a plain fade is stylesheet only: no page gets a script', async () => {
+  it('a plain fade needs no direction or origin script, only the flying-image one', async () => {
     const folder = await generate(
       projectWith({ preset: 'fade', duration: 0.3, easing: 'ease-out' })
     )
@@ -174,7 +238,11 @@ describe('The page transition of a static HTML export: what the pages get', () =
     expect(fileOf(folder, 'style', FileType.CSS)).toContain('@view-transition')
     folder.files
       .filter((file) => file.fileType === FileType.HTML)
-      .forEach((file) => expect(file.content).not.toContain('pagereveal'))
+      .forEach((file) => {
+        expect(file.content).toContain("addEventListener('pageswap'")
+        expect(file.content).not.toContain("root.setAttribute('data-tq-nav', 'back')")
+        expect(file.content).not.toContain('tq-page-transition-origin')
+      })
   })
 
   it('a preset with a way back puts the direction script in every page head, once', async () => {
@@ -187,7 +255,7 @@ describe('The page transition of a static HTML export: what the pages get', () =
     pages.forEach((page) => {
       expect(page.content.match(/addEventListener\('pagereveal'/g)).toHaveLength(1)
       expect(page.content).toContain("root.setAttribute('data-tq-nav', 'back')")
-      expect(page.content).not.toContain('sessionStorage')
+      expect(page.content).not.toContain('tq-page-transition-origin')
       expect(page.content.indexOf('pagereveal')).toBeLessThan(page.content.indexOf('</head>'))
     })
   })

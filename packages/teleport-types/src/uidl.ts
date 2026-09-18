@@ -566,6 +566,8 @@ export interface UIDLGlobalProjectValues {
         arrive: Record<string, number>
         leave: Record<string, number>
       }
+      /** False when the author turned the flying pictures off; absent means a linked picture flies into its twin. */
+      flyingPictures?: boolean
     }
   }
   customCode?: {

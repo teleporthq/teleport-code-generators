@@ -61,6 +61,7 @@ export const SCROLL_VIDEO_ATTR_BY_PROP: Record<string, string> = {
   windowStart: 'data-scroll-video-window-start',
   windowEnd: 'data-scroll-video-window-end',
   reducedMotion: 'data-scroll-video-reduced-motion',
+  backToStart: 'data-scroll-video-back-to-start',
 }
 
 export const SCENE_ELEMENT_TYPE = 'scroll-scene-node'

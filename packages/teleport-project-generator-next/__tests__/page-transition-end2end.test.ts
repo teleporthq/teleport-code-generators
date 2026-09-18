@@ -1,4 +1,5 @@
 import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
+import { PageTransition } from '@teleporthq/teleport-shared'
 import uidlSample from '../../../examples/test-samples/project-sample.json'
 import { createNextProjectGenerator } from '../src'
 import NextTemplate from '../src/project-template'
@@ -10,6 +11,7 @@ import {
   resolvePageTransitionOptions,
   reversePageTransitionPreset,
 } from '../src/page-transition/page-transition-variants'
+import { revealOnScreen } from '../src/page-transition/reveal-on-screen'
 
 const template = () => JSON.parse(JSON.stringify(NextTemplate)) as GeneratedFolder
 
@@ -20,6 +22,7 @@ const buildUidl = (pageTransition?: {
   skipRoutes?: string[]
   options?: Record<string, string>
   custom?: { arrive: Record<string, number>; leave: Record<string, number> }
+  flyingPictures?: boolean
 }) => {
   const uidl = JSON.parse(JSON.stringify(uidlSample)) as ProjectUIDL
   if (pageTransition) {
@@ -92,6 +95,21 @@ describe('Next generator page transition', () => {
       'const EASE = [0, 0, 0.58, 1]'
     )
   })
+
+  it('plays an arriving page once the pictures on its first screen are decoded, 300 ms at most', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'fade', duration: 0.35, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain('const PICTURE_WAIT_MS = 300')
+    expect(wrapper).toContain('image.decode().catch(() => {})')
+    // the first page is ready at once; a later one waits at its starting state
+    expect(wrapper).toContain('const [readyKey, setReadyKey] = React.useState(routeKey)')
+    expect(wrapper).toContain("animate={readyKey === routeKey ? 'animate' : 'initial'}")
+    // a page that arrived after it takes the turn: a late answer changes nothing
+    expect(wrapper).toContain('if (readyKeyRef.current === key) {')
+  })
 })
 
 describe('Next generator per-page skip', () => {
@@ -137,6 +155,165 @@ describe('Next generator cover presets', () => {
     expect(wrapper).toContain('--dl-color-theme-primary1')
     expect(wrapper).toContain('data-tq-page-transition-panel')
     expect(wrapper).toContain("const PRESET = 'curtain'")
+    // the panels stay closed until the arriving page's pictures are ready
+    expect(wrapper).toContain("setPanelPhase('covered')")
+    expect(wrapper).toContain(
+      "setPanelPhase((phase) => (phase === 'covered' ? 'uncovering' : phase))"
+    )
+  })
+})
+
+describe('Next generator flying picture', () => {
+  const generator = createNextProjectGenerator()
+  const config = { preset: 'slide-up', duration: 0.3, easing: 'ease-out' }
+
+  it('plays the static export’s stylesheet, without opting every page load in', async () => {
+    const output = await generator.generateProject(buildUidl(config), template())
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    const plan = PageTransition.viewTransitionPlan(config, { crossDocument: false })
+    expect(wrapper).toContain(`const MORPH_CSS = ${JSON.stringify(plan?.css)}`)
+    expect(plan?.css).toContain('::view-transition-group(tq-morph)')
+    expect(plan?.css).not.toContain('@view-transition')
+    expect(wrapper).toContain('<style dangerouslySetInnerHTML={{ __html: MORPH_CSS }} />')
+  })
+
+  it('turned off by the author, plays every page change as its transition, with no flight', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ ...config, flyingPictures: false }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    // no stylesheet for a flight, so a page change never starts one
+    expect(wrapper).toContain('const MORPH_CSS = ""')
+    expect(wrapper).toContain(
+      "if (!MORPH_CSS || !pageRef.current || typeof document.startViewTransition !== 'function'"
+    )
+  })
+
+  it('pairs the pictures with the static export’s own helpers', async () => {
+    const output = await generator.generateProject(buildUidl(config), template())
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain(PageTransition.morphHelpersSource())
+    expect(wrapper).toContain('const image = tqMorphSource(url, clickedRef.current)')
+    expect(wrapper).toContain('const target = tqMorphTarget(morph.src)')
+  })
+
+  it('flies only going forward, to a page that plays transitions, for a visitor who wants motion', async () => {
+    const output = await generator.generateProject(buildUidl(config), template())
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain('if (!reverse && !skip && startMorph(url, pointer))')
+    expect(wrapper).toContain(
+      "typeof document.startViewTransition !== 'function' || prefersLessMotion()"
+    )
+  })
+
+  it('keeps the leaving page until the browser has pictured it, on every page', async () => {
+    const output = await generator.generateProject(buildUidl(config), template())
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain(
+      "import { AnimatePresence, motion, usePresence, useReducedMotion } from 'framer-motion'"
+    )
+    // Always rendered: framer-motion never forgets a presence child, so one that came and went would hold its page forever.
+    expect(wrapper).toContain(
+      '{MORPH_CSS ? <HoldForMorph pageKey={routeKey} morphRef={morphRef} /> : null}'
+    )
+    expect(wrapper).toContain('morph.captured.then(safeToRemove)')
+  })
+
+  it('gives up on the flight rather than freezing the screen when the page does not arrive', async () => {
+    const output = await generator.generateProject(buildUidl(config), template())
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain('setTimeout(() => abandonMorph(morph), MORPH_WAIT_MS)')
+    expect(wrapper).toContain("router.events.on('routeChangeError', onRouteChangeError)")
+  })
+})
+
+describe('Next generator reveal presets (Circle, the Wipes)', () => {
+  const generator = createNextProjectGenerator()
+
+  it("never leaves the reveal's clip on the page: settled, first page included, it is dropped by framer", async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    // the shipped wrapper carries the function tested below, and every reveal goes through it
+    expect(wrapper).toContain(revealOnScreen.toString())
+    expect(wrapper).toContain(
+      'revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen)'
+    )
+    // the old hand-clearing lost its race with framer's last write
+    expect(wrapper).not.toContain('pageRef.current.style.clipPath')
+    // no screen measured yet (the first page, the server): only the settling applies
+    const firstPage = revealOnScreen(pageTransitionVariants('circle', 24))
+    expect(firstPage?.animate.transitionEnd).toEqual({ clipPath: 'none' })
+    // the exit starts from the full reveal on its own, so nothing has to put the clip back
+    expect(firstPage?.exit.clipPath).toEqual(['circle(150% at 50% 50%)', 'circle(0% at 50% 50%)'])
+  })
+
+  it('measures a reveal on the screen, not on the page it clips', () => {
+    // A page change started 2000px down a page, on a 1200 x 800 screen.
+    const screen = { width: 1200, height: 800, top: 2000 }
+    const pressed = { reverse: false, originX: '600px', originY: '36px' }
+    const circle = revealOnScreen(pageTransitionVariants('circle', 24, pressed), screen)
+    // CSS resolves a circle's percentage against the diagonal over root two — here, the screen's
+    const full = 1.5 * Math.sqrt((1200 * 1200 + 800 * 800) / 2)
+    // the arrival opens at the top of the new page, under the press
+    expect(circle?.initial.clipPath).toBe('circle(0px at 600px 36px)')
+    expect(circle?.animate.clipPath).toBe('circle(' + full + 'px at 600px 36px)')
+    // the leaving page is frozen where it stood: the circle closes on the press, 2000px down it
+    expect(circle?.exit.clipPath).toEqual([
+      'circle(' + full + 'px at 600px 2036px)',
+      'circle(0px at 600px 2036px)',
+    ])
+    // a wipe sweeps the screen, not the page: its edges run over the 800px on show
+    const wipe = revealOnScreen(pageTransitionVariants('wipe-down', 24), screen)
+    expect(wipe?.initial.clipPath).toBe('inset(0px 0% calc(100% - 0px) 0%)')
+    expect(wipe?.animate.clipPath).toBe('inset(0px 0% calc(100% - 800px) 0%)')
+    expect(wipe?.exit.clipPath).toEqual([
+      'inset(2000px 0% calc(100% - 2800px) 0%)',
+      'inset(2800px 0% calc(100% - 2800px) 0%)',
+    ])
+    // the sides already match (the page is as wide as the screen); only the band is added
+    expect(revealOnScreen(pageTransitionVariants('wipe-left', 24), screen)?.initial.clipPath).toBe(
+      'inset(0px 0% calc(100% - 800px) 100%)'
+    )
+    // every other preset is untouched
+    expect(revealOnScreen(pageTransitionVariants('fade', 24), screen)).toEqual(
+      pageTransitionVariants('fade', 24)
+    )
+  })
+
+  it('measures the screen when a page change starts, from the press or the screen centre', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain(
+      'const screen = { width: window.innerWidth, height: window.innerHeight, top: window.scrollY || 0 }'
+    )
+    expect(wrapper).toContain(
+      'const origin = pointer || { x: screen.width / 2, y: screen.height / 2 }'
+    )
+    expect(revealOnScreen.toString()).not.toContain('`')
+  })
+
+  it('runs a reveal frame by frame (no blink as it ends); every other preset keeps the browser-run animation', async () => {
+    const circle = await generator.generateProject(
+      buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out' }),
+      template()
+    )
+    const circleWrapper = findFile(circle, 'components', 'tq-page-transition')?.content || ''
+    expect(circleWrapper).toContain('onUpdate={REVEAL ? stepByFrame : undefined}')
+    const reveal = (preset: string) => {
+      const variants = pageTransitionVariants(preset, 24)
+      return !!(variants && variants.animate.clipPath)
+    }
+    expect(reveal('circle')).toBe(true)
+    expect(reveal('wipe-down')).toBe(true)
+    expect(reveal('fade')).toBe(false)
+    expect(reveal('slide-up')).toBe(false)
   })
 })
 

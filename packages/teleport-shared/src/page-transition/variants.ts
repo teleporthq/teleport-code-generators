@@ -378,6 +378,8 @@ export interface PageTransitionConfig {
   skipRoutes?: string[]
   options?: Record<string, string>
   custom?: { arrive?: Record<string, number>; leave?: Record<string, number> }
+  /** False when the author turned the flying pictures off; absent means they fly. */
+  flyingPictures?: boolean
 }
 
 /** The same curves the motion widget plays, so a route transition shares the site's motion character. */

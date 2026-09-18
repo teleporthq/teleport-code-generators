@@ -212,6 +212,8 @@ describe('Motion in the static HTML export', () => {
     expect(clip).toContain('playsinline')
     expect(clip).toContain('poster="/poster.jpg"')
     expect(clip).toContain('src="/clip.mp4"')
+    // the first frame only: the runtime holds the whole clip in memory, so the page never downloads it twice
+    expect(clip).toContain('preload="metadata"')
 
     const withPhone = fileOf(
       await generate(projectWith(video({ src: s('/clip.mp4'), mobileSrc: s('/clip-540.mp4') }))),
@@ -220,6 +222,15 @@ describe('Motion in the static HTML export', () => {
     )
     expect(withPhone).toContain('data-scroll-video-mobile-src="/clip-540.mp4"')
     expect(/<video([^>]*)>/.exec(withPhone)?.[1] ?? '').not.toContain('src=')
+
+    const thereAndBack = fileOf(
+      await generate(
+        projectWith(video({ src: s('/clip.mp4'), backToStart: { type: 'static', content: true } }))
+      ),
+      'index',
+      FileType.HTML
+    )
+    expect(thereAndBack).toContain('data-scroll-video-back-to-start="true"')
 
     const empty = fileOf(await generate(projectWith(video({}))), 'index', FileType.HTML)
     expect(empty).toContain('data-scroll-video="true"')
@@ -241,6 +252,11 @@ describe('Motion in the static HTML export', () => {
     expect(full).toContain('const initScene = ')
     expect(full).toContain('const initMotion = ')
     expect(full).toContain('const initVideo = ')
+    // the clip is held in memory by the shared helper the Next export runs too
+    expect(full).toContain('const bufferWholeClip = ')
+    expect(full).toContain('bufferWholeClip(host, streamed, activeSrc, (copy) => {')
+    expect(full).toContain("const backToStart = text('back-to-start', 'false') === 'true'")
+    expect(full).toContain('seekTo(clipPositionFor(local, backToStart))')
     // valid JavaScript: compiling it (never running it) is the check
     expect(() => new Function(full)).not.toThrow()
 

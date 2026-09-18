@@ -25,6 +25,18 @@ the circle's origin, the cover sweep, a page that opted out, reduced motion and
 node packages/teleport-test/scripts/html-motion/verify-transitions.cjs /tmp/html-transitions
 ```
 
+`verify-next-transitions.cjs <out-dir> [node_modules]` packs the same site
+(`transition-site.cjs`) as a Next project, runs `next build` and `next start`
+against the node_modules of an installed generated Next project (Teleport &
+Run's `packages/teleport-test/dist/teleport-project-next` by default), and
+watches Chrome: the picture flying from a card onto its twin, the ordinary
+transition where no picture flies and on the way back, a picture the next page
+does not show, eight page changes in a row, and reduced motion.
+
+```bash
+node packages/teleport-test/scripts/html-motion/verify-next-transitions.cjs /tmp/next-transitions
+```
+
 `pack-uidl.cjs <project.json> <out-dir>` packs any exported project as a
 static HTML site the way the editor's download does (embed parsing on). The
 plain `yarn generate --project-type html` does not load the embed plugin, so it
