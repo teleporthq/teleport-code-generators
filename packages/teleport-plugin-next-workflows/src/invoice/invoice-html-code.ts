@@ -302,6 +302,7 @@ function buildInvoiceDataScope(invoiceData) {
     discountAmount: formatCurrencyValue(invoiceData.discountAmount, sym),
     shippingAmount: formatCurrencyValue(shippingAmountNumber, sym),
     hasShipping: shippingAmountNumber > 0 ? 'true' : 'false',
+    hasTax: Number(invoiceData.taxAmount) > 0 ? 'true' : 'false',
     total: formatCurrencyValue(invoiceData.total, sym),
     currency: invoiceData.currency || 'USD',
     currencySymbol: sym,
@@ -348,13 +349,18 @@ function buildInvoiceDataScope(invoiceData) {
     var lineStored = Number(it.totalPrice || it.total_price);
     if (!isFinite(lineStored) || lineStored === 0) lineStored = qty * unitStored;
 
-    var unitNet = computeNetFromGrossValue(unitStored, taxRate, taxIncluded);
-    var lineNet = computeNetFromGrossValue(lineStored, taxRate, taxIncluded);
+    // A line on an order priced by region carries its own rate and inclusion
+    // mode (a food line at 7% beside a tools line at 19%); every other line is
+    // taxed at the invoice's single rate.
+    var lineRate = typeof it.taxIncluded === 'boolean' ? Number(it.taxRate) || 0 : taxRate;
+    var lineIncluded = typeof it.taxIncluded === 'boolean' ? it.taxIncluded : taxIncluded;
+    var unitNet = computeNetFromGrossValue(unitStored, lineRate, lineIncluded);
+    var lineNet = computeNetFromGrossValue(lineStored, lineRate, lineIncluded);
     // Per-unit VAT mirrors the GUI helper: derived from the NET unit
     // price at the configured rate (rather than dividing line VAT by qty,
     // which yields odd values when qty is 0 or missing).
-    var unitVat = computeLineVatAmountValue(unitStored, taxRate, taxIncluded);
-    var lineVat = computeLineVatAmountValue(lineStored, taxRate, taxIncluded);
+    var unitVat = computeLineVatAmountValue(unitStored, lineRate, lineIncluded);
+    var lineVat = computeLineVatAmountValue(lineStored, lineRate, lineIncluded);
     var unitGross = unitNet + unitVat;
     var lineGross = lineNet + lineVat;
 
@@ -392,6 +398,9 @@ function buildInvoiceDataScope(invoiceData) {
       lineTotalNet: formatCurrencyValue(lineNet, sym),
       lineTotalGross: formatCurrencyValue(lineGross, sym),
       lineVatAmount: formatCurrencyValue(lineVat, sym),
+      // The rate this line was taxed at ("20%"): its own on an order priced by
+      // region, the invoice's single rate otherwise. Bound by the VAT % column.
+      lineVatRate: (lineRate > 0 ? Math.round(lineRate * 100) / 100 : 0) + '%',
       sku: it.sku || '',
       itemTaxRate: it.taxRate != null ? String(it.taxRate) : (taxRate > 0 ? String(taxRate) : ''),
       itemTaxAmount: it.taxAmount != null ? formatCurrencyValue(it.taxAmount, sym) : formatCurrencyValue(lineVat, sym),
@@ -562,13 +571,20 @@ function resolveReferenceValue(ref, scope) {
 }
 
 function matchConditionOperation(val, op, operand) {
+  // The editor stores every operand as a STRING ('true', '0'), while
+  // \`resolveReferenceValue\` hands back a typed value for \`expr\` references
+  // (it turns 'true' into boolean true). A strict \`===\` across those two
+  // shapes never matches — that is how the template's Delivery row, gated on
+  // \`Invoice.hasShipping = 'true'\`, stayed hidden on every invoice with a
+  // fee — so mixed-type equality compares the string forms instead.
+  var sameType = typeof val === typeof operand;
   switch (op) {
     case '=':
     case '===':
-      return val === operand;
+      return sameType ? val === operand : String(val) === String(operand);
     case '!=':
     case '!==':
-      return val !== operand;
+      return sameType ? val !== operand : String(val) !== String(operand);
     case '>':  return Number(val) > Number(operand);
     case '<':  return Number(val) < Number(operand);
     case '>=': return Number(val) >= Number(operand);
@@ -913,18 +929,25 @@ function buildFallbackInvoiceHtml(scope) {
     '<th style="text-align:left;border-bottom:2px solid #333;padding:6px;">Item</th>' +
     '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">Qty</th>' +
     '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">Unit Price</th>' +
+    '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">VAT %</th>' +
+    '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">VAT</th>' +
     '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">Total</th>' +
     '</tr></thead><tbody>');
   products.forEach(function (p) {
     parts.push('<tr>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;">' + (p.variantSwatchesHtml || '') + escapeHtml(p.name) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.quantity) + '</td>' +
-      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.unitPrice) + '</td>' +
-      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineTotal) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.unitPriceNet) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineVatRate) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineVatAmount) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineTotalGross) + '</td>' +
       '</tr>');
   });
   parts.push('</tbody></table>');
   var totalsRows = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal</span><span>' + escapeHtml(inv.subtotal) + '</span></div>';
+  if (inv.hasTax === 'true') {
+    totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>VAT</span><span>' + escapeHtml(inv.taxAmount) + '</span></div>';
+  }
   if (inv.hasShipping === 'true') {
     totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Delivery</span><span>' + escapeHtml(inv.shippingAmount) + '</span></div>';
   }

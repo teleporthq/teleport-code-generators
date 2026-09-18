@@ -31,6 +31,23 @@ import strapiUIDL from '../../../examples/uidl-samples/strapi.json'
 import wordpressUIDL from '../../../examples/uidl-samples/wordpress.json'
 import caisyUIDL from '../../../examples/uidl-samples/caisy.json'
 import flotiqUIDL from '../../../examples/uidl-samples/flotiq.json'
+import {
+  describeStoreFixture,
+  readFixtureIdentity,
+  StoreFixtureSummaryLine,
+} from './store-fixture-summary'
+
+// The same file the import above resolves — read again by path for the
+// `.meta.json` sidecar the editor's dev export writes beside it.
+const PROJECT_FIXTURE_PATH = join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'examples',
+  'uidl-samples',
+  'project.json'
+)
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -307,12 +324,30 @@ const verifyLocalImports = (projectDir: string): void => {
   process.exitCode = 1
 }
 
+// What the store was built from — which project, which database, what it
+// charges — printed LAST, where it is read. A merchant who configured delivery
+// and shipping zones in one project and generated another saw "free shipping
+// everywhere" with nothing anywhere saying why; these four lines say why.
+const printStoreFixtureSummary = (lines: StoreFixtureSummaryLine[]): void => {
+  if (lines.length === 0) {
+    return
+  }
+  console.info(chalk.cyan('\n[standalone] Built from:'))
+  for (const line of lines) {
+    console.info(
+      line.tone === 'warning' ? chalk.yellow(`  ⚠ ${line.text}`) : chalk.cyan(`  ${line.text}`)
+    )
+  }
+  console.info('')
+}
+
 const run = async () => {
   // Reported twice in one session: the warning below is printed BEFORE ~1500
   // lines of generation output, so it scrolls away and the next thing anyone
   // sees is a runtime error that looks like a codegen bug. Repeat it last.
   let wipedNextCache = false
   let generatedProjectDir = ''
+  let storeSummary: StoreFixtureSummaryLine[] = []
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
       try {
@@ -328,6 +363,11 @@ const run = async () => {
       // back into the UIDL so the regenerated `.env` carries them forward).
       const existingEnvPath = join(projectDir, '.env')
       preserveExistingEnv(projectUIDL, existingEnvPath)
+      storeSummary = describeStoreFixture({
+        uidl: projectUIDL,
+        identity: readFixtureIdentity(PROJECT_FIXTURE_PATH),
+        env: existsSync(existingEnvPath) ? parseDotEnv(readFileSync(existingEnvPath, 'utf8')) : {},
+      })
       // Wipe stale generated files so orphans from a previous run can't break
       // the build (this subsumes the old workflows-only cleanup).
       generatedProjectDir = projectDir
@@ -445,6 +485,8 @@ const run = async () => {
         )
       )
     }
+
+    printStoreFixtureSummary(storeSummary)
   } catch (e) {
     // A generation failure wipes the whole output (the clean above already ran),
     // so swallowing it here made `npm run standalone` print a SyntaxError and

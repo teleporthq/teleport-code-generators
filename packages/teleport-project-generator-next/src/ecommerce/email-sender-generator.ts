@@ -231,11 +231,41 @@ const buildSenderFunction = (opts: EmailSenderOptions): string => {
   const fromName = opts.fromName || ''
   const replyTo = opts.replyTo || ''
   const tag = opts.logTag || 'email'
-  return `function sendNotificationEmail(recipients, subject, html) {
+  const providerName = opts.provider || 'smtp'
+  return `// \`meta\` describes the send for the sent-email ledger:
+// { emailType, source, sourceRef, payload, orderId }. Every attempt — accepted
+// or refused by the provider — is recorded there in the background; the route
+// settles the ledger (\`settleSentEmailLog\`) before it replies.
+function sendNotificationEmail(recipients, subject, html, meta) {
   var to = (recipients || []).filter(function(r) { return typeof r === 'string' && r.length > 0 })
   if (to.length === 0) {
     console.log('[${tag}] skipped: no recipients configured')
     return Promise.resolve({ sent: false, reason: 'no_recipients' })
+  }
+  var ledgerMeta = meta || {}
+  function recordAttempt(providerResponse, failure) {
+    var messageId = null
+    if (providerResponse && typeof providerResponse === 'object') {
+      messageId = providerResponse.messageId || providerResponse.MessageID || providerResponse.id ||
+        (providerResponse.data && providerResponse.data.id) || null
+    }
+    sentEmailLog.recordSentEmail({
+      emailType: ledgerMeta.emailType || 'custom',
+      audience: 'store-owner',
+      to: to,
+      from: fromDisplay,
+      replyTo: replyTo,
+      subject: envelope.subject,
+      html: envelope.html,
+      payload: ledgerMeta.payload,
+      provider: ${JSON.stringify(providerName)},
+      providerMessageId: messageId,
+      status: failure ? 'failed' : 'sent',
+      error: failure ? (failure.message || String(failure)) : null,
+      source: ledgerMeta.source || 'ecommerce',
+      sourceRef: ledgerMeta.sourceRef,
+      orderId: ledgerMeta.orderId,
+    })
   }
   var fromAddress = ${JSON.stringify(
     fromEmail
@@ -256,10 +286,12 @@ const buildSenderFunction = (opts: EmailSenderOptions): string => {
   return dispatchProviderEmail(envelope)
     .then(function(result) {
       console.log('[${tag}] sent successfully')
+      recordAttempt(result, null)
       return { sent: true, recipients: to, providerResponse: result }
     })
     .catch(function(err) {
       console.error('[${tag}] dispatch failed: ' + (err && err.message ? err.message : String(err)))
+      recordAttempt(null, err || new Error('dispatch failed'))
       throw err
     })
 }`
@@ -309,6 +341,8 @@ export const generateEmailSenderModule = (
 // teleport-project-generator-next/src/ecommerce/email-sender-generator.ts
 // instead of this file — it will be overwritten on the next build.
 
+var sentEmailLog = require('../email/sent-email-log')
+
 ${providerDispatch}
 
 ${RENDER_TEMPLATE_FN}
@@ -323,6 +357,7 @@ ${senderFn}
 
 module.exports = {
   sendNotificationEmail: sendNotificationEmail,
+  settleSentEmailLog: sentEmailLog.settleSentEmailLog,
   renderTemplate: renderTemplate,
   expandListBlocks: expandListBlocks,
   hasOwnItemList: hasOwnItemList,

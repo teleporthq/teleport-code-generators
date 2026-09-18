@@ -37,7 +37,11 @@ describe('generateOrderNotificationApiRoute — endpoint shell', () => {
 
   it('delegates dispatch to the shared email-sender module', () => {
     expect(route).toContain("require('../../../utils/ecommerce/email-sender')")
-    expect(route).toContain('sender.sendNotificationEmail(notificationEmails, subject, html)')
+    expect(route).toContain('sender.sendNotificationEmail(notificationEmails, subject, html, {')
+    // …and describes the send for the sent-email ledger, then lands the row
+    // before replying.
+    expect(route).toContain("emailType: 'order-notification'")
+    expect(route).toContain('await sender.settleSentEmailLog()')
   })
 
   it('renders subject + body via sender.renderTemplate (not inline)', () => {
@@ -164,7 +168,7 @@ describe('generateOrderNotificationApiRoute — itemsList rendering + auto-injec
 
   it('falls back to the order’s persisted lines when the caller sends no items', () => {
     // The payment webhooks know an orderId but have no cart to forward.
-    expect(route).toContain('await loadOrderItems(orderId)')
+    expect(route).toContain('await loadOrderLines(orderId)')
   })
 
   it('emits a real order-lines loader only for Postgres datasources', () => {
@@ -179,12 +183,12 @@ describe('generateOrderNotificationApiRoute — itemsList rendering + auto-injec
     // MySQL/Turso driver could never bind.
     const nonPg = generateOrderNotificationApiRoute(baseSettings(), 'mysql', { host: 'x' })
     expect(nonPg).not.toContain('teleport_order_items')
-    expect(nonPg).toContain('async function loadOrderItems()')
+    expect(nonPg).toContain('async function loadOrderLines()')
 
     // Omitting the datasource entirely (the pre-existing 1-arg call shape)
     // must stay valid and behave like the non-Postgres case.
     expect(route).not.toContain('teleport_order_items')
-    expect(route).toContain('async function loadOrderItems()')
+    expect(route).toContain('async function loadOrderLines()')
   })
 
   it('emits syntactically valid JavaScript in every datasource shape', () => {

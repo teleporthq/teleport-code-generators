@@ -1,4 +1,5 @@
 import { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import { REGIONAL_INVOICE_TAX_CODE } from './regional-invoice-tax-code'
 
 export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
   const prefix = settings.invoicePrefix || 'INV-'
@@ -20,7 +21,12 @@ export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings):
 
 var dataAccess = require('../../../utils/invoices/data-access');
 var pdfGenerator = require('../../../utils/invoices/pdf-generator');
-${emailEnabled ? `var emailSender = require('../../../utils/invoices/email-sender');` : ''}
+${
+  emailEnabled
+    ? `var emailSender = require('../../../utils/invoices/email-sender');
+var sentEmailLog = require('../../../utils/email/sent-email-log');`
+    : ''
+}
 
 var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 var DEFAULT_TAX_RATE = ${defaultTaxRate};
@@ -28,6 +34,7 @@ var DEFAULT_CURRENCY = "USD";
 var SHOW_DISCOUNT = ${showDiscount};
 var TAX_INCLUDED_IN_PRICE = ${taxIncludedInPrice};
 var TEMPLATE_DOCUMENT = ${templateDocumentJson};
+${REGIONAL_INVOICE_TAX_CODE}
 
 // Runtime storage configuration. When all three are set, the generated PDF
 // is also POSTed to the storage worker so consumers (e.g. the payment
@@ -285,6 +292,9 @@ module.exports = async function handler(req, res) {
       : hydratedItems.map(function (row) {
           return {
             productId: row.product_id || row.productId || null,
+            // Paired with \`productId\` to find the rate a line was charged at
+            // on an order priced by region (see resolveRegionalInvoiceTax).
+            variantId: row.variant_id || row.variantId || null,
             name: row.product_name || row.name || 'Item',
             variantLabel: row.variant_label || row.variantLabel || null,
             variantSwatches: row.variant_swatches || row.variantSwatches || null,
@@ -380,6 +390,28 @@ module.exports = async function handler(req, res) {
       shippingAmount = 0;
     }
     var total = goodsTotal + shippingAmount;
+
+    // An order priced by region records the rate each line was charged at, so
+    // its invoice is computed from that record instead of the store default.
+    // A caller that states its own \`taxRate\` keeps the single-rate path.
+    var taxIncludedInPrice = TAX_INCLUDED_IN_PRICE;
+    var regionalTaxBreakdown = body.taxRate == null
+      ? parseOrderTaxBreakdown(orderShippingSource.tax_breakdown)
+      : null;
+    if (regionalTaxBreakdown) {
+      var regionalTax = resolveRegionalInvoiceTax(regionalTaxBreakdown, items, discountAmount, shippingAmount);
+      taxRate = regionalTax.taxRate;
+      taxIncludedInPrice = regionalTax.taxIncluded;
+      subtotal = regionalTax.subtotal;
+      taxAmount = regionalTax.taxAmount;
+      shippingAmount = regionalTax.shippingNet;
+      total = regionalTax.total;
+      for (var ti = 0; ti < items.length; ti++) {
+        items[ti].taxRate = regionalTax.itemTax[ti].rate;
+        items[ti].taxIncluded = regionalTax.itemTax[ti].included;
+        items[ti].taxAmount = regionalTax.itemTax[ti].amount;
+      }
+    }
 
     // Cross-check against the amount the order was actually placed for. The
     // invoice is built from line items, the order carries the charged total,
@@ -483,7 +515,7 @@ module.exports = async function handler(req, res) {
       // this flag the builder can't tell whether the stored unitPrice is
       // a net (added on top) or a gross (included in price) value, and
       // the line-item table renders blank cells.
-      taxIncludedInPrice: TAX_INCLUDED_IN_PRICE,
+      taxIncludedInPrice: taxIncludedInPrice,
       discountAmount: Math.round(discountAmount * 100) / 100,
       // Delivery fee, surfaced so the PDF/HTML renderer can print its own line
       // and the merchant's template can bind \`invoice.shippingAmount\`.
@@ -604,7 +636,14 @@ ${
       currency: currency,
     });
 
-    res.status(200).json({
+${
+  emailEnabled
+    ? `    // The email's ledger row is written in the background — land it before
+    // replying, a serverless function may be frozen the instant it responds.
+    await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}    res.status(200).json({
       success: true,
       invoiceId: invoiceData.id,
       invoiceNumber: invoiceNumber,
@@ -624,7 +663,12 @@ ${
     });
   } catch (error) {
     console.error('[invoice] Generation threw:', error && error.stack ? error.stack : error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to generate invoice' });
+${
+  emailEnabled
+    ? `    await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}    res.status(500).json({ success: false, error: error.message || 'Failed to generate invoice' });
   }
 };
 `

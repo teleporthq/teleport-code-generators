@@ -750,6 +750,15 @@ function isFireAndForgetNode(node) {
   return !!node.config && node.config.awaitResult === false;
 }
 
+// A node the author marked \`continueOnError\`: a failed RESULT ({ success:
+// false } / { error }) is published under the node's id like any other result
+// instead of aborting the workflow, so a later if-statement can read
+// \`success\` and warn. Only an explicit \`true\` opts in. A handler that THROWS
+// still aborts — every provider handler reports failure as a result.
+function continuesOnError(node) {
+  return !!(node && node.config && node.config.continueOnError === true);
+}
+
 // Starts a fire-and-forget node and returns a promise that ALWAYS resolves.
 // The workflow has already moved on, so a failure here can neither abort it nor
 // reach the error handler — it is reported to the console and swallowed, which
@@ -791,10 +800,13 @@ async function settlePendingNodePromises(context) {
   for (var pass = 0; pass < 5; pass++) {
     var pending = context.__pendingNodePromises;
     if (!pending || pending.length === 0) return;
-    context.__pendingNodePromises = [];
+    // Drained IN PLACE, never by swapping in a fresh array: a parallel branch
+    // that is still running holds a reference to this very array (its context
+    // is a shallow copy) and must keep landing on the queue the route drains.
+    var batch = pending.splice(0, pending.length);
     // Every entry swallows its own rejection (see startFireAndForgetNode), so
     // this can never reject.
-    await Promise.all(pending);
+    await Promise.all(batch);
   }
 }
 
@@ -918,7 +930,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
               await executeNodes(onStreamNodes, edges, context, nodeHandlers, workflowConfig, callServerSegment, executionId);
             }
           });
-          if (isFatalNodeResult(streamResult)) {
+          if (isFatalNodeResult(streamResult) && !continuesOnError(node)) {
             throw new Error(fatalNodeResultMessage(streamResult));
           }
           context[node.id] = streamResult;
@@ -977,7 +989,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
         throw earlyErr;
       }
 
-      if (isFatalNodeResult(result)) {
+      if (isFatalNodeResult(result) && !continuesOnError(node)) {
         throw new Error(fatalNodeResultMessage(result));
       }
 
@@ -1299,6 +1311,7 @@ module.exports = {
   isStreamingAINode,
   isFatalNodeResult,
   fatalNodeResultMessage,
+  continuesOnError,
   isFireAndForgetNode,
   startFireAndForgetNode,
   registerPendingNodePromise,

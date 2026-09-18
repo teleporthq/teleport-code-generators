@@ -18,6 +18,7 @@ import {
   generatePaypalCaptureApiRoute,
 } from './ecommerce-api-routes-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
+import { ensureSentEmailLogModule } from '@teleporthq/teleport-plugin-next-workflows'
 import { generateCartApiRoute } from './cart-api-routes-generator'
 import { generateAssetsApiRoute, generateAssetUrlsModule } from './asset-urls-generator'
 
@@ -85,7 +86,7 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       uidl.invoiceSettings,
       dataSourceType,
       dataSourceConfig,
-      files
+      structure
     )
     if (assetsRoute) {
       this.generateAssetUrlFiles(assetsRoute, files)
@@ -212,8 +213,9 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     invoiceSettings: UIDLInvoiceSettings | undefined,
     dataSourceType: string | null,
     dataSourceConfig: Record<string, unknown> | null,
-    files: Map<string, any>
+    structure: ProjectPluginStructure
   ): void {
+    const { files } = structure
     files.set('ecommerce-api-settings', {
       path: ['pages', 'api', 'ecommerce'],
       files: [
@@ -362,6 +364,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       settings.orderNotifications && settings.orderNotificationConfig?.provider
     )
     if (orderNotifActive || stockAlertsActive) {
+      // The sender records every attempt in the sent-email ledger.
+      ensureSentEmailLogModule(structure)
       files.set('ecommerce-email-sender', {
         path: ['utils', 'ecommerce'],
         files: [

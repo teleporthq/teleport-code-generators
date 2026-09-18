@@ -25,10 +25,67 @@ export const transactionalEmailDependencies = (
   return getEmailProviderDependencies(provider)
 }
 
-// Provider-specific `__sendProviderEmail({ from, to, subject, html, apiKey })`.
-// No attachment (unlike the invoice sender). When no provider is configured the
-// function is a no-op so the route stays self-contained and never throws.
-export const generateProviderSendFunction = (provider?: string | null): string => {
+/**
+ * Where a transactional route's sends are recorded in the sent-email ledger:
+ * the purpose slug, the `source` column and the route file, plus the require
+ * prefix from the route's directory back to the project root.
+ */
+export interface TransactionalEmailLedger {
+  emailType: string
+  source: string
+  sourceRef: string
+  relativePrefix: string
+}
+
+// Provider-specific `__sendProviderEmail({ from, to, subject, html, apiKey,
+// tokenValues?, userId? })`. No attachment (unlike the invoice sender). When
+// no provider is configured the function is a no-op so the route stays
+// self-contained and never throws. With `ledger`, the provider function is
+// emitted as `__sendProviderEmailRaw` and `__sendProviderEmail` records every
+// attempt (success or throw) before returning / rethrowing.
+export const generateProviderSendFunction = (
+  provider?: string | null,
+  ledger?: TransactionalEmailLedger
+): string => {
+  const raw = generateRawProviderSendFunction(provider)
+  if (!ledger || !provider || !SUPPORTED_EMAIL_PROVIDERS.has(provider)) {
+    return raw
+  }
+  return `${raw.replace(
+    'async function __sendProviderEmail(',
+    'async function __sendProviderEmailRaw('
+  )}
+
+var __sentEmailLog = require('${ledger.relativePrefix}/utils/email/sent-email-log');
+
+async function __sendProviderEmail(msg) {
+  var failure = null;
+  try {
+    await __sendProviderEmailRaw(msg);
+  } catch (err) {
+    failure = err;
+  }
+  // Recorded in the background; the route settles the ledger before it replies.
+  __sentEmailLog.recordSentEmail({
+    emailType: ${JSON.stringify(ledger.emailType)},
+    audience: 'customer',
+    to: msg.to,
+    from: msg.from,
+    subject: msg.subject,
+    html: msg.html,
+    payload: msg.tokenValues,
+    provider: ${JSON.stringify(provider)},
+    status: failure ? 'failed' : 'sent',
+    error: failure ? (failure.message || String(failure)) : null,
+    source: ${JSON.stringify(ledger.source)},
+    sourceRef: ${JSON.stringify(ledger.sourceRef)},
+    userId: msg.userId,
+  });
+  if (failure) { throw failure; }
+}`
+}
+
+const generateRawProviderSendFunction = (provider?: string | null): string => {
   switch (provider) {
     case 'resend':
       return `async function __sendProviderEmail(msg) {

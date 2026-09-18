@@ -1929,6 +1929,28 @@ export interface UIDLEcommerceSettings {
   vouchersEnabled?: boolean
   // Nested category tree for the storefront category filter (see above).
   categories?: UIDLEcommerceCategory[]
+  // Shipping zones + tax jurisdictions. Present only when the merchant turned
+  // regional pricing on AND the checkout page can charge it; absent, the
+  // storefront prices with the single flat fee and default rate as before.
+  regionalPricing?: UIDLEcommerceRegionalPricing
+}
+
+/**
+ * What the storefront needs baked in to price by destination. The zones, rates
+ * and tax rows themselves are rows in the store's own database, read at runtime,
+ * so a merchant edits them from the generated admin without republishing.
+ */
+export interface UIDLEcommerceRegionalPricing {
+  enabled: boolean
+  // Store currency — decides whether regional amounts round to cents or to the
+  // whole unit.
+  currency: string
+  // Lower-cased country NAME (what the checkout country field holds) → ISO
+  // 3166-1 alpha-2 code, which is what zones and tax rows are keyed by.
+  countryCodes: Record<string, string>
+  // The store's own country, used to estimate shipping before the buyer has
+  // entered an address. Null when the company address has no known country.
+  storeCountryCode: string | null
 }
 
 /**

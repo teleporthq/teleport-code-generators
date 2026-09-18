@@ -2132,7 +2132,10 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
 
   // When the repeater source is a global context like "ecommerce", resolve to
   // the appropriate array from the ecommerce context based on what the repeater
-  // iterates over (determined by renderPropIdentifier).
+  // iterates over (determined by renderPropIdentifier). The editor's mapper
+  // keeps only the global's id, not the array's path, so the identifier is the
+  // whole contract: every e-commerce list the editor builds names its context
+  // after one of these keys.
   let repeaterItemsExpr: types.Expression
   const source = node.content.source ?? 'params'
   if (source === 'ecommerce') {
@@ -2141,6 +2144,10 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     const ecommercePathMap: Record<string, string[]> = {
       paymentProvider: ['paymentProviders'],
       storeLocation: ['storeLocations'],
+      // The checkout's shipping-method list (`Cart.shippingOptions`). Without
+      // this entry it fell to the cart items below and offered the buyer their
+      // own products as shipping methods.
+      shippingMethod: ['Cart', 'shippingOptions'],
     }
     // Default: cart items for orderItem, cartItem, or any unrecognized identifier
     const path = ecommercePathMap[rpId] || ['Cart', 'items']

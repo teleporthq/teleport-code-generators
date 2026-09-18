@@ -93,6 +93,12 @@ describe('data-create-item auto-fires order-notification for teleport_orders ins
     expect(src).toContain('paymentMethod: item.payment_method')
   })
 
+  it("sends the order's tax breakdown and each line's product ids, so the route prices lines at their rate", () => {
+    expect(src).toContain('taxBreakdown: item.tax_breakdown || null')
+    expect(src).toContain("product_id: it.productId || it.product_id || ''")
+    expect(src).toContain("variant_id: it.variantId || it.variant_id || ''")
+  })
+
   it('fires-and-forgets — does NOT await the notification call', () => {
     // Awaiting an email provider that times out would block the
     // workflow's success response back to the buyer, leaving the

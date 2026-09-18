@@ -159,9 +159,14 @@ async function anonymizeInvoices(client, ordersTable, invoicesTable, userId, syn
 
 ${generateFillTemplateFn()}
 
-${generateProviderSendFunction(provider)}
+${generateProviderSendFunction(provider, {
+  emailType: 'account-deleted',
+  source: 'account-delete',
+  sourceRef: 'api/account/delete-current',
+  relativePrefix: '../../..',
+})}
 
-async function sendFarewellEmail(toEmail, tokenValues) {
+async function sendFarewellEmail(toEmail, tokenValues, userId) {
   if (!EMAIL_PROVIDER || !EMAIL_BODY_HTML || !toEmail) { return; }
   var apiKey = EMAIL_SECRET_ENV_NAME ? process.env[EMAIL_SECRET_ENV_NAME] : '';
   // Don't treat an unresolved deploy placeholder as a real credential.
@@ -171,7 +176,7 @@ async function sendFarewellEmail(toEmail, tokenValues) {
   if (!from) { console.warn('[account-delete] farewell email skipped: sender not configured'); return; }
   var subject = fillTemplate(EMAIL_SUBJECT, tokenValues);
   var html = fillTemplate(EMAIL_BODY_HTML, tokenValues);
-  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey });
+  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 
 module.exports = async function handler(req, res) {
@@ -255,14 +260,20 @@ module.exports = async function handler(req, res) {
       userName: userName || 'there',
       userEmail: userEmail,
       siteName: resolvedSiteName,
-    });
+    }, userId);
   } catch (emailErr) {
     console.error(
       '[account-delete] farewell email failed:',
       emailErr && emailErr.message ? emailErr.message : emailErr
     );
   }
-
+${
+  provider
+    ? `  // Land the farewell email's ledger row before replying.
+  if (typeof __sentEmailLog !== 'undefined') { await __sentEmailLog.settleSentEmailLog(); }
+`
+    : ''
+}
   return res.status(200).json({ success: true });
 };
 `

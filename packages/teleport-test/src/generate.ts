@@ -4,7 +4,8 @@ import chalk from 'chalk'
 import { ProjectType, ProjectUIDL } from '@teleporthq/teleport-types'
 
 import { describeStaleness, findStalePackages } from './build-freshness'
-import { generateProject, GenerateProjectResult } from './generate-project'
+import { generateProject, GenerateProjectResult, parseDotEnv } from './generate-project'
+import { describeStoreFixture, readFixtureIdentity } from './store-fixture-summary'
 
 /**
  * `yarn generate` — pack any UIDL, from any path, into any output directory.
@@ -152,6 +153,11 @@ const run = async () => {
           } generator warning(s) in ${outcome.timings.totalMs.toFixed(0)}ms → ${outcome.projectDir}`
         )
       )
+      // What the store was built from — which project, which database, what it
+      // charges. Read last, so said last.
+      ;(outcome.store ?? []).forEach((line) =>
+        note(line.tone === 'warning' ? chalk.yellow(`⚠ ${line.text}`) : chalk.cyan(line.text))
+      )
       return
     }
     note(chalk.red(outcome.error?.stack ?? outcome.error?.message ?? 'generation failed'))
@@ -199,15 +205,26 @@ const run = async () => {
 
   note(chalk.gray(`Packing ${projectType} project "${slug}" → ${projectDir}`))
 
+  const envPath = args.env ? resolve(args.env) : join(projectDir, '.env')
   const result = await generateProject({
     uidl,
     outRoot,
     slug,
     projectType,
-    envPath: args.env ? resolve(args.env) : join(projectDir, '.env'),
+    envPath,
   })
 
-  report({ ...result, staleGenerators: stale })
+  // `preserveExistingEnv` folded the on-disk `.env` into `uidl.globals.env`
+  // before packing, so it is the env the generated project actually runs with.
+  const store = result.ok
+    ? describeStoreFixture({
+        uidl,
+        identity: readFixtureIdentity(resolve(args.uidl)),
+        env: existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf8')) : {},
+      })
+    : undefined
+
+  report({ ...result, staleGenerators: stale, store })
   if (!result.ok) {
     process.exitCode = 1
   }
