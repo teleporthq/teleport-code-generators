@@ -1,26 +1,15 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { PageTransition } from '@teleporthq/teleport-shared'
 import { injectImportIntoApp } from '../app-import-injection'
 import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
-import {
-  generatePageTransitionComponentCode,
-  PageTransitionConfig,
-} from './page-transition-component'
+import { generatePageTransitionComponentCode } from './page-transition-component'
 
 const PAGE_MOUNT = '<Component {...pageProps} />'
 const WRAPPED_PAGE_MOUNT = '<TqPageTransition><Component {...pageProps} /></TqPageTransition>'
 const IMPORT_LINE = "import TqPageTransition from '../components/tq-page-transition';"
 
 /** The resolved transition the editor exported, or null when pages switch instantly. */
-export const projectPageTransition = (
-  uidl: ProjectPluginStructure['uidl']
-): PageTransitionConfig | null => {
-  const settings = (uidl.globals?.settings || {}) as { pageTransition?: PageTransitionConfig }
-  const transition = settings.pageTransition
-  if (!transition || !transition.preset || transition.preset === 'none') {
-    return null
-  }
-  return transition
-}
+export const projectPageTransition = PageTransition.projectPageTransition
 
 /**
  * Wraps the page mount in `_app` with the site's route transition — only when

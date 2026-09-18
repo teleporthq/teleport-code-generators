@@ -44,8 +44,17 @@ const ANCHOR_SAFE_ARIA_ATTRIBUTES = new Set([
    wrapper is display:contents whenever the parent lays out with flex/grid, and
    a box-less element ignores opacity/transform/scroll properties — a lane
    parked on the wrapper animates nothing, so a linked button stayed visible in
-   every chapter of a scene. */
-const RUNTIME_DATA_ATTRIBUTE_PREFIXES = ['data-scroll-', 'data-snap-', 'data-chapter-']
+   every chapter of a scene. The static HTML export carries a scene's and a
+   motion element's whole configuration as such attributes (data-scene-*,
+   data-motion-*), read by its runtime off the element that draws the box. */
+const RUNTIME_DATA_ATTRIBUTE_PREFIXES = [
+  'data-scroll-',
+  'data-snap-',
+  'data-chapter-',
+  'data-scene-',
+  'data-motion-',
+  'data-tq-motion',
+]
 
 export const isRuntimeDataAttribute = (attrName: string): boolean =>
   RUNTIME_DATA_ATTRIBUTE_PREFIXES.some((prefix) => attrName.startsWith(prefix))
@@ -82,6 +91,21 @@ const isBareContainer = (node: UIDLElementNode): boolean => {
   )
 }
 
+/* A <div> that means nothing but "a box": it can be an <a> instead without the
+   page losing anything. Runtime attributes are fine here (unlike on a wrapper):
+   the anchor this element becomes is the very box they act on. */
+const isPlainContainer = (node: UIDLElementNode): boolean => {
+  const { elementType, semanticType, events = {}, attrs = {} } = node.content
+  return (
+    elementType === 'container' &&
+    (!semanticType || semanticType === 'div') &&
+    Object.keys(events).length === 0 &&
+    Object.keys(attrs).every(
+      (attrName) => isAttributeSafeForAnchor(attrName) || isRuntimeDataAttribute(attrName)
+    )
+  )
+}
+
 /* When a styled element also carries a link, the link is realised as a wrapper
    <a>/navlink around it. If the layout parent is a flex/grid container, that
    wrapper would become the flex/grid item instead of the styled child, dropping
@@ -96,6 +120,24 @@ const parentIsFlexOrGridContainer = (
   options: GeneratorOptions
 ): boolean =>
   LayoutTopology.isFlexOrGridContainer(parentNode, options.projectStyleSet?.styleSetDefinitions)
+
+/* A box-less element cannot draw an outline, so a visitor tabbing through the
+   page lands on the wrapper and sees nothing: the link is focused and no ring
+   is painted anywhere (measured on a generated store: 4 of 5 wrapped links).
+   The wrapper says what it is, and the platform's reset stylesheet paints the
+   ring on the element it wraps while the wrapper holds keyboard focus. */
+export const BOXLESS_LINK_WRAPPER_ATTR = 'data-thq-link-wrapper'
+
+const markBoxless = (linkNode: UIDLElementNode): void => {
+  linkNode.content.style = {
+    ...linkNode.content.style,
+    display: { type: 'static', content: 'contents' },
+  }
+  linkNode.content.attrs = {
+    ...linkNode.content.attrs,
+    [BOXLESS_LINK_WRAPPER_ATTR]: { type: 'static', content: 'true' },
+  }
+}
 
 export const insertLinks = (
   node: UIDLElementNode,
@@ -410,6 +452,33 @@ export const insertLinks = (
       return node
     }
 
+    /* A plain <div> that is a flex or grid ITEM becomes the anchor itself.
+       Its wrapper would have to be `display: contents` (see below), and Chrome
+       cannot focus a box-less link: Tab skips it and focus() fails (measured on
+       Chrome 151 and 153), so a keyboard visitor could not reach any linked
+       card in a row or a grid. A flex or grid item is laid out as a block
+       whatever its tag, so nothing about its box changes; its id, classes and
+       runtime attributes stay where the stylesheet and the scene runtime look
+       for them; and the tree is the one the canvas draws, which adds no link
+       element either. Measured on a generated store, 216 links on 8 pages:
+       each renders the same as its wrapped twin. Everything else keeps the
+       wrapper: an element with a meaning of its own (heading, list item,
+       section, image), one that listens to events, and one whose parent is not
+       known to lay out its children as items. */
+    if (
+      parentNode !== undefined &&
+      parentIsFlexOrGridContainer(parentNode, options) &&
+      isPlainContainer(node)
+    ) {
+      node.content.elementType = getLinkElementType(abilities.link)
+      node.content.semanticType = ''
+      node.content.attrs = {
+        ...node.content.attrs,
+        ...createLinkAttributes(abilities.link, options),
+      }
+      return node
+    }
+
     const linkNode = createLinkNode(abilities.link, options)
 
     if (node.type === 'element' && node.content.attrs) {
@@ -435,10 +504,7 @@ export const insertLinks = (
     linkNode.content.children.push(node)
 
     if (parentNode === undefined || parentIsFlexOrGridContainer(parentNode, options)) {
-      linkNode.content.style = {
-        ...linkNode.content.style,
-        display: { type: 'static', content: 'contents' },
-      }
+      markBoxless(linkNode)
     }
 
     return linkNode
@@ -529,10 +595,7 @@ const handleLinkTypeProp = (
   linkNode.content.children.push(node)
 
   if (parentNode === undefined || parentIsFlexOrGridContainer(parentNode, options)) {
-    linkNode.content.style = {
-      ...linkNode.content.style,
-      display: { type: 'static', content: 'contents' },
-    }
+    markBoxless(linkNode)
   }
 
   return linkNode

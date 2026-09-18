@@ -54,6 +54,8 @@ import {
   pluginHomeReplace,
   pluginSnapIntoView,
   pluginScrollRail,
+  pluginMotionRuntime,
+  pluginPageTransition,
   htmlErrorPageMapping,
   ProjectPluginCloneGlobals,
 } from '@teleporthq/teleport-project-generator-html'
@@ -179,6 +181,8 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
     projectGeneratorFactory.addPlugin(pluginSnapIntoView)
     projectGeneratorFactory.addPlugin(pluginScrollRail)
+    projectGeneratorFactory.addPlugin(pluginMotionRuntime)
+    projectGeneratorFactory.addPlugin(pluginPageTransition)
   }
 
   if (projectType === ProjectType.NEXT) {

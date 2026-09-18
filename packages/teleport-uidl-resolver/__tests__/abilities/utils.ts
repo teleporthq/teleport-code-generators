@@ -364,7 +364,7 @@ describe('insertLink', () => {
     })
   })
 
-  it('marks the link wrapper display:contents when the flex parent uses a project-referenced style', () => {
+  it('a classed div that is a flex item becomes the link itself when the parent is flex through a project class', () => {
     const child = elementNode('container')
     child.content.abilities = { link: navlinkMockedDefinition() }
     child.content.referencedStyles = {
@@ -384,17 +384,20 @@ describe('insertLink', () => {
     }
 
     const result = insertLinks(parent, flexProjectStyleSetOptions('flex'), false)
-    const wrapper = result.content.children[0] as UIDLElementNode
+    const tile = result.content.children[0] as UIDLElementNode
 
-    expect(wrapper.content.elementType).toBe('navlink')
-    expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
-    // the original styled node stays inside the wrapper, keeping its class
-    const styledChild = wrapper.content.children[0] as UIDLElementNode
-    expect(styledChild.content.referencedStyles?.TQ_tile).toBeDefined()
+    // no element in between: the tile is the navlink, with its class and no display of the link's making
+    expect(tile.content.elementType).toBe('navlink')
+    expect(tile.content.attrs.transitionTo).toBeDefined()
+    expect(tile.content.referencedStyles?.TQ_tile).toBeDefined()
+    expect(tile.content.style?.display).toBeUndefined()
+    expect(tile.content.children ?? []).toHaveLength(0)
   })
 
   it('keeps scroll-runtime attributes on the styled element, never on the box-less link wrapper', () => {
-    const child = elementNode('container')
+    // A heading keeps its tag, so it is the case that still gets a wrapper.
+    const child = elementNode('text')
+    child.content.semanticType = 'h3'
     child.content.abilities = { link: urlMockedDefinition() }
     child.content.attrs = {
       'data-scroll-bind': {
@@ -475,8 +478,23 @@ describe('insertLink', () => {
 
     const result = insertLinks(grid, flexProjectStyleSetOptions('flex'), false)
     const resolvedFragment = result.content.children[0] as UIDLElementNode
-    const wrapper = resolvedFragment.content.children[0] as UIDLElementNode
+    const linkedCard = resolvedFragment.content.children[0] as UIDLElementNode
 
+    // The grid was seen through the fragment: the card is its item, so the card
+    // itself is the navlink and its sizing never leaves it.
+    expect(linkedCard.content.elementType).toBe('navlink')
+    expect(linkedCard.content.style?.flex).toEqual({ type: 'static', content: '0 0 320px' })
+    expect(linkedCard.content.style?.display).toBeUndefined()
+
+    // An element that keeps its tag is wrapped, and that wrapper draws no box.
+    const heading = elementNode('text')
+    heading.content.semanticType = 'h3'
+    heading.content.abilities = { link: navlinkMockedDefinition() }
+    const headingGrid = elementNode('container', {}, [elementNode('fragment', {}, [heading])])
+    headingGrid.content.referencedStyles = grid.content.referencedStyles
+    const wrapped = insertLinks(headingGrid, flexProjectStyleSetOptions('flex'), false)
+    const wrapper = (wrapped.content.children[0] as UIDLElementNode).content
+      .children[0] as UIDLElementNode
     expect(wrapper.content.elementType).toBe('navlink')
     expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
   })
@@ -502,6 +520,236 @@ describe('insertLink', () => {
 
     expect(wrapper.content.elementType).toBe('navlink')
     expect(wrapper.content.style?.display).toBeUndefined()
+  })
+})
+
+/* The link rules generated sites already depend on. Each of them was a fix for a
+   broken page at some point (flex items collapsing behind the wrapper in 2020,
+   a linked root node in 2024, ids and data attributes lost in 2025), so a change
+   to how links are emitted has to keep every one of them. */
+describe('link rules that generated sites depend on', () => {
+  const linked = (node: UIDLElementNode): UIDLElementNode => {
+    node.content.abilities = { link: urlMockedDefinition() as UIDLURLLinkNode }
+    return node
+  }
+  const styledCard = (): UIDLElementNode => {
+    const card = elementNode('container')
+    card.content.style = { padding: { type: 'static', content: '24px' } }
+    return linked(card)
+  }
+  const withDisplay = (display: string, child: UIDLElementNode): UIDLElementNode => {
+    const parent = elementNode('container', {}, [child])
+    parent.content.style = { display: { type: 'static', content: display } }
+    return parent
+  }
+
+  const linkedHeading = (): UIDLElementNode => {
+    const heading = elementNode('text')
+    heading.content.semanticType = 'h3'
+    heading.content.style = { margin: { type: 'static', content: '0' } }
+    return linked(heading)
+  }
+
+  it.each(['flex', 'inline-flex', 'grid', 'inline-grid'])(
+    'a plain div that is an item of a %s parent becomes the link itself: a box-less wrapper cannot take keyboard focus',
+    (display) => {
+      const result = insertLinks(withDisplay(display, styledCard()), {}, false)
+      const card = result.content.children[0] as UIDLElementNode
+
+      expect(card.content.elementType).toBe('link')
+      expect(card.content.attrs.url).toBeDefined()
+      expect(card.content.style?.padding).toEqual({ type: 'static', content: '24px' })
+      // nothing of the link's making on it: no display, no wrapper marker, no element in between
+      expect(card.content.style?.display).toBeUndefined()
+      expect(card.content.attrs['data-thq-link-wrapper']).toBeUndefined()
+      expect(card.content.children ?? []).toHaveLength(0)
+    }
+  )
+
+  it.each(['flex', 'inline-flex', 'grid', 'inline-grid'])(
+    'an element that keeps its tag is wrapped inside a %s parent, and that wrapper draws no box so the element stays the item',
+    (display) => {
+      const result = insertLinks(withDisplay(display, linkedHeading()), {}, false)
+      const wrapper = result.content.children[0] as UIDLElementNode
+
+      expect(wrapper.content.elementType).toBe('link')
+      expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
+      // it says so, which is how the reset stylesheet finds it to paint a focus ring on its child
+      expect(wrapper.content.attrs['data-thq-link-wrapper']).toEqual({
+        type: 'static',
+        content: 'true',
+      })
+      const heading = wrapper.content.children[0] as UIDLElementNode
+      expect(heading.content.semanticType).toBe('h3')
+      expect(heading.content.style?.margin).toEqual({ type: 'static', content: '0' })
+    }
+  )
+
+  it('a div that becomes the link keeps its id, its data attributes and its scene lanes on itself', () => {
+    const card = styledCard()
+    card.content.attrs = {
+      id: { type: 'static', content: 'featured-card' },
+      'data-analytics': { type: 'static', content: 'card' },
+      'data-scroll-bind': { type: 'static', content: 'rise-in' },
+    }
+
+    const anchor = insertLinks(withDisplay('grid', card), {}, false).content
+      .children[0] as UIDLElementNode
+
+    expect(anchor.content.elementType).toBe('link')
+    for (const kept of ['id', 'data-analytics', 'data-scroll-bind', 'url']) {
+      expect(anchor.content.attrs[kept]).toBeDefined()
+    }
+  })
+
+  it('a div stays wrapped when it listens to events, carries an attribute an anchor may not, or its parent is not known', () => {
+    const clickable = styledCard()
+    clickable.content.events = { click: [] }
+    const named = styledCard()
+    named.content.attrs = { name: { type: 'static', content: 'card' } }
+
+    for (const node of [clickable, named]) {
+      const wrapper = insertLinks(withDisplay('flex', node), {}, false).content
+        .children[0] as UIDLElementNode
+      expect(wrapper.content.elementType).toBe('link')
+      expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe('container')
+    }
+    const rootWrapper = insertLinks(styledCard(), {}, false)
+    expect((rootWrapper.content.children[0] as UIDLElementNode).content.elementType).toBe(
+      'container'
+    )
+  })
+
+  it('the wrapper keeps its own box inside a block parent', () => {
+    const result = insertLinks(withDisplay('block', styledCard()), {}, false)
+    const wrapper = result.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('link')
+    expect(wrapper.content.style?.display).toBeUndefined()
+    // a wrapper with a box draws its own focus ring and is not marked
+    expect(wrapper.content.attrs['data-thq-link-wrapper']).toBeUndefined()
+  })
+
+  it('a linked root node is wrapped without a box: its parent is unknown here', () => {
+    const wrapper = insertLinks(styledCard(), {}, false)
+
+    expect(wrapper.content.elementType).toBe('link')
+    expect(wrapper.content.style?.display).toEqual({ type: 'static', content: 'contents' })
+  })
+
+  it('moves the attributes an anchor may carry onto the wrapper and leaves the rest on the element', () => {
+    const card = styledCard()
+    card.content.attrs = {
+      id: { type: 'static', content: 'featured-card' },
+      class: { type: 'static', content: 'promo' },
+      title: { type: 'static', content: 'Featured' },
+      'data-analytics': { type: 'static', content: 'card' },
+      'aria-current': { type: 'static', content: 'page' },
+      role: { type: 'static', content: 'group' },
+      name: { type: 'static', content: 'card' },
+    }
+
+    const wrapper = insertLinks(withDisplay('block', card), {}, false).content
+      .children[0] as UIDLElementNode
+    const element = wrapper.content.children[0] as UIDLElementNode
+
+    for (const moved of ['id', 'class', 'title', 'data-analytics', 'aria-current']) {
+      expect(wrapper.content.attrs[moved]).toBeDefined()
+      expect(element.content.attrs[moved]).toBeUndefined()
+    }
+    for (const kept of ['role', 'name']) {
+      expect(wrapper.content.attrs[kept]).toBeUndefined()
+      expect(element.content.attrs[kept]).toBeDefined()
+    }
+  })
+
+  it('never turns an element with a meaning of its own into the anchor: it is wrapped and keeps its tag', () => {
+    const heading = elementNode('text')
+    heading.content.semanticType = 'h2'
+    const paragraph = elementNode('text')
+    paragraph.content.semanticType = 'p'
+    const image = elementNode('image', { src: { type: 'static', content: '/a.jpg' } })
+    const listItem = elementNode('container')
+    listItem.content.semanticType = 'li'
+    const section = elementNode('container')
+    section.content.semanticType = 'section'
+
+    for (const node of [heading, paragraph, image, listItem, section]) {
+      const { elementType, semanticType } = node.content
+      const wrapper = insertLinks(withDisplay('block', linked(node)), {}, false).content
+        .children[0] as UIDLElementNode
+      const element = wrapper.content.children[0] as UIDLElementNode
+
+      expect(wrapper.content.elementType).toBe('link')
+      expect(element.content.elementType).toBe(elementType)
+      expect(element.content.semanticType).toBe(semanticType)
+    }
+  })
+
+  it('a button and a span become the anchor themselves and keep their own styles', () => {
+    const button = elementNode('button')
+    button.content.style = { padding: { type: 'static', content: '12px' } }
+    button.content.attrs = { type: { type: 'static', content: 'button' } }
+    const span = elementNode('text')
+    span.content.semanticType = 'span'
+    span.content.style = { color: { type: 'static', content: 'red' } }
+
+    const asAnchor = insertLinks(linked(button), {}, false)
+    expect(asAnchor.content.elementType).toBe('link')
+    expect(asAnchor.content.children ?? []).toHaveLength(0)
+    expect(asAnchor.content.style?.padding).toEqual({ type: 'static', content: '12px' })
+    expect(asAnchor.content.style?.textAlign).toEqual({ type: 'static', content: 'center' })
+    expect(asAnchor.content.attrs.type).toBeUndefined()
+    expect(asAnchor.content.attrs.url).toBeDefined()
+
+    const textAnchor = insertLinks(linked(span), {}, false)
+    expect(textAnchor.content.elementType).toBe('link')
+    expect(textAnchor.content.style?.color).toEqual({ type: 'static', content: 'red' })
+    expect(textAnchor.content.style?.display).toBeUndefined()
+  })
+
+  it('keeps what a motion runtime reads on the element that draws the box, never on the wrapper', () => {
+    const card = linkedHeading()
+    card.content.attrs = {
+      'data-scene-backdrop': { type: 'static', content: 'true' },
+      'data-scene-track': { type: 'static', content: 'true' },
+      'data-motion-preset': { type: 'static', content: 'slide-up' },
+      'data-tq-motion': { type: 'static', content: 'true' },
+      'data-scroll-video': { type: 'static', content: 'true' },
+      'data-analytics': { type: 'static', content: 'card' },
+    }
+
+    const wrapper = insertLinks(withDisplay('flex', card), {}, false).content
+      .children[0] as UIDLElementNode
+    const element = wrapper.content.children[0] as UIDLElementNode
+
+    for (const kept of [
+      'data-scene-backdrop',
+      'data-scene-track',
+      'data-motion-preset',
+      'data-tq-motion',
+      'data-scroll-video',
+    ]) {
+      expect(element.content.attrs[kept]).toBeDefined()
+      expect(wrapper.content.attrs[kept]).toBeUndefined()
+    }
+    expect(wrapper.content.attrs['data-analytics']).toBeDefined()
+  })
+
+  it('leaves a link that sits inside another link alone: anchors cannot nest', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const inner = styledCard()
+    const outer = linked(elementNode('container', {}, [inner]))
+    outer.content.style = { padding: { type: 'static', content: '8px' } }
+
+    const wrapper = insertLinks(outer, {}, false)
+    const outerElement = wrapper.content.children[0] as UIDLElementNode
+    const innerElement = outerElement.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('link')
+    expect(innerElement.content.elementType).toBe('container')
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
 })
 

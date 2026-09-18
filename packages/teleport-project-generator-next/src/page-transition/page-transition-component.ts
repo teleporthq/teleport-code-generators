@@ -1,3 +1,4 @@
+import { PageTransition } from '@teleporthq/teleport-shared'
 import {
   PAGE_TRANSITION_SLIDE_PX,
   pageTransitionCover,
@@ -9,26 +10,9 @@ import {
   sanitizePageTransitionCustom,
 } from './page-transition-variants'
 
-export interface PageTransitionConfig {
-  preset: string
-  duration: number
-  easing: string
-  skipRoutes?: string[]
-  options?: Record<string, string>
-  custom?: { arrive?: Record<string, number>; leave?: Record<string, number> }
-}
+export type PageTransitionConfig = PageTransition.PageTransitionConfig
 
-/** The same curves the motion widget plays, so a route transition shares the site's motion character. */
-const EASING_CURVES: Record<string, [number, number, number, number]> = {
-  ease: [0.25, 0.1, 0.25, 1],
-  'ease-in': [0.42, 0, 1, 1],
-  'ease-out': [0, 0, 0.58, 1],
-  'ease-in-out': [0.42, 0, 0.58, 1],
-  linear: [0, 0, 1, 1],
-  spring: [0.34, 1.56, 0.64, 1],
-  back: [0.68, -0.6, 0.32, 1.6],
-  bounce: [0.22, 1.2, 0.36, 1],
-}
+const EASING_CURVES = PageTransition.PAGE_TRANSITION_EASING_CURVES
 
 /**
  * `components/tq-page-transition.js` — wraps the mounted page in `_app` so a
