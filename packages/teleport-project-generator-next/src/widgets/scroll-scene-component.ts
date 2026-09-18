@@ -18,6 +18,7 @@
 import { settledMomentForLanes } from './scroll-scene-moment'
 import { activeChapterIndex } from './scroll-scene-chapter-index'
 import { passedScenePoints, scenePointList, scenePointRank } from './scroll-scene-points'
+import { unclipStickyAncestors } from './scroll-scene-unclip'
 
 export const generateScrollSceneComponentCode = (): string => {
   return `import React from 'react'
@@ -129,6 +130,8 @@ ${scenePointList.toString()}
 ${passedScenePoints.toString()}
 
 ${scenePointRank.toString()}
+
+${unclipStickyAncestors.toString()}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()
@@ -590,6 +593,10 @@ const TqScrollScene = ({
     if (!track) {
       return undefined
     }
+    // A pinned stage needs every ancestor to be pinnable — see unclipStickyAncestors.
+    if (pin) {
+      unclipStickyAncestors(track, (element) => window.getComputedStyle(element))
+    }
     boundRef.current = collectBound(track)
     restack()
 
@@ -719,7 +726,10 @@ const TqScrollScene = ({
       stageOf: (track) => track.querySelector(':scope > [data-scene-stage]'),
       chapterProgress,
       // The chapters: the stage's children when the scene pins, the track's own
-      // children when it does not. Never the style tag or the background video.
+      // children when it does not. Never the style tag, never a backdrop: the
+      // background video, a bare media child (img / video / picture) or any
+      // child marked data-scene-backdrop is the scene's background — it sits
+      // under the chapters and owns no story window.
       chapterElements: (track) => {
         const stage = chapterHelpersRef.current.stageOf(track)
         const host = stage || track
@@ -727,7 +737,11 @@ const TqScrollScene = ({
           (child) =>
             !!child.getAttribute &&
             child.tagName !== 'STYLE' &&
+            child.tagName !== 'IMG' &&
+            child.tagName !== 'VIDEO' &&
+            child.tagName !== 'PICTURE' &&
             !child.hasAttribute('data-scroll-video') &&
+            !child.hasAttribute('data-scene-backdrop') &&
             !child.hasAttribute('data-scene-stage')
         )
       },
@@ -951,17 +965,22 @@ const TqScrollScene = ({
               in-flow siblings (a plain heading next to the video vanished
               behind the clip), so the scene pins its clip into the stage's
               negative z band — isolation:isolate above keeps -1 inside the
-              scene. Scene-owned so it holds however the clip arrived. */}
+              scene. Scene-owned so it holds however the clip arrived. The same
+              band holds every backdrop: a bare media child or anything marked
+              data-scene-backdrop (run 4984b05b: an AI-authored backdrop photo
+              painted over three chapters of white text — the story read as a
+              still wall). */}
           <style
             dangerouslySetInnerHTML={{
               __html:
                 'html { overscroll-behavior-y: none; } ' +
-                '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; } ' +
+                '[data-scene-stage] > [data-scroll-video], [data-scene-stage] > [data-scene-backdrop], [data-scene-stage] > img, [data-scene-stage] > video, [data-scene-stage] > picture { position: absolute; inset: 0; z-index: -1; } ' +
+                '[data-scene-stage] > img, [data-scene-stage] > video, [data-scene-stage] > picture > img { width: 100%; height: 100%; object-fit: cover; } ' +
                 COUNT_CSS +
                 ' ' +
                 HIDDEN_CSS +
                 (layout === 'chapters'
-                  ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; }'
+                  ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; width: 100%; }'
                   : ''),
             }}
           />

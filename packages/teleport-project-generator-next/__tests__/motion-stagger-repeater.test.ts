@@ -223,7 +223,7 @@ describe('generated TqMotion source', () => {
     expect(code).not.toContain('<motion.div key={index}')
     // The outer wrapper stays a motion.div so the stagger and group branches render
     // the same element type (framer's useInView must not lose its node on a flip).
-    expect(code).toContain('<motion.div ref={ref} style={style} {...rest}>')
+    expect(code).toContain('<motion.div ref={ref} style={wrapperStyle} {...rest}>')
   })
 
   it('keeps the framer path for a REPEATING stagger (a CSS transition plays once)', () => {

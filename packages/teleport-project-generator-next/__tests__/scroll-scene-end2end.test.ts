@@ -76,6 +76,19 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(component?.content).toContain("'count'")
     expect(component?.content).toContain('clipPath')
     expect(component?.content).toContain('data-scene-hidden')
+    // Backdrops (bare media children, data-scene-backdrop, the scroll video)
+    // sit in the stage's negative z band and are never chapters.
+    expect(component?.content).toContain(
+      '[data-scene-stage] > [data-scene-backdrop], [data-scene-stage] > img, [data-scene-stage] > video, [data-scene-stage] > picture { position: absolute; inset: 0; z-index: -1; }'
+    )
+    expect(component?.content).toContain("child.tagName !== 'PICTURE'")
+    expect(component?.content).toContain("!child.hasAttribute('data-scene-backdrop')")
+    // A pinned stage unclips overflow:hidden ancestors at mount (run e7f332df).
+    expect(component?.content).toContain('function unclipStickyAncestors(')
+    expect(component?.content).toContain("'data-scene-unclipped'")
+    expect(component?.content).toContain(
+      'unclipStickyAncestors(track, (element) => window.getComputedStyle(element))'
+    )
     expect(component?.content).toContain("setProperty('--tq-count'")
     expect(component?.content).toContain('[data-scroll-count]::before')
     // Anchor navigation into a pinned scene: hash targets are translated to

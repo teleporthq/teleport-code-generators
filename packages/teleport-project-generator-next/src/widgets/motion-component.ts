@@ -402,6 +402,12 @@ const TqMotion = ({
 }) => {
   const ref = React.useRef(null)
   const shouldReduceMotion = useReducedMotion()
+  // The wrapper is a stacking context at rest, exactly as it is mid-animation
+  // and exactly as the canvas draws it (the canvas wrapper animates via
+  // transform, which creates one). Framer drops the transform once an entrance
+  // ends, so without this a later static sibling — the hero photo — painted
+  // over the headline in the export while the canvas showed it on top.
+  const wrapperStyle = { isolation: 'isolate', ...(style || {}) }
 
   // in-view reveal is driven by useInView + a STANDING in-viewport failsafe, so
   // a reveal can never trap content at opacity:0.
@@ -544,7 +550,7 @@ const TqMotion = ({
 
   if (shouldReduceMotion) {
     return (
-      <div ref={ref} style={style} {...rest}>
+      <div ref={ref} style={wrapperStyle} {...rest}>
         {children}
       </div>
     )
@@ -552,7 +558,7 @@ const TqMotion = ({
 
   if (trigger === 'scroll') {
     return (
-      <div ref={ref} style={style} {...rest}>
+      <div ref={ref} style={wrapperStyle} {...rest}>
         {children}
       </div>
     )
@@ -605,7 +611,7 @@ const TqMotion = ({
       // reveal (the trapped-at-opacity-0 "Making Process" defect). A constant
       // element type keeps the same DOM node across the swap and the observer live.
       return (
-        <motion.div ref={ref} style={style} {...rest}>
+        <motion.div ref={ref} style={wrapperStyle} {...rest}>
           {staggerTargets}
         </motion.div>
       )
@@ -615,7 +621,7 @@ const TqMotion = ({
   const animProps = buildAnimProps(trigger, fromVars, toVars, transition, revealed)
 
   return (
-    <motion.div ref={ref} style={style} {...animProps} {...rest}>
+    <motion.div ref={ref} style={wrapperStyle} {...animProps} {...rest}>
       {children}
     </motion.div>
   )
