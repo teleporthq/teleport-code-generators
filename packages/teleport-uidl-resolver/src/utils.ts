@@ -15,6 +15,7 @@ import {
   UIDLDynamicReference,
   UIDLConditionalNode,
   ElementsLookup,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -438,6 +439,26 @@ export const generateUniqueKeys = (uidl: ComponentUIDL, lookup: ElementsLookup) 
       UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
         generateKeysForElement(uidl.name, element, lookup)
       )
+    }
+  }
+}
+
+/**
+ * A generated element class must never equal a class of the project style
+ * sheet, which is global. A page named "Manifesto" names its root element
+ * `manifesto-container`; another page had authored a `.manifesto-container`
+ * two-column grid, and the whole Manifesto page became that grid. Reserving the
+ * project's class names up front makes a colliding element take a numbered key
+ * instead, through the same counter that already separates repeated names.
+ */
+export const reserveProjectStyleNames = (
+  styleSetDefinitions: Record<string, UIDLStyleSetDefinition> | undefined,
+  lookup: ElementsLookup
+) => {
+  for (const [styleId, style] of Object.entries(styleSetDefinitions ?? {})) {
+    const className = StringUtils.camelCaseToDashCase(style.className || styleId)
+    if (!lookup[className]) {
+      lookup[className] = { count: 1, nextKey: '1' }
     }
   }
 }

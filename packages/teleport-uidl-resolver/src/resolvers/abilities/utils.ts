@@ -61,6 +61,27 @@ const isAttributeSafeForAnchor = (attrName: string): boolean => {
   )
 }
 
+const isBareContainer = (node: UIDLElementNode): boolean => {
+  const {
+    elementType,
+    semanticType,
+    style = {},
+    referencedStyles = {},
+    dynamicStyleBindings = {},
+    events = {},
+    attrs = {},
+  } = node.content
+  return (
+    elementType === 'container' &&
+    (!semanticType || semanticType === 'div') &&
+    Object.keys(style).length === 0 &&
+    Object.keys(referencedStyles).length === 0 &&
+    Object.keys(dynamicStyleBindings).length === 0 &&
+    Object.keys(events).length === 0 &&
+    Object.keys(attrs).every(isAttributeSafeForAnchor)
+  )
+}
+
 /* When a styled element also carries a link, the link is realised as a wrapper
    <a>/navlink around it. If the layout parent is a flex/grid container, that
    wrapper would become the flex/grid item instead of the styled child, dropping
@@ -368,6 +389,24 @@ export const insertLinks = (
         ...createLinkAttributes(abilities.link, options),
       }
 
+      return node
+    }
+
+    /* A container that is NOTHING BUT the link — no style, no class, no event,
+       no runtime attribute — becomes the anchor itself. Imported markup writes
+       `<a><img></a>`, and stylesheets size that image by its place in the tree
+       (`.surface-media > a > img`). Wrapping the bare container produced
+       `<a><div><img></div></a>`: the extra <div> broke the child chain, the
+       image fell back to its natural size, and the canvas — which inserts no
+       wrapper — showed a page the generated site did not. An element with a box
+       of its own keeps the wrapper below, so its sizing stays on it. */
+    if (isBareContainer(node)) {
+      node.content.elementType = getLinkElementType(abilities.link)
+      node.content.semanticType = ''
+      node.content.attrs = {
+        ...node.content.attrs,
+        ...createLinkAttributes(abilities.link, options),
+      }
       return node
     }
 

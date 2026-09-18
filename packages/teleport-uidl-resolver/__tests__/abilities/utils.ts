@@ -42,6 +42,54 @@ describe('insertLink', () => {
     expect(result.content.attrs.url.content).toBe(link.content.url.content)
   })
 
+  // Run 10f154ff (Atelier Luzo homepage rail): the page wrote
+  // `<div class="surface-media"><a><img></a></div>` and the design system sizes
+  // that image through `.surface-media > a > img`. The link came out as
+  // `<a><div><img></div></a>`: the extra <div> broke the child chain, the image
+  // rendered at its natural 2132 px and blew the rail's card up. The canvas,
+  // which does not insert the wrapper, looked right.
+  it('a container that is nothing but the link becomes the anchor itself', () => {
+    const image = elementNode('image', { src: { type: 'static', content: '/a.jpg' } })
+    const bare = elementNode('container', {}, [image])
+    bare.content.abilities = { link: urlMockedDefinition() as UIDLURLLinkNode }
+    bare.content.attrs = {
+      'data-teleport-link-pending': { type: 'static', content: 'Project Details' },
+    }
+    const well = elementNode('container', {}, [bare])
+
+    const result = insertLinks(well, {}, false)
+    const anchor = result.content.children[0] as UIDLElementNode
+
+    expect(anchor.content.elementType).toBe('link')
+    expect(anchor.content.attrs.url).toBeDefined()
+    expect(anchor.content.attrs['data-teleport-link-pending'].content).toBe('Project Details')
+    // The image is the anchor's own child: no element in between.
+    expect((anchor.content.children[0] as UIDLElementNode).content.elementType).toBe('image')
+    expect(anchor.content.style?.display).toBeUndefined()
+  })
+
+  it('still wraps an element that has a box of its own: a style, a class, an event or a runtime attribute', () => {
+    const link = urlMockedDefinition() as UIDLURLLinkNode
+    const styled = elementNode('container')
+    styled.content.style = { padding: { type: 'static', content: '8px' } }
+    const classed = elementNode('container')
+    classed.content.referencedStyles = {
+      card: { type: 'style-map', content: { mapType: 'project-referenced', referenceId: 'card' } },
+    } as never
+    const bound = elementNode('container')
+    bound.content.attrs = { 'data-scroll-bind': { type: 'static', content: '[]' } }
+    const clickable = elementNode('container')
+    clickable.content.events = { click: [] }
+
+    for (const node of [styled, classed, bound, clickable]) {
+      node.content.abilities = { link }
+      const result = insertLinks(elementNode('container', {}, [node]), {}, false)
+      const wrapper = result.content.children[0] as UIDLElementNode
+      expect(wrapper.content.elementType).toBe('link')
+      expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe('container')
+    }
+  })
+
   it('replaces a child', () => {
     const node = elementNode('container', {}, [
       elementNode('container'),
@@ -412,6 +460,8 @@ describe('insertLink', () => {
        stopped matching the editor, which renders no wrapper at all. */
     const card = elementNode('container')
     card.content.abilities = { link: navlinkMockedDefinition() }
+    // A card has a box of its own; a bare container would become the anchor itself.
+    card.content.style = { flex: { type: 'static', content: '0 0 320px' } }
 
     const fragment = elementNode('fragment', {}, [card])
     const grid = elementNode('container', {}, [fragment])

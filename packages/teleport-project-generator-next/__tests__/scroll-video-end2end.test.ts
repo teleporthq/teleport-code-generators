@@ -113,8 +113,10 @@ describe('Next generator with a Scroll Video element', () => {
     expect(wrapper?.content).toContain('data-scroll-video')
 
     const scene = findFile(outputFolder, 'components', 'tq-scroll-scene')
-    expect(scene?.content).toContain(
-      '[data-scene-stage] > [data-scroll-video] { position: absolute; inset: 0; z-index: -1; }'
+    // The clip shares the rule with the other backdrop layers (a marked
+    // backdrop, a bare image or video), so the selector list is not pinned here.
+    expect(scene?.content).toMatch(
+      /\[data-scene-stage\] > \[data-scroll-video\][^{]*\{ position: absolute; inset: 0; z-index: -1; \}/
     )
   })
 })
