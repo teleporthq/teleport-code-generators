@@ -58,6 +58,10 @@ import { NextModelViewerProjectPlugin } from './model-viewer/project-plugin'
 import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
 import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { createNextWidgetProjectPlugins } from './widgets'
+import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
+import { NextPageTransitionProjectPlugin } from './page-transition/project-plugin'
+import { NextScrollRailProjectPlugin } from './scroll-rail/project-plugin'
+import { NextBodyCodeProjectPlugin } from './body-code/project-plugin'
 import {
   createLocalComponentPathPlugin,
   INTERACTIVE_PRIMITIVE_COMPONENT_FILES,
@@ -99,6 +103,10 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
   new NextNavActiveLinkProjectPlugin(),
+  new NextSnapIntoViewProjectPlugin(),
+  new NextPageTransitionProjectPlugin(),
+  new NextScrollRailProjectPlugin(),
+  new NextBodyCodeProjectPlugin(),
   new NextCollapsibleTextProjectPlugin(),
   new NextDashboardLayoutPlugin(),
   new NextRichTextEditorProjectPlugin(),

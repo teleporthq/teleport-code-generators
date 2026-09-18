@@ -1,3 +1,5 @@
+import { MotionRuntime } from '@teleporthq/teleport-shared'
+
 /**
  * Generates the TqMotion wrapper around framer-motion. Motion is a CONTAINER
  * widget: it renders its children inside a `<motion.div>` and animates them
@@ -8,9 +10,10 @@
  * Triggers: on-load (initial/animate), in-view (useInView-driven + a standing
  * in-viewport failsafe so content is never trapped at opacity:0 — any element
  * that is genuinely on screen reveals even if the IntersectionObserver never
- * reports it), scroll (scroll-linked parallax
- * via useScroll/useTransform), hover (whileHover),
- * tap (whileTap). `stagger` descends through grid/list wrappers to the real
+ * reports it), scroll (scroll-linked: useScroll progress — windowed by
+ * scrollOffset, optionally useSpring-smoothed by scrub — interpolates the FULL
+ * from/to state onto the element, matching the canvas runtime), hover
+ * (whileHover), tap (whileTap). `stagger` descends through grid/list wrappers to the real
  * repeated items (e.g. <array-mapper> cards) and cascades THOSE with a per-child
  * delay — not the lone grid block — matching the canvas renderer. When ANY node it
  * would wrap comes from a runtime <Repeater>/<DataProvider> (build-time opaque, so
@@ -52,117 +55,9 @@
  */
 export const generateMotionComponentCode = (): string => {
   return `import React from 'react'
-import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 
-const EASINGS = {
-  ease: [0.25, 0.1, 0.25, 1],
-  'ease-in': [0.42, 0, 1, 1],
-  'ease-out': [0, 0, 0.58, 1],
-  'ease-in-out': [0.42, 0, 0.58, 1],
-  linear: [0, 0, 1, 1],
-  spring: [0.34, 1.56, 0.64, 1],
-  back: [0.68, -0.6, 0.32, 1.6],
-  bounce: [0.22, 1.2, 0.36, 1],
-}
-
-const presetStates = (preset, distance) => {
-  switch (preset) {
-    case 'fade-in':
-      return { from: { opacity: 0 }, to: { opacity: 1 } }
-    case 'slide-up':
-      return { from: { opacity: 0, y: distance }, to: { opacity: 1, y: 0 } }
-    case 'slide-down':
-      return { from: { opacity: 0, y: -distance }, to: { opacity: 1, y: 0 } }
-    case 'slide-left':
-      return { from: { opacity: 0, x: distance }, to: { opacity: 1, x: 0 } }
-    case 'slide-right':
-      return { from: { opacity: 0, x: -distance }, to: { opacity: 1, x: 0 } }
-    case 'scale-in':
-      return { from: { opacity: 0, scale: 0.8 }, to: { opacity: 1, scale: 1 } }
-    case 'zoom-in':
-      return { from: { opacity: 0, scale: 0.5 }, to: { opacity: 1, scale: 1 } }
-    case 'rotate-in':
-      return { from: { opacity: 0, rotate: -8 }, to: { opacity: 1, rotate: 0 } }
-    case 'blur-in':
-      return { from: { opacity: 0, filter: 'blur(12px)' }, to: { opacity: 1, filter: 'blur(0px)' } }
-    case 'none':
-      return { from: {}, to: {} }
-    default:
-      return { from: { opacity: 0 }, to: { opacity: 1 } }
-  }
-}
-
-// The transform-family keys, in the order the canvas composes them — the string
-// has to match \`cssFromState\` in the renderer's motion-keyframes exactly, or a
-// staggered card and its canvas twin would compose the same values differently.
-const TRANSFORM_KEYS = ['x', 'y', 'scale', 'rotate']
-
-const transformComponent = (key, value) => {
-  const numeric = typeof value === 'number'
-  switch (key) {
-    case 'x':
-      return 'translateX(' + (numeric ? value + 'px' : value) + ')'
-    case 'y':
-      return 'translateY(' + (numeric ? value + 'px' : value) + ')'
-    case 'scale':
-      return 'scale(' + value + ')'
-    case 'rotate':
-      return 'rotate(' + (numeric ? value + 'deg' : value) + ')'
-    default:
-      return ''
-  }
-}
-
-// Turn a resolved motion state ({ opacity, x, y, scale, rotate, filter, … }) into
-// an inline style object: the transform keys collapse into one \`transform\` string
-// and every other key passes through as its own CSS property. Mirrors the canvas.
-const cssFromState = (state) => {
-  const css = {}
-  const transformParts = []
-  for (let i = 0; i < TRANSFORM_KEYS.length; i++) {
-    const key = TRANSFORM_KEYS[i]
-    if (state[key] !== undefined) {
-      transformParts.push(transformComponent(key, state[key]))
-    }
-  }
-  Object.keys(state).forEach((key) => {
-    if (TRANSFORM_KEYS.indexOf(key) !== -1) {
-      return
-    }
-    css[key] = state[key]
-  })
-  if (transformParts.length > 0) {
-    css.transform = transformParts.join(' ')
-  }
-  return css
-}
-
-// How much of the element is inside the viewport right now, as a 0..1 fraction
-// of its own area — the same quantity IntersectionObserver thresholds on, so the
-// failsafe below can apply exactly the threshold useInView was given.
-const visibleFraction = (rect, vh, vw) => {
-  const height = rect.bottom - rect.top
-  const width = rect.right - rect.left
-  if (height <= 0 || width <= 0) {
-    return 0
-  }
-  const visibleHeight = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0))
-  const visibleWidth = Math.max(0, Math.min(rect.right, vw) - Math.max(rect.left, 0))
-  return (visibleHeight * visibleWidth) / (height * width)
-}
-
-// The largest fraction this element could EVER have on screen. An element taller
-// than the viewport can never be 60% visible, so an inViewAmount above that is
-// unsatisfiable and would hold the content at opacity 0 permanently. Clamping to
-// what is physically reachable turns "impossible" into "as visible as it gets".
-const reachableFraction = (rect, vh, vw) => {
-  const height = rect.bottom - rect.top
-  const width = rect.right - rect.left
-  if (height <= 0 || width <= 0) {
-    return 0
-  }
-  return Math.min(1, vh / height) * Math.min(1, vw / width)
-}
+${MotionRuntime.motionEngineSource()}
 
 const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
   switch (trigger) {
@@ -269,12 +164,20 @@ const TqMotion = ({
   distance = 40,
   from = null,
   to = null,
+  scrub = 0,
+  scrollOffset = 'pass',
   style,
   children,
   ...rest
 }) => {
   const ref = React.useRef(null)
   const shouldReduceMotion = useReducedMotion()
+  // The wrapper is a stacking context at rest, exactly as it is mid-animation
+  // and exactly as the canvas draws it (the canvas wrapper animates via
+  // transform, which creates one). Framer drops the transform once an entrance
+  // ends, so without this a later static sibling — the hero photo — painted
+  // over the headline in the export while the canvas showed it on top.
+  const wrapperStyle = { isolation: 'isolate', ...(style || {}) }
 
   // in-view reveal is driven by useInView + a STANDING in-viewport failsafe, so
   // a reveal can never trap content at opacity:0.
@@ -383,20 +286,41 @@ const TqMotion = ({
     repeatType,
   }
 
-  // Scroll-linked parallax is one trigger out of five, but the hook has to run on
-  // every render. Passing a target when we are not going to use it makes framer
-  // measure this element against the scroll container on every scroll frame — and
-  // warn about the container being position:static — once per motion node on the
-  // page. Targetless useScroll shares one window listener and measures nothing.
-  const scrollOptions = trigger === 'scroll' ? { target: ref, offset: ['start end', 'end start'] } : {}
+  // Scroll-linked motion is one trigger out of five, but the hooks have to run
+  // on every render. Passing a target when we are not going to use it makes
+  // framer measure this element against the scroll container on every scroll
+  // frame — and warn about the container being position:static — once per
+  // motion node on the page. Targetless useScroll shares one window listener
+  // and measures nothing.
+  const scrollOptions =
+    trigger === 'scroll'
+      ? { target: ref, offset: SCROLL_OFFSET_RANGES[scrollOffset] || SCROLL_OFFSET_RANGES.pass }
+      : {}
   const { scrollYProgress } = useScroll(scrollOptions)
-  const yFrom = typeof fromVars.y === 'number' ? fromVars.y : dist
-  const yTo = typeof toVars.y === 'number' ? toVars.y : -dist
-  const parallaxY = useTransform(scrollYProgress, [0, 1], [yFrom, yTo])
+  const scrubSeconds = Number(scrub) || 0
+  const smoothedProgress = useSpring(scrollYProgress, {
+    duration: Math.max(1, scrubSeconds * 1000),
+    bounce: 0,
+  })
+  const scrollProgress = scrubSeconds > 0 ? smoothedProgress : scrollYProgress
+  // Progress writes styles straight to the DOM node (no re-render per frame),
+  // interpolating the FULL from/to state — not just y — exactly like the
+  // canvas runtime does.
+  useMotionValueEvent(scrollProgress, 'change', (p) => {
+    if (trigger === 'scroll' && !shouldReduceMotion) {
+      applyScrollState(ref.current, fromVars, toVars, p)
+    }
+  })
+  React.useEffect(() => {
+    if (trigger === 'scroll' && !shouldReduceMotion) {
+      applyScrollState(ref.current, fromVars, toVars, scrollProgress.get())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger, shouldReduceMotion])
 
   if (shouldReduceMotion) {
     return (
-      <div ref={ref} style={style} {...rest}>
+      <div ref={ref} style={wrapperStyle} {...rest}>
         {children}
       </div>
     )
@@ -404,9 +328,9 @@ const TqMotion = ({
 
   if (trigger === 'scroll') {
     return (
-      <motion.div ref={ref} style={{ ...(style || {}), y: parallaxY }} {...rest}>
+      <div ref={ref} style={wrapperStyle} {...rest}>
         {children}
-      </motion.div>
+      </div>
     )
   }
 
@@ -457,7 +381,7 @@ const TqMotion = ({
       // reveal (the trapped-at-opacity-0 "Making Process" defect). A constant
       // element type keeps the same DOM node across the swap and the observer live.
       return (
-        <motion.div ref={ref} style={style} {...rest}>
+        <motion.div ref={ref} style={wrapperStyle} {...rest}>
           {staggerTargets}
         </motion.div>
       )
@@ -467,7 +391,7 @@ const TqMotion = ({
   const animProps = buildAnimProps(trigger, fromVars, toVars, transition, revealed)
 
   return (
-    <motion.div ref={ref} style={style} {...animProps} {...rest}>
+    <motion.div ref={ref} style={wrapperStyle} {...animProps} {...rest}>
       {children}
     </motion.div>
   )

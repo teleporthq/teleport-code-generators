@@ -66,6 +66,7 @@ import { elementGetInputValue } from './element/element-get-input-value'
 import { elementHide } from './element/element-hide'
 import { elementRemoveClass } from './element/element-remove-class'
 import { elementScrollTo } from './element/element-scroll-to'
+import { elementVideoControl } from './element/element-video-control'
 import { elementSetAttribute } from './element/element-set-attribute'
 import { elementSetText } from './element/element-set-text'
 import { elementShow } from './element/element-show'
@@ -233,6 +234,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'element-hide': elementHide,
   'element-remove-class': elementRemoveClass,
   'element-scroll-to': elementScrollTo,
+  'element-video-control': elementVideoControl,
   'element-set-attribute': elementSetAttribute,
   'element-set-text': elementSetText,
   'element-show': elementShow,

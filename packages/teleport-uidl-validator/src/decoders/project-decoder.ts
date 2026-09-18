@@ -58,6 +58,27 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
     // overwhelming majority of projects — see `text-direction.ts` in the editor.
     dir: optional(union(constant('ltr' as const), constant('rtl' as const))),
     rtlLocales: optional(array(string())),
+    // The site-wide route transition, resolved by the editor (see the Motion
+    // section of project settings). Absent = pages switch instantly.
+    pageTransition: optional(
+      object({
+        // Any name passes here; the generator ignores presets it does not know,
+        // so an older generator never fails a newer editor's export.
+        preset: string(),
+        duration: number(),
+        easing: string(),
+        skipRoutes: optional(array(string())),
+        options: optional(dict(string())),
+        custom: optional(
+          object({
+            arrive: dict(number()),
+            leave: dict(number()),
+          })
+        ),
+        // Sent only as false, when the author turned the flying pictures off.
+        flyingPictures: optional(boolean()),
+      })
+    ),
   }),
   customCode: optional(
     object({

@@ -61,6 +61,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
     const classMap: string[] = []
+    // styled-jsx stamps its scope hash only on host DOM elements, never on
+    // React components — a widget's className reaches its internal root DOM
+    // untouched, so scoped rules like `.page-widget.jsx-123` can never match.
+    // Classes on widget elements are collected here and emitted as
+    // `:global(...)` (names are already page-prefixed, so global is safe).
+    const globalScopedClassNames: Set<string> = new Set()
 
     const generateStylesForElementNode = (element: UIDLElement) => {
       const classNamesToAppend: Set<string> = new Set()
@@ -84,6 +90,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       }
 
       const className = StringUtils.camelCaseToDashCase(key)
+      const rendersAsWidgetComponent = dependency?.type === 'local' && /^Tq[A-Z]/.test(elementType)
+      if (rendersAsWidgetComponent) {
+        globalScopedClassNames.add(className)
+      }
       const root = jsxNodesLookup[key]
       if (!root) {
         throw new PluginStyledJSX(
@@ -396,7 +406,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         }
       )
     }
-    const cssString = convertStateTemplates(classMap.join('\n'))
+    let cssString = convertStateTemplates(classMap.join('\n'))
+    // Rewrites every selector occurrence of a widget class — base rule,
+    // pseudo-selector variants and inside @media blocks — as :global(...).
+    // The negative lookahead keeps `.foo` from also matching `.foo2`.
+    globalScopedClassNames.forEach((cls) => {
+      cssString = cssString.replace(
+        new RegExp(`\\.${cls}(?![\\w-])([^\\s,{]*)`, 'g'),
+        `:global(.${cls}$1)`
+      )
+    })
 
     const styleJSXAST = generateStyledJSXTag(cssString)
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
