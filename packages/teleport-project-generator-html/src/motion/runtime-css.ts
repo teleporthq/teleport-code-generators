@@ -40,7 +40,14 @@ export const SCENE_BACKDROP_DECLARATIONS = 'position: absolute; inset: 0; z-inde
 export const SCENE_BACKDROP_MEDIA_SELECTOR = `${STAGE} > img, ${STAGE} > video, ${STAGE} > picture > img`
 export const SCENE_BACKDROP_MEDIA_DECLARATIONS = 'width: 100%; height: 100%; object-fit: cover;'
 export const SCENE_CHAPTERS_SELECTOR = `${STAGE}[data-scene-layout="chapters"] > :not(style)`
-export const SCENE_CHAPTERS_DECLARATIONS = 'grid-area: 1 / 1; width: 100%;'
+/** The stacking in one cell is the chapters layout itself, so it holds. */
+export const SCENE_CHAPTERS_DECLARATIONS = 'grid-area: 1 / 1;'
+/**
+ * Full width is only a default, under `:where()` (no weight): a width from the
+ * chapter's classes or its own styles wins. Forced, it overrode a width the
+ * author set in the editor, with nothing there saying why.
+ */
+export const SCENE_CHAPTERS_DEFAULT_DECLARATIONS = 'width: 100%;'
 
 const prefixed = (selectorList: string): string =>
   selectorList
@@ -59,6 +66,7 @@ export const sceneCss = (sceneLengths: string[]): string =>
     `${FLAG} ${STAGE} {\n  position: sticky !important;\n  top: 0 !important;\n  min-height: 100vh !important;\n  overflow: hidden !important;\n  isolation: isolate !important;\n  perspective: 900px !important;\n}`,
     `${FLAG} ${STAGE}[data-scene-layout="chapters"] {\n  display: grid !important;\n  place-items: center !important;\n}`,
     `${prefixed(SCENE_CHAPTERS_SELECTOR)} {\n  ${SCENE_CHAPTERS_DECLARATIONS}\n}`,
+    `:where(${prefixed(SCENE_CHAPTERS_SELECTOR)}) {\n  ${SCENE_CHAPTERS_DEFAULT_DECLARATIONS}\n}`,
     `${prefixed(SCENE_BACKDROP_SELECTOR)} {\n  ${SCENE_BACKDROP_DECLARATIONS}\n}`,
     `${prefixed(SCENE_BACKDROP_MEDIA_SELECTOR)} {\n  ${SCENE_BACKDROP_MEDIA_DECLARATIONS}\n}`,
     SCENE_COUNT_CSS,

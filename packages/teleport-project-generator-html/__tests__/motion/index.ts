@@ -10,9 +10,11 @@ import {
   SCENE_BACKDROP_MEDIA_SELECTOR,
   SCENE_BACKDROP_SELECTOR,
   SCENE_CHAPTERS_DECLARATIONS,
+  SCENE_CHAPTERS_DEFAULT_DECLARATIONS,
   SCENE_CHAPTERS_SELECTOR,
   SCENE_COUNT_CSS,
   SCENE_HIDDEN_CSS,
+  sceneCss,
 } from '../../src/motion/runtime-css'
 import { normalizeSceneLength } from '../../src/motion/contract'
 import { generateScrollSceneComponentCode } from '../../../teleport-project-generator-next/src/widgets/scroll-scene-component'
@@ -302,6 +304,20 @@ describe('Motion in the static HTML export', () => {
       `${SCENE_BACKDROP_MEDIA_SELECTOR} { ${SCENE_BACKDROP_MEDIA_DECLARATIONS} }`
     )
     expect(nextWidget).toContain(`${SCENE_CHAPTERS_SELECTOR} { ${SCENE_CHAPTERS_DECLARATIONS} }`)
+    expect(nextWidget).toContain(
+      `:where(${SCENE_CHAPTERS_SELECTOR}) { ${SCENE_CHAPTERS_DEFAULT_DECLARATIONS} }`
+    )
+  })
+
+  it("makes a chapter's full width a default its own width overrides, and keeps the stacking", () => {
+    const css = sceneCss(['300vh'])
+    const chapters =
+      ':where(html[data-tq-motion-on]) [data-scene-stage][data-scene-layout="chapters"] > :not(style)'
+    // the stacking is the layout: it carries the stage's weight
+    expect(css).toContain(`${chapters} {\n  grid-area: 1 / 1;\n}`)
+    // full width weighs nothing, so a class or the element's own width wins
+    expect(css).toContain(`:where(${chapters}) {\n  width: 100%;\n}`)
+    expect(css).not.toMatch(/grid-area: 1 \/ 1;\s*width: 100%;/)
   })
 
   it('bounds a scene length the way the engine does', () => {

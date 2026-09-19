@@ -294,7 +294,10 @@ ${ScrollSceneRuntime.gentleSnapBodySource()}
               band holds every backdrop: a bare media child or anything marked
               data-scene-backdrop (run 4984b05b: an AI-authored backdrop photo
               painted over three chapters of white text — the story read as a
-              still wall). */}
+              still wall).
+              Chapters: stacking in one cell is the layout and holds; full
+              width is a default under :where() (no weight), so a width from
+              the chapter's classes or its own styles wins, as in the editor. */}
           <style
             dangerouslySetInnerHTML={{
               __html:
@@ -305,7 +308,7 @@ ${ScrollSceneRuntime.gentleSnapBodySource()}
                 ' ' +
                 HIDDEN_CSS +
                 (layout === 'chapters'
-                  ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; width: 100%; }'
+                  ? ' [data-scene-stage][data-scene-layout="chapters"] > :not(style) { grid-area: 1 / 1; } :where([data-scene-stage][data-scene-layout="chapters"] > :not(style)) { width: 100%; }'
                   : ''),
             }}
           />
