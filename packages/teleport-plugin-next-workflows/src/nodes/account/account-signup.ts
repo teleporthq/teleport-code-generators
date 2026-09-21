@@ -29,6 +29,7 @@ async function account_signup(config: any, context: Record<string, unknown>) {
     bodyComponentId: true,
     bodyTemplatePurpose: true,
     templateParams: true,
+    localizedTemplates: true,
   }
   const configKeys = Object.keys(config)
   for (let i = 0; i < configKeys.length; i++) {
@@ -38,9 +39,17 @@ async function account_signup(config: any, context: Record<string, unknown>) {
   }
 
   const baseUrl = (context && (context as any).__baseUrl) || ''
+  // The language of the page the visitor signs up from, so the route sends
+  // the welcome email in it. The runtime puts it on the context (see
+  // buildContext); the route falls back to the request when it is absent.
+  const signupHeaders: any = { 'Content-Type': 'application/json' }
+  const runLocale = context && (context as any).__locale
+  if (typeof runLocale === 'string' && runLocale) {
+    signupHeaders['x-teleport-locale'] = runLocale
+  }
   const response = await fetch(baseUrl + '/api/auth/signup', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: signupHeaders,
     body: JSON.stringify(bodyObj),
   })
 
@@ -89,7 +98,8 @@ async function account_signup(config: any, context: Record<string, unknown>) {
       } catch (_e) {}
     }
     window.dispatchEvent(new CustomEvent('teleport:auth-user-changed', { detail: { user } }))
-    window.location.href = '/'
+    // Home page of the language the visitor signed up from.
+    window.location.href = __workflowUtils.localizeHref('/', runLocale)
   }
 
   // Contract exposes user fields flat (id, email, name, ...) plus `user`/`success`.

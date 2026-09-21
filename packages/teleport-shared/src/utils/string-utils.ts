@@ -10,6 +10,18 @@ export const camelize = (str: string): string => str[0].toLowerCase() + str.slic
 
 export const dashCaseToUpperCamelCase = (str: string) => capitalize(dashCaseToCamelCase(str))
 
+/**
+ * The key a CSS property takes in a React `style` object: `background-color`
+ * → `backgroundColor`, but a custom property (`--tq-panel-display`) verbatim —
+ * React only writes a key through `style.setProperty` when it starts with
+ * `--`, and `-TqPanelDisplay` (what the camel rule made of it) neither renders
+ * nor updates.
+ */
+export const cssPropertyToInlineStyleKey = (property: string): string =>
+  property.startsWith('--')
+    ? property
+    : property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase())
+
 export const removeIllegalCharacters = (str: string) => {
   if (typeof str !== 'string') {
     return null

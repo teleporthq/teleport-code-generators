@@ -3,6 +3,7 @@ import { WorkflowSegment, WorkflowExecutionEnv } from './types'
 import { getLoopBodyNodes, getNodeById, getTopologicalOrder } from './graph-utils'
 import { nodeRegistry } from './nodes'
 import { AWAIT_RESULT_CONFIG_KEY } from './await-result'
+import { WELCOME_EMAIL_CONFIG_KEYS } from './transactional-email-code'
 
 const CLIENT_ONLY_NODE_TYPES = new Set([
   'account-login',
@@ -322,14 +323,44 @@ export const CLIENT_SAFE_SERVER_CONFIG_KEYS: ReadonlyArray<string> = [
  */
 export const redactServerNodeConfig = (
   config: Record<string, unknown>,
-  env: WorkflowExecutionEnv
+  env: WorkflowExecutionEnv,
+  nodeType?: string
 ): Record<string, unknown> => {
-  if (env !== 'server' || !config || typeof config !== 'object') {
+  if (!config || typeof config !== 'object') {
     return config
+  }
+  if (env !== 'server') {
+    return nodeType && ROUTE_BACKED_ACCOUNT_NODE_TYPES.has(nodeType)
+      ? redactRouteOnlyAccountConfig(config)
+      : config
   }
   const safe: Record<string, unknown> = {}
   for (const key of CLIENT_SAFE_SERVER_CONFIG_KEYS) {
     if (config[key] !== undefined) {
+      safe[key] = config[key]
+    }
+  }
+  return safe
+}
+
+// The two CLIENT account nodes carry the config of the transactional email
+// their generated ROUTE sends (provider, credential reference, sender, the
+// subject and body in every language). The route bakes all of it from the full
+// UIDL config at generation time, and the client handlers never read a key of
+// it (the signup handler even skips them so they are not forwarded as user
+// columns) — so none of it belongs in a page bundle.
+const ROUTE_ONLY_ACCOUNT_CONFIG_KEYS = new Set<string>([
+  ...WELCOME_EMAIL_CONFIG_KEYS,
+  'domain',
+  'deletedEmailPattern',
+])
+
+const ROUTE_BACKED_ACCOUNT_NODE_TYPES = new Set(['account-signup', 'account-delete-current'])
+
+const redactRouteOnlyAccountConfig = (config: Record<string, unknown>): Record<string, unknown> => {
+  const safe: Record<string, unknown> = {}
+  for (const key of Object.keys(config)) {
+    if (!ROUTE_ONLY_ACCOUNT_CONFIG_KEYS.has(key)) {
       safe[key] = config[key]
     }
   }

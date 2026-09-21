@@ -113,6 +113,14 @@ async function data_create_item(config: any, context: any) {
     if (config.onConflictDoNothing === true) {
       reqBody.onConflictDoNothing = true
     }
+    // The language of the storefront the run started on. The data-api stamps
+    // it onto an order row (`teleport_orders.locale`) so every later email
+    // about that order — the invoice, a shipping update sent by the admin —
+    // goes out in the buyer's language, not in whoever triggers it.
+    const __runLocale = context && context.__locale
+    if (typeof __runLocale === 'string' && __runLocale) {
+      reqBody.__requestLocale = __runLocale
+    }
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...__internalHeaders },

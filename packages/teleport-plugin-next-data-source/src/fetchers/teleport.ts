@@ -16,6 +16,9 @@ import {
   generateSortFieldSqlHelper,
   generateSortTiebreakSql,
 } from '../product-price-sort'
+import { generateProductFilterClauseHelper } from '../product-filter-fields'
+import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../localized-columns'
+import { REQUEST_LOCALE_PARAM } from '../request-locale'
 
 interface TeleportDBConfig {
   host?: string
@@ -27,6 +30,8 @@ interface TeleportDBConfig {
   ssl?: boolean | { ca?: string; cert?: string; key?: string; rejectUnauthorized?: boolean }
   sslConfig?: { ca?: string; cert?: string; key?: string; rejectUnauthorized?: boolean }
   options?: { schema?: string }
+  /** The provisioned schema, as the editor recorded it — the source of the per-language columns. */
+  selectedTables?: Record<string, { columns?: Array<{ name?: string }> }>
 }
 
 const DEFAULT_ENV_KEYS = {
@@ -62,6 +67,10 @@ export const generateTeleportFetcher = (
 ): string => {
   const dbConfig = config as TeleportDBConfig
   const schema = dbConfig.options?.schema
+  const columnNames = (dbConfig.selectedTables?.[tableName]?.columns || [])
+    .map((column) => column.name)
+    .filter((name): name is string => typeof name === 'string')
+  const localizedColumns = collectLocalizedColumns(columnNames, transformOptions.localization)
 
   const hostRef = resolveEnvReference(dbConfig.host, DEFAULT_ENV_KEYS.host)
   const portRef = resolveEnvReference(dbConfig.port, DEFAULT_ENV_KEYS.port)
@@ -151,7 +160,7 @@ ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
 ${getTransformationCode(tableName, transformOptions)}
-${getTransformWrapperCode(tableName)}
+${getTransformWrapperCode(tableName, transformOptions)}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
   
@@ -160,8 +169,27 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
   
   const buildCondition = (condition) => {
     const field = condition.source
-    const value = condition.destination
-    const operand = condition.operand
+    const normalizedCondition = normalizeInOperand(condition.operand, condition.destination)
+    if (normalizedCondition === null) return null
+    const value = normalizedCondition.value
+    const operand = normalizedCondition.operand
+    
+    // The products table's virtual fields (effective price, rating bucket,
+    // on-sale flag, variant axes) are whole clauses, not columns - so they are
+    // answered before any branch below can interpolate the field name raw.
+    const productClause = productFilterClause(field, operand, value, (param) => {
+      queryParams.push(param)
+      return '$' + paramIndex++
+    })
+    if (productClause !== null) return productClause
+
+    // A translatable column is compared against the value in every language,
+    // so a localized slug resolves under any locale - see localized-columns.ts.
+    const localizedClause = localizedEqualityClause(field, operand, value, (param) => {
+      queryParams.push(param)
+      return '$' + paramIndex++
+    })
+    if (localizedClause !== null) return localizedClause
     
     if (Array.isArray(value)) {
       if (value.length === 0) return null
@@ -218,6 +246,10 @@ ${generateDateFormatterCode()}
 ${generateSortFieldSqlHelper(tableName)}
 
 ${generateSortFallbackFieldHelper(tableName)}
+
+${generateProductFilterClauseHelper(tableName)}
+
+${generateLocalizedColumnsHelper(localizedColumns)}
 
 // Matches DDL / dangerous statements the raw-query branch should refuse.
 // Keep this list conservative — anything destructive or schema-changing is
@@ -291,6 +323,8 @@ export default async function handler(req, res) {
     }
 
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
+    // The language the page is in - what a translatable sort orders by.
+    const requestLocale = typeof req.query.${REQUEST_LOCALE_PARAM} === 'string' ? req.query.${REQUEST_LOCALE_PARAM} : null
     
     const conditions = []
     const queryParams = []
@@ -345,7 +379,9 @@ export default async function handler(req, res) {
     }
     
     // Handle sorts - new array format. Two ORDER BY clauses are built: the one
-    // actually used, and a plain-column twin kept only as the fallback below.
+    // actually used (a translatable column in the request's language, the
+    // products table's price rewrites), and a plain-column twin kept only as
+    // the fallback below.
     let orderBySql = ''
     let plainOrderBySql = ''
     if (sorts) {
@@ -353,7 +389,7 @@ export default async function handler(req, res) {
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const valid = parsedSorts.filter((sort) => sort && sort.field)
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-        const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}\`)
+        const orderClauses = valid.map((sort) => \`\${localizedSortFieldSql(sort.field, requestLocale) || sortFieldSql(sort.field)} \${orderOf(sort)}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
@@ -369,8 +405,9 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
-      orderBySql = \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
-      plainOrderBySql = orderBySql
+      const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
+      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}\`
+      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
     }
     const usedDiscountAwareSort = orderBySql !== plainOrderBySql
 
@@ -392,14 +429,16 @@ export default async function handler(req, res) {
     // The discount-aware price ordering is an inline sub-select over a JSON
     // column. It is written to be unraisable, but it runs inside ORDER BY for
     // the whole table - so if a database ever rejects it, fall back to ordering
-    // by the stored list price rather than serving an empty products page.
+    // by the stored list price rather than serving an empty products page. The
+    // translatable-column ordering takes the same exit: a per-language column
+    // the schema had at generation time may have been dropped since.
     let result
     try {
       result = await client.query(sql, queryParams)
     } catch (sortError) {
       if (!usedDiscountAwareSort) throw sortError
       console.warn(
-        'Discount-aware price sort failed; falling back to the list price:',
+        'Rewritten sort failed; falling back to the plain column:',
         sortError && sortError.message
       )
       result = await client.query(baseSql + plainOrderBySql + sqlTail, queryParams)

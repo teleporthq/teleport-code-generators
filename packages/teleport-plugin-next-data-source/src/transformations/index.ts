@@ -7,6 +7,12 @@ import {
   generateEcommerceProductTransformationCode,
   type EcommerceProductTransformOptions,
 } from './ecommerce-product'
+import { REQUEST_LOCALE_PARAM } from '../request-locale'
+import {
+  resolveContentLocalization,
+  type ContentLocalization,
+  type LocalizedProjectOptions,
+} from '../content-localization'
 
 export type { EcommerceProductTransformOptions }
 
@@ -19,6 +25,13 @@ export type { EcommerceProductTransformOptions }
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
   /** Blog post-category taxonomy — see `blogSettings.categories`. */
   blogCategories?: UIDLEcommerceCategory[]
+  /**
+   * The languages the rows are stored in — absent for a single-language
+   * project. The transform resolves every translatable field against the
+   * request's locale (`?locale=es` → `es_name`, falling back to `name`), and
+   * the fetcher matches and sorts translatable columns the same way.
+   */
+  localization?: ContentLocalization
 }
 
 /**
@@ -47,12 +60,14 @@ const resolveAllowBackorders = (
  * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
 export const buildProductTransformOptions = (
-  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings' | 'blogSettings'>
+  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings' | 'blogSettings'> &
+    LocalizedProjectOptions
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
   blogCategories: options.blogSettings?.categories,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
   allowBackorders: resolveAllowBackorders(options.ecommerceSettings),
+  localization: resolveContentLocalization(options),
 })
 
 export type TransformationType = 'blog-post' | 'ecommerce-product' | 'custom-page' | null
@@ -165,12 +180,23 @@ export const REVIEWS_PER_PRODUCT = 5
  * Returns the transform wrapper function code that handles asset map loading
  * and calls the appropriate transformer.
  * Returns empty string if no transformation is needed.
+ *
+ * The request's `locale` (see `REQUEST_LOCALE_PARAM`) is what every
+ * translatable field resolves against; the MAIN locale it falls back to is a
+ * project constant and is baked in from `options.localization` rather than
+ * asked of every caller. Without a localization every row reads as before —
+ * the base columns.
  */
-export const getTransformWrapperCode = (tableName: string): string => {
+export const getTransformWrapperCode = (
+  tableName: string,
+  options: Pick<EntityTransformOptions, 'localization'> = {}
+): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
     return ''
   }
+
+  const mainLanguageLiteral = JSON.stringify(options.localization?.mainLocale ?? null)
 
   const transformFn =
     type === 'blog-post'
@@ -289,9 +315,8 @@ async function transformRecords(records, getClientFn, reqQuery) {
   } catch (e) {
     // Asset resolution is best-effort; continue without it
   }${relatedEnrichment}${variantEnrichment}
-  var currentLanguage = (reqQuery && reqQuery.lang) || null
-  var mainLanguage = (reqQuery && reqQuery.mainLang) || null
-  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: mainLanguage${variantOption}${relatedOption} }
+  var currentLanguage = reqQuery && typeof reqQuery.${REQUEST_LOCALE_PARAM} === 'string' && reqQuery.${REQUEST_LOCALE_PARAM} ? reqQuery.${REQUEST_LOCALE_PARAM} : null
+  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: ${mainLanguageLiteral}${variantOption}${relatedOption} }
   return ${transformFn}(records, options)
 }
 `

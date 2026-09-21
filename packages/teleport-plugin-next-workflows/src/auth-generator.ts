@@ -2,12 +2,15 @@ import {
   UIDLAuthentication,
   UIDLAuthTableColumn,
   UIDLCustomUserProperty,
+  UIDLLocalizedEmailTemplates,
   DataSourceType,
 } from '@teleporthq/teleport-types'
 import {
   SUPPORTED_EMAIL_PROVIDERS,
   generateProviderSendFunction,
   generateFillTemplateFn,
+  generateEmailLocaleRequire,
+  generateLocalizedEmailCopyFn,
   WELCOME_EMAIL_CONFIG_KEYS,
 } from './transactional-email-code'
 import { generateSessionTokenResolverCode } from './session-cookie-resolver'
@@ -1072,6 +1075,9 @@ export interface WelcomeEmailOptions {
   emailSecretEnvName?: string | null
   emailSubject?: string
   emailBodyHtml?: string
+  // Per-language copies of the subject/body (main language excluded); the
+  // route sends the copy matching the language the signup came from.
+  localizedTemplates?: UIDLLocalizedEmailTemplates
   siteName?: string
 }
 
@@ -1108,9 +1114,18 @@ const WELCOME_EMAIL_FROM = ${JSON.stringify(welcome.fromEmail || '')};
 const WELCOME_EMAIL_SECRET_ENV_NAME = ${JSON.stringify(welcome.emailSecretEnvName || '')};
 const WELCOME_EMAIL_SUBJECT = ${JSON.stringify(welcome.emailSubject || 'Welcome')};
 const WELCOME_EMAIL_BODY_HTML = ${JSON.stringify(welcome.emailBodyHtml || '')};
+const WELCOME_EMAIL_LOCALIZED = ${JSON.stringify(welcome.localizedTemplates || {})};
 const WELCOME_EMAIL_SITE_NAME = ${JSON.stringify(welcome.siteName || '')};
+${generateEmailLocaleRequire('../../..')}
 
 ${generateFillTemplateFn()}
+
+${generateLocalizedEmailCopyFn({
+  fnName: 'resolveWelcomeEmailCopy',
+  subjectConst: 'WELCOME_EMAIL_SUBJECT',
+  bodyConst: 'WELCOME_EMAIL_BODY_HTML',
+  localizedConst: 'WELCOME_EMAIL_LOCALIZED',
+})}
 
 ${generateProviderSendFunction(welcomeProvider, {
   emailType: 'welcome',
@@ -1119,15 +1134,18 @@ ${generateProviderSendFunction(welcomeProvider, {
   relativePrefix: '../../..',
 })}
 
-async function sendWelcomeEmail(toEmail, tokenValues, userId) {
+// \`locale\` is the language of the signup page (see resolveRequestLocale);
+// the email goes out in that language's copy when the template has one.
+async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
   if (!WELCOME_EMAIL_PROVIDER || !WELCOME_EMAIL_BODY_HTML || !toEmail) { return; }
   var apiKey = WELCOME_EMAIL_SECRET_ENV_NAME ? process.env[WELCOME_EMAIL_SECRET_ENV_NAME] : '';
   if (apiKey && String(apiKey).indexOf('teleporthq.secrets.') === 0) { apiKey = ''; }
   if (!apiKey) { console.warn('[account-signup] welcome email skipped: credential not set'); return; }
   var from = WELCOME_EMAIL_FROM || process.env.EMAIL_FROM || '';
   if (!from) { console.warn('[account-signup] welcome email skipped: sender not configured'); return; }
-  var subject = fillTemplate(WELCOME_EMAIL_SUBJECT, tokenValues);
-  var html = fillTemplate(WELCOME_EMAIL_BODY_HTML, tokenValues);
+  var copy = resolveWelcomeEmailCopy(locale);
+  var subject = fillTemplate(copy.subject, tokenValues);
+  var html = fillTemplate(copy.body, tokenValues);
   await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 `
@@ -1167,7 +1185,7 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId) {
         userName: name || (newUser && newUser.name) || 'there',
         userEmail: email,
         siteName: __welcomeSiteName,
-      }, newUser && newUser.id);
+      }, newUser && newUser.id, __emailLocale.resolveRequestLocale(req));
     } catch (welcomeErr) {
       console.error('[account-signup] welcome email failed:', welcomeErr && welcomeErr.message ? welcomeErr.message : welcomeErr);
     }
@@ -1470,6 +1488,28 @@ function isSelfGuardedPath(pathname) {
   return false;
 }
 
+// The visitor's language is a prefix on the request path that Next.js strips
+// before this middleware runs: for "/es/orders" \`nextUrl.pathname\` is
+// "/orders" and \`nextUrl.locale\` is "es". A redirect built from the bare
+// pathname would drop the visitor onto the default-language page, so every
+// redirect — and the callbackUrl it carries — puts the prefix back. The
+// default language is served unprefixed; a project without languages has no
+// locale at all and keeps the path as it is.
+function localizePathname(request, pathname) {
+  var locale = request.nextUrl.locale;
+  var defaultLocale = request.nextUrl.defaultLocale;
+  if (!locale || !defaultLocale || locale === defaultLocale) return pathname;
+  return '/' + locale + (pathname === '/' ? '' : pathname);
+}
+
+function redirectWithinLocale(request, pathname, callbackPath) {
+  var target = new URL(localizePathname(request, pathname), request.url);
+  if (callbackPath) {
+    target.searchParams.set('callbackUrl', localizePathname(request, callbackPath));
+  }
+  return NextResponse.redirect(target);
+}
+
 // Where to send an authenticated user who lacks the required role. Normally the
 // home page ("you don't have access, here's the public site"). But when "/" is
 // itself a protected page (e.g. an admin dashboard published at the root), a
@@ -1477,11 +1517,9 @@ function isSelfGuardedPath(pathname) {
 // the sign-in page (with a callbackUrl) in that case.
 function roleDeniedRedirect(request, pathname) {
   if (pathname !== '/' && !protectedRoutes['/']) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return redirectWithinLocale(request, '/');
   }
-  var deniedUrl = new URL('${signInRoute}', request.url);
-  deniedUrl.searchParams.set('callbackUrl', pathname);
-  return NextResponse.redirect(deniedUrl);
+  return redirectWithinLocale(request, '${signInRoute}', pathname);
 }
 
 async function middleware(request) {
@@ -1581,9 +1619,7 @@ async function middleware(request) {
   }
 
   if (matchedProtection.requiresAuth && !sessionUser) {
-    var signInUrl = new URL('${signInRoute}', request.url);
-    signInUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(signInUrl);
+    return redirectWithinLocale(request, '${signInRoute}', pathname);
   }
 
   // Role enforcement uses whichever source resolved the user (decoded JWT or the
@@ -1592,9 +1628,7 @@ async function middleware(request) {
   var allowedRoles = matchedProtection.allowedRoles || [];
   if (allowedRoles.length > 0) {
     if (!sessionUser) {
-      var signInUrl2 = new URL('${signInRoute}', request.url);
-      signInUrl2.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(signInUrl2);
+      return redirectWithinLocale(request, '${signInRoute}', pathname);
     }
     var userRole = getUserRoleFromToken(sessionUser);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {

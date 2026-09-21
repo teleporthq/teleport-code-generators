@@ -116,9 +116,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
       if (hasDynamicBindings) {
         for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
-          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
-            letter.toUpperCase()
-          )
+          const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(cssProperty)
           const staticValue = style[cssProperty]
           const staticTemplate =
             staticValue && staticValue.type === 'static' && typeof staticValue.content === 'string'
@@ -151,9 +149,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
           typeof value.content === 'string' &&
           hasTemplate(value.content)
         ) {
-          const camelCaseProperty = prop.replace(/-([a-z])/g, (_, letter: string) =>
-            letter.toUpperCase()
-          )
+          const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(prop)
           allInlineStyles[camelCaseProperty] = new ParsedASTNode(
             ASTUtils.parseStringWithTemplateExpressions(String(value.content))
           )

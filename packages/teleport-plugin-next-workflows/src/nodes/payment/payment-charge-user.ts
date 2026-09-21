@@ -69,8 +69,19 @@ async function payment_charge_user(config: any, _context: Record<string, unknown
   const amount = config.amount
   const currency = config.currency || 'usd'
   const baseUrl = String((_context && (_context.__baseUrl as string)) || '')
-  const successUrl = toAbsoluteUrl(config.successUrl || '', baseUrl)
-  const cancelUrl = toAbsoluteUrl(config.cancelUrl || '', baseUrl)
+  // The buyer comes back from the provider's hosted page to the language they
+  // checked out in: a site-relative return path gets the run's locale prefix
+  // (the segment route reads it off the client context) before it is
+  // absolutized; an external override passes through untouched.
+  const runLocale = _context && _context.__locale
+  const successUrl = toAbsoluteUrl(
+    __workflowUtils.localizeHref(config.successUrl || '', runLocale),
+    baseUrl
+  )
+  const cancelUrl = toAbsoluteUrl(
+    __workflowUtils.localizeHref(config.cancelUrl || '', runLocale),
+    baseUrl
+  )
   const description = config.description || 'Payment'
   const lineItems = config.lineItems
 

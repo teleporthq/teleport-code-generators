@@ -18,7 +18,10 @@ import {
   generatePaypalCaptureApiRoute,
 } from './ecommerce-api-routes-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
-import { ensureSentEmailLogModule } from '@teleporthq/teleport-plugin-next-workflows'
+import {
+  ensureEmailLocaleModule,
+  ensureSentEmailLogModule,
+} from '@teleporthq/teleport-plugin-next-workflows'
 import { generateCartApiRoute } from './cart-api-routes-generator'
 import { generateAssetsApiRoute, generateAssetUrlsModule } from './asset-urls-generator'
 
@@ -92,6 +95,9 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       this.generateAssetUrlFiles(assetsRoute, files)
     }
     if (cartRoute) {
+      // The route validates the language it stamps on a cart through the
+      // shared locale module.
+      ensureEmailLocaleModule(structure)
       files.set('ecommerce-api-cart', {
         path: ['pages', 'api', 'cart'],
         files: [

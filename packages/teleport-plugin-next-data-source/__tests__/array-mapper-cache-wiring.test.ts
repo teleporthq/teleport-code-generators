@@ -285,6 +285,17 @@ describe('array-mapper cache — client wiring', () => {
     expect(hitReturn).toBeLessThan(raise)
   })
 
+  it('counts a cache hit as the newest settled result', async () => {
+    const { code } = await runPlugin({ cache: CACHE })
+
+    // A hit answers synchronously with THIS request's rows; without advancing
+    // the sequence, an older network request still in flight would resolve
+    // after it and paint over it.
+    expect(code).toMatch(
+      /if \(__tqHit !== undefined\) \{\s*\+\+ds_0_fetchSeq\.current;?\s*ds_0_latestData\.current = __tqHit;?\s*return Promise\.resolve\(__tqHit\)/
+    )
+  })
+
   it('still tracks in-flight fetches on a cache MISS', async () => {
     const { code } = await runPlugin({ cache: CACHE })
 

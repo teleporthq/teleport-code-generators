@@ -67,6 +67,19 @@ export interface LoadingStateVars {
    * stale rows back for the rest of the second request.
    */
   inFlightRefVar: string
+  /**
+   * Ref counting the requests STARTED, so a response can tell whether a newer
+   * request has overtaken it. `DataProvider` keeps whatever resolves last:
+   * two controls changed in quick succession (a "Clear all" emptying several
+   * filter states, one state write after another) start two requests, and
+   * when the older, slower one settles after the newer it painted the OLDER
+   * rows over the newer — a list showing two products for a URL that filters
+   * nothing. Each request notes its sequence number and, if overtaken, hands
+   * over the newest settled rows instead of its own.
+   */
+  fetchSeqRefVar: string
+  /** Ref holding the rows of the newest request that settled — what an overtaken one resolves with. */
+  latestDataRefVar: string
 }
 
 export function getLoadingStateVars(index: number): LoadingStateVars {
@@ -74,14 +87,18 @@ export function getLoadingStateVars(index: number): LoadingStateVars {
     isFetchingVar: `ds_${index}_isFetching`,
     setIsFetchingVar: `setDs_${index}_isFetching`,
     inFlightRefVar: `ds_${index}_fetchesInFlight`,
+    fetchSeqRefVar: `ds_${index}_fetchSeq`,
+    latestDataRefVar: `ds_${index}_latestData`,
   }
 }
 
 /**
  * `const ds_N_fetchesInFlight = useRef(0)`
+ * `const ds_N_fetchSeq = useRef(0)`
+ * `const ds_N_latestData = useRef(undefined)`
  * `const [ds_N_isFetching, setDs_N_isFetching] = useState(false)`
  *
- * Both are stable across renders (a ref object and a `useState` setter), which
+ * All are stable across renders (ref objects and a `useState` setter), which
  * is what lets the wrapped `fetchData` keep its empty `useCallback` dependency
  * array — a changing `fetchData` identity would retrigger the provider's fetch
  * effect on every render.
@@ -92,6 +109,18 @@ export function buildLoadingStateDeclarations(vars: LoadingStateVars): types.Sta
       types.variableDeclarator(
         types.identifier(vars.inFlightRefVar),
         types.callExpression(types.identifier('useRef'), [types.numericLiteral(0)])
+      ),
+    ]),
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier(vars.fetchSeqRefVar),
+        types.callExpression(types.identifier('useRef'), [types.numericLiteral(0)])
+      ),
+    ]),
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier(vars.latestDataRefVar),
+        types.callExpression(types.identifier('useRef'), [types.identifier('undefined')])
       ),
     ]),
     types.variableDeclaration('const', [
@@ -183,8 +212,52 @@ function injectTrackingIntoCachedBody(body: types.BlockStatement, vars: LoadingS
 
   const tracked = buildTrackedFetchBody(networkChain.statement.argument as types.Expression, vars)
   body.body.splice(networkChain.index, 1, ...tracked.body)
+  markCacheHitAsNewest(body, vars)
 
   return true
+}
+
+/**
+ * A cache hit answers synchronously with the rows of THIS request, so it is
+ * the newest settled result too: it advances the sequence and records its rows,
+ * or an older network request still in flight would resolve after it and paint
+ * over it. Adds the two statements at the head of the hit branch — before its
+ * `return Promise.resolve(__tqHit)` — and nothing else, so the flag the branch
+ * deliberately never raises stays untouched.
+ */
+function markCacheHitAsNewest(body: types.BlockStatement, vars: LoadingStateVars): void {
+  const hit = body.body.find(
+    (statement): statement is types.IfStatement =>
+      statement.type === 'IfStatement' &&
+      statement.test.type === 'BinaryExpression' &&
+      statement.test.left.type === 'Identifier' &&
+      statement.test.left.name === CACHE_HIT_IDENTIFIER &&
+      statement.consequent.type === 'BlockStatement'
+  )
+  if (!hit || hit.consequent.type !== 'BlockStatement') {
+    return
+  }
+  hit.consequent.body.unshift(
+    types.expressionStatement(types.updateExpression('++', refCurrent(vars.fetchSeqRefVar), true)),
+    types.expressionStatement(
+      types.assignmentExpression(
+        '=',
+        refCurrent(vars.latestDataRefVar),
+        types.identifier(CACHE_HIT_IDENTIFIER)
+      )
+    )
+  )
+}
+
+/** The identifier the cache wiring binds a hit to — see `cache/ast.ts`. */
+const CACHE_HIT_IDENTIFIER = '__tqHit'
+/** The rows a tracked request resolved with, inside its own `then`. */
+const TRACKED_ROWS_IDENTIFIER = '__tqRows'
+/** This request's sequence number. */
+const TRACKED_SEQ_IDENTIFIER = '__tqSeq'
+
+function refCurrent(refVar: string): types.MemberExpression {
+  return types.memberExpression(types.identifier(refVar), types.identifier('current'))
 }
 
 // tslint:disable-next-line:no-any
@@ -257,9 +330,16 @@ function findMemoizedFetchDataArrow(
  * Turns `(params) => fetch(...).then(...)` into
  *
  *   (params) => {
+ *     const __tqSeq = ++ds_N_fetchSeq.current
  *     ds_N_fetchesInFlight.current += 1
  *     setDs_N_isFetching(true)
- *     return fetch(...).then(...).finally(() => {
+ *     return fetch(...).then(...).then((__tqRows) => {
+ *       if (__tqSeq !== ds_N_fetchSeq.current) {
+ *         return ds_N_latestData.current !== undefined ? ds_N_latestData.current : __tqRows
+ *       }
+ *       ds_N_latestData.current = __tqRows
+ *       return __tqRows
+ *     }).finally(() => {
  *       ds_N_fetchesInFlight.current -= 1
  *       if (ds_N_fetchesInFlight.current <= 0) {
  *         ds_N_fetchesInFlight.current = 0
@@ -267,6 +347,12 @@ function findMemoizedFetchDataArrow(
  *       }
  *     })
  *   }
+ *
+ * The `then` is the stale guard (see `fetchSeqRefVar`): a request overtaken by
+ * a newer one resolves with the newest settled rows rather than its own, so
+ * the provider — which keeps whatever resolves LAST — never paints older rows
+ * over newer ones. An overtaken request whose successor has not settled yet
+ * resolves with its own rows; the successor then replaces them.
  *
  * `finally` (rather than a `then` pair) keeps the flag honest when the request
  * rejects: the provider switches to its error status and the loading state must
@@ -317,7 +403,52 @@ function buildTrackedFetchBody(
     ])
   )
 
+  const latestData = refCurrent(vars.latestDataRefVar)
+  const staleGuard = types.arrowFunctionExpression(
+    [types.identifier(TRACKED_ROWS_IDENTIFIER)],
+    types.blockStatement([
+      types.ifStatement(
+        types.binaryExpression(
+          '!==',
+          types.identifier(TRACKED_SEQ_IDENTIFIER),
+          refCurrent(vars.fetchSeqRefVar)
+        ),
+        types.blockStatement([
+          types.returnStatement(
+            types.conditionalExpression(
+              types.binaryExpression(
+                '!==',
+                types.cloneNode(latestData, true),
+                types.identifier('undefined')
+              ),
+              types.cloneNode(latestData, true),
+              types.identifier(TRACKED_ROWS_IDENTIFIER)
+            )
+          ),
+        ])
+      ),
+      types.expressionStatement(
+        types.assignmentExpression(
+          '=',
+          types.cloneNode(latestData, true),
+          types.identifier(TRACKED_ROWS_IDENTIFIER)
+        )
+      ),
+      types.returnStatement(types.identifier(TRACKED_ROWS_IDENTIFIER)),
+    ])
+  )
+  const guardedFetch = types.callExpression(
+    types.memberExpression(fetchExpression, types.identifier('then')),
+    [staleGuard]
+  )
+
   return types.blockStatement([
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier(TRACKED_SEQ_IDENTIFIER),
+        types.updateExpression('++', refCurrent(vars.fetchSeqRefVar), true)
+      ),
+    ]),
     types.expressionStatement(
       types.assignmentExpression(
         '+=',
@@ -329,7 +460,7 @@ function buildTrackedFetchBody(
       types.callExpression(types.identifier(vars.setIsFetchingVar), [types.booleanLiteral(true)])
     ),
     types.returnStatement(
-      types.callExpression(types.memberExpression(fetchExpression, types.identifier('finally')), [
+      types.callExpression(types.memberExpression(guardedFetch, types.identifier('finally')), [
         settleHandler,
       ])
     ),

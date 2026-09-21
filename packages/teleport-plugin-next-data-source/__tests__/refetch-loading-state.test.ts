@@ -178,6 +178,28 @@ describe('pagination plugin — refetch loading state', () => {
     expect(code).toContain('ds_0_fetchesInFlight.current = 0')
   })
 
+  it('hands an overtaken response the newest rows, so a slow older request never paints over a newer one', async () => {
+    const code = await runPlugin({})
+
+    expect(code).toContain('const ds_0_fetchSeq = useRef(0)')
+    expect(code).toContain('const ds_0_latestData = useRef(undefined)')
+    // Numbered when it STARTS, before the flag goes up.
+    expect(code).toMatch(
+      /const __tqSeq = \+\+ds_0_fetchSeq\.current;?\s*ds_0_fetchesInFlight\.current \+= 1/
+    )
+    // Checked when it settles: overtaken → the newest settled rows (or its own
+    // while the successor is still in flight); newest → recorded and returned.
+    expect(code).toContain('if (__tqSeq !== ds_0_fetchSeq.current)')
+    expect(code).toContain(
+      'return ds_0_latestData.current !== undefined ? ds_0_latestData.current : __tqRows'
+    )
+    expect(code).toContain('ds_0_latestData.current = __tqRows')
+    // The guard sits on the chain BEFORE the settle handler.
+    expect(code.indexOf('__tqSeq !== ds_0_fetchSeq.current')).toBeLessThan(
+      code.indexOf('.finally(() => {')
+    )
+  })
+
   it('keeps fetchData referentially stable so the provider does not refetch in a loop', async () => {
     const code = await runPlugin({})
 
@@ -249,6 +271,7 @@ describe('pagination plugin — refetch loading state', () => {
     const code = generator(chunk.content as types.Node).code
     expect(code).not.toContain('ds_0_isFetching')
     expect(code).not.toContain('ds_0_fetchesInFlight')
+    expect(code).not.toContain('ds_0_fetchSeq')
   })
 
   it('leaves a provider without a designed loading state untouched', async () => {

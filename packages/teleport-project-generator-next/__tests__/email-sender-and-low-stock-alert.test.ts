@@ -161,8 +161,8 @@ describe('generateEmailSenderModule — shared dispatcher', () => {
   it('emits diagnostic console logs on every dispatch (success + failure)', () => {
     const code = generateEmailSenderModule(baseSettings(), { logTag: 'test-tag' })
     expect(code).toContain("console.log('[test-tag] dispatching to '")
-    expect(code).toContain("console.log('[test-tag] sent successfully')")
-    expect(code).toContain("console.error('[test-tag] dispatch failed:")
+    expect(code).toContain("console.log('[test-tag] sent to ' + recipient)")
+    expect(code).toContain("console.error('[test-tag] dispatch failed for ' + recipient")
     expect(code).toContain("console.log('[test-tag] skipped: no recipients configured')")
   })
 
@@ -454,5 +454,168 @@ describe('generateEmailSenderModule — list-block expansion (executed, not grep
     expect(hasOwnItemList('<p>{{itemsList}}</p>')).toBe(true)
     expect(hasOwnItemList('<p>Items: {{itemsCount}}</p>')).toBe(false)
     expect(hasOwnItemList('')).toBe(false)
+  })
+})
+
+describe('generateEmailSenderModule — one provider call per recipient (executed)', () => {
+  // Postmark refuses a WHOLE call when any address in it is refused (its
+  // pending-approval rule: every recipient must share the From domain), which
+  // used to fail every recipient because of one. The only honest check is to
+  // run the emitted sender against a provider stub and count the calls.
+  interface LedgerEntry {
+    to: string[]
+    status: string
+    error: string | null
+    providerMessageId: string | null
+  }
+
+  const loadSender = (refuse: (recipient: string) => boolean) => {
+    const code = generateEmailSenderModule(baseSettings(), { logTag: 'test' })
+    const ledger: LedgerEntry[] = []
+    const calls: string[] = []
+    const fetchStub = (_url: string, init: { body: string }) => {
+      const payload = JSON.parse(init.body) as { To: string }
+      calls.push(payload.To)
+      if (payload.To.startsWith('throws@')) {
+        throw new Error('transport exploded before the request left')
+      }
+      if (refuse(payload.To)) {
+        return Promise.resolve({
+          ok: false,
+          status: 422,
+          text: () => Promise.resolve('{"ErrorCode":412,"Message":"domain not allowed"}'),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ MessageID: 'msg-' + payload.To }),
+      })
+    }
+    const requireStub = (specifier: string) => {
+      if (specifier === '../email/sent-email-log') {
+        return {
+          recordSentEmail: (entry: LedgerEntry) => ledger.push(entry),
+          settleSentEmailLog: () => Promise.resolve(),
+        }
+      }
+      return {}
+    }
+    const moduleShim = { exports: {} as Record<string, (...fnArgs: any[]) => any> }
+    // The emitted postmark dispatcher calls the free identifier `fetch`; naming
+    // it as a parameter shadows Node's global with the stub for this module.
+    // eslint-disable-next-line no-new-func
+    new Function('module', 'require', 'process', 'fetch', code)(
+      moduleShim,
+      requireStub,
+      { env: { POSTMARK_SERVER_TOKEN: 'token' } },
+      fetchStub
+    )
+    const silence = jest.spyOn(console, 'log').mockImplementation(() => undefined)
+    const silenceErr = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    const silenceWarn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const restore = () => {
+      silence.mockRestore()
+      silenceErr.mockRestore()
+      silenceWarn.mockRestore()
+    }
+    return { send: moduleShim.exports.sendNotificationEmail, ledger, calls, restore }
+  }
+
+  it('delivers to every accepted recipient when another one is refused', async () => {
+    const { send, ledger, calls, restore } = loadSender((to) => to === 'bad@other.io')
+    try {
+      const result = await send(['good@example.com', 'bad@other.io'], 'Subject', '<p>Hi</p>', {
+        emailType: 'order-notification',
+      })
+      expect(calls).toEqual(['good@example.com', 'bad@other.io'])
+      expect(result).toEqual({
+        sent: true,
+        recipients: ['good@example.com', 'bad@other.io'],
+        delivered: ['good@example.com'],
+        failed: [
+          {
+            recipient: 'bad@other.io',
+            error: 'Postmark API error 422: {"ErrorCode":412,"Message":"domain not allowed"}',
+          },
+        ],
+      })
+      // One ledger row per recipient, each with its own verdict.
+      expect(ledger.map((e) => [e.to, e.status, e.providerMessageId])).toEqual([
+        [['good@example.com'], 'sent', 'msg-good@example.com'],
+        [['bad@other.io'], 'failed', null],
+      ])
+      expect(ledger[1].error).toContain('domain not allowed')
+    } finally {
+      restore()
+    }
+  })
+
+  it('keeps sending after a refused address instead of stopping at it', async () => {
+    const { send, calls, restore } = loadSender((to) => to === 'bad@other.io')
+    try {
+      const result = await send(['bad@other.io', 'good@example.com'], 'S', 'B')
+      expect(calls).toEqual(['bad@other.io', 'good@example.com'])
+      expect(result.delivered).toEqual(['good@example.com'])
+    } finally {
+      restore()
+    }
+  })
+
+  it("treats a synchronous transport failure as that recipient's failure, not the batch's", async () => {
+    const { send, calls, restore } = loadSender(() => false)
+    try {
+      const result = await send(['throws@example.com', 'good@example.com'], 'S', 'B')
+      expect(calls).toEqual(['throws@example.com', 'good@example.com'])
+      expect(result.delivered).toEqual(['good@example.com'])
+      expect(result.failed).toEqual([
+        { recipient: 'throws@example.com', error: 'transport exploded before the request left' },
+      ])
+    } finally {
+      restore()
+    }
+  })
+
+  it('rejects only when no recipient accepted the email, naming each refusal', async () => {
+    const { send, ledger, calls, restore } = loadSender(() => true)
+    try {
+      await expect(send(['a@other.io', 'b@other.io'], 'S', 'B')).rejects.toThrow(
+        'no recipient accepted the email — a@other.io: Postmark API error 422: ' +
+          '{"ErrorCode":412,"Message":"domain not allowed"}; b@other.io: Postmark API error 422: ' +
+          '{"ErrorCode":412,"Message":"domain not allowed"}'
+      )
+      expect(calls).toHaveLength(2)
+      expect(ledger.map((e) => e.status)).toEqual(['failed', 'failed'])
+    } finally {
+      restore()
+    }
+  })
+
+  it('trims, drops blanks and de-duplicates the recipient list before sending', async () => {
+    const { send, calls, restore } = loadSender(() => false)
+    try {
+      const result = await send(
+        [' A@example.com ', 'a@example.com', '', null, 42, 'b@example.com'],
+        'S',
+        'B'
+      )
+      expect(calls).toEqual(['A@example.com', 'b@example.com'])
+      expect(result.recipients).toEqual(['A@example.com', 'b@example.com'])
+      expect(result.failed).toEqual([])
+    } finally {
+      restore()
+    }
+  })
+
+  it('skips the provider entirely when the list is empty', async () => {
+    const { send, calls, ledger, restore } = loadSender(() => false)
+    try {
+      expect(await send([], 'S', 'B')).toEqual({ sent: false, reason: 'no_recipients' })
+      expect(await send(undefined, 'S', 'B')).toEqual({ sent: false, reason: 'no_recipients' })
+      expect(calls).toEqual([])
+      expect(ledger).toEqual([])
+    } finally {
+      restore()
+    }
   })
 })

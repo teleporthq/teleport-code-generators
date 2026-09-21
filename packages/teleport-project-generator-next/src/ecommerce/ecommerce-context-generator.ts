@@ -481,10 +481,15 @@ function persistCartToDb(items) {
     // overwrite the union with this (pre-login) snapshot, and hands back the
     // merged lines instead. Ignoring that answer would leave the tab showing
     // half the cart the database now holds.
+    // The language of the page the cart was synced from: the abandoned-cart
+    // reminder reads it back so the shopper is emailed in the language they
+    // browsed in. Read live off the router (the page data goes stale after a
+    // client-side language switch) by the shared locale module.
+    var pageLocale = emailLocale.getClientLocale()
     return fetch('/api/cart/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId() }),
+      body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId(), locale: pageLocale }),
     })
       .then(function (res) { return res.ok ? res.json() : null })
       .catch(function () { return null })
@@ -640,6 +645,15 @@ if (typeof window !== 'undefined') {
     ? "import { isDirectAssetUrl, loadAssetUrlMap, resolveMediaUrl } from './utils/ecommerce/asset-urls'\n"
     : ''
 
+  // The cart sync sends the page language; the module is emitted alongside
+  // the cart route (see project-plugin.ts), so it exists exactly when this
+  // import does. A default import of the CommonJS module, like the workflow
+  // hook's import of the runtime — a `require` in this ES module would mix
+  // module systems.
+  const cartLocaleImport = cartDbEnabled
+    ? "import emailLocale from './utils/email/email-locale'\n"
+    : ''
+
   // The render-time pricing of the provider, in its two shapes. Regional stores
   // price every figure from one quote for the checkout's destination; every
   // other store keeps the single-rate arithmetic it has always used.
@@ -714,7 +728,7 @@ if (typeof window !== 'undefined') {
 
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
-${assetUrlsImport}${ORDER_ATTRIBUTION_WRITER}
+${assetUrlsImport}${cartLocaleImport}${ORDER_ATTRIBUTION_WRITER}
 
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'

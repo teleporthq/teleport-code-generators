@@ -34,7 +34,12 @@ import {
   setJSXExpressionAttribute,
   type PaginationControlKind,
 } from './pagination-controls'
-import { buildCountFetchEffect } from './count-effect'
+import { buildCountFetchEffect, buildCountSeqDeclaration } from './count-effect'
+import {
+  findAllSearchClearButtonsInJSX,
+  findSiblingSearchInput,
+  wireSearchClearButton,
+} from './search-clear'
 import {
   buildPageTokensDeclaration,
   wireNumberedPagination,
@@ -54,6 +59,14 @@ import {
   type PageResetDeps,
 } from './page-reset'
 import { buildPageUrlRefDeclaration, buildPageUrlSyncEffect } from './page-url-sync'
+import { isLocalizedProject } from './content-localization'
+import {
+  appendClientLocaleParam,
+  buildClientLocaleExpression,
+  buildServerLocaleParam,
+  ensureRouterDeclaration,
+  hasLocaleParam,
+} from './request-locale'
 
 // ----- searchDefaultValue support -----
 //
@@ -723,6 +736,8 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
   combinedStateVar: string
   setCombinedStateVar: string
   skipDebounceRefVar: string
+  /** Ref numbering the count requests, so an overtaken count response is dropped. */
+  countSeqRefVar: string
   propsPrefix: string
 } {
   const idx = usage.index
@@ -739,6 +754,7 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
     combinedStateVar: `ds_${idx}_state`,
     setCombinedStateVar: `setDs_${idx}_state`,
     skipDebounceRefVar: `ds_${idx}_skipDebounce`,
+    countSeqRefVar: `ds_${idx}_countSeq`,
     propsPrefix: `${usage.dataSourceIdentifier}_ds_${idx}`,
   }
 }
@@ -1110,6 +1126,10 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
     const isPage = !!getStaticPropsChunk
 
+    // In a multi-language project every fetch says which language it is for —
+    // see `request-locale.ts`. Decided once for the whole component.
+    const localized = isLocalizedProject(options)
+
     // Add React dependencies
     if (!dependencies.useState) {
       dependencies.useState = {
@@ -1408,6 +1428,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         pushPropIdsAsDeps(countEffectDeps, countEffectSeen, usage.filterPropIds)
         // Same goes for URL-driven filters (already documented above).
         pushUrlSearchParamMemoDeps(countEffectDeps, usage)
+        stateDeclarations.push(buildCountSeqDeclaration(vars.countSeqRefVar))
         effectStatements.push(
           buildCountFetchEffect({
             fileName,
@@ -1415,6 +1436,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             setMaxPagesVar: vars.setMaxPagesStateVar,
             urlParams,
             deps: countEffectDeps,
+            countSeqRefVar: vars.countSeqRefVar,
           })
         )
 
@@ -1515,6 +1537,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           pushPropIdsAsDeps(countDeps, countDepsSeen, usage.filterPropIds)
           pushUrlSearchParamMemoDeps(countDeps, usage)
 
+          stateDeclarations.push(buildCountSeqDeclaration(vars.countSeqRefVar))
           effectStatements.push(
             buildCountFetchEffect({
               fileName,
@@ -1522,6 +1545,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
               setMaxPagesVar: vars.setMaxPagesStateVar,
               urlParams: countUrlParams,
               deps: countDeps,
+              countSeqRefVar: vars.countSeqRefVar,
             })
           )
         }
@@ -1658,43 +1682,16 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // `router.query` / `router.isReady` and call `router.replace`. Gated on the
     // same predicate as the effects themselves so router is only injected when
     // it is actually used.
-    const needsUseRouter = registry.usages.some(
-      (u) => hasUrlSearchParamFilters(u) || usageHasSearchUrlSync(u) || usageHasPageUrlSync(u)
-    )
-    if (needsUseRouter) {
-      if (!dependencies.useRouter) {
-        // Match the shape the sibling Next.js plugins use (i18n locale mapper,
-        // search-params plugin) so the deduped import line is identical and
-        // the dependency-resolver merges instead of emitting a second one.
-        dependencies.useRouter = {
-          type: 'library',
-          path: 'next/router',
-          version: '^12.1.10',
-          meta: { namedImport: true },
-        }
-      }
-      const hasRouterDecl = blockStatement.body.some(
-        (statement) =>
-          statement.type === 'VariableDeclaration' &&
-          statement.declarations.some(
-            (decl) =>
-              decl.id.type === 'Identifier' &&
-              decl.id.name === 'router' &&
-              decl.init?.type === 'CallExpression' &&
-              decl.init.callee.type === 'Identifier' &&
-              decl.init.callee.name === 'useRouter'
-          )
+    // A localized project reads `router.locale` into every wired provider's
+    // params (each of them fetches client-side), so the router is needed as
+    // soon as there is anything to wire.
+    const needsUseRouter =
+      localized ||
+      registry.usages.some(
+        (u) => hasUrlSearchParamFilters(u) || usageHasSearchUrlSync(u) || usageHasPageUrlSync(u)
       )
-      if (!hasRouterDecl) {
-        blockStatement.body.unshift(
-          types.variableDeclaration('const', [
-            types.variableDeclarator(
-              types.identifier('router'),
-              types.callExpression(types.identifier('useRouter'), [])
-            ),
-          ])
-        )
-      }
+    if (needsUseRouter) {
+      ensureRouterDeclaration(blockStatement.body, dependencies)
     }
 
     // Both the search write-back and the page ⇄ URL effect write the URL through
@@ -1766,13 +1763,20 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
       // Update DataProvider based on category
       if (usage.category === 'paginated+search') {
-        updateDataProviderForPaginatedSearch(dp, usage, vars, fileName, cacheDeclarations)
+        updateDataProviderForPaginatedSearch(
+          dp,
+          usage,
+          vars,
+          fileName,
+          cacheDeclarations,
+          localized
+        )
       } else if (usage.category === 'paginated-only') {
-        updateDataProviderForPaginationOnly(dp, usage, vars, fileName, cacheDeclarations)
+        updateDataProviderForPaginationOnly(dp, usage, vars, fileName, cacheDeclarations, localized)
       } else if (usage.category === 'search-only') {
-        updateDataProviderForSearchOnly(dp, usage, vars, fileName, cacheDeclarations)
+        updateDataProviderForSearchOnly(dp, usage, vars, fileName, cacheDeclarations, localized)
       } else if (usage.category === 'plain') {
-        updateDataProviderForPlain(dp, fileName, usage)
+        updateDataProviderForPlain(dp, fileName, usage, localized)
       }
 
       // Show the array mapper's loading state while a category/sort/search
@@ -1871,6 +1875,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     const searchEnabledUsages = registry.usages.filter((u) => u.searchEnabled)
 
     // Match by order - search input 0 -> searchEnabledUsages[0], etc.
+    const usageBySearchInput = new Map<any, DataSourceUsage>()
     searchInputs.forEach((input, idx) => {
       if (idx >= searchEnabledUsages.length) {
         return
@@ -1879,6 +1884,19 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       const usage = searchEnabledUsages[idx]
       const vars = getStateVarsForUsage(usage)
       wireSearchInput(input.node, vars)
+      usageBySearchInput.set(input.node, usage)
+    })
+
+    // STEP 4.5: Wire the clear buttons, each to the input it shares a parent with.
+    findAllSearchClearButtonsInJSX(blockStatement).forEach((button) => {
+      const input = findSiblingSearchInput(
+        button,
+        searchInputs.map((entry) => entry.node)
+      )
+      const usage = input ? usageBySearchInput.get(input) : undefined
+      if (usage) {
+        wireSearchClearButton(button, getStateVarsForUsage(usage))
+      }
     })
 
     // STEP 5: Wire pagination widgets
@@ -1908,7 +1926,13 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 
     // STEP 6: Update getStaticProps if this is a page
     if (isPage) {
-      updateGetStaticProps(chunks, registry, dependencies, uidl.outputOptions?.folderPath)
+      updateGetStaticProps(
+        chunks,
+        registry,
+        dependencies,
+        uidl.outputOptions?.folderPath,
+        localized
+      )
     }
 
     return structure
@@ -1964,6 +1988,20 @@ function insertSentinelAfterProvider(
     if (node.alternate) {
       traverse(node.alternate)
     }
+    // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
+    // panel, a gated section: the provider sits on the RIGHT of a logical
+    // expression (or in a ternary's `test`), which is not a child, a body or
+    // an argument. Left unvisited, the products list under the first tab of
+    // a shop was never paginated or seeded, and rendered nothing.
+    if (node.left) {
+      traverse(node.left)
+    }
+    if (node.right) {
+      traverse(node.right)
+    }
+    if (node.test) {
+      traverse(node.test)
+    }
     if (node.expression) {
       traverse(node.expression)
     }
@@ -2006,6 +2044,20 @@ function findAllDataProvidersInJSX(blockStatement: types.BlockStatement): any[] 
 
     if (node.alternate) {
       traverse(node.alternate)
+    }
+    // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
+    // panel, a gated section: the provider sits on the RIGHT of a logical
+    // expression (or in a ternary's `test`), which is not a child, a body or
+    // an argument. Left unvisited, the products list under the first tab of
+    // a shop was never paginated or seeded, and rendered nothing.
+    if (node.left) {
+      traverse(node.left)
+    }
+    if (node.right) {
+      traverse(node.right)
+    }
+    if (node.test) {
+      traverse(node.test)
     }
 
     if (node.expression) {
@@ -2110,6 +2162,20 @@ function findAllSearchInputsInJSX(
     if (node.alternate) {
       traverse(node.alternate)
     }
+    // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
+    // panel, a gated section: the provider sits on the RIGHT of a logical
+    // expression (or in a ternary's `test`), which is not a child, a body or
+    // an argument. Left unvisited, the products list under the first tab of
+    // a shop was never paginated or seeded, and rendered nothing.
+    if (node.left) {
+      traverse(node.left)
+    }
+    if (node.right) {
+      traverse(node.right)
+    }
+    if (node.test) {
+      traverse(node.test)
+    }
     if (node.expression) {
       traverse(node.expression)
     }
@@ -2172,6 +2238,20 @@ function findPaginationNodesWithOwners(
     }
     if (node.alternate) {
       traverse(node.alternate)
+    }
+    // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
+    // panel, a gated section: the provider sits on the RIGHT of a logical
+    // expression (or in a ternary's `test`), which is not a child, a body or
+    // an argument. Left unvisited, the products list under the first tab of
+    // a shop was never paginated or seeded, and rendered nothing.
+    if (node.left) {
+      traverse(node.left)
+    }
+    if (node.right) {
+      traverse(node.right)
+    }
+    if (node.test) {
+      traverse(node.test)
     }
     if (node.expression) {
       traverse(node.expression)
@@ -2239,7 +2319,8 @@ function updateDataProviderForPaginatedSearch(
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
   fileName: string,
-  cacheDeclarations: types.Statement[]
+  cacheDeclarations: types.Statement[],
+  localized: boolean
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2293,6 +2374,9 @@ function updateDataProviderForPaginatedSearch(
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
   pushUrlSearchParamMemoDeps(memoDeps, usage)
+  if (localized) {
+    appendClientLocaleParam(paramsProps, memoDeps)
+  }
 
   const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
@@ -2416,7 +2500,8 @@ function updateDataProviderForPaginationOnly(
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
   fileName: string,
-  cacheDeclarations: types.Statement[]
+  cacheDeclarations: types.Statement[],
+  localized: boolean
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2448,6 +2533,9 @@ function updateDataProviderForPaginationOnly(
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
   pushUrlSearchParamMemoDeps(memoDeps, usage)
+  if (localized) {
+    appendClientLocaleParam(paramsProps, memoDeps)
+  }
 
   // Add params
   const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
@@ -2522,7 +2610,8 @@ function updateDataProviderForSearchOnly(
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>,
   fileName: string,
-  cacheDeclarations: types.Statement[]
+  cacheDeclarations: types.Statement[],
+  localized: boolean
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2564,6 +2653,9 @@ function updateDataProviderForSearchOnly(
     pushStateIdsAsDeps(memoDeps, seenDeps, usage.dynamicSort.depStateIds)
   }
   pushUrlSearchParamMemoDeps(memoDeps, usage)
+  if (localized) {
+    appendClientLocaleParam(paramsProps, memoDeps)
+  }
 
   const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
 
@@ -2621,7 +2713,12 @@ function updateDataProviderForSearchOnly(
   )
 }
 
-function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSourceUsage): void {
+function updateDataProviderForPlain(
+  dp: any,
+  fileName: string,
+  usage: DataSourceUsage,
+  localized: boolean
+): void {
   const attrs = dp.openingElement.attributes
 
   const clientCache = usage.cache?.client ? usage.cache : undefined
@@ -2658,13 +2755,24 @@ function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSource
     )
   }
 
-  // Find the params attribute
-  const paramsAttrIndex = attrs.findIndex(
+  // Find the params attribute. A plain list may have none at all — but the
+  // fetch it was just given sends `params` regardless, and in a localized
+  // project those have to carry the locale, so the attribute is created.
+  let paramsAttrIndex = attrs.findIndex(
     (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'params'
   )
 
   if (paramsAttrIndex === -1) {
-    return
+    if (!localized) {
+      return
+    }
+    attrs.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('params'),
+        types.jsxExpressionContainer(types.objectExpression([]))
+      )
+    )
+    paramsAttrIndex = attrs.length - 1
   }
 
   const paramsAttr = attrs[paramsAttrIndex] as types.JSXAttribute
@@ -2695,6 +2803,9 @@ function updateDataProviderForPlain(dp: any, fileName: string, usage: DataSource
   pushStateIdsAsDeps(memoDeps, memoSeen, usage.filterStateIds)
   pushPropIdsAsDeps(memoDeps, memoSeen, usage.filterPropIds)
   pushUrlSearchParamMemoDeps(memoDeps, usage)
+  if (localized && paramsExpression.type === 'ObjectExpression') {
+    appendClientLocaleParam(paramsExpression.properties, memoDeps)
+  }
 
   // Wrap params in useMemo with filter state dependencies
   const memoizedParams = types.callExpression(types.identifier('useMemo'), [
@@ -2743,11 +2854,18 @@ function stabilizeDataProviderWithoutRepeater(dp: any): void {
     return
   }
 
-  // Wrap params in useMemo with empty dependencies array
-  // This ensures the object reference stays stable across re-renders
+  // Wrap params in useMemo with an empty dependencies array so the object
+  // reference stays stable across re-renders. The one thing that may vary is
+  // the locale a client-fetched item carries (put there by the data-source
+  // plugin): a locale switch must rebuild the params, or the item would keep
+  // its previous language.
+  const memoDeps: types.Expression[] = []
+  if (paramsExpression.type === 'ObjectExpression' && hasLocaleParam(paramsExpression.properties)) {
+    memoDeps.push(buildClientLocaleExpression())
+  }
   const memoizedParams = types.callExpression(types.identifier('useMemo'), [
     types.arrowFunctionExpression([], paramsExpression),
-    types.arrayExpression([]),
+    types.arrayExpression(memoDeps),
   ])
 
   // Replace the params attribute
@@ -3377,7 +3495,8 @@ function updateGetStaticProps(
   chunks: any[],
   registry: StateRegistry,
   dependencies: Record<string, any>,
-  folderPath?: string[]
+  folderPath: string[] | undefined,
+  localized: boolean
 ): void {
   const getStaticPropsChunk = chunks.find((c) => c.name === 'getStaticProps')
   if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
@@ -3547,6 +3666,11 @@ function updateGetStaticProps(
             )
           )
         )
+      }
+
+      // The prefetch is per locale — getStaticProps runs once per language.
+      if (localized) {
+        fetchParams.push(buildServerLocaleParam())
       }
 
       // Check if this fetch already exists

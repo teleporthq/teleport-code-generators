@@ -63,13 +63,18 @@ import {
 } from './auth-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
+import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
+import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
 import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
 import {
   generateAccountDeleteRoute,
   accountDeleteRouteDependencies,
 } from './account-delete-route-generator'
-import { transactionalEmailDependencies } from './transactional-email-code'
+import {
+  readLocalizedEmailTemplates,
+  transactionalEmailDependencies,
+} from './transactional-email-code'
 import {
   needsRuntimeStorageRoute,
   generateRuntimeStorageUploadRoute,
@@ -360,7 +365,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         {
           name: 'runtime-utils',
           fileType: FileType.JS,
-          content: generateSharedRuntimeUtilsCode(),
+          content: generateSharedRuntimeUtilsCode({
+            emailLocales: resolveEmailLocaleConfig(uidl),
+          }),
         },
       ],
     })
@@ -662,6 +669,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       const emailSecretEnvName =
         extractSecretEnvName(deleteConfig.apiKey) || extractSecretEnvName(deleteConfig.serverToken)
 
+      ensureEmailLocaleModule(structure)
       files.set('account-delete-current-route', {
         path: ['pages', 'api', 'account'],
         files: [
@@ -675,6 +683,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               emailSecretEnvName,
               emailSubject: typeof deleteConfig.subject === 'string' ? deleteConfig.subject : '',
               emailBodyHtml: typeof deleteConfig.body === 'string' ? deleteConfig.body : '',
+              localizedTemplates: readLocalizedEmailTemplates(deleteConfig.localizedTemplates),
               siteName: uidl.name || '',
               deletedEmailPattern:
                 typeof deleteConfig.deletedEmailPattern === 'string'
@@ -1186,7 +1195,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       })
       .join(',\n')
 
+    // Bound before the map so a handler can reach the runtime's helpers by the
+    // shared alias (see workflow-utils-alias.ts).
     return `// Auto-generated workflow node handlers (${env})
+${workflowUtilsRequireLine('./runtime-utils')}
 
 module.exports = {
 ${entries}
@@ -1266,7 +1278,7 @@ ${entries}
       const nodesJson = JSON.stringify(
         (cn.nodes || []).map((n: any) => ({
           ...n,
-          config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n)),
+          config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n), n.type),
           // Runtime marker consumed by clientExecutableBranchNodes (client
           // runtime) so streaming on-stream/on-end branches never execute
           // server nodes (whose config was just redacted) client-side.
@@ -1310,7 +1322,7 @@ ${entries}
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
-              config: redactServerNodeConfig(n.config, s.env),
+              config: redactServerNodeConfig(n.config, s.env, n.type),
               stepNumber: n.stepNumber,
               label: n.label,
             })),
@@ -1656,12 +1668,16 @@ module.exports = __customNodeRegistry;
       const welcomeSecretEnvName =
         extractSecretEnvName(signupConfig.apiKey) || extractSecretEnvName(signupConfig.serverToken)
 
+      // The route reads the signup page's language off the request, so the
+      // locale module must exist whether or not a welcome email is configured.
+      ensureEmailLocaleModule(structure)
       const signupRouteCode = generateSignupRouteFile(auth, {
         emailProvider: welcomeProvider,
         fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
         emailSecretEnvName: welcomeSecretEnvName,
         emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
         emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',
+        localizedTemplates: readLocalizedEmailTemplates(signupConfig.localizedTemplates),
         siteName: uidl.name || '',
       })
       files.set('auth-signup-route', {
@@ -1968,6 +1984,7 @@ module.exports = __customNodeRegistry;
     return `// Auto-generated global workflow hooks
 import { useEffect } from 'react';
 ${needsRouter ? `import Router from 'next/router';\n` : ''}import workflowRuntime from './runtime';
+${workflowUtilsImportLine('./runtime-utils')}
 const executeWorkflowWithSegments = workflowRuntime.executeWorkflowWithSegments;
 
 export function useGlobalWorkflows() {

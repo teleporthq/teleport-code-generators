@@ -1,5 +1,16 @@
 import { NextWorkflowProjectPlugin } from '../src/workflow-project-plugin'
 import { nodeRegistry } from '../src/nodes'
+import { workflowUtilsRequireLine } from '../src/workflow-utils-alias'
+
+// The handler file binds the shared runtime before its map (see
+// workflow-utils-alias.ts); module-eval here resolves that one require to a
+// stand-in, exactly like the module-eval simulation resolves nothing else.
+const requireStub = (specifier: string): Record<string, unknown> => {
+  if (specifier !== './runtime-utils') {
+    throw new Error(`unexpected require: ${specifier}`)
+  }
+  return {}
+}
 
 /**
  * Regression (Vercel "ReferenceError: state_update_local_state is not defined" at
@@ -42,12 +53,19 @@ describe('generateNodeHandlerFile — inline handler map (dangling-proof)', () =
     expect(dangling).toEqual([])
   })
 
+  it('binds the shared runtime before the map so handlers can reach its helpers', () => {
+    expect(code.indexOf(workflowUtilsRequireLine('./runtime-utils'))).toBeGreaterThan(-1)
+    expect(code.indexOf(workflowUtilsRequireLine('./runtime-utils'))).toBeLessThan(
+      code.indexOf('module.exports = {')
+    )
+  })
+
   it('evaluates as a CommonJS module without ReferenceError and exposes callable handlers', () => {
     const moduleObj = { exports: {} as Record<string, unknown> }
     // Simulate Next.js module-eval (the "Collecting page data" require). If a map
     // value referenced an undefined identifier this would throw ReferenceError.
     // eslint-disable-next-line no-new-func
-    new Function('module', 'exports', code)(moduleObj, moduleObj.exports)
+    new Function('module', 'exports', 'require', code)(moduleObj, moduleObj.exports, requireStub)
     expect(typeof moduleObj.exports['state-update-local-state']).toBe('function')
     expect(typeof moduleObj.exports['toast-show']).toBe('function')
     expect(typeof moduleObj.exports['general-extract-form-data']).toBe('function')
@@ -80,7 +98,11 @@ describe('generateNodeHandlerFile — every registry node type is eval-safe in b
       const moduleObj = { exports: {} as Record<string, unknown> }
       expect(() => {
         // eslint-disable-next-line no-new-func
-        new Function('module', 'exports', code)(moduleObj, moduleObj.exports)
+        new Function('module', 'exports', 'require', code)(
+          moduleObj,
+          moduleObj.exports,
+          requireStub
+        )
       }).not.toThrow()
 
       // Each emitted map value must resolve to a callable handler (the IIFE
@@ -100,7 +122,11 @@ describe('generateNodeHandlerFile — every registry node type is eval-safe in b
         try {
           const moduleObj = { exports: {} as Record<string, unknown> }
           // eslint-disable-next-line no-new-func
-          new Function('module', 'exports', code)(moduleObj, moduleObj.exports)
+          new Function('module', 'exports', 'require', code)(
+            moduleObj,
+            moduleObj.exports,
+            requireStub
+          )
           if (typeof moduleObj.exports[type] !== 'function') {
             offenders.push(`${type} (value not callable)`)
           }

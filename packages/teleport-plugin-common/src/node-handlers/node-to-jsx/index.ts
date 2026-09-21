@@ -698,9 +698,7 @@ const resolveScopedDynamicStyleValues = (
   const inlineStyleOverrides: Record<string, ParsedASTNode> = {}
   for (const cssProperty of Object.keys(style)) {
     const styleValue = style[cssProperty]
-    const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
-      letter.toUpperCase()
-    )
+    const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(cssProperty)
 
     // A pre-resolved expression style value (e.g. a data-source-bound style whose
     // mapper already produced the full member-access expression). The UIDL style

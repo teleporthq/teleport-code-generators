@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
@@ -43,9 +43,7 @@ export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig>
 
       if (hasDynamicBindings) {
         for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
-          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
-            letter.toUpperCase()
-          )
+          const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(cssProperty)
           inlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(binding)
         }
       }

@@ -197,7 +197,7 @@ describe('sent-email ledger — invoice, welcome, farewell', () => {
     })
     expect(signup).toContain('emailType: "welcome"')
     expect(signup).toContain('tokenValues: tokenValues, userId: userId')
-    expect(signup).toContain('}, newUser && newUser.id);')
+    expect(signup).toContain('}, newUser && newUser.id, __emailLocale.resolveRequestLocale(req));')
     expect(signup).toContain(
       "if (typeof __sentEmailLog !== 'undefined') { await __sentEmailLog.settleSentEmailLog(); }"
     )
@@ -210,7 +210,7 @@ describe('sent-email ledger — invoice, welcome, farewell', () => {
       emailBodyHtml: '<p>Bye</p>',
     })
     expect(del).toContain('emailType: "account-deleted"')
-    expect(del).toContain('}, userId);')
+    expect(del).toContain('}, userId, __emailLocale.resolveRequestLocale(req));')
     expect(del).toContain('await __sentEmailLog.settleSentEmailLog()')
 
     const silent = generateAccountDeleteRoute({ authUsersTableName: 'users' })

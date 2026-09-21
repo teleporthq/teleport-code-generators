@@ -16,6 +16,7 @@
  * check, so the route is a no-op for feature tables a given project never
  * provisioned.
  */
+import { UIDLLocalizedEmailTemplates } from '@teleporthq/teleport-types'
 import { generatePgClientCode } from './pg-client-code'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import {
@@ -23,6 +24,8 @@ import {
   transactionalEmailDependencies,
   generateProviderSendFunction,
   generateFillTemplateFn,
+  generateEmailLocaleRequire,
+  generateLocalizedEmailCopyFn,
 } from './transactional-email-code'
 
 export interface AccountDeleteRouteOptions {
@@ -36,6 +39,9 @@ export interface AccountDeleteRouteOptions {
   emailSecretEnvName?: string | null
   emailSubject?: string
   emailBodyHtml?: string
+  // Per-language copies of the subject/body (main language excluded); the
+  // route sends the copy matching the language the deletion came from.
+  localizedTemplates?: UIDLLocalizedEmailTemplates
   // Human site/app name used to fill the `{{siteName}}` merge token.
   siteName?: string
   // Synthetic address written onto detached rows; `{{userId}}` is substituted.
@@ -65,6 +71,8 @@ const EMAIL_FROM = ${JSON.stringify(options.fromEmail || '')};
 const EMAIL_SECRET_ENV_NAME = ${JSON.stringify(options.emailSecretEnvName || '')};
 const EMAIL_SUBJECT = ${JSON.stringify(options.emailSubject || 'Your account has been deleted')};
 const EMAIL_BODY_HTML = ${JSON.stringify(options.emailBodyHtml || '')};
+const EMAIL_LOCALIZED = ${JSON.stringify(options.localizedTemplates || {})};
+${generateEmailLocaleRequire('../../..')}
 
 // Personal data owned by the user — rows are DELETED (keyed by user_id). Messages
 // are deleted before conversations so a conversation delete only cascades leftovers.
@@ -159,6 +167,13 @@ async function anonymizeInvoices(client, ordersTable, invoicesTable, userId, syn
 
 ${generateFillTemplateFn()}
 
+${generateLocalizedEmailCopyFn({
+  fnName: 'resolveFarewellEmailCopy',
+  subjectConst: 'EMAIL_SUBJECT',
+  bodyConst: 'EMAIL_BODY_HTML',
+  localizedConst: 'EMAIL_LOCALIZED',
+})}
+
 ${generateProviderSendFunction(provider, {
   emailType: 'account-deleted',
   source: 'account-delete',
@@ -166,7 +181,9 @@ ${generateProviderSendFunction(provider, {
   relativePrefix: '../../..',
 })}
 
-async function sendFarewellEmail(toEmail, tokenValues, userId) {
+// \`locale\` is the language of the page the deletion was requested from
+// (see resolveRequestLocale); the email goes out in that language's copy.
+async function sendFarewellEmail(toEmail, tokenValues, userId, locale) {
   if (!EMAIL_PROVIDER || !EMAIL_BODY_HTML || !toEmail) { return; }
   var apiKey = EMAIL_SECRET_ENV_NAME ? process.env[EMAIL_SECRET_ENV_NAME] : '';
   // Don't treat an unresolved deploy placeholder as a real credential.
@@ -174,8 +191,9 @@ async function sendFarewellEmail(toEmail, tokenValues, userId) {
   if (!apiKey) { console.warn('[account-delete] farewell email skipped: credential not set'); return; }
   var from = EMAIL_FROM || process.env.EMAIL_FROM || '';
   if (!from) { console.warn('[account-delete] farewell email skipped: sender not configured'); return; }
-  var subject = fillTemplate(EMAIL_SUBJECT, tokenValues);
-  var html = fillTemplate(EMAIL_BODY_HTML, tokenValues);
+  var copy = resolveFarewellEmailCopy(locale);
+  var subject = fillTemplate(copy.subject, tokenValues);
+  var html = fillTemplate(copy.body, tokenValues);
   await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 
@@ -260,7 +278,7 @@ module.exports = async function handler(req, res) {
       userName: userName || 'there',
       userEmail: userEmail,
       siteName: resolvedSiteName,
-    }, userId);
+    }, userId, __emailLocale.resolveRequestLocale(req));
   } catch (emailErr) {
     console.error(
       '[account-delete] farewell email failed:',

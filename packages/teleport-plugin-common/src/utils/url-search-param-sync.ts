@@ -32,6 +32,9 @@ const accessKeyOf = (object: types.Expression, paramKey: string): types.MemberEx
   return types.memberExpression(object, types.stringLiteral(paramKey), true)
 }
 
+const adoptedRefCurrent = (refName: string): types.MemberExpression =>
+  types.memberExpression(types.identifier(refName), types.identifier('current'))
+
 const routerQueryAccess = (paramKey: string): types.MemberExpression =>
   accessKeyOf(
     types.memberExpression(types.identifier('router'), types.identifier('query')),
@@ -91,11 +94,20 @@ const clone = (expr: types.Expression): types.Expression =>
 //    means there is nothing to re-assert.
 // 4. Empty / null value deletes the key entirely so the URL never keeps a
 //    sticky `?key=` empty param. The writer treats `undefined` as "remove".
+// 5. `adoptedRefName` (optional) names a `useRef(false)` the paired read-back
+//    flips once it has adopted the URL value; until then the write-back stays
+//    silent. For a state seeded with its DEFAULT rather than from the URL
+//    (`urlSearchParamBinding.hydrateAfterMount`): on the first ready render
+//    the state still holds the default, and a write-back running before the
+//    read-back would push that default onto the URL — deleting the very key
+//    the read-back was about to adopt — after which the two chase each other
+//    forever (`/products?view=list` → `/products` → …).
 export const buildUrlWriteBackEffect = (
   paramKey: string,
   valueExpr: types.Expression,
   depExpr: types.Expression,
-  defaultValueExpr?: types.Expression
+  defaultValueExpr?: types.Expression,
+  adoptedRefName?: string
 ): types.ExpressionStatement => {
   // value === '' || value == null  [|| value === <default>]
   let deleteCondition: types.Expression = types.logicalExpression(
@@ -129,6 +141,15 @@ export const buildUrlWriteBackEffect = (
       ),
       types.returnStatement(null)
     ),
+    // if (!<adoptedRef>.current) return   — only with `adoptedRefName`, see note 5
+    ...(adoptedRefName
+      ? [
+          types.ifStatement(
+            types.unaryExpression('!', adoptedRefCurrent(adoptedRefName)),
+            types.returnStatement(null)
+          ),
+        ]
+      : []),
     // __tqWriteQueryParam('<key>', <deleteCondition> ? undefined : <value>)
     URLQueryWriter.buildQueryWriteCall(
       paramKey,
@@ -183,10 +204,14 @@ export const buildUrlWriteBackEffect = (
 // key, forcing an extra unsorted fetch and losing the ordering. It also keeps
 // browser back/forward to the param-free URL restoring the default view.
 // Omitting it reproduces the pre-default `''` fallback byte-for-byte.
+//
+// `adoptedRefName` (optional): the flag the paired write-back waits on — set
+// once the URL value has been handed to the state. See the write-back's note 5.
 export const buildUrlReadBackEffect = (
   paramKey: string,
   setterName: string,
-  defaultValueExpr?: types.Expression
+  defaultValueExpr?: types.Expression,
+  adoptedRefName?: string
 ): types.ExpressionStatement => {
   const normalizeArg = types.conditionalExpression(
     // typeof __urlValue === 'string' ? __urlValue
@@ -252,6 +277,18 @@ export const buildUrlReadBackEffect = (
         ),
       ])
     ),
+    // <adoptedRef>.current = true   — only with `adoptedRefName`
+    ...(adoptedRefName
+      ? [
+          types.expressionStatement(
+            types.assignmentExpression(
+              '=',
+              adoptedRefCurrent(adoptedRefName),
+              types.booleanLiteral(true)
+            )
+          ),
+        ]
+      : []),
   ])
 
   return types.expressionStatement(

@@ -490,6 +490,7 @@ export const dataSourceBindingDecoder = object({
 // the generated hook as a plain `useState('')`.
 export const urlSearchParamBindingDecoder = object({
   key: string(),
+  hydrateAfterMount: optional(boolean()),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({

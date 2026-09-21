@@ -10,6 +10,7 @@ export const generateEmailSenderCode = (emailDelivery: UIDLInvoiceEmailDelivery)
   const fromName = emailDelivery.fromName || ''
   const subjectTemplate = emailDelivery.subject || 'Invoice {{invoiceNumber}}'
   const bodyTemplate = emailDelivery.body || '<p>Please find your invoice attached.</p>'
+  const localizedTemplates = emailDelivery.localizedTemplates || {}
 
   return `/**
  * Invoice Email Sender
@@ -23,9 +24,15 @@ export const generateEmailSenderCode = (emailDelivery: UIDLInvoiceEmailDelivery)
 
 var pdfGenerator = require('./pdf-generator');
 var sentEmailLog = require('../email/sent-email-log');
+var emailLocale = require('../email/email-locale');
 var replacePlaceholders = pdfGenerator.replacePlaceholders;
 
 var SECRET_KEYS = ${secretKeysJson};
+var SUBJECT_TEMPLATE = ${JSON.stringify(subjectTemplate)};
+var BODY_TEMPLATE = ${JSON.stringify(bodyTemplate)};
+// Per-language copies of the subject/body (main language excluded), chosen by
+// the locale the generate route resolved for the invoice (the order's).
+var LOCALIZED_TEMPLATES = ${JSON.stringify(localizedTemplates)};
 
 function resolveSecretKey(keyName) {
   var envName = SECRET_KEYS[keyName];
@@ -36,9 +43,14 @@ function resolveSecretKey(keyName) {
 
 function buildEmailData(invoiceData) {
   var data = pdfGenerator.buildDataContext(invoiceData);
+  var copy = emailLocale.pickLocalizedTemplate(
+    { subject: SUBJECT_TEMPLATE, body: BODY_TEMPLATE },
+    LOCALIZED_TEMPLATES,
+    invoiceData.locale
+  );
   return {
-    subject: replacePlaceholders(${JSON.stringify(subjectTemplate)}, data),
-    body: replacePlaceholders(${JSON.stringify(bodyTemplate)}, data),
+    subject: replacePlaceholders(copy.subject, data),
+    body: replacePlaceholders(copy.body, data),
     to: invoiceData.customerEmail || '',
     from: ${JSON.stringify(fromName ? `${fromName} <${fromEmail}>` : fromEmail)},
     templateData: data,

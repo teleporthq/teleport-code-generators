@@ -19,6 +19,7 @@ import {
   hasEmailSendingNodeType,
   isEmailSendingNodeType,
 } from './sent-email-log/sent-email-log-scope'
+import { workflowUtilsAliasLine } from './workflow-utils-alias'
 
 // Workflow/segment names, cron schedules, and webhook paths are free-form
 // UIDL data — never guaranteed not to contain `*/`. Every generated route
@@ -83,6 +84,7 @@ export const generateServerSegmentAPIRoute = (
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
+${workflowUtilsAliasLine('utils')}
 ${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
@@ -113,7 +115,11 @@ module.exports = async function handler(req, res) {
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
-    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
+    context.__internalHeaders = utils.internalRequestHeaders(req);
+    // The language of the page this run started on — carried by the client
+    // context, else read off the request — so a customer email node sends the
+    // copy that matches the storefront the visitor is browsing.
+    context.__locale = utils.resolveWorkflowLocale(req, incomingContext);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
 
     for (let i = 0; i < sortedNodes.length; i++) {
@@ -464,6 +470,7 @@ export const generateStreamingServerSegmentAPIRoute = (
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
+${workflowUtilsAliasLine('utils')}
 ${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
@@ -526,7 +533,9 @@ module.exports = async function handler(req, res) {
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
-    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
+    context.__internalHeaders = utils.internalRequestHeaders(req);
+    // See the non-streaming segment route: the run's language.
+    context.__locale = utils.resolveWorkflowLocale(req, body.context);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
     const executed = {};
 
@@ -1078,6 +1087,7 @@ export const generateCronAPIRoute = (
 
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
+${workflowUtilsAliasLine('utils')}
 ${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, '../../..')}
 const WORKFLOW_CONFIG = ${workflowConfig};
 
@@ -1547,6 +1557,7 @@ if (typeof globalThis.fetch === 'undefined') {
 
 const utils = require('${relativePrefix}/utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
+${workflowUtilsAliasLine('utils')}
 ${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, relativePrefix)}
 ${getRawBodyCode}
 

@@ -10,6 +10,7 @@ import {
   generateSortFieldSqlHelper,
   generateSortTiebreakSql,
 } from '../product-price-sort'
+import { generateProductFilterClauseHelper } from '../product-filter-fields'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -77,8 +78,19 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
   
   const buildCondition = (condition) => {
     const field = condition.source
-    const value = condition.destination
-    const operand = condition.operand
+    const normalizedCondition = normalizeInOperand(condition.operand, condition.destination)
+    if (normalizedCondition === null) return null
+    const value = normalizedCondition.value
+    const operand = normalizedCondition.operand
+    
+    // The products table's virtual fields (effective price, rating bucket,
+    // on-sale flag, variant axes) are whole clauses, not columns - so they are
+    // answered before any branch below can interpolate the field name raw.
+    const productClause = productFilterClause(field, operand, value, (param) => {
+      queryParams.push(param)
+      return '$' + paramIndex++
+    })
+    if (productClause !== null) return productClause
     
     if (Array.isArray(value)) {
       if (value.length === 0) return null
@@ -132,6 +144,8 @@ ${generateDateFormatterCode()}
 ${generateSortFieldSqlHelper(tableName)}
 
 ${generateSortFallbackFieldHelper(tableName)}
+
+${generateProductFilterClauseHelper(tableName)}
 
 export default async function handler(req, res) {
   const client = getClient()

@@ -10,6 +10,7 @@ import { generateDataAccessCode, getRecordMappingCode } from './data-access-code
 import { generateInvoiceGenerateRouteCode, generateInvoicePdfRouteCode } from './api-routes-code'
 import { getDatabaseDriverDependencies } from '../auth-generator'
 import { ensureSentEmailLogModule } from '../sent-email-log'
+import { ensureEmailLocaleModule } from '../email-locale'
 
 export const generateInvoiceFiles = (
   invoiceSettings: UIDLInvoiceSettings,
@@ -68,8 +69,10 @@ export const generateInvoiceFiles = (
   })
 
   if (invoiceSettings.emailDelivery?.enabled) {
-    // The sender records every attempt in the sent-email ledger.
+    // The sender records every attempt in the sent-email ledger and picks the
+    // buyer's language through the shared locale module.
     ensureSentEmailLogModule(structure)
+    ensureEmailLocaleModule(structure)
     const emailSenderCode = generateEmailSenderCode(invoiceSettings.emailDelivery)
     files.set('invoice-email-sender', {
       path: ['utils', 'invoices'],

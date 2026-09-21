@@ -1,4 +1,22 @@
-export const generateSharedRuntimeUtilsCode = (): string => {
+import {
+  EmailLocaleConfig,
+  generateEmailLocaleHelpersCode,
+  generateWorkflowLocaleHelpersCode,
+} from './email-locale'
+
+export interface SharedRuntimeUtilsOptions {
+  /**
+   * The project's locales, baked in so the runtime can validate the locale a
+   * request or the browser reports and pick the matching copy of a localized
+   * email. Absent (a project without internationalization): no locale is ever
+   * recognised and every email keeps its single template.
+   */
+  emailLocales?: EmailLocaleConfig
+}
+
+const NO_EMAIL_LOCALES: EmailLocaleConfig = { locales: [], defaultLocale: '' }
+
+export const generateSharedRuntimeUtilsCode = (options: SharedRuntimeUtilsOptions = {}): string => {
   return `/**
  * Workflow Runtime Utilities
  * 
@@ -8,7 +26,8 @@ export const generateSharedRuntimeUtilsCode = (): string => {
  * - executeNodes: Executes a sequence of workflow nodes
  * - executeWorkflow: Main workflow execution entry point
  */
-
+${generateEmailLocaleHelpersCode(options.emailLocales || NO_EMAIL_LOCALES)}
+${generateWorkflowLocaleHelpersCode()}
 function resolveValue(value, context) {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) {
@@ -522,6 +541,11 @@ function resolveConfig(config, context) {
   //
   // Runs after resolution on purpose: \`templateParams[].value\` is itself a
   // workflow-context ref that the loop above has just resolved.
+  //
+  // The language is chosen first, for the same reason: a customer email carries
+  // one copy per project language, and the copy has to be picked before its
+  // tokens are filled.
+  applyLocalizedEmailTemplate(resolved, context);
   if (Array.isArray(resolved.templateParams)) {
     if (typeof resolved.body === 'string') {
       resolved.body = applyTemplateParams(resolved.body, resolved.templateParams);
@@ -650,6 +674,12 @@ async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, opt
   }
   if (triggerContext && triggerContext.triggerElement) {
     context.triggerElement = triggerContext.triggerElement;
+  }
+  // The language of the page this run started on, carried to every server
+  // segment (the context crosses whole) so a customer email can be sent in it.
+  var runLocale = getClientLocale();
+  if (runLocale) {
+    context.__locale = runLocale;
   }
 
   const callServerSegment = options.callServerSegment;
@@ -1288,6 +1318,13 @@ function internalRequestHeaders(req) {
 
 module.exports = {
   internalRequestHeaders,
+  normalizeEmailLocale,
+  resolveRequestLocale,
+  resolveWorkflowLocale,
+  resolveEmailLocale,
+  getClientLocale,
+  localizeHref,
+  pickLocalizedTemplate,
   resolveValue,
   resolveSecret,
   resolveConfig,
@@ -1557,6 +1594,11 @@ function buildContext(workflowConfig, triggerContext) {
     if (triggerContext.__routeParams) context.__routeParams = triggerContext.__routeParams;
     if (triggerContext.__dynamicRouteParam) context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
     if (triggerContext.triggerElement) context.triggerElement = triggerContext.triggerElement;
+  }
+  // See executeWorkflow: the page's language travels with the run.
+  var runLocale = utils.getClientLocale();
+  if (runLocale) {
+    context.__locale = runLocale;
   }
   return context;
 }
@@ -1885,7 +1927,10 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
       if (__terminalResult) {
         var __redirectUrl = __terminalResult.__redirectUrl;
         if (typeof __redirectUrl === 'string' && __redirectUrl.length > 0 && typeof window !== 'undefined' && window.location) {
-          window.location.href = __redirectUrl;
+          // A site-relative target keeps the visitor in the language of the
+          // page the run started on (the provider's hosted page is absolute
+          // and passes through untouched).
+          window.location.href = utils.localizeHref(__redirectUrl, context.__locale);
         }
         break;
       }

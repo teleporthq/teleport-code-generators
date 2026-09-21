@@ -949,7 +949,14 @@ export const createStateHookAST = (
   } else if (
     stateDefinition.urlSearchParamBinding &&
     typeof stateDefinition.urlSearchParamBinding.key === 'string' &&
-    stateDefinition.urlSearchParamBinding.key !== ''
+    stateDefinition.urlSearchParamBinding.key !== '' &&
+    // `hydrateAfterMount`: the state keeps its static default on the client's
+    // first render too, and the router read-back effect adopts the URL value
+    // once `router.isReady` — a real update, so the elements it gates
+    // re-render. Needed where the server markup and a URL-seeded client value
+    // would differ only in ATTRIBUTES of same-tag siblings (a pressed toggle):
+    // React 17 does not patch those on hydration. See the type's docs.
+    stateDefinition.urlSearchParamBinding.hydrateAfterMount !== true
   ) {
     // URL-search-param binding: seed the initial state directly from
     // `window.location.search`. We deliberately DO NOT use Next.js'

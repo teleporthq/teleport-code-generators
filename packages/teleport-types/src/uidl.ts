@@ -835,6 +835,21 @@ export interface UIDLStateDataSourceBinding {
 
 export interface UIDLStateUrlSearchParamBinding {
   key: string
+  /**
+   * Adopt the URL value AFTER hydration (through the router read-back effect)
+   * instead of seeding `useState` from `window.location.search` on the client.
+   * For a state whose value changes how server-rendered markup looks — the
+   * products list's grid/list toggle, whose two variants are same-tag siblings
+   * differing only in attributes. A statically generated page renders the
+   * default; a client seeded from the URL then hydrates a different value onto
+   * the same elements, and React 17 does not patch attribute mismatches, so
+   * the toggle would keep the server's "pressed" state until the next change.
+   * Seeding the default on both sides and switching after mount is a real
+   * state update, which re-renders correctly. Off by default: a state that
+   * drives a fetch (filters) must be seeded synchronously so the first client
+   * fetch already carries the deep link.
+   */
+  hydrateAfterMount?: boolean
 }
 
 export interface UIDLStateDefinition {
@@ -2006,6 +2021,25 @@ export interface UIDLInvoiceDynamicField {
   category: string
 }
 
+/**
+ * One language's copy of an email template, serialized at generation time.
+ * `body` is the full HTML with its `{{token}}` merge fields preserved; `subject`
+ * is omitted when the language has no subject line of its own, in which case
+ * the sender keeps the configured (main-language) subject.
+ */
+export interface UIDLLocalizedEmailTemplate {
+  body: string
+  subject?: string
+}
+
+/**
+ * Per-language copies of an email template keyed by locale short code, for
+ * every project language other than the main one. The main-language copy is
+ * always the plain `subject` / `body` of its owner; a locale absent from this
+ * map (or a project with one language) falls back to it.
+ */
+export type UIDLLocalizedEmailTemplates = Record<string, UIDLLocalizedEmailTemplate>
+
 export interface UIDLInvoiceEmailDelivery {
   enabled: boolean
   provider: 'sendgrid' | 'resend' | 'mailgun' | 'postmark' | 'mailersend' | null
@@ -2014,6 +2048,7 @@ export interface UIDLInvoiceEmailDelivery {
   subject: string
   body: string
   secretKeys: Record<string, string>
+  localizedTemplates?: UIDLLocalizedEmailTemplates
 }
 
 export interface UIDLInvoiceLayoutNode {

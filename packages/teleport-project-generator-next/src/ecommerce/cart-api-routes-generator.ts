@@ -39,7 +39,41 @@ export const generateCartApiRoute = (
 
   return `${dbImport}
 ${generateCommonJsSessionTokenResolverCode()}
+var emailLocale = require('../../../utils/email/email-locale')
 const UUID_RE =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Whether \`teleport_cart\` carries the \`locale\` column the abandoned-cart
+// reminder reads to email a shopper in the language they browsed in. A store
+// provisioned before the column existed must keep syncing exactly as before,
+// so the column is written only once its presence is confirmed. Answered once
+// per process: a column added while the process lives is picked up on the
+// next cold start.
+var cartLocaleColumnPresent = null
+async function cartHasLocaleColumn(client) {
+  if (cartLocaleColumnPresent !== null) return cartLocaleColumnPresent
+  try {
+    var found = await client.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'teleport_cart' AND column_name = 'locale' LIMIT 1"
+    )
+    cartLocaleColumnPresent = !!(found.rows && found.rows.length > 0)
+  } catch (e) {
+    cartLocaleColumnPresent = false
+  }
+  return cartLocaleColumnPresent
+}
+
+// Touches the cart and records the language of the page it was synced from.
+async function touchCart(client, cartId, body) {
+  var locale = emailLocale.normalizeEmailLocale(body && body.locale)
+  if (locale && (await cartHasLocaleColumn(client))) {
+    await client.query('UPDATE teleport_cart SET updated_at = NOW(), locale = $2 WHERE id = $1', [
+      cartId,
+      locale,
+    ])
+    return
+  }
+  await client.query('UPDATE teleport_cart SET updated_at = NOW() WHERE id = $1', [cartId])
+}
 
 function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
@@ -330,7 +364,7 @@ async function handleSync(req, res, body) {
         [generateUUID(), cartId, line.productId, line.variantId, line.quantity]
       )
     }
-    await client.query('UPDATE teleport_cart SET updated_at = NOW() WHERE id = $1', [cartId])
+    await touchCart(client, cartId, body)
     await client.query('COMMIT')
     return res.status(200).json({ ok: true })
   } catch (e) {

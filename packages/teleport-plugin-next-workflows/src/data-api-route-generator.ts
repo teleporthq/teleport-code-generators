@@ -524,6 +524,24 @@ async function getColumnTypes(client, tableName) {
   } catch(e) { return {}; }
 }
 
+// Tables whose rows remember the language of the storefront they were
+// written from, so the emails about them can be sent in it later (by a cron,
+// a webhook, an admin action — none of which run in the buyer's language).
+// The column is stamped ONLY when the table actually has it: a store
+// provisioned before the column existed keeps inserting exactly as before.
+var LOCALE_STAMPED_TABLES = { teleport_orders: 1 };
+var LOCALE_COLUMN = 'locale';
+
+function stampRequestLocale(tableName, entries, colTypes, requestLocale) {
+  if (!LOCALE_STAMPED_TABLES[tableName]) return entries;
+  if (typeof requestLocale !== 'string' || !requestLocale) return entries;
+  if (!colTypes[LOCALE_COLUMN]) return entries;
+  for (var i = 0; i < entries.length; i++) {
+    if (entries[i][0] === LOCALE_COLUMN) return entries;
+  }
+  return entries.concat([[LOCALE_COLUMN, requestLocale.slice(0, 10)]]);
+}
+
 async function handleCreate(client, body) {
   var tableName = body.tableName;
   var columnMappings = body.columnMappings || {};
@@ -550,6 +568,7 @@ async function handleCreate(client, body) {
   }
 
   var colTypes = await getColumnTypes(client, tableName);
+  entries = stampRequestLocale(tableName, entries, colTypes, body.__requestLocale);
 
   var TEXT_TYPES = { 'character varying': 1, 'text': 1, 'char': 1, 'character': 1, 'varchar': 1, 'name': 1 };
   var columns = entries.map(function(e) { return e[0]; });

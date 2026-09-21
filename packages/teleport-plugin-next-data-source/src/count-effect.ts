@@ -29,7 +29,29 @@ interface CountEffectOptions {
   urlParams: types.ObjectProperty[]
   /** Dependencies that should re-run the count. */
   deps: types.Expression[]
+  /**
+   * Name of the `useRef(0)` counting the count requests STARTED. Each request
+   * notes its sequence number and a response overtaken by a newer request is
+   * dropped: two filter changes in quick succession start two counts, and the
+   * older, slower one landing last painted a page strip for a result set the
+   * list no longer shows.
+   */
+  countSeqRefVar: string
 }
+
+/** `const ds_N_countSeq = useRef(0)` */
+export const buildCountSeqDeclaration = (countSeqRefVar: string): types.Statement =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(countSeqRefVar),
+      types.callExpression(types.identifier('useRef'), [types.numericLiteral(0)])
+    ),
+  ])
+
+const COUNT_SEQ_LOCAL = '__tqCountSeq'
+
+const refCurrent = (refVar: string): types.MemberExpression =>
+  types.memberExpression(types.identifier(refVar), types.identifier('current'))
 
 /**
  * `data.count === 0 ? 0 : Math.ceil(data.count / perPage)`
@@ -58,8 +80,30 @@ const buildMaxPagesExpression = (perPage: number): types.Expression =>
     )
   )
 
+/**
+ * `const __tqCountSeq = ++ds_N_countSeq.current` — the request's sequence
+ * number, taken before the fetch starts.
+ */
+const buildCountSeqCapture = (countSeqRefVar: string): types.Statement =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(COUNT_SEQ_LOCAL),
+      types.updateExpression('++', refCurrent(countSeqRefVar), true)
+    ),
+  ])
+
+/** `if (__tqCountSeq !== ds_N_countSeq.current) return` — a newer count is in flight. */
+const buildStaleCountGuard = (countSeqRefVar: string): types.Statement =>
+  types.ifStatement(
+    types.binaryExpression('!==', types.identifier(COUNT_SEQ_LOCAL), refCurrent(countSeqRefVar)),
+    types.returnStatement()
+  )
+
 export const buildCountFetchStatement = (
-  options: Pick<CountEffectOptions, 'fileName' | 'perPage' | 'setMaxPagesVar' | 'urlParams'>
+  options: Pick<
+    CountEffectOptions,
+    'fileName' | 'perPage' | 'setMaxPagesVar' | 'urlParams' | 'countSeqRefVar'
+  >
 ): types.Statement =>
   types.expressionStatement(
     types.callExpression(
@@ -100,6 +144,7 @@ export const buildCountFetchStatement = (
         types.arrowFunctionExpression(
           [types.identifier('data')],
           types.blockStatement([
+            buildStaleCountGuard(options.countSeqRefVar),
             types.ifStatement(
               types.logicalExpression(
                 '&&',
@@ -131,7 +176,13 @@ export const buildCountFetchStatement = (
 export const buildCountFetchEffect = (options: CountEffectOptions): types.ExpressionStatement =>
   types.expressionStatement(
     types.callExpression(types.identifier('useEffect'), [
-      types.arrowFunctionExpression([], types.blockStatement([buildCountFetchStatement(options)])),
+      types.arrowFunctionExpression(
+        [],
+        types.blockStatement([
+          buildCountSeqCapture(options.countSeqRefVar),
+          buildCountFetchStatement(options),
+        ])
+      ),
       types.arrayExpression(options.deps),
     ])
   )

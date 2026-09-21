@@ -14,6 +14,7 @@ import { GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import type { EntityTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
+import { buildServerLocaleParam, hasLocaleParam, buildClientLocaleParam } from './request-locale'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'rest-api',
@@ -187,18 +188,28 @@ export const generateSafeFileName = (
   return StringUtils.camelCaseToDashCase(baseName)
 }
 
+/**
+ * Wires a `DataProvider` to a client-side fetch of its API route.
+ *
+ * In a localized project (`transformOptions.localization`) the fetch carries
+ * the visitor's locale: it is added to the provider's `params` — created when
+ * the node declares none — so it reaches the route AND keys the client cache.
+ * The caller puts `router` in scope when this answers `true`.
+ *
+ * @returns `true` when a provider was wired to a client fetch.
+ */
 export const extractDataSourceIntoNextAPIFolder = (
   node: UIDLDataSourceItemNode | UIDLDataSourceListNode,
   dataSources: Record<string, UIDLDataSource>,
   componentChunk: ChunkDefinition,
   extractedResources: GeneratorOptions['extractedResources'],
   transformOptions: EntityTransformOptions = {}
-) => {
+): boolean => {
   try {
     // Validate node content structure
     const contentValidation = validateNodeContent(node.content)
     if (!contentValidation.isValid) {
-      return
+      return false
     }
 
     const { resourceDefinition } = node.content
@@ -206,31 +217,31 @@ export const extractDataSourceIntoNextAPIFolder = (
     // Validate resource definition
     const resourceValidation = validateResourceDefinition(resourceDefinition)
     if (!resourceValidation.isValid) {
-      return
+      return false
     }
 
     const { dataSourceId, tableName, dataSourceType } = resourceDefinition
 
     // Check if dataSources object exists
     if (!dataSources || typeof dataSources !== 'object') {
-      return
+      return false
     }
 
     // Check if data source exists
     const dataSource = dataSources[dataSourceId]
     if (!dataSource) {
-      return
+      return false
     }
 
     // Validate data source configuration
     const configValidation = validateDataSourceConfig(dataSource)
     if (!configValidation.isValid) {
-      return
+      return false
     }
 
     // Check if component chunk has meta and nodesLookup
     if (!componentChunk.meta || !componentChunk.meta.nodesLookup) {
-      return
+      return false
     }
 
     // Generate safe file name
@@ -238,7 +249,7 @@ export const extractDataSourceIntoNextAPIFolder = (
 
     // Check if file name is valid
     if (!fileName || fileName === 'unknown') {
-      return
+      return false
     }
 
     // Find JSX node by searching through nodesLookup
@@ -322,12 +333,12 @@ export const extractDataSourceIntoNextAPIFolder = (
     }
 
     if (!jsxNode || jsxNode.type !== 'JSXElement') {
-      return
+      return false
     }
 
     // Ensure opening element and attributes exist
     if (!jsxNode.openingElement || !Array.isArray(jsxNode.openingElement.attributes)) {
-      return
+      return false
     }
 
     // Check if this node has already been processed (has fetchData attribute)
@@ -336,12 +347,16 @@ export const extractDataSourceIntoNextAPIFolder = (
     )
 
     if (existingFetchData) {
-      return
+      return false
     }
 
     // Check if there are resource params
     const resourceParams = node.content.resource?.params || {}
-    const hasParams = Object.keys(resourceParams).length > 0
+    const localized = transformOptions.localization !== undefined
+    if (localized) {
+      addClientLocaleToParams(jsxNode)
+    }
+    const hasParams = localized || Object.keys(resourceParams).length > 0
 
     // Build resource path - use template literal if params exist
     let resourcePath: types.StringLiteral | types.TemplateLiteral
@@ -423,7 +438,7 @@ export const extractDataSourceIntoNextAPIFolder = (
 
     // Ensure extracted resources object exists
     if (!extractedResources || typeof extractedResources !== 'object') {
-      return
+      return true
     }
 
     // Check if a utils file already exists for this data source (from getStaticProps)
@@ -440,7 +455,7 @@ export default dataSourceModule.handler
         path: ['pages', 'api'],
         content: apiRouteCode,
       }
-      return
+      return true
     }
 
     // Generate fetcher code for API route (exports just the handler)
@@ -453,7 +468,7 @@ export default dataSourceModule.handler
         transformOptions
       )
     } catch (error) {
-      return
+      return true
     }
 
     extractedResources[`api/${fileName}`] = {
@@ -462,9 +477,41 @@ export default dataSourceModule.handler
       path: ['pages', 'api'],
       content: fetcherCode,
     }
+    return true
   } catch (error) {
     // Catch any unexpected errors to prevent plugin from crashing
+    return false
   }
+}
+
+/**
+ * Puts `locale: router?.locale` into a provider's `params` object literal,
+ * creating the attribute when the node declared no params at all.
+ */
+const addClientLocaleToParams = (jsxNode: types.JSXElement): void => {
+  const attrs = jsxNode.openingElement.attributes
+  let paramsAttr = attrs.find(
+    (attr): attr is types.JSXAttribute =>
+      attr.type === 'JSXAttribute' &&
+      attr.name.type === 'JSXIdentifier' &&
+      attr.name.name === 'params'
+  )
+  if (!paramsAttr) {
+    paramsAttr = types.jsxAttribute(
+      types.jsxIdentifier('params'),
+      types.jsxExpressionContainer(types.objectExpression([]))
+    )
+    attrs.push(paramsAttr)
+  }
+  const value = paramsAttr.value
+  if (
+    value?.type !== 'JSXExpressionContainer' ||
+    value.expression.type !== 'ObjectExpression' ||
+    hasLocaleParam(value.expression.properties)
+  ) {
+    return
+  }
+  value.expression.properties.push(buildClientLocaleParam())
 }
 
 export const isEmbeddedDataSource = (dataSourceType: string): boolean => {
@@ -764,6 +811,22 @@ const buildFilterTreeClause = (node, buildCondition) => {
     return '(' + parts.join(node.operator === 'or' ? ' OR ' : ' AND ') + ')'
   }
   return buildCondition(node)
+}
+
+// The generic multi-value operand. The editor sends the destination either as
+// an array or as one comma-joined string (a URL-bound state such as
+// "acme,globex"); both become an array, and "in" becomes "=" so every
+// fetcher's existing array branch answers with IN (...). An empty set means
+// "no filter", never "match nothing".
+const normalizeInOperand = (operand, value) => {
+  if (operand !== 'in') return { operand, value }
+  const entries = Array.isArray(value) ? value : [value]
+  const values = entries
+    .flatMap((entry) => (typeof entry === 'string' ? entry.split(',') : [entry]))
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : entry))
+    .filter((entry) => entry !== '' && entry !== null && entry !== undefined)
+  if (values.length === 0) return null
+  return { operand: '=', value: values }
 }
 
 const flattenFilterConditions = (node) => {
@@ -1587,6 +1650,11 @@ export const extractDataSourceIntoGetStaticProps = (
         )
       }
     })
+
+    // getStaticProps runs once per language: the prefetch is for that language.
+    if (transformOptions.localization !== undefined) {
+      paramsProperties.push(buildServerLocaleParam())
+    }
 
     const fetchCallExpression = types.callExpression(
       types.memberExpression(types.identifier(fetcherImportName), types.identifier('fetchData')),

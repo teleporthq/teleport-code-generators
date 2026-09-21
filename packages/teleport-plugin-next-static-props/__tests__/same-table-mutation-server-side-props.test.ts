@@ -244,4 +244,42 @@ describe('teleport-plugin-next-static-props: same-table-mutation getServerSidePr
     expect(code).toContain('export async function getStaticProps(context)')
     expect(code).toContain('revalidate: 60')
   })
+
+  /**
+   * In a multi-language project the fetch's `locale` makes a localized data
+   * source resolve the row into that language (`es_name` for `es`). A page that
+   * WRITES the row it fetched binds the stored per-language columns themselves;
+   * a main-language field seeded with the Spanish copy would save Spanish into
+   * the main column. Such a page fetches the row as stored.
+   */
+  it('fetches the row as stored, with no locale, when the page writes the same table', async () => {
+    const structure = makeStructure({
+      folderPath: ['edit-press-item'],
+      fileName: '[id]',
+      tableName: TABLE_NAME,
+      workflows: makeWorkflows({}),
+    })
+    structure.options.skipI18n = false
+
+    const result = await plugin(structure)
+    const code = generator(getStaticPropsChunk(result)?.content as types.Node).code
+    expect(code).toContain('export async function getServerSideProps(context)')
+    expect(code).not.toContain('locale')
+  })
+
+  it('still fetches the row in the page language when the page only reads it', async () => {
+    const structure = makeStructure({
+      folderPath: ['view-press-item'],
+      fileName: '[id]',
+      tableName: TABLE_NAME,
+      workflows: undefined,
+    })
+    structure.options.skipI18n = false
+
+    const result = await plugin(structure)
+    const code = generator(getStaticPropsChunk(result)?.content as types.Node).code
+    expect(code.replace(/\s+/g, ' ')).toContain(
+      '...(context?.locale && { locale: context.locale })'
+    )
+  })
 })

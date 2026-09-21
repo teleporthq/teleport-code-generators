@@ -24,7 +24,8 @@ var pdfGenerator = require('../../../utils/invoices/pdf-generator');
 ${
   emailEnabled
     ? `var emailSender = require('../../../utils/invoices/email-sender');
-var sentEmailLog = require('../../../utils/email/sent-email-log');`
+var sentEmailLog = require('../../../utils/email/sent-email-log');
+var emailLocale = require('../../../utils/email/email-locale');`
     : ''
 }
 
@@ -478,7 +479,19 @@ module.exports = async function handler(req, res) {
     var fallbackPaymentProvider = orderRow.payment_provider || '';
     var fallbackPaymentIntentId = orderRow.payment_intent_id || '';
     var fallbackNotes = orderRow.notes || '';
-
+${
+  emailEnabled
+    ? `
+    // The language the invoice email goes out in: the one stamped on the
+    // order at checkout (the buyer's storefront), else the one the caller
+    // named, else the language of the request itself. A cron or a webhook
+    // has neither of the last two and lands on the store's main language.
+    var invoiceLocale = emailLocale.normalizeEmailLocale(orderRow.locale)
+      || emailLocale.normalizeEmailLocale(body.locale)
+      || emailLocale.resolveRequestLocale(req);
+`
+    : ''
+}
     var invoiceData = {
       id: body.id || require('crypto').randomUUID(),
       invoiceNumber: invoiceNumber,
@@ -487,7 +500,9 @@ module.exports = async function handler(req, res) {
       dueDate: dueDate,
       paidAt: body.paidAt || null,
       customerName: body.customerName || fallbackCustomerName || '',
-      customerEmail: body.customerEmail || fallbackCustomerEmail || '',
+      customerEmail: body.customerEmail || fallbackCustomerEmail || '',${
+        emailEnabled ? '\n      locale: invoiceLocale,' : ''
+      }
       customerAddress: body.customerAddress || fallbackCustomerAddress || '',
       customerCity: body.customerCity || fallbackCustomerCity || '',
       customerState: body.customerState || fallbackCustomerState || '',
