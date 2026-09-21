@@ -141,8 +141,8 @@ const transformScrollVideo = (element: UIDLElement, usage: MotionUsage): void =>
   // With a phone variant the runtime picks the source, so a phone never starts
   // downloading the desktop clip; with a single source the page names it and the
   // browser can show its first frame early. The page asks for that frame only:
-  // the runtime holds the whole clip in memory (bufferWholeClip), and switches
-  // back to preloading only where it cannot.
+  // the runtime holds the clip itself (holdClip: streamed by the second, or
+  // whole in memory), and switches back to preloading only where it cannot.
   const videoAttrs: Record<string, UIDLAttributeValue> = {
     muted: staticAttr('true'),
     playsinline: staticAttr('true'),

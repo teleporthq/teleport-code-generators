@@ -69,7 +69,9 @@ describe('Next generator page transition', () => {
     expect(wrapper?.content).toContain('const DURATION = 0.25')
     expect(wrapper?.content).toContain('const EASE = [0, 0, 0.58, 1]')
     expect(wrapper?.content).toContain('function pageTransitionVariants(')
-    expect(wrapper?.content).toContain('AnimatePresence mode="wait" initial={false}')
+    expect(wrapper?.content).toContain(
+      "AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false}"
+    )
     expect(wrapper?.content).toContain("router.events.on('routeChangeStart'")
     expect(wrapper?.content).toContain('useReducedMotion')
     const pkg = output.files.find((file) => file.name === 'package')
@@ -171,10 +173,10 @@ describe('Next generator flying picture', () => {
     const output = await generator.generateProject(buildUidl(config), template())
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     const plan = PageTransition.viewTransitionPlan(config, { crossDocument: false })
-    expect(wrapper).toContain(`const MORPH_CSS = ${JSON.stringify(plan?.css)}`)
+    expect(wrapper).toContain(`const VT_CSS = ${JSON.stringify(plan?.css)}`)
     expect(plan?.css).toContain('::view-transition-group(tq-morph)')
     expect(plan?.css).not.toContain('@view-transition')
-    expect(wrapper).toContain('<style dangerouslySetInnerHTML={{ __html: MORPH_CSS }} />')
+    expect(wrapper).toContain('<style dangerouslySetInnerHTML={{ __html: VT_CSS }} />')
   })
 
   it('turned off by the author, plays every page change as its transition, with no flight', async () => {
@@ -184,24 +186,44 @@ describe('Next generator flying picture', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     // no stylesheet for a flight, so a page change never starts one
-    expect(wrapper).toContain('const MORPH_CSS = ""')
+    expect(wrapper).toContain('const VT_CSS = ""')
+    expect(wrapper).toContain('const FLIES = false')
     expect(wrapper).toContain(
-      "if (!MORPH_CSS || !pageRef.current || typeof document.startViewTransition !== 'function'"
+      "if (!VT_CSS || !pageRef.current || typeof document.startViewTransition !== 'function'"
     )
+  })
+
+  it('a reveal keeps its stylesheet with the flight off: the reveal itself plays as a View Transition', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out', flyingPictures: false }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    expect(wrapper).toContain('const FLIES = false')
+    expect(wrapper).toContain('const VT_CSS = "')
+    expect(wrapper).toContain('tq-page-arrive')
+    expect(wrapper).not.toContain('tq-morph-away')
   })
 
   it('pairs the pictures with the static export’s own helpers', async () => {
     const output = await generator.generateProject(buildUidl(config), template())
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain(PageTransition.morphHelpersSource())
-    expect(wrapper).toContain('const image = tqMorphSource(url, clickedRef.current)')
-    expect(wrapper).toContain('const target = tqMorphTarget(morph.src)')
+    expect(wrapper).toContain(
+      'const image = FLIES && !reverse ? tqMorphSource(url, clickedRef.current) : null'
+    )
+    expect(wrapper).toContain('twin = landing.src ? tqMorphTarget(landing.src) : null')
   })
 
   it('flies only going forward, to a page that plays transitions, for a visitor who wants motion', async () => {
     const output = await generator.generateProject(buildUidl(config), template())
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
-    expect(wrapper).toContain('if (!reverse && !skip && startMorph(url, pointer))')
+    expect(wrapper).toContain('if (!skip && startViewChange(url, pointer, reverse))')
+    // the picture flies forward only; a reveal plays either way
+    expect(wrapper).toContain(
+      'const image = FLIES && !reverse ? tqMorphSource(url, clickedRef.current) : null'
+    )
+    expect(wrapper).toContain('if (!image && !REVEAL) {')
     expect(wrapper).toContain(
       "typeof document.startViewTransition !== 'function' || prefersLessMotion()"
     )
@@ -215,15 +237,15 @@ describe('Next generator flying picture', () => {
     )
     // Always rendered: framer-motion never forgets a presence child, so one that came and went would hold its page forever.
     expect(wrapper).toContain(
-      '{MORPH_CSS ? <HoldForMorph pageKey={routeKey} morphRef={morphRef} /> : null}'
+      '{VT_CSS ? <HoldPage pageKey={routeKey} changeRef={changeRef} revealRef={revealRef} /> : null}'
     )
-    expect(wrapper).toContain('morph.captured.then(safeToRemove)')
+    expect(wrapper).toContain('change.captured.then(safeToRemove)')
   })
 
   it('gives up on the flight rather than freezing the screen when the page does not arrive', async () => {
     const output = await generator.generateProject(buildUidl(config), template())
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
-    expect(wrapper).toContain('setTimeout(() => abandonMorph(morph), MORPH_WAIT_MS)')
+    expect(wrapper).toContain('setTimeout(() => abandon(change), ARRIVAL_WAIT_MS)')
     expect(wrapper).toContain("router.events.on('routeChangeError', onRouteChangeError)")
   })
 })
@@ -247,13 +269,13 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     // no screen measured yet (the first page, the server): only the settling applies
     const firstPage = revealOnScreen(pageTransitionVariants('circle', 24))
     expect(firstPage?.animate.transitionEnd).toEqual({ clipPath: 'none' })
-    // the exit starts from the full reveal on its own, so nothing has to put the clip back
-    expect(firstPage?.exit.clipPath).toEqual(['circle(150% at 50% 50%)', 'circle(0% at 50% 50%)'])
+    // the leaving page holds under the arriving one: it has no exit of its own
+    expect(firstPage?.exit).toEqual({})
   })
 
   it('measures a reveal on the screen, not on the page it clips', () => {
     // A page change started 2000px down a page, on a 1200 x 800 screen.
-    const screen = { width: 1200, height: 800, top: 2000 }
+    const screen = { width: 1200, height: 800 }
     const pressed = { reverse: false, originX: '600px', originY: '36px' }
     const circle = revealOnScreen(pageTransitionVariants('circle', 24, pressed), screen)
     // CSS resolves a circle's percentage against the diagonal over root two — here, the screen's
@@ -261,19 +283,13 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     // the arrival opens at the top of the new page, under the press
     expect(circle?.initial.clipPath).toBe('circle(0px at 600px 36px)')
     expect(circle?.animate.clipPath).toBe('circle(' + full + 'px at 600px 36px)')
-    // the leaving page is frozen where it stood: the circle closes on the press, 2000px down it
-    expect(circle?.exit.clipPath).toEqual([
-      'circle(' + full + 'px at 600px 2036px)',
-      'circle(0px at 600px 2036px)',
-    ])
+    // the leaving page is frozen where it stood and simply holds under the reveal
+    expect(circle?.exit).toEqual({})
     // a wipe sweeps the screen, not the page: its edges run over the 800px on show
     const wipe = revealOnScreen(pageTransitionVariants('wipe-down', 24), screen)
     expect(wipe?.initial.clipPath).toBe('inset(0px 0% calc(100% - 0px) 0%)')
     expect(wipe?.animate.clipPath).toBe('inset(0px 0% calc(100% - 800px) 0%)')
-    expect(wipe?.exit.clipPath).toEqual([
-      'inset(2000px 0% calc(100% - 2800px) 0%)',
-      'inset(2800px 0% calc(100% - 2800px) 0%)',
-    ])
+    expect(wipe?.exit).toEqual({})
     // the sides already match (the page is as wide as the screen); only the band is added
     expect(revealOnScreen(pageTransitionVariants('wipe-left', 24), screen)?.initial.clipPath).toBe(
       'inset(0px 0% calc(100% - 800px) 100%)'
@@ -291,7 +307,7 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain(
-      'const screen = { width: window.innerWidth, height: window.innerHeight, top: window.scrollY || 0 }'
+      'const screen = { width: window.innerWidth, height: window.innerHeight }'
     )
     expect(wrapper).toContain(
       'const origin = pointer || { x: screen.width / 2, y: screen.height / 2 }'
@@ -299,13 +315,40 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     expect(revealOnScreen.toString()).not.toContain('`')
   })
 
-  it('runs a reveal frame by frame (no blink as it ends); every other preset keeps the browser-run animation', async () => {
+  it('opens a reveal over the leaving page, which holds; every other preset plays in turn', async () => {
     const circle = await generator.generateProject(
       buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out' }),
       template()
     )
     const circleWrapper = findFile(circle, 'components', 'tq-page-transition')?.content || ''
+    // with View Transitions the whole change is one, the leaving picture kept as it is
+    expect(circleWrapper).toContain('if (!image && !REVEAL) {')
+    // without them the reveal runs frame by frame in framer's own loop — a browser-run
+    // clip-path animation ends one frame before its last value and the page blinks away
     expect(circleWrapper).toContain('onUpdate={REVEAL ? stepByFrame : undefined}')
+    const plan = PageTransition.viewTransitionPlan(
+      { preset: 'circle', duration: 0.3, easing: 'ease-out' },
+      { crossDocument: false }
+    )
+    expect(plan?.revealsOver).toBe(true)
+    expect(plan?.css).toContain('::view-transition-old(root) {\n    animation: none;\n  }')
+    expect(circleWrapper).toContain(`const VT_CSS = ${JSON.stringify(plan?.css)}`)
+    // without them the two pages overlap: the arriving page above, the leaving one held until it has opened
+    expect(circleWrapper).toContain(
+      "AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false}"
+    )
+    expect(circleWrapper).toContain("const OVER = { position: 'relative', zIndex: 1 }")
+    expect(circleWrapper).toContain('if (REVEAL && !skip) {')
+    expect(circleWrapper).toContain('reveal.opened.then(safeToRemove)')
+    expect(circleWrapper).toContain(
+      "if (definition === 'animate' && reveal && reveal.arrivingKey === routeKey) {"
+    )
+    expect(
+      PageTransition.viewTransitionPlan(
+        { preset: 'slide-up', duration: 0.3, easing: 'ease-out' },
+        { crossDocument: false }
+      )?.revealsOver
+    ).toBe(false)
     const reveal = (preset: string) => {
       const variants = pageTransitionVariants(preset, 24)
       return !!(variants && variants.animate.clipPath)

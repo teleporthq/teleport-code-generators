@@ -173,6 +173,47 @@ describe('The flying image between pages', () => {
     )
   })
 
+  it('a reveal (Circle, the Wipes) opens the arriving page over the leaving one, which holds', () => {
+    const wipe = viewTransitionPlan({ preset: 'wipe-down', duration: 0.4, easing: 'ease-out' })
+    expect(wipe?.revealsOver).toBe(true)
+    // the leaving picture keeps no animation: the browser's own fade-out would show the site's background under the arriving page
+    expect(wipe?.css).toContain('::view-transition-old(root) {\n    animation: none;\n  }')
+    // the arriving picture opens from the start, not after a leaving half
+    expect(wipe?.css).toContain('animation: tq-page-arrive 0.4s cubic-bezier(0, 0, 0.58, 1) both;')
+    expect(wipe?.css).not.toContain('@keyframes tq-page-leave')
+    expect(block(wipe?.css ?? '', 'tq-page-arrive')).toContain(
+      'from { clip-path: inset(0 0 100% 0); }'
+    )
+    // going back plays the other wipe, still on the arriving picture only
+    expect(wipe?.css).toContain(
+      'html[data-tq-nav="back"]::view-transition-new(root) {\n    animation-name: tq-page-arrive-back;'
+    )
+    expect(wipe?.css).not.toContain('html[data-tq-nav="back"]::view-transition-old(root)')
+    expect(block(wipe?.css ?? '', 'tq-page-arrive-back')).toContain(
+      'from { clip-path: inset(100% 0 0 0); }'
+    )
+    // the flight spans the one half there is; a picture with nowhere to land just fades
+    expect(wipe?.css).toContain(
+      '::view-transition-group(tq-morph) {\n    animation-duration: 0.4s;'
+    )
+    expect(wipe?.css).toContain(
+      '::view-transition-old(tq-morph):only-child {\n    animation: tq-morph-away 0.4s cubic-bezier(0, 0, 0.58, 1) both;'
+    )
+    expect(wipe?.css).toContain(
+      '::view-transition-new(tq-morph):only-child {\n    animation: tq-page-arrive 0.4s cubic-bezier(0, 0, 0.58, 1) both, tq-morph-in 0.4s cubic-bezier(0, 0, 0.58, 1) both;'
+    )
+    expect(
+      viewTransitionPlan({ preset: 'circle', duration: 0.3, easing: 'ease-out' })?.revealsOver
+    ).toBe(true)
+    // a slide and a cover still play in turn
+    expect(
+      viewTransitionPlan({ preset: 'slide-up', duration: 0.3, easing: 'ease-out' })?.revealsOver
+    ).toBe(false)
+    expect(
+      viewTransitionPlan({ preset: 'cover', duration: 0.3, easing: 'ease-out' })?.revealsOver
+    ).toBe(false)
+  })
+
   it('a single-page app gets the same rules without opting every page load in', () => {
     const plan = viewTransitionPlan(
       { preset: 'slide-left', duration: 0.3, easing: 'ease-out' },

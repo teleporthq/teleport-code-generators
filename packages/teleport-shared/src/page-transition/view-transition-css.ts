@@ -18,6 +18,14 @@ import * as PageTransition from './variants'
  *          arriving page; the first animates over [0, D], the second waits D
  *          and animates over [D, 2D]. Same order, same timing.
  *
+ * The reveals (Circle, the Wipes) are the exception, in both exports: the
+ * arriving page is revealed OVER the leaving one, which holds still underneath
+ * for the whole run. Played one after the other, the leaving page was wiped
+ * away to the site's bare background and the arriving one wiped in over it —
+ * a white sheet between every two pages. Here the leaving picture keeps no
+ * animation (the browser would otherwise fade it out under the arriving one)
+ * and the arriving picture opens over [0, D].
+ *
  * A browser without the feature (Firefox today) simply navigates, which is
  * also what a visitor who asked for less motion gets.
  */
@@ -118,6 +126,8 @@ export interface ViewTransitionPlan {
   needsOrigin: boolean
   /** A picture flies from the followed link into the next page; off when the author turned it off. */
   flies: boolean
+  /** The arriving page is revealed over the leaving one, which holds (Circle, the Wipes). */
+  revealsOver: boolean
 }
 
 export const viewTransitionPlan = (
@@ -160,14 +170,20 @@ export const viewTransitionPlan = (
     : null
 
   const timing = `${duration}s cubic-bezier(${curve.join(', ')})`
+  // A reveal opens the arriving page over the leaving one: only the arrival
+  // animates, from the start, and the leaving picture just stays.
+  const revealsOver = !COVER_CLIPS[preset] && forward.arrive[1].clipPath !== undefined
+  const arriveTiming = revealsOver ? `${timing} both` : `${timing} ${duration}s both`
   const rules = [
     // Opting every page in is for page-to-page navigations only; a single-page
     // app starts its own transitions and must not turn full reloads into them.
     ...(target.crossDocument ? ['@view-transition {\n  navigation: auto;\n}'] : []),
     '::view-transition-old(root),\n::view-transition-new(root) {\n  mix-blend-mode: normal;\n}',
-    `::view-transition-old(root) {\n  animation: tq-page-leave ${timing} both;\n}`,
-    `::view-transition-new(root) {\n  animation: tq-page-arrive ${timing} ${duration}s both;\n}`,
-    keyframes('tq-page-leave', forward.leave[0], forward.leave[1]),
+    revealsOver
+      ? '::view-transition-old(root) {\n  animation: none;\n}'
+      : `::view-transition-old(root) {\n  animation: tq-page-leave ${timing} both;\n}`,
+    `::view-transition-new(root) {\n  animation: tq-page-arrive ${arriveTiming};\n}`,
+    ...(revealsOver ? [] : [keyframes('tq-page-leave', forward.leave[0], forward.leave[1])]),
     keyframes('tq-page-arrive', forward.arrive[0], forward.arrive[1]),
   ]
   if (COVER_CLIPS[preset]) {
@@ -178,28 +194,34 @@ export const viewTransitionPlan = (
     )
   }
   if (back) {
+    if (!revealsOver) {
+      rules.push(
+        `html[${BACK_ATTR}="back"]::view-transition-old(root) {\n  animation-name: tq-page-leave-back;\n}`
+      )
+    }
     rules.push(
-      `html[${BACK_ATTR}="back"]::view-transition-old(root) {\n  animation-name: tq-page-leave-back;\n}`,
       `html[${BACK_ATTR}="back"]::view-transition-new(root) {\n  animation-name: tq-page-arrive-back;\n}`,
-      keyframes('tq-page-leave-back', back.leave[0], back.leave[1]),
+      ...(revealsOver ? [] : [keyframes('tq-page-leave-back', back.leave[0], back.leave[1])]),
       keyframes('tq-page-arrive-back', back.arrive[0], back.arrive[1])
     )
   }
   // The flying image spans both halves (the leaving page's and the arriving
-  // page's), and a card's 4:3 picture grows into a 16:9 hero cropped, never
-  // stretched. A picture the arriving page does not show has nowhere to land:
-  // it leaves with its page instead of lingering over the next one.
+  // page's — one half when the arrival plays over the leaving page), and a
+  // card's 4:3 picture grows into a 16:9 hero cropped, never stretched. A
+  // picture the arriving page does not show has nowhere to land: it leaves
+  // with its page instead of lingering over the next one.
   const flies = config.flyingPictures !== false
   if (flies) {
+    const flight = revealsOver ? duration : duration * 2
     rules.push(
-      `::view-transition-group(${MORPH_NAME}) {\n  animation-duration: ${
-        duration * 2
-      }s;\n  animation-timing-function: cubic-bezier(${curve.join(', ')});\n}`,
-      `::view-transition-old(${MORPH_NAME}),\n::view-transition-new(${MORPH_NAME}) {\n  height: 100%;\n  object-fit: cover;\n  overflow: clip;\n  animation-duration: ${
-        duration * 2
-      }s;\n}`,
-      `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-page-leave ${timing} both, tq-morph-away ${timing} both;\n}`,
-      `::view-transition-new(${MORPH_NAME}):only-child {\n  animation: tq-page-arrive ${timing} ${duration}s both, tq-morph-in ${timing} ${duration}s both;\n}`,
+      `::view-transition-group(${MORPH_NAME}) {\n  animation-duration: ${flight}s;\n  animation-timing-function: cubic-bezier(${curve.join(
+        ', '
+      )});\n}`,
+      `::view-transition-old(${MORPH_NAME}),\n::view-transition-new(${MORPH_NAME}) {\n  height: 100%;\n  object-fit: cover;\n  overflow: clip;\n  animation-duration: ${flight}s;\n}`,
+      revealsOver
+        ? `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-morph-away ${timing} both;\n}`
+        : `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-page-leave ${timing} both, tq-morph-away ${timing} both;\n}`,
+      `::view-transition-new(${MORPH_NAME}):only-child {\n  animation: tq-page-arrive ${arriveTiming}, tq-morph-in ${arriveTiming};\n}`,
       '@keyframes tq-morph-away {\n  to { opacity: 0; }\n}',
       '@keyframes tq-morph-in {\n  from { opacity: 0; }\n}'
     )
@@ -210,5 +232,6 @@ export const viewTransitionPlan = (
     needsDirection,
     needsOrigin,
     flies,
+    revealsOver,
   }
 }

@@ -44,6 +44,7 @@ const RECORDER = () => {
     const transition = start(update)
     transition.ready
       .then(() => {
+        record.back = document.documentElement.getAttribute('data-tq-nav')
         record.animations = document
           .getAnimations()
           .filter((a) => a.effect && a.effect.pseudoElement)
@@ -330,9 +331,13 @@ const buildAndStart = async (name, pageTransition, withPictures, siteOptions) =>
   // A reveal preset (Circle) on pages six screens long. The FIRST page appears
   // without its reveal and must not keep the reveal's clip on the whole page — a
   // clip left there broke the fixed header's blur and the pinned scenes while
-  // scrolling. A page change must be measured on the screen: measured on the
-  // page, the circle covered the screen almost at once (the new page popped in,
-  // a flicker) and, leaving a scrolled page, closed on a point above the screen.
+  // scrolling. A page change opens the new page OVER the leaving one, which
+  // holds still: with View Transitions as one transition (the leaving page
+  // pictured and kept as it is), without them with the two pages overlapping.
+  // Both are measured on the screen: measured on the page, the circle covered
+  // the screen almost at once (the new page popped in, a flicker). Played one
+  // after the other, the leaving page closed to the site's bare background
+  // first — a white sheet between every two pages.
   const circle = await buildAndStart(
     'next-circle',
     { preset: 'circle', duration: 0.3, easing: 'ease-out' },
@@ -344,47 +349,27 @@ const buildAndStart = async (name, pageTransition, withPictures, siteOptions) =>
     const SCREEN = { width: 1200, height: 800 }
     // CSS resolves the circle's 150% against the diagonal over root two — of the screen now
     const FULL = 1.5 * Math.sqrt((SCREEN.width ** 2 + SCREEN.height ** 2) / 2)
-    const page = await browser.newPage({ viewport: SCREEN })
-    await page.goto(circle.base + '/', { waitUntil: 'networkidle' })
-    await page.waitForTimeout(500)
-    const clipOf = () =>
-      page.evaluate(() => document.querySelector('[data-tq-page-transition]').style.clipPath)
-    const firstLoad = await clipOf()
     const unclipped = (clip) => clip === '' || clip === 'none'
-    check('circle: the first page carries no clip once it is up', unclipped(firstLoad), {
-      clipPath: firstLoad,
-    })
-    // The computed clip of every wrapper, frame by frame, with where the wrapper sits
-    // on the screen: framer may run an animation in the browser, where its values
-    // never reach the inline style.
-    const record = () =>
-      page.evaluate(
-        () =>
-          new Promise((resolve) => {
-            const frames = []
-            const started = performance.now()
-            const tick = () => {
-              for (const wrapper of document.querySelectorAll('[data-tq-page-transition]')) {
-                const match = /circle\(([\d.]+)px at ([\d.]+)px ([\d.]+)px\)/.exec(
-                  getComputedStyle(wrapper).clipPath
-                )
-                frames.push({
-                  t: performance.now() - started,
-                  page: wrapper.getAttribute('data-tq-page-transition'),
-                  radius: match ? Number(match[1]) : null,
-                  // the circle's centre on the screen
-                  centerY: match ? Number(match[3]) + wrapper.getBoundingClientRect().top : null,
-                })
-              }
-              if (performance.now() - started < 1500) requestAnimationFrame(tick)
-              else resolve(frames)
-            }
-            requestAnimationFrame(tick)
-          })
-      )
-    const pressAt = async (selector) => {
+    const pseudoOf = (record, pseudo) =>
+      (record.animations || []).filter((a) => a.pseudo === pseudo)[0]
+    const openCircle = async (initScript) => {
+      const context = await browser.newContext({ viewport: SCREEN })
+      const page = await context.newPage()
+      // a browser without View Transitions must lose them BEFORE the recorder looks for them
+      if (initScript) {
+        await page.addInitScript(initScript)
+      }
+      await page.addInitScript(RECORDER)
+      await page.goto(circle.base + '/', { waitUntil: 'networkidle' })
+      await page.waitForTimeout(500)
+      return { context, page }
+    }
+    const clipOf = (page) =>
+      page.evaluate(() => document.querySelector('[data-tq-page-transition]').style.clipPath)
+    const pathOf = (page) => page.evaluate(() => location.pathname)
+    const pressAt = async (page, selector) => {
       const box = await page.locator(selector).boundingBox()
-      return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+      return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) }
     }
     const farthestCorner = (point) =>
       Math.max(
@@ -395,62 +380,198 @@ const buildAndStart = async (name, pageTransition, withPictures, siteOptions) =>
           [SCREEN.width, SCREEN.height],
         ].map(([x, y]) => Math.hypot(x - point.x, y - point.y))
       )
-
-    const press = await pressAt('#to-about')
-    const during = record()
-    await page.mouse.click(press.x, press.y)
-    const frames = await during
-    const arriving = frames.filter((frame) => frame.page === '/about' && frame.radius !== null)
-    const grew = arriving.some((frame) => frame.radius > 0.1 * FULL && frame.radius < 0.9 * FULL)
-    // once the reveal has grown, a frame back at a closed circle is the page blinking away
-    const peak = arriving.findIndex((frame) => frame.radius > 0.9 * FULL)
-    const blink = peak >= 0 && arriving.slice(peak).some((frame) => frame.radius < 1)
-    const settled = await clipOf()
-    check(
-      'circle: a page change plays the reveal to the end without blinking, and the page ends unclipped',
-      grew && !blink && unclipped(settled),
-      { grew, blink, lastFrames: arriving.slice(-3).map((frame) => frame.radius), settled }
-    )
-    // Measured on the screen: it ends at the screen's full circle (the page's is 3.4x
-    // larger here), and the new page is still being revealed for a good part of the run.
-    const largest = Math.max(...arriving.map((frame) => frame.radius))
-    const covered = arriving.find((frame) => frame.radius >= farthestCorner(press))
-    const coveredAt = covered && arriving.length ? covered.t - arriving[0].t : 0
-    check(
-      'circle: the arrival is measured on the screen and stays visible for most of its run',
-      Math.abs(largest - FULL) < 2 && coveredAt >= 0.4 * 300,
-      {
-        largest: Math.round(largest),
-        screenFull: Math.round(FULL),
-        coveredAfterMs: Math.round(coveredAt),
+    // Every wrapper, frame by frame: its computed clip (a circle's radius and
+    // its centre on the screen) — framer may run an animation in the browser,
+    // where its values never reach the inline style.
+    const record = (page) =>
+      page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const frames = []
+            const started = performance.now()
+            const tick = () => {
+              const wrappers = Array.from(
+                document.querySelectorAll('[data-tq-page-transition]')
+              ).map((wrapper) => {
+                const clip = getComputedStyle(wrapper).clipPath
+                const match = /circle\(([\d.]+)px at ([\d.]+)px ([\d.]+)px\)/.exec(clip)
+                return {
+                  page: wrapper.getAttribute('data-tq-page-transition'),
+                  clip,
+                  radius: match ? Number(match[1]) : null,
+                  centerY: match ? Number(match[3]) + wrapper.getBoundingClientRect().top : null,
+                }
+              })
+              frames.push({ t: performance.now() - started, wrappers })
+              if (performance.now() - started < 1500) requestAnimationFrame(tick)
+              else resolve(frames)
+            }
+            requestAnimationFrame(tick)
+          })
+      )
+    const holdsUnder = (frames, leavingKey) => {
+      const growing = frames.filter((frame) =>
+        frame.wrappers.some(
+          (w) => w.page === '/about' && w.radius !== null && w.radius < 0.99 * FULL
+        )
+      )
+      return {
+        growing: growing.length,
+        held: growing.every((frame) =>
+          frame.wrappers.some((w) => w.page === leavingKey && unclipped(w.clip))
+        ),
+        bare: frames.filter((frame) => frame.wrappers.length === 0).length,
       }
-    )
+    }
 
-    // Leaving a scrolled page: the circle closes on the press, on the screen.
-    await page.goto(circle.base + '/', { waitUntil: 'networkidle' })
-    await page.locator('#to-about-low').scrollIntoViewIfNeeded()
-    await page.waitForTimeout(300)
-    const scrolledBy = await page.evaluate(() => window.scrollY)
-    const lowPress = await pressAt('#to-about-low')
-    const leavingFrames = record()
-    await page.mouse.click(lowPress.x, lowPress.y)
-    const leaving = (await leavingFrames).filter(
-      (frame) => frame.page === '/' && frame.radius !== null
-    )
-    const off = leaving.map((frame) => Math.abs(frame.centerY - lowPress.y))
-    check(
-      'circle: leaving a scrolled page, the circle closes on the press, on the screen',
-      scrolledBy > 2000 &&
-        leaving.length > 3 &&
-        Math.max(...off) < 2 &&
-        leaving[0].radius > 0.9 * FULL,
-      {
-        scrolledBy,
-        pressY: Math.round(lowPress.y),
-        centreOnScreen: leaving.slice(0, 3).map((frame) => Math.round(frame.centerY)),
-        firstRadius: leaving.length ? Math.round(leaving[0].radius) : null,
-      }
-    )
+    // ── With View Transitions (Chrome): the change is one ──
+    {
+      const { context, page } = await openCircle()
+      const firstLoad = await clipOf(page)
+      check('circle: the first page carries no clip once it is up', unclipped(firstLoad), {
+        clipPath: firstLoad,
+      })
+      const press = await pressAt(page, '#to-about')
+      const during = record(page)
+      await page.mouse.click(press.x, press.y)
+      const frames = await during
+      const records = await page.evaluate(() => window.__tqTransitions)
+      const change = records[0] || {}
+      const leave = pseudoOf(change, '::view-transition-old(root)')
+      const arrive = pseudoOf(change, '::view-transition-new(root)')
+      const twoPages = frames.filter((frame) => frame.wrappers.length > 1).length
+      const settled = await clipOf(page)
+      check(
+        'circle: one View Transition — the leaving page pictured and held as it is, the arriving one grows from the press over it, no clip left behind',
+        records.length === 1 &&
+          !change.skipped &&
+          !leave &&
+          !!arrive &&
+          arrive.name === 'tq-page-arrive' &&
+          arrive.delay === 0 &&
+          /circle\(0% at/.test(arrive.from.clipPath) &&
+          arrive.from.clipPath.includes(`${press.x}px ${press.y}px`) &&
+          change.ms >= 250 &&
+          change.ms <= 900 &&
+          unclipped(settled) &&
+          (await pathOf(page)) === '/about',
+        {
+          transitions: records.length,
+          leaving: leave ? leave.name : 'holds',
+          arriveFrom: arrive && arrive.from.clipPath,
+          delay: arrive && arrive.delay,
+          ms: change.ms,
+          framesWithTwoPages: twoPages,
+          settled,
+        }
+      )
+      // Leaving a scrolled page: the reveal grows from the press, on the screen.
+      await page.goto(circle.base + '/', { waitUntil: 'networkidle' })
+      await page.locator('#to-about-low').scrollIntoViewIfNeeded()
+      await page.waitForTimeout(300)
+      const scrolledBy = await page.evaluate(() => window.scrollY)
+      const lowPress = await pressAt(page, '#to-about-low')
+      await page.mouse.click(lowPress.x, lowPress.y)
+      await page.waitForTimeout(1200)
+      // a full load reset the recorder: this document's first transition
+      const low = (await page.evaluate(() => window.__tqTransitions))[0] || {}
+      const lowArrive = pseudoOf(low, '::view-transition-new(root)')
+      check(
+        'circle: leaving a page scrolled far down, the reveal grows from the press, on the screen, over the page as it stood',
+        scrolledBy > 2000 &&
+          !low.skipped &&
+          !pseudoOf(low, '::view-transition-old(root)') &&
+          !!lowArrive &&
+          lowArrive.from.clipPath.includes(`${lowPress.x}px ${lowPress.y}px`),
+        {
+          scrolledBy,
+          press: lowPress,
+          arriveFrom: lowArrive && lowArrive.from.clipPath,
+        }
+      )
+      await page.goBack()
+      await page.waitForTimeout(1200)
+      const back = (await page.evaluate(() => window.__tqTransitions))[1] || {}
+      check(
+        'circle: the back button plays it too, and lands',
+        !back.skipped &&
+          back.back === 'back' &&
+          !!pseudoOf(back, '::view-transition-new(root)') &&
+          (await pathOf(page)) === '/',
+        { back: back.back, path: await pathOf(page), ms: back.ms }
+      )
+      await context.close()
+    }
+
+    // ── Without View Transitions: the two pages overlap ──
+    {
+      const { context, page } = await openCircle(() => {
+        delete Document.prototype.startViewTransition
+      })
+      const press = await pressAt(page, '#to-about')
+      const during = record(page)
+      await page.mouse.click(press.x, press.y)
+      const frames = await during
+      const arriving = frames
+        .map((frame) => ({ t: frame.t, w: frame.wrappers.find((w) => w.page === '/about') }))
+        .filter((frame) => frame.w && frame.w.radius !== null)
+      const grew = arriving.some((f) => f.w.radius > 0.1 * FULL && f.w.radius < 0.9 * FULL)
+      // once the reveal has grown, a frame back at a closed circle is the page blinking away
+      const peak = arriving.findIndex((f) => f.w.radius > 0.9 * FULL)
+      const blink = peak >= 0 && arriving.slice(peak).some((f) => f.w.radius < 1)
+      const settled = await clipOf(page)
+      const under = holdsUnder(frames, '/')
+      check(
+        'circle without View Transitions: the new page grows over the leaving one, which holds unclipped beneath it until the circle has opened; nothing blinks, no clip is left',
+        grew &&
+          !blink &&
+          unclipped(settled) &&
+          under.growing > 3 &&
+          under.held &&
+          under.bare === 0 &&
+          (await page.evaluate(() => window.__tqTransitions.length)) === 0,
+        { grew, blink, ...under, settled }
+      )
+      // Measured on the screen: it ends at the screen's full circle (the page's is 3.4x
+      // larger here), and the new page is still being revealed for a good part of the run.
+      const largest = Math.max(...arriving.map((f) => f.w.radius))
+      const covered = arriving.find((f) => f.w.radius >= farthestCorner(press))
+      const coveredAt = covered && arriving.length ? covered.t - arriving[0].t : 0
+      check(
+        'circle without View Transitions: the arrival is measured on the screen and stays visible for most of its run',
+        Math.abs(largest - FULL) < 2 && coveredAt >= 0.4 * 300,
+        {
+          largest: Math.round(largest),
+          screenFull: Math.round(FULL),
+          coveredAfterMs: Math.round(coveredAt),
+        }
+      )
+      // Leaving a scrolled page: the old page holds where it stood while the new one grows from the press.
+      await page.goto(circle.base + '/', { waitUntil: 'networkidle' })
+      await page.locator('#to-about-low').scrollIntoViewIfNeeded()
+      await page.waitForTimeout(300)
+      const scrolledBy = await page.evaluate(() => window.scrollY)
+      const lowPress = await pressAt(page, '#to-about-low')
+      const lowFrames = record(page)
+      await page.mouse.click(lowPress.x, lowPress.y)
+      const low = await lowFrames
+      const lowArriving = low
+        .map((frame) => frame.wrappers.find((w) => w.page === '/about' && w.radius !== null))
+        .filter(Boolean)
+      const off = lowArriving.map((w) => Math.abs(w.centerY - lowPress.y))
+      const lowUnder = holdsUnder(low, '/')
+      check(
+        'circle without View Transitions: leaving a page scrolled far down, the circle grows on the press, on the screen, over the old page holding beneath',
+        scrolledBy > 2000 && lowArriving.length > 3 && Math.max(...off) < 2 && lowUnder.held,
+        {
+          scrolledBy,
+          pressY: lowPress.y,
+          centreOnScreen: lowArriving.slice(0, 3).map((w) => Math.round(w.centerY)),
+          ...lowUnder,
+        }
+      )
+      await context.close()
+    }
   } finally {
     circle.stop()
     await browser.close()

@@ -4,7 +4,9 @@
 //   streamed     the page's own <video preload="auto">, nothing held in memory
 //   no-prefetch  the same with nothing fetched ahead, which is how Safari on
 //                iPhone treats preload (it ignores "auto")
-//   in memory    what published sites do now (bufferWholeClip in teleport-shared)
+//   in memory    what published sites do (holdClip in teleport-shared): streamed by
+//                the second through MediaSource for a fragmented clip, whole in
+//                memory for any other — the `held` column says which
 //
 // It is the evidence for whether a clip ever needs more than being held in
 // memory (a frame pack) in a given browser.
@@ -67,14 +69,18 @@ const server = http.createServer((req, res) => {
   if (type === 'text/html') {
     let html = data.toString('utf8')
     // Without fetch the runtime cannot hold the clip and streams it as pages did before.
+    // the packed page pretty-prints its head tag over two lines
+    const head = /<head[^>]*>/
     if (/mode=(streamed|no-prefetch)/.test(query)) {
-      html = html.replace('<head>', '<head><script>window.fetch = undefined</script>')
+      html = html.replace(head, (tag) => tag + '<script>window.fetch = undefined</script>')
     }
     // Safari on iPhone ignores a request to preload: the first frame is all it fetches ahead.
     if (/mode=no-prefetch/.test(query)) {
       html = html.replace(
-        '<head>',
-        `<head><script>Object.defineProperty(HTMLMediaElement.prototype, 'preload', { configurable: true, get: () => 'metadata', set: () => {} })</script>`
+        head,
+        (tag) =>
+          tag +
+          `<script>Object.defineProperty(HTMLMediaElement.prototype, 'preload', { configurable: true, get: () => 'metadata', set: () => {} })</script>`
       )
     }
     res.writeHead(200, { 'Content-Type': type })
@@ -161,7 +167,12 @@ const sweep = (page, steps) =>
         }
         await new Promise((resolve) => setTimeout(resolve, 40))
       }
-      return { lags, stall, memory: onScreen().currentSrc.startsWith('blob:') }
+      return {
+        lags,
+        stall,
+        memory: onScreen().currentSrc.startsWith('blob:'),
+        held: onScreen().getAttribute('data-clip-held') || 'streamed by the browser',
+      }
     },
     { steps, stall: STALL_MS }
   )
@@ -190,7 +201,9 @@ const summary = (lags) => {
     let browser
     try {
       browser =
-        name === 'webkit' ? await webkit.launch() : await chromium.launch({ channel: 'chrome' })
+        name === 'webkit'
+          ? await webkit.launch({ headless: !process.env.HEADED })
+          : await chromium.launch({ channel: 'chrome' })
     } catch (e) {
       console.log(`${name}: not available here (${String(e.message).split('\n')[0]})`)
       continue
@@ -217,13 +230,18 @@ const summary = (lags) => {
       const run = await sweep(page, positions)
       // what the visit downloaded of the clip by the end of the sweep, in clip sizes
       const downloaded = Math.round((videoBytes / size) * 100) / 100
+      // the same sweep again, once whatever the page fetches ahead has settled
+      const settled = summary((await sweep(page, positions)).lags)
       rows.push({
         browser: name,
         mode,
         readyAfterMs: waited,
-        memory: run.memory,
+        held: run.held,
         downloaded,
         ...summary(run.lags),
+        settledMedian: settled.median,
+        settledP90: settled.p90,
+        settledStalls: settled.stalls,
       })
       await context.close()
     }

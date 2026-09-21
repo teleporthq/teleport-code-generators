@@ -263,13 +263,64 @@ const pick = (frame, keys) =>
       const r = await probe()
       const arrive = byPseudo(r, '::view-transition-new(root)')
       check(
-        'circle: the reveal grows from where the visitor pressed',
+        'circle: the reveal grows from where the visitor pressed, over the leaving page, which holds',
         r.transition &&
           r.origin === `${x}px ${y}px` &&
+          !byPseudo(r, '::view-transition-old(root)') &&
           arrive &&
+          arrive.delay === 0 &&
           /circle\(0% at/.test(arrive.from.clipPath) &&
           arrive.from.clipPath.includes(`${x}px ${y}px`),
-        { origin: r.origin, from: arrive && arrive.from.clipPath }
+        {
+          origin: r.origin,
+          leaving: byPseudo(r, '::view-transition-old(root)') || 'holds',
+          from: arrive && arrive.from.clipPath,
+          delay: arrive && arrive.delay,
+        }
+      )
+    }
+  )
+
+  await visit(
+    'wipe',
+    { preset: 'wipe-down', duration: 0.3, easing: 'ease-out' },
+    async (page, probe) => {
+      await page.click('#to-about')
+      let r = await probe()
+      const arrive = byPseudo(r, '::view-transition-new(root)')
+      check(
+        'wipe-down: the arriving page is wiped in over the leaving one, which holds — one half, from the start',
+        r.transition &&
+          !byPseudo(r, '::view-transition-old(root)') &&
+          arrive &&
+          arrive.name === 'tq-page-arrive' &&
+          arrive.delay === 0 &&
+          /^inset\(0(px)? 0(px)? 100%( 0(px)?)?\)$/.test(arrive.from.clipPath) &&
+          r.ms >= 250 &&
+          r.ms <= 700,
+        {
+          leaving: byPseudo(r, '::view-transition-old(root)') || 'holds',
+          from: arrive && arrive.from.clipPath,
+          delay: arrive && arrive.delay,
+          ms: r.ms,
+        }
+      )
+      await page.goBack()
+      r = await probe()
+      const backArrive = byPseudo(r, '::view-transition-new(root)')
+      check(
+        'wipe-down back: the other wipe, on the arriving page only',
+        r.transition &&
+          r.navAttr === 'back' &&
+          !byPseudo(r, '::view-transition-old(root)') &&
+          backArrive &&
+          backArrive.name === 'tq-page-arrive-back' &&
+          /^inset\(100% 0(px)? 0(px)?( 0(px)?)?\)$/.test(backArrive.from.clipPath),
+        {
+          navAttr: r.navAttr,
+          leaving: byPseudo(r, '::view-transition-old(root)') || 'holds',
+          from: backArrive && backArrive.from.clipPath,
+        }
       )
     }
   )

@@ -255,8 +255,12 @@ describe('Motion in the static HTML export', () => {
     expect(full).toContain('const initMotion = ')
     expect(full).toContain('const initVideo = ')
     // the clip is held in memory by the shared helper the Next export runs too
-    expect(full).toContain('const bufferWholeClip = ')
-    expect(full).toContain('bufferWholeClip(host, streamed, activeSrc, (copy) => {')
+    expect(full).toContain('const holdClip = ')
+    expect(full).toContain('hold = holdClip(host, streamed, activeSrc, (copy) => {')
+    // streamed by the second where the clip carries its index and the browser has MediaSource
+    expect(full).toContain('const readClipIndex = ')
+    expect(full).toContain('const streamClip = ')
+    expect(full).toContain('MediaSourceCtor.isTypeSupported(mime)')
     expect(full).toContain("const backToStart = text('back-to-start', 'false') === 'true'")
     expect(full).toContain('seekTo(clipPositionFor(local, backToStart))')
     // valid JavaScript: compiling it (never running it) is the check

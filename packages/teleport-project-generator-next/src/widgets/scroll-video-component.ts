@@ -18,9 +18,10 @@ import { MotionRuntime } from '@teleporthq/teleport-shared'
  * frame with reducedMotion='end'), all measuring work lives in useEffect so
  * SSR never touches the DOM, and seeks requested before metadata arrives are
  * replayed on loadedmetadata. The rendered <video> streams so the first frame
- * shows at once; the clip is then held in memory (bufferWholeClip, shared with
- * the HTML export), whose copy is added next to it outside React's children
- * and removed by the effect's cleanup.
+ * shows at once; the clip is then held (holdClip, shared with the HTML export:
+ * streamed by the second through MediaSource where the clip and the browser
+ * allow, whole in memory otherwise), whose copy is added next to it outside
+ * React's children and removed by the effect's cleanup.
  */
 export const generateScrollVideoComponentCode = (): string => {
   return `import React from 'react'
@@ -60,13 +61,18 @@ const TqScrollVideo = ({
     }
 
     const bounds = normalizeWindow(windowStart, windowEnd)
-    // The element on screen: the streamed one until the clip held in memory takes over.
+    // The element on screen: the streamed one until the held clip takes over.
     let video = streamed
+    let hold = null
     let lastClip = -1
     let pendingClip = 0
 
     const seekTo = (clipProgress) => {
       pendingClip = clipProgress
+      // the held clip hears where the scrub is before any metadata has arrived
+      if (hold) {
+        hold.want(clipProgress)
+      }
       const duration = video.duration
       if (!Number.isFinite(duration) || duration <= 0) {
         return
@@ -95,7 +101,7 @@ const TqScrollVideo = ({
       return () => streamed.removeEventListener('loadedmetadata', onMetadata)
     }
 
-    const stopBuffering = bufferWholeClip(host, streamed, activeSrc, (copy) => {
+    hold = holdClip(host, streamed, activeSrc, (copy) => {
       video = copy
       onMetadata()
     })
@@ -159,7 +165,7 @@ const TqScrollVideo = ({
         window.cancelAnimationFrame(rafId)
       }
       streamed.removeEventListener('loadedmetadata', onMetadata)
-      stopBuffering()
+      hold.stop()
     }
   }, [activeSrc, smoothing, windowStart, windowEnd, reducedMotion, backToStart])
 

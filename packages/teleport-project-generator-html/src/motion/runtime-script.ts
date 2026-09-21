@@ -495,8 +495,9 @@ const initVideo = (host) => {
   if (!streamed) {
     return
   }
-  // The element on screen: the streamed one until the clip held in memory takes over.
+  // The element on screen: the streamed one until the held clip takes over.
   let video = streamed
+  let hold = null
   const text = (name, fallback) => {
     const value = host.getAttribute('data-scroll-video-' + name)
     return value === null || value === '' ? fallback : value
@@ -521,6 +522,10 @@ const initVideo = (host) => {
 
   const seekTo = (clipProgress) => {
     pendingClip = clipProgress
+    // the held clip hears where the scrub is before any metadata has arrived
+    if (hold) {
+      hold.want(clipProgress)
+    }
     const duration = video.duration
     if (!Number.isFinite(duration) || duration <= 0) {
       return
@@ -544,7 +549,7 @@ const initVideo = (host) => {
     }
     return
   }
-  bufferWholeClip(host, streamed, activeSrc, (copy) => {
+  hold = holdClip(host, streamed, activeSrc, (copy) => {
     video = copy
     onMetadata()
   })

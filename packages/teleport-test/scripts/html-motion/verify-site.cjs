@@ -361,6 +361,8 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol
           shown[0].readyState >= 1 && {
             videos: videos.length,
             streamedReleased: !videos[0].getAttribute('src'),
+            // 'stream': by the second through MediaSource (a fragmented clip); 'memory': whole
+            held: shown[0].getAttribute('data-clip-held'),
           }
         )
       },
@@ -369,9 +371,15 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol
     )
     .then((handle) => handle.jsonValue())
     .catch(() => null)
+  // EXPECT_HELD=stream|memory pins how this clip must be held (a fragmented clip streams by the second)
   check(
-    'scroll video: the clip is held in memory, one element on screen, the streamed one let go',
-    !!held && held.videos === 2 && held.streamedReleased,
+    'scroll video: the clip is held (' +
+      (process.env.EXPECT_HELD || 'either way') +
+      '), one element on screen, the streamed one let go',
+    !!held &&
+      held.videos === 2 &&
+      held.streamedReleased &&
+      (!process.env.EXPECT_HELD || held.held === process.env.EXPECT_HELD),
     held
   )
   const videoAt = async (p) => {

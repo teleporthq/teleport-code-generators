@@ -90,11 +90,11 @@ describe('Next generator with a Scroll Video element', () => {
     const outputFolder = await generator.generateProject(buildUidl(), template)
     const content = findFile(outputFolder, 'components', 'tq-scroll-video')?.content as string
     expect(content).toContain(MotionRuntime.scrollVideoEngineSource())
-    expect(content).toContain(
-      'const stopBuffering = bufferWholeClip(host, streamed, activeSrc, (copy) => {'
-    )
+    expect(content).toContain('hold = holdClip(host, streamed, activeSrc, (copy) => {')
     // the copy it adds next to the rendered <video> goes with the effect
-    expect(content).toContain('stopBuffering()')
+    expect(content).toContain('hold.stop()')
+    // a streamed clip is told where the scrub is, so the seconds around it are kept ready
+    expect(content).toContain('hold.want(clipProgress)')
     expect(content).toContain('preload="metadata"')
     expect(content).not.toContain('preload="auto"')
   })

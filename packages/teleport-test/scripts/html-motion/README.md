@@ -13,7 +13,11 @@ node packages/teleport-test/scripts/html-motion/verify-site.cjs /tmp/html-motion
 `verify-site.cjs` serves the folder, then checks pinning, lanes, chapters,
 anchors, entrances, the in-place stagger, hover, scroll-linked motion, video
 scrubbing, reduced motion, a visitor without JavaScript and a blocked runtime
-file. It needs a Playwright install; it borrows the editor repo's
+file. `EXPECT_HELD=stream` pins that the clip is streamed by the second
+through MediaSource (a fragmented clip with a global `sidx`, what the media
+worker makes); `EXPECT_HELD=memory` that it is held whole (any other clip).
+`measure-scrub.cjs` reports, per browser, how soon the clip is scrubbable and
+the seek lag during and after loading, for a plain and a fragmented clip. It needs a Playwright install; it borrows the editor repo's
 (`teleport-gui/node_modules/playwright-core`), so the sibling checkout must exist.
 
 `verify-transitions.cjs <out-dir>` packs a two-page site per page-transition
