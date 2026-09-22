@@ -36,6 +36,9 @@ node_modules/
 
 .changelog
 
+# turbo
+.turbo
+
 packages/teleport-test/config.json
 
 # Stamped beside the dev fixture by the editor's "save to code generators" export

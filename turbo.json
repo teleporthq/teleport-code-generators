@@ -1,0 +1,26 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": true
+    },
+    "clean": {
+      "dependsOn": [],
+      "outputs": [],
+      "cache": false
+    },
+    "standalone": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
+    "standalone:partial": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    }
+  }
+}
