@@ -68,4 +68,45 @@ describe('the messages files', () => {
 
     expect(contentOf(files, 'en')).toEqual({ '2_ Definitions_UUSf6E': 'Definitions' })
   })
+
+  it('never prints a runtime binding held by a translation hierarchy', async () => {
+    const price = {
+      type: 'element',
+      content: {
+        elementType: 'text',
+        semanticType: 'span',
+        children: [
+          {
+            type: 'element',
+            content: {
+              elementType: 'text',
+              semanticType: 'span',
+              children: [{ type: 'expr', content: '?.currencySymbol' }],
+            },
+          },
+          {
+            type: 'element',
+            content: {
+              elementType: 'text',
+              semanticType: 'span',
+              children: [
+                { type: 'dynamic', content: { referenceType: 'prop', id: 'displayPrice' } },
+                { type: 'static', content: ' per kg' },
+              ],
+            },
+          },
+        ],
+      },
+    }
+    const files = await runPlugin({
+      main: { name: 'English', locale: 'en' },
+      languages: { en: 'English' },
+      translations: { en: { price } },
+    } as unknown as ProjectUIDL['internationalization'])
+
+    const message = contentOf(files, 'en').price as string
+    expect(message).not.toContain('typeof')
+    expect(message).not.toContain('{')
+    expect(message).toContain('per kg')
+  })
 })

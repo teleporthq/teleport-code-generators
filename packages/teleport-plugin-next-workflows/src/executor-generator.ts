@@ -1,4 +1,22 @@
-export const generateSharedRuntimeUtilsCode = (): string => {
+import {
+  EmailLocaleConfig,
+  generateEmailLocaleHelpersCode,
+  generateWorkflowLocaleHelpersCode,
+} from './email-locale'
+
+export interface SharedRuntimeUtilsOptions {
+  /**
+   * The project's locales, baked in so the runtime can validate the locale a
+   * request or the browser reports and pick the matching copy of a localized
+   * email. Absent (a project without internationalization): no locale is ever
+   * recognised and every email keeps its single template.
+   */
+  emailLocales?: EmailLocaleConfig
+}
+
+const NO_EMAIL_LOCALES: EmailLocaleConfig = { locales: [], defaultLocale: '' }
+
+export const generateSharedRuntimeUtilsCode = (options: SharedRuntimeUtilsOptions = {}): string => {
   return `/**
  * Workflow Runtime Utilities
  * 
@@ -8,7 +26,8 @@ export const generateSharedRuntimeUtilsCode = (): string => {
  * - executeNodes: Executes a sequence of workflow nodes
  * - executeWorkflow: Main workflow execution entry point
  */
-
+${generateEmailLocaleHelpersCode(options.emailLocales || NO_EMAIL_LOCALES)}
+${generateWorkflowLocaleHelpersCode()}
 function resolveValue(value, context) {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) {
@@ -522,6 +541,11 @@ function resolveConfig(config, context) {
   //
   // Runs after resolution on purpose: \`templateParams[].value\` is itself a
   // workflow-context ref that the loop above has just resolved.
+  //
+  // The language is chosen first, for the same reason: a customer email carries
+  // one copy per project language, and the copy has to be picked before its
+  // tokens are filled.
+  applyLocalizedEmailTemplate(resolved, context);
   if (Array.isArray(resolved.templateParams)) {
     if (typeof resolved.body === 'string') {
       resolved.body = applyTemplateParams(resolved.body, resolved.templateParams);
@@ -651,6 +675,12 @@ async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, opt
   if (triggerContext && triggerContext.triggerElement) {
     context.triggerElement = triggerContext.triggerElement;
   }
+  // The language of the page this run started on, carried to every server
+  // segment (the context crosses whole) so a customer email can be sent in it.
+  var runLocale = getClientLocale();
+  if (runLocale) {
+    context.__locale = runLocale;
+  }
 
   const callServerSegment = options.callServerSegment;
 
@@ -750,6 +780,15 @@ function isFireAndForgetNode(node) {
   return !!node.config && node.config.awaitResult === false;
 }
 
+// A node the author marked \`continueOnError\`: a failed RESULT ({ success:
+// false } / { error }) is published under the node's id like any other result
+// instead of aborting the workflow, so a later if-statement can read
+// \`success\` and warn. Only an explicit \`true\` opts in. A handler that THROWS
+// still aborts — every provider handler reports failure as a result.
+function continuesOnError(node) {
+  return !!(node && node.config && node.config.continueOnError === true);
+}
+
 // Starts a fire-and-forget node and returns a promise that ALWAYS resolves.
 // The workflow has already moved on, so a failure here can neither abort it nor
 // reach the error handler — it is reported to the console and swallowed, which
@@ -791,10 +830,13 @@ async function settlePendingNodePromises(context) {
   for (var pass = 0; pass < 5; pass++) {
     var pending = context.__pendingNodePromises;
     if (!pending || pending.length === 0) return;
-    context.__pendingNodePromises = [];
+    // Drained IN PLACE, never by swapping in a fresh array: a parallel branch
+    // that is still running holds a reference to this very array (its context
+    // is a shallow copy) and must keep landing on the queue the route drains.
+    var batch = pending.splice(0, pending.length);
     // Every entry swallows its own rejection (see startFireAndForgetNode), so
     // this can never reject.
-    await Promise.all(pending);
+    await Promise.all(batch);
   }
 }
 
@@ -918,7 +960,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
               await executeNodes(onStreamNodes, edges, context, nodeHandlers, workflowConfig, callServerSegment, executionId);
             }
           });
-          if (isFatalNodeResult(streamResult)) {
+          if (isFatalNodeResult(streamResult) && !continuesOnError(node)) {
             throw new Error(fatalNodeResultMessage(streamResult));
           }
           context[node.id] = streamResult;
@@ -977,7 +1019,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
         throw earlyErr;
       }
 
-      if (isFatalNodeResult(result)) {
+      if (isFatalNodeResult(result) && !continuesOnError(node)) {
         throw new Error(fatalNodeResultMessage(result));
       }
 
@@ -1276,6 +1318,13 @@ function internalRequestHeaders(req) {
 
 module.exports = {
   internalRequestHeaders,
+  normalizeEmailLocale,
+  resolveRequestLocale,
+  resolveWorkflowLocale,
+  resolveEmailLocale,
+  getClientLocale,
+  localizeHref,
+  pickLocalizedTemplate,
   resolveValue,
   resolveSecret,
   resolveConfig,
@@ -1299,6 +1348,7 @@ module.exports = {
   isStreamingAINode,
   isFatalNodeResult,
   fatalNodeResultMessage,
+  continuesOnError,
   isFireAndForgetNode,
   startFireAndForgetNode,
   registerPendingNodePromise,
@@ -1544,6 +1594,11 @@ function buildContext(workflowConfig, triggerContext) {
     if (triggerContext.__routeParams) context.__routeParams = triggerContext.__routeParams;
     if (triggerContext.__dynamicRouteParam) context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
     if (triggerContext.triggerElement) context.triggerElement = triggerContext.triggerElement;
+  }
+  // See executeWorkflow: the page's language travels with the run.
+  var runLocale = utils.getClientLocale();
+  if (runLocale) {
+    context.__locale = runLocale;
   }
   return context;
 }
@@ -1872,7 +1927,10 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
       if (__terminalResult) {
         var __redirectUrl = __terminalResult.__redirectUrl;
         if (typeof __redirectUrl === 'string' && __redirectUrl.length > 0 && typeof window !== 'undefined' && window.location) {
-          window.location.href = __redirectUrl;
+          // A site-relative target keeps the visitor in the language of the
+          // page the run started on (the provider's hosted page is absolute
+          // and passes through untouched).
+          window.location.href = utils.localizeHref(__redirectUrl, context.__locale);
         }
         break;
       }

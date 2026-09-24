@@ -146,6 +146,23 @@ describe('createBinaryExpression', () => {
       )
     })
 
+    it('contains / notContains keep the authored type of the element operand', () => {
+      // An array state holds what a workflow pushed — strings off `data-*`
+      // attributes — so a static "5" must stay "5": parsed as the collection's
+      // type it became the number 5 and never matched ["5"].
+      expect(codeOf({ operation: 'contains', operand: '5' })).toBe('(imageUrl || []).includes("5")')
+      expect(codeOf({ operation: 'notContains', operand: 'true' })).toBe(
+        '!(imageUrl || []).includes("true")'
+      )
+      expect(codeOf({ operation: 'contains', operand: '5', containsField: 'id' })).toBe(
+        '(imageUrl || []).some(__item => __item.id === "5")'
+      )
+      // Length comparisons still read their operand as a number.
+      expect(codeOf({ operation: 'lengthEquals', operand: '2' })).toBe(
+        '(imageUrl || []).length === 2'
+      )
+    })
+
     it('hasKey passes a non-null receiver to hasOwnProperty', () => {
       expect(codeOf({ operation: 'hasKey', operand: 'a' }, 'object')).toBe(
         'Object.prototype.hasOwnProperty.call(imageUrl || {}, "a")'

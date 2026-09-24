@@ -15,6 +15,11 @@ import {
   generateAllSignatureVerificationCode,
 } from './webhook-signature-verification'
 import { buildWorkflowAuthInjection } from './workflow-auth-generator'
+import {
+  hasEmailSendingNodeType,
+  isEmailSendingNodeType,
+} from './sent-email-log/sent-email-log-scope'
+import { workflowUtilsAliasLine } from './workflow-utils-alias'
 
 // Workflow/segment names, cron schedules, and webhook paths are free-form
 // UIDL data — never guaranteed not to contain `*/`. Every generated route
@@ -79,7 +84,8 @@ export const generateServerSegmentAPIRoute = (
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
-
+${workflowUtilsAliasLine('utils')}
+${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -109,7 +115,11 @@ module.exports = async function handler(req, res) {
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
-    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
+    context.__internalHeaders = utils.internalRequestHeaders(req);
+    // The language of the page this run started on — carried by the client
+    // context, else read off the request — so a customer email node sends the
+    // copy that matches the storefront the visitor is browsing.
+    context.__locale = utils.resolveWorkflowLocale(req, incomingContext);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
 
     for (let i = 0; i < sortedNodes.length; i++) {
@@ -377,7 +387,7 @@ module.exports = async function handler(req, res) {
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }
-      if (utils.isFatalNodeResult(result)) {
+      if (utils.isFatalNodeResult(result) && !utils.continuesOnError(node)) {
         throw new Error(utils.fatalNodeResultMessage(result));
       }
       context[node.id] = result;
@@ -460,7 +470,8 @@ export const generateStreamingServerSegmentAPIRoute = (
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
-
+${workflowUtilsAliasLine('utils')}
+${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -522,7 +533,9 @@ module.exports = async function handler(req, res) {
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
-    context.__internalHeaders = utils.internalRequestHeaders(req);${auth.guardCall}
+    context.__internalHeaders = utils.internalRequestHeaders(req);
+    // See the non-streaming segment route: the run's language.
+    context.__locale = utils.resolveWorkflowLocale(req, body.context);${auth.guardCall}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
     const executed = {};
 
@@ -772,7 +785,7 @@ module.exports = async function handler(req, res) {
         // A provider/auth failure surfaces as { error: true, message, code }.
         // Without this gate the on-end branch would run against a failed AI
         // result (e.g. persist a NULL chat answer → NOT NULL 500 downstream).
-        if (utils.isFatalNodeResult(result)) {
+        if (utils.isFatalNodeResult(result) && !utils.continuesOnError(node)) {
           throw new Error(utils.fatalNodeResultMessage(result));
         }
         context[node.id] = result;
@@ -819,7 +832,7 @@ module.exports = async function handler(req, res) {
           }
           return;
         }
-        if (utils.isFatalNodeResult(result)) {
+        if (utils.isFatalNodeResult(result) && !utils.continuesOnError(node)) {
           throw new Error(utils.fatalNodeResultMessage(result));
         }
         context[node.id] = result;
@@ -900,6 +913,30 @@ const generateClientOnlyServerStub = (nodeType: string): string => {
 //      executes bug, not even a crash. An IIFE per entry gives every handler
 //      its own scope, so a same-named collision between two unrelated
 //      handlers can never shadow each other.
+/**
+ * The sent-email ledger hook a route needs when it runs a node that sends
+ * mail. Guarded require + a wrapper that degrades to the bare handler, so a
+ * route evaluated where the module is absent (a test harness, a stub
+ * `require`) still loads. Empty for routes without such a node, which keeps
+ * every other route byte-identical.
+ */
+const generateSentEmailLogPreamble = (
+  usedNodeTypes: Set<string>,
+  relativePrefix: string
+): string => {
+  if (!hasEmailSendingNodeType(usedNodeTypes)) {
+    return ''
+  }
+  return `var __sentEmailLog = null;
+try { __sentEmailLog = require('${relativePrefix}/utils/email/sent-email-log'); } catch (_e) { __sentEmailLog = null; }
+function __wrapEmailHandler(nodeType, handler) {
+  return __sentEmailLog && typeof __sentEmailLog.wrapEmailNodeHandler === 'function'
+    ? __sentEmailLog.wrapEmailNodeHandler(nodeType, handler)
+    : handler;
+}
+`
+}
+
 const generateNodeHandlersForSegment = (usedNodeTypes: Set<string>, forServer = false): string => {
   return Array.from(usedNodeTypes)
     .map((nodeType) => {
@@ -921,7 +958,13 @@ async function ${nodeType.replace(/-/g, '_')}(config, context) {
       }
       const trimmed = source.trim()
       const entryFn = resolveHandlerEntryName(trimmed, nodeType)
-      return `  '${nodeType}': (function () {\n${trimmed}\nreturn ${entryFn};\n})()`
+      const handlerExpr = `(function () {\n${trimmed}\nreturn ${entryFn};\n})()`
+      // Every server node that sends mail passes through the sent-email
+      // ledger (see generateSentEmailLogPreamble, emitted by the same routes).
+      if (forServer && isEmailSendingNodeType(nodeType)) {
+        return `  '${nodeType}': __wrapEmailHandler('${nodeType}', ${handlerExpr})`
+      }
+      return `  '${nodeType}': ${handlerExpr}`
     })
     .join(',\n')
 }
@@ -1045,7 +1088,8 @@ export const generateCronAPIRoute = (
 
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
-${customNodesImport}
+${workflowUtilsAliasLine('utils')}
+${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, '../../..')}
 const WORKFLOW_CONFIG = ${workflowConfig};
 
 const nodeHandlers = {
@@ -1057,11 +1101,15 @@ module.exports = async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  // Kept outside the try so the catch below can still drain any fire-and-forget
+  // work this run started before it failed.
+  var __wfContext = null;
   try {
     const triggerContext = { timestamp: Date.now(), schedule: '${
       (workflow.trigger.config.schedule as string) || ''
     }' };
     const context = {};
+    __wfContext = context;
     // Shared fire-and-forget queue (see the segment routes) — drained by the
     // execution loop before this route responds.
     context.__pendingNodePromises = [];
@@ -1072,6 +1120,7 @@ ${executionLoop}
     res.status(200).json({ success: true, timestamp: Date.now() });
   } catch (error) {
     console.error('Cron workflow error:', error);
+    if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
     res.status(500).json({ success: false, error: error.message || 'Cron workflow failed' });
   }
 };
@@ -1384,7 +1433,7 @@ const generateNodeExecutionLoop = (
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }${customNodeBlock}
-      if (utils.isFatalNodeResult(result)) {
+      if (utils.isFatalNodeResult(result) && !utils.continuesOnError(node)) {
         throw new Error(utils.fatalNodeResultMessage(result));
       }
       context[node.id] = result;
@@ -1509,7 +1558,8 @@ if (typeof globalThis.fetch === 'undefined') {
 
 const utils = require('${relativePrefix}/utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
-${customNodesImport}
+${workflowUtilsAliasLine('utils')}
+${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, relativePrefix)}
 ${getRawBodyCode}
 
 ${signatureVerificationCode}
@@ -1595,6 +1645,9 @@ ${executionLoop}
         console.error('Webhook error handler failed:', innerErr);
       }
     }
+    // Land whatever the main run started (an email's ledger row, a
+    // fire-and-forget write) before replying — see the segment routes.
+    if (typeof context !== 'undefined' && context) { await utils.settlePendingNodePromises(context); }
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 };

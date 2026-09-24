@@ -89,6 +89,21 @@ describe('pagination plugin — numbered mode', () => {
     expect(code).toContain('setDs_0_maxPages(data.count === 0 ? 0 : Math.ceil(data.count / 20))')
   })
 
+  it('drops a count response a newer count request has overtaken', async () => {
+    // Two filter changes in quick succession start two counts; the older,
+    // slower one landing last must not paint a strip for rows no longer shown.
+    const code = await runPlugin({ paginationMode: 'numbered' }, NUMBERED_CONTROLS)
+    const flat = collapse(code)
+
+    expect(flat).toContain('const ds_0_countSeq = useRef(0)')
+    expect(flat).toContain('const __tqCountSeq = ++ds_0_countSeq.current')
+    expect(flat).toContain('if (__tqCountSeq !== ds_0_countSeq.current) return;')
+    // The guard sits before the setter, inside the response handler.
+    expect(flat.indexOf('if (__tqCountSeq !== ds_0_countSeq.current) return;')).toBeLessThan(
+      flat.indexOf('setDs_0_maxPages(data.count === 0')
+    )
+  })
+
   it('removes a numbered strip left over from a mode switch', async () => {
     // The builder never deletes controls on a mode switch (that would discard
     // the author's styling), so a Previous/Next list can still carry them.

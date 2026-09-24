@@ -109,9 +109,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       if (hasDynamicBindings) {
         const bindingInlineStyles: Record<string, unknown> = {}
         for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
-          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
-            letter.toUpperCase()
-          )
+          const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(cssProperty)
           bindingInlineStyles[camelCaseProperty] =
             StyleBuilders.createDynamicBindingExpression(binding)
         }

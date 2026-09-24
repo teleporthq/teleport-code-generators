@@ -1046,6 +1046,26 @@ const resolveOperandExpression = (
 }
 
 /**
+ * `resolveOperandExpression` for an operand that is ONE ELEMENT of the bound
+ * collection (`contains` / `notContains`), not a value of the collection's own
+ * type.
+ *
+ * The typed resolver parses a static operand as the identifier's type, which
+ * for an array-typed state means `JSON.parse`: the string `"5"` came out as the
+ * number `5`, `"true"` as `true`. The rows an array state actually holds are
+ * whatever a workflow pushed — strings, read off `data-*` attributes — so
+ * `selectedRatings.includes(5)` never matched `["5"]` and a ticked rating
+ * checkbox stayed empty. The literal keeps the type it was authored with, which
+ * is also how the editor's canvas evaluates the same condition.
+ */
+const resolveElementOperandExpression = (
+  operand: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue,
+  conditionalIdentifier: ConditionalIdentifier,
+  options: { localIdentifier?: string; detailsPageExposeAsName?: string }
+): types.Expression =>
+  resolveOperandExpression(operand, { ...conditionalIdentifier, type: '' }, options)
+
+/**
  * Coerce a conditional identifier to an empty collection when it is null or
  * undefined, so the collection operators below can dereference it safely.
  *
@@ -1199,7 +1219,7 @@ export const createBinaryExpression = (
   }
 
   if (operation === 'contains' && operand !== undefined) {
-    const operandExpr = resolveOperandExpression(operand, conditionalIdentifier, options)
+    const operandExpr = resolveElementOperandExpression(operand, conditionalIdentifier, options)
     const target = createNullSafeCollection(identifier, conditionalIdentifier, t)
 
     if (containsField) {
@@ -1220,7 +1240,7 @@ export const createBinaryExpression = (
   }
 
   if (operation === 'notContains' && operand !== undefined) {
-    const operandExpr = resolveOperandExpression(operand, conditionalIdentifier, options)
+    const operandExpr = resolveElementOperandExpression(operand, conditionalIdentifier, options)
     const target = createNullSafeCollection(identifier, conditionalIdentifier, t)
 
     if (containsField) {

@@ -126,3 +126,84 @@ function grossLineMoney(unitAmount, quantity, storedTotal) {
   return (Math.round(applyStorefrontTax(unitAmount) * qty * 100) / 100).toFixed(2);
 }`
 }
+
+/**
+ * ES5 helpers for a generated route that shows the lines of a PLACED order —
+ * the merchant's order-notification email. Mirrors teleport-gui's
+ * `ORDER_LINE_TAX_SCRIPT` (`storefront-tax-script.ts`), which the storefront's
+ * baked workflows run; `__tests__/utils/order-line-tax.ts` and the GUI's
+ * `order-line-pricing-parity.spec.ts` run the same fixture table over both.
+ *
+ * What a line cost the buyer is decided once, at checkout, and written to
+ * `teleport_order_items` (`unit_price_paid`, `total_price_paid`, `tax_rate`,
+ * `tax_included`). A reader prefers the record (`orderLineTaxOf`,
+ * `paidAmountAt`) and DERIVES it only for a line written before the record
+ * existed: from the rate its order's `tax_breakdown` recorded for it (an order
+ * priced by region), else from `STOREFRONT_TAX_RATE`.
+ *
+ * Requires the prelude from `generateStorefrontTaxHelperCode` in scope.
+ */
+export const generateOrderLineTaxHelperCode = (): string => `
+// Every line of an order carries the same breakdown text: parse it once.
+var orderLineTaxRaw = null;
+var orderLineTaxParsed = null;
+function parseOrderLineTaxBreakdown(breakdown) {
+  var parsed = breakdown;
+  if (typeof breakdown === 'string') {
+    if (breakdown !== orderLineTaxRaw) {
+      orderLineTaxRaw = breakdown;
+      try { orderLineTaxParsed = breakdown ? JSON.parse(breakdown) : null; } catch (e) { orderLineTaxParsed = null; }
+    }
+    parsed = orderLineTaxParsed;
+  }
+  return parsed && typeof parsed === 'object' && Array.isArray(parsed.lines) ? parsed : null;
+}
+function orderLineTaxDecimals(parsed) {
+  return parsed && parsed.taxDecimals === 0 ? 0 : 2;
+}
+function orderLineTaxIncluded(value) {
+  return value === true || value === 'true' || value === 't' || value === 1 || value === '1';
+}
+// The tax one line was charged at: { rate, included, decimals }.
+function orderLineTax(breakdown, productId, variantId) {
+  var parsed = parseOrderLineTaxBreakdown(breakdown);
+  if (!parsed) {
+    return { rate: STOREFRONT_TAX_RATE > 0 ? STOREFRONT_TAX_RATE : 0, included: false, decimals: 2 };
+  }
+  var pid = String(productId == null ? '' : productId);
+  var vid = String(variantId == null ? '' : variantId);
+  var match = null;
+  for (var li = 0; li < parsed.lines.length; li++) {
+    var line = parsed.lines[li];
+    if (line && String(line.productId || '') === pid && String(line.variantId || '') === vid) {
+      match = line;
+      break;
+    }
+  }
+  var source = match || parsed;
+  var rate = Number(source.taxRate);
+  if (!isFinite(rate) || rate < 0) rate = 0;
+  return { rate: rate, included: source.taxIncluded === true, decimals: orderLineTaxDecimals(parsed) };
+}
+// The tax a stored line was RECORDED with, else \`orderLineTax\`.
+function orderLineTaxOf(breakdown, productId, variantId, storedRate, storedIncluded) {
+  var rate = storedRate == null || storedRate === '' ? NaN : Number(storedRate);
+  if (!isFinite(rate) || rate < 0) return orderLineTax(breakdown, productId, variantId);
+  return {
+    rate: rate,
+    included: orderLineTaxIncluded(storedIncluded),
+    decimals: orderLineTaxDecimals(parseOrderLineTaxBreakdown(breakdown))
+  };
+}
+function grossAmountAt(amount, tax) {
+  var base = Number(amount);
+  if (!isFinite(base)) base = 0;
+  if (!tax || tax.included === true || !(tax.rate > 0)) return base;
+  var factor = tax.decimals === 0 ? 1 : 100;
+  return Math.round(base * (1 + tax.rate / 100) * factor) / factor;
+}
+// What the buyer paid, as RECORDED on the line; derived for an older line.
+function paidAmountAt(paidAmount, netAmount, tax) {
+  var paid = paidAmount == null || paidAmount === '' ? NaN : Number(paidAmount);
+  return isFinite(paid) ? paid : grossAmountAt(netAmount, tax);
+}`

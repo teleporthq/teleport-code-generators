@@ -151,27 +151,34 @@ const computePropsAST = (
           types.numericLiteral(revalidateSeconds)
         )
 
-  const localeAST = skipI18n
-    ? []
-    : [
-        types.spreadElement(
-          types.logicalExpression(
-            '&&',
-            types.optionalMemberExpression(
-              types.identifier('context'),
-              types.identifier('locale'),
-              false,
-              true
-            ),
-            types.objectExpression([
-              types.objectProperty(
+  // The locale tells a localized data source which language to resolve the
+  // row into (`es_name` for `es`). A page that WRITES the row it fetched — the
+  // getServerSideProps branch, see `useServerSideProps` — must not have it
+  // resolved: its form binds the stored per-language columns themselves, and a
+  // main-language field seeded with the Spanish copy would save Spanish into
+  // the main column. Such a page fetches the row as stored.
+  const localeAST =
+    skipI18n || useServerSideProps
+      ? []
+      : [
+          types.spreadElement(
+            types.logicalExpression(
+              '&&',
+              types.optionalMemberExpression(
+                types.identifier('context'),
                 types.identifier('locale'),
-                types.memberExpression(types.identifier('context'), types.identifier('locale'))
+                false,
+                true
               ),
-            ])
-          )
-        ),
-      ]
+              types.objectExpression([
+                types.objectProperty(
+                  types.identifier('locale'),
+                  types.memberExpression(types.identifier('context'), types.identifier('locale'))
+                ),
+              ])
+            )
+          ),
+        ]
 
   const declarationAST = types.variableDeclaration('const', [
     types.variableDeclarator(

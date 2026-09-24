@@ -140,6 +140,66 @@ describe('invoice PDF renderer — delivery fee', () => {
     expect(withoutFee).not.toContain('<span>Delivery</span>')
   })
 
+  it('renders the template Delivery row gated on Invoice.hasShipping only when there is a fee', () => {
+    // The GUI emits the row's rendering condition as an `expr` reference
+    // (`invoiceData?.Invoice?.hasShipping`) compared with the STRING operand
+    // 'true'. The renderer resolves that expr to boolean true, so a strict
+    // `===` against the operand can never pass — the row was hidden on every
+    // invoice that had a fee.
+    const textNode = (children: unknown[]) => ({
+      type: 'element',
+      content: { elementType: 'text', semanticType: 'p', children },
+    })
+    const templateUidl = {
+      name: 'invoice-template',
+      node: {
+        type: 'element',
+        content: {
+          elementType: 'container',
+          children: [
+            {
+              type: 'conditional',
+              content: {
+                reference: { type: 'expr', content: 'invoiceData?.Invoice?.hasShipping' },
+                condition: { conditions: [{ operation: '=', operand: 'true' }] },
+                node: {
+                  type: 'element',
+                  content: {
+                    elementType: 'container',
+                    name: 'Delivery Row',
+                    children: [
+                      textNode([{ type: 'static', content: 'Delivery:' }]),
+                      textNode([{ type: 'expr', content: 'invoiceData?.Invoice?.shippingAmount' }]),
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    }
+    const code = generatePdfGeneratorCode(FAKE_SETTINGS, templateUidl, {})
+    const moduleObject = { exports: {} as Record<string, unknown> }
+    new Function('require', 'module', 'exports', `${code}; return module.exports;`)(
+      require,
+      moduleObject,
+      moduleObject.exports
+    )
+    const templated = moduleObject.exports as unknown as PdfGeneratorModule
+
+    const withFee = templated.buildInvoiceHtml({
+      ...baseInvoice,
+      shippingAmount: 9.99,
+      total: 209.99,
+    })
+    expect(withFee).toContain('Delivery:')
+    expect(withFee).toContain('$9.99')
+
+    const withoutFee = templated.buildInvoiceHtml({ ...baseInvoice, total: 200 })
+    expect(withoutFee).not.toContain('Delivery:')
+  })
+
   it('fills the {{shippingAmount}} merge token in the invoice email', () => {
     const data = pdfGenerator.buildDataContext({
       ...baseInvoice,
@@ -151,5 +211,49 @@ describe('invoice PDF renderer — delivery fee', () => {
       'Delivery: $9.99'
     )
     expect(pdfGenerator.replacePlaceholders('Due: {{totalAmount}}', data)).toBe('Due: $209.99')
+  })
+})
+
+describe('invoice PDF renderer — each line says which VAT rate it was taxed at', () => {
+  const pdfGenerator = loadPdfGenerator()
+  const regionalInvoice = {
+    invoiceNumber: 'INV-0001',
+    taxRate: 20,
+    taxIncludedInPrice: false,
+    subtotal: 247,
+    taxAmount: 40,
+    shippingAmount: 0,
+    total: 287,
+    currency: 'RON',
+    items: [
+      {
+        name: 'Kettle',
+        quantity: 2,
+        unitPrice: 100,
+        totalPrice: 200,
+        taxRate: 20,
+        taxIncluded: false,
+      },
+      { name: 'Book', quantity: 1, unitPrice: 47, totalPrice: 47, taxRate: 9, taxIncluded: true },
+    ],
+  }
+
+  it('binds the per-line rate and VAT beside the net price', () => {
+    const products = (
+      pdfGenerator.buildInvoiceDataScope(regionalInvoice).invoiceData as unknown as {
+        Products: Array<Record<string, string>>
+      }
+    ).Products
+    expect(products.map((product) => product.lineVatRate)).toEqual(['20%', '9%'])
+    expect(products[0].lineVatAmount).toContain('40.00')
+    expect(products[1].lineVatAmount).toContain('3.88')
+  })
+
+  it('prints the VAT % and VAT columns and a VAT total on the fallback invoice', () => {
+    const html = pdfGenerator.buildInvoiceHtml(regionalInvoice)
+    expect(html).toContain('>VAT %</th>')
+    expect(html).toContain('>20%</td>')
+    expect(html).toContain('>9%</td>')
+    expect(html).toContain('<span>VAT</span>')
   })
 })

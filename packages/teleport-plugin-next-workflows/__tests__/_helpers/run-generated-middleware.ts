@@ -29,6 +29,13 @@ export interface MiddlewareRequestOptions {
   /** Session user the stubbed `/api/auth/session` returns; omit for a guest. */
   sessionUser?: MiddlewareSessionUser | null
   origin?: string
+  /**
+   * The request's language as Next.js reports it on `nextUrl` — the prefix
+   * is already stripped from `pathname`, so pass the bare route. Omit both for
+   * a project without internationalization.
+   */
+  locale?: string
+  defaultLocale?: string
 }
 
 interface RawMiddlewareResult {
@@ -113,9 +120,11 @@ export const compileGeneratedMiddleware = (auth: UIDLAuthentication) => {
 
     const getTokenStub = async (): Promise<null> => null
     const middleware = factory(NEXT_RESPONSE_STUB, getTokenStub, fetchImpl)
+    const localePrefix =
+      options.locale && options.locale !== options.defaultLocale ? `/${options.locale}` : ''
     const result = await middleware({
-      nextUrl: { pathname },
-      url: `${origin}${pathname}`,
+      nextUrl: { pathname, locale: options.locale, defaultLocale: options.defaultLocale },
+      url: `${origin}${localePrefix}${pathname}`,
       cookies: {
         get: (name: string) =>
           sessionUser && name === 'next-auth.session-token' ? { name, value: 'stub' } : undefined,

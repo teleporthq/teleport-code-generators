@@ -18,6 +18,8 @@ import {
   sanitizeFileName,
   validateDataSourceConfig,
   buildProductTransformOptions,
+  buildServerLocaleParam,
+  isLocalizedProject,
 } from '@teleporthq/teleport-plugin-next-data-source'
 import { isSelectOnlyQuery } from './global-state/data-source-utils'
 
@@ -526,8 +528,16 @@ const groupByDataSourceAndTable = (
 /**
  * Builds the fetch params AST (sorts, filters) from a state definition.
  * Only includes static filters — dynamic filters cannot be resolved at build time.
+ *
+ * In a localized project a table fetch also says which language it is for
+ * (`locale: context.locale`), so a state bound to a translated table holds the
+ * rows in the page's language. A raw query runs verbatim and never reaches the
+ * row transform, so it carries no locale.
  */
-const buildFetchParams = (definition: UIDLStateDefinition): types.ObjectExpression => {
+const buildFetchParams = (
+  definition: UIDLStateDefinition,
+  localized: boolean
+): types.ObjectExpression => {
   const properties: types.ObjectProperty[] = []
 
   // Add sort config
@@ -558,6 +568,8 @@ const buildFetchParams = (definition: UIDLStateDefinition): types.ObjectExpressi
     properties.push(
       types.objectProperty(types.identifier('rawQuery'), types.stringLiteral(definition.query))
     )
+  } else if (localized) {
+    properties.push(buildServerLocaleParam())
   }
 
   return types.objectExpression(properties)
@@ -1082,6 +1094,7 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
     })
 
     const extractedResources = options.extractedResources
+    const localized = isLocalizedProject(options)
 
     for (const group of fetchGroups) {
       const { dataSource, tableName, fileName, fetcherImportName, states } = group
@@ -1144,7 +1157,7 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
         // Every state in the group shares the same data source + table AND the
         // same fetch discriminator (rawQuery/sorts/static filters), so the
         // first state's definition is representative of the whole group.
-        const fetchParams = buildFetchParams(states[0].definition)
+        const fetchParams = buildFetchParams(states[0].definition, localized)
 
         // Create the fetch expression: fetcherImportName.fetchData(params)
         const fetchCallExpression = types.callExpression(

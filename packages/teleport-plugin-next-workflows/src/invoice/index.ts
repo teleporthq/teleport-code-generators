@@ -9,6 +9,8 @@ import { generateEmailSenderCode, getEmailProviderDependencies } from './email-s
 import { generateDataAccessCode, getRecordMappingCode } from './data-access-code'
 import { generateInvoiceGenerateRouteCode, generateInvoicePdfRouteCode } from './api-routes-code'
 import { getDatabaseDriverDependencies } from '../auth-generator'
+import { ensureSentEmailLogModule } from '../sent-email-log'
+import { ensureEmailLocaleModule } from '../email-locale'
 
 export const generateInvoiceFiles = (
   invoiceSettings: UIDLInvoiceSettings,
@@ -67,6 +69,10 @@ export const generateInvoiceFiles = (
   })
 
   if (invoiceSettings.emailDelivery?.enabled) {
+    // The sender records every attempt in the sent-email ledger and picks the
+    // buyer's language through the shared locale module.
+    ensureSentEmailLogModule(structure)
+    ensureEmailLocaleModule(structure)
     const emailSenderCode = generateEmailSenderCode(invoiceSettings.emailDelivery)
     files.set('invoice-email-sender', {
       path: ['utils', 'invoices'],
@@ -156,26 +162,4 @@ export const generateInvoiceFiles = (
   }
 }
 
-export const resolveInvoiceDataSource = (
-  structure: ProjectPluginStructure
-): { dataSourceType: DataSourceType | null; dataSourceConfig: Record<string, unknown> | null } => {
-  const { uidl } = structure
-
-  if (!uidl.dataSources) {
-    return { dataSourceType: null, dataSourceConfig: null }
-  }
-
-  if (uidl.authentication?.dataSourceId) {
-    const ds = uidl.dataSources[uidl.authentication.dataSourceId]
-    if (ds) {
-      return { dataSourceType: ds.type, dataSourceConfig: ds.config }
-    }
-  }
-
-  const dsEntries = Object.values(uidl.dataSources)
-  if (dsEntries.length > 0) {
-    return { dataSourceType: dsEntries[0].type, dataSourceConfig: dsEntries[0].config }
-  }
-
-  return { dataSourceType: null, dataSourceConfig: null }
-}
+export { resolveInvoiceDataSource } from './resolve-data-source'

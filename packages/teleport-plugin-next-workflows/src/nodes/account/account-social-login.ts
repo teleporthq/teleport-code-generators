@@ -1,13 +1,18 @@
 import { NodeHandlerGenerator, handlerToString } from '../types'
 
-async function account_social_login(config: any, _context: Record<string, unknown>) {
+async function account_social_login(config: any, context: Record<string, unknown>) {
   const provider = config.provider
 
   if (!provider) {
     throw new Error('Provider is required')
   }
 
-  const callbackUrl = config.callbackUrl || '/'
+  // Where the provider sends the visitor back to, in the language they started
+  // the sign-in from (see buildContext for how the run learns it).
+  const callbackUrl = __workflowUtils.localizeHref(
+    config.callbackUrl || '/',
+    context && (context as any).__locale
+  )
 
   // Read signIn off the window bridge session-provider.js publishes instead of
   // `require('next-auth/react')` — see the account-login handler for the full

@@ -94,6 +94,25 @@ const HTML_TO_TEXT_FN = `function htmlToText(html) {
   return String(html).replace(/<[^>]+>/g, '').replace(/\\s+/g, ' ').trim()
 }`
 
+// Trim, drop blanks / non-strings and de-duplicate (case-insensitively) the
+// configured recipient list. The list is merchant-edited — an address typed
+// twice, or once with a trailing space, would otherwise be sent to twice.
+const NORMALIZE_RECIPIENTS_FN = `function normalizeRecipients(recipients) {
+  var list = Array.isArray(recipients) ? recipients : [recipients]
+  var seen = {}
+  var out = []
+  for (var i = 0; i < list.length; i++) {
+    if (typeof list[i] !== 'string') continue
+    var email = list[i].trim()
+    if (!email) continue
+    var key = email.toLowerCase()
+    if (seen[key]) continue
+    seen[key] = true
+    out.push(email)
+  }
+  return out
+}`
+
 // Build the provider-specific `dispatch(payload)` function for the
 // generated email-sender module. Each provider returns a Promise
 // that resolves on success and rejects on dispatch failure.
@@ -226,42 +245,120 @@ interface EmailSenderOptions {
 // envelope carries the per-call recipient list + subject + html
 // body; provider, from-display, reply-to are baked in at codegen
 // time from the matching `UIDLEcommerce*Config`.
+//
+// One provider call PER recipient, never one call carrying the whole
+// list: a provider refuses the WHOLE call when any address in it is
+// refused — Postmark's pending-approval rule ("every recipient must
+// share the From domain"), a suppressed or malformed address — so a
+// single bad recipient used to take every other one down with it.
+// Each address now succeeds or fails on its own and gets its own
+// ledger row; the promise rejects only when NO recipient was reached,
+// which keeps the routes' existing "total failure" handling intact.
 const buildSenderFunction = (opts: EmailSenderOptions): string => {
   const fromEmail = opts.fromEmail || ''
   const fromName = opts.fromName || ''
   const replyTo = opts.replyTo || ''
   const tag = opts.logTag || 'email'
-  return `function sendNotificationEmail(recipients, subject, html) {
-  var to = (recipients || []).filter(function(r) { return typeof r === 'string' && r.length > 0 })
+  const providerName = opts.provider || 'smtp'
+  return `// \`meta\` describes the send for the sent-email ledger:
+// { emailType, source, sourceRef, payload, orderId }. Every attempt — accepted
+// or refused by the provider — is recorded there in the background, one row per
+// recipient; the route settles the ledger (\`settleSentEmailLog\`) before it
+// replies.
+//
+// Resolves to { sent: true, recipients, delivered, failed } as soon as ONE
+// recipient accepted the email (\`failed\` lists the others with the provider's
+// reason); rejects only when every recipient was refused.
+function sendNotificationEmail(recipients, subject, html, meta) {
+  var to = normalizeRecipients(recipients)
   if (to.length === 0) {
     console.log('[${tag}] skipped: no recipients configured')
     return Promise.resolve({ sent: false, reason: 'no_recipients' })
   }
+  var ledgerMeta = meta || {}
   var fromAddress = ${JSON.stringify(
     fromEmail
   )} || process.env.ORDER_NOTIFICATION_FROM_EMAIL || 'noreply@example.com'
   var fromName = ${JSON.stringify(fromName)}
   var fromDisplay = fromName ? (fromName + ' <' + fromAddress + '>') : fromAddress
   var replyTo = ${JSON.stringify(replyTo)}
-  var text = htmlToText(html)
   var envelope = {
-    to: to,
     fromDisplay: fromDisplay,
     subject: subject || '',
     html: html || '',
-    text: text,
+    text: htmlToText(html),
   }
   if (replyTo) envelope.replyTo = replyTo
+  function recordAttempt(recipient, providerResponse, failure) {
+    var messageId = null
+    if (providerResponse && typeof providerResponse === 'object') {
+      messageId = providerResponse.messageId || providerResponse.MessageID || providerResponse.id ||
+        (providerResponse.data && providerResponse.data.id) || null
+    }
+    sentEmailLog.recordSentEmail({
+      emailType: ledgerMeta.emailType || 'custom',
+      audience: 'store-owner',
+      to: [recipient],
+      from: fromDisplay,
+      replyTo: replyTo,
+      subject: envelope.subject,
+      html: envelope.html,
+      payload: ledgerMeta.payload,
+      provider: ${JSON.stringify(providerName)},
+      providerMessageId: messageId,
+      status: failure ? 'failed' : 'sent',
+      error: failure ? (failure.message || String(failure)) : null,
+      source: ledgerMeta.source || 'ecommerce',
+      sourceRef: ledgerMeta.sourceRef,
+      orderId: ledgerMeta.orderId,
+    })
+  }
+  // Never rejects: the outcome carries the provider's reason instead, so one
+  // refused address cannot short-circuit the addresses after it. The dispatch
+  // is entered from a resolved promise so that a synchronous throw (a
+  // transport that fails to build) is a failure of THIS recipient too.
+  function sendToRecipient(recipient) {
+    return Promise.resolve()
+      .then(function() { return dispatchProviderEmail(Object.assign({ to: [recipient] }, envelope)) })
+      .then(function(result) {
+        console.log('[${tag}] sent to ' + recipient)
+        recordAttempt(recipient, result, null)
+        return { recipient: recipient, error: null }
+      }, function(err) {
+        var failure = err || new Error('dispatch failed')
+        var message = failure.message || String(failure)
+        console.error('[${tag}] dispatch failed for ' + recipient + ': ' + message)
+        recordAttempt(recipient, null, failure)
+        return { recipient: recipient, error: message }
+      })
+  }
   console.log('[${tag}] dispatching to ' + to.join(', ') + ' (subject="' + envelope.subject + '")')
-  return dispatchProviderEmail(envelope)
-    .then(function(result) {
-      console.log('[${tag}] sent successfully')
-      return { sent: true, recipients: to, providerResponse: result }
+  // Sequential rather than parallel: a burst of one call per address is
+  // exactly what a provider's per-second rate limit refuses.
+  var outcomes = []
+  var chain = Promise.resolve()
+  to.forEach(function(recipient) {
+    chain = chain.then(function() {
+      return sendToRecipient(recipient).then(function(outcome) { outcomes.push(outcome) })
     })
-    .catch(function(err) {
-      console.error('[${tag}] dispatch failed: ' + (err && err.message ? err.message : String(err)))
-      throw err
+  })
+  return chain.then(function() {
+    var delivered = []
+    var failed = []
+    outcomes.forEach(function(outcome) {
+      if (outcome.error === null) delivered.push(outcome.recipient)
+      else failed.push({ recipient: outcome.recipient, error: outcome.error })
     })
+    if (delivered.length === 0) {
+      throw new Error('no recipient accepted the email — ' + failed.map(function(f) {
+        return f.recipient + ': ' + f.error
+      }).join('; '))
+    }
+    if (failed.length > 0) {
+      console.warn('[${tag}] delivered to ' + delivered.length + ' of ' + to.length + ' recipient(s)')
+    }
+    return { sent: true, recipients: to, delivered: delivered, failed: failed }
+  })
 }`
 }
 
@@ -309,6 +406,8 @@ export const generateEmailSenderModule = (
 // teleport-project-generator-next/src/ecommerce/email-sender-generator.ts
 // instead of this file — it will be overwritten on the next build.
 
+var sentEmailLog = require('../email/sent-email-log')
+
 ${providerDispatch}
 
 ${RENDER_TEMPLATE_FN}
@@ -319,10 +418,13 @@ ${HAS_OWN_ITEM_LIST_FN}
 
 ${HTML_TO_TEXT_FN}
 
+${NORMALIZE_RECIPIENTS_FN}
+
 ${senderFn}
 
 module.exports = {
   sendNotificationEmail: sendNotificationEmail,
+  settleSentEmailLog: sentEmailLog.settleSentEmailLog,
   renderTemplate: renderTemplate,
   expandListBlocks: expandListBlocks,
   hasOwnItemList: hasOwnItemList,

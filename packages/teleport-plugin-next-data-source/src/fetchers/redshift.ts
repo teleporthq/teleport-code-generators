@@ -127,8 +127,10 @@ export default async function handler(req, res) {
       if (filterTree) {
         const buildCondition = (condition) => {
           const field = sanitizeIdentifier(condition.source)
-          const value = condition.destination
-          const operand = condition.operand
+          const normalizedCondition = normalizeInOperand(condition.operand, condition.destination)
+          if (normalizedCondition === null) return null
+          const value = normalizedCondition.value
+          const operand = normalizedCondition.operand
           
           if (Array.isArray(value)) {
             if (value.length === 0) return null

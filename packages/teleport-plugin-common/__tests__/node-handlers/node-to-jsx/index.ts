@@ -45,6 +45,38 @@ describe('generateJSXSyntax', () => {
     })
   })
 
+  describe('dynamic style values', () => {
+    it('keeps a custom property key verbatim in the inline style object', () => {
+      // React writes `--*` keys through `style.setProperty`; the camel rule
+      // turned `--tq-panel-display` into `-TqPanelDisplay`, which React neither
+      // renders nor updates — the state-driven panel never opened.
+      const node = elementNode('container', {}, [], undefined, {
+        '--tq-panel-display': dynamicNode('state', 'panelDisplay'),
+        'background-color': dynamicNode('state', 'panelColor'),
+      })
+      const result = generateJSXSyntax(
+        node,
+        {
+          ...params,
+          stateDefinitions: {
+            panelDisplay: { type: 'string', defaultValue: 'none' },
+            panelColor: { type: 'string', defaultValue: 'red' },
+          },
+        },
+        options
+      )
+      const styleAttr = (result as types.JSXElement).openingElement.attributes.find(
+        (attr) => attr.type === 'JSXAttribute' && attr.name.name === 'style'
+      ) as types.JSXAttribute
+      const object = (styleAttr.value as types.JSXExpressionContainer)
+        .expression as types.ObjectExpression
+      const keys = object.properties.map(
+        (prop) => ((prop as types.ObjectProperty).key as types.StringLiteral).value
+      )
+      expect(keys).toEqual(['--tq-panel-display', 'backgroundColor'])
+    })
+  })
+
   describe('slot node', () => {
     it('returns a props.children expression', () => {
       const node = elementNode('container', {}, [slotNode()])

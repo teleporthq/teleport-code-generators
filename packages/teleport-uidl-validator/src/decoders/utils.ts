@@ -490,6 +490,7 @@ export const dataSourceBindingDecoder = object({
 // the generated hook as a plain `useState('')`.
 export const urlSearchParamBindingDecoder = object({
   key: string(),
+  hydrateAfterMount: optional(boolean()),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
@@ -519,6 +520,7 @@ export const detailsPageInfoDecoder: Decoder<UIDLDetailsPageInfo> = object({
   tableName: string(),
   differentiatorColumn: string(),
   featureIdentifier: string(),
+  collectionPath: optional(array(string())),
 })
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({

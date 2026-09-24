@@ -4,6 +4,7 @@ import {
   FileType,
   ChunkType,
   UIDLComponentSEO,
+  UIDLDependency,
   UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
@@ -16,6 +17,7 @@ import {
 import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
 import { buildProductTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
+import { ensureRouterDeclaration } from './request-locale'
 import * as types from '@babel/types'
 
 interface SearchConfig {
@@ -54,6 +56,41 @@ interface WrapContext {
 // Prefix used to clearly differentiate wrapped data source expression props
 // from user-defined or standard renderPropIdentifier values
 const WRAPPED_DS_EXPR_PREFIX = '__dsExpr_'
+
+/**
+ * The statements of the component function the `jsx-component` chunk declares
+ * (`const Page = (props) => { … }`), or `null` when the chunk holds another
+ * shape — a test may hand the plugin a bare element.
+ */
+const findComponentBody = (componentChunk: { content: unknown }): types.Statement[] | null => {
+  const content = componentChunk.content as types.Node | undefined
+  if (content?.type !== 'VariableDeclaration') {
+    return null
+  }
+  const init = content.declarations[0]?.init
+  if (
+    (init?.type !== 'ArrowFunctionExpression' && init?.type !== 'FunctionExpression') ||
+    init.body.type !== 'BlockStatement'
+  ) {
+    return null
+  }
+  return init.body.body
+}
+
+/**
+ * A client-side fetch in a localized project reads `router.locale` (see
+ * `extractDataSourceIntoNextAPIFolder`), so the router has to be declared in
+ * the component that fetches.
+ */
+const ensureRouterForClientFetches = (
+  componentChunk: { content: unknown },
+  dependencies: Record<string, UIDLDependency>
+): void => {
+  const body = findComponentBody(componentChunk)
+  if (body) {
+    ensureRouterDeclaration(body, dependencies)
+  }
+}
 
 function containsDataSourceDataReference(astNode: any): boolean {
   if (!astNode || typeof astNode !== 'object') {
@@ -490,6 +527,11 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
 
     let getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
 
+    const transformOptions = buildProductTransformOptions(options)
+    // Whether a provider on this page fetches client-side — in a localized
+    // project that fetch reads `router.locale`.
+    let wiredClientFetch = false
+
     // Track the first data source info for wrapping dataSourceData expressions
     let firstDataSourceInfo: DataSourceInfo | null = null
     // Track fetcher import name for wrapped providers
@@ -609,7 +651,7 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dependencies,
           dynamicRouteAttr,
           uidl.outputOptions?.folderPath,
-          buildProductTransformOptions(options)
+          transformOptions
         )
 
         if (result.success && result.chunk) {
@@ -641,16 +683,22 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
             }
           }
         }
-      } else {
+      } else if (
         extractDataSourceIntoNextAPIFolder(
           dataSourceNode,
           dataSources,
           componentChunk,
           options.extractedResources,
-          buildProductTransformOptions(options)
+          transformOptions
         )
+      ) {
+        wiredClientFetch = true
       }
     })
+
+    if (wiredClientFetch && transformOptions.localization) {
+      ensureRouterForClientFetches(componentChunk, dependencies)
+    }
 
     // After processing all data source nodes, wrap any element props containing dataSourceData
     // expressions in a DataProvider
@@ -1207,6 +1255,11 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
       return structure
     }
 
+    const transformOptions = buildProductTransformOptions(options)
+    // Whether a provider in this component fetches client-side — in a
+    // localized project that fetch reads `router.locale`.
+    let wiredClientFetch = false
+
     // Track the first data source info for wrapping dataSourceData expressions
     let firstDataSourceInfo: DataSourceInfo | null = null
 
@@ -1264,14 +1317,22 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
         }
       }
 
-      extractDataSourceIntoNextAPIFolder(
-        dataSourceNode,
-        dataSources,
-        componentChunk,
-        options.extractedResources,
-        buildProductTransformOptions(options)
-      )
+      if (
+        extractDataSourceIntoNextAPIFolder(
+          dataSourceNode,
+          dataSources,
+          componentChunk,
+          options.extractedResources,
+          transformOptions
+        )
+      ) {
+        wiredClientFetch = true
+      }
     })
+
+    if (wiredClientFetch && transformOptions.localization) {
+      ensureRouterForClientFetches(componentChunk, dependencies)
+    }
 
     // If no data source nodes were found but there are dataSources available,
     // use the first available dataSource to create firstDataSourceInfo
@@ -1355,7 +1416,7 @@ export const createNextComponentDataSourcePlugin: ComponentPluginFactory<{}> = (
               dataSource,
               firstDataSourceInfo.tableName,
               false,
-              buildProductTransformOptions(options)
+              transformOptions
             )
             options.extractedResources[`utils/${fileName}`] = {
               fileName,
@@ -1399,8 +1460,15 @@ export * from './utils'
 export * from './array-mapper-pagination'
 export * from './pagination-plugin'
 export * from './count-fetchers'
+export * from './product-price-sort'
+export * from './product-filter-fields'
 // The product transform's build-time options (category taxonomy + storefront
 // tax rate) — every package that emits a data-source fetcher has to derive
 // them the same way.
 export { buildProductTransformOptions } from './transformations'
 export type { EcommerceProductTransformOptions, EntityTransformOptions } from './transformations'
+// How a fetch says which language it is for, and when a project needs it to —
+// shared with every other package that emits a data-source fetch.
+export { isLocalizedProject, resolveContentLocalization } from './content-localization'
+export type { ContentLocalization } from './content-localization'
+export { REQUEST_LOCALE_PARAM, buildServerLocaleParam } from './request-locale'

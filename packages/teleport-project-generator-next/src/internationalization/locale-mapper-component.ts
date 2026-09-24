@@ -174,6 +174,18 @@ const transformLanguageSwitcherLinks = (node: types.Node): boolean => {
         transformed = true
       }
     }
+    // A switcher built as an array mapper over the languages renders its
+    // links from a render-prop ATTRIBUTE (`<Repeater renderItem={(lang) =>
+    // <a href={lang?.short}>…}`), not from the children.
+    for (const attr of opening.attributes) {
+      if (
+        types.isJSXAttribute(attr) &&
+        types.isJSXExpressionContainer(attr.value) &&
+        transformLanguageSwitcherLinks(attr.value)
+      ) {
+        transformed = true
+      }
+    }
     return transformed
   }
 

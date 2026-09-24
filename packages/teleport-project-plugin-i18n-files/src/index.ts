@@ -7,6 +7,7 @@ import {
   ProjectPluginStructure,
   ProjectType,
   UIDLElementNode,
+  UIDLNode,
   UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import {
@@ -20,6 +21,36 @@ import { Resolver } from '@teleporthq/teleport-uidl-resolver'
 import { ReactMapping } from '@teleporthq/teleport-component-generator-react'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { StringUtils } from '@teleporthq/teleport-shared'
+
+/**
+ * A message is static HTML that `translate.raw()` injects at runtime, so a
+ * runtime binding inside a translation hierarchy can never resolve there. Left
+ * in, the JSX printer would emit the expression itself as text — the price of
+ * a product page once shipped as `{typeof undefined === "object" ...}`. Only
+ * what can be rendered as markup stays.
+ */
+const RENDERABLE_MESSAGE_NODE_TYPES = new Set<UIDLNode['type']>(['static', 'raw', 'element'])
+
+/** Whether any node of the hierarchy had to be dropped. */
+const stripRuntimeBindings = (node: UIDLElementNode): boolean => {
+  const children = node.content.children
+  if (!children?.length) {
+    return false
+  }
+
+  let stripped = false
+  node.content.children = children.filter((child) => {
+    if (!RENDERABLE_MESSAGE_NODE_TYPES.has(child.type)) {
+      stripped = true
+      return false
+    }
+    if (child.type === 'element') {
+      stripped = stripRuntimeBindings(child) || stripped
+    }
+    return true
+  })
+  return stripped
+}
 
 export class ProjectPlugini18nFiles implements ProjectPlugin {
   projectType: ProjectType
@@ -137,6 +168,12 @@ export class ProjectPlugini18nFiles implements ProjectPlugin {
         const messageKey = StringUtils.sanitizeTranslationKey(id)
 
         if (item?.type === 'element') {
+          if (stripRuntimeBindings(item)) {
+            /* tslint:disable no-console */
+            console.warn(
+              `Translation "${id}" (${locale}) holds a runtime binding, which a message cannot render; it was left out.`
+            )
+          }
           promises.push(
             new Promise((resolve) => {
               this.generateJSX(item, uidl.root.styleSetDefinitions, id).then(({ html, css }) => {

@@ -151,6 +151,47 @@ describe('createNextUrlSearchParamsPlugin', () => {
     expect(code).toContain('setSortBy')
   })
 
+  it('makes the write-back wait for the read-back on a hydrate-after-mount binding', async () => {
+    // The products-list view toggle keeps its default through hydration and
+    // adopts `?view=` after mount. On the first ready render the state still
+    // holds the default, so a write-back running first would delete the key
+    // the read-back was about to adopt — and the pair would chase each other
+    // (`/products?view=list` → `/products` → …). The adopted flag orders them.
+    const chunk = makeJsxComponentChunk()
+    const structure: ComponentStructure = {
+      uidl: {
+        name: 'Products',
+        node: { type: 'element', content: { elementType: 'container' } },
+        stateDefinitions: {
+          productsView: {
+            type: 'string',
+            defaultValue: 'grid',
+            urlSearchParamBinding: { key: 'view', hydrateAfterMount: true },
+          },
+        },
+      } as never,
+      options: {},
+      chunks: [chunk],
+      dependencies: {},
+    }
+    await plugin(structure)
+
+    const code = codeOfChunk(chunk)
+    expect(code).toContain('const productsViewUrlAdopted = useRef(false)')
+    // Write-back: silent until adopted.
+    expect(code).toMatch(
+      /if \(!router\.isReady\) return;?\s*if \(!productsViewUrlAdopted\.current\) return;?\s*__tqWriteQueryParam\("view"/
+    )
+    // Read-back: adopts, then lifts the flag.
+    expect(code).toMatch(
+      /setProductsView\(prev => prev === __nextValue \? prev : __nextValue\);?\s*productsViewUrlAdopted\.current = true/
+    )
+    expect(structure.dependencies.useRef).toBeTruthy()
+    // Running again neither duplicates the flag nor the effects.
+    await plugin(structure)
+    expect((codeOfChunk(chunk).match(/productsViewUrlAdopted = useRef/g) || []).length).toBe(1)
+  })
+
   it('is idempotent — running twice does not double-emit write-back or read-back', async () => {
     const chunk = makeJsxComponentChunk()
     const structure: ComponentStructure = {

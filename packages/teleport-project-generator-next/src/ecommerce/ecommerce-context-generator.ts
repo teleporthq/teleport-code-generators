@@ -1,6 +1,11 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
 import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
+import {
+  generateRegionalPricingModuleCode,
+  generateRegionalPricingProviderCode,
+  resolveRegionalPricing,
+} from './ecommerce-regional-pricing-code'
 
 /**
  * Records where this VISIT came from, so the checkout can stamp it onto the
@@ -149,6 +154,22 @@ export const generateEcommerceContextFileContent = (
   // coercion of that field.
   const storefrontTaxRate = resolveStorefrontTaxRate(invoiceSettings)
 
+  // Shipping zones + tax jurisdictions. Null for a store without the feature,
+  // which then gets none of the fragments below and prices exactly as before.
+  const regional = resolveRegionalPricing(ecommerceSettings, dataSourceId)
+  const regionalModuleCode = regional
+    ? generateRegionalPricingModuleCode(regional, {
+        deliveryEnabled: ecommerceSettings.deliveryEnabled === true,
+        storePickupEnabled: ecommerceSettings.storePickupEnabled === true,
+        deliveryPrice: Number(ecommerceSettings.deliveryConfig?.deliveryPrice ?? 0) || 0,
+        freeDeliveryEnabled: !!ecommerceSettings.deliveryConfig?.freeDeliveryEnabled,
+        freeDeliveryThreshold:
+          Number(ecommerceSettings.deliveryConfig?.freeDeliveryThreshold ?? 0) || 0,
+        defaultTaxRate: Number(invoiceSettings?.defaultTaxRate) || 0,
+        defaultTaxIncluded: invoiceSettings?.taxIncludedInPrice === true,
+      })
+    : ''
+
   // Cart hydration re-reads every line off `teleport_products`, so the media it
   // stamps back onto the line is whatever that column holds — a URL for a stock
   // photo, a bare PROJECT-ASSET ID when the merchant picked an image that
@@ -172,6 +193,36 @@ export const generateEcommerceContextFileContent = (
     ? ['      var image = resolveMediaUrl(entry.rawImage, assetUrlMap, item.image)']
     : ['      var image = entry.rawImage']
 
+  // What shipping zones and tax rows price a line by, re-read with everything
+  // else: the product's weight (weight-tiered rates) and its category ids
+  // INCLUDING ancestors (a tax row for "Food" covers "Food › Bread"). Stamped
+  // only for a store with regional pricing — nothing else reads them.
+  const enrichedFields = [
+    'name',
+    'price',
+    'image',
+    'variant',
+    'currency',
+    'currencySymbol',
+    'slug',
+    'originalPrice',
+    'discountType',
+    'discountValue',
+    'discountAmount',
+    ...(regional ? ['weight', 'weightUnit'] : []),
+  ]
+  const categoryChangedLines = regional
+    ? [
+        "  if (String((before && before.categoryIds) || '') !== String(after.categoryIds || '')) return true",
+      ]
+    : []
+  const regionalStampLines = regional
+    ? [
+        '        weight: product.weight != null ? Number(product.weight) : null,',
+        '        weightUnit: product.weight_unit || null,',
+        '        categoryIds: __rpStringArray(product.category_filter_ids || product.category_ids).map(String)',
+      ]
+    : []
   const enrichFnCode = dataSourceId
     ? [
         // Build a human-readable variant label ("Red / XL") from the product's
@@ -221,7 +272,7 @@ export const generateEcommerceContextFileContent = (
         // reference. Compared field-by-field rather than by JSON.stringify:
         // key order is not guaranteed across engines and a false "changed"
         // would reintroduce the redundant write this exists to avoid.
-        'var TQ_ENRICHED_FIELDS = ["name","price","image","variant","currency","currencySymbol","slug","originalPrice","discountType","discountValue","discountAmount"]',
+        `var TQ_ENRICHED_FIELDS = ${JSON.stringify(enrichedFields)}`,
         'function tqLineChanged(before, after) {',
         '  for (var f = 0; f < TQ_ENRICHED_FIELDS.length; f++) {',
         '    var key = TQ_ENRICHED_FIELDS[f]',
@@ -230,6 +281,7 @@ export const generateEcommerceContextFileContent = (
         '    if ((a == null) !== (b == null)) return true',
         '    if (a != null && String(a) !== String(b)) return true',
         '  }',
+        ...categoryChangedLines,
         '  var beforeSwatches = (before && before.variantSwatches) || []',
         '  var afterSwatches = after.variantSwatches || []',
         '  if (beforeSwatches.length !== afterSwatches.length) return true',
@@ -348,7 +400,10 @@ export const generateEcommerceContextFileContent = (
         '        originalPrice: discount ? listPrice : null,',
         '        discountType: discount ? discount.type : null,',
         '        discountValue: discount ? discount.value : null,',
-        '        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0',
+        `        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0${
+          regional ? ',' : ''
+        }`,
+        ...regionalStampLines,
         '      }))',
         '    })',
         '    return didChange ? enriched : items',
@@ -426,10 +481,15 @@ function persistCartToDb(items) {
     // overwrite the union with this (pre-login) snapshot, and hands back the
     // merged lines instead. Ignoring that answer would leave the tab showing
     // half the cart the database now holds.
+    // The language of the page the cart was synced from: the abandoned-cart
+    // reminder reads it back so the shopper is emailed in the language they
+    // browsed in. Read live off the router (the page data goes stale after a
+    // client-side language switch) by the shared locale module.
+    var pageLocale = emailLocale.getClientLocale()
     return fetch('/api/cart/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId() }),
+      body: JSON.stringify({ items: payload, sessionId: getOrCreateSessionId(), locale: pageLocale }),
     })
       .then(function (res) { return res.ok ? res.json() : null })
       .catch(function () { return null })
@@ -585,9 +645,90 @@ if (typeof window !== 'undefined') {
     ? "import { isDirectAssetUrl, loadAssetUrlMap, resolveMediaUrl } from './utils/ecommerce/asset-urls'\n"
     : ''
 
+  // The cart sync sends the page language; the module is emitted alongside
+  // the cart route (see project-plugin.ts), so it exists exactly when this
+  // import does. A default import of the CommonJS module, like the workflow
+  // hook's import of the runtime — a `require` in this ES module would mix
+  // module systems.
+  const cartLocaleImport = cartDbEnabled
+    ? "import emailLocale from './utils/email/email-locale'\n"
+    : ''
+
+  // The render-time pricing of the provider, in its two shapes. Regional stores
+  // price every figure from one quote for the checkout's destination; every
+  // other store keeps the single-rate arithmetic it has always used.
+  const pricingCode = regional
+    ? `${generateRegionalPricingProviderCode()}
+  const shippingMeta = useMemo(() => regionalShippingMeta(regionalQuote), [regionalQuote])
+  const cartGoodsTotal = regionalQuote.goodsGross
+`
+    : `  const shippingMeta = useMemo(
+    () => computeShippingMeta(cartMeta.total, settings.Delivery, settings.deliveryEnabled === true),
+    [cartMeta.total, settings.Delivery, settings.deliveryEnabled]
+  )
+  const cartGoodsTotal = cartMeta.total
+`
+  const voucherItemsExpression = regional
+    ? 'regionalVoucherItems(regionalQuote, cartItems)'
+    : 'cartItems'
+  const voucherTaxRateExpression = regional ? '0' : 'STOREFRONT_TAX_RATE'
+  const voucherDeps = regional
+    ? 'cartItems, regionalQuote, appliedVoucher, settings.vouchersEnabled, shippingMeta'
+    : 'cartItems, appliedVoucher, settings.vouchersEnabled, shippingMeta'
+  const displayCartItemsCode = regional
+    ? `  // Same projection as a single-rate store's, with each line priced in the
+  // destination's tax by the quote.
+  const displayCartItems = useMemo(
+    () =>
+      cartItems.map((item, index) => {
+        const pricing = regionalLinePricing(regionalQuote, item, index)
+        return Object.assign({}, item, {${displayImageLine}
+          unitPrice: formatCartMoney(pricing.unitPrice),
+          price: formatCartMoney(pricing.lineTotal),
+          originalPrice:
+            pricing.originalLineTotal === null ? '' : formatCartMoney(pricing.originalLineTotal),
+          hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
+        })
+      }),
+    [cartItems, regionalQuote]
+  )
+`
+    : `  const displayCartItems = useMemo(
+    () =>
+      cartItems.map((item) =>
+        Object.assign({}, item, {${displayImageLine}
+          unitPrice: formatCartMoney(cartItemDisplayPrice(item)),
+          price: formatCartMoney(cartItemLineTotal(item)),
+          // The price this line was marked down FROM. \`originalPrice\` is stored
+          // NET and PER-UNIT by enrichCartItems; here it is grossed up and
+          // multiplied out exactly like \`price\`, so the struck figure and the
+          // charged one are the same kind of number. Shadowing the stored key
+          // matches what \`price\` and \`unitPrice\` already do.
+          originalPrice: cartItemHasDiscount(item)
+            ? formatCartMoney(cartItemOriginalLineTotal(item))
+            : '',
+          // A 'true'/'false' STRING, because a rendering condition compares
+          // operands as strings and a \`!= ''\` test passes for undefined.
+          hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
+        })
+      ),
+    [cartItems]
+  )
+`
+  const shippingOptionsExpression = regional ? 'regionalShippingOptions(regionalQuote)' : '[]'
+  const shippingOptionsVisibleExpression = regional
+    ? "regionalQuote.fulfillment === 'delivery' && regionalQuote.options.length > 1 ? 'true' : 'false'"
+    : "'false'"
+  const shippingStatusExpression = regional ? 'regionalQuote.status' : "'ok'"
+  const codAvailableExpression = regional
+    ? "regionalQuote.codAvailable ? 'true' : 'false'"
+    : "'true'"
+  const settingsExpression = regional ? 'regionalSettingsView(settings, regionalQuote)' : 'settings'
+  const valueExtraDeps = regional ? 'regionalQuote, ' : ''
+
   return `import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
-${assetUrlsImport}${ORDER_ATTRIBUTION_WRITER}
+${assetUrlsImport}${cartLocaleImport}${ORDER_ATTRIBUTION_WRITER}
 
 const CART_STORAGE_KEY = 'workflow_cart'
 const CART_SETTINGS_STORAGE_KEY = 'workflow_cart_settings'
@@ -608,7 +749,7 @@ function loadCartFromStorage() {
 }
 
 ${ProductDiscounts.generateProductDiscountHelperCode()}
-
+${regionalModuleCode}
 ${enrichFnCode}
 
 function saveCartToStorage(items) {
@@ -1116,11 +1257,7 @@ ${
     [ecommerceCategoriesRaw, router.locale]
   )
 
-  const shippingMeta = useMemo(
-    () => computeShippingMeta(cartMeta.total, settings.Delivery, settings.deliveryEnabled === true),
-    [cartMeta.total, settings.Delivery, settings.deliveryEnabled]
-  )
-
+${pricingCode}
   // What the cart & checkout pages bind their per-line money to. The stored
   // \`cartItems\` keep the NET unit price (they are what gets persisted and what
   // becomes \`teleport_order_items.unit_price\`); this projection is the only
@@ -1140,37 +1277,16 @@ ${
   const voucherMeta = useMemo(
     () =>
       computeVoucherMeta(
-        cartItems,
+        ${voucherItemsExpression},
         appliedVoucher,
-        STOREFRONT_TAX_RATE,
+        ${voucherTaxRateExpression},
         shippingMeta,
         settings.vouchersEnabled === true
       ),
-    [cartItems, appliedVoucher, settings.vouchersEnabled, shippingMeta]
+    [${voucherDeps}]
   )
 
-  const displayCartItems = useMemo(
-    () =>
-      cartItems.map((item) =>
-        Object.assign({}, item, {${displayImageLine}
-          unitPrice: formatCartMoney(cartItemDisplayPrice(item)),
-          price: formatCartMoney(cartItemLineTotal(item)),
-          // The price this line was marked down FROM. \`originalPrice\` is stored
-          // NET and PER-UNIT by enrichCartItems; here it is grossed up and
-          // multiplied out exactly like \`price\`, so the struck figure and the
-          // charged one are the same kind of number. Shadowing the stored key
-          // matches what \`price\` and \`unitPrice\` already do.
-          originalPrice: cartItemHasDiscount(item)
-            ? formatCartMoney(cartItemOriginalLineTotal(item))
-            : '',
-          // A 'true'/'false' STRING, because a rendering condition compares
-          // operands as strings and a \`!= ''\` test passes for undefined.
-          hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
-        })
-      ),
-    [cartItems]
-  )
-
+${displayCartItemsCode}
   // Derive currency symbol from the first cart item or fallback to '$'
   const cartCurrencySymbol = useMemo(() => {
     for (let ci = 0; ci < cartItems.length; ci++) {
@@ -1190,13 +1306,13 @@ ${
     voucherMeta.voucherFreeShipping === 'true' ? 0 : shippingMeta.shippingPrice
   const effectiveTotal = Math.max(
     0,
-    roundMoney(cartMeta.total + effectiveShippingPrice - voucherMeta.rawDiscount)
+    roundMoney(cartGoodsTotal + effectiveShippingPrice - voucherMeta.rawDiscount)
   )
 
   const value = useMemo(() => ({
     Cart: {
       items: displayCartItems,
-      total: cartMeta.total,
+      total: cartGoodsTotal,
       itemCount: cartMeta.itemCount,
       shippingPrice: effectiveShippingPrice,
       shippingIsFree:
@@ -1213,13 +1329,13 @@ ${
       // "12.50", and the editor canvas (which formats these through
       // \`resolveCartDerivedFieldFromSnapshot\`) disagrees with the published
       // page. Nothing computes with them — they are read only by text bindings.
-      rawSubtotal: formatCartMoney(cartMeta.total),
+      rawSubtotal: formatCartMoney(cartGoodsTotal),
       // Discount-inclusive and never below zero. Built from the WAIVED shipping
       // so a free-shipping voucher reduces the total exactly once.
       rawTotal: formatCartMoney(effectiveTotal),
       // What a pickup order owes: no delivery, but the discount still applies.
       rawSubtotalAfterDiscount: formatCartMoney(
-        Math.max(0, roundMoney(cartMeta.total - voucherMeta.rawDiscount))
+        Math.max(0, roundMoney(cartGoodsTotal - voucherMeta.rawDiscount))
       ),
       rawShipping: formatCartMoney(effectiveShippingPrice),
       // Voucher surface. The flags are 'true'/'false' STRINGS because a
@@ -1229,6 +1345,13 @@ ${
       voucherCode: voucherMeta.voucherCode,
       voucherFreeShipping: voucherMeta.voucherFreeShipping,
       voucherDiscountVisible: voucherMeta.voucherDiscountVisible,
+      // Shipping zones. A store without them always reports one delivery
+      // price, nothing pending and cash on delivery allowed, so a checkout page
+      // built with the shipping-method list simply never shows it.
+      shippingOptions: ${shippingOptionsExpression},
+      shippingOptionsVisible: ${shippingOptionsVisibleExpression},
+      shippingStatus: ${shippingStatusExpression},
+      codAvailable: ${codAvailableExpression},
       currencySymbol: cartCurrencySymbol,
       addToCart,
       removeFromCart,
@@ -1236,7 +1359,7 @@ ${
       clearCart,
       isHydrated,
     },
-    Settings: settings,
+    Settings: ${settingsExpression},
     paymentProviders,
     hasPaymentProviders: ${hasPaymentProviders},
     storeLocations,
@@ -1247,7 +1370,7 @@ ${
   // cart meta and the shipping meta are all untouched — so without them the memo
   // returned the previous context object, the Provider's value stayed
   // reference-identical, and the summary only caught up on a page reload.
-  }), [displayCartItems, cartMeta, shippingMeta, voucherMeta, effectiveShippingPrice, effectiveTotal, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
+  }), [displayCartItems, cartMeta, ${valueExtraDeps}shippingMeta, voucherMeta, effectiveShippingPrice, effectiveTotal, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
 
   return (
     <EcommerceContext.Provider value={value}>

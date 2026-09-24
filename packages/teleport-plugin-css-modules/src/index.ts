@@ -180,9 +180,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           jsxInlineStyles = {}
         }
         for (const [cssProperty, binding] of Object.entries(dynamicStyleBindings)) {
-          const camelCaseProperty = cssProperty.replace(/-([a-z])/g, (_, letter: string) =>
-            letter.toUpperCase()
-          )
+          const camelCaseProperty = StringUtils.cssPropertyToInlineStyleKey(cssProperty)
           jsxInlineStyles[camelCaseProperty] = StyleBuilders.createDynamicBindingExpression(binding)
         }
       }

@@ -222,3 +222,56 @@ describe('server API route still carries the SQL', () => {
     expect(route).toContain(DATA_SOURCE_ID)
   })
 })
+
+describe('route-backed account nodes: the email their route sends never ships to the browser', () => {
+  const { redactServerNodeConfig } = require('../src/segment-splitter')
+
+  const signupConfig = {
+    email: { type: 'workflowContext', nodeId: 'form', path: ['form', 'email'] },
+    password: { type: 'workflowContext', nodeId: 'form', path: ['form', 'password'] },
+    name: 'Jane',
+    company: 'Acme',
+    emailProvider: 'email-resend',
+    apiKey: { type: 'dynamic', content: { referenceType: 'secret', id: 'RESEND_APIKEY' } },
+    from: 'hello@example.com',
+    subject: 'Welcome {{userName}}',
+    body: '<p>SECRET_WELCOME_BODY</p>',
+    templateParams: [{ key: 'userName', value: 'Jane' }],
+    localizedTemplates: { es: { body: '<p>SECRET_WELCOME_BODY_ES</p>' } },
+  }
+
+  it('keeps the credentials and the user columns of a signup, drops the welcome email', () => {
+    const redacted = redactServerNodeConfig(signupConfig, 'client', 'account-signup')
+    expect(redacted).toEqual({
+      email: signupConfig.email,
+      password: signupConfig.password,
+      name: 'Jane',
+      company: 'Acme',
+    })
+  })
+
+  it('keeps what the delete handler reads, drops the farewell email', () => {
+    const redacted = redactServerNodeConfig(
+      {
+        successMessage: 'Bye',
+        redirectTo: '/',
+        emailProvider: 'email-resend',
+        serverToken: 'x',
+        domain: 'mg.example.com',
+        deletedEmailPattern: 'deleted-{{userId}}@x.invalid',
+        subject: 'Goodbye',
+        body: '<p>SECRET_FAREWELL</p>',
+        localizedTemplates: { es: { body: '<p>SECRET_FAREWELL_ES</p>' } },
+      },
+      'client',
+      'account-delete-current'
+    )
+    expect(redacted).toEqual({ successMessage: 'Bye', redirectTo: '/' })
+  })
+
+  it('leaves every other client node config untouched', () => {
+    const config = { message: 'hi', subject: 'kept', body: 'kept' }
+    expect(redactServerNodeConfig(config, 'client', 'toast-show')).toBe(config)
+    expect(redactServerNodeConfig(config, 'client')).toBe(config)
+  })
+})

@@ -14,6 +14,7 @@ import * as StyleDeclarations from './utils/style-declarations'
 import * as StorefrontTax from './utils/storefront-tax'
 import * as ProductDiscounts from './utils/product-discounts'
 import * as ProductRatings from './utils/product-ratings'
+import * as RegionalPricing from './utils/regional-pricing'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
@@ -41,6 +42,7 @@ export {
   StorefrontTax,
   ProductDiscounts,
   ProductRatings,
+  RegionalPricing,
   FontPreconnect,
   EmailDate,
   RichTextEmbeds,

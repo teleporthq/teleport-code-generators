@@ -150,7 +150,9 @@ export const cartAddItem: NodeHandlerGenerator = {
   executionEnv: 'client',
   generateHandler(): string {
     // The helper is concatenated rather than imported: the handler ships as a
-    // serialized function body with no module scope. See `commerce-tracking.ts`.
+    // serialized function body with no module scope. It is a string literal
+    // rather than a `.toString()` so a consumer's minifier cannot strip its
+    // declaration name. See `commerce-tracking.ts`.
     return assertHandlerHasNoModuleRefs(
       handlerToString(cart_add_item) + '\n' + COMMERCE_TRACKING_HELPER_SOURCE,
       'cart-add-item'

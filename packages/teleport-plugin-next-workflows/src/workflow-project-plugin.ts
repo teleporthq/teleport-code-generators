@@ -62,13 +62,19 @@ import {
   getDatabaseDriverDependencies,
 } from './auth-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
+import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
+import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
+import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
 import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
 import {
   generateAccountDeleteRoute,
   accountDeleteRouteDependencies,
 } from './account-delete-route-generator'
-import { transactionalEmailDependencies } from './transactional-email-code'
+import {
+  readLocalizedEmailTemplates,
+  transactionalEmailDependencies,
+} from './transactional-email-code'
 import {
   needsRuntimeStorageRoute,
   generateRuntimeStorageUploadRoute,
@@ -227,29 +233,43 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     // any code is emitted.
     assertWorkflowsAreSecure(uidl.workflows)
 
-    if (uidl.workflows?.workflows) {
+    if (uidl.workflows) {
       const pageRouteMap = this.buildPageRouteMap(uidl, strategy)
 
-      const unresolvedPageIds = new Set<string>()
-      for (const wf of Object.values(uidl.workflows.workflows) as any[]) {
-        for (const node of wf.nodes || []) {
-          if (node.type === 'navigation-go-to-page' && node.config?.pageId) {
-            const resolved = pageRouteMap[node.config.pageId]
-            if (resolved) {
-              node.config.pageId = resolved
-            } else {
-              // The page id isn't in the route map (e.g. an auth page like
-              // sign-in registered outside routeDef/authPages). The mapper
-              // already stamped the real route on `targetPage.staticUrl`, so
-              // prefer that over leaving a raw page id that 404s at runtime.
-              const staticUrl = (node.config.targetPage as { staticUrl?: unknown } | undefined)
-                ?.staticUrl
-              if (typeof staticUrl === 'string' && staticUrl.charAt(0) === '/') {
-                node.config.pageId = staticUrl
-              } else {
-                unresolvedPageIds.add(node.config.pageId)
-              }
+      // CUSTOM NODES are walked alongside workflows. They used to be skipped,
+      // so a `navigation-go-to-page` inside a shared custom node reached
+      // `custom-nodes.js` still carrying its raw page id and the runtime fell
+      // through to `targetPage.staticUrl` — the mapper's best guess, which is
+      // '/home' for the home page even though Next serves it at '/', and which
+      // keeps pointing at a page the user has since DELETED. Both 404.
+      const goToPageNodes: Array<{ config: Record<string, any> }> = []
+      const nodeOwners = [uidl.workflows.workflows, uidl.workflows.customNodes]
+      for (const owner of nodeOwners) {
+        for (const entry of Object.values(owner || {}) as any[]) {
+          for (const node of entry?.nodes || []) {
+            if (node.type === 'navigation-go-to-page' && node.config?.pageId) {
+              goToPageNodes.push(node)
             }
+          }
+        }
+      }
+
+      const unresolvedPageIds = new Set<string>()
+      for (const node of goToPageNodes) {
+        const resolved = pageRouteMap[node.config.pageId]
+        if (resolved) {
+          node.config.pageId = resolved
+        } else {
+          // The page id isn't in the route map (e.g. an auth page like
+          // sign-in registered outside routeDef/authPages). The mapper
+          // already stamped the real route on `targetPage.staticUrl`, so
+          // prefer that over leaving a raw page id that 404s at runtime.
+          const staticUrl = (node.config.targetPage as { staticUrl?: unknown } | undefined)
+            ?.staticUrl
+          if (typeof staticUrl === 'string' && staticUrl.charAt(0) === '/') {
+            node.config.pageId = staticUrl
+          } else {
+            unresolvedPageIds.add(node.config.pageId)
           }
         }
       }
@@ -262,15 +282,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
             for (const pid of unresolvedPageIds) {
               pageRouteMap[pid] = defaultRouteUrl
             }
-            for (const wf of Object.values(uidl.workflows.workflows) as any[]) {
-              for (const node of wf.nodes || []) {
-                if (
-                  node.type === 'navigation-go-to-page' &&
-                  node.config?.pageId &&
-                  unresolvedPageIds.has(node.config.pageId)
-                ) {
-                  node.config.pageId = pageRouteMap[node.config.pageId]
-                }
+            for (const node of goToPageNodes) {
+              if (unresolvedPageIds.has(node.config.pageId)) {
+                node.config.pageId = pageRouteMap[node.config.pageId]
               }
             }
           }
@@ -339,13 +353,21 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     const customNodes = uidl.workflows.customNodes || {}
     const usedNodeTypes = collectUsedNodeTypes(uidl.workflows)
 
+    // Server routes that run a mail-sending node require the sent-email
+    // ledger module (see generateNodeHandlersForSegment).
+    if (hasEmailSendingNodeType(usedNodeTypes)) {
+      ensureSentEmailLogModule(structure)
+    }
+
     files.set('workflow-runtime-utils', {
       path: ['utils', 'workflows'],
       files: [
         {
           name: 'runtime-utils',
           fileType: FileType.JS,
-          content: generateSharedRuntimeUtilsCode(),
+          content: generateSharedRuntimeUtilsCode({
+            emailLocales: resolveEmailLocaleConfig(uidl),
+          }),
         },
       ],
     })
@@ -647,6 +669,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       const emailSecretEnvName =
         extractSecretEnvName(deleteConfig.apiKey) || extractSecretEnvName(deleteConfig.serverToken)
 
+      ensureEmailLocaleModule(structure)
       files.set('account-delete-current-route', {
         path: ['pages', 'api', 'account'],
         files: [
@@ -660,6 +683,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               emailSecretEnvName,
               emailSubject: typeof deleteConfig.subject === 'string' ? deleteConfig.subject : '',
               emailBodyHtml: typeof deleteConfig.body === 'string' ? deleteConfig.body : '',
+              localizedTemplates: readLocalizedEmailTemplates(deleteConfig.localizedTemplates),
               siteName: uidl.name || '',
               deletedEmailPattern:
                 typeof deleteConfig.deletedEmailPattern === 'string'
@@ -675,6 +699,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         if (!dependencies[pkg]) {
           dependencies[pkg] = version
         }
+      }
+      // A configured provider means the route records its sends.
+      if (Object.keys(providerDeps).length > 0) {
+        ensureSentEmailLogModule(structure)
       }
     }
 
@@ -1167,7 +1195,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       })
       .join(',\n')
 
+    // Bound before the map so a handler can reach the runtime's helpers by the
+    // shared alias (see workflow-utils-alias.ts).
     return `// Auto-generated workflow node handlers (${env})
+${workflowUtilsRequireLine('./runtime-utils')}
 
 module.exports = {
 ${entries}
@@ -1247,7 +1278,7 @@ ${entries}
       const nodesJson = JSON.stringify(
         (cn.nodes || []).map((n: any) => ({
           ...n,
-          config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n)),
+          config: redactServerNodeConfig(n.config, resolveNodeExecutionEnv(n), n.type),
           // Runtime marker consumed by clientExecutableBranchNodes (client
           // runtime) so streaming on-stream/on-end branches never execute
           // server nodes (whose config was just redacted) client-side.
@@ -1291,7 +1322,7 @@ ${entries}
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
-              config: redactServerNodeConfig(n.config, s.env),
+              config: redactServerNodeConfig(n.config, s.env, n.type),
               stepNumber: n.stepNumber,
               label: n.label,
             })),
@@ -1637,12 +1668,16 @@ module.exports = __customNodeRegistry;
       const welcomeSecretEnvName =
         extractSecretEnvName(signupConfig.apiKey) || extractSecretEnvName(signupConfig.serverToken)
 
+      // The route reads the signup page's language off the request, so the
+      // locale module must exist whether or not a welcome email is configured.
+      ensureEmailLocaleModule(structure)
       const signupRouteCode = generateSignupRouteFile(auth, {
         emailProvider: welcomeProvider,
         fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
         emailSecretEnvName: welcomeSecretEnvName,
         emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
         emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',
+        localizedTemplates: readLocalizedEmailTemplates(signupConfig.localizedTemplates),
         siteName: uidl.name || '',
       })
       files.set('auth-signup-route', {
@@ -1661,6 +1696,10 @@ module.exports = __customNodeRegistry;
         if (!dependencies[pkg]) {
           dependencies[pkg] = version
         }
+      }
+      // A configured provider means the route records its sends.
+      if (Object.keys(welcomeProviderDeps).length > 0) {
+        ensureSentEmailLogModule(structure)
       }
     }
 
@@ -1945,6 +1984,7 @@ module.exports = __customNodeRegistry;
     return `// Auto-generated global workflow hooks
 import { useEffect } from 'react';
 ${needsRouter ? `import Router from 'next/router';\n` : ''}import workflowRuntime from './runtime';
+${workflowUtilsImportLine('./runtime-utils')}
 const executeWorkflowWithSegments = workflowRuntime.executeWorkflowWithSegments;
 
 export function useGlobalWorkflows() {

@@ -21,6 +21,14 @@ export {
 } from './api-route-generator'
 export { generateTriggerCode } from './trigger-generator'
 export { generatePgClientCode } from './pg-client-code'
+export { ensureSentEmailLogModule } from './sent-email-log'
+export {
+  ensureEmailLocaleModule,
+  EMAIL_LOCALE_CONFIG_KEY,
+  EMAIL_LOCALE_HEADER,
+  LOCALIZED_TEMPLATES_CONFIG_KEY,
+  resolveEmailLocaleConfig,
+} from './email-locale'
 export {
   SESSION_TOKEN_RESOLVER_FN,
   generateSessionTokenResolverCode,

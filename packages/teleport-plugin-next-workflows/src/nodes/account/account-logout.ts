@@ -1,6 +1,6 @@
 import { NodeHandlerGenerator, handlerToString } from '../types'
 
-async function account_logout(_config: unknown, _context: Record<string, unknown>) {
+async function account_logout(_config: unknown, context: Record<string, unknown>) {
   // Read signOut off the window bridge session-provider.js publishes instead of
   // `require('next-auth/react')` — see the account-login handler for the full
   // rationale (avoids the dangling-module "reading 'call'" crash that a
@@ -19,7 +19,9 @@ async function account_logout(_config: unknown, _context: Record<string, unknown
       window.localStorage.removeItem('teleport_auth_user')
     } catch (_e) {}
     window.dispatchEvent(new CustomEvent('teleport:auth-user-changed', { detail: { user: null } }))
-    window.location.href = '/'
+    // Home page of the language the visitor signed out from (see buildContext
+    // for how the run learns it).
+    window.location.href = __workflowUtils.localizeHref('/', context && (context as any).__locale)
   }
 
   return { success: true }

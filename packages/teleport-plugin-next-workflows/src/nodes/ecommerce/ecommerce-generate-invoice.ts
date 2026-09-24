@@ -27,6 +27,12 @@ async function ecommerce_generate_invoice(config: any, context: any) {
     if (config.overrideTaxRate !== undefined && config.overrideTaxRate !== null) {
       payload.overrideTaxRate = Number(config.overrideTaxRate)
     }
+    // The language of the storefront this run started on. The route prefers
+    // the locale stamped on the order and only reads this when there is none.
+    const runLocale = context && context.__locale
+    if (typeof runLocale === 'string' && runLocale) {
+      payload.locale = runLocale
+    }
 
     const targetUrl = baseUrl + '/api/invoices/generate'
     console.info('[invoice-node] POST ' + targetUrl + ' payload=' + JSON.stringify(payload))

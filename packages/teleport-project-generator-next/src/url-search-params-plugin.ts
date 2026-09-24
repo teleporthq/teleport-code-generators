@@ -164,14 +164,22 @@ const hasUseEffectMatching = (
 // first wins. Emitting two effects writing to the same URL key would create
 // a "ping-pong" race where each setter's write-back overwrites the other on
 // every render — far worse than just dropping the second binding.
+interface UrlBoundStateEntry {
+  stateKey: string
+  paramKey: string
+  defaultValue: string
+  /** The state kept its default through hydration; the URL value is adopted after mount. */
+  hydrateAfterMount: boolean
+}
+
 const collectUrlBoundStateKeys = (
   stateDefinitions: Record<string, UIDLStateDefinition> | undefined
-): Array<{ stateKey: string; paramKey: string; defaultValue: string }> => {
+): UrlBoundStateEntry[] => {
   if (!stateDefinitions) {
     return []
   }
   const seenParamKeys = new Set<string>()
-  const entries: Array<{ stateKey: string; paramKey: string; defaultValue: string }> = []
+  const entries: UrlBoundStateEntry[] = []
   for (const [rawKey, def] of Object.entries(stateDefinitions)) {
     const binding = def.urlSearchParamBinding
     if (!binding || typeof binding.key !== 'string' || binding.key === '') {
@@ -194,10 +202,40 @@ const collectUrlBoundStateKeys = (
     // booleans / arrays are never URL-bound defaults in practice and stay
     // empty here, preserving the pre-default byte-for-byte output.
     const defaultValue = typeof def.defaultValue === 'string' ? def.defaultValue : ''
-    entries.push({ stateKey, paramKey: binding.key, defaultValue })
+    entries.push({
+      stateKey,
+      paramKey: binding.key,
+      defaultValue,
+      hydrateAfterMount: binding.hydrateAfterMount === true,
+    })
   }
   return entries
 }
+
+/**
+ * `<state>UrlAdopted`: the `useRef(false)` a `hydrateAfterMount` state's
+ * write-back waits on until its read-back has adopted the URL value once.
+ * Declared next to the effects (before the return, after every other hook);
+ * idempotent by name.
+ */
+const adoptedRefNameOf = (stateBinding: string): string => `${stateBinding}UrlAdopted`
+
+const hasAdoptedRefDeclaration = (body: types.Statement[], refName: string): boolean =>
+  body.some(
+    (statement) =>
+      statement.type === 'VariableDeclaration' &&
+      statement.declarations.some(
+        (declaration) => declaration.id.type === 'Identifier' && declaration.id.name === refName
+      )
+  )
+
+const buildAdoptedRefDeclaration = (refName: string): types.Statement =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(refName),
+      types.callExpression(types.identifier('useRef'), [types.booleanLiteral(false)])
+    ),
+  ])
 
 /**
  * Registers the `useRouter` dependency and injects `const router = useRouter()`
@@ -283,7 +321,8 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
       //   • Read-back match:  deps contain `router.query[paramKey]` AND
       //     body calls the state setter directly.
       const effectsToInsert: types.Statement[] = []
-      for (const { stateKey, paramKey, defaultValue } of urlBoundStateKeys) {
+      let needsUseRef = false
+      for (const { stateKey, paramKey, defaultValue, hydrateAfterMount } of urlBoundStateKeys) {
         const setterName = StringUtils.createStateStoringFunction(stateKey)
         // The effects READ the state, so they must use the same binding
         // `createStateHookAST` declared — sanitised, because a UIDL state may
@@ -292,6 +331,15 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
         // Only a non-empty default changes behavior; an empty default keeps
         // the effects byte-identical to the pre-default builder.
         const defaultValueExpr = defaultValue !== '' ? types.stringLiteral(defaultValue) : undefined
+        // A state seeded with its default (not from the URL) needs the pair to
+        // agree on who goes first: the read-back adopts, THEN the write-back
+        // may write. Without the flag the write-back's first run deletes the
+        // key the read-back is about to adopt and the two loop.
+        const adoptedRefName = hydrateAfterMount ? adoptedRefNameOf(stateBinding) : undefined
+        if (adoptedRefName && !hasAdoptedRefDeclaration(body.body, adoptedRefName)) {
+          effectsToInsert.push(buildAdoptedRefDeclaration(adoptedRefName))
+          needsUseRef = true
+        }
         const hasWriteBack = hasUseEffectMatching(
           body.body,
           (deps, fn) => effectDepsContainStateId(deps, stateBinding) && effectBodyWritesUrl(fn)
@@ -305,7 +353,8 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
               paramKey,
               types.identifier(stateBinding),
               types.identifier(stateBinding),
-              defaultValueExpr
+              defaultValueExpr,
+              adoptedRefName
             )
           )
         }
@@ -317,7 +366,12 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
         )
         if (!hasReadBack) {
           effectsToInsert.push(
-            URLSearchParamSync.buildUrlReadBackEffect(paramKey, setterName, defaultValueExpr)
+            URLSearchParamSync.buildUrlReadBackEffect(
+              paramKey,
+              setterName,
+              defaultValueExpr,
+              adoptedRefName
+            )
           )
         }
       }
@@ -332,7 +386,10 @@ export const createNextUrlSearchParamsPlugin = (): ComponentPlugin => {
       // the ref + helper it closes over must exist in the body. Idempotent with
       // the pagination plugin, which needs the very same pair for the page
       // binding and may have run first.
-      if (URLQueryWriter.ensureQuerySyncDeclarations(body.body) && !dependencies.useRef) {
+      if (
+        (URLQueryWriter.ensureQuerySyncDeclarations(body.body) || needsUseRef) &&
+        !dependencies.useRef
+      ) {
         dependencies.useRef = { ...USE_REF_DEPENDENCY }
       }
     }

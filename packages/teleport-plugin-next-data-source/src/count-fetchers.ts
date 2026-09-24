@@ -57,8 +57,12 @@ export function generateCountFetcher(dataSource: UIDLDataSource, tableName: stri
       return `
 async function getCount(req, res) {
   try {
-    const { query, queryColumns, filters } = req.query
-    const fakeReq = { query: { query, queryColumns, filters }, method: 'GET' }
+    // \`collectionPath\` has to travel with the rest: this counts by re-running
+    // the fetch handler and measuring its result, and without the path that
+    // handler gets the wrapper object rather than the records, which is not an
+    // array — so the count below would report 0 for a list that clearly has rows.
+    const { query, queryColumns, filters, collectionPath } = req.query
+    const fakeReq = { query: { query, queryColumns, filters, collectionPath }, method: 'GET' }
     let result = null
     let statusCode = 200
     

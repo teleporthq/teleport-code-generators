@@ -650,12 +650,14 @@ export const generateOrderNotificationApiRoute = (
 ): string => {
   const config = settings.orderNotificationConfig
   // `teleport_order_items` stores NET prices — the invoice route re-derives VAT
-  // from them — so the merchant's copy of the order grosses them here, at the
-  // point of display, exactly like the workflow-sent twin
-  // (`buildOrderEmailPayloadScript` in the editor).
-  const storefrontTaxHelper = StorefrontTax.generateStorefrontTaxHelperCode(
-    StorefrontTax.resolveStorefrontTaxRate(invoiceSettings)
-  )
+  // from them — so the merchant's copy of the order shows what the buyer PAID:
+  // the line's own record where checkout wrote one, else the price grossed at
+  // the rate the order recorded for it (or the store default), exactly like the
+  // workflow-sent twin (`buildOrderEmailPayloadScript` in the editor).
+  const storefrontTaxHelper =
+    StorefrontTax.generateStorefrontTaxHelperCode(
+      StorefrontTax.resolveStorefrontTaxRate(invoiceSettings)
+    ) + StorefrontTax.generateOrderLineTaxHelperCode()
   if (!config || !config.provider) {
     return `export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -687,18 +689,30 @@ export const generateOrderNotificationApiRoute = (
   // and the image is resolved variant-override-first, matching the
   // order-details page. Never throws: a failure degrades to "no items", which
   // is exactly the pre-existing behaviour.
+  //
+  // The paid-price record and the order's tax breakdown are read through
+  // `to_jsonb(...) ->>` rather than named: a store provisioned before either
+  // existed has no such column, and a named column that is absent fails the
+  // whole statement — and with it every line of the email.
   const orderItemsLoader = dbImport
     ? `
 const ORDER_ITEMS_QUERY =
-  "SELECT oi.product_name, oi.variant_label, oi.quantity, oi.unit_price, oi.total_price, oi.currency, " +
+  "SELECT oi.product_id, oi.product_name, oi.variant_label, oi.quantity, oi.unit_price, oi.total_price, oi.currency, " +
+  "to_jsonb(oi) ->> 'variant_id' AS variant_id, " +
+  "to_jsonb(oi) ->> 'unit_price_paid' AS unit_price_paid, to_jsonb(oi) ->> 'total_price_paid' AS total_price_paid, " +
+  "to_jsonb(oi) ->> 'tax_rate' AS tax_rate, to_jsonb(oi) ->> 'tax_included' AS tax_included, " +
+  "to_jsonb(o) ->> 'tax_breakdown' AS tax_breakdown, " +
   "COALESCE(NULLIF(v.image_url, ''), NULLIF(p.image_url, ''), '') AS image_url " +
   'FROM teleport_order_items oi ' +
+  'LEFT JOIN teleport_orders o ON o.id = oi.order_id ' +
   'LEFT JOIN teleport_products p ON p.id = oi.product_id ' +
   'LEFT JOIN teleport_product_variants v ON v.id::text = oi.variant_id ' +
   'WHERE oi.order_id = $1 ORDER BY oi.created_at ASC'
 
-async function loadOrderItems(orderId) {
-  if (!orderId) return []
+// Resolves to { items, taxBreakdown }: the lines, and the order's own rate
+// record (one per order, carried on every joined row).
+async function loadOrderLines(orderId) {
+  if (!orderId) return { items: [], taxBreakdown: null }
   try {
     const result = await db.query(ORDER_ITEMS_QUERY, [orderId])
     const rows = (result && result.rows) || []
@@ -715,7 +729,7 @@ async function loadOrderItems(orderId) {
     } catch (assetError) {
       assetUrlMap = {}
     }
-    return rows.map(function (row) {
+    const items = rows.map(function (row) {
       const imageUrl = assetUrls.resolveMediaUrl(row.image_url, assetUrlMap) || ''
       const qty = Number(row.quantity) || 1
       const unit = Number(row.unit_price) || 0
@@ -733,17 +747,25 @@ async function loadOrderItems(orderId) {
         line_total: total.toFixed(2),
         currency: row.currency || '',
         image_url: imageUrl,
+        // What the buyer paid, as checkout recorded it — see \`grossOrderItems\`.
+        product_id: row.product_id != null ? String(row.product_id) : '',
+        variant_id: row.variant_id != null ? String(row.variant_id) : '',
+        unit_price_paid: row.unit_price_paid,
+        total_price_paid: row.total_price_paid,
+        tax_rate: row.tax_rate,
+        tax_included: row.tax_included,
       }
     })
+    return { items: items, taxBreakdown: rows.length > 0 ? rows[0].tax_breakdown || null : null }
   } catch (err) {
     console.error('[order-notification] could not load order items: ' + (err && err.message ? err.message : String(err)))
-    return []
+    return { items: [], taxBreakdown: null }
   }
 }
 `
     : `
-async function loadOrderItems() {
-  return []
+async function loadOrderLines() {
+  return { items: [], taxBreakdown: null }
 }
 `
 
@@ -759,15 +781,30 @@ ${
     : ''
 }${storefrontTaxHelper}
 
-// Re-prices one payload's item rows for display. Returns the SAME array when the
-// store adds no tax, so an untaxed project renders byte-identical output.
+// Whether a row carries the paid price checkout recorded with the line.
+function hasPaidRecord(item) {
+  return !!item && item.unit_price_paid != null && item.unit_price_paid !== ''
+}
+
+// Prices one payload's item rows at what the buyer PAID. Returns the SAME array
+// when nothing could move a price — the store adds no tax, the order recorded
+// no rates and no line carries a record — so an untaxed project renders
+// byte-identical output.
+//
+// A line is read from its record where checkout wrote one, else derived at the
+// rate the order's \`tax_breakdown\` recorded for its product (an order priced
+// by region), else at the store default. Lines with no product id (a caller's
+// own list) resolve to the order's standard rate.
 //
 // Both spellings are re-priced because one payload feeds two renderers: the
 // camelCase fields drive the {{itemsList}} <ul>, the snake_case ones a builder
-// template's row block. The line total is derived from the GROSS UNIT times the
+// template's row block. A derived line total is the GROSS UNIT times the
 // quantity, so the two figures on a row multiply out exactly.
-function grossOrderItems(items) {
-  if (!Array.isArray(items) || STOREFRONT_TAX_RATE <= 0) return items || []
+function grossOrderItems(items, taxBreakdown) {
+  if (!Array.isArray(items)) return []
+  if (STOREFRONT_TAX_RATE <= 0 && !parseOrderLineTaxBreakdown(taxBreakdown) && !items.some(hasPaidRecord)) {
+    return items
+  }
   return items.map(function (item) {
     var row = Object.assign({}, item)
     var qty = Number(row.quantity) || 1
@@ -779,8 +816,10 @@ function grossOrderItems(items) {
           ? row.unit_price
           : row.price
       ) || 0
-    var grossUnit = applyStorefrontTax(netUnit)
-    var grossTotal = Math.round(grossUnit * qty * 100) / 100
+    var tax = orderLineTaxOf(taxBreakdown, row.product_id, row.variant_id, row.tax_rate, row.tax_included)
+    var grossUnit = paidAmountAt(row.unit_price_paid, netUnit, tax)
+    var recordedTotal = row.total_price_paid == null || row.total_price_paid === '' ? NaN : Number(row.total_price_paid)
+    var grossTotal = isFinite(recordedTotal) ? recordedTotal : Math.round(grossUnit * qty * 100) / 100
     if (row.unitPrice != null || row.price != null) row.unitPrice = grossUnit
     if (row.totalPrice != null) row.totalPrice = grossTotal
     if (row.price != null) row.price = grossUnit
@@ -810,6 +849,7 @@ export default async function handler(req, res) {
       fulfillmentMethod,
       shippingAddress,
       orderDate,
+      taxBreakdown,
     } = req.body
 
     const notificationEmails = ${notificationEmails}
@@ -831,9 +871,14 @@ export default async function handler(req, res) {
     // hand-off further down.
     const callerItems = Array.isArray(items) && items.length > 0 ? items : null
     // Every source of lines is NET — a caller's cart (the data-create-item
-    // auto-fire) and the order's persisted lines alike — so they are grossed
-    // HERE, once, whichever way they arrived.
-    const itemsArr = grossOrderItems(callerItems || await loadOrderItems(orderId))
+    // auto-fire) and the order's persisted lines alike — so they are priced
+    // HERE, once, whichever way they arrived: from the line's record, else at
+    // the order's recorded rates (sent by the caller, or read with the lines).
+    const loadedLines = callerItems ? null : await loadOrderLines(orderId)
+    const itemsArr = grossOrderItems(
+      callerItems || loadedLines.items,
+      taxBreakdown || (loadedLines ? loadedLines.taxBreakdown : null)
+    )
     const itemsCount = itemsArr.reduce(function(sum, it) {
       var q = Number(it && it.quantity) || 1
       return sum + q
@@ -963,7 +1008,13 @@ export default async function handler(req, res) {
     // up here would leave the buyer with no invoice and no recourse.
     let result
     try {
-      result = await sender.sendNotificationEmail(notificationEmails, subject, html)
+      result = await sender.sendNotificationEmail(notificationEmails, subject, html, {
+        emailType: 'order-notification',
+        source: 'order-notification',
+        sourceRef: 'api/ecommerce/order-notification',
+        payload: tokenPayload,
+        orderId: orderId,
+      })
     } catch (notifyErr) {
       console.error('[order-notification] merchant email FAILED: ' + (notifyErr && notifyErr.message ? notifyErr.message : String(notifyErr)))
       result = { sent: false, error: notifyErr && notifyErr.message ? notifyErr.message : 'merchant email failed' }
@@ -1021,9 +1072,11 @@ export default async function handler(req, res) {
       }
     }
 
+    await sender.settleSentEmailLog()
     return res.status(200).json(result)
   } catch (error) {
     console.error('[order-notification] handler error: ' + (error && error.message ? error.message : String(error)))
+    await sender.settleSentEmailLog()
     return res.status(500).json({ sent: false, error: error && error.message ? error.message : 'Failed to send notification' })
   }
 }
@@ -1141,10 +1194,17 @@ export default async function handler(req, res) {
     )}, { products: productsArr })
     const html = sender.renderTemplate(expandedBody, tokenPayload)
 
-    const result = await sender.sendNotificationEmail(notificationEmails, subject, html)
+    const result = await sender.sendNotificationEmail(notificationEmails, subject, html, {
+      emailType: 'low-stock',
+      source: 'low-stock-alert',
+      sourceRef: 'api/ecommerce/low-stock-alert',
+      payload: { threshold: threshold, products: productsArr },
+    })
+    await sender.settleSentEmailLog()
     return res.status(200).json(result)
   } catch (error) {
     console.error('[low-stock-alert] handler error: ' + (error && error.message ? error.message : String(error)))
+    await sender.settleSentEmailLog()
     return res.status(500).json({ sent: false, error: error && error.message ? error.message : 'Failed to send low-stock alert' })
   }
 }

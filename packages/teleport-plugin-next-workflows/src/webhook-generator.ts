@@ -572,7 +572,10 @@ module.exports = async function handler(req, res) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              orderId: resource.id || '',
+              // The internal order id, so the route can load the order's own
+              // lines and the rates they were charged at; the capture id is
+              // only a fallback for a resource that carries no custom_id.
+              orderId: __extractInternalOrderId(resource) || resource.id || '',
               customerEmail: (resource.payer && resource.payer.email_address) || '',
               customerName: resource.payer && resource.payer.name ? ((resource.payer.name.given_name || '') + ' ' + (resource.payer.name.surname || '')).trim() : '',
               totalAmount: resource.amount ? Number(resource.amount.value) || 0 : 0,
@@ -661,7 +664,7 @@ async function verifyPaypalWebhook(headers, body, webhookId, clientId, clientSec
 }
 
 ${
-  autoGenerateInvoice
+  autoGenerateInvoice || hasOrderNotifications
     ? `
 // Pull the internal teleport_orders UUID out of the PayPal resource's
 // custom_id field. Order creation embeds it as JSON
@@ -683,7 +686,13 @@ function __extractInternalOrderId(resource) {
   }
   return '';
 }
+`
+    : ''
+}
 
+${
+  autoGenerateInvoice
+    ? `
 async function handlePaypalInvoiceGeneration(resource, eventType, clientId, clientSecret, baseUrl) {
   try {
     var customerEmail = '';

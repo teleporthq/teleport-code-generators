@@ -1,5 +1,6 @@
 /* tslint:disable:no-eval */
 import { navigationGoToPage } from '../src/nodes/navigation/navigation-go-to-page'
+import { bindWorkflowUtils } from './_helpers/bind-workflow-utils'
 
 function createHandler() {
   const fnStr = navigationGoToPage.generateHandler()
@@ -23,9 +24,15 @@ function withWindow(): FakeWindow {
 describe('navigation-go-to-page', () => {
   let handler: any
   let win: FakeWindow
+  let unbindWorkflowUtils: () => void
 
   beforeAll(() => {
+    unbindWorkflowUtils = bindWorkflowUtils()
     handler = createHandler()
+  })
+
+  afterAll(() => {
+    unbindWorkflowUtils()
   })
 
   beforeEach(() => {
@@ -34,6 +41,42 @@ describe('navigation-go-to-page', () => {
 
   afterEach(() => {
     delete (global as any).window
+  })
+
+  describe('language of the run', () => {
+    // The visitor stays in the language they are browsing in: the run's locale
+    // (put on the context by the runtime) prefixes every site-relative target.
+    it('prefixes the target with a non-default locale', async () => {
+      await handler({ pageId: '/about', openInNewTab: false }, { __locale: 'es' })
+      expect(win.location.href).toBe('/es/about')
+    })
+
+    it('prefixes the home page, a details page and its query params alike', async () => {
+      await handler({ pageId: '/', openInNewTab: false }, { __locale: 'es' })
+      expect(win.location.href).toBe('/es')
+      await handler(
+        {
+          openInNewTab: false,
+          differentiator: 'ORD-42',
+          targetPage: { pageId: 'p', staticUrl: '/orders', isDetailsPage: true },
+          queryParams: [{ key: 'payment', value: 'success' }],
+        },
+        { __locale: 'es' }
+      )
+      expect(win.location.href).toBe('/es/orders/ORD-42?payment=success')
+    })
+
+    it('opens the localized target in a new tab when requested', async () => {
+      await handler({ pageId: '/about', openInNewTab: true }, { __locale: 'es' })
+      expect(win.open).toHaveBeenCalledWith('/es/about', '_blank')
+    })
+
+    it('keeps the bare route for the default language and for a run without a locale', async () => {
+      await handler({ pageId: '/about', openInNewTab: false }, { __locale: 'en' })
+      expect(win.location.href).toBe('/about')
+      await handler({ pageId: '/about', openInNewTab: false }, {})
+      expect(win.location.href).toBe('/about')
+    })
   })
 
   describe('legacy UIDL (no targetPage)', () => {

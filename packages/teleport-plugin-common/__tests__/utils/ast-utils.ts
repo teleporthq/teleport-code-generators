@@ -365,6 +365,20 @@ describe('createStateHookAST – urlSearchParamBinding', () => {
     )
   })
 
+  it('keeps the static default on both sides when the binding asks to hydrate after mount', () => {
+    // A state that only changes how server-rendered markup LOOKS (the products
+    // list's grid/list toggle) must not be seeded from the URL on the client:
+    // React 17 does not patch attribute mismatches on hydration, so the
+    // toggle would keep the server's pressed state. The router read-back
+    // effect adopts the URL value after mount instead — a real update.
+    const decl = createStateHookAST('productsView', {
+      type: 'string',
+      defaultValue: 'grid',
+      urlSearchParamBinding: { key: 'view', hydrateAfterMount: true },
+    })
+    expect(codeOf(decl)).toBe('const [productsView, setProductsView] = useState("grid");')
+  })
+
   it('ignores urlSearchParamBinding with an empty key (defensive)', () => {
     const decl = createStateHookAST('foo', {
       type: 'string',

@@ -18,6 +18,7 @@ import {
   PublisherType,
 } from '@teleporthq/teleport-types'
 import { packProject } from '@teleporthq/teleport-code-generator'
+import type { StoreFixtureSummaryLine } from './store-fixture-summary'
 
 /**
  * Packing a UIDL into a project on disk, parameterised.
@@ -280,6 +281,11 @@ export interface GenerateProjectResult {
    * reader knows whether the output reflects the checked-out code at all.
    */
   staleGenerators?: Array<{ name: string; sourceModified: string; builtModified: string | null }>
+  /**
+   * What the store was built from — which project, which database, what it
+   * charges (`describeStoreFixture`). Filled by the CLI on a successful run.
+   */
+  store?: StoreFixtureSummaryLine[]
   timings: { cleanMs: number; packMs: number; totalMs: number }
   error?: { message: string; stack?: string }
 }

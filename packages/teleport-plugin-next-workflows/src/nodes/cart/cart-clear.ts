@@ -38,6 +38,11 @@ async function cart_clear() {
         // An applied voucher belongs to the cart that is being emptied — after
         // a completed checkout it must not carry over to the next order.
         localStorage.removeItem('workflow_voucher')
+        // So is the shipping method picked for it: the next order starts from
+        // the cheapest rate again instead of a choice made weeks ago. Literal
+        // key — a serialized handler cannot import
+        // `RegionalPricing.SHIPPING_RATE_STORAGE_KEY`.
+        localStorage.removeItem('workflow_shipping_rate')
         const sessionId = localStorage.getItem('workflow_cart_session_id') || null
         fetch('/api/cart/sync', {
           method: 'POST',
@@ -49,6 +54,7 @@ async function cart_clear() {
       }
       window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
       window.dispatchEvent(new CustomEvent('teleport:voucher-changed'))
+      window.dispatchEvent(new CustomEvent('teleport:shipping-rate-changed'))
     }
     return { success: true }
   } catch (err: unknown) {

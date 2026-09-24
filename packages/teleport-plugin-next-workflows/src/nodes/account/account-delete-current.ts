@@ -11,10 +11,16 @@ async function account_delete_current(config: any, context: Record<string, unkno
   const baseUrl = (context && (context as any).__baseUrl) || ''
 
   // The route resolves the current user from the NextAuth session cookie, which
-  // the browser sends automatically with this same-origin request.
+  // the browser sends automatically with this same-origin request. The page's
+  // language rides along (see buildContext) so the farewell email is sent in it.
+  const deleteHeaders: any = { 'Content-Type': 'application/json' }
+  const runLocale = context && (context as any).__locale
+  if (typeof runLocale === 'string' && runLocale) {
+    deleteHeaders['x-teleport-locale'] = runLocale
+  }
   const response = await fetch(baseUrl + '/api/account/delete-current', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: deleteHeaders,
     body: '{}',
   })
 
@@ -64,7 +70,8 @@ async function account_delete_current(config: any, context: Record<string, unkno
       win.document.body.appendChild(el)
     } catch (_e) {}
 
-    const redirectTo = (config && config.redirectTo) || '/'
+    // The configured page, in the language the visitor was browsing in.
+    const redirectTo = __workflowUtils.localizeHref((config && config.redirectTo) || '/', runLocale)
     window.setTimeout(function () {
       window.location.href = redirectTo
     }, 1500)

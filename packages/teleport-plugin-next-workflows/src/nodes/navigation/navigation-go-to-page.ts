@@ -1,6 +1,6 @@
 import { NodeHandlerGenerator, handlerToString } from '../types'
 
-async function navigation_go_to_page(config: any, _context: Record<string, unknown>) {
+async function navigation_go_to_page(config: any, context: Record<string, unknown>) {
   // The shared workflow runtime (`resolveConfig`) has already resolved any
   // `{ type: 'workflowContext', ... }` references inside `differentiator`,
   // `queryParams[].key` and `queryParams[].value`, so by this point those
@@ -77,6 +77,10 @@ async function navigation_go_to_page(config: any, _context: Record<string, unkno
       url += (url.indexOf('?') >= 0 ? '&' : '?') + pairs.join('&')
     }
   }
+
+  // The page in the language the visitor is browsing in (see buildContext for
+  // how the run learns it); the default language keeps the bare route.
+  url = __workflowUtils.localizeHref(url, context && (context as any).__locale)
 
   if (openInNewTab) {
     window.open(url, '_blank')

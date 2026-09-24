@@ -1336,7 +1336,8 @@ function __normalizeAdminFormRow(row, defaults) {
     var camel = k.replace(/_([a-z])/g, function(_, ch) { return ch.toUpperCase() })
     var v = row[k]
     if (v === undefined) v = row[camel]
-    if (k === 'tags') {
+    // A per-language copy (\`es_tags\`) holds the same shape as \`tags\`.
+    if (k === 'tags' || /^.{2,5}_tags$/.test(k)) {
       v = __normalizeTagsForFormInput(v)
     }
     if (k === 'gallery_images' || k === 'additional_image_urls') {
@@ -1407,7 +1408,7 @@ function __normalizeAdminFormRow(row, defaults) {
         nodes: s.nodes.map((n) => ({
           id: n.id,
           type: n.type,
-          config: redactServerNodeConfig(n.config, s.env),
+          config: redactServerNodeConfig(n.config, s.env, n.type),
           stepNumber: n.stepNumber,
           label: n.label,
         })),
@@ -1431,7 +1432,7 @@ function __normalizeAdminFormRow(row, defaults) {
         return {
           id: n.id,
           type: n.type,
-          config: redactServerNodeConfig(n.config, env),
+          config: redactServerNodeConfig(n.config, env, n.type),
           stepNumber: n.stepNumber,
           label: n.label,
           executionEnv: env,
