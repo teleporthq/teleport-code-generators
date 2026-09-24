@@ -43,3 +43,4 @@ export {
   generateRuntimeStorageUploadRoute,
 } from './runtime-storage-generator'
 export * from './types'
+export { SCROLL_POINT_PROGRESS, DEFAULT_SCROLL_POINT, resolveScrollPoint } from './scroll-points'
