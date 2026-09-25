@@ -122,14 +122,16 @@ describe('EcommerceProvider — regional pricing emitted module', () => {
     )
   })
 
-  it('stamps weight and categories onto hydrated cart lines', () => {
+  it('stamps weight onto hydrated cart lines, beside the categories every store stamps', () => {
     expect(source).toContain('weightUnit: product.weight_unit || null')
+    // Categories are the discount engine's too, so they are stamped through
+    // its parser on every store — the regional block no longer owns them.
     expect(source).toContain(
-      'categoryIds: __rpStringArray(product.category_filter_ids || product.category_ids).map(String)'
+      'categoryIds: __deStringArray(product.category_filter_ids || product.category_ids)'
     )
   })
 
-  it('prices the voucher against lines already grossed in the destination tax', () => {
+  it('prices the discounts against lines already grossed in the destination tax', () => {
     expect(source).toContain('regionalVoucherItems(regionalQuote, cartItems)')
     expect(source).not.toContain('        STOREFRONT_TAX_RATE,\n        shippingMeta,')
   })

@@ -13,6 +13,7 @@ import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
+import { appendItemsPathParam, extractItemsPath } from './items-path'
 import {
   applyLoadingStateToDataProvider,
   buildLoadingStateDeclarations,
@@ -255,6 +256,9 @@ interface DataSourceUsage {
   // `URLSearchParamSync` builders. Page 1 is written as the ABSENCE of the key.
   // Cleared when `infiniteScroll` is set.
   pageUrlParamKey?: string
+  // Path to the rows inside a wrapped REST/JavaScript payload, when the list is
+  // bound to one (`data?.templates` -> `['templates']`). See `items-path.ts`.
+  itemsPath?: string[]
   // Computed category
   category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
 }
@@ -656,6 +660,11 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           infiniteScroll,
           infiniteScrollLoadMore: infiniteScroll && !!content.infiniteScrollLoadMore,
           pageUrlParamKey,
+          itemsPath: extractItemsPath(
+            content.source,
+            parentDataSource.identifier,
+            parentDataSource.resourceDef.dataSourceType || ''
+          ),
           category: 'plain',
         }
 
@@ -1410,6 +1419,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         }
         // Add filters to count fetch params if present
         appendFiltersParam(urlParams, usage.filters, buildFilterDestinationExpression)
+        appendItemsPathParam(urlParams, usage.itemsPath, 'collectionPath')
 
         const countEffectDeps: types.Expression[] = [
           types.memberExpression(
@@ -1526,6 +1536,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
             )
           }
           appendFiltersParam(countUrlParams, usage.filters, buildFilterDestinationExpression)
+          appendItemsPathParam(countUrlParams, usage.itemsPath, 'collectionPath')
 
           // Default to mount-only; refresh when ANY filter destination
           // changes — state-bound (e.g. `selectedCategory`) and URL-driven —
@@ -2364,6 +2375,7 @@ function updateDataProviderForPaginatedSearch(
 
   // Add filters if present
   appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
+  appendItemsPathParam(paramsProps, usage.itemsPath, 'itemsPath')
 
   // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.combinedStateVar)]
@@ -2523,6 +2535,7 @@ function updateDataProviderForPaginationOnly(
 
   // Add filters if present
   appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
+  appendItemsPathParam(paramsProps, usage.itemsPath, 'itemsPath')
 
   // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.pageStateVar)]
@@ -2643,6 +2656,7 @@ function updateDataProviderForSearchOnly(
 
   // Add filters if present
   appendFiltersParam(paramsProps, usage.filters, buildFilterDestinationExpression)
+  appendItemsPathParam(paramsProps, usage.itemsPath, 'itemsPath')
 
   // Build useMemo dependencies including filter state IDs and dynamic sort state IDs
   const memoDeps: types.Expression[] = [types.identifier(vars.debouncedSearchQueryVar)]
@@ -3668,6 +3682,8 @@ function updateGetStaticProps(
         )
       }
 
+      appendItemsPathParam(fetchParams, usage.itemsPath, 'itemsPath')
+
       // The prefetch is per locale — getStaticProps runs once per language.
       if (localized) {
         fetchParams.push(buildServerLocaleParam())
@@ -3749,8 +3765,10 @@ function updateGetStaticProps(
         const staticFiltersForCount = (usage.filters || []).filter(
           (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
         )
-        const hasStaticFilters = staticFiltersForCount.length > 0
-        const countVarName = hasStaticFilters
+        // A count scoped to an inner array is a different number from the
+        // whole-payload one, so it gets its own variable just like a filtered one.
+        const hasScopedCount = staticFiltersForCount.length > 0 || !!usage.itemsPath
+        const countVarName = hasScopedCount
           ? `${usage.dataSourceIdentifier}_ds_${usage.index}_count`
           : `${usage.dataSourceIdentifier}_count`
 
@@ -3822,7 +3840,7 @@ function updateGetStaticProps(
     // Group usages by their filters (stringify for comparison)
     const usagesByFilters = new Map<string, DataSourceUsage[]>()
     for (const usage of usagesForDataSource) {
-      const filtersKey = JSON.stringify(usage.filters || [])
+      const filtersKey = JSON.stringify([usage.filters || [], usage.itemsPath || []])
       const existing = usagesByFilters.get(filtersKey) || []
       existing.push(usage)
       usagesByFilters.set(filtersKey, existing)
@@ -3837,10 +3855,12 @@ function updateGetStaticProps(
       )
       const hasStaticFilters = staticFiltersForCount.length > 0
 
-      // Create unique count variable name based on filters
-      const countVarName = hasStaticFilters
-        ? `${firstUsage.dataSourceIdentifier}_ds_${firstUsage.index}_count`
-        : `${firstUsage.dataSourceIdentifier}_count`
+      // Create unique count variable name based on filters (and inner-array
+      // scope — must match the naming at the maxPages site above)
+      const countVarName =
+        hasStaticFilters || firstUsage.itemsPath
+          ? `${firstUsage.dataSourceIdentifier}_ds_${firstUsage.index}_count`
+          : `${firstUsage.dataSourceIdentifier}_count`
 
       // Check if this count was already processed
       const countKey = `${key}:${filtersKey}`
@@ -3891,6 +3911,8 @@ function updateGetStaticProps(
             )
           )
         }
+
+        appendItemsPathParam(countParams, firstUsage.itemsPath, 'collectionPath')
 
         fetchesArray.elements.push(
           types.callExpression(

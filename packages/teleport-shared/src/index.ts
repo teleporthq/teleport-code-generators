@@ -15,6 +15,10 @@ import * as StorefrontTax from './utils/storefront-tax'
 import * as ProductDiscounts from './utils/product-discounts'
 import * as ProductRatings from './utils/product-ratings'
 import * as RegionalPricing from './utils/regional-pricing'
+import * as DiscountEngine from './utils/discount-engine'
+import * as TableAccess from './utils/table-access'
+import * as SessionCookieResolver from './utils/session-cookie-resolver'
+import * as SubscriptionAccess from './utils/subscription-access'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
@@ -40,6 +44,10 @@ export {
   ProductDiscounts,
   ProductRatings,
   RegionalPricing,
+  DiscountEngine,
+  TableAccess,
+  SessionCookieResolver,
+  SubscriptionAccess,
   FontPreconnect,
   EmailDate,
   RichTextEmbeds,

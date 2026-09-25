@@ -19,6 +19,7 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
+import { collectSegmentStateKeys } from './segment-context-needs'
 import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
@@ -491,7 +492,8 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       hasAudioNodes,
       needsAdminFormHydration,
       isRowOwnedSelfGuardedPage,
-      dynamicRouteAttribute
+      dynamicRouteAttribute,
+      workflows?.customNodes
     )
 
     if (moduleCode) {
@@ -1296,7 +1298,8 @@ const generateModuleLevelCode = (
   hasAudioNodes?: boolean,
   includeAdminFormHydrationHelper?: boolean,
   isRowOwnedSelfGuardedPage?: boolean,
-  dynamicRouteAttribute?: string
+  dynamicRouteAttribute?: string,
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
 ): string => {
   if (allWorkflows.length === 0) {
     return ''
@@ -1399,6 +1402,9 @@ function __normalizeAdminFormRow(row, defaults) {
         // Every node in this segment runs fire-and-forget, so the browser
         // dispatches it and carries on instead of waiting for the round trip.
         fireAndForget: isFireAndForgetSegment(s),
+        // The page state a server segment may read; the client sends only that
+        // (see segment-context-needs).
+        ...(s.env === 'server' ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) } : {}),
         nodes: s.nodes.map((n) => ({
           id: n.id,
           type: n.type,

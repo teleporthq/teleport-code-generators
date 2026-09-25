@@ -3,12 +3,9 @@ import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 
 // `/api/invoices/generate` used to invoice a HALF-WRITTEN order.
 //
-// The runtime `data-create-item` handler fire-and-forgets
-// `/api/ecommerce/order-notification` the moment the `teleport_orders` row
-// lands, and that route generates the invoice for every non-webhook payment
-// method. But the checkout workflow writes `teleport_order_items` AFTER the
-// order row, one HTTP round-trip per cart line — so the invoice endpoint was
-// reading the line items while they were still being inserted.
+// The checkout workflow writes `teleport_order_items` AFTER the order row,
+// one HTTP round-trip per cart line — so a caller reaching the endpoint
+// early read the line items while they were still being inserted.
 //
 // Observed in a real store: a 3-line order (4x Linen Table Runner, 3x Ceramic
 // Dinner Plate Set, 2x Wireless Bluetooth Speaker, charged 474.45) produced an
@@ -200,15 +197,16 @@ describe('/api/invoices/generate — waits for the order to be fully written', (
 
   it('invoices every line of an order whose items are still being inserted', async () => {
     // The exact shape of the reported bug: one row visible on the first read,
-    // the rest landing while the endpoint runs. `expectedItemCount` is what
-    // the order-notification route forwards from the cart it was handed.
+    // the rest landing while the endpoint runs, and no order number ever —
+    // the stable-count fallback is what settles it.
     const run = await runHandler({
-      body: { orderId: 'order-1', expectedItemCount: 3 },
+      body: { orderId: 'order-1' },
       visibleItemsPerRead: (read) => Math.min(read, 3),
       orderNumberAfterRead: Infinity,
     })
 
     expect(run.status).toBe(200)
+    expect(run.reads).toBe(5)
     expect(run.insertedItems).toHaveLength(3)
     expect(run.insertedItems.map((item) => (item as { name: string }).name)).toEqual([
       'Linen Table Runner',
@@ -220,9 +218,9 @@ describe('/api/invoices/generate — waits for the order to be fully written', (
   })
 
   it('accepts the order as whole once checkout has backfilled the order number', async () => {
-    // No `expectedItemCount` — the webhook-driven callers send only an
-    // orderId. `teleport_orders.order_number` is written after the item loop,
-    // so its presence is the endpoint's own proof that no line is missing.
+    // Every caller sends only an orderId. `teleport_orders.order_number` is
+    // written after the item loop, so its presence is the endpoint's own
+    // proof that no line is missing.
     const run = await runHandler({
       body: { orderId: 'order-1' },
       visibleItemsPerRead: (read) => Math.min(read, 3),
@@ -266,7 +264,7 @@ describe('/api/invoices/generate — waits for the order to be fully written', (
 
   it('still rejects an order that never gets any line items', async () => {
     const run = await runHandler({
-      body: { orderId: 'order-1', expectedItemCount: 3 },
+      body: { orderId: 'order-1' },
       visibleItemsPerRead: () => 0,
       orderNumberAfterRead: 1,
     })
@@ -280,13 +278,15 @@ describe('/api/invoices/generate — settle contract (emitted source)', () => {
   const route = generateInvoiceGenerateRouteCode(FAKE_SETTINGS)
 
   it('reads the line items through the settling helper, never a bare query', () => {
-    expect(route).toContain('async function hydrateOrderWhenSettled(orderId, expectedItemCount)')
-    expect(route).toContain('await hydrateOrderWhenSettled(body.orderId, expectedItemCount)')
+    expect(route).toContain('async function hydrateOrderWhenSettled(orderId)')
+    expect(route).toContain('await hydrateOrderWhenSettled(body.orderId)')
+    // The count a caller once forwarded is gone with its only caller.
+    expect(route).not.toContain('expectedItemCount')
   })
 
   it('treats a populated order_number as proof the item loop finished', () => {
-    // Checkout writes it in "Mark Order As Cash On Delivery Confirmed" /
-    // "Set Order Number Before Payment Redirect", both downstream of the loop.
+    // Checkout writes it in "Mark Order As Settled" / "Set Order Number
+    // Before Payment Redirect", both downstream of the loop.
     expect(route).toContain('var orderNumber = hydrated.order.order_number;')
     expect(route).toContain(
       'if (count > 0 && orderNumber != null && String(orderNumber).length > 0) {'

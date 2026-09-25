@@ -65,9 +65,20 @@ function toAbsoluteUrl(url: string, baseUrl: string): string {
 }
 
 async function payment_charge_user(config: any, _context: Record<string, unknown>) {
-  const providerType = config.providerType || config.provider || config.providerId || 'stripe'
+  const providerType = String(
+    config.providerType || config.provider || config.providerId || 'stripe'
+  )
+    .trim()
+    .toLowerCase()
   const amount = config.amount
   const currency = config.currency || 'usd'
+  // 'payment' (the default) opens a one-time checkout; 'subscription' opens
+  // the provider's recurring checkout for ONE plan — `amount` is then what
+  // every cycle bills, `recurringInterval` / `recurringIntervalCount` the
+  // cycle, `trialDays` the free days before the first charge, and (PayPal)
+  // `planId` the billing plan `payment-ensure-subscription-plan` returned.
+  const mode =
+    String(config.mode || 'payment').toLowerCase() === 'subscription' ? 'subscription' : 'payment'
   const baseUrl = String((_context && (_context.__baseUrl as string)) || '')
   // The buyer comes back from the provider's hosted page to the language they
   // checked out in: a site-relative return path gets the run's locale prefix
@@ -97,29 +108,51 @@ async function payment_charge_user(config: any, _context: Record<string, unknown
 
   let result
   if (providerType === 'paypal') {
-    result = await chargeWithPaypal(
-      config,
-      currency,
-      amount,
-      successUrl,
-      cancelUrl,
-      description,
-      parsedMetadata
-    )
+    result =
+      mode === 'subscription'
+        ? await subscribeWithPaypal(config, successUrl, cancelUrl, parsedMetadata)
+        : await chargeWithPaypal(
+            config,
+            currency,
+            amount,
+            successUrl,
+            cancelUrl,
+            description,
+            parsedMetadata
+          )
+  } else if (providerType === 'stripe') {
+    // Apple Pay / Google Pay are surfaced automatically by Stripe's hosted
+    // checkout (Dynamic Payment Methods) — they aren't separate providers here.
+    result =
+      mode === 'subscription'
+        ? await subscribeWithStripe(
+            config,
+            currency,
+            amount,
+            successUrl,
+            cancelUrl,
+            description,
+            parsedMetadata
+          )
+        : await chargeWithStripe(
+            config,
+            currency,
+            amount,
+            successUrl,
+            cancelUrl,
+            description,
+            lineItems,
+            parsedMetadata
+          )
   } else {
-    // Everything that isn't PayPal charges through Stripe. Apple Pay / Google
-    // Pay are surfaced automatically by Stripe's hosted checkout (Dynamic
-    // Payment Methods) — they aren't separate providers here.
-    result = await chargeWithStripe(
-      config,
-      currency,
-      amount,
-      successUrl,
-      cancelUrl,
-      description,
-      lineItems,
-      parsedMetadata
-    )
+    // A provider the generated store has no client for: refusing is the only
+    // honest answer — charging through Stripe instead would take the money
+    // with keys the merchant never meant for this checkout.
+    result = {
+      checkoutUrl: '',
+      sessionId: '',
+      error: 'Payment provider "' + providerType + '" is not supported by this store.',
+    }
   }
 
   // Provider-side errors (bad keys, invalid request, wrong currency, etc.)
@@ -199,7 +232,7 @@ function toStripeMinorUnits(major: any, currency: string): number {
 }
 
 async function chargeWithStripe(
-  _config: any,
+  config: any,
   currency: string,
   amount: any,
   successUrl: string,
@@ -264,6 +297,14 @@ async function chargeWithStripe(
 
     if (metadata) {
       sessionParams.metadata = metadata
+      // On the PaymentIntent too, which Stripe copies onto the charge: a
+      // refund event carries the CHARGE, and without this it names no order.
+      sessionParams.payment_intent_data = { metadata }
+    }
+    // The address the buyer typed at checkout, so the hosted page does not
+    // ask for it again — the same prefill the subscription session gets.
+    if (config.customerEmail) {
+      sessionParams.customer_email = String(config.customerEmail)
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)
@@ -281,6 +322,207 @@ async function chargeWithStripe(
       sessionId: session.id || '',
       __terminal: true,
       __redirectUrl: checkoutUrl,
+    }
+  } catch (err: unknown) {
+    return { checkoutUrl: '', sessionId: '', error: (err as Error).message }
+  }
+}
+
+// Opens Stripe Checkout in subscription mode for ONE recurring line: the
+// price is inline (`price_data.recurring`), so no Stripe price object has to
+// exist beforehand. The subscription id is not known until the session
+// completes; the `checkout.session.completed` webhook carries it.
+//
+// `amountDue`, when below `amount`, is what the FIRST invoice charges: a gift
+// card paid the rest at checkout. Stripe takes it as a one-shot coupon on the
+// session (`duration: 'once'`), so every later invoice bills `amount`.
+async function subscribeWithStripe(
+  config: any,
+  currency: string,
+  amount: any,
+  successUrl: string,
+  cancelUrl: string,
+  description: string,
+  metadata: Record<string, string> | undefined
+) {
+  const secretKey = resolveProviderSecret(
+    ['STRIPE_SECRET_KEY', 'CONFIGURATION_STRIPE_SECRET_KEY', 'STRIPE_TEST_KEY'],
+    'CONFIGURATION_STRIPE_SECRET_KEY'
+  )
+  if (!secretKey) {
+    return { checkoutUrl: '', sessionId: '', error: 'STRIPE_SECRET_KEY is not configured' }
+  }
+  const interval = String(config.recurringInterval || 'month').toLowerCase()
+  if (['day', 'week', 'month', 'year'].indexOf(interval) === -1) {
+    return { checkoutUrl: '', sessionId: '', error: 'Unknown billing interval "' + interval + '"' }
+  }
+  const intervalCount = Math.max(1, Math.floor(Number(config.recurringIntervalCount) || 1))
+  const trialDays = Math.max(0, Math.floor(Number(config.trialDays) || 0))
+  const unitAmount = toStripeMinorUnits(amount, currency)
+  if (unitAmount <= 0) {
+    return {
+      checkoutUrl: '',
+      sessionId: '',
+      error: 'A subscription needs a positive amount to bill',
+    }
+  }
+  const firstChargeDue = Number(config.amountDue)
+  const firstChargeAmount =
+    isFinite(firstChargeDue) && firstChargeDue < Number(amount)
+      ? toStripeMinorUnits(firstChargeDue, currency)
+      : unitAmount
+  if (firstChargeAmount <= 0) {
+    // The tender rule leaves at least the provider minimum due; a first charge
+    // of nothing would collect no payment method for the cycles after it.
+    return {
+      checkoutUrl: '',
+      sessionId: '',
+      error: 'A gift card cannot cover the whole first payment of a subscription',
+    }
+  }
+  try {
+    const nodeRequire =
+      typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+    const Stripe = nodeRequire('stripe')
+    const stripe = new Stripe(secretKey)
+    const subscriptionData: any = {}
+    if (trialDays > 0) {
+      subscriptionData.trial_period_days = trialDays
+    }
+    if (metadata) {
+      // On the subscription too, so every later invoice webhook can name the
+      // order and the store's subscription row without a session lookup.
+      subscriptionData.metadata = metadata
+    }
+    const sessionParams: any = {
+      mode: 'subscription',
+      success_url: successUrl || undefined,
+      cancel_url: cancelUrl || undefined,
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: { name: description },
+            unit_amount: unitAmount,
+            recurring: { interval, interval_count: intervalCount },
+          },
+          quantity: 1,
+        },
+      ],
+      subscription_data: subscriptionData,
+    }
+    if (config.customerEmail) {
+      sessionParams.customer_email = String(config.customerEmail)
+    }
+    if (metadata) {
+      sessionParams.metadata = metadata
+    }
+    if (firstChargeAmount < unitAmount) {
+      const coupon = await stripe.coupons.create({
+        amount_off: unitAmount - firstChargeAmount,
+        currency,
+        duration: 'once',
+        max_redemptions: 1,
+        name: 'Gift card',
+        metadata: metadata || {},
+      })
+      sessionParams.discounts = [{ coupon: coupon.id }]
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    const checkoutUrl = session.url || ''
+    return {
+      checkoutUrl,
+      sessionId: session.id || '',
+      providerSubscriptionId: '',
+      __terminal: true,
+      __redirectUrl: checkoutUrl,
+    }
+  } catch (err: unknown) {
+    return { checkoutUrl: '', sessionId: '', error: (err as Error).message }
+  }
+}
+
+// Creates a PayPal subscription against the billing plan
+// `payment-ensure-subscription-plan` returned and sends the buyer to approve
+// it. The subscription id (`I-…`) is known at once and travels back as
+// `providerSubscriptionId`; the `BILLING.SUBSCRIPTION.ACTIVATED` webhook
+// confirms the mandate.
+async function subscribeWithPaypal(
+  config: any,
+  successUrl: string,
+  cancelUrl: string,
+  metadata: Record<string, string> | undefined
+) {
+  const clientId = resolveProviderSecret(
+    ['PAYPAL_CLIENT_ID', 'CONFIGURATION_PAYPAL_CLIENT_ID'],
+    'CONFIGURATION_PAYPAL_CLIENT_ID'
+  )
+  const clientSecret = resolveProviderSecret(
+    ['PAYPAL_CLIENT_SECRET', 'CONFIGURATION_PAYPAL_CLIENT_SECRET'],
+    'CONFIGURATION_PAYPAL_CLIENT_SECRET'
+  )
+  if (!clientId || !clientSecret) {
+    return { checkoutUrl: '', sessionId: '', error: 'PayPal credentials are not configured' }
+  }
+  const planId = String(config.planId || '').trim()
+  if (!planId) {
+    return {
+      checkoutUrl: '',
+      sessionId: '',
+      error: 'No PayPal billing plan was supplied for the subscription',
+    }
+  }
+  try {
+    const auth = await paypalAuthenticate(clientId, clientSecret)
+    if ('error' in auth) {
+      return { checkoutUrl: '', sessionId: '', error: auth.error }
+    }
+    const { baseUrl, accessToken } = auth
+    const payload: any = {
+      plan_id: planId,
+      application_context: {
+        user_action: 'SUBSCRIBE_NOW',
+        return_url: successUrl || undefined,
+        cancel_url: cancelUrl || undefined,
+      },
+    }
+    if (metadata) {
+      payload.custom_id = JSON.stringify(metadata)
+    }
+    if (config.customerEmail) {
+      payload.subscriber = { email_address: String(config.customerEmail) }
+    }
+    const response = await fetch(baseUrl + '/v1/billing/subscriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data: any = await response.json()
+    if (!response.ok) {
+      return {
+        checkoutUrl: '',
+        sessionId: '',
+        error:
+          data.message ||
+          (data.details && data.details[0] && data.details[0].description) ||
+          'Subscription creation failed',
+      }
+    }
+    const approveLink =
+      data.links &&
+      data.links.find(function (l: any) {
+        return l.rel === 'approve'
+      })
+    const approveUrl = approveLink ? approveLink.href : ''
+    return {
+      checkoutUrl: approveUrl,
+      sessionId: data.id || '',
+      providerSubscriptionId: data.id || '',
+      __terminal: true,
+      __redirectUrl: approveUrl,
     }
   } catch (err: unknown) {
     return { checkoutUrl: '', sessionId: '', error: (err as Error).message }
@@ -376,7 +618,7 @@ async function paypalAuthenticate(
 }
 
 async function chargeWithPaypal(
-  _config: any,
+  config: any,
   currency: string,
   amount: any,
   successUrl: string,
@@ -450,6 +692,11 @@ async function chargeWithPaypal(
     if (metadata) {
       orderPayload.purchase_units[0].custom_id = JSON.stringify(metadata)
     }
+    // Prefills the buyer's email on PayPal's page, as the subscription flow
+    // does through `subscriber`.
+    if (config.customerEmail) {
+      orderPayload.payer = { email_address: String(config.customerEmail) }
+    }
 
     const orderResponse = await fetch(baseUrl + '/v2/checkout/orders', {
       method: 'POST',
@@ -510,9 +757,13 @@ export const paymentChargeUser: NodeHandlerGenerator = {
       '\n' +
       chargeWithStripe.toString() +
       '\n' +
+      subscribeWithStripe.toString() +
+      '\n' +
       paypalAuthenticate.toString() +
       '\n' +
-      chargeWithPaypal.toString()
+      chargeWithPaypal.toString() +
+      '\n' +
+      subscribeWithPaypal.toString()
     )
   },
 }

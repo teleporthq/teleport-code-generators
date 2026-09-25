@@ -290,6 +290,29 @@ function buildInvoiceDataScope(invoiceData) {
   var shippingAmountNumber = Number(invoiceData.shippingAmount);
   if (!isFinite(shippingAmountNumber) || shippingAmountNumber < 0) shippingAmountNumber = 0;
 
+  // Discounts and the gift-card tender, under the same rule: the amounts are
+  // formatted, and every row is gated on a separate string flag. The discount
+  // label carries the voucher code ("Discount (SAVE20):") so a template row
+  // can bind it in place of a static label.
+  var discountAmountNumber = Number(invoiceData.discountAmount);
+  if (!isFinite(discountAmountNumber) || discountAmountNumber < 0) discountAmountNumber = 0;
+  var automaticDiscountNumber = Number(invoiceData.automaticDiscountAmount);
+  if (!isFinite(automaticDiscountNumber) || automaticDiscountNumber < 0) automaticDiscountNumber = 0;
+  var voucherDiscountNumber = Number(invoiceData.voucherDiscountAmount);
+  if (!isFinite(voucherDiscountNumber) || voucherDiscountNumber < 0) {
+    voucherDiscountNumber = Math.max(0, discountAmountNumber - automaticDiscountNumber);
+  }
+  var voucherCode = String(invoiceData.voucherCode || '').trim();
+  var giftCardAmountNumber = Number(invoiceData.giftCardAmount);
+  if (!isFinite(giftCardAmountNumber) || giftCardAmountNumber < 0) giftCardAmountNumber = 0;
+  var giftCardLast4 = String(invoiceData.giftCardLast4 || '').trim();
+  var totalNumber = Number(invoiceData.total);
+  if (!isFinite(totalNumber)) totalNumber = 0;
+  var amountDueNumber = Number(invoiceData.amountDue);
+  if (invoiceData.amountDue == null || !isFinite(amountDueNumber)) {
+    amountDueNumber = Math.max(0, totalNumber - giftCardAmountNumber);
+  }
+
   var realInvoice = {
     invoiceNumber: invoiceData.invoiceNumber ? '#' + invoiceData.invoiceNumber : '',
     status: invoiceData.status || '',
@@ -299,16 +322,33 @@ function buildInvoiceDataScope(invoiceData) {
     subtotal: formatCurrencyValue(invoiceData.subtotal, sym),
     taxRate: invoiceData.taxRate != null ? String(invoiceData.taxRate) : '',
     taxAmount: formatCurrencyValue(invoiceData.taxAmount, sym),
-    discountAmount: formatCurrencyValue(invoiceData.discountAmount, sym),
+    discountAmount: formatCurrencyValue(discountAmountNumber, sym),
+    discountLabel: voucherCode ? 'Discount (' + voucherCode + '):' : 'Discount:',
+    voucherCode: voucherCode,
+    voucherDiscountAmount: formatCurrencyValue(voucherDiscountNumber, sym),
+    automaticDiscountAmount: formatCurrencyValue(automaticDiscountNumber, sym),
+    hasDiscount: discountAmountNumber > 0 ? 'true' : 'false',
+    hasVoucherDiscount: voucherDiscountNumber > 0 ? 'true' : 'false',
+    hasAutomaticDiscount: automaticDiscountNumber > 0 ? 'true' : 'false',
     shippingAmount: formatCurrencyValue(shippingAmountNumber, sym),
     hasShipping: shippingAmountNumber > 0 ? 'true' : 'false',
     hasTax: Number(invoiceData.taxAmount) > 0 ? 'true' : 'false',
     total: formatCurrencyValue(invoiceData.total, sym),
+    giftCardAmount: formatCurrencyValue(giftCardAmountNumber, sym),
+    giftCardLast4: giftCardLast4,
+    hasGiftCard: giftCardAmountNumber > 0 ? 'true' : 'false',
+    amountDue: formatCurrencyValue(amountDueNumber, sym),
+    subscriptionId: invoiceData.subscriptionId || '',
+    billingReason: invoiceData.billingReason || '',
     currency: invoiceData.currency || 'USD',
     currencySymbol: sym,
     notes: invoiceData.notes || '',
     pdfUrl: invoiceData.pdfUrl || '',
   };
+  // The merge below lets an EMPTY real value fall back to the template's
+  // sample — right for a company address, wrong for a code or a card tail: an
+  // order without a voucher must not print the designer's "SAVE20".
+  var realInvoiceNeverSampled = { voucherCode: voucherCode, giftCardLast4: giftCardLast4 };
 
   var realCustomer = {
     name: invoiceData.customerName || '',
@@ -410,7 +450,7 @@ function buildInvoiceDataScope(invoiceData) {
   return {
     invoiceData: {
       Company: mergeWithDefaults(realCompany, defaults.Company),
-      Invoice: mergeWithDefaults(realInvoice, defaults.Invoice),
+      Invoice: Object.assign(mergeWithDefaults(realInvoice, defaults.Invoice), realInvoiceNeverSampled),
       Customer: mergeWithDefaults(realCustomer, defaults.Customer),
       Payment: mergeWithDefaults(realPayment, defaults.Payment),
       Products: realProducts.length > 0 ? realProducts : (defaults.Products || []),
@@ -945,6 +985,17 @@ function buildFallbackInvoiceHtml(scope) {
   });
   parts.push('</tbody></table>');
   var totalsRows = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal</span><span>' + escapeHtml(inv.subtotal) + '</span></div>';
+  // The discount as the buyer saw it: the voucher's own share under its code,
+  // with the automatic rules' share on a line of its own when both applied.
+  // An order with only automatic discounts prints the one figure it has.
+  if (inv.hasDiscount === 'true') {
+    var discountLabel = inv.voucherCode ? 'Discount (' + inv.voucherCode + ')' : 'Discount';
+    var discountShown = inv.hasVoucherDiscount === 'true' ? inv.voucherDiscountAmount : inv.discountAmount;
+    totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + escapeHtml(discountLabel) + '</span><span>\\u2212' + escapeHtml(discountShown) + '</span></div>';
+    if (inv.hasVoucherDiscount === 'true' && inv.hasAutomaticDiscount === 'true') {
+      totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Automatic discount</span><span>\\u2212' + escapeHtml(inv.automaticDiscountAmount) + '</span></div>';
+    }
+  }
   if (inv.hasTax === 'true') {
     totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>VAT</span><span>' + escapeHtml(inv.taxAmount) + '</span></div>';
   }
@@ -952,6 +1003,13 @@ function buildFallbackInvoiceHtml(scope) {
     totalsRows += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Delivery</span><span>' + escapeHtml(inv.shippingAmount) + '</span></div>';
   }
   totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;border-top:2px solid #333;padding-top:4px;"><span>Total</span><span>' + escapeHtml(inv.total) + '</span></div>';
+  // A gift card settles part (or all) of the total, so what is left to pay is
+  // printed beneath it — 0.00 included, which is the buyer's proof of that.
+  if (inv.hasGiftCard === 'true') {
+    var giftCardLabel = 'Paid by gift card' + (inv.giftCardLast4 ? ' \\u2022\\u2022\\u2022\\u2022' + inv.giftCardLast4 : '');
+    totalsRows += '<div style="display:flex;justify-content:space-between;margin-top:4px;margin-bottom:4px;"><span>' + escapeHtml(giftCardLabel) + '</span><span>\\u2212' + escapeHtml(inv.giftCardAmount) + '</span></div>';
+    totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Amount due</span><span>' + escapeHtml(inv.amountDue) + '</span></div>';
+  }
   parts.push('<div style="display:flex;justify-content:flex-end;margin-top:16px;"><div style="width:240px;">' +
     totalsRows +
     '</div></div>');
@@ -989,12 +1047,33 @@ function resolveTextSpans(spans, scope) {
   }).join('');
 }
 
+// Amount tokens whose line means nothing at zero: "Delivery $0.00" on a
+// pickup order, "Discount −$0.00" without a voucher. The table row (or list
+// item / paragraph) that carries such a token is dropped before the tokens are
+// filled, so the merchant's summary only lists the figures that applied.
+// Matched innermost — a row inside a row keeps its parent.
+var OPTIONAL_AMOUNT_TOKENS = ['shippingAmount', 'discountAmount', 'giftCardAmount'];
+
+function stripZeroAmountLines(template, inv) {
+  var out = template;
+  for (var i = 0; i < OPTIONAL_AMOUNT_TOKENS.length; i++) {
+    var key = OPTIONAL_AMOUNT_TOKENS[i];
+    if (Number(inv[key] || 0) > 0) continue;
+    var line = new RegExp(
+      '<(tr|li|p)\\\\b(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?\\\\{\\\\{' + key + '\\\\}\\\\}(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?<\\\\/\\\\1\\\\s*>',
+      'g'
+    );
+    out = out.replace(line, '');
+  }
+  return out;
+}
+
 function replacePlaceholders(template, data) {
   if (!template) return '';
-  return template.replace(/\\{\\{(\\w+)\\}\\}/g, function (match, key) {
-    var inv = data.invoice || {};
-    var cust = data.customer || {};
-    var comp = data.company || {};
+  var inv = data.invoice || {};
+  var cust = data.customer || {};
+  var comp = data.company || {};
+  return stripZeroAmountLines(template, inv).replace(/\\{\\{(\\w+)\\}\\}/g, function (match, key) {
     var map = {
       invoiceNumber: inv.number || '',
       customerName: cust.name || '',
@@ -1009,6 +1088,10 @@ function replacePlaceholders(template, data) {
       subtotal: (inv.currencySymbol || '') + Number(inv.subtotal || 0).toFixed(2),
       taxAmount: (inv.currencySymbol || '') + Number(inv.taxAmount || 0).toFixed(2),
       shippingAmount: (inv.currencySymbol || '') + Number(inv.shippingAmount || 0).toFixed(2),
+      discountAmount: (inv.currencySymbol || '') + Number(inv.discountAmount || 0).toFixed(2),
+      giftCardAmount: (inv.currencySymbol || '') + Number(inv.giftCardAmount || 0).toFixed(2),
+      // What is left after a gift card; the whole total when none was used.
+      amountDue: (inv.currencySymbol || '') + Number(inv.amountDue != null ? inv.amountDue : (inv.total || 0)).toFixed(2),
       companyName: comp.name || '',
       companyEmail: comp.email || '',
       invoiceUrl: inv.pdfUrl || '',
@@ -1031,6 +1114,9 @@ function buildDataContext(invoiceData) {
       subtotal: invoiceData.subtotal || 0,
       taxAmount: invoiceData.taxAmount || 0,
       shippingAmount: invoiceData.shippingAmount || 0,
+      discountAmount: invoiceData.discountAmount || 0,
+      giftCardAmount: invoiceData.giftCardAmount || 0,
+      amountDue: invoiceData.amountDue != null ? invoiceData.amountDue : (invoiceData.total || 0),
       total: invoiceData.total || 0,
       currency: invoiceData.currency || 'USD',
       currencySymbol: invoiceData.currencySymbol || '$',

@@ -19,6 +19,8 @@ import {
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../localized-columns'
 import { REQUEST_LOCALE_PARAM } from '../request-locale'
+import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
+import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 
 interface TeleportDBConfig {
   host?: string
@@ -104,6 +106,7 @@ export const generateTeleportFetcher = (
 
   return `import { Client } from 'pg'
 
+${generateTableAccessPreamble(transformOptions.trustedReaderRoles || [])}
 function normalizePostgresConnectionString(connectionString) {
   if (!connectionString || typeof connectionString !== 'string') return connectionString;
   if (/^postgresql:\\/(?!\\/)/i.test(connectionString)) {
@@ -161,6 +164,7 @@ ${generateFilterTreeHelpersCode()}
 ${generateSearchEscapeHelpersCode()}
 ${getTransformationCode(tableName, transformOptions)}
 ${getTransformWrapperCode(tableName, transformOptions)}
+${generateRequestSqlGuardsCode()}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
   
@@ -190,6 +194,7 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       return '$' + paramIndex++
     })
     if (localizedClause !== null) return localizedClause
+    assertRequestColumn(field, 'filter field')
     
     if (Array.isArray(value)) {
       if (value.length === 0) return null
@@ -295,6 +300,7 @@ function assertRawQuerySafe(rawQuery) {
 }
 
 export default async function handler(req, res) {
+${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
   const client = getClient()
 
   try {
@@ -317,7 +323,9 @@ export default async function handler(req, res) {
       const rawSafe = JSON.parse(JSON.stringify(rawPlain, dateReplacer))
       return res.status(200).json({
         success: true,
-        data: rawSafe,
+        // Every row here ends up in a browser (a page's props or a client
+        // refetch), so no credential column survives, whatever joined it.
+        data: __taWithoutCredentials(rawSafe, null),
         timestamp: Date.now()
       })
     }
@@ -388,6 +396,7 @@ export default async function handler(req, res) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const valid = parsedSorts.filter((sort) => sort && sort.field)
+        valid.forEach((sort) => assertRequestColumn(sort.field, 'sort field'))
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
         const orderClauses = valid.map((sort) => \`\${localizedSortFieldSql(sort.field, requestLocale) || sortFieldSql(sort.field)} \${orderOf(sort)}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
@@ -405,17 +414,18 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
+      assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
       orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}\`
       plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
     }
     const usedDiscountAwareSort = orderBySql !== plainOrderBySql
 
-    const limitValue = limit || perPage
+    const limitValue = requestRowCount(limit || perPage)
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
 
     let sqlTail = ''
-    if (limitValue) {
+    if (limitValue !== undefined) {
       sqlTail += \` LIMIT \${limitValue}\`
     }
     
@@ -469,12 +479,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: __numberedData,
+      data: __taWithoutCredentials(__numberedData, ${JSON.stringify(tableName)}),
       timestamp: Date.now()
     })
   } catch (error) {
     console.error('Teleport DB fetch error:', error)
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       error: error.message || 'Failed to fetch data',
       timestamp: Date.now()
@@ -501,6 +511,7 @@ export const generateTeleportCountFetcher = (
 
   return `
 async function getCount(req, res) {
+${generateReadGuardCall(tableName, null)}
   const client = getClient()
 
   try {
@@ -569,7 +580,7 @@ async function getCount(req, res) {
     })
   } catch (error) {
     console.error('Error getting count:', error)
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       error: error.message || 'Failed to get count',
       timestamp: Date.now()

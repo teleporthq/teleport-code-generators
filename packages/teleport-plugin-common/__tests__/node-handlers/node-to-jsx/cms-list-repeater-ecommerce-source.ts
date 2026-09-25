@@ -61,6 +61,13 @@ describe('cms-list-repeater over the ecommerce global', () => {
     expect(generate('shippingMethod')).toContain('items={ecommerce?.Cart?.shippingOptions || []}')
   })
 
+  it('lists the discount sets a checkout offers, in both fulfilment shapes', () => {
+    expect(generate('discountOption')).toContain('items={ecommerce?.Cart?.discountOptions || []}')
+    expect(generate('discountOptionPickup')).toContain(
+      'items={ecommerce?.Cart?.discountOptionsPickup || []}'
+    )
+  })
+
   it('keeps the payment-provider and store-location lists on their arrays', () => {
     expect(generate('paymentProvider')).toContain('items={ecommerce?.paymentProviders || []}')
     expect(generate('storeLocation')).toContain('items={ecommerce?.storeLocations || []}')

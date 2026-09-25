@@ -13,6 +13,7 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
+import { collectSegmentStateKeys } from './segment-context-needs'
 import {
   generateServerSegmentAPIRoute,
   generateStreamingServerSegmentAPIRoute,
@@ -25,6 +26,13 @@ import {
   hasStreamingAINode,
 } from './api-route-generator'
 import { generateWorkflowAuthHelperFile } from './workflow-auth-generator'
+import {
+  generateSubscriberAccessHelperModule,
+  generateSubscriberAccessRoute,
+  hasSubscriberOnlyPages,
+  resolveProductDetailsRoute,
+  resolveSubscriptionFallbackRoute,
+} from './subscriber-access-route-generator'
 import { collectSecrets, collectSecretReferenceEnvNames } from './secret-collector'
 import {
   collectUsedNodeTypes,
@@ -88,15 +96,18 @@ import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
 // so it prefers the table that stores credentials (an email/login column AND a
 // password column), then a conventionally-named users table, then the first
 // non-auxiliary table.
-const resolveAuthUsersTableName = (
+export const resolveAuthUsersTableName = (
   authentication:
     | { enabled?: boolean; tables?: Record<string, Array<{ name?: string }>> }
     | undefined
 ): string | undefined => {
-  if (!authentication?.enabled || !authentication?.tables) {
+  if (!authentication?.enabled) {
     return undefined
   }
-  const tables = authentication.tables
+  // No declared tables still means the auth options' own `users` table, which
+  // is where the session's role is read from — leaving it unguarded would let
+  // a browser write that role.
+  const tables = authentication.tables || {}
   const names = Object.keys(tables)
   if (names.length === 0) {
     return 'users'
@@ -415,14 +426,22 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         const cnServerSegments = cnSegments.filter((s) => s.env === 'server')
         if (cnServerSegments.length > 0) {
           customNodeServerUrls[cnId] = {}
+          // The same list, in the same order, the custom node's runner hands its
+          // inner custom-js nodes as `params`.
+          const routeOptions = { customNodeIds: (cn.nodes || []).map((n: any) => n.id) }
           for (const seg of cnServerSegments) {
             const isStreaming = hasStreamingAINode(seg)
             if (routeHasPolicy(cn.protection)) {
               anyGuardedRouteEmitted = true
             }
             const apiContent = isStreaming
-              ? generateStreamingServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
-              : generateServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
+              ? generateStreamingServerSegmentAPIRoute(
+                  seg,
+                  cn.name || cnId,
+                  cn.protection,
+                  routeOptions
+                )
+              : generateServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection, routeOptions)
             const fileName = getAPIRouteFileName(cnId, seg.id, cn.name || cnId)
             customNodeServerUrls[cnId][seg.id] = `/api/workflows/${fileName}`
             files.set(`workflow-api-cn-${cnId}-${seg.id}`, {
@@ -591,7 +610,11 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
             {
               name: 'workflow-auth',
               fileType: FileType.JS,
-              content: generateWorkflowAuthHelperFile(),
+              content: generateWorkflowAuthHelperFile({
+                withSubscriberAccess:
+                  uidl.authentication?.enabled === true &&
+                  hasSubscriberOnlyPages(uidl.authentication),
+              }),
             },
           ],
         })
@@ -832,7 +855,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     )
 
     if (globalWorkflows.length > 0) {
-      const globalWorkflowCode = this.generateGlobalWorkflowsHook(globalWorkflows)
+      const globalWorkflowCode = this.generateGlobalWorkflowsHook(globalWorkflows, customNodes)
       files.set('workflow-global-hook', {
         path: ['utils', 'workflows'],
         files: [
@@ -1319,6 +1342,11 @@ ${entries}
             // Every node in this segment runs fire-and-forget — dispatch it and
             // carry on instead of waiting for the database round trip.
             fireAndForget: isFireAndForgetSegment(s),
+            // The page state an inner server segment may read — the outer
+            // segment carried it this far (see segment-context-needs).
+            ...(s.env === 'server'
+              ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) }
+              : {}),
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
@@ -1420,7 +1448,7 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
           // already moved past this point.
           __utils.registerPendingNodePromise(
             context,
-            __runtime.callServerSegment(segUrl, context).catch(function(__ffErr) {
+            __runtime.callServerSegment(segUrl, context, seg.stateKeys).catch(function(__ffErr) {
               console.error('[workflow] Segment "' + seg.id + '" failed (not awaited):', __ffErr);
             })
           );
@@ -1434,10 +1462,10 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
           continue;
         }
         if (seg.hasStreamingAI) {
-          var streamHandled = await __runtime.callStreamingServerSegment(segUrl, context, streamingInfo, nodes, edges, nodeHandlers, wfConfig, executionId);
+          var streamHandled = await __runtime.callStreamingServerSegment(segUrl, context, streamingInfo, nodes, edges, nodeHandlers, wfConfig, executionId, seg.stateKeys);
           Object.assign(handledNodeIds, streamHandled);
         } else {
-          var serverResults = await __runtime.callServerSegment(segUrl, context);
+          var serverResults = await __runtime.callServerSegment(segUrl, context, seg.stateKeys);
           __runtime.mergeServerResults(context, serverResults);
           // Propagate non-taken if-statement branches from this server
           // segment into subsequent segments. Iterate every if-statement
@@ -1715,12 +1743,42 @@ module.exports = __customNodeRegistry;
       ],
     })
 
+    // Subscriber-only pages: the entitlement query the middleware asks for
+    // through pages/api/auth/subscriber-access.js, and that the workflow-route
+    // guard requires directly. Emitted only when a page actually needs it.
+    if (hasSubscriberOnlyPages(auth)) {
+      files.set('auth-subscriber-access-helper', {
+        path: ['utils', 'auth'],
+        files: [
+          {
+            name: 'subscriber-access',
+            fileType: FileType.JS,
+            content: generateSubscriberAccessHelperModule({
+              productDetails: resolveProductDetailsRoute(uidl),
+            }),
+          },
+        ],
+      })
+      files.set('auth-subscriber-access-route', {
+        path: ['pages', 'api', 'auth'],
+        files: [
+          {
+            name: 'subscriber-access',
+            fileType: FileType.JS,
+            content: generateSubscriberAccessRoute(),
+          },
+        ],
+      })
+    }
+
     const hasProtectedRoutes =
       (auth.pageProtection && Object.keys(auth.pageProtection).length > 0) ||
       (auth.folderProtection && Object.keys(auth.folderProtection).length > 0)
 
     if (hasProtectedRoutes) {
-      const middlewareCode = generateMiddlewareFile(auth)
+      const middlewareCode = generateMiddlewareFile(auth, {
+        subscriptionFallbackRoute: resolveSubscriptionFallbackRoute(uidl),
+      })
       files.set('auth-middleware', {
         path: [],
         files: [
@@ -1853,7 +1911,7 @@ module.exports = __customNodeRegistry;
     appFile.content = content
   }
 
-  private generateGlobalWorkflowsHook(workflows: any[]): string {
+  private generateGlobalWorkflowsHook(workflows: any[], customNodes: Record<string, any>): string {
     const registrations: string[] = []
     const handlerTypes = new Set<string>()
 
@@ -1956,7 +2014,7 @@ module.exports = __customNodeRegistry;
     // handler as a bare sibling statement inside `useGlobalWorkflows()`. Two
     // DIFFERENT node types are minified independently (each in its own
     // source file), so their real declared names can coincidentally collide —
-    // e.g. state-update-local-state and payment-cancel-plan can both
+    // e.g. state-update-local-state and payment-refund can both
     // legitimately mangle down to the same short name. Declared as siblings
     // in one shared function body, the second declaration would silently
     // shadow the first, so BOTH map entries end up pointing at the SAME
@@ -2010,6 +2068,9 @@ ${workflows
           id: s.id,
           env: s.env,
           hasStreamingAI: hasStreamingAINode(s),
+          ...(s.env === 'server'
+            ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) }
+            : {}),
           nodes: s.nodes.map((n: any) => ({
             id: n.id,
             type: n.type,

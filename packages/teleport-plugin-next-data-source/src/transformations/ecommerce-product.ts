@@ -69,6 +69,57 @@ function normalizeShowModelFlag(raw) {
   return true
 }
 
+// A BOOLEAN column as every backend may hand it back; NULL / absent reads as
+// off. MUST mirror parseBoolean in the GUI's features/e-commerce/utils/parse-boolean.ts.
+function readBooleanFlag(raw) {
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'number') return raw !== 0
+  if (typeof raw === 'string') {
+    var token = raw.trim().toLowerCase()
+    return token === 'true' || token === 't' || token === '1' || token === 'yes'
+  }
+  return false
+}
+
+// "month", "3 months" — the period a recurring price is billed per. The
+// interval is read however the driver spelled it (anything unknown is a
+// month) and the count is a positive whole number (anything else is 1). MUST
+// mirror formatBillingPeriod in the GUI's features/e-commerce/constants/subscriptions.ts.
+var BILLING_INTERVALS = ['day', 'week', 'month', 'year']
+function formatBillingPeriodLabel(interval, intervalCount) {
+  var unit = String(interval == null ? '' : interval).trim().toLowerCase()
+  if (BILLING_INTERVALS.indexOf(unit) === -1) unit = 'month'
+  var count = normalizeBillingIntervalCountValue(intervalCount)
+  return count === 1 ? unit : count + ' ' + unit + 's'
+}
+
+// A positive whole number of intervals; anything else is 1. MUST mirror
+// normalizeBillingIntervalCount in the GUI's features/e-commerce/constants/subscriptions.ts.
+function normalizeBillingIntervalCountValue(intervalCount) {
+  var count = Math.floor(Number(intervalCount))
+  return isFinite(count) && count >= 1 ? count : 1
+}
+
+// A positive whole number read off an INTEGER column, or 0 for NULL, zero, a
+// negative or anything unreadable. MUST mirror resolvePositiveCount in the
+// GUI's features/e-commerce/utils/digital-products/digital-product.ts (which
+// answers null where this answers 0).
+function resolvePositiveCountValue(raw) {
+  if (raw === null || raw === undefined || raw === '') return 0
+  var parsed = Math.floor(Number(raw))
+  return isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+// "Billed every month", "Billed every 3 months · 14-day free trial" — the
+// purchase-details line of a recurring product. MUST mirror
+// formatBillingSummary in the GUI's
+// features/e-commerce/utils/subscriptions/billing-summary.ts.
+function formatBillingSummaryLabel(interval, intervalCount, trialDays) {
+  var summary = 'Billed every ' + formatBillingPeriodLabel(interval, intervalCount)
+  var trial = resolvePositiveCountValue(trialDays)
+  return trial === 0 ? summary : summary + ' · ' + trial + '-day free trial'
+}
+
 // The product's media gallery in display order, HERO FIRST: the model when it
 // is shown by default, otherwise the images with the model last. Each entry is
 // { kind: 'image' | 'model', src, poster, thumbnail, alt }; 'thumbnail' is what
@@ -145,7 +196,32 @@ function buildEcommerceProduct(record, options) {
   var paymentType = pickFirst(record.payment_type, record.paymentType) || 'one_time'
   var recurringInterval = pickFirst(record.recurring_interval, record.recurringInterval) || null
   var rawRecurringCount = pickFirst(record.recurring_interval_count, record.recurringIntervalCount)
-  var recurringIntervalCount = safeNumber(rawRecurringCount, null)
+  var isRecurring = String(paymentType).trim().toLowerCase() === 'recurring'
+  // A recurring product's count is a whole number of intervals (anything
+  // unreadable is 1); a one-time product keeps the column as stored.
+  var recurringIntervalCount = isRecurring
+    ? normalizeBillingIntervalCountValue(rawRecurringCount)
+    : safeNumber(rawRecurringCount, null)
+  // What a recurring price is followed by ("month", "3 months"; '' for a
+  // one-time product), the purchase-details sentence ("Billed every 3 months ·
+  // 14-day free trial"; '' for a one-time product), the free trial in days (0
+  // for none), and whether the product is delivered as a download or issued
+  // as a gift card. Strings where a rendering condition reads them, like
+  // hasDiscount: a bound text node prints the period verbatim and a rendering
+  // condition compares the flags as strings. MUST mirror
+  // packages/renderer/src/utils/ecommerce-products.ts, whose period comes from
+  // formatBillingPeriod in constants/subscriptions.ts.
+  var billingPeriod = isRecurring
+    ? formatBillingPeriodLabel(recurringInterval, recurringIntervalCount)
+    : ''
+  var trialDays = resolvePositiveCountValue(pickFirst(record.trial_days, record.trialDays))
+  var billingSummary = isRecurring
+    ? formatBillingSummaryLabel(recurringInterval, recurringIntervalCount, trialDays)
+    : ''
+  var isDigital = readBooleanFlag(pickFirst(record.is_digital, record.isDigital)) ? 'true' : 'false'
+  var isGiftCard = readBooleanFlag(pickFirst(record.is_gift_card, record.isGiftCard))
+    ? 'true'
+    : 'false'
 
   // Physical product fields
   var sku = record.sku || null
@@ -518,6 +594,11 @@ function buildEcommerceProduct(record, options) {
     paymentType: paymentType,
     recurringInterval: recurringInterval,
     recurringIntervalCount: recurringIntervalCount,
+    billingPeriod: billingPeriod,
+    trialDays: trialDays,
+    billingSummary: billingSummary,
+    isDigital: isDigital,
+    isGiftCard: isGiftCard,
     sku: sku,
     weight: weight,
     weightUnit: weightUnit,

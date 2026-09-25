@@ -6,6 +6,20 @@ import {
   generateRegionalPricingProviderCode,
   resolveRegionalPricing,
 } from './ecommerce-regional-pricing-code'
+import {
+  generateDiscountEngineModuleCode,
+  generateDiscountChoiceProviderCode,
+  generateDiscountEngineProviderCode,
+  generateDiscountMetaCode,
+  generateDiscountProjectionCode,
+  resolveDiscountEngine,
+} from './ecommerce-discount-engine-code'
+import {
+  generateGiftCardMetaCode,
+  generateGiftCardModuleCode,
+  generateGiftCardProviderCode,
+  resolveGiftCards,
+} from './ecommerce-gift-card-code'
 
 /**
  * Records where this VISIT came from, so the checkout can stamp it onto the
@@ -75,6 +89,152 @@ function captureOrderAttribution() {
 }
 `
 
+/**
+ * A subscription line and a digital-only cart, as the provider reads them off
+ * the lines the add-to-cart node and hydration stamp.
+ *
+ * ⚠️ PAIRED with the editor: `formatBillingPeriod` mirrors
+ * `constants/subscriptions.ts` and `cartRecurringSummary` mirrors
+ * `utils/subscriptions/recurring-cart.ts` (teleport-gui), so the canvas
+ * simulator and the published checkout print the same words. The shared
+ * parity table in `ecommerce-subscriptions.test.ts` pins them together.
+ */
+const SUBSCRIPTION_HELPERS = `
+const TQ_BILLING_INTERVALS = ['day', 'week', 'month', 'year']
+
+function tqIsRecurringProduct(product) {
+  return String((product && product.payment_type) || '').trim().toLowerCase() === 'recurring'
+}
+
+// Whatever the driver spelled; anything else is a month.
+function tqNormalizeBillingInterval(value) {
+  const normalized = String(value == null ? '' : value).trim().toLowerCase()
+  return TQ_BILLING_INTERVALS.indexOf(normalized) !== -1 ? normalized : 'month'
+}
+
+// A positive whole number of intervals; anything else is 1.
+function tqNormalizeBillingIntervalCount(value) {
+  const parsed = Math.floor(Number(value))
+  return isFinite(parsed) && parsed >= 1 ? parsed : 1
+}
+
+// A positive whole number read off an INTEGER column; null for NULL, 0 or
+// anything unreadable — "no trial".
+function tqPositiveCount(value) {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Math.floor(Number(value))
+  return isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+// "month", "3 months" — the per-cycle period a recurring price is followed by.
+function formatBillingPeriod(interval, intervalCount) {
+  const unit = tqNormalizeBillingInterval(interval)
+  const count = tqNormalizeBillingIntervalCount(intervalCount)
+  return count === 1 ? unit : count + ' ' + unit + 's'
+}
+
+// The subscription in the basket. At most one: the add-to-cart node refuses a
+// second, and refuses to mix it with one-time lines.
+function cartRecurringLine(items) {
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] && __deBool(items[i].isRecurring, false)) return items[i]
+  }
+  return null
+}
+
+// Whether the cart buys a gift card — the flag is stamped onto every line by
+// hydration and by the add-to-cart node. Such a cart is paid online and
+// issued by email, and can neither be paid with a card nor discounted.
+function cartHasGiftCardLine(items) {
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] && __deBool(items[i].isGiftCard, false)) return true
+  }
+  return false
+}
+
+// "Billed every month · first charge today", or with a free trial ahead of
+// the first charge: "Billed every month · free for 14 days, then every month".
+function cartRecurringSummary(line) {
+  const period = formatBillingPeriod(line.recurringInterval, line.recurringIntervalCount)
+  const trialDays = tqPositiveCount(line.trialDays)
+  const start =
+    trialDays === null
+      ? 'first charge today'
+      : 'free for ' + trialDays + (trialDays === 1 ? ' day' : ' days') + ', then every ' + period
+  return 'Billed every ' + period + ' \\u00b7 ' + start
+}
+
+// Every line is delivered without a parcel — a download, or a gift card sent
+// by email — and there is at least one: nothing to ship, so no delivery fee,
+// no method to pick and no parcel address.
+function isDigitalOnlyCart(items) {
+  if (!items || items.length === 0) return false
+  for (let i = 0; i < items.length; i++) {
+    if (!items[i]) return false
+    if (!__deBool(items[i].isDigital, false) && !__deBool(items[i].isGiftCard, false)) return false
+  }
+  return true
+}
+
+// A line's kind: a subscription checks out alone at quantity one, a gift card
+// is issued by email once paid, a digital line is delivered from the order
+// page, anything else ships. One order holds ONE kind, so the cart does too.
+function tqCartLineKind(line) {
+  if (__deBool(line && line.isRecurring, false)) return 'subscription'
+  if (__deBool(line && line.isGiftCard, false)) return 'gift-card'
+  if (__deBool(line && line.isDigital, false)) return 'digital'
+  return 'physical'
+}
+
+const TQ_CART_KIND_LABELS = {
+  subscription: 'Subscriptions',
+  'gift-card': 'Gift cards',
+  digital: 'Digital products',
+  physical: 'Physical products',
+}
+
+// Why \`item\` cannot join \`items\`, or null when it can — the same verdict and
+// wording the add-to-cart workflow node gives, so a custom caller of
+// \`addToCart\` is told the same thing the storefront button says.
+function tqCartKindRefusal(items, item) {
+  const others = (items || []).filter(
+    (line) =>
+      !(line.productId === item.productId && (line.variantId || '') === (item.variantId || ''))
+  )
+  const existing = (items || []).length !== others.length
+  const kind = tqCartLineKind(item)
+  const oneSubscription = {
+    added: false,
+    reason: 'one-subscription',
+    message: 'Subscriptions are checked out on their own. Finish or empty your current cart first.',
+  }
+  if (existing && kind === 'subscription') return oneSubscription
+  if (others.length === 0) return null
+  if (kind === 'subscription' || tqCartLineKind(others[0]) === 'subscription') return oneSubscription
+  if (tqCartLineKind(others[0]) !== kind) {
+    return {
+      added: false,
+      reason: 'mixed-cart',
+      message:
+        TQ_CART_KIND_LABELS[kind] +
+        ' need a separate order. Complete your current order or remove the other items from your cart first.',
+    }
+  }
+  return null
+}
+
+// Same shape \`computeShippingMeta\` returns, for a cart that ships nothing.
+function digitalOnlyShippingMeta(goodsTotal) {
+  return {
+    shippingIsFree: true,
+    shippingPrice: 0,
+    totalWithShipping: roundMoney(goodsTotal),
+    freeDeliveryProgress: '100%',
+    freeDeliveryRemaining: 0,
+  }
+}
+`
+
 export const generateEcommerceContextFileContent = (
   ecommerceSettings: UIDLEcommerceSettings,
   invoiceSettings?: UIDLInvoiceSettings,
@@ -103,12 +263,32 @@ export const generateEcommerceContextFileContent = (
   // (and for the settings-less fallback context, which has no enrichment at
   // all): the stored value is then used exactly as the row holds it, which is
   // what those stores always did — their media is direct URLs.
-  assetLookupEnabled?: boolean
+  assetLookupEnabled?: boolean,
+  // The datasource's type, which decides whether gift cards can be taken at
+  // all: their balance ledger is read and debited through SQL only a Postgres
+  // datasource runs (see `resolveGiftCards`). Absent for the settings-less
+  // fallback context, which then takes none.
+  dataSourceType?: string | null
 ): string => {
   const settingsJson = JSON.stringify(buildSettingsObject(ecommerceSettings, invoiceSettings))
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
   const paymentProvidersJson = JSON.stringify(ecommerceSettings.paymentProviders || [])
   const hasPaymentProviders = (ecommerceSettings.paymentProviders || []).length > 0
+  // The providers that can bill a recurring product — what a checkout page
+  // offers a cart holding a subscription instead of the full list. Baked like
+  // `paymentProviders`; a store exported before the capability existed reads
+  // every provider as unable, so a recurring cart is offered none.
+  const subscriptionPaymentProviders = (ecommerceSettings.paymentProviders || []).filter(
+    (provider) => provider.supportsSubscriptions === true
+  )
+  const subscriptionPaymentProvidersJson = JSON.stringify(subscriptionPaymentProviders)
+  // Mirrored into `workflow_cart_settings` so the checkout's page-load workflow
+  // can pre-select a capable provider for a recurring cart without reaching
+  // into React — the same channel `deliveryConfig` travels.
+  const subscriptionsMirrorJson = JSON.stringify({
+    enabled: ecommerceSettings.subscriptions?.enabled === true,
+    providers: subscriptionPaymentProviders.map((provider) => provider.type),
+  })
   // Static nested category tree for the storefront category filter, exposed as
   // `useEcommerce().ecommerceCategories` (the `E-Commerce Categories` global).
   // Each node's `name`/`description` are the main-language values; per-language
@@ -170,6 +350,19 @@ export const generateEcommerceContextFileContent = (
       })
     : ''
 
+  // The discount engine's rule feed and the gift-card tender. Each is null for
+  // a store without the feature, which then gets none of that feature's
+  // loaders or effects — the engine itself is always emitted (see
+  // `generateDiscountProjectionCode`), pricing vouchers in legacy mode.
+  const discountEngine = resolveDiscountEngine(ecommerceSettings, dataSourceId)
+  const discountEngineModuleCode = discountEngine
+    ? generateDiscountEngineModuleCode(discountEngine)
+    : ''
+  const discountEngineProviderCode = discountEngine ? generateDiscountEngineProviderCode() : ''
+  const giftCards = resolveGiftCards(ecommerceSettings, dataSourceId, dataSourceType)
+  const giftCardModuleCode = giftCards ? generateGiftCardModuleCode(giftCards) : ''
+  const giftCardProviderCode = giftCards ? generateGiftCardProviderCode() : ''
+
   // Cart hydration re-reads every line off `teleport_products`, so the media it
   // stamps back onto the line is whatever that column holds — a URL for a stock
   // photo, a bare PROJECT-ASSET ID when the merchant picked an image that
@@ -193,10 +386,13 @@ export const generateEcommerceContextFileContent = (
     ? ['      var image = resolveMediaUrl(entry.rawImage, assetUrlMap, item.image)']
     : ['      var image = entry.rawImage']
 
-  // What shipping zones and tax rows price a line by, re-read with everything
-  // else: the product's weight (weight-tiered rates) and its category ids
-  // INCLUDING ancestors (a tax row for "Food" covers "Food › Bread"). Stamped
-  // only for a store with regional pricing — nothing else reads them.
+  // What the discount engine and the tax rows price a line by, re-read with
+  // everything else: the product's category ids INCLUDING ancestors (a rule
+  // for "Food" covers "Food › Bread"), whether it IS a gift card (never
+  // discounted, never payable with one), whether it is billed on a schedule
+  // (the plan the provider bills, never discounted) or delivered as a download
+  // (no shipping), and — for a store with regional pricing, whose
+  // weight-tiered rates are the only reader — its weight.
   const enrichedFields = [
     'name',
     'price',
@@ -209,18 +405,19 @@ export const generateEcommerceContextFileContent = (
     'discountType',
     'discountValue',
     'discountAmount',
+    'isGiftCard',
+    'isRecurring',
+    'recurringInterval',
+    'recurringIntervalCount',
+    'trialDays',
+    'isDigital',
+    'quantity',
     ...(regional ? ['weight', 'weightUnit'] : []),
   ]
-  const categoryChangedLines = regional
-    ? [
-        "  if (String((before && before.categoryIds) || '') !== String(after.categoryIds || '')) return true",
-      ]
-    : []
   const regionalStampLines = regional
     ? [
         '        weight: product.weight != null ? Number(product.weight) : null,',
         '        weightUnit: product.weight_unit || null,',
-        '        categoryIds: __rpStringArray(product.category_filter_ids || product.category_ids).map(String)',
       ]
     : []
   const enrichFnCode = dataSourceId
@@ -281,7 +478,7 @@ export const generateEcommerceContextFileContent = (
         '    if ((a == null) !== (b == null)) return true',
         '    if (a != null && String(a) !== String(b)) return true',
         '  }',
-        ...categoryChangedLines,
+        "  if (String((before && before.categoryIds) || '') !== String(after.categoryIds || '')) return true",
         '  var beforeSwatches = (before && before.variantSwatches) || []',
         '  var afterSwatches = after.variantSwatches || []',
         '  if (beforeSwatches.length !== afterSwatches.length) return true',
@@ -400,9 +597,23 @@ export const generateEcommerceContextFileContent = (
         '        originalPrice: discount ? listPrice : null,',
         '        discountType: discount ? discount.type : null,',
         '        discountValue: discount ? discount.value : null,',
-        `        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0${
-          regional ? ',' : ''
-        }`,
+        '        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0,',
+        // Categories (assigned ids plus ancestors) and the gift-card flag, read
+        // through the engine's own row parsers so a missing or malformed column
+        // reads as "none" / "not a gift card" rather than throwing.
+        '        categoryIds: __deStringArray(product.category_filter_ids || product.category_ids),',
+        '        isGiftCard: __deBool(product.is_gift_card, false),',
+        // The billing schedule and the delivery kind, re-stamped like the
+        // markdown: a product switched to recurring (or back) re-prices on the
+        // next hydration. A subscription is ONE unit — the provider bills the
+        // plan, not a quantity — so a line that arrived with more (a cart merged
+        // across devices, a hand-edited storage) is brought back to one here.
+        '        isRecurring: tqIsRecurringProduct(product),',
+        '        recurringInterval: tqIsRecurringProduct(product) ? tqNormalizeBillingInterval(product.recurring_interval) : null,',
+        '        recurringIntervalCount: tqIsRecurringProduct(product) ? tqNormalizeBillingIntervalCount(product.recurring_interval_count) : null,',
+        '        trialDays: tqIsRecurringProduct(product) ? tqPositiveCount(product.trial_days) : null,',
+        '        isDigital: __deBool(product.is_digital, false),',
+        '        quantity: tqIsRecurringProduct(product) ? 1 : item.quantity,',
         ...regionalStampLines,
         '      }))',
         '    })',
@@ -657,24 +868,40 @@ if (typeof window !== 'undefined') {
   // The render-time pricing of the provider, in its two shapes. Regional stores
   // price every figure from one quote for the checkout's destination; every
   // other store keeps the single-rate arithmetic it has always used.
+  // A cart that ships nothing is never charged for shipping, whichever way the
+  // store prices it: the single-rate arithmetic is handed no delivery config
+  // (which is how it already prices a store without one), the regional quote
+  // is set aside for a zero fee.
   const pricingCode = regional
     ? `${generateRegionalPricingProviderCode()}
-  const shippingMeta = useMemo(() => regionalShippingMeta(regionalQuote), [regionalQuote])
+  const shippingMeta = useMemo(
+    () =>
+      digitalOnly ? digitalOnlyShippingMeta(regionalQuote.goodsGross) : regionalShippingMeta(regionalQuote),
+    [regionalQuote, digitalOnly]
+  )
   const cartGoodsTotal = regionalQuote.goodsGross
 `
     : `  const shippingMeta = useMemo(
-    () => computeShippingMeta(cartMeta.total, settings.Delivery, settings.deliveryEnabled === true),
-    [cartMeta.total, settings.Delivery, settings.deliveryEnabled]
+    () =>
+      computeShippingMeta(
+        cartMeta.total,
+        digitalOnly ? null : settings.Delivery,
+        settings.deliveryEnabled === true
+      ),
+    [cartMeta.total, settings.Delivery, settings.deliveryEnabled, digitalOnly]
   )
   const cartGoodsTotal = cartMeta.total
 `
-  const voucherItemsExpression = regional
-    ? 'regionalVoucherItems(regionalQuote, cartItems)'
-    : 'cartItems'
-  const voucherTaxRateExpression = regional ? '0' : 'STOREFRONT_TAX_RATE'
-  const voucherDeps = regional
-    ? 'cartItems, regionalQuote, appliedVoucher, settings.vouchersEnabled, shippingMeta'
-    : 'cartItems, appliedVoucher, settings.vouchersEnabled, shippingMeta'
+  // The lines the discount engine prices: on a regional store already GROSS in
+  // the destination's tax (so the engine is handed a rate of 0, never asked to
+  // tax them again), otherwise the stored NET lines with the baked rate.
+  const discountMetaCode = generateDiscountMetaCode({
+    itemsExpression: regional ? 'regionalVoucherItems(regionalQuote, cartItems)' : 'cartItems',
+    taxRateExpression: regional ? '0' : 'STOREFRONT_TAX_RATE',
+    itemsDeps: regional ? 'cartItems, regionalQuote, ' : 'cartItems, ',
+    engineEnabled: discountEngine !== null,
+  })
+  const giftCardMetaCode = generateGiftCardMetaCode(giftCards !== null)
   const displayCartItemsCode = regional
     ? `  // Same projection as a single-rate store's, with each line priced in the
   // destination's tax by the quote.
@@ -688,6 +915,8 @@ if (typeof window !== 'undefined') {
           originalPrice:
             pricing.originalLineTotal === null ? '' : formatCartMoney(pricing.originalLineTotal),
           hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
+          isRecurring: __deBool(item.isRecurring, false) ? 'true' : 'false',
+          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',
         })
       }),
     [cartItems, regionalQuote]
@@ -710,6 +939,10 @@ if (typeof window !== 'undefined') {
           // A 'true'/'false' STRING, because a rendering condition compares
           // operands as strings and a \`!= ''\` test passes for undefined.
           hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
+          // Same convention: the cart line hides its quantity stepper for a
+          // subscription (one unit, billed by the provider).
+          isRecurring: __deBool(item.isRecurring, false) ? 'true' : 'false',
+          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',
         })
       ),
     [cartItems]
@@ -749,8 +982,12 @@ function loadCartFromStorage() {
 }
 
 ${ProductDiscounts.generateProductDiscountHelperCode()}
+${generateDiscountProjectionCode()}
 ${regionalModuleCode}
+${discountEngineModuleCode}
+${giftCardModuleCode}
 ${enrichFnCode}
+${SUBSCRIPTION_HELPERS}
 
 function saveCartToStorage(items) {
   if (typeof window === 'undefined') return
@@ -913,85 +1150,14 @@ function loadVoucherFromStorage() {
   }
 }
 
-// ⚠️ PAIRED with \`resolveVoucherDiscount\` in the editor (teleport-gui
-// \`features/e-commerce/utils/voucher-discount.ts\`) and with the
-// \`VOUCHER_DISCOUNT_HELPERS\` baked into the checkout workflows. All three
-// compute the same number; a difference means the shopper is shown one
-// discount and charged another.
-//
-// Discounts are taken on the GROSS eligible subtotal (per-unit gross rounding,
-// then multiply), clamped so an order can reach zero but never go below it.
-function voucherLineGross(item, taxRatePercent) {
-  const net = Number(item.price) || 0
-  if (taxRatePercent > 0) return roundMoney(net * (1 + taxRatePercent / 100))
-  return net
-}
-
-function isVoucherLineEligible(item, voucher) {
-  if (voucher.applies_to_all_products !== false) return true
-  const ids = Array.isArray(voucher.product_ids) ? voucher.product_ids : []
-  return ids.indexOf(String(item.productId)) !== -1
-}
-
-function computeVoucherMeta(cartItems, voucher, taxRatePercent, shippingMeta, vouchersEnabled) {
-  const empty = {
-    rawDiscount: 0,
-    voucherApplied: 'false',
-    voucherCode: '',
-    voucherFreeShipping: 'false',
-    voucherDiscountVisible: 'false',
-  }
-  // Turning the feature off must neutralise a voucher already sitting in a
-  // shopper's browser, not just hide the input.
-  if (!vouchersEnabled || !voucher) return empty
-
-  const type = voucher.discount_type === 'fixed' || voucher.discount_type === 'free_shipping'
-    ? voucher.discount_type
-    : 'percentage'
-  const code = String(voucher.code || '')
-
-  if (type === 'free_shipping') {
-    // Represented as "shipping becomes free", NOT as a goods discount — the
-    // FREE badge the summary already has is the right way to show it, and
-    // subtracting the waiver from rawTotal as well would double-count it.
-    const waived = roundMoney(shippingMeta.shippingPrice)
-    return {
-      rawDiscount: 0,
-      voucherApplied: 'true',
-      voucherCode: code,
-      voucherFreeShipping: waived > 0 ? 'true' : 'false',
-      voucherDiscountVisible: 'false',
-    }
-  }
-
-  let eligibleGross = 0
-  for (const item of cartItems || []) {
-    if (!item || !isVoucherLineEligible(item, voucher)) continue
-    const qty = Math.max(0, Math.floor(Number(item.quantity) || 0))
-    if (qty === 0) continue
-    eligibleGross += voucherLineGross(item, taxRatePercent) * qty
-  }
-  eligibleGross = roundMoney(eligibleGross)
-  if (eligibleGross <= 0) {
-    return { ...empty, voucherApplied: 'true', voucherCode: code }
-  }
-
-  const value = Math.max(0, Number(voucher.discount_value) || 0)
-  const raw = type === 'percentage' ? (eligibleGross * Math.min(value, 100)) / 100 : value
-  const rawDiscount = Math.min(roundMoney(raw), eligibleGross)
-
-  return {
-    rawDiscount,
-    voucherApplied: 'true',
-    voucherCode: code,
-    voucherFreeShipping: 'false',
-    voucherDiscountVisible: rawDiscount > 0 ? 'true' : 'false',
-  }
-}
-
 export const EcommerceProvider = ({ children }) => {
   const router = useRouter()
   const [cartItems, setCartItems] = useState([])
+  // The lines as of this render, for \`addToCart\` to judge a new line against
+  // synchronously — a refusal has to be answered to the caller, not to the
+  // state updater.
+  const cartItemsRef = useRef([])
+  cartItemsRef.current = cartItems
   const [cartMeta, setCartMeta] = useState({ total: 0, itemCount: 0 })
   const [isHydrated, setIsHydrated] = useState(false)
   const [storeLocations, setStoreLocations] = useState([])
@@ -1160,6 +1326,20 @@ ${
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
+      // The shopper context (\`customer\`) is the checkout page-load workflow's,
+      // not this provider's: it is carried over, never wiped. Every feature
+      // snapshot (regional, discounts, gift cards) IS wiped here and merged
+      // back by its own effect right after — which is what makes a feature the
+      // merchant turned off disappear from the mirror.
+      let customer = null
+      try {
+        const previous = JSON.parse(localStorage.getItem(CART_SETTINGS_STORAGE_KEY) || 'null')
+        if (previous && typeof previous === 'object' && previous.customer && typeof previous.customer === 'object') {
+          customer = previous.customer
+        }
+      } catch {
+        customer = null
+      }
       localStorage.setItem(
         CART_SETTINGS_STORAGE_KEY,
         JSON.stringify({
@@ -1170,12 +1350,29 @@ ${
           // and the amount it hands to the place-order workflow has to be the
           // amount this provider just showed the buyer.
           taxConfig: { storefrontTaxRate: STOREFRONT_TAX_RATE },
+          // Whether a stored voucher is to be honoured at all — the same gate
+          // the discount engine applies here.
+          vouchersEnabled: ${ecommerceSettings.vouchersEnabled === true},
+          // Whether recurring products can be sold, and by which providers:
+          // the checkout's page-load workflow pre-selects the first for a
+          // cart holding a subscription.
+          subscriptions: ${subscriptionsMirrorJson},
+          customer: customer,
         })
       )
     } catch {}
   }, [maxQtyPerProduct])
 
+  // Answers \`{ added, reason?, message? }\` like the add-to-cart workflow node:
+  // a line whose kind (subscription / digital / physical) differs from the
+  // cart's, or a second subscription, is refused so one order never holds two
+  // kinds of fulfilment. The kind comes from the line handed in (the product
+  // row's \`payment_type\` / \`is_digital\`), never from a later fetch.
   const addToCart = useCallback((item) => {
+    const refusal = tqCartKindRefusal(cartItemsRef.current, item)
+    if (refusal) {
+      return refusal
+    }
     setCartItems((prev) => {
       const existing = prev.find(
         (i) => i.productId === item.productId && (i.variantId || '') === (item.variantId || '')
@@ -1251,13 +1448,25 @@ ${
 
   const settings = useMemo(() => (${settingsJson}), [])
   const paymentProviders = useMemo(() => (${paymentProvidersJson}), [])
+  const subscriptionPaymentProviders = useMemo(() => (${subscriptionPaymentProvidersJson}), [])
   const ecommerceCategoriesRaw = useMemo(() => (${ecommerceCategoriesJson}), [])
   const ecommerceCategories = useMemo(
     () => resolveCategoryTranslations(ecommerceCategoriesRaw, router.locale),
     [ecommerceCategoriesRaw, router.locale]
   )
 
-${pricingCode}
+  // The subscription in the basket (at most one) and whether every line is a
+  // download. Read BEFORE the pricing below: a digital-only cart ships nothing,
+  // so its shipping is priced at zero rather than quoted and waived.
+  const recurringLine = useMemo(() => cartRecurringLine(cartItems), [cartItems])
+  const recurringTrial = recurringLine !== null && tqPositiveCount(recurringLine.trialDays) !== null
+  const digitalOnly = useMemo(() => isDigitalOnlyCart(cartItems), [cartItems])
+  const hasGiftCardLines = useMemo(() => cartHasGiftCardLine(cartItems), [cartItems])
+
+${pricingCode}${discountEngineProviderCode}${giftCardProviderCode}${generateDiscountChoiceProviderCode()}
+  // Every discount on the basket — the applied voucher and the automatic rules
+  // — priced by the shared engine over the same lines the summary prints.
+${discountMetaCode}
   // What the cart & checkout pages bind their per-line money to. The stored
   // \`cartItems\` keep the NET unit price (they are what gets persisted and what
   // becomes \`teleport_order_items.unit_price\`); this projection is the only
@@ -1269,23 +1478,6 @@ ${pricingCode}
   // "Total"), so the amount that belongs there is what those units cost
   // together. \`unitPrice\` keeps the per-unit figure addressable for a template
   // that wants to spell out "x each".
-  // The tax rate comes from the baked \`STOREFRONT_TAX_RATE\` constant, NOT from
-  // \`settings\`: that object is the merchant-facing settings projection and
-  // carries no rate. Reading it there silently discounted the NET subtotal while
-  // the place-order workflow discounts the GROSS one, so a tax-added-on-top
-  // store quoted one saving and charged another.
-  const voucherMeta = useMemo(
-    () =>
-      computeVoucherMeta(
-        ${voucherItemsExpression},
-        appliedVoucher,
-        ${voucherTaxRateExpression},
-        shippingMeta,
-        settings.vouchersEnabled === true
-      ),
-    [${voucherDeps}]
-  )
-
 ${displayCartItemsCode}
   // Derive currency symbol from the first cart item or fallback to '$'
   const cartCurrencySymbol = useMemo(() => {
@@ -1299,24 +1491,32 @@ ${displayCartItemsCode}
     return '$'
   }, [cartItems])
 
-  // A free-shipping voucher waives the delivery fee, so every figure derived
+  // A free-shipping discount waives the delivery fee, so every figure derived
   // from shipping has to use the WAIVED amount — otherwise the summary shows
-  // "FREE" next to a total that still includes the fee.
-  const effectiveShippingPrice =
-    voucherMeta.voucherFreeShipping === 'true' ? 0 : shippingMeta.shippingPrice
+  // "FREE" next to a total that still includes the fee. The engine waives at
+  // most the fee itself, and at most once across every rule.
+  const effectiveShippingPrice = Math.max(
+    0,
+    roundMoney(shippingMeta.shippingPrice - discountMeta.shippingDiscount)
+  )
+  // What a delivered order costs, every discount taken, never below zero; and
+  // what a collected one owes — no delivery, and the discounts the engine
+  // applies to an order without a shipping fee (\`pickupDiscountMeta\`), which
+  // is what the place-order workflow charges for it.
   const effectiveTotal = Math.max(
     0,
-    roundMoney(cartGoodsTotal + effectiveShippingPrice - voucherMeta.rawDiscount)
+    roundMoney(cartGoodsTotal + effectiveShippingPrice - discountMeta.goodsDiscount)
   )
-
+  const pickupTotal = Math.max(0, roundMoney(cartGoodsTotal - pickupDiscountMeta.goodsDiscount))
+  // What a gift card pays of each of those, and what is left to charge.
+${giftCardMetaCode}
   const value = useMemo(() => ({
     Cart: {
       items: displayCartItems,
       total: cartGoodsTotal,
       itemCount: cartMeta.itemCount,
       shippingPrice: effectiveShippingPrice,
-      shippingIsFree:
-        voucherMeta.voucherFreeShipping === 'true' ? true : shippingMeta.shippingIsFree,
+      shippingIsFree: discountMeta.shippingDiscount > 0 ? true : shippingMeta.shippingIsFree,
       totalWithShipping: effectiveTotal,
       freeDeliveryProgress: shippingMeta.freeDeliveryProgress,
       freeDeliveryRemaining: shippingMeta.freeDeliveryRemaining,
@@ -1331,20 +1531,56 @@ ${displayCartItemsCode}
       // page. Nothing computes with them — they are read only by text bindings.
       rawSubtotal: formatCartMoney(cartGoodsTotal),
       // Discount-inclusive and never below zero. Built from the WAIVED shipping
-      // so a free-shipping voucher reduces the total exactly once.
+      // so a free-shipping discount reduces the total exactly once.
       rawTotal: formatCartMoney(effectiveTotal),
-      // What a pickup order owes: no delivery, but the discount still applies.
-      rawSubtotalAfterDiscount: formatCartMoney(
-        Math.max(0, roundMoney(cartGoodsTotal - voucherMeta.rawDiscount))
-      ),
+      // What a pickup order owes: no delivery, but the discounts still apply.
+      rawSubtotalAfterDiscount: formatCartMoney(pickupTotal),
       rawShipping: formatCartMoney(effectiveShippingPrice),
       // Voucher surface. The flags are 'true'/'false' STRINGS because a
       // rendering condition cannot gate on a formatted money value.
-      rawDiscount: formatCartMoney(voucherMeta.rawDiscount),
-      voucherApplied: voucherMeta.voucherApplied,
-      voucherCode: voucherMeta.voucherCode,
-      voucherFreeShipping: voucherMeta.voucherFreeShipping,
-      voucherDiscountVisible: voucherMeta.voucherDiscountVisible,
+      rawDiscount: formatCartMoney(discountMeta.rawDiscount),
+      voucherApplied: discountMeta.voucherApplied,
+      voucherCode: discountMeta.voucherCode,
+      voucherFreeShipping: discountMeta.voucherFreeShipping,
+      voucherDiscountVisible: discountMeta.voucherDiscountVisible,
+      // Automatic (code-less) discounts: what they took off the goods, which
+      // rules did, and whether the summary row has anything to show. A store
+      // without the engine's rule feed reports none.
+      automaticDiscount: formatCartMoney(discountMeta.automaticDiscount),
+      automaticDiscountVisible: discountMeta.automaticDiscountVisible,
+      automaticDiscountLabel: discountMeta.automaticDiscountLabel,
+      // Everything taken off the goods, voucher and automatic rules together.
+      discountTotal: formatCartMoney(discountMeta.goodsDiscount),
+      // The sets the shopper may choose between when several discounts could
+      // apply but not together (an exclusive discount alone, or the combinable
+      // ones together), and whether the checkout's chooser has anything to
+      // show. Each option: \`{ key, label, saving, selected }\`.
+      discountOptions: formatDiscountOptions(discountMeta.discountOptions),
+      discountOptionsVisible: discountMeta.discountOptionsVisible,
+      // The same discount surface for a collected order, priced like its total
+      // (\`pickupDiscountMeta\`): with no delivery fee to waive, a free-shipping
+      // rule steps aside — an exclusive one no longer suppresses the rules and
+      // voucher after it — and no voucher reads as free shipping. The checkout
+      // swaps these in on its own pickup state, so the rows a pickup summary
+      // prints add up to \`rawSubtotalAfterDiscount\`.
+      rawDiscountPickup: formatCartMoney(pickupDiscountMeta.rawDiscount),
+      voucherFreeShippingPickup: pickupDiscountMeta.voucherFreeShipping,
+      voucherDiscountVisiblePickup: pickupDiscountMeta.voucherDiscountVisible,
+      automaticDiscountPickup: formatCartMoney(pickupDiscountMeta.automaticDiscount),
+      automaticDiscountVisiblePickup: pickupDiscountMeta.automaticDiscountVisible,
+      automaticDiscountLabelPickup: pickupDiscountMeta.automaticDiscountLabel,
+      discountTotalPickup: formatCartMoney(pickupDiscountMeta.goodsDiscount),
+      discountOptionsPickup: formatDiscountOptions(pickupDiscountMeta.discountOptions),
+      discountOptionsVisiblePickup: pickupDiscountMeta.discountOptionsVisible,
+      // Gift-card tender: never subtracted from the totals above — it is how
+      // part of the total gets PAID — so the amount due is its own figure, for
+      // each fulfilment shape the checkout page can be in.
+      giftCardApplied: giftCardMeta.giftCardApplied,
+      giftCardLast4: giftCardMeta.giftCardLast4,
+      giftCardAmount: giftCardMeta.giftCardAmount,
+      giftCardAmountPickup: giftCardMeta.giftCardAmountPickup,
+      amountDue: giftCardMeta.amountDue,
+      amountDuePickup: giftCardMeta.amountDuePickup,
       // Shipping zones. A store without them always reports one delivery
       // price, nothing pending and cash on delivery allowed, so a checkout page
       // built with the shipping-method list simply never shows it.
@@ -1352,6 +1588,21 @@ ${displayCartItemsCode}
       shippingOptionsVisible: ${shippingOptionsVisibleExpression},
       shippingStatus: ${shippingStatusExpression},
       codAvailable: ${codAvailableExpression},
+      // Subscriptions and digital delivery. Flags are 'true'/'false' STRINGS
+      // for the checkout's gates; \`recurringSummary\` is the sentence the
+      // summary prints ("Billed every month · first charge today") and
+      // \`recurringAmount\` what each cycle charges — the delivered total,
+      // because a recurring cart takes no store pickup.
+      hasRecurringLines: recurringLine ? 'true' : 'false',
+      // A subscription whose first charge is a free trial: nothing for a gift
+      // card to pay, so the checkout hides the card entry.
+      hasRecurringTrial: recurringTrial ? 'true' : 'false',
+      isDigitalOnly: digitalOnly ? 'true' : 'false',
+      // A cart buying a gift card: no code and no card can apply to it, so the
+      // checkout hides both entries.
+      hasGiftCardLines: hasGiftCardLines ? 'true' : 'false',
+      recurringSummary: recurringLine ? cartRecurringSummary(recurringLine) : '',
+      recurringAmount: formatCartMoney(effectiveTotal),
       currencySymbol: cartCurrencySymbol,
       addToCart,
       removeFromCart,
@@ -1362,15 +1613,18 @@ ${displayCartItemsCode}
     Settings: ${settingsExpression},
     paymentProviders,
     hasPaymentProviders: ${hasPaymentProviders},
+    // The providers a recurring cart is offered instead of \`paymentProviders\`.
+    subscriptionPaymentProviders,
     storeLocations,
     defaultPickupStoreId,
     ecommerceCategories,
-  // \`voucherMeta\` and the two figures derived from it MUST be listed. Applying
-  // or removing a code changes nothing else in this array — the cart items, the
-  // cart meta and the shipping meta are all untouched — so without them the memo
-  // returned the previous context object, the Provider's value stayed
-  // reference-identical, and the summary only caught up on a page reload.
-  }), [displayCartItems, cartMeta, ${valueExtraDeps}shippingMeta, voucherMeta, effectiveShippingPrice, effectiveTotal, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
+  // \`discountMeta\`, \`pickupDiscountMeta\`, \`giftCardMeta\` and the figures
+  // derived from them MUST be listed. Applying or removing a code changes
+  // nothing else in this array — the cart items, the cart meta and the shipping
+  // meta are all untouched — so without them the memo returned the previous
+  // context object, the Provider's value stayed reference-identical, and the
+  // summary only caught up on a page reload.
+  }), [displayCartItems, cartMeta, ${valueExtraDeps}shippingMeta, discountMeta, pickupDiscountMeta, giftCardMeta, effectiveShippingPrice, effectiveTotal, pickupTotal, recurringLine, digitalOnly, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, subscriptionPaymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
 
   return (
     <EcommerceContext.Provider value={value}>
@@ -1430,6 +1684,20 @@ function buildSettingsObject(
     // stored voucher when it is true — omitting it hid the input on every
     // store and silently disabled the discount.
     vouchersEnabled: ecommerceSettings.vouchersEnabled === true,
+    // The discount engine and gift cards, by the same rule: present on the
+    // Settings object the checkout page gates its rows and blocks on. Both are
+    // "the UIDL carries the block" — a checkout page built with the feature —
+    // so a page never shows a block its own workflows were not built with.
+    discountEngineEnabled: ecommerceSettings.discountEngine?.enabled === true,
+    automaticDiscountsEnabled:
+      ecommerceSettings.discountEngine?.enabled === true &&
+      ecommerceSettings.discountEngine.automaticDiscounts === true,
+    giftCardsEnabled: ecommerceSettings.giftCards?.enabled === true,
+    // Same rule again. A recurring product's buy controls are gated on
+    // `subscriptionsEnabled`: a checkout built before subscriptions would
+    // charge it once, so an older storefront hides them instead.
+    subscriptionsEnabled: ecommerceSettings.subscriptions?.enabled === true,
+    digitalProductsEnabled: ecommerceSettings.digitalProducts?.enabled === true,
   }
 
   if (ecommerceSettings.deliveryConfig) {

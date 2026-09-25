@@ -19,13 +19,38 @@ type Guard = (
   policy: any
 ) => Promise<{ status: number; message: string } | null>
 
+/** What the stubbed `utils/auth/subscriber-access` module answers, and what it was asked. */
+interface SubscriberAccessStub {
+  entitled?: boolean
+  throws?: boolean
+  /** `null` boots the guard with the module ABSENT (a project with no subscriber-only page). */
+  absent?: boolean
+  calls: Array<{ userId: string; productIds: string[] }>
+}
+
 /** Boots the emitted guard file with getToken stubbed to read `req.__token`. */
-function bootGuard(secret: string | undefined): Guard {
-  const code = generateWorkflowAuthHelperFile()
+function bootGuard(secret: string | undefined, subscriberAccess?: SubscriberAccessStub): Guard {
+  const code = generateWorkflowAuthHelperFile({
+    withSubscriberAccess: Boolean(subscriberAccess && !subscriberAccess.absent),
+  })
   const moduleObj: { exports: any } = { exports: {} }
   const fakeRequire = (name: string): any => {
     if (name === 'next-auth/jwt') {
       return { getToken: async ({ req }: any) => (req && req.__token) || null }
+    }
+    if (name === '../auth/subscriber-access') {
+      if (!subscriberAccess || subscriberAccess.absent) {
+        throw new Error(`Cannot find module '${name}'`)
+      }
+      return {
+        isSubscriberEntitled: async (userId: string, productIds: string[]) => {
+          subscriberAccess.calls.push({ userId, productIds })
+          if (subscriberAccess.throws) {
+            throw new Error('database down')
+          }
+          return subscriberAccess.entitled === true
+        },
+      }
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(name)
@@ -106,6 +131,77 @@ describe('guardWorkflowRequest (runtime enforcement)', () => {
     expect(res).toBeNull()
     expect(context.resolver.userId).toBe('attacker-real-id') // forced to the caller
     expect(context.resolver.email).toBe('x') // other fields untouched
+  })
+
+  it('binds a role claim to the SESSION role, never the one the browser sent', async () => {
+    const policy = {
+      requiresAuth: true,
+      allowedRoles: [],
+      userScoped: {
+        ownerColumn: 'user_id',
+        bindings: [
+          { nodeId: 'evaluate', path: ['role'], claim: 'role' },
+          { nodeId: 'evaluate', path: ['userId'] },
+        ],
+      },
+    }
+    const shopper = { evaluate: { role: 'admin', userId: 'victim-id' } }
+    expect(
+      await guard(reqWith({ __token: { id: 'shopper-id', role: 'user' } }), shopper, policy)
+    ).toBeNull()
+    expect(shopper.evaluate).toEqual({ role: 'user', userId: 'shopper-id' })
+
+    // A session without a role binds '' — an admin check can only fail.
+    const roleless = { evaluate: { role: 'admin', userId: 'x' } }
+    await guard(reqWith({ __token: { id: 'roleless-id' } }), roleless, policy)
+    expect(roleless.evaluate).toEqual({ role: '', userId: 'roleless-id' })
+
+    const admin = { evaluate: { role: '', userId: '' } }
+    await guard(reqWith({ __token: { id: 'admin-id', roleName: 'admin' } }), admin, policy)
+    expect(admin.evaluate).toEqual({ role: 'admin', userId: 'admin-id' })
+  })
+
+  it('binds a GUEST role claim to an empty role, so a signed-out request cannot claim admin', async () => {
+    // A public (no requiresAuth) route: the guest gets through, but the role it
+    // posted must not reach the query. Its anonymous user id is kept.
+    const guest = { evaluate: { role: 'admin', userId: 'guest-anon-uuid' } }
+    const res = await guard(reqWith(), guest, {
+      requiresAuth: false,
+      allowedRoles: [],
+      userScoped: {
+        ownerColumn: 'user_id',
+        bindings: [
+          { nodeId: 'evaluate', path: ['role'], claim: 'role' },
+          { nodeId: 'evaluate', path: ['userId'] },
+        ],
+      },
+    })
+    expect(res).toBeNull()
+    expect(guest.evaluate).toEqual({ role: '', userId: 'guest-anon-uuid' })
+  })
+
+  it('binds a signedInUserId claim to the session id, and to an empty id for a guest', async () => {
+    const policy = {
+      requiresAuth: false,
+      allowedRoles: [],
+      userScoped: {
+        ownerColumn: 'user_id',
+        bindings: [{ nodeId: 'collect', path: ['signedInUserId'], claim: 'signedInUserId' }],
+      },
+    }
+    const shopper = { collect: { signedInUserId: 'victim-id', city: 'Austin' } }
+    await guard(reqWith({ __token: { id: 'shopper-id' } }), shopper, policy)
+    expect(shopper.collect).toEqual({ signedInUserId: 'shopper-id', city: 'Austin' })
+
+    const guest = { collect: { signedInUserId: 'victim-id', city: 'Austin' } }
+    expect(await guard(reqWith(), guest, policy)).toBeNull()
+    expect(guest.collect).toEqual({ signedInUserId: '', city: 'Austin' })
+
+    // A segment that runs before the node produced its result still gets the
+    // binding, so the node's own later output is what overwrites it.
+    const early: any = {}
+    await guard(reqWith(), early, policy)
+    expect(early.collect).toEqual({ signedInUserId: '' })
   })
 
   it('binds a nested path and creates missing context nodes', async () => {
@@ -273,5 +369,120 @@ describe('buildWorkflowAuthInjection', () => {
     expect(injection.requireLine).toContain('workflow-auth')
     expect(injection.policyConst).toContain('"userScoped"')
     expect(injection.guardCall).toContain('guardWorkflowRequest')
+  })
+
+  it('bakes the subscription requirement and its product ids into the policy', () => {
+    const injection = buildWorkflowAuthInjection({
+      requiresAuth: true,
+      allowedRoles: [],
+      requiresSubscription: true,
+      subscriptionProductIds: [' prod-1 ', 'prod-2', ''],
+      derivedFrom: 'page',
+    })
+    const policy = JSON.parse(
+      injection.policyConst.replace('const __WF_AUTH = ', '').replace(/;\s*$/, '')
+    )
+    expect(policy).toEqual({
+      requiresAuth: true,
+      allowedRoles: [],
+      requiresSubscription: true,
+      subscriptionProductIds: ['prod-1', 'prod-2'],
+    })
+    const plain = buildWorkflowAuthInjection({
+      requiresAuth: true,
+      allowedRoles: [],
+      derivedFrom: 'page',
+    })
+    expect(plain.policyConst).not.toContain('requiresSubscription')
+  })
+})
+
+describe('guardWorkflowRequest on a subscriber-only page', () => {
+  const policy = {
+    requiresAuth: true,
+    allowedRoles: [] as string[],
+    requiresSubscription: true,
+    subscriptionProductIds: ['prod-1'],
+  }
+  const anyProduct = {
+    requiresAuth: true,
+    allowedRoles: [] as string[],
+    requiresSubscription: true,
+  }
+
+  it('still answers 401 to a guest before asking about any subscription', async () => {
+    const access: SubscriberAccessStub = { entitled: true, calls: [] }
+    const res = await bootGuard('server-secret', access)(reqWith(), {}, policy)
+    expect(res).toEqual({ status: 401, message: 'Unauthenticated' })
+    expect(access.calls).toHaveLength(0)
+  })
+
+  it('lets an entitled member through, asking with the SESSION id and the product ids', async () => {
+    const access: SubscriberAccessStub = { entitled: true, calls: [] }
+    const guard = bootGuard('server-secret', access)
+    expect(await guard(reqWith({ __token: { id: 'u1' } }), {}, policy)).toBeNull()
+    expect(access.calls).toEqual([{ userId: 'u1', productIds: ['prod-1'] }])
+    expect(await guard(reqWith({ __token: { sub: 'u2' } }), {}, anyProduct)).toBeNull()
+    expect(access.calls[1]).toEqual({ userId: 'u2', productIds: [] })
+  })
+
+  it('answers 403 Subscription required to a member without one', async () => {
+    const access: SubscriberAccessStub = { entitled: false, calls: [] }
+    const res = await bootGuard('server-secret', access)(
+      reqWith({ __token: { id: 'u1' } }),
+      {},
+      policy
+    )
+    expect(res).toEqual({ status: 403, message: 'Subscription required' })
+  })
+
+  it('checks the role first, and fails closed when the check itself fails or is missing', async () => {
+    const access: SubscriberAccessStub = { entitled: true, calls: [] }
+    const wrongRole = await bootGuard('server-secret', access)(
+      reqWith({ __token: { id: 'u1', role: 'user' } }),
+      {},
+      { ...policy, allowedRoles: ['admin'] }
+    )
+    expect(wrongRole).toEqual({ status: 403, message: 'Forbidden' })
+    expect(access.calls).toHaveLength(0)
+
+    const down = await bootGuard('server-secret', { throws: true, calls: [] })(
+      reqWith({ __token: { id: 'u1' } }),
+      {},
+      policy
+    )
+    expect(down).toEqual({ status: 403, message: 'Subscription required' })
+    const absent = await bootGuard('server-secret', { absent: true, calls: [] })(
+      reqWith({ __token: { id: 'u1' } }),
+      {},
+      policy
+    )
+    expect(absent).toEqual({ status: 403, message: 'Subscription required' })
+  })
+
+  it('never asks for a policy without the requirement, and lets an internal caller through', async () => {
+    const access: SubscriberAccessStub = { entitled: false, calls: [] }
+    const guard = bootGuard('server-secret', access)
+    expect(
+      await guard(reqWith({ __token: { id: 'u1' } }), {}, { requiresAuth: true, allowedRoles: [] })
+    ).toBeNull()
+    expect(
+      await guard(reqWith({ headers: { 'x-internal-data-secret': 'server-secret' } }), {}, policy)
+    ).toBeNull()
+    expect(access.calls).toHaveLength(0)
+  })
+})
+
+describe('subscriber-access require', () => {
+  // A require is a static import to the bundler even inside a function, so it
+  // must not appear when utils/auth/subscriber-access.js is not emitted.
+  it('is absent from a project with no subscriber-only page', () => {
+    expect(generateWorkflowAuthHelperFile()).not.toContain('../auth/subscriber-access')
+  })
+
+  it('is present when a page is subscriber-only', () => {
+    expect(generateWorkflowAuthHelperFile({ withSubscriberAccess: true })).toContain(
+      "require('../auth/subscriber-access')"
+    )
   })
 })

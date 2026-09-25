@@ -13,6 +13,7 @@
 
 import { generateSqlValidatorCode } from './sql-validator'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
+import { TableAccess } from '@teleporthq/teleport-shared'
 
 const DATA_NODE_TYPES = new Set([
   'data-select',
@@ -75,7 +76,13 @@ ${
 const LOW_STOCK_ALERTS_ENABLED = ${JSON.stringify(lowStockAlertsEnabled)};
 const LOW_STOCK_THRESHOLD = ${JSON.stringify(lowStockThreshold)};
 ${validatorCode}
-
+${
+  // The money-table lists and the guards over them, shared with the per-table
+  // read routes so both families refuse the same tables. No browser reads a
+  // protected table through THIS route (workflow data nodes run server-side),
+  // so the roles that may read from a browser are irrelevant here.
+  TableAccess.generateTableAccessHelperCode({ trustedReaderRoles: [] })
+}
 function getPgSslFromEnv() {
   if (process.env.TELEPORT_DB_SSL === 'false') return false;
   if (process.env.TELEPORT_DB_SSL === 'true') return { rejectUnauthorized: false };
@@ -294,7 +301,7 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   };
 }
 
-async function handleSelect(client, body) {
+async function handleSelect(client, body, req) {
   var tableName = body.tableName;
   var filters = body.filters || [];
   var sorts = body.sorts || [];
@@ -318,12 +325,23 @@ async function handleSelect(client, body) {
     }
   }
 
+  // A browser reads a feed table only as its feed: the pricing columns of the
+  // rows the DATABASE calls live. The window is therefore the server's
+  // judgement, not the browser clock's, and nothing unlaunched is handed out.
+  var feed = __taPublicFeed(req, tableName);
+  if (feed) {
+    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+    __taAssertFeedFields(tableName, feed, sorts.map(function(s) { return s && s.field; }));
+  }
+
   var queryParams = [];
   var cols = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
+  if (feed) cols = feed.columns.join(', ');
   var sql = 'SELECT ' + cols + ' FROM ' + tableName;
 
   var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
+  if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
 
   if (sorts.length > 0) {
     var orderClauses = sorts.map(function(s) {
@@ -359,28 +377,36 @@ async function handleSelect(client, body) {
 
   var result = await safeQuery(client, sql, queryParams, 'select');
   var rows = Array.isArray(result.rows) ? result.rows : [];
+  // A browser reads the users table's profile, never its credentials.
+  if (!isInternalDataRequest(req)) rows = __taWithoutCredentials(rows, tableName);
 
   var countSql = 'SELECT COUNT(*) FROM ' + tableName;
   var countParams = [];
   var countWhere = buildWhereClause(filters, countParams, 1, { skipOptionalEmpty: true });
   countSql += countWhere.clause;
+  if (feed) countSql += (countWhere.clause ? ' AND ' : ' WHERE ') + feed.predicate;
   var countResult = await safeQuery(client, countSql, countParams, 'count');
   var count = parseInt(countResult.rows[0].count, 10);
 
   return { rows: rows, count: count };
 }
 
-async function handleCount(client, body) {
+async function handleCount(client, body, req) {
   var tableName = body.tableName;
   var filters = body.filters || [];
 
   // Validate table name
   assertIdentifierSafe(tableName, 'table name');
 
+  var feed = __taPublicFeed(req, tableName);
+  if (feed) {
+    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+  }
   var queryParams = [];
   var sql = 'SELECT COUNT(*) FROM ' + tableName;
   var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
+  if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
 
   var result = await safeQuery(client, sql, queryParams, 'count');
   var count = parseInt(result.rows[0].count, 10);
@@ -826,21 +852,110 @@ async function handleRawQuery(client, body, req) {
   return { rows: rows };
 }
 
+// Trusted internal server-side workflow calls (the data nodes of a server
+// segment, password reset, server-side profile updates) carry the app's
+// internal secret in a header — see __taIsInternalRequest. Direct
+// (non-workflow) client calls have no secret and stay guarded.
+function isInternalDataRequest(req) {
+  return __taIsInternalRequest(req);
+}
+
+var WRITE_OPERATIONS = { create: 1, update: 1, delete: 1 };
+
+function __forbidBrowserOperation(what) {
+  var err = new Error('Forbidden: ' + what + ' is only available to server-side workflow nodes');
+  err.status = 403;
+  throw err;
+}
+
+// Refuses a browser's access to the money tables (see the shared table-access
+// helper above); a trusted internal call passes untouched. Where the app can
+// tell its own server-side calls apart (__taBrowserIsReadOnly), a browser only
+// reads, through the structured select and count.
+function assertTableAccess(req, operation, body) {
+  if (isInternalDataRequest(req)) return;
+  if (!body || typeof body !== 'object') return;
+  if (__taBrowserIsReadOnly(req)) {
+    if (operation !== 'select' && operation !== 'count') __forbidBrowserOperation('the ' + operation + ' operation');
+    if (body.rawQueryUserPart) __forbidBrowserOperation('a raw query');
+  }
+  if (operation === 'raw-query') {
+    if (typeof body.query === 'string') __taAssertSqlTextAllowed(body.query);
+    return;
+  }
+  var table = __taNormalizeTable(body.tableName);
+  if (__TA_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
+  if (WRITE_OPERATIONS[operation] && __TA_WRITE_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
+  // A select's raw override replaces the assembled SELECT wholesale, so its
+  // text is checked like a raw query rather than trusting \`tableName\`.
+  if (operation === 'select' && typeof body.rawQueryUserPart === 'string') {
+    __taAssertSqlTextAllowed(body.rawQueryUserPart);
+  }
+}
+
+// The columns of the auth users table that decide what a session may DO, not
+// who it is. The session token carries role / roleName / roles off the
+// \`users\` row, and the middleware's page gates and the money-table guard
+// both read the role off it — so a browser that could write one of these
+// columns would be handing itself the store administrator's reads. Everything
+// else on the row stays writable: a generated profile form updates whatever
+// columns the merchant put there, and only the server-side segments (which
+// present the app secret) may grant a role.
+var AUTH_ROLE_COLUMNS = { role: 1, roles: 1, rolename: 1, role_name: 1 };
+
+// The identity table this route guards, and \`users\`, which is where the auth
+// options read the session's role from whatever the identity table is called.
+var ROLE_SOURCE_TABLES = AUTH_USERS_TABLE
+  ? [__taNormalizeTable(AUTH_USERS_TABLE), 'users'].filter(function(t, i, all) { return all.indexOf(t) === i; })
+  : [];
+
+function __forbidRoleWrite(what) {
+  var err = new Error('Forbidden: ' + what + ' is not settable from a browser');
+  err.status = 403;
+  throw err;
+}
+
+// Refuses a browser every way of writing a role column: a create or update
+// naming one (however the column is spelled), and any raw statement that
+// writes and mentions a role-source table — a positional INSERT or a
+// row-valued SET names no column, so the statement is refused whole, the way
+// the write-protected money tables are.
+function assertNoBrowserRoleWrite(req, operation, body) {
+  if (ROLE_SOURCE_TABLES.length === 0 || isInternalDataRequest(req)) return;
+  if (!body || typeof body !== 'object') return;
+  var sql = operation === 'raw-query' ? body.query : operation === 'select' ? body.rawQueryUserPart : null;
+  if (typeof sql === 'string' && sql.length > 0) {
+    var cleaned = __taCleanSql(sql);
+    if (cleaned.ok && !__TA_SQL_WRITE_RE.test(cleaned.text)) return;
+    for (var ti = 0; ti < ROLE_SOURCE_TABLES.length; ti++) {
+      if (__taSqlMentionsTable(sql, ROLE_SOURCE_TABLES[ti])) __forbidRoleWrite('a write to ' + ROLE_SOURCE_TABLES[ti]);
+    }
+    return;
+  }
+  if (operation !== 'create' && operation !== 'update') return;
+  if (ROLE_SOURCE_TABLES.indexOf(__taNormalizeTable(body.tableName)) === -1) return;
+  var columnMappings = body.columnMappings || {};
+  var written = Array.isArray(columnMappings)
+    ? columnMappings.map(function(m) { return m && (m.source || m.column); })
+    : Object.keys(columnMappings);
+  for (var i = 0; i < written.length; i++) {
+    if (AUTH_ROLE_COLUMNS[__taNormalizeTable(written[i])]) __forbidRoleWrite(written[i]);
+  }
+}
+
 // Enforces that any update/delete against the auth users table is keyed by
 // the session user's id. Prevents a logged-in user from coercing a mutation
 // targeting another user's row via a client-supplied filter.
 async function assertSessionOwnsUsersRow(req, operation, body) {
   if (!AUTH_USERS_TABLE) return;
   if (operation !== 'update' && operation !== 'delete') return;
-  if (!body || body.tableName !== AUTH_USERS_TABLE) return;
+  // Schema-qualified and quoted spellings reach the SAME table — the identifier
+  // validator allows both — so the guard compares the bare name.
+  if (!body || __taNormalizeTable(body.tableName) !== __taNormalizeTable(AUTH_USERS_TABLE)) return;
 
   // Trusted internal server-side workflow calls (e.g. password reset, which has
-  // NO logged-in session, and server-side profile updates) carry the app's
-  // internal secret in a header. Only server code can read NEXTAUTH_SECRET, so a
-  // browser client cannot forge it — these calls bypass the per-session
-  // ownership check. Direct (non-workflow) client calls have no secret and stay guarded.
-  var internalSecret = req && req.headers && req.headers['x-internal-data-secret'];
-  if (internalSecret && process.env.NEXTAUTH_SECRET && internalSecret === process.env.NEXTAUTH_SECRET) {
+  // NO logged-in session) bypass the per-session ownership check.
+  if (isInternalDataRequest(req)) {
     return;
   }
 
@@ -888,16 +1003,18 @@ module.exports = async function handler(req, res) {
   var client = getClient();
 
   try {
+    assertTableAccess(req, operation, body);
+    assertNoBrowserRoleWrite(req, operation, body);
     await assertSessionOwnsUsersRow(req, operation, body);
     await client.connect();
     var result;
 
     switch (operation) {
       case 'select':
-        result = await handleSelect(client, body);
+        result = await handleSelect(client, body, req);
         break;
       case 'count':
-        result = await handleCount(client, body);
+        result = await handleCount(client, body, req);
         break;
       case 'create':
         result = await handleCreate(client, body);

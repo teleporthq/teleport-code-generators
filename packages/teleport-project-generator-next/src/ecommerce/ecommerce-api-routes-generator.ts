@@ -28,6 +28,14 @@ export const buildWorkflowEcommerceSettingsPayload = (
     // Gates the checkout voucher UI and neutralises a voucher already sitting
     // in a shopper's browser when the merchant turns the feature off.
     vouchersEnabled: settings.vouchersEnabled === true,
+    // The discount engine and gift cards, same rule as the Settings object the
+    // pages read: present when the UIDL carries the block, i.e. the checkout
+    // page (and the workflows it runs) were built with the feature.
+    discountEngineEnabled: settings.discountEngine?.enabled === true,
+    automaticDiscountsEnabled:
+      settings.discountEngine?.enabled === true &&
+      settings.discountEngine.automaticDiscounts === true,
+    giftCardsEnabled: settings.giftCards?.enabled === true,
     // Storefront tax view — the same collapse the cart context uses:
     // `storefrontTaxRate` is 0 whenever nothing is added on top of the stored
     // net prices (tax included in price, no rate, or no invoice settings), so
@@ -866,9 +874,8 @@ export default async function handler(req, res) {
     const resolvedOrderNumber = orderNumber || orderId || ''
     // The caller's own snapshot of the cart, kept separate from the DB
     // fallback: it is the only source that is known-complete at the moment
-    // this route runs, so it — and only it — can tell the invoice endpoint how
-    // many lines the finished order will have. See the \`expectedItemCount\`
-    // hand-off further down.
+    // this route runs — the data-create-item auto-fire reaches it while the
+    // checkout is still writing the order lines.
     const callerItems = Array.isArray(items) && items.length > 0 ? items : null
     // Every source of lines is NET — a caller's cart (the data-create-item
     // auto-fire) and the order's persisted lines alike — so they are priced
@@ -1002,10 +1009,11 @@ export default async function handler(req, res) {
     }
 
     // Merchant notification — wrapped so a postmark failure (e.g. the
-    // pending-approval domain restriction) does NOT abort the handler.
-    // We still need to run invoice generation below, and the order
-    // itself was already created by the time we got here, so blowing
-    // up here would leave the buyer with no invoice and no recourse.
+    // pending-approval domain restriction) does NOT abort the handler:
+    // the order itself was already created by the time we got here, and
+    // the sent-email ledger below still has to settle. The buyer's invoice
+    // is not this route's concern — the checkout workflow's settled branch
+    // and the payment webhooks generate it, whatever the payment method.
     let result
     try {
       result = await sender.sendNotificationEmail(notificationEmails, subject, html, {
@@ -1018,58 +1026,6 @@ export default async function handler(req, res) {
     } catch (notifyErr) {
       console.error('[order-notification] merchant email FAILED: ' + (notifyErr && notifyErr.message ? notifyErr.message : String(notifyErr)))
       result = { sent: false, error: notifyErr && notifyErr.message ? notifyErr.message : 'merchant email failed' }
-    }
-
-    // Decide whether to generate the invoice now (from this endpoint)
-    // or defer to the payment webhook. For provider-backed payments
-    // (Stripe / PayPal) the webhook is the authoritative "order is
-    // really paid" signal — generating here would create a pending-
-    // payment invoice that the webhook can't replace (the first
-    // invoice wins via COALESCE in the order-row mirror). For
-    // cash-on-delivery and other "no-webhook" methods, this is the
-    // only chance — generating here makes sure the buyer gets an
-    // invoice PDF + email. We compare case-insensitively because the
-    // merchant's settings panel mixes values like 'stripe', 'PayPal',
-    // 'paypal', etc. — we want any of them to defer.
-    var __pm = String(paymentMethod || '').toLowerCase()
-    var __isWebhookPayment = __pm === 'stripe' || __pm === 'paypal' || __pm === 'card' || __pm === 'credit_card' || __pm === 'creditcard'
-    if (orderId && !__isWebhookPayment) {
-      try {
-        // baseUrl is computed from the live request so dev (:3001 etc.)
-        // and prod (the live origin) both resolve correctly without
-        // having to plumb NEXTAUTH_URL through. Same pattern the
-        // payment webhooks use when self-fetching this API.
-        var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https')
-        var __invoiceUrl = __proto + '://' + req.headers.host + '/api/invoices/generate'
-        // Hand the invoice endpoint the number of lines this order will have.
-        // We are called by the data-create-item auto-fire the instant the order
-        // row lands — BEFORE checkout's item loop has written the order lines —
-        // so an invoice built from whatever rows exist right now comes out
-        // short (one line, and a total that doesn't match what the buyer paid).
-        // The count lets /api/invoices/generate wait for the rest of the lines
-        // instead of racing them. Only sent when the caller supplied the cart
-        // itself: a count re-read from the database could be just as truncated,
-        // and would make the wait a no-op.
-        var __invoicePayload = { orderId: orderId }
-        if (callerItems) {
-          __invoicePayload.expectedItemCount = callerItems.length
-        }
-        var __invoiceResp = await fetch(__invoiceUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(__invoicePayload),
-        })
-        if (!__invoiceResp.ok) {
-          var __invoiceErrBody = ''
-          try { __invoiceErrBody = await __invoiceResp.text() } catch (_e) { __invoiceErrBody = '(no body)' }
-          console.error('[order-notification] invoice generation FAILED — status=' + __invoiceResp.status + ' body=' + __invoiceErrBody.slice(0, 300))
-        } else {
-          var __invoiceData = await __invoiceResp.json().catch(function() { return {} })
-          console.info('[order-notification] invoice generation OK — invoiceNumber=' + (__invoiceData.invoiceNumber || '(missing)') + ' storageUrl=' + (__invoiceData.storageUrl || '(empty)'))
-        }
-      } catch (__invoiceErr) {
-        console.error('[order-notification] invoice generation threw: ' + (__invoiceErr && __invoiceErr.message ? __invoiceErr.message : String(__invoiceErr)))
-      }
     }
 
     await sender.settleSentEmailLog()

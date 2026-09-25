@@ -11,6 +11,8 @@ import {
   generateSortTiebreakSql,
 } from '../product-price-sort'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
+import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
+import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -27,7 +29,8 @@ interface PostgreSQLConfig {
 
 export const generatePostgreSQLFetcher = (
   config: Record<string, unknown>,
-  tableName: string
+  tableName: string,
+  trustedReaderRoles: ReadonlyArray<string> = []
 ): string => {
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
@@ -58,6 +61,8 @@ export const generatePostgreSQLFetcher = (
 
   return `import { Client } from 'pg'
 
+${generateTableAccessPreamble(trustedReaderRoles)}
+
 const getClient = () => {
   return new Client(${clientConfig})
 }
@@ -70,6 +75,7 @@ ${generateSearchEscapeHelpersCode()}
 
 // Builds one SQL clause for the whole filter tree, so an OR group nested in
 // the root AND keeps its meaning instead of being flattened into ANDs.
+${generateRequestSqlGuardsCode()}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
   
@@ -91,6 +97,7 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       return '$' + paramIndex++
     })
     if (productClause !== null) return productClause
+    assertRequestColumn(field, 'filter field')
     
     if (Array.isArray(value)) {
       if (value.length === 0) return null
@@ -148,6 +155,7 @@ ${generateSortFallbackFieldHelper(tableName)}
 ${generateProductFilterClauseHelper(tableName)}
 
 export default async function handler(req, res) {
+${generateReadGuardCall(tableName, null)}
   const client = getClient()
   
   try {
@@ -219,6 +227,7 @@ export default async function handler(req, res) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const valid = parsedSorts.filter((sort) => sort && sort.field)
+        valid.forEach((sort) => assertRequestColumn(sort.field, 'sort field'))
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
         const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
@@ -236,16 +245,17 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
+      assertRequestColumn(sortBy, 'sort field')
       orderBySql = \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
       plainOrderBySql = orderBySql
     }
     const usedDiscountAwareSort = orderBySql !== plainOrderBySql
 
-    const limitValue = limit || perPage
+    const limitValue = requestRowCount(limit || perPage)
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
 
     let sqlTail = ''
-    if (limitValue) {
+    if (limitValue !== undefined) {
       sqlTail += \` LIMIT \${limitValue}\`
     }
     
@@ -279,12 +289,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: safeData,
+      data: __taWithoutCredentials(safeData, ${JSON.stringify(tableName)}),
       timestamp: Date.now()
     })
   } catch (error) {
     console.error('PostgreSQL fetch error:', error)
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       error: error.message || 'Failed to fetch data',
       timestamp: Date.now()
@@ -311,6 +321,7 @@ export const generatePostgreSQLCountFetcher = (
 
   return `
 async function getCount(req, res) {
+${generateReadGuardCall(tableName, null)}
   const client = getClient()
 
   try {
@@ -383,7 +394,7 @@ async function getCount(req, res) {
     })
   } catch (error) {
     console.error('Error getting count:', error)
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       error: error.message || 'Failed to get count',
       timestamp: Date.now()

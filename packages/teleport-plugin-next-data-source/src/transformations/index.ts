@@ -1,5 +1,9 @@
-import type { GeneratorOptions, UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { StorefrontTax } from '@teleporthq/teleport-shared'
+import type {
+  GeneratorOptions,
+  UIDLAuthentication,
+  UIDLEcommerceCategory,
+} from '@teleporthq/teleport-types'
+import { StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
@@ -32,6 +36,12 @@ export interface EntityTransformOptions extends EcommerceProductTransformOptions
    * the fetcher matches and sorts translatable columns the same way.
    */
   localization?: ContentLocalization
+  /**
+   * Who may read a money table (gift cards, vouchers, their ledgers) from a
+   * browser: the roles the generated admin panel admits. See
+   * `TableAccess.resolveTrustedReaderRoles`.
+   */
+  trustedReaderRoles?: string[]
 }
 
 /**
@@ -60,14 +70,29 @@ const resolveAllowBackorders = (
  * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
 export const buildProductTransformOptions = (
-  options: Pick<GeneratorOptions, 'ecommerceSettings' | 'invoiceSettings' | 'blogSettings'> &
-    LocalizedProjectOptions
+  options: Pick<
+    GeneratorOptions,
+    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'auth'
+  > &
+    LocalizedProjectOptions & {
+      /**
+       * The SAME project authentication under the name a `ProjectUIDL` gives
+       * it — the project plugins call this with the UIDL itself, where the
+       * field is `authentication`, while a component plugin calls it with
+       * `GeneratorOptions`, where it is `auth`. Reading only one of the two
+       * left every fetcher emitted by the project plugins with an empty
+       * trusted-reader list, i.e. a generated admin panel refused its own
+       * money tables.
+       */
+      authentication?: UIDLAuthentication
+    }
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
   blogCategories: options.blogSettings?.categories,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
   allowBackorders: resolveAllowBackorders(options.ecommerceSettings),
   localization: resolveContentLocalization(options),
+  trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth || options.authentication),
 })
 
 export type TransformationType = 'blog-post' | 'ecommerce-product' | 'custom-page' | null

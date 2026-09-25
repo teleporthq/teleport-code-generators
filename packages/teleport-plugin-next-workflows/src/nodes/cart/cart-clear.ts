@@ -43,6 +43,15 @@ async function cart_clear() {
         // key — a serialized handler cannot import
         // `RegionalPricing.SHIPPING_RATE_STORAGE_KEY`.
         localStorage.removeItem('workflow_shipping_rate')
+        // And the gift card applied to it: its balance belongs to the shopper,
+        // not to this cart, so the next order asks for the code again rather
+        // than silently spending what is left. Literal key — a serialized
+        // handler cannot import `DiscountEngine.GIFT_CARD_STORAGE_KEY`.
+        localStorage.removeItem('workflow_gift_card')
+        // And the discount set chosen for it: the next order's choice is made
+        // over the next order's discounts. Literal key — a serialized handler
+        // cannot import `DiscountEngine.DISCOUNT_CHOICE_STORAGE_KEY`.
+        localStorage.removeItem('workflow_discount_choice')
         const sessionId = localStorage.getItem('workflow_cart_session_id') || null
         fetch('/api/cart/sync', {
           method: 'POST',
@@ -55,6 +64,8 @@ async function cart_clear() {
       window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
       window.dispatchEvent(new CustomEvent('teleport:voucher-changed'))
       window.dispatchEvent(new CustomEvent('teleport:shipping-rate-changed'))
+      window.dispatchEvent(new CustomEvent('teleport:gift-card-changed'))
+      window.dispatchEvent(new CustomEvent('teleport:discount-choice-changed'))
     }
     return { success: true }
   } catch (err: unknown) {

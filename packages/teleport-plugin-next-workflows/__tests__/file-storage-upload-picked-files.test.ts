@@ -121,6 +121,26 @@ describe('file-storage-upload: PickedFile array from state', () => {
     expect(entries[0].fileName).toBe('ok.png')
   })
 
+  it('marks the upload private only when asked, as a form field the proxy streams through', async () => {
+    const picked = [
+      {
+        name: 'guide.pdf',
+        size: 9,
+        type: 'application/pdf',
+        lastModified: 1,
+        dataURL: toDataURL('application/pdf', 'pdf-bytes'),
+      },
+    ]
+
+    await handler({ file: picked, private: true }, {})
+    const privateBody = fetchMock.mock.calls[0][1].body as FormDataStub
+    expect(privateBody.getAll('private').map((entry) => entry.value)).toEqual(['true'])
+
+    await handler({ file: picked }, {})
+    const publicBody = fetchMock.mock.calls[1][1].body as FormDataStub
+    expect(publicBody.getAll('private')).toHaveLength(0)
+  })
+
   it('returns an error without fetching when no array entry is convertible', async () => {
     const result = await handler({ file: [{ name: 'x.png', type: 'image/png' }] }, {})
 

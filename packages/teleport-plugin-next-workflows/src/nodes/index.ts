@@ -95,19 +95,19 @@ import { navigationGoBack } from './navigation/navigation-go-back'
 import { navigationGoToPage } from './navigation/navigation-go-to-page'
 import { navigationNavigateToUrl } from './navigation/navigation-navigate-to-url'
 import { navigationRefreshPage } from './navigation/navigation-refresh-page'
-import { paymentCancelPlan } from './payment/payment-cancel-plan'
 import { paymentChargeUser } from './payment/payment-charge-user'
 import { paymentCreateCustomer } from './payment/payment-create-customer'
 import { paymentRefund } from './payment/payment-refund'
 import { paymentCreateProduct } from './payment/payment-create-product'
-import { paymentCreateSubscription } from './payment/payment-create-subscription'
+import { paymentEnsureSubscriptionPlan } from './payment/payment-ensure-subscription-plan'
+import { paymentManageSubscription } from './payment/payment-manage-subscription'
+import { paymentBillingPortal } from './payment/payment-billing-portal'
 import { paymentGetCustomer } from './payment/payment-get-customer'
 import { paymentGetProduct } from './payment/payment-get-product'
 import { paymentListCustomers } from './payment/payment-list-customers'
 import { paymentListPlans } from './payment/payment-list-plans'
 import { paymentListProducts } from './payment/payment-list-products'
 import { paymentListSubscriptions } from './payment/payment-list-subscriptions'
-import { paymentSubscribeToPlan } from './payment/payment-subscribe-to-plan'
 import { paymentUpdateCustomer } from './payment/payment-update-customer'
 import { realtimeJoinChannel } from './realtime/realtime-join-channel'
 import { realtimeLeaveChannel } from './realtime/realtime-leave-channel'
@@ -262,19 +262,19 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'navigation-go-to-page': navigationGoToPage,
   'navigation-navigate-to-url': navigationNavigateToUrl,
   'navigation-refresh-page': navigationRefreshPage,
-  'payment-cancel-plan': paymentCancelPlan,
   'payment-charge-user': paymentChargeUser,
   'payment-refund': paymentRefund,
   'payment-create-customer': paymentCreateCustomer,
   'payment-create-product': paymentCreateProduct,
-  'payment-create-subscription': paymentCreateSubscription,
+  'payment-ensure-subscription-plan': paymentEnsureSubscriptionPlan,
+  'payment-manage-subscription': paymentManageSubscription,
+  'payment-billing-portal': paymentBillingPortal,
   'payment-get-customer': paymentGetCustomer,
   'payment-get-product': paymentGetProduct,
   'payment-list-customers': paymentListCustomers,
   'payment-list-plans': paymentListPlans,
   'payment-list-products': paymentListProducts,
   'payment-list-subscriptions': paymentListSubscriptions,
-  'payment-subscribe-to-plan': paymentSubscribeToPlan,
   'payment-update-customer': paymentUpdateCustomer,
   'realtime-join-channel': realtimeJoinChannel,
   'realtime-leave-channel': realtimeLeaveChannel,

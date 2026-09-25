@@ -38,6 +38,13 @@ async function cart_update_item_quantity(config: any) {
         if (updateMode !== 'decrement' && maxQty !== null && newQuantity > maxQty) {
           newQuantity = maxQty
         }
+        // A subscription is ONE unit: the provider bills the plan, not a
+        // quantity. The stepper is hidden for such a line, but a hand-fired
+        // increment must not turn it into two plans either.
+        const isRecurring = cart[i].isRecurring === true || cart[i].isRecurring === 'true'
+        if (isRecurring && newQuantity > 1) {
+          newQuantity = 1
+        }
         if (newQuantity <= 0) {
           cart.splice(i, 1)
           newQuantity = 0

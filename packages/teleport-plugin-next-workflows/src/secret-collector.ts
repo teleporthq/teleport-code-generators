@@ -24,11 +24,14 @@ const KNOWN_SECRET_FIELDS: Record<string, string[]> = {
   // Same credentials as the charge: a refund goes back through the provider
   // that took the money.
   'payment-refund': ['secretKey', 'clientId', 'clientSecret'],
-  'payment-subscribe-to-plan': ['secretKey'],
-  'payment-cancel-plan': ['secretKey'],
+  // A subscription's plan and the merchant's cancel / pause / resume go back
+  // through the provider that bills it; Stripe needs no plan.
+  'payment-ensure-subscription-plan': ['clientId', 'clientSecret'],
+  'payment-manage-subscription': ['secretKey', 'clientId', 'clientSecret'],
+  // The subscriber's billing page at the same provider.
+  'payment-billing-portal': ['secretKey', 'clientId', 'clientSecret'],
   'payment-create-customer': ['secretKey', 'clientId', 'clientSecret'],
   'payment-create-product': ['secretKey'],
-  'payment-create-subscription': ['secretKey'],
   'payment-get-customer': ['secretKey'],
   'payment-get-product': ['secretKey'],
   'payment-list-customers': ['secretKey'],

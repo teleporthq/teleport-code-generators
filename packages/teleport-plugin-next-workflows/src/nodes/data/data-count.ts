@@ -10,6 +10,7 @@ async function data_count(config: any, context: any) {
   // Vercel Deployment Protection 401s its own request and this node silently
   // returns nothing.
   const __internalHeaders = (context && context.__internalHeaders) || {}
+  const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // Unresolved route-param sentinel in a filter (see resolveTemplateTokenString
   // in runtime-utils). DEGRADE: return count:0 WITHOUT an `error` so the executor
@@ -36,7 +37,14 @@ async function data_count(config: any, context: any) {
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/count', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        // Trusted internal server-side call — lets the /api/data guard tell this
+        // apart from a direct browser request, which may neither read the
+        // gift-card tables nor write the voucher and discount tables.
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
+      },
       body: JSON.stringify({ tableName, filters }),
     })
 
