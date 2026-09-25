@@ -38,6 +38,7 @@ function loadPruneContext(): PruneFn {
       'domSerializationReplacer',
       'serializeForPrune',
       'prunedValue',
+      'pruneStateValues',
       'pruneContext',
     ].map((fn) => grab(new RegExp(`function ${fn}\\b[\\s\\S]*?\\n\\}`), fn)),
   ]

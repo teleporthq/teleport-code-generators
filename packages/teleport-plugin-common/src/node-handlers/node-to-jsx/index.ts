@@ -2141,11 +2141,17 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     // Map renderPropIdentifier to the correct ecommerce context path
     const ecommercePathMap: Record<string, string[]> = {
       paymentProvider: ['paymentProviders'],
+      // The providers a cart holding a subscription is offered — the checkout's
+      // second method list. Same fallthrough hazard as `shippingMethod`.
+      subscriptionPaymentProvider: ['subscriptionPaymentProviders'],
       storeLocation: ['storeLocations'],
       // The checkout's shipping-method list (`Cart.shippingOptions`). Without
       // this entry it fell to the cart items below and offered the buyer their
       // own products as shipping methods.
       shippingMethod: ['Cart', 'shippingOptions'],
+      // The checkout's "Choose your discount" list, in each fulfilment shape.
+      discountOption: ['Cart', 'discountOptions'],
+      discountOptionPickup: ['Cart', 'discountOptionsPickup'],
     }
     // Default: cart items for orderItem, cartItem, or any unrecognized identifier
     const path = ecommercePathMap[rpId] || ['Cart', 'items']

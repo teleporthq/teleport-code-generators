@@ -4,7 +4,6 @@ import { REGIONAL_INVOICE_TAX_CODE } from './regional-invoice-tax-code'
 export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
   const prefix = settings.invoicePrefix || 'INV-'
   const defaultTaxRate = settings.defaultTaxRate || 0
-  const showDiscount = settings.showDiscount === true
   const taxIncludedInPrice = settings.taxIncludedInPrice === true
   const autoGenerate = settings.autoGenerateOnPayment !== false
   const emailEnabled = settings.emailDelivery?.enabled === true
@@ -32,7 +31,6 @@ var emailLocale = require('../../../utils/email/email-locale');`
 var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 var DEFAULT_TAX_RATE = ${defaultTaxRate};
 var DEFAULT_CURRENCY = "USD";
-var SHOW_DISCOUNT = ${showDiscount};
 var TAX_INCLUDED_IN_PRICE = ${taxIncludedInPrice};
 var TEMPLATE_DOCUMENT = ${templateDocumentJson};
 ${REGIONAL_INVOICE_TAX_CODE}
@@ -103,34 +101,29 @@ async function uploadInvoicePdfToRuntimeStorage(pdfBuffer, fileName, baseUrl) {
 // ---------------------------------------------------------------------------
 // Waiting for the order's line items to be fully written.
 //
-// This endpoint is reached BEFORE checkout has finished writing the order.
-// \`/api/ecommerce/order-notification\` is fire-and-forget'd by the runtime
-// \`data-create-item\` handler the moment the \`teleport_orders\` row lands —
-// which is upstream of the checkout workflow's "Loop Over Each Cart Item",
-// the loop that inserts \`teleport_order_items\` one HTTP round-trip at a
-// time. Hydrating on arrival therefore snapshots a HALF-WRITTEN order: a
-// real 3-line order was invoiced with a single line and a total 225.45
-// short of what the buyer was charged, because the other two rows were
-// still in flight when the hydration query ran.
+// The checkout workflow writes the \`teleport_orders\` row first and then
+// inserts \`teleport_order_items\` one HTTP round-trip at a time, so a caller
+// that reaches this endpoint early can hydrate a HALF-WRITTEN order: a real
+// 3-line order was once invoiced with a single line and a total 225.45 short
+// of what the buyer was charged, because the other two rows were still in
+// flight when the hydration query ran.
 //
-// So don't race it — wait for the order to settle, then hydrate. Three exit
+// So don't race it — wait for the order to settle, then hydrate. Two exit
 // conditions, cheapest first:
 //
-//   1. \`expectedItemCount\` — the caller's own cart-line count — is reached.
-//      The order-notification route passes it, so the racing path is exact.
-//   2. \`teleport_orders.order_number\` is populated. Checkout backfills the
-//      order number only AFTER the item loop has run to completion (the COD
-//      branch does it in "Mark Order As Cash On Delivery Confirmed", the
-//      online-payment branch in "Set Order Number Before Payment Redirect"),
-//      so a non-empty order number proves every line has been written.
-//   3. The row count is identical across \`SETTLE_STABLE_READS\` consecutive
+//   1. \`teleport_orders.order_number\` is populated. Checkout backfills the
+//      order number only AFTER the item loop has run to completion (the
+//      settled branch does it in "Mark Order As Settled", the online-payment
+//      branch in "Set Order Number Before Payment Redirect"), so a non-empty
+//      order number proves every line has been written.
+//   2. The row count is identical across \`SETTLE_STABLE_READS\` consecutive
 //      reads — the fallback for orders written by a flow that never sets an
 //      order number.
 //
-// An order that is already complete — every webhook-driven call, and any
-// hand-built admin call — satisfies (1) or (2) on the FIRST read, so the
-// only request that ever pays for a poll is the one that would otherwise
-// have shipped a wrong invoice.
+// An order that is already complete — every webhook-driven call, the
+// checkout's own settled-branch call, and any hand-built admin call —
+// satisfies (1) on the FIRST read, so the only request that ever pays for a
+// poll is the one that would otherwise have shipped a wrong invoice.
 var SETTLE_TIMEOUT_MS = 6000;
 var SETTLE_POLL_MS = 400;
 var SETTLE_STABLE_READS = 3;
@@ -139,7 +132,7 @@ function sleepMs(ms) {
   return new Promise(function (resolve) { setTimeout(resolve, ms); });
 }
 
-async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
+async function hydrateOrderWhenSettled(orderId) {
   var deadline = Date.now() + SETTLE_TIMEOUT_MS;
   var lastCount = -1;
   var repeats = 0;
@@ -156,13 +149,6 @@ async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
 
     var rows = Array.isArray(hydrated.items) ? hydrated.items : [];
     var count = rows.length;
-
-    if (expectedItemCount > 0 && count >= expectedItemCount) {
-      if (attempts > 1) {
-        console.info('[invoice] Order ' + orderId + ' settled at ' + count + ' line(s) after ' + attempts + ' read(s) (expected ' + expectedItemCount + ')');
-      }
-      return hydrated;
-    }
 
     var orderNumber = hydrated.order.order_number;
     if (count > 0 && orderNumber != null && String(orderNumber).length > 0) {
@@ -185,8 +171,7 @@ async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
 
     if (Date.now() >= deadline) {
       console.warn('[invoice] Order ' + orderId + ' did not settle within ' + SETTLE_TIMEOUT_MS +
-        'ms — invoicing the ' + count + ' line(s) visible now' +
-        (expectedItemCount > 0 ? ' (expected ' + expectedItemCount + ')' : ''));
+        'ms — invoicing the ' + count + ' line(s) visible now');
       return hydrated;
     }
 
@@ -232,21 +217,11 @@ module.exports = async function handler(req, res) {
 
     var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;
 
-    // How many line items the caller believes this order has. Used only to
-    // stop \`hydrateOrderWhenSettled\` polling the moment the order is whole —
-    // never to reject or pad the invoice, so a wrong count can at worst make
-    // us wait a little longer and fall through to the other exit conditions.
-    var expectedItemCount = Number(body.expectedItemCount);
-    if (!isFinite(expectedItemCount) || expectedItemCount < 0) {
-      expectedItemCount = 0;
-    }
-
     console.info('[invoice] === /api/invoices/generate === baseUrl=' + __baseUrl);
     console.info('[invoice] Request received:', {
       orderId: body.orderId || null,
       hasBodyItems: callerSuppliedItems,
       bodyItemCount: Array.isArray(body.items) ? body.items.length : 0,
-      expectedItemCount: expectedItemCount,
       hasCustomerEmail: !!body.customerEmail,
       requestedCurrency: body.currency || null,
     });
@@ -273,7 +248,7 @@ module.exports = async function handler(req, res) {
       try {
         var hydrated = callerSuppliedItems
           ? await dataAccess.getOrderWithItems(body.orderId)
-          : await hydrateOrderWhenSettled(body.orderId, expectedItemCount);
+          : await hydrateOrderWhenSettled(body.orderId);
         if (hydrated && hydrated.order) {
           hydratedOrder = hydrated.order;
           hydratedItems = Array.isArray(hydrated.items) ? hydrated.items : [];
@@ -331,24 +306,42 @@ module.exports = async function handler(req, res) {
     // name the customer/payment fallbacks use.
     var orderShippingSource = hydratedOrder || {};
 
-    // Voucher discount.
+    // Discounts.
     //
     // A discount STORED ON THE ORDER is money the buyer was not charged, so it
-    // is subtracted whatever \`SHOW_DISCOUNT\` says — that flag governs whether
-    // the template renders a discount ROW, and honouring it here would print a
-    // total larger than the card was debited. \`SHOW_DISCOUNT\` still gates a
-    // BODY-supplied amount, which is the manual/ad-hoc path a merchant opts
-    // into.
+    // is always subtracted and always exposed to the template — hiding it would
+    // print a total larger than the card was debited. A caller that assembled
+    // the invoice itself (the manual/admin path) states its own figure and wins.
     //
     // The payment webhook calls this route with just an \`orderId\`, so the
     // order row — not the body — is the usual source.
     var discountAmount = 0;
-    if (SHOW_DISCOUNT && body.discountAmount != null && body.discountAmount !== '') {
+    if (body.discountAmount != null && body.discountAmount !== '') {
       discountAmount = Number(body.discountAmount) || 0;
     } else if (orderShippingSource.discount_amount != null) {
       discountAmount = Number(orderShippingSource.discount_amount) || 0;
     }
     if (!(discountAmount > 0)) { discountAmount = 0; }
+
+    // How the discount splits: the automatic rules' share is recorded beside
+    // it, and the voucher's own share is recorded too since the discount
+    // engine started splitting them (\`voucher_discount_amount\`) — derived as
+    // the remainder on an order that predates that column.
+    var automaticDiscountAmount = Number(
+      body.automaticDiscountAmount != null
+        ? body.automaticDiscountAmount
+        : orderShippingSource.automatic_discount_amount
+    );
+    if (!(automaticDiscountAmount > 0)) { automaticDiscountAmount = 0; }
+    if (automaticDiscountAmount > discountAmount) { automaticDiscountAmount = discountAmount; }
+    var voucherDiscountSource = body.voucherDiscountAmount != null
+      ? body.voucherDiscountAmount
+      : orderShippingSource.voucher_discount_amount;
+    var voucherDiscountAmount = voucherDiscountSource != null && voucherDiscountSource !== ''
+      ? Number(voucherDiscountSource)
+      : discountAmount - automaticDiscountAmount;
+    if (!(voucherDiscountAmount > 0)) { voucherDiscountAmount = 0; }
+    var voucherCode = String(body.voucherCode || orderShippingSource.voucher_code || '').trim();
 
     var taxRate = body.taxRate != null ? Number(body.taxRate) : DEFAULT_TAX_RATE;
     var subtotal;
@@ -428,6 +421,19 @@ module.exports = async function handler(req, res) {
         ' vs teleport_orders.total_amount ' + orderTotalAmount +
         ' across ' + items.length + ' line item(s). The invoice may be missing lines.');
     }
+
+    // The gift-card TENDER: the part of the total the buyer settled from a
+    // card, so the provider (or the courier) collected the rest. Never a
+    // discount — the total stays what the order was worth; only the amount
+    // due moves, and it reaches 0.00 when the card covered everything.
+    var giftCardAmount = Number(
+      body.giftCardAmount != null ? body.giftCardAmount : (orderShippingSource.gift_card_amount || 0)
+    );
+    if (!isFinite(giftCardAmount) || giftCardAmount < 0) { giftCardAmount = 0; }
+    var giftCardLast4 = String(body.giftCardLast4 || orderShippingSource.gift_card_last4 || '').trim();
+    var roundedTotal = Math.round(total * 100) / 100;
+    var roundedGiftCardAmount = Math.round(giftCardAmount * 100) / 100;
+    var amountDue = Math.max(0, Math.round((roundedTotal - roundedGiftCardAmount) * 100) / 100);
 
     var nextNumber = await dataAccess.getNextInvoiceNumber(INVOICE_PREFIX);
     var invoiceNumber = INVOICE_PREFIX + String(nextNumber).padStart(4, '0');
@@ -531,17 +537,32 @@ ${
       // a net (added on top) or a gross (included in price) value, and
       // the line-item table renders blank cells.
       taxIncludedInPrice: taxIncludedInPrice,
+      // The whole discount (vouchers and automatic rules), already subtracted
+      // from \`total\`, plus how it splits and the code it came from — so the
+      // template can print "Discount (SAVE20)" and gate the row on \`hasDiscount\`.
       discountAmount: Math.round(discountAmount * 100) / 100,
+      voucherCode: voucherCode,
+      voucherDiscountAmount: Math.round(voucherDiscountAmount * 100) / 100,
+      automaticDiscountAmount: Math.round(automaticDiscountAmount * 100) / 100,
+      hasDiscount: discountAmount > 0,
       // Delivery fee, surfaced so the PDF/HTML renderer can print its own line
       // and the merchant's template can bind \`invoice.shippingAmount\`.
       shippingAmount: Math.round(shippingAmount * 100) / 100,
-      total: Math.round(total * 100) / 100,
+      total: roundedTotal,
+      // The gift-card tender and what is left to pay after it.
+      giftCardAmount: roundedGiftCardAmount,
+      giftCardLast4: giftCardLast4,
+      hasGiftCard: roundedGiftCardAmount > 0,
+      amountDue: amountDue,
       currency: currency,
       currencySymbol: currencySymbol,
       paymentMethod: body.paymentMethod || fallbackPaymentMethod || '',
       paymentProvider: body.paymentProvider || fallbackPaymentProvider || '',
       paymentIntentId: body.paymentIntentId || fallbackPaymentIntentId || '',
       orderId: body.orderId || '',
+      // The subscription this order belongs to, for templates that say so.
+      subscriptionId: body.subscriptionId || orderShippingSource.subscription_id || '',
+      billingReason: body.billingReason || orderShippingSource.billing_reason || '',
       notes: body.notes || fallbackNotes || '',
       items: items,
       templateSnapshot: TEMPLATE_DOCUMENT ? JSON.stringify(TEMPLATE_DOCUMENT) : null,

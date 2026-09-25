@@ -145,3 +145,88 @@ describe('ecommerce product transform — storefront picker contract', () => {
     expect(Array.isArray(productWithVariants().visibleProperties)).toBe(true)
   })
 })
+
+/**
+ * Every field the generated product page reads to say what buying a product
+ * MEANS — the "Purchase details" block and the price-row pills. Strings where
+ * a rendering condition gates on them; the block is hidden by absence, so a
+ * plain one-time product must still carry every key.
+ */
+const PURCHASE_DETAILS_CONTRACT = [
+  'billingPeriod',
+  'billingSummary',
+  'trialDays',
+  'recurringIntervalCount',
+  'isDigital',
+  'isGiftCard',
+]
+
+const subscriptionPlan = (over: Record<string, unknown>) =>
+  buildEcommerceProduct(
+    {
+      id: 'p3',
+      name: 'Plan',
+      slug: 'plan',
+      price: '12',
+      currency: 'USD',
+      payment_type: 'recurring',
+      recurring_interval: 'month',
+      ...over,
+    },
+    { variantsByProductId: {} }
+  )
+
+describe('ecommerce product transform — storefront purchase-details contract', () => {
+  it.each(PURCHASE_DETAILS_CONTRACT)('always emits %s, for a product WITH variants', (field) => {
+    expect(productWithVariants()).toHaveProperty(field)
+  })
+
+  it.each(PURCHASE_DETAILS_CONTRACT)('always emits %s, for a product WITHOUT variants', (field) => {
+    expect(productWithoutVariants()).toHaveProperty(field)
+  })
+
+  it('says nothing about billing, a download or a gift card on a plain one-time product', () => {
+    expect(productWithoutVariants()).toMatchObject({
+      billingSummary: '',
+      trialDays: 0,
+      isDigital: 'false',
+      isGiftCard: 'false',
+    })
+  })
+
+  it('prints the billing sentence of a subscription, with its free trial when it has one', () => {
+    expect(subscriptionPlan({ recurring_interval_count: '3', trial_days: '14' })).toMatchObject({
+      billingPeriod: '3 months',
+      billingSummary: 'Billed every 3 months · 14-day free trial',
+      trialDays: 14,
+      recurringIntervalCount: 3,
+    })
+    // NULL / zero columns read as "every month, no trial" — and the count the
+    // schedule is built from is never below 1 on a subscription.
+    for (const over of [
+      { recurring_interval_count: null, trial_days: null },
+      { recurring_interval_count: 0, trial_days: 0 },
+      { recurring_interval_count: 'x', trial_days: -3 },
+    ]) {
+      expect(subscriptionPlan(over)).toMatchObject({
+        billingPeriod: 'month',
+        billingSummary: 'Billed every month',
+        trialDays: 0,
+        recurringIntervalCount: 1,
+      })
+    }
+  })
+
+  it('gates the gift-card pill with the STRING "true"/"false", however the column is spelled', () => {
+    for (const raw of [true, 't', 'true', 1, '1']) {
+      expect(
+        buildEcommerceProduct({ id: 'g', name: 'G', price: '5', is_gift_card: raw }).isGiftCard
+      ).toBe('true')
+    }
+    for (const raw of [false, 'f', 'false', 0, '0', null, undefined, '']) {
+      expect(
+        buildEcommerceProduct({ id: 'g', name: 'G', price: '5', is_gift_card: raw }).isGiftCard
+      ).toBe('false')
+    }
+  })
+})

@@ -451,7 +451,9 @@ describe('generated server segment route', () => {
   it('settles in-flight queries BEFORE responding (the platform can freeze us)', () => {
     expect(route).toContain('await utils.settlePendingNodePromises(context);')
     const settleAt = route.indexOf('await utils.settlePendingNodePromises(context);')
-    const respondAt = route.indexOf('res.status(200).json({ success: true, results: context });')
+    const respondAt = route.indexOf(
+      'res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });'
+    )
     expect(settleAt).toBeGreaterThan(-1)
     expect(respondAt).toBeGreaterThan(settleAt)
   })
@@ -477,7 +479,7 @@ describe('generated client runtime', () => {
 
   it('dispatches an all-fire-and-forget segment without awaiting the round trip', () => {
     expect(client).toContain('if (segIsFireAndForget) {')
-    expect(client).toContain('callServerSegment(ffUrl, context).catch(')
+    expect(client).toContain('callServerSegment(ffUrl, context, seg.stateKeys).catch(')
     // The nodes still get their null entries so downstream reads are defined.
     expect(client).toContain('context[seg.nodes[ffi].id] = null;')
   })
@@ -494,7 +496,9 @@ describe('generated client runtime', () => {
   })
 
   it('keeps awaiting a normal server segment', () => {
-    expect(client).toContain('const serverResults = await callServerSegment(url, context);')
+    expect(client).toContain(
+      'const serverResults = await callServerSegment(url, context, seg.stateKeys);'
+    )
   })
 
   it('never serializes the in-flight promise list to the server', () => {

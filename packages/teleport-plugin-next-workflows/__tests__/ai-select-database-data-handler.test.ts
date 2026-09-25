@@ -13,7 +13,11 @@ import { generateSharedRuntimeUtilsCode } from '../src/executor-generator'
 interface MockState {
   aiResponses: string[]
   aiCalls: Array<{ systemMessage: string; userMessage: string; jsonMode: boolean }>
-  fetchCalls: Array<{ url: string; body: { query: string; params: unknown[] } }>
+  fetchCalls: Array<{
+    url: string
+    body: { query: string; params: unknown[] }
+    headers: Record<string, string>
+  }>
   fetchResponse: { ok: boolean; json: unknown }
 }
 
@@ -27,8 +31,11 @@ function loadHandler(state: MockState) {
     };
   `
   const source = aiSelectDatabaseData.generateServerHandler!()
-  const fetchMock = async (url: string, init: { body: string }) => {
-    state.fetchCalls.push({ url, body: JSON.parse(init.body) })
+  const fetchMock = async (
+    url: string,
+    init: { body: string; headers: Record<string, string> }
+  ) => {
+    state.fetchCalls.push({ url, body: JSON.parse(init.body), headers: init.headers })
     return {
       ok: state.fetchResponse.ok,
       json: async () => state.fetchResponse.json,
@@ -92,6 +99,10 @@ describe('happy path', () => {
     expect(state.aiCalls[0].systemMessage).toContain('TABLE "teleport_products"')
     expect(state.fetchCalls).toHaveLength(1)
     expect(state.fetchCalls[0].url).toBe('/api/data/ds1/raw-query')
+    // A server-side call, marked as SQL it did not write: the data route lets
+    // it run raw SQL but keeps it off the money tables and the users' roles.
+    expect(state.fetchCalls[0].headers['x-tq-restricted-sql']).toBe('1')
+    expect(state.fetchCalls[0].headers).toHaveProperty('x-internal-data-secret')
     // The executed SQL carries the enforced LIMIT
     expect(state.fetchCalls[0].body.query).toBe('SELECT "id" FROM "teleport_products" LIMIT 100')
   })

@@ -60,16 +60,47 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
 }`
 }
 
+// The credentials are read through the same fallback chain the payment nodes
+// use: the canonical name the deploy writes, then the CONFIGURATION_* name the
+// provider panel stores locally (a standalone run has only that one). The
+// environment to verify against is the one that signed the event — PayPal
+// names it in the cert URL. Both environments issue client ids starting with
+// "A", so the id says nothing; the earlier "sb-" prefix check sent every
+// sandbox verification to the live API, which rejected it.
 export const generatePaypalSignatureVerificationCode = (): string => {
   return `
+function resolvePaypalEnv(candidates, prefix) {
+  var env = process.env;
+  for (var i = 0; i < candidates.length; i++) {
+    var value = candidates[i] ? env[candidates[i]] : '';
+    if (value && String(value).length > 0) return String(value);
+  }
+  var keys = Object.keys(env);
+  for (var k = 0; k < keys.length; k++) {
+    if (keys[k].indexOf(prefix) === 0 && env[keys[k]] && String(env[keys[k]]).length > 0) {
+      return String(env[keys[k]]);
+    }
+  }
+  return '';
+}
+
 async function verifyPaypalSignature(req, rawBody, webhookConfig) {
   try {
-    var clientId = process.env.PAYPAL_CLIENT_ID || '';
-    var clientSecret = process.env.PAYPAL_CLIENT_SECRET || '';
-    if (!clientId || !clientSecret) return false;
+    var clientId = resolvePaypalEnv(['PAYPAL_CLIENT_ID', 'CONFIGURATION_PAYPAL_CLIENT_ID'], 'CONFIGURATION_PAYPAL_CLIENT_ID');
+    var clientSecret = resolvePaypalEnv(['PAYPAL_CLIENT_SECRET', 'CONFIGURATION_PAYPAL_CLIENT_SECRET'], 'CONFIGURATION_PAYPAL_CLIENT_SECRET');
+    var webhookId = resolvePaypalEnv([webhookConfig.signatureSecret || '', 'PAYPAL_WEBHOOK_ID', 'CONFIGURATION_PAYPAL_WEBHOOK_ID'], 'CONFIGURATION_PAYPAL_WEBHOOK_ID');
+    if (!clientId || !clientSecret) {
+      console.error('PayPal webhook rejected: PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not configured');
+      return false;
+    }
+    if (!webhookId) {
+      console.error('PayPal webhook rejected: the webhook id (PAYPAL_WEBHOOK_ID) is not configured');
+      return false;
+    }
 
-    var isLive = !clientId.startsWith('sb-');
-    var baseUrl = isLive ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+    var certUrl = String(req.headers['paypal-cert-url'] || '');
+    var isSandbox = certUrl.indexOf('sandbox.paypal.com') !== -1;
+    var baseUrl = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 
     var authResponse = await fetch(baseUrl + '/v1/oauth2/token', {
       method: 'POST',
@@ -80,9 +111,10 @@ async function verifyPaypalSignature(req, rawBody, webhookConfig) {
       body: 'grant_type=client_credentials',
     });
     var authData = await authResponse.json();
-    if (!authData.access_token) return false;
-
-    var webhookId = process.env[webhookConfig.signatureSecret] || '';
+    if (!authData.access_token) {
+      console.error('PayPal webhook rejected: authentication against ' + baseUrl + ' failed — ' + (authData.error_description || authData.error || 'no token'));
+      return false;
+    }
 
     var verifyResponse = await fetch(baseUrl + '/v1/notifications/verify-webhook-signature', {
       method: 'POST',
@@ -101,8 +133,13 @@ async function verifyPaypalSignature(req, rawBody, webhookConfig) {
       }),
     });
     var verifyData = await verifyResponse.json();
-    return verifyData.verification_status === 'SUCCESS';
-  } catch (_e) {
+    var ok = verifyData.verification_status === 'SUCCESS';
+    if (!ok) {
+      console.error('PayPal webhook rejected by ' + baseUrl + ': verification_status=' + (verifyData.verification_status || '(missing)') + ', name=' + (verifyData.name || '(none)') + ', message=' + (verifyData.message || '(none)'));
+    }
+    return ok;
+  } catch (e) {
+    console.error('PayPal webhook verification failed:', e && e.message);
     return false;
   }
 }`

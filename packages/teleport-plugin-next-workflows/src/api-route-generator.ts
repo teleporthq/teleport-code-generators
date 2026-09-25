@@ -32,17 +32,27 @@ import { workflowUtilsAliasLine } from './workflow-utils-alias'
 // intact; this is purely cosmetic (header text only, never evaluated).
 const sanitizeForBlockComment = (value: string): string => value.replace(/\*\//g, '* /')
 
-export const generateServerSegmentAPIRoute = (
-  segment: WorkflowSegment,
-  workflowName?: string,
-  protection?: UIDLWorkflowProtection
-): string => {
-  const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
-  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
-  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
-  const auth = buildWorkflowAuthInjection(protection)
+/**
+ * Where a server segment's branches can begin: a node with a predecessor
+ * outside the segment, or with none at all. The splitter computes it over the
+ * whole workflow; a segment built without it falls back to the nodes nothing
+ * inside the segment leads to.
+ */
+const resolveSegmentEntryNodeIds = (segment: WorkflowSegment): string[] => {
+  if (segment.entryNodeIds) {
+    return segment.entryNodeIds
+  }
+  const targets = new Set(segment.edges.map((e) => e.target))
+  return segment.nodes.filter((n) => !targets.has(n.id)).map((n) => n.id)
+}
 
-  const segmentConfig = JSON.stringify(
+export interface ServerSegmentRouteOptions {
+  /** A custom node's inner node ids, in the order its runner lists them. */
+  customNodeIds?: string[]
+}
+
+const buildSegmentConfig = (segment: WorkflowSegment, options: ServerSegmentRouteOptions): string =>
+  JSON.stringify(
     {
       nodes: segment.nodes.map((n) => ({
         id: n.id,
@@ -59,10 +69,25 @@ export const generateServerSegmentAPIRoute = (
         targetHandle: e.targetHandle,
         data: e.data,
       })),
+      entryNodeIds: resolveSegmentEntryNodeIds(segment),
+      ...(options.customNodeIds ? { customNodeIds: options.customNodeIds } : {}),
     },
     null,
     2
   )
+
+export const generateServerSegmentAPIRoute = (
+  segment: WorkflowSegment,
+  workflowName?: string,
+  protection?: UIDLWorkflowProtection,
+  options: ServerSegmentRouteOptions = {}
+): string => {
+  const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
+  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
+  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
+  const auth = buildWorkflowAuthInjection(protection)
+
+  const segmentConfig = buildSegmentConfig(segment, options)
 
   const header = workflowName
     ? `/**
@@ -103,8 +128,12 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const incomingContext = body.context || {};
+    // What the caller already holds, so the reply below carries only what this
+    // run produced or changed (see segmentReply in runtime-utils).
+    const __incomingSnapshot = utils.snapshotIncomingContext(incomingContext);
 
     const context = Object.assign({}, incomingContext);
+    utils.claimSegmentContext(SEGMENT_CONFIG, context);
     __wfContext = context;
     // Created eagerly so a custom node invoked from here shares the SAME
     // fire-and-forget queue (it shallow-copies this context) and its queries
@@ -216,7 +245,7 @@ module.exports = async function handler(req, res) {
         context.__loopNodeIds[node.id] = true;
 
         for (var li = 0; li < collection.length; li++) {
-          context[node.id] = { currentItem: collection[li], currentIndex: li, iterations: li + 1 };
+          context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
@@ -407,7 +436,7 @@ module.exports = async function handler(req, res) {
     // response body would hand the session token to any script on the page,
     // undoing the httpOnly flag it was set with.
     delete context.__internalHeaders;
-    res.status(200).json({ success: true, results: context });
+    res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });
   } catch (error) {
     console.error('Workflow segment error:', error);
     if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
@@ -424,34 +453,15 @@ export const hasStreamingAINode = (segment: WorkflowSegment): boolean => {
 export const generateStreamingServerSegmentAPIRoute = (
   segment: WorkflowSegment,
   workflowName?: string,
-  protection?: UIDLWorkflowProtection
+  protection?: UIDLWorkflowProtection,
+  options: ServerSegmentRouteOptions = {}
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
   const auth = buildWorkflowAuthInjection(protection)
 
-  const segmentConfig = JSON.stringify(
-    {
-      nodes: segment.nodes.map((n) => ({
-        id: n.id,
-        type: n.type,
-        config: n.config,
-        stepNumber: n.stepNumber,
-        label: n.label,
-      })),
-      edges: segment.edges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle,
-        data: e.data,
-      })),
-    },
-    null,
-    2
-  )
+  const segmentConfig = buildSegmentConfig(segment, options)
 
   const aiNodeTypes = JSON.stringify(Array.from(AI_NODE_TYPES))
 
@@ -525,6 +535,9 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const context = Object.assign({}, body.context || {});
+    // See the non-streaming segment route: the reply carries only what changed.
+    const __incomingSnapshot = utils.snapshotIncomingContext(body.context || {});
+    utils.claimSegmentContext(SEGMENT_CONFIG, context);
     __wfContext = context;
     // See the non-streaming segment route — shared queue for nested custom nodes.
     context.__pendingNodePromises = [];${requestInjection}
@@ -594,7 +607,7 @@ module.exports = async function handler(req, res) {
         if (!context.__loopNodeIds) context.__loopNodeIds = {};
         context.__loopNodeIds[node.id] = true;
         for (var ssli = 0; ssli < ssLoopCollection.length; ssli++) {
-          context[node.id] = { currentItem: ssLoopCollection[ssli], currentIndex: ssli, iterations: ssli + 1 };
+          context[node.id] = utils.loopIterationContext(ssLoopCollection, ssli);
           for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
             var ssbNode = ssBodyNodes[ssbi];
             var ssbRes = resolveConfig(ssbNode.config, context);
@@ -855,11 +868,12 @@ module.exports = async function handler(req, res) {
     // response body would hand the session token to any script on the page,
     // undoing the httpOnly flag it was set with.
     delete context.__internalHeaders;
+    const __reply = utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot);
     if (streamStarted) {
-      res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: context }) + '\\n\\n');
+      res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: __reply }) + '\\n\\n');
       res.end();
     } else {
-      res.status(200).json({ success: true, results: context });
+      res.status(200).json({ success: true, results: __reply });
     }
   } catch (error) {
     console.error('Streaming workflow segment error:', error);
@@ -905,7 +919,7 @@ const generateClientOnlyServerStub = (nodeType: string): string => {
 //      ACTUALLY declares instead.
 //   2. Two DIFFERENT node types are minified independently (each in its own
 //      source file), so their real declared names can coincidentally
-//      collide — e.g. state-update-local-state and payment-cancel-plan can
+//      collide — e.g. state-update-local-state and payment-refund can
 //      both legitimately mangle down to the same short name. Declared as
 //      bare siblings in one shared scope, the second declaration would
 //      silently shadow the first, so BOTH map entries end up pointing at the
@@ -1112,6 +1126,15 @@ module.exports = async function handler(req, res) {
     // Shared fire-and-forget queue (see the segment routes) — drained by the
     // execution loop before this route responds.
     context.__pendingNodePromises = [];
+    // A scheduled run has no request to derive the store's origin from, so
+    // the deployment's own URL stands in — the same fallback the webhook
+    // routes use — and custom scripts read it as \`runtime.baseUrl\` instead of
+    // touching the environment themselves.
+    var __cronBaseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '';
+    if (__cronBaseUrl && __cronBaseUrl.indexOf('http') !== 0) {
+      __cronBaseUrl = 'https://' + __cronBaseUrl;
+    }
+    context.__baseUrl = __cronBaseUrl;
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;${requestInjection}
 
 ${executionLoop}
@@ -1150,7 +1173,12 @@ export const getAPIRouteFileName = (
     // producing an empty detail panel because the merged context never
     // contains the expected node id.
     const idSuffix = sanitizeFileName(workflowId).toLowerCase().slice(0, 8)
-    return `${safeName}-${idSuffix}-seg-${sanitizeFileName(segmentId).slice(0, 8)}`
+    // The segment id is short (`server-N`) and must stay whole: an 8-char cap
+    // spelled `server-10`, `server-11` and `server-12` as `server-1`, so a
+    // workflow with ten or more server segments wrote its last segment over
+    // its first and the client's URL map sent the first call to the wrong
+    // route — a checkout that charged the buyer before validating the cart.
+    return `${safeName}-${idSuffix}-seg-${sanitizeFileName(segmentId)}`
   }
   return `wf-${sanitizeFileName(workflowId)}-${sanitizeFileName(segmentId)}`
 }
@@ -1265,7 +1293,7 @@ const generateNodeExecutionLoop = (
         context.__loopNodeIds[node.id] = true;
 
         for (var li = 0; li < collection.length; li++) {
-          context[node.id] = { currentItem: collection[li], currentIndex: li, iterations: li + 1 };
+          context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);

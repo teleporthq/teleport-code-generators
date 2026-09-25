@@ -116,6 +116,13 @@ const buildCronWorkflow = (): any => ({
 describe('generateCronAPIRoute — loop + templateParams support', () => {
   const route = generateCronAPIRoute(buildCronWorkflow())
 
+  it('gives the run an origin from the deployment URL, so scripts never read env themselves', () => {
+    // No request stands behind a scheduled run; custom-JS scripts read the
+    // origin as `runtime.baseUrl`, which the route derives here.
+    expect(route).toContain("process.env.NEXTAUTH_URL || process.env.VERCEL_URL || ''")
+    expect(route).toContain('context.__baseUrl = __cronBaseUrl')
+  })
+
   it('uses the loop-capable executor (handles general-loop body discovery)', () => {
     // The shared execution loop keys the loop body off the 'loop' sourceHandle
     // and walks 'loop-body-out' edges — markers absent from the old naive loop.

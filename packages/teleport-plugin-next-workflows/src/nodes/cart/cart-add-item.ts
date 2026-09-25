@@ -30,6 +30,64 @@ async function cart_add_item(config: any) {
   const discountType = config.discountType || null
   const discountValue = config.discountValue != null ? Number(config.discountValue) : null
   const discountAmount = config.discountAmount != null ? Number(config.discountAmount) : 0
+  // What the discount engine prices the line by: its category ids INCLUDING
+  // ancestors (`category_filter_ids`), and whether the product IS a gift card
+  // — never discounted, and a cart holding one cannot be paid with one. The
+  // workflow may hand either the parsed array or the raw JSON column, and a
+  // config boolean arrives as the string 'true'; anything unreadable is
+  // "no categories" / "not a gift card", never a thrown add-to-cart.
+  let categoryIds: string[] = []
+  try {
+    let rawCategories = config.categoryIds
+    if (typeof rawCategories === 'string' && rawCategories !== '') {
+      rawCategories = JSON.parse(rawCategories)
+    }
+    if (Array.isArray(rawCategories)) {
+      categoryIds = rawCategories
+        .filter((entry: unknown) => entry !== null && entry !== undefined && entry !== '')
+        .map((entry: unknown) => String(entry))
+    }
+  } catch {
+    categoryIds = []
+  }
+  const readFlag = (value: unknown): boolean =>
+    value === true ||
+    value === 1 ||
+    (typeof value === 'string' && ['true', 't', '1', 'yes'].indexOf(value.toLowerCase()) !== -1)
+  const isGiftCard = readFlag(config.isGiftCard)
+  // The line's kind, from the product row the workflow fetched: a subscription
+  // is billed by the provider every interval and checks out alone at quantity
+  // one; a gift card is issued by email once paid; a digital line is delivered
+  // from the order page; anything else ships. One order holds ONE kind, so the
+  // cart does too — a line of another kind is refused here, before anything is
+  // written, and the workflow toasts why.
+  const isRecurring = readFlag(config.isRecurring)
+  const isDigital = readFlag(config.isDigital)
+  const recurringInterval = isRecurring ? String(config.recurringInterval || 'month') : null
+  const recurringIntervalCount = isRecurring
+    ? Math.max(1, Math.floor(Number(config.recurringIntervalCount)) || 1)
+    : null
+  const trialDays = isRecurring ? Math.max(0, Math.floor(Number(config.trialDays)) || 0) : null
+  const kindOf = (line: any): 'subscription' | 'gift-card' | 'digital' | 'physical' =>
+    readFlag(line && line.isRecurring)
+      ? 'subscription'
+      : readFlag(line && line.isGiftCard)
+      ? 'gift-card'
+      : readFlag(line && line.isDigital)
+      ? 'digital'
+      : 'physical'
+  const KIND_LABELS = {
+    subscription: 'Subscriptions',
+    'gift-card': 'Gift cards',
+    digital: 'Digital products',
+    physical: 'Physical products',
+  }
+  const lineKind = kindOf({ isRecurring, isGiftCard, isDigital })
+  const refuse = (reason: 'mixed-cart' | 'one-subscription', message: string) => ({
+    added: false,
+    reason,
+    message,
+  })
 
   // Per-product cap is published by `EcommerceProvider` to localStorage so
   // workflow handlers (which run outside React) can enforce the same limit
@@ -53,6 +111,30 @@ async function cart_add_item(config: any) {
       (item: any) =>
         item.productId === productId && (item.variantId || null) === (variantId || null)
     )
+
+    // A subscription already in the cart is the one unit it will ever be.
+    if (existingIndex >= 0 && (isRecurring || kindOf(cart[existingIndex]) === 'subscription')) {
+      return refuse(
+        'one-subscription',
+        'Subscriptions are checked out on their own. Finish or empty your current cart first.'
+      )
+    }
+    const otherLines = cart.filter((_line: any, index: number) => index !== existingIndex)
+    if (otherLines.length > 0) {
+      if (isRecurring || kindOf(otherLines[0]) === 'subscription') {
+        return refuse(
+          'one-subscription',
+          'Subscriptions are checked out on their own. Finish or empty your current cart first.'
+        )
+      }
+      if (kindOf(otherLines[0]) !== lineKind) {
+        return refuse(
+          'mixed-cart',
+          KIND_LABELS[lineKind] +
+            ' need a separate order. Complete your current order or remove the other items from your cart first.'
+        )
+      }
+    }
 
     if (existingIndex >= 0) {
       let nextQty = (Number(cart[existingIndex].quantity) || 0) + quantity
@@ -86,6 +168,16 @@ async function cart_add_item(config: any) {
       cart[existingIndex].discountType = discountType
       cart[existingIndex].discountValue = discountValue
       cart[existingIndex].discountAmount = discountAmount
+      // Same rule: a product moved to another category, or turned into a gift
+      // card, must re-price on the next add — the empty list and `false` are
+      // the values that say "none".
+      cart[existingIndex].categoryIds = categoryIds
+      cart[existingIndex].isGiftCard = isGiftCard
+      cart[existingIndex].isRecurring = isRecurring
+      cart[existingIndex].recurringInterval = recurringInterval
+      cart[existingIndex].recurringIntervalCount = recurringIntervalCount
+      cart[existingIndex].trialDays = trialDays
+      cart[existingIndex].isDigital = isDigital
       localStorage.setItem('workflow_cart', JSON.stringify(cart))
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
@@ -104,9 +196,10 @@ async function cart_add_item(config: any) {
         id: cart[existingIndex].id,
         productId,
         quantity: cart[existingIndex].quantity,
+        added: true,
       }
     } else {
-      let initialQty = quantity
+      let initialQty = isRecurring ? 1 : quantity
       if (maxQty !== null && initialQty > maxQty) {
         initialQty = maxQty
       }
@@ -125,6 +218,13 @@ async function cart_add_item(config: any) {
         discountType,
         discountValue,
         discountAmount,
+        categoryIds,
+        isGiftCard,
+        isRecurring,
+        recurringInterval,
+        recurringIntervalCount,
+        trialDays,
+        isDigital,
       }
       cart.push(newItem)
       localStorage.setItem('workflow_cart', JSON.stringify(cart))
@@ -139,7 +239,7 @@ async function cart_add_item(config: any) {
           items: [{ item_id: productId, item_name: name, price, quantity: initialQty }],
         },
       })
-      return { id: newItem.id, productId, quantity: initialQty }
+      return { id: newItem.id, productId, quantity: initialQty, added: true }
     }
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message }

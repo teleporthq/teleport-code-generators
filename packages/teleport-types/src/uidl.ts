@@ -191,6 +191,15 @@ export interface UIDLAuthPageProtection {
   rowOwnerTable?: string
   rowOwnerDataSourceId?: string
   rowOwnerDifferentiator?: string
+  // Subscriber-only page: besides a session (implied — the mapper sets
+  // `requiresAuth` whenever this is set), the visitor needs an entitled
+  // subscription row (`teleport_subscriptions`, a status in
+  // SUBSCRIPTION_ENTITLED_STATUSES) — to one of `subscriptionProductIds`, or to
+  // ANY product when the list is empty or absent. The generated middleware asks
+  // `/api/auth/subscriber-access`; workflow routes derived from the page run the
+  // same check server-side.
+  requiresSubscription?: boolean
+  subscriptionProductIds?: string[]
 }
 
 export interface UIDLAuthFolderProtection {
@@ -440,6 +449,11 @@ export interface UIDLWorkflowProtection {
   requiresAuth: boolean
   allowedRoles: string[]
   userScoped?: UIDLWorkflowUserScope
+  // Every page that can trigger the route is subscriber-only: the guard also
+  // requires an entitled subscription to one of `subscriptionProductIds` (any
+  // product when the list is empty). Mirrors UIDLAuthPageProtection.
+  requiresSubscription?: boolean
+  subscriptionProductIds?: string[]
   // Provenance, for debuggability and codegen decisions (never a security input):
   //  - 'page'           — exactly one triggering page supplied the requirement
   //  - 'multiple-pages' — union across several triggering pages
@@ -462,6 +476,14 @@ export interface UIDLWorkflowUserScope {
 export interface UIDLWorkflowUserScopeBinding {
   nodeId: string
   path: string[]
+  // What the route writes there:
+  //  - absent: the session user id; a guest keeps the id their browser sent
+  //    (their anonymous identity), so only a signed-in caller is bound.
+  //  - 'role': the session role, '' for a guest or a session without one (a
+  //    raw query's admin check).
+  //  - 'signedInUserId': the session user id, '' for a guest (a raw query that
+  //    must only ever touch a signed-in caller's own row).
+  claim?: 'role' | 'signedInUserId'
 }
 
 export interface UIDLWebhookConfig {
@@ -1897,6 +1919,9 @@ export interface UIDLEcommerceOrderNotificationConfig {
 export interface UIDLEcommercePaymentProvider {
   type: string
   name: string
+  // Whether this provider can bill a recurring product. A recurring cart is
+  // offered only the providers that can; absent reads as "cannot".
+  supportsSubscriptions?: boolean
 }
 
 // A node in the nested category tree baked into the generated store. The GUI
@@ -1948,6 +1973,72 @@ export interface UIDLEcommerceSettings {
   // regional pricing on AND the checkout page can charge it; absent, the
   // storefront prices with the single flat fee and default rate as before.
   regionalPricing?: UIDLEcommerceRegionalPricing
+  // The discount engine (vouchers with conditions, stacking, automatic
+  // code-less rules). Present only when the checkout page was built with it;
+  // absent, the storefront prices vouchers with the flat rule its baked
+  // place-order workflow charges.
+  discountEngine?: UIDLEcommerceDiscountEngine
+  // Gift cards redeemed at checkout as a tender. Present only when the merchant
+  // turned them on AND the checkout page carries the gift-card block.
+  giftCards?: UIDLEcommerceGiftCards
+  // Recurring products billed by the provider. Present only when the checkout
+  // page was built with subscriptions; absent, a recurring product is sold as
+  // a one-time purchase by an older checkout, so the storefront hides it.
+  subscriptions?: UIDLEcommerceSubscriptions
+  // Digital products delivered from the order page. Present only when the
+  // checkout and order pages were built with digital delivery.
+  digitalProducts?: UIDLEcommerceDigitalProducts
+}
+
+/**
+ * What the storefront needs baked in to sell subscriptions. The subscriptions
+ * themselves are rows in the store's own database, written by the place-order
+ * workflow and the provider's webhooks.
+ */
+export interface UIDLEcommerceSubscriptions {
+  enabled: boolean
+  // The enabled providers that can bill a recurring product (`stripe`,
+  // `paypal`); a recurring cart offers exactly these.
+  providers: string[]
+  currency: string
+}
+
+/**
+ * What the storefront needs baked in to deliver digital products: the download
+ * route's contract and the merchant's two policies.
+ */
+export interface UIDLEcommerceDigitalProducts {
+  enabled: boolean
+  // The EU withdrawal page leaves digital lines out of a request.
+  withdrawalExemption: boolean
+  // A refunded order's links stop working.
+  revokeOnRefund: boolean
+}
+
+/**
+ * What the storefront needs baked in to run the discount engine. The rules
+ * themselves are rows in the store's own database (`teleport_discounts`,
+ * `teleport_vouchers`), read at runtime.
+ */
+export interface UIDLEcommerceDiscountEngine {
+  enabled: boolean
+  // Whether automatic (code-less) rules are loaded and applied; vouchers price
+  // through the engine either way.
+  automaticDiscounts: boolean
+  currency: string
+}
+
+/**
+ * What the storefront needs baked in to take gift cards. Balances are rows in
+ * the store's own database and are only ever read by server-side workflow
+ * nodes — the provider displays what the Apply Gift Card workflow returned.
+ */
+export interface UIDLEcommerceGiftCards {
+  enabled: boolean
+  currency: string
+  // Whether a card may pay part of a subscription's FIRST charge: only a
+  // checkout whose place-order workflow hands the provider the reduced charge.
+  recurringTender?: boolean
 }
 
 /**

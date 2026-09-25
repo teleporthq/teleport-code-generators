@@ -108,7 +108,7 @@ export function generateDataSourceFetcher(
         if (!validation.isValid) {
           throw new Error(`PostgreSQL/CockroachDB config validation failed: ${validation.error}`)
         }
-        return generatePostgreSQLFetcher(config, tableName)
+        return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
       }
 
       case 'mysql':
@@ -185,7 +185,7 @@ export function generateDataSourceFetcher(
               `Supabase (PostgreSQL fallback) config validation failed: ${pgValidation.error}`
             )
           }
-          return generatePostgreSQLFetcher(config, tableName)
+          return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
         }
 
         const validation = validateSupabaseConfig(config)
@@ -349,9 +349,13 @@ export default { fetchData, fetchCount, handler: ${handlerExport}, getCount: ${c
   return `${[...allImports, cachePreamble].filter(Boolean).join('\n')}
 
 async function fetchData(params = {}) {
+  // A server-side call from this process (getStaticProps, a page-load
+  // workflow): the money-table guard trusts the marker, which no HTTP request
+  // can carry.
   const req = {
     query: params,
     method: 'GET',
+    __tqServerCall: true,
   }
   
   let result = null
@@ -381,6 +385,7 @@ async function fetchCount(params = {}) {
   const req = {
     query: params,
     method: 'GET',
+    __tqServerCall: true,
   }
   
   let result = null

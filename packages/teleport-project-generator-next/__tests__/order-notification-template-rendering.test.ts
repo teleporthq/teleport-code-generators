@@ -287,54 +287,26 @@ describe('generateOrderNotificationApiRoute — graceful fallbacks', () => {
   })
 })
 
-describe('generateOrderNotificationApiRoute — buyer invoice generation', () => {
+describe('generateOrderNotificationApiRoute — the merchant email is the whole job', () => {
   const route = generateOrderNotificationApiRoute(baseSettings())
 
   it('wraps the merchant email send in try/catch so a postmark domain error does NOT abort the handler', () => {
-    // The pending-approval Postmark account rejects emails to
-    // unmatched domains (the same flow that used to 500 the whole
-    // handler). The fix wraps the call so the handler proceeds to
-    // invoice generation even when the merchant email fails.
+    // The pending-approval Postmark account rejects emails to unmatched
+    // domains (the same flow that used to 500 the whole handler). The send
+    // is wrapped so the handler still settles the sent-email ledger.
     expect(route).toContain('merchant email FAILED')
     expect(route).toMatch(/try\s*\{\s*\n\s*result\s*=\s*await\s+sender\.sendNotificationEmail/)
     expect(route).toMatch(/catch\s*\(\s*notifyErr/)
   })
 
-  it('fires /api/invoices/generate when paymentMethod is COD (cash on delivery)', () => {
-    // The COD path has no payment webhook; this endpoint is the
-    // only place the buyer's invoice can be generated. The Stripe
-    // and PayPal paths defer to their webhooks (which mark the
-    // order paid first, then generate the invoice).
-    expect(route).toContain("__isWebhookPayment = __pm === 'stripe' || __pm === 'paypal'")
-    expect(route).toContain('!__isWebhookPayment')
-    expect(route).toContain("'/api/invoices/generate'")
-    expect(route).toContain('var __invoicePayload = { orderId: orderId }')
-    expect(route).toContain('body: JSON.stringify(__invoicePayload)')
-  })
-
-  it('tells the invoice endpoint how many lines the finished order will have', () => {
-    // We run BEFORE checkout has written the order lines — the data-create-item
-    // auto-fire reaches us the instant the order row lands, while the item loop
-    // is still inserting. Without the count, the invoice endpoint hydrated
-    // whatever rows happened to exist and shipped a one-line invoice for a
-    // three-line order. Only the caller's own cart can supply the count: a
-    // count re-read from the database races exactly the same way.
-    expect(route).toContain(
-      'const callerItems = Array.isArray(items) && items.length > 0 ? items : null'
-    )
-    expect(route).toContain('if (callerItems) {')
-    expect(route).toContain('__invoicePayload.expectedItemCount = callerItems.length')
-  })
-
-  it('logs invoice generation success and failure for debugging', () => {
-    expect(route).toContain('[order-notification] invoice generation OK')
-    expect(route).toContain('[order-notification] invoice generation FAILED')
-    expect(route).toContain('[order-notification] invoice generation threw')
-  })
-
-  it('computes baseUrl from the live request (not env vars) so dev + prod both resolve', () => {
-    expect(route).toContain("req.headers['x-forwarded-proto']")
-    expect(route).toContain("req.headers.host.startsWith('localhost')")
-    expect(route).toContain('req.headers.host')
+  it('never generates the buyer invoice itself', () => {
+    // The route is fire-and-forgotten by `data-create-item` the instant the
+    // order row lands, and only when merchant notifications are on — so an
+    // invoice generated here depended on an unrelated setting and raced the
+    // order lines. The checkout workflow's settled branch and the payment
+    // webhooks generate the invoice for every payment method instead.
+    expect(route).not.toContain('/api/invoices/generate')
+    expect(route).not.toContain('expectedItemCount')
+    expect(route).not.toContain('__isWebhookPayment')
   })
 })

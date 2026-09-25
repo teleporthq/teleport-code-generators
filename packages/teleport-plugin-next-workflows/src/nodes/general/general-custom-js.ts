@@ -266,6 +266,16 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
     // them, and inside a loop the still-distinct `innerParams*` win below.
     inputs: params,
     workflowContext: params,
+    // The request origin of the server segment this node runs in, so a script
+    // that builds an absolute link (an email button, a webhook payload) never
+    // reads `process.env` for it — the publish scanner flags every env read,
+    // and nothing a node returns may be sensitive. Declared by NAME:
+    // `customHandler(previousContext, params, runtime)` inside a custom node,
+    // `customHandler(params, inputs, workflowContext, runtime)` at top level.
+    // Empty on the client and in a segment with no request behind it.
+    runtime: {
+      baseUrl: typeof (context as any).__baseUrl === 'string' ? (context as any).__baseUrl : '',
+    },
   }
   for (let i = 0; i < innerParamsList.length; i++) {
     const name = i === 0 ? 'innerParams' : 'innerParams' + (i + 1)

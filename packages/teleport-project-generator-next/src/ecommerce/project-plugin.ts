@@ -17,6 +17,7 @@ import {
   generateEcommerceSettingsApiRoute,
   generatePaypalCaptureApiRoute,
 } from './ecommerce-api-routes-generator'
+import { generateDownloadApiRoute } from './ecommerce-download-route-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
 import {
   ensureEmailLocaleModule,
@@ -50,7 +51,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           null,
           false,
           false,
-          false
+          false,
+          null
         )
         this.injectProviderIntoApp(files)
       }
@@ -82,7 +84,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       // Publish the workflow settings global — this branch also emits the
       // /api/ecommerce/settings route with the identical payload.
       true,
-      assetLookupEnabled
+      assetLookupEnabled,
+      dataSourceType
     )
     this.generateApiRoutes(
       ecommerceSettings,
@@ -155,7 +158,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     dataSourceId: string | null,
     cartDbEnabled: boolean,
     emitWorkflowSettingsGlobal: boolean,
-    assetLookupEnabled: boolean
+    assetLookupEnabled: boolean,
+    dataSourceType: string | null
   ): void {
     const content = generateEcommerceContextFileContent(
       ecommerceSettings,
@@ -163,7 +167,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       dataSourceId,
       cartDbEnabled,
       emitWorkflowSettingsGlobal,
-      assetLookupEnabled
+      assetLookupEnabled,
+      dataSourceType
     )
     files.set('ecommerce-context', {
       path: [],
@@ -252,6 +257,21 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
             name: 'stock-check',
             fileType: FileType.JS,
             content: generateStockCheckApiRoute(settings, dataSourceType, dataSourceConfig),
+          },
+        ],
+      })
+    }
+
+    // The door to a store's private digital files — only when the checkout
+    // and the order page were built to sell and deliver them.
+    if (settings.digitalProducts?.enabled) {
+      files.set('ecommerce-api-downloads', {
+        path: ['pages', 'api', 'downloads'],
+        files: [
+          {
+            name: '[fileId]',
+            fileType: FileType.JS,
+            content: generateDownloadApiRoute(settings, dataSourceType, dataSourceConfig),
           },
         ],
       })

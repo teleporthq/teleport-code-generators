@@ -217,6 +217,9 @@ export const SESSION_SAFE_USER_FIELDS: readonly string[] = [
   'roles',
 ]
 
+/** A `users` key the session derives the visitor's role from, in any case. */
+const ROLE_BEARING_USER_KEY = /^(roles?|role_?name)$/i
+
 /**
  * Credentials that must never leave the server, whatever the `users` table
  * happens to declare: the OAuth single-table adapter's provider tokens plus the
@@ -1097,6 +1100,15 @@ export const generateSignupRouteFile = (
   for (const key of WELCOME_EMAIL_CONFIG_KEYS) {
     reservedKeysObj[key] = 1
   }
+  // A custom account property the session reads a role from (`roles`,
+  // `roleName`, or `role` in another case, which Postgres folds onto the same
+  // column) is set by the server alone — a signup body naming it would pick
+  // its own role.
+  for (const prop of auth.customUserProperties || []) {
+    if (ROLE_BEARING_USER_KEY.test(prop.key)) {
+      reservedKeysObj[prop.key] = 1
+    }
+  }
   let dbImport = ''
   let createUserCall = ''
   let welcomeHelpers = ''
@@ -1260,13 +1272,73 @@ ${createUserCall}
 // gate that the SQL cannot reproduce, so those keep the middleware
 // protection regardless of row ownership.
 const isRowOwnedSelfGuardedPage = (
-  protection: { rowOwnerColumn?: string; allowedRoles?: string[] } | undefined
+  protection:
+    | { rowOwnerColumn?: string; allowedRoles?: string[]; requiresSubscription?: boolean }
+    | undefined
 ): boolean => {
   if (!protection || !protection.rowOwnerColumn) {
     return false
   }
+  // A subscription is an entitlement the row-level SQL cannot reproduce
+  // either, so a subscriber-only page keeps its middleware protection.
+  if (protection.requiresSubscription) {
+    return false
+  }
   const roles = protection.allowedRoles || []
   return roles.length === 0
+}
+
+interface ProtectedRouteEntry {
+  requiresAuth: boolean
+  allowedRoles: string[]
+  requiresSubscription?: boolean
+  subscriptionProductIds?: string[]
+}
+
+const subscriptionFieldsOf = (
+  protection: { requiresSubscription?: boolean; subscriptionProductIds?: string[] } | undefined
+): Pick<ProtectedRouteEntry, 'requiresSubscription' | 'subscriptionProductIds'> => {
+  if (!protection || !protection.requiresSubscription) {
+    return {}
+  }
+  return {
+    requiresSubscription: true,
+    subscriptionProductIds: Array.from(
+      new Set((protection.subscriptionProductIds || []).map((id) => String(id).trim()))
+    ).filter((id) => id.length > 0),
+  }
+}
+
+// Two pages on one route key merge the way roles merge — permissively: the
+// key is subscriber-gated only when EVERY page claiming it is, and the product
+// list is the union (an "any subscription" page makes it "any").
+const mergeSubscriptionFields = (
+  existing: ProtectedRouteEntry | undefined,
+  incoming: { requiresSubscription?: boolean; subscriptionProductIds?: string[] } | undefined
+): Pick<ProtectedRouteEntry, 'requiresSubscription' | 'subscriptionProductIds'> => {
+  const next = subscriptionFieldsOf(incoming)
+  if (!existing) {
+    return next
+  }
+  if (!existing.requiresSubscription || !next.requiresSubscription) {
+    return {}
+  }
+  const existingIds = existing.subscriptionProductIds || []
+  const nextIds = next.subscriptionProductIds || []
+  return {
+    requiresSubscription: true,
+    subscriptionProductIds:
+      existingIds.length === 0 || nextIds.length === 0
+        ? []
+        : Array.from(new Set([...existingIds, ...nextIds])),
+  }
+}
+
+export interface MiddlewareOptions {
+  // Where a signed-in visitor without the subscription lands when the
+  // subscriber-access route names no product page: the products listing when
+  // the store has one, else the home page. Defaults to "/".
+  subscriptionFallbackRoute?: string
 }
 
 // The exact route pattern a self-guarded page serves, e.g.
@@ -1295,8 +1367,11 @@ const selfGuardedRoutePatternOf = (protection: {
   return base === '/' ? `/[${differentiator}]` : `${base}/[${differentiator}]`
 }
 
-export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
-  const protectedRoutes: Record<string, { requiresAuth: boolean; allowedRoles: string[] }> = {}
+export const generateMiddlewareFile = (
+  auth: UIDLAuthentication,
+  options: MiddlewareOptions = {}
+): string => {
+  const protectedRoutes: Record<string, ProtectedRouteEntry> = {}
   // Page ids skipped from `protectedRoutes` because their page-load SQL is the
   // access control. Tracked by id (not by route) so the folder pass below can
   // revoke the waiver for a page that a role-gated folder pulls back under
@@ -1322,6 +1397,7 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
         allowedRoles: Array.from(
           new Set([...(existing?.allowedRoles || []), ...(protection.allowedRoles || [])])
         ),
+        ...mergeSubscriptionFields(existing, protection),
       }
     }
   }
@@ -1345,11 +1421,17 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
               // so this page is back under middleware protection and must not
               // keep its self-guarded waiver.
               selfGuardedPageIds.delete(childId)
-              const existingRoles = protectedRoutes[pageProt.route]?.allowedRoles || []
+              const existingEntry = protectedRoutes[pageProt.route]
+              const existingRoles = existingEntry?.allowedRoles || []
               const mergedRoles = Array.from(new Set([...existingRoles, ...folderRoles]))
               protectedRoutes[pageProt.route] = {
                 requiresAuth: true,
                 allowedRoles: mergedRoles,
+                // The folder adds a role; the page's own subscription
+                // requirement is not the folder's to lift.
+                ...(existingEntry
+                  ? subscriptionFieldsOf(existingEntry)
+                  : subscriptionFieldsOf(pageProt)),
               }
             }
           }
@@ -1398,6 +1480,10 @@ export const generateMiddlewareFile = (auth: UIDLAuthentication): string => {
   const authRoutesJson = JSON.stringify(authRoutes)
   const selfGuardedRoutesJson = JSON.stringify(selfGuardedRoutes)
   const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
+  const subscriptionFallbackRoute =
+    options.subscriptionFallbackRoute && options.subscriptionFallbackRoute.startsWith('/')
+      ? options.subscriptionFallbackRoute
+      : '/'
 
   return `import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
@@ -1522,8 +1608,103 @@ function roleDeniedRedirect(request, pathname) {
   return redirectWithinLocale(request, '${signInRoute}', pathname);
 }
 
+// Route keys carry no trailing slash, so neither may the path we match with.
+// Next.js serves "/orders/ORD-42/" and "/orders/ORD-42" as the same route;
+// matching the raw pathname would let the slashed form miss every exact key
+// (and every self-guarded pattern) and fall back to the ancestor prefix.
+function normalizeMatchPath(pathname) {
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.replace(/\\/+$/, '') : pathname;
+}
+
+// The protection a path falls under. An exact hit is the page's OWN protection
+// and always wins. Anything else is inherited from an ancestor route (a listing
+// page, an "/admin" subtree, …).
+function resolveProtection(matchPath) {
+  var exact = Object.prototype.hasOwnProperty.call(protectedRoutes, matchPath)
+    ? protectedRoutes[matchPath]
+    : null;
+  var matched = exact;
+  if (!matched) {
+    var routes = Object.keys(protectedRoutes).sort(function(a, b) {
+      return b.length - a.length;
+    });
+    for (var r = 0; r < routes.length; r++) {
+      if (matchPath.startsWith(routes[r] + '/')) {
+        matched = protectedRoutes[routes[r]];
+        break;
+      }
+    }
+  }
+  return { exact: exact, matched: matched };
+}
+
+// Where a signed-in visitor without the subscription lands: the subscriber-
+// access route's own suggestion (the first product's page) when it made one,
+// else the store's products listing, else the home page.
+var subscriptionFallbackRoute = ${JSON.stringify(subscriptionFallbackRoute)};
+
+// Asks the app (the Edge runtime has no database) whether the visitor behind
+// this cookie holds an entitled subscription to one of the products — any
+// product when the list is empty. The route is under /api, which the matcher
+// never sends through this middleware, so the call cannot re-enter it. Any
+// failure — network, a non-2xx answer, a malformed body — reads as "not
+// entitled": the page fails closed.
+async function checkSubscriberAccess(request, productIds) {
+  try {
+    var url = new URL('/api/auth/subscriber-access', request.url);
+    if (productIds.length > 0) {
+      url.searchParams.set('products', productIds.join(','));
+    }
+    var accessRes = await fetch(url.toString(), {
+      headers: { cookie: request.headers.get('cookie') || '' },
+    });
+    if (!accessRes.ok) {
+      return { entitled: false, redirectTo: null };
+    }
+    var accessJson = await accessRes.json();
+    return {
+      entitled: !!(accessJson && accessJson.entitled === true),
+      redirectTo: accessJson && typeof accessJson.redirectTo === 'string' ? accessJson.redirectTo : null,
+    };
+  } catch (e) {
+    return { entitled: false, redirectTo: null };
+  }
+}
+
+// A candidate landing page must be a same-origin path, not the page being
+// left, and not itself subscriber-gated — or the redirect would re-enter this
+// check forever. When every candidate is gated, sign-in (with a callbackUrl)
+// is the same last resort the role denial uses.
+function subscriptionRequiredRedirect(request, pathname, redirectTo) {
+  var candidates = [redirectTo, subscriptionFallbackRoute, '/'];
+  for (var i = 0; i < candidates.length; i++) {
+    var candidate = candidates[i];
+    if (typeof candidate !== 'string' || candidate.charAt(0) !== '/' || candidate.indexOf('//') === 0) {
+      continue;
+    }
+    var candidatePath = candidate.split('?')[0].split('#')[0];
+    if (!candidatePath || normalizeMatchPath(candidatePath) === normalizeMatchPath(pathname)) {
+      continue;
+    }
+    var candidateProtection = resolveProtection(normalizeMatchPath(candidatePath)).matched;
+    if (candidateProtection && candidateProtection.requiresSubscription) {
+      continue;
+    }
+    var target = new URL(localizePathname(request, candidatePath), request.url);
+    target.searchParams.set('subscription_required', '1');
+    return NextResponse.redirect(target);
+  }
+  return redirectWithinLocale(request, '${signInRoute}', pathname);
+}
+
 async function middleware(request) {
   const pathname = request.nextUrl.pathname;
+
+  // The matcher already leaves /api alone; kept explicit so the subscriber-
+  // access call above can never loop back through this middleware.
+  if (pathname === '/api' || pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
 
   for (let i = 0; i < authRoutes.length; i++) {
     // Segment-safe: an auth route like "/sign-in" must not bypass protection on
@@ -1538,31 +1719,11 @@ async function middleware(request) {
     return NextResponse.next();
   }
 
-  // Route keys carry no trailing slash, so neither may the path we match with.
-  // Next.js serves "/orders/ORD-42/" and "/orders/ORD-42" as the same route;
-  // matching the raw pathname would let the slashed form miss every exact key
-  // (and every self-guarded pattern) and fall back to the ancestor prefix.
   // The ORIGINAL pathname is what goes into the sign-in callbackUrl.
-  const matchPath =
-    pathname.length > 1 && pathname.endsWith('/') ? pathname.replace(/\\/+$/, '') : pathname;
-
-  // An exact hit is the page's OWN protection and always wins. Anything else is
-  // inherited from an ancestor route (a listing page, an "/admin" subtree, …).
-  const exactProtection = Object.prototype.hasOwnProperty.call(protectedRoutes, matchPath)
-    ? protectedRoutes[matchPath]
-    : null;
-  let matchedProtection = exactProtection;
-  if (!matchedProtection) {
-    const routes = Object.keys(protectedRoutes).sort(function(a, b) {
-      return b.length - a.length;
-    });
-    for (let r = 0; r < routes.length; r++) {
-      if (matchPath.startsWith(routes[r] + '/')) {
-        matchedProtection = protectedRoutes[routes[r]];
-        break;
-      }
-    }
-  }
+  const matchPath = normalizeMatchPath(pathname);
+  const resolved = resolveProtection(matchPath);
+  const exactProtection = resolved.exact;
+  const matchedProtection = resolved.matched;
 
   if (!matchedProtection) {
     return NextResponse.next();
@@ -1633,6 +1794,19 @@ async function middleware(request) {
     var userRole = getUserRoleFromToken(sessionUser);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {
       return roleDeniedRedirect(request, pathname);
+    }
+  }
+
+  // Subscriber-only page: decided last, once the session and the role are
+  // settled, by the app's own subscriber-access route (see checkSubscriberAccess).
+  if (matchedProtection.requiresSubscription) {
+    if (!sessionUser) {
+      return redirectWithinLocale(request, '${signInRoute}', pathname);
+    }
+    var subscriptionProductIds = matchedProtection.subscriptionProductIds || [];
+    var subscriberAccess = await checkSubscriberAccess(request, subscriptionProductIds);
+    if (!subscriberAccess.entitled) {
+      return subscriptionRequiredRedirect(request, pathname, subscriberAccess.redirectTo);
     }
   }
 

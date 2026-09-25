@@ -2,6 +2,8 @@ export { createNextWorkflowPlugin } from './workflow-component-plugin'
 export { NextWorkflowProjectPlugin } from './workflow-project-plugin'
 export { nodeRegistry } from './nodes'
 export { splitIntoSegments, getServerSegments, getClientSegments } from './segment-splitter'
+export { collectSegmentStateKeys, ALL_STATE_KEYS } from './segment-context-needs'
+export type { SegmentStateKeys } from './segment-context-needs'
 export { collectSecrets } from './secret-collector'
 export {
   generateClientRuntimeCode,
@@ -21,6 +23,13 @@ export {
 } from './api-route-generator'
 export { generateTriggerCode } from './trigger-generator'
 export { generatePgClientCode } from './pg-client-code'
+export {
+  generateSubscriberAccessHelperModule,
+  generateSubscriberAccessRoute,
+  hasSubscriberOnlyPages,
+  resolveProductDetailsRoute,
+  resolveSubscriptionFallbackRoute,
+} from './subscriber-access-route-generator'
 export { ensureSentEmailLogModule } from './sent-email-log'
 export {
   ensureEmailLocaleModule,

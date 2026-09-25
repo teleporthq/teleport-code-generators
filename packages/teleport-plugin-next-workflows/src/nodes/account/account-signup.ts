@@ -162,9 +162,11 @@ export const accountSignup: NodeHandlerGenerator = {
     role: 'user',
   };
   const reservedKeys = { email: 1, password: 1, name: 1, role: 1 };
+  // Any spelling of a column the session reads a role from is the server's.
+  const roleBearingKey = /^(roles?|role_?name)$/i;
   const configKeys = Object.keys(config);
   for (let i = 0; i < configKeys.length; i++) {
-    if (!reservedKeys[configKeys[i]]) {
+    if (!reservedKeys[configKeys[i]] && !roleBearingKey.test(configKeys[i])) {
       userData[configKeys[i]] = config[configKeys[i]];
     }
   }

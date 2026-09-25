@@ -152,15 +152,20 @@ function getClient() {
 }`
 }
 
+// Every dialect's `insertInvoice` goes through `insertInvoiceRecord`, which
+// retries without a column the database rejected as unknown — see
+// `missingOptionalInvoiceColumn` in the record-mapping code for which ones
+// and why.
 function generateInsertInvoiceCode(dsType: string, table: string): string {
   if (dsType === 'supabase') {
     return `
 async function insertInvoice(invoiceData) {
   var client = getClient();
-  var record = mapInvoiceToRecord(invoiceData);
-  var result = await client.from('${table}').insert(record).select().single();
-  if (result.error) throw new Error(result.error.message);
-  return result.data;
+  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+    var result = await client.from('${table}').insert(record).select().single();
+    if (result.error) throw new Error(result.error.message);
+    return result.data;
+  });
 }`
   }
 
@@ -168,28 +173,30 @@ async function insertInvoice(invoiceData) {
     return `
 async function insertInvoice(invoiceData) {
   var pool = getClient();
-  var record = mapInvoiceToRecord(invoiceData);
-  var columns = Object.keys(record);
-  var quotedCols = columns.map(quoteIdent).join(', ');
-  var placeholders = columns.map(function() { return '?'; }).join(', ');
-  var values = columns.map(function(k) { return record[k]; });
-  var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ')';
-  var [result] = await pool.execute(sql, values);
-  return Object.assign({}, record, { _insertId: result.insertId });
+  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+    var columns = Object.keys(record);
+    var quotedCols = columns.map(quoteIdent).join(', ');
+    var placeholders = columns.map(function() { return '?'; }).join(', ');
+    var values = columns.map(function(k) { return record[k]; });
+    var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ')';
+    var [result] = await pool.execute(sql, values);
+    return Object.assign({}, record, { _insertId: result.insertId });
+  });
 }`
   }
 
   return `
 async function insertInvoice(invoiceData) {
   var pool = getClient();
-  var record = mapInvoiceToRecord(invoiceData);
-  var columns = Object.keys(record);
-  var quotedCols = columns.map(quoteIdent).join(', ');
-  var placeholders = columns.map(function(_, i) { return '$' + (i + 1); }).join(', ');
-  var values = columns.map(function(k) { return record[k]; });
-  var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ') RETURNING *';
-  var result = await pool.query(sql, values);
-  return result.rows[0];
+  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+    var columns = Object.keys(record);
+    var quotedCols = columns.map(quoteIdent).join(', ');
+    var placeholders = columns.map(function(_, i) { return '$' + (i + 1); }).join(', ');
+    var values = columns.map(function(k) { return record[k]; });
+    var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ') RETURNING *';
+    var result = await pool.query(sql, values);
+    return result.rows[0];
+  });
 }`
 }
 
@@ -487,7 +494,14 @@ function mapInvoiceToRecord(data) {
     tax_rate: data.taxRate || 0,
     tax_amount: data.taxAmount || 0,
     discount_amount: data.discountAmount || 0,
+    shipping_amount: data.shippingAmount || 0,
     total: data.total || 0,
+    // The gift-card tender and what was left to pay after it (the whole total
+    // when no card was used).
+    gift_card_amount: data.giftCardAmount || 0,
+    amount_due: data.amountDue != null ? data.amountDue : (data.total || 0),
+    // Nothing has gone back at issue time; a refund moves this and the status.
+    refunded_amount: 0,
     currency: data.currency || 'USD',
     currency_symbol: data.currencySymbol || '$',
     payment_method: data.paymentMethod || null,
@@ -509,6 +523,41 @@ function mapInvoiceToRecord(data) {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+}
+
+// Columns added to the invoices table after stores already had one. The
+// editor adds missing columns when the e-commerce activation runs, but a
+// store that only republished still has the old table — and an invoice that
+// fails to insert is an order the buyer is never billed for. So the insert
+// retries without the column the database rejected, and says what to re-run.
+var OPTIONAL_INVOICE_COLUMNS = ['shipping_amount', 'gift_card_amount', 'amount_due', 'refunded_amount'];
+
+function missingOptionalInvoiceColumn(err, record) {
+  var message = String((err && err.message) || '');
+  // pg: column "x" of relation "t" does not exist · mysql: Unknown column 'x'
+  // in 'field list' · PostgREST: Could not find the 'x' column of 't'.
+  if (!/does not exist|Unknown column|Could not find/i.test(message)) return null;
+  for (var i = 0; i < OPTIONAL_INVOICE_COLUMNS.length; i++) {
+    var column = OPTIONAL_INVOICE_COLUMNS[i];
+    if (Object.prototype.hasOwnProperty.call(record, column) && message.indexOf(column) !== -1) {
+      return column;
+    }
+  }
+  return null;
+}
+
+async function insertInvoiceRecord(record, insert) {
+  for (var attempt = 0; attempt <= OPTIONAL_INVOICE_COLUMNS.length; attempt++) {
+    try {
+      return await insert(record);
+    } catch (err) {
+      var missing = missingOptionalInvoiceColumn(err, record);
+      if (!missing) throw err;
+      console.warn('[invoice] The invoices table has no "' + missing + '" column — inserting without it. Re-run the e-commerce activation in the editor to add it.');
+      delete record[missing];
+    }
+  }
+  return insert(record);
 }
 
 function mapInvoiceItemToRecord(invoiceId, item, sortOrder) {

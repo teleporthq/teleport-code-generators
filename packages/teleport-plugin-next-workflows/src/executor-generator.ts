@@ -113,6 +113,27 @@ function unwrapWorkflowCollection(value) {
   return arrayKeys.length === 1 ? value[arrayKeys[0]] : [];
 }
 
+// What a loop publishes under its OWN node id while a body node runs — the
+// shape the workflow editor's context schema advertises for "general-loop"
+// (currentItem / index / isFirst / isLast), so a body node bound to
+// [loopId, 'currentItem'] resolves in every runtime that executes a loop.
+//
+// ⛔ The client executor used to publish the iteration only under
+// "<loopId>_iter" and never under the loop id itself, so that binding resolved
+// to undefined in the browser while it worked in a server segment. A loop whose
+// body is a custom-node call is exactly the kind the splitter keeps on the
+// client: the buyer's subscription refresh called its node with no id.
+function loopIterationContext(collection, index) {
+  return {
+    currentItem: collection[index],
+    currentIndex: index,
+    index: index,
+    isFirst: index === 0,
+    isLast: index === collection.length - 1,
+    iterations: index + 1
+  };
+}
+
 function resolveCtxRef(ref, context) {
   var elem = context.triggerElement;
   if (!elem || typeof elem.getAttribute !== 'function') return undefined;
@@ -1076,7 +1097,16 @@ async function executeLoop(loopNode, config, allNodes, edges, context, nodeHandl
     // the parent node id without drilling, unwrap the single-array envelope
     // here so the loop iterates over the actual array instead of collapsing
     // to []. Mirrors the same guard in the server-segment runtime.
-    const collection = unwrapWorkflowCollection(resolveValue(config.collection, context));
+    // \`config\` is the RESOLVED config: a bound collection is already the
+    // array it pointed at. \`resolveValue\` treats an array as the parts of one
+    // text and JOINS it — so resolving it again turned every client-side loop's
+    // rows into one string, and the loop ran zero times (the server route reads
+    // its resolved collection straight, and always iterated). Only a value
+    // that still is a reference is resolved here.
+    const boundCollection = config.collection;
+    const collection = unwrapWorkflowCollection(
+      Array.isArray(boundCollection) ? boundCollection : resolveValue(boundCollection, context)
+    );
     const iterator = config.iterator || 'item';
     const indexVar = config.indexVariable || 'index';
     const parallel = config.parallel || false;
@@ -1099,6 +1129,7 @@ async function executeLoop(loopNode, config, allNodes, edges, context, nodeHandl
             iterCtx.__loopScopeStack = (context.__loopScopeStack || []).slice();
             iterCtx.__loopItem = collection[idx];
             iterCtx.__loopIndex = idx;
+            iterCtx[loopNode.id] = loopIterationContext(collection, idx);
             iterCtx[loopNode.id + '_iter'] = {};
             iterCtx[loopNode.id + '_iter'][iterator] = collection[idx];
             iterCtx[loopNode.id + '_iter'][indexVar] = idx;
@@ -1133,6 +1164,7 @@ async function executeLoop(loopNode, config, allNodes, edges, context, nodeHandl
         const iterCtx = Object.assign({}, context);
         iterCtx.__loopItem = collection[idx];
         iterCtx.__loopIndex = idx;
+        iterCtx[loopNode.id] = loopIterationContext(collection, idx);
         iterCtx[loopNode.id + '_iter'] = {};
         iterCtx[loopNode.id + '_iter'][iterator] = collection[idx];
         iterCtx[loopNode.id + '_iter'][indexVar] = idx;
@@ -1281,6 +1313,114 @@ function collectBranchNodes(startId, allNodes, edges, excludeParentId) {
 }
 
 /**
+ * A server segment's nodes run in the route, so what the request says about
+ * them is never taken on trust: a crafted POST could otherwise hand a later
+ * node a forged result and mark the node that really produces it as skipped.
+ *
+ * - Every result the request carries for one of this segment's nodes is
+ *   dropped; the route computes it.
+ * - The client may only skip a branch where it ENTERS the segment (a node with
+ *   a predecessor outside it, or none at all), which is where a branch the
+ *   client decided begins. The skip then covers everything that node reaches
+ *   inside the segment, exactly as the client's own branch walk marks it; a
+ *   skip mark on a node in the middle of the segment is ignored.
+ * - Loop bodies are marked by the route's own loop handling: a request that
+ *   names one of this segment's nodes as a loop body (which the route skips in
+ *   its main pass) is ignored for that node.
+ * - A custom node's segment reads its inner results by the ids baked here,
+ *   never by a list the request supplies.
+ */
+function claimSegmentContext(segmentConfig, context) {
+  var nodes = segmentConfig.nodes || [];
+  var edges = segmentConfig.edges || [];
+  var inSegment = {};
+  for (var ni = 0; ni < nodes.length; ni++) {
+    inSegment[nodes[ni].id] = true;
+    delete context[nodes[ni].id];
+  }
+  if (context.__loopBodyNodeIds && typeof context.__loopBodyNodeIds === 'object') {
+    var loopBodies = {};
+    Object.keys(context.__loopBodyNodeIds).forEach(function(id) {
+      if (!inSegment[id] && context.__loopBodyNodeIds[id]) loopBodies[id] = true;
+    });
+    context.__loopBodyNodeIds = loopBodies;
+  }
+  var incoming = context.__skippedNodes && typeof context.__skippedNodes === 'object' ? context.__skippedNodes : {};
+  var skipped = {};
+  Object.keys(incoming).forEach(function(id) {
+    if (incoming[id] && !inSegment[id]) skipped[id] = true;
+  });
+  var queue = (segmentConfig.entryNodeIds || []).filter(function(id) { return inSegment[id] && incoming[id]; });
+  while (queue.length > 0) {
+    var cur = queue.shift();
+    if (skipped[cur]) continue;
+    skipped[cur] = true;
+    for (var ei = 0; ei < edges.length; ei++) {
+      if (edges[ei].source === cur && inSegment[edges[ei].target]) queue.push(edges[ei].target);
+    }
+  }
+  context.__skippedNodes = skipped;
+  if (segmentConfig.customNodeIds) {
+    context.__customNodeIds = segmentConfig.customNodeIds.slice();
+    context.__isInsideCustomNode = true;
+  }
+}
+
+// The caller's context as it arrived — one JSON string per key, taken BEFORE
+// the segment runs — so \`segmentReply\` can tell what the run produced or
+// changed from what the caller already holds. A key that cannot be serialized
+// here is always replied, never dropped.
+function snapshotIncomingContext(incoming) {
+  var snapshot = {};
+  var keys = Object.keys(incoming || {});
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    try { snapshot[key] = JSON.stringify(incoming[key]); } catch (e) { snapshot[key] = null; }
+  }
+  return snapshot;
+}
+
+// Never replied: the caller's own page-state snapshot (the client never merges
+// it back — see mergeServerResults) and the route's private state.
+var SEGMENT_REPLY_PRIVATE_KEYS = {
+  __stateValues: true,
+  __internalHeaders: true,
+  __request: true,
+  __pendingNodePromises: true
+};
+
+// What a server segment replies with: the result of every node it ran itself
+// — always, since a body node re-run inside a loop may produce the same value
+// twice and the client still resets __previousNodeResult from it — plus every
+// other key the run created or changed. The context the browser POSTed used to
+// be echoed back wholesale (every earlier node's result, the trigger, the whole
+// page state), so each round trip carried the page twice over and the network
+// tab showed every node's data on every hop.
+function segmentReply(segmentConfig, context, snapshot) {
+  var reply = {};
+  var own = {};
+  var nodes = (segmentConfig && segmentConfig.nodes) || [];
+  for (var ni = 0; ni < nodes.length; ni++) own[nodes[ni].id] = true;
+  var keys = Object.keys(context);
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    if (SEGMENT_REPLY_PRIVATE_KEYS[key]) continue;
+    var value = context[key];
+    if (value === undefined) continue;
+    if (own[key] || !snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
+      reply[key] = value;
+      continue;
+    }
+    var before = snapshot[key];
+    if (before === null) { reply[key] = value; continue; }
+    var after;
+    try { after = JSON.stringify(value); } catch (e) { after = null; }
+    if (after !== before) reply[key] = value;
+  }
+  return reply;
+}
+
+/**
  * Headers a server-side node must send when this deployment calls its OWN API
  * routes over HTTP (every data node does: \`fetch(__baseUrl + '/api/data/…')\`).
  *
@@ -1331,6 +1471,9 @@ module.exports = {
   resolveContextRef,
   resolveRichTextContext,
   unwrapWorkflowCollection,
+  loopIterationContext,
+  snapshotIncomingContext,
+  segmentReply,
   evaluateCondition,
   evaluateSingleComparison,
   normalizeComparisonOperator,
@@ -1344,6 +1487,7 @@ module.exports = {
   getLoopBodyNodeIds,
   executeParallel,
   collectBranchNodes,
+  claimSegmentContext,
   markAllBranchNodes,
   isStreamingAINode,
   isFatalNodeResult,
@@ -1476,18 +1620,47 @@ function prunedValue(val, depth) {
   return { value: prunedObj, size: used };
 }
 
-function pruneContext(context) {
+// The page state a server segment may read is decided when the app is
+// generated: \`stateKeys\` on the segment names every state the segment's nodes
+// (and the custom nodes they call) reference, or is '*' when an expression
+// reads the whole bag. Only those entries travel. The rest — the country list a
+// select was seeded with, the product grid, the order history — stays in the
+// browser, where it was the bulk of every request a page made.
+function pruneStateValues(stateValues, stateKeys) {
+  if (!stateValues || typeof stateValues !== 'object' || !Array.isArray(stateKeys)) return stateValues;
+  var kept = {};
+  for (var i = 0; i < stateKeys.length; i++) {
+    var key = stateKeys[i];
+    if (Object.prototype.hasOwnProperty.call(stateValues, key)) kept[key] = stateValues[key];
+  }
+  return kept;
+}
+
+function pruneContext(context, stateKeys) {
   const pruned = {};
   const keys = Object.keys(context);
+  const filterState = Array.isArray(stateKeys);
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    const val = context[key];
+    let val = context[key];
     if (val === undefined || val === null) continue;
     if (typeof val === 'function') continue;
     // In-flight fire-and-forget promises are local to whichever runtime started
     // them; serializing them would ship a list of empty objects and let a
     // server response overwrite the client's live list.
     if (key === '__pendingNodePromises') continue;
+    if (filterState) {
+      if (key === '__stateValues') {
+        val = pruneStateValues(val, stateKeys);
+        if (Object.keys(val).length === 0) continue;
+      } else if (val && typeof val === 'object' && !Array.isArray(val) && !isDomNode(val) &&
+        val.__stateValues && typeof val.__stateValues === 'object') {
+        // The trigger context carries the page's own copy of the bag.
+        var bag = pruneStateValues(val.__stateValues, stateKeys);
+        val = Object.assign({}, val);
+        if (Object.keys(bag).length === 0) delete val.__stateValues; else val.__stateValues = bag;
+      }
+    }
     const entry = prunedValue(val, 0);
     if (entry === null) continue;
     pruned[key] = entry.value;
@@ -1558,8 +1731,8 @@ function absolutizeSegmentUrl(segmentUrl, context) {
   return segmentUrl.charAt(0) === '/' ? trimmed + segmentUrl : trimmed + '/' + segmentUrl;
 }
 
-async function callServerSegment(segmentUrl, context) {
-  const prunedContext = pruneContext(context);
+async function callServerSegment(segmentUrl, context, stateKeys) {
+  const prunedContext = pruneContext(context, stateKeys);
   const targetUrl = absolutizeSegmentUrl(segmentUrl, context);
   const response = await fetch(targetUrl, {
     method: 'POST',
@@ -1649,8 +1822,8 @@ function clientExecutableBranchNodes(branchNodes) {
   return branchNodes.filter(function(n) { return !n || n.executionEnv !== 'server'; });
 }
 
-async function callStreamingServerSegment(segmentUrl, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId) {
-  const prunedContext = pruneContext(context);
+async function callStreamingServerSegment(segmentUrl, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId, stateKeys) {
+  const prunedContext = pruneContext(context, stateKeys);
   const handledNodeIds = {};
   const streamedNodeIds = {};
   // Same relative-URL problem as callServerSegment above — required even
@@ -1820,7 +1993,7 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
           if (!ffUrl) throw new Error('No server URL for segment: ' + seg.id);
           utils.registerPendingNodePromise(
             context,
-            callServerSegment(ffUrl, context).catch(function(err) {
+            callServerSegment(ffUrl, context, seg.stateKeys).catch(function(err) {
               console.error('[workflow] Segment "' + seg.id + '" failed (not awaited):', err);
             })
           );
@@ -1840,12 +2013,12 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
         if (hasStreaming) {
           const url = serverSegmentUrls[seg.id];
           if (!url) throw new Error('No server URL for segment: ' + seg.id);
-          const newHandled = await callStreamingServerSegment(url, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId);
+          const newHandled = await callStreamingServerSegment(url, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId, seg.stateKeys);
           Object.assign(handledNodeIds, newHandled);
         } else {
           const url = serverSegmentUrls[seg.id];
           if (!url) throw new Error('No server URL for segment: ' + seg.id);
-          const serverResults = await callServerSegment(url, context);
+          const serverResults = await callServerSegment(url, context, seg.stateKeys);
           mergeServerResults(context, serverResults, workflowConfig.triggerNodeId);
           var segNodes = seg.nodes;
           if (segNodes && segNodes.length > 0 && serverResults) {
