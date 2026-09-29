@@ -1,8 +1,10 @@
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
 import {
+  DOWNLOAD_CLAIM_QUERY,
   DOWNLOAD_ENTITLEMENT_QUERY,
-  DOWNLOAD_LOG_QUERY,
+  DOWNLOAD_LINE_LOCK_QUERY,
   DOWNLOAD_ORDER_QUERY,
+  DOWNLOAD_RESUME_QUERY,
   DOWNLOAD_ROUTE_ERRORS,
   generateDownloadApiRoute,
 } from '../src/ecommerce/ecommerce-download-route-generator'
@@ -28,6 +30,8 @@ const DATA_SOURCE = { type: 'teleport', config: { connectionString: 'postgres://
 
 interface RouteApi {
   serveDownload: (req: unknown, res: unknown, ctx: unknown) => Promise<unknown>
+  claimDownload: (pool: unknown, params: unknown[]) => Promise<boolean>
+  rangeStart: (range: string) => number
   config: { api: { responseLimit: boolean } }
 }
 
@@ -39,7 +43,10 @@ const loadRoute = (settings: UIDLEcommerceSettings): RouteApi => {
     .replace(/const \{ Pool \} = require\('pg'\)[\s\S]*?\}\)\n/, '')
     .replace('export default async function handler', 'async function handler')
     .replace('export const config', 'const config')
-  return new Function('require', `${body}\nreturn { serveDownload, config };`)(require) as RouteApi
+  return new Function(
+    'require',
+    `${body}\nreturn { serveDownload, claimDownload, rangeStart, config };`
+  )(require) as RouteApi
 }
 
 interface FakeResponse {
@@ -96,12 +103,16 @@ const fakeResponse = () => {
   return { res, state }
 }
 
-// A WHATWG-style body: the global fetch's ReadableStream, read chunk by chunk.
+// A WHATWG-style body: the global fetch's ReadableStream, read chunk by chunk,
+// or cancelled whole when its bytes will not be sent.
 const webBody = (chunks: string[]) => {
   const pending = chunks.map((chunk) => Buffer.from(chunk, 'utf8'))
   let cancelled = false
   return {
     cancelled: () => cancelled,
+    cancel: async () => {
+      cancelled = true
+    },
     getReader: () => ({
       read: async () =>
         pending.length > 0
@@ -127,6 +138,9 @@ const ORDER = {
   download_key: KEY,
   account_order: true,
 }
+
+// A guest checkout: the link and the key are all it takes.
+const GUEST_ORDER = { ...ORDER, user_id: 'anon-7', account_order: false }
 
 const ROW = {
   order_id: ORDER_ID,
@@ -156,19 +170,83 @@ interface Upstream {
   body?: string[]
 }
 
+const partialAnswer = (contentRange: string, body: string[]): Upstream => ({
+  ok: true,
+  status: 206,
+  headers: { 'content-type': 'application/zip', 'content-range': contentRange },
+  body,
+})
+
+type Rows = Array<Record<string, unknown>>
+
+// The store's tables as far as the route reads them. Every statement is
+// recorded, and the claim counts against the downloads already made for the
+// line, the way the conditional INSERT does: the row the route read is a
+// snapshot, the counter is the table.
+const fakeDatabase = (spec: {
+  order?: Record<string, unknown> | null
+  row?: Record<string, unknown> | null
+  resumeFor?: (params: unknown[]) => boolean
+  failClaim?: Error
+}) => {
+  const calls: Call[] = []
+  const row = spec.row === undefined ? ROW : spec.row
+  let downloads = row ? parseInt(String(row.downloads), 10) || 0 : 0
+  let released = 0
+  const query = async (text: string, params: unknown[] = []): Promise<{ rows: Rows }> => {
+    calls.push({ text, params })
+    if (text === DOWNLOAD_ORDER_QUERY) {
+      return { rows: spec.order === null ? [] : [spec.order ?? ORDER] }
+    }
+    if (text === DOWNLOAD_ENTITLEMENT_QUERY) {
+      return { rows: row ? [row] : [] }
+    }
+    if (text === DOWNLOAD_RESUME_QUERY) {
+      return { rows: spec.resumeFor && spec.resumeFor(params) ? [{ resumed: 1 }] : [] }
+    }
+    if (text === DOWNLOAD_CLAIM_QUERY) {
+      if (spec.failClaim) {
+        throw spec.failClaim
+      }
+      const limit = Number(params[5])
+      if (limit <= 0 || downloads < limit) {
+        downloads++
+        return { rows: [{ id: `download-${downloads}` }] }
+      }
+      return { rows: [] }
+    }
+    return { rows: [] }
+  }
+  const pool = {
+    query,
+    connect: async () => ({
+      query,
+      release: () => {
+        released++
+      },
+    }),
+  }
+  return { calls, pool, counted: () => downloads, released: () => released }
+}
+
+type FakeDatabase = ReturnType<typeof fakeDatabase>
+
 const run = async (params: {
   settings?: UIDLEcommerceSettings
   query?: Record<string, unknown>
   headers?: Record<string, string>
   order?: Record<string, unknown> | null
   row?: Record<string, unknown> | null
+  resumeFor?: (params: unknown[]) => boolean
+  db?: FakeDatabase
   session?: Record<string, unknown> | null
   env?: Record<string, string>
   upstream?: Upstream | 'throw'
   method?: string
 }) => {
   const api = loadRoute(params.settings ?? SETTINGS)
-  const calls: Call[] = []
+  const db =
+    params.db ?? fakeDatabase({ order: params.order, row: params.row, resumeFor: params.resumeFor })
   const fetches: Array<{ url: string; init: { headers: Record<string, string> } }> = []
   const { res, state } = fakeResponse()
   const upstreamSpec: Upstream | 'throw' =
@@ -203,16 +281,8 @@ const run = async (params: {
       },
       now: () => NOW,
       sessionToken: async () => (params.session === undefined ? { id: 'user-1' } : params.session),
-      query: async (text: string, queryParams: unknown[]) => {
-        calls.push({ text, params: queryParams })
-        if (text === DOWNLOAD_ORDER_QUERY) {
-          return { rows: params.order === null ? [] : [params.order ?? ORDER] }
-        }
-        if (text === DOWNLOAD_ENTITLEMENT_QUERY) {
-          return { rows: params.row === null ? [] : [params.row ?? ROW] }
-        }
-        return { rows: [] }
-      },
+      query: db.pool.query,
+      claim: (claimParams: unknown[]) => api.claimDownload(db.pool, claimParams),
       fetch: async (url: string, init: { headers: Record<string, string> }) => {
         fetches.push({ url, init })
         if (upstreamSpec === 'throw') {
@@ -227,10 +297,11 @@ const run = async (params: {
       },
     }
   )
-  return { state, calls, fetches, body }
+  return { state, calls: db.calls, fetches, body, db }
 }
 
-const logCalls = (calls: Call[]) => calls.filter((call) => call.text === DOWNLOAD_LOG_QUERY)
+const claimCalls = (calls: Call[]) => calls.filter((call) => call.text === DOWNLOAD_CLAIM_QUERY)
+const resumeCalls = (calls: Call[]) => calls.filter((call) => call.text === DOWNLOAD_RESUME_QUERY)
 
 describe('the download route', () => {
   it('is emitted as an inert 503 for a store with no database', () => {
@@ -247,8 +318,8 @@ describe('the download route', () => {
     expect(loadRoute(SETTINGS).config).toEqual({ api: { responseLimit: false } })
   })
 
-  it('serves the happy path: key, session, entitlement, log, then the proxied bytes with their headers', async () => {
-    const { state, calls, fetches, body } = await run({})
+  it('serves the happy path: key, session, entitlement, claim, then the proxied bytes with their headers', async () => {
+    const { state, calls, fetches, body, db } = await run({})
     expect(state.statusCode).toBe(200)
     expect(state.chunks.join('')).toBe('hello world')
     expect(state.ended).toBe(true)
@@ -265,14 +336,22 @@ describe('the download route', () => {
     )
     expect(state.headers.etag).toBeUndefined()
     expect(state.headers.location).toBeUndefined()
+    // The limit check and the count are one transaction: the line locked,
+    // then the conditional INSERT.
     expect(calls.map((call) => call.text)).toEqual([
       DOWNLOAD_ORDER_QUERY,
       DOWNLOAD_ENTITLEMENT_QUERY,
-      DOWNLOAD_LOG_QUERY,
+      'BEGIN',
+      DOWNLOAD_LINE_LOCK_QUERY,
+      DOWNLOAD_CLAIM_QUERY,
+      'COMMIT',
     ])
     expect(calls[0].params).toEqual([ORDER_ID])
     expect(calls[1].params).toEqual([ORDER_ID, FILE_ID])
-    expect(calls[2].params).toEqual([ORDER_ID, 'line-1', FILE_ID, 'user-1', '203.0.113.9'])
+    expect(calls[3].params).toEqual(['line-1'])
+    expect(calls[4].params).toEqual([ORDER_ID, 'line-1', FILE_ID, 'user-1', '203.0.113.9', 3])
+    expect(db.counted()).toBe(2)
+    expect(db.released()).toBe(1)
     // One request, to the worker's content endpoint with the project's key.
     expect(fetches).toHaveLength(1)
     expect(fetches[0].url).toBe(
@@ -348,27 +427,25 @@ describe('the download route', () => {
       session: null,
     })
     expect(noUser.state.statusCode).toBe(200)
-    expect(logCalls(noUser.calls)[0].params).toEqual([
+    expect(claimCalls(noUser.calls)[0].params).toEqual([
       ORDER_ID,
       'line-1',
       FILE_ID,
       null,
       '203.0.113.9',
+      3,
     ])
 
-    const anonymousId = await run({
-      order: { ...ORDER, user_id: 'anon-7', account_order: false },
-      session: null,
-    })
+    const anonymousId = await run({ order: GUEST_ORDER, session: null })
     expect(anonymousId.state.statusCode).toBe(200)
-    expect(logCalls(anonymousId.calls)[0].params[3]).toBe('anon-7')
+    expect(claimCalls(anonymousId.calls)[0].params[3]).toBe('anon-7')
 
     // The driver may hand the flag back as text.
     const textual = await run({ order: { ...ORDER, account_order: 'f' }, session: null })
     expect(textual.state.statusCode).toBe(200)
   })
 
-  it('answers each entitlement failure with its own status and never logs it', async () => {
+  it('answers each entitlement failure with its own status and never counts it', async () => {
     const cases: Array<[Record<string, unknown> | null, number, string]> = [
       [null, 404, DOWNLOAD_ROUTE_ERRORS.NOT_FOUND],
       [{ ...ROW, payment_status: 'unpaid' }, 402, DOWNLOAD_ROUTE_ERRORS.UNPAID],
@@ -401,6 +478,8 @@ describe('the download route', () => {
       row: { ...ROW, download_limit: null, downloads: '999', download_expiry_days: '30' },
     })
     expect(open.state.statusCode).toBe(200)
+    // Counted all the same, with no limit for the INSERT to hold it to.
+    expect(claimCalls(open.calls)[0].params[5]).toBe(0)
   })
 
   it('cannot run without the storage worker, and never costs a download when it refuses or fails', async () => {
@@ -411,28 +490,105 @@ describe('the download route', () => {
     const upstreamDown = await run({ upstream: 'throw' })
     expect(upstreamDown.state.statusCode).toBe(502)
     expect(upstreamDown.state.body).toEqual({ error: DOWNLOAD_ROUTE_ERRORS.STORAGE })
-    expect(logCalls(upstreamDown.calls)).toHaveLength(0)
+    expect(claimCalls(upstreamDown.calls)).toHaveLength(0)
 
     const upstreamRefused = await run({ upstream: { ok: false, status: 404, headers: {} } })
     expect(upstreamRefused.state.statusCode).toBe(502)
-    expect(logCalls(upstreamRefused.calls)).toHaveLength(0)
+    expect(claimCalls(upstreamRefused.calls)).toHaveLength(0)
     expect(upstreamRefused.state.chunks).toEqual([])
   })
 
-  it('passes a Range request through, answers as the worker did, and logs no resumed chunk', async () => {
+  it('lets only one of two requests racing for the last download through', async () => {
+    // Both read the line at 2 of 3 and both pass the early check; the claim
+    // is where one of them loses.
+    const db = fakeDatabase({ row: { ...ROW, downloads: '2' } })
+    const [first, second] = await Promise.all([run({ db }), run({ db })])
+    expect([first.state.statusCode, second.state.statusCode].sort()).toEqual([200, 410])
+    const loser = first.state.statusCode === 410 ? first : second
+    expect(loser.state.body).toEqual({ error: DOWNLOAD_ROUTE_ERRORS.LIMIT })
+    expect(loser.state.chunks).toEqual([])
+    // The worker's answer to the loser is let go, not left hanging.
+    expect(loser.body!.cancelled()).toBe(true)
+    expect(db.counted()).toBe(3)
+    expect(claimCalls(db.calls)).toHaveLength(2)
+    expect(db.released()).toBe(2)
+  })
+
+  it('reads a Range as resuming only when it is one range past the first byte', () => {
+    const { rangeStart } = loadRoute(SETTINGS)
+    const cases: Array<[string, number]> = [
+      ['', 0],
+      ['bytes=0-', 0],
+      ['bytes=0-1023', 0],
+      ['bytes=00-', 0],
+      ['bytes=500-', 500],
+      ['bytes=500-999', 500],
+      ['BYTES = 500-999', 500],
+      ['bytes=1-', 1],
+      // A worker may answer each of these with the file's start or all of it.
+      ['bytes=-100000', 0],
+      ['bytes=0-0,1-', 0],
+      ['bytes=1-5,6-', 0],
+      ['bytes=5-2', 0],
+      ['items=500-', 0],
+      ['bytes=abc-', 0],
+    ]
+    for (const [range, start] of cases) {
+      expect([range, rangeStart(range)]).toEqual([range, start])
+    }
+  })
+
+  it('counts a range that resumes nothing, so a shared link read in chunks still costs downloads', async () => {
+    // Nothing counted for this address: `bytes=1-` is all but one byte of the file.
+    const chunk = await run({
+      order: GUEST_ORDER,
+      session: null,
+      headers: { range: 'bytes=1-' },
+      upstream: partialAnswer('bytes 1-10/11', ['ello world']),
+    })
+    expect(chunk.state.statusCode).toBe(206)
+    expect(resumeCalls(chunk.calls)[0].params).toEqual(['line-1', FILE_ID, '203.0.113.9'])
+    expect(claimCalls(chunk.calls)).toHaveLength(1)
+
+    // Once the limit is spent it is refused before the worker is asked.
+    const spent = await run({
+      order: GUEST_ORDER,
+      session: null,
+      row: { ...ROW, downloads: '3' },
+      headers: { range: 'bytes=1-' },
+    })
+    expect(spent.state.statusCode).toBe(410)
+    expect(spent.state.body).toEqual({ error: DOWNLOAD_ROUTE_ERRORS.LIMIT })
+    expect(spent.fetches).toHaveLength(0)
+
+    // A suffix, several ranges, a malformed or inverted header: each counts,
+    // without asking whether it resumes anything.
+    for (const range of ['bytes=-100000', 'bytes=0-0,1-', 'bytes=5-2', 'items=1-', 'bytes=00-']) {
+      const other = await run({ order: GUEST_ORDER, session: null, headers: { range } })
+      expect(other.state.statusCode).toBe(200)
+      expect(resumeCalls(other.calls)).toHaveLength(0)
+      expect(claimCalls(other.calls)).toHaveLength(1)
+    }
+
+    // A range from the first byte begins a download.
+    const fromStart = await run({
+      headers: { range: 'bytes=0-1023' },
+      upstream: partialAnswer('bytes 0-1023/4096', ['head']),
+    })
+    expect(fromStart.state.statusCode).toBe(206)
+    expect(resumeCalls(fromStart.calls)).toHaveLength(0)
+    expect(claimCalls(fromStart.calls)).toHaveLength(1)
+  })
+
+  it('serves a resumed range uncounted, even past the limit, to the client that began the download', async () => {
+    const sameAddress = (params: unknown[]) => params[2] === '203.0.113.9'
     const resumed = await run({
+      order: GUEST_ORDER,
+      session: null,
+      row: { ...ROW, downloads: '3' },
+      resumeFor: sameAddress,
       headers: { range: 'bytes=500-' },
-      upstream: {
-        ok: true,
-        status: 206,
-        headers: {
-          'content-type': 'application/zip',
-          'content-length': '6',
-          'content-range': 'bytes 500-505/506',
-          'accept-ranges': 'bytes',
-        },
-        body: ['tail!!'],
-      },
+      upstream: partialAnswer('bytes 500-505/506', ['tail!!']),
     })
     expect(resumed.state.statusCode).toBe(206)
     expect(resumed.state.headers['content-range']).toBe('bytes 500-505/506')
@@ -441,25 +597,104 @@ describe('the download route', () => {
       Authorization: 'Bearer key',
       Range: 'bytes=500-',
     })
-    expect(logCalls(resumed.calls)).toHaveLength(0)
+    expect(claimCalls(resumed.calls)).toHaveLength(0)
 
-    // A range that starts at the first byte is a download beginning.
-    const fromStart = await run({
-      headers: { range: 'bytes=0-1023' },
-      upstream: {
-        ok: true,
-        status: 206,
-        headers: { 'content-range': 'bytes 0-1023/4096' },
-        body: ['head'],
-      },
+    // Another address holding the same link resumes nothing: past the limit, refused.
+    const elsewhere = await run({
+      order: GUEST_ORDER,
+      session: null,
+      row: { ...ROW, downloads: '3' },
+      resumeFor: sameAddress,
+      headers: { range: 'bytes=500-', 'x-forwarded-for': '198.51.100.7' },
     })
-    expect(fromStart.state.statusCode).toBe(206)
-    expect(logCalls(fromStart.calls)).toHaveLength(1)
+    expect(elsewhere.state.statusCode).toBe(410)
+    expect(elsewhere.fetches).toHaveLength(0)
+
+    // An account order is bound to its session already: any address of it resumes.
+    const account = await run({
+      row: { ...ROW, downloads: '3' },
+      resumeFor: (params) => params[2] === '',
+      headers: { range: 'bytes=500-', 'x-forwarded-for': '198.51.100.7' },
+      upstream: partialAnswer('bytes 500-505/506', ['tail!!']),
+    })
+    expect(account.state.statusCode).toBe(206)
+    expect(claimCalls(account.calls)).toHaveLength(0)
+
+    // A worker that ignored the range sent the whole file: that is a
+    // download, and the spent limit refuses it before a byte is sent.
+    const whole = await run({
+      order: GUEST_ORDER,
+      session: null,
+      row: { ...ROW, downloads: '3' },
+      resumeFor: sameAddress,
+      headers: { range: 'bytes=500-' },
+    })
+    expect(whole.state.statusCode).toBe(410)
+    expect(whole.state.chunks).toEqual([])
+    expect(whole.body!.cancelled()).toBe(true)
+    expect(claimCalls(whole.calls)).toHaveLength(1)
+  })
+
+  it('still refuses a resumed range once the order is no longer entitled', async () => {
+    const cases: Array<[Record<string, unknown>, number, string]> = [
+      [{ ...ROW, payment_status: 'refunded' }, 403, DOWNLOAD_ROUTE_ERRORS.REVOKED],
+      [{ ...ROW, status: 'cancelled' }, 403, DOWNLOAD_ROUTE_ERRORS.REVOKED],
+      [{ ...ROW, payment_status: 'unpaid' }, 402, DOWNLOAD_ROUTE_ERRORS.UNPAID],
+      [{ ...ROW, download_expiry_days: '2' }, 410, DOWNLOAD_ROUTE_ERRORS.WINDOW],
+    ]
+    for (const [row, status, error] of cases) {
+      const { state, fetches } = await run({
+        row,
+        resumeFor: () => true,
+        headers: { range: 'bytes=500-' },
+      })
+      expect(state.statusCode).toBe(status)
+      expect(state.body).toEqual({ error })
+      expect(fetches).toHaveLength(0)
+    }
+  })
+
+  it('rolls a failed claim back and answers a bare 500, never the database error', async () => {
+    const db = fakeDatabase({
+      failClaim: new Error('relation "teleport_downloads" does not exist'),
+    })
+    const logged = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { state } = await run({ db })
+    logged.mockRestore()
+    expect(state.statusCode).toBe(500)
+    expect(state.body).toEqual({ error: 'Internal server error' })
+    const statements = db.calls.map((call) => call.text)
+    expect(statements).toContain('ROLLBACK')
+    expect(statements).not.toContain('COMMIT')
+    expect(db.released()).toBe(1)
+  })
+
+  it('claims with the conditional INSERT alone on a driver without transactions', async () => {
+    const { claimDownload } = loadRoute(SETTINGS)
+    const calls: Call[] = []
+    const pool = {
+      query: async (text: string, params: unknown[]) => {
+        calls.push({ text, params })
+        return { rows: [] as Rows }
+      },
+    }
+    expect(await claimDownload(pool, [ORDER_ID, 'line-1', FILE_ID, null, '', 3])).toBe(false)
+    expect(calls.map((call) => call.text)).toEqual([DOWNLOAD_CLAIM_QUERY])
+  })
+
+  it('keeps the lock out of the counting statement, whose snapshot would predate it', () => {
+    expect(DOWNLOAD_LINE_LOCK_QUERY).toMatch(/FOR UPDATE$/)
+    expect(DOWNLOAD_CLAIM_QUERY).not.toMatch(/FOR UPDATE/)
+    expect(DOWNLOAD_CLAIM_QUERY).toContain('< $6::int')
+    expect(DOWNLOAD_CLAIM_QUERY).toMatch(/RETURNING id$/)
   })
 
   it('falls back to the row for the content type and to the socket for the address', async () => {
     const api = loadRoute(SETTINGS)
-    const calls: Call[] = []
+    const db = fakeDatabase({
+      order: { ...ORDER, user_id: null as string | null, account_order: false },
+      row: { ...ROW, user_id: null as string | null },
+    })
     const { res, state } = fakeResponse()
     await api.serveDownload(
       {
@@ -477,15 +712,8 @@ describe('the download route', () => {
         },
         now: () => NOW,
         sessionToken: async (): Promise<null> => null,
-        query: async (text: string, params: unknown[]) => {
-          calls.push({ text, params })
-          if (text === DOWNLOAD_ORDER_QUERY) {
-            return { rows: [{ ...ORDER, user_id: null as string | null, account_order: false }] }
-          }
-          return text === DOWNLOAD_ENTITLEMENT_QUERY
-            ? { rows: [{ ...ROW, user_id: null as string | null }] }
-            : { rows: [] }
-        },
+        query: db.pool.query,
+        claim: (claimParams: unknown[]) => api.claimDownload(db.pool, claimParams),
         fetch: async () => ({
           ok: true,
           status: 200,
@@ -496,6 +724,6 @@ describe('the download route', () => {
     )
     expect(state.statusCode).toBe(200)
     expect(state.headers['content-type']).toBe('application/zip')
-    expect(logCalls(calls)[0].params).toEqual([ORDER_ID, 'line-1', FILE_ID, null, '::1'])
+    expect(claimCalls(db.calls)[0].params).toEqual([ORDER_ID, 'line-1', FILE_ID, null, '::1', 3])
   })
 })

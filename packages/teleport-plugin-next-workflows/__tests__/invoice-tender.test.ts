@@ -1,8 +1,15 @@
 /* tslint:disable:function-constructor */
 import { generateInvoiceGenerateRouteCode } from '../src/invoice/api-routes-code'
+import { generateInvoiceAssemblyCode } from '../src/invoice/invoice-assembly-code'
 import { generatePdfGeneratorCode } from '../src/invoice/pdf-generator-code'
 import { generateDataAccessCode, getRecordMappingCode } from '../src/invoice/data-access-code'
 import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import {
+  INVOICE_TEST_APP_SECRET,
+  createInvoiceRouteRequire,
+  evaluateEmittedModule,
+  serverCallHeaders,
+} from './_helpers/load-invoice-route'
 
 /**
  * Vouchers and the gift-card tender on the invoice.
@@ -75,38 +82,24 @@ async function runHandler(order: Row, items: Row[], body: Row): Promise<HandlerR
 
   const dataAccessStub = {
     getOrderWithItems: async (orderId: string) => (orderId === order.id ? { order, items } : null),
-    getNextInvoiceNumber: async () => 1,
-    insertInvoice: async (invoiceData: Row) => {
+    reserveInvoice: async (invoiceData: Row) => {
       invoice = invoiceData
-      return invoiceData
+      return { invoice: invoiceData, created: true }
     },
-    insertInvoiceItems: async (_invoiceId: string, rows: unknown[]) => rows,
+    storeInvoicePdf: async () => ({}),
     updateInvoice: async () => ({}),
   }
   const pdfGeneratorStub = {
     generateInvoicePdf: async () => Buffer.from('%PDF-1.4 fake'),
     COMPANY_DETAILS: {},
   }
-  const stubRequire = ((id: string) => {
-    if (id.indexOf('data-access') !== -1) return dataAccessStub
-    if (id.indexOf('pdf-generator') !== -1) return pdfGeneratorStub
-    if (id === 'pg') return { Client: class {} }
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(id)
-  }) as unknown as NodeRequire
-
-  const factory = new Function(
-    'require',
-    'module',
-    'exports',
-    `${code}; return module.exports;`
-  ) as (
-    req: NodeRequire,
-    mod: { exports: unknown },
-    exp: unknown
-  ) => (req: unknown, res: unknown) => Promise<void>
-  const moduleObject = { exports: {} as unknown }
-  const handler = factory(stubRequire, moduleObject, moduleObject.exports)
+  const handler = evaluateEmittedModule<(req: unknown, res: unknown) => Promise<void>>(
+    code,
+    createInvoiceRouteRequire(FAKE_SETTINGS, {
+      dataAccess: dataAccessStub,
+      pdfGenerator: pdfGeneratorStub,
+    })
+  )
 
   let status = 0
   let payload: Row = {}
@@ -126,7 +119,7 @@ async function runHandler(order: Row, items: Row[], body: Row): Promise<HandlerR
       /* unused */
     },
   }
-  await handler({ method: 'POST', headers: { host: 'localhost:3000' }, body }, res)
+  await handler({ method: 'POST', headers: serverCallHeaders(), body }, res)
   return { status, payload, invoice }
 }
 
@@ -152,6 +145,7 @@ describe('/api/invoices/generate — vouchers and the gift-card tender', () => {
   const originalFetch = globalThis.fetch
   const originalConnString = process.env.TELEPORT_DB_CONNECTION_STRING
   const originalDatabaseUrl = process.env.DATABASE_URL
+  const originalAppSecret = process.env.NEXTAUTH_SECRET
 
   beforeAll(() => {
     globalThis.fetch = (async () => {
@@ -159,10 +153,17 @@ describe('/api/invoices/generate — vouchers and the gift-card tender', () => {
     }) as unknown as typeof fetch
     delete process.env.TELEPORT_DB_CONNECTION_STRING
     delete process.env.DATABASE_URL
+    // The route issues invoices for the store's own server code only.
+    process.env.NEXTAUTH_SECRET = INVOICE_TEST_APP_SECRET
   })
 
   afterAll(() => {
     globalThis.fetch = originalFetch
+    if (originalAppSecret === undefined) {
+      delete process.env.NEXTAUTH_SECRET
+    } else {
+      process.env.NEXTAUTH_SECRET = originalAppSecret
+    }
     if (originalConnString !== undefined) {
       process.env.TELEPORT_DB_CONNECTION_STRING = originalConnString
     }
@@ -212,9 +213,11 @@ describe('/api/invoices/generate — vouchers and the gift-card tender', () => {
 
   it('no longer hides a discount behind a template flag', () => {
     const route = generateInvoiceGenerateRouteCode(FAKE_SETTINGS)
+    const assembly = generateInvoiceAssemblyCode(FAKE_SETTINGS)
     expect(route).not.toContain('SHOW_DISCOUNT')
+    expect(assembly).not.toContain('SHOW_DISCOUNT')
     // A caller that assembled the invoice itself states its own discount.
-    expect(route).toContain("if (body.discountAmount != null && body.discountAmount !== '') {")
+    expect(assembly).toContain("if (body.discountAmount != null && body.discountAmount !== '') {")
   })
 })
 
@@ -440,7 +443,11 @@ describe('invoice PDF renderer — vouchers and the gift-card tender', () => {
 
 describe('invoice data-access — the tender columns', () => {
   interface DataAccessModule {
-    insertInvoice: (invoiceData: Row) => Promise<Row>
+    reserveInvoice: (
+      invoiceData: Row,
+      items: Row[],
+      prefix: string
+    ) => Promise<{ invoice: Row; created: boolean }>
     mapInvoiceToRecord: (invoiceData: Row) => Row
   }
 
@@ -449,9 +456,12 @@ describe('invoice data-access — the tender columns', () => {
       generateDataAccessCode(FAKE_SETTINGS, 'postgresql', null) +
       '\n' +
       getRecordMappingCode('postgresql')
+    // reserveInvoice runs on one pooled client inside a transaction.
+    const client = { query, release: () => undefined }
     const pgStub = {
       Pool: class {
         query = query
+        connect = async () => client
       },
     }
     const stubRequire = ((id: string) => {
@@ -463,7 +473,7 @@ describe('invoice data-access — the tender columns', () => {
       'require',
       'module',
       'exports',
-      `${code}; return { insertInvoice: insertInvoice, mapInvoiceToRecord: mapInvoiceToRecord };`
+      `${code}; return { reserveInvoice: reserveInvoice, mapInvoiceToRecord: mapInvoiceToRecord };`
     ) as (req: NodeRequire, mod: { exports: unknown }, exp: unknown) => DataAccessModule
     const moduleObject = { exports: {} as unknown }
     return factory(stubRequire, moduleObject, moduleObject.exports)
@@ -487,29 +497,36 @@ describe('invoice data-access — the tender columns', () => {
   it('still inserts on a store whose table predates the columns', async () => {
     // The editor adds missing columns when activation runs; a store that only
     // republished has the old table, and its buyers must still get invoices.
-    const attempts: string[] = []
+    const statements: string[] = []
     const dataAccess = loadPostgresDataAccess(async (sql: string) => {
-      attempts.push(sql)
-      if (sql.indexOf('"amount_due"') !== -1) {
+      statements.push(sql)
+      if (sql.startsWith('INSERT') && sql.indexOf('"amount_due"') !== -1) {
         throw new Error('column "amount_due" of relation "teleport_invoices" does not exist')
       }
-      if (sql.indexOf('"gift_card_amount"') !== -1) {
+      if (sql.startsWith('INSERT') && sql.indexOf('"gift_card_amount"') !== -1) {
         throw new Error('column "gift_card_amount" of relation "teleport_invoices" does not exist')
       }
-      return { rows: [{ id: 'inv-1' }] }
+      return { rows: sql.startsWith('INSERT') ? [{ id: 'inv-1' }] : [] }
     })
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
     try {
-      const inserted = await dataAccess.insertInvoice({
-        id: 'inv-1',
-        total: 96,
-        giftCardAmount: 96,
-      })
-      expect(inserted).toEqual({ id: 'inv-1' })
-      expect(attempts).toHaveLength(3)
-      expect(attempts[2]).not.toContain('"amount_due"')
-      expect(attempts[2]).not.toContain('"gift_card_amount"')
-      expect(attempts[2]).toContain('"shipping_amount"')
+      const reserved = await dataAccess.reserveInvoice(
+        { id: 'inv-1', total: 96, giftCardAmount: 96 },
+        [],
+        'INV-'
+      )
+      expect(reserved).toEqual({ invoice: { id: 'inv-1' }, created: true })
+      const inserts = statements.filter((sql) => sql.startsWith('INSERT'))
+      expect(inserts).toHaveLength(3)
+      expect(inserts[2]).not.toContain('"amount_due"')
+      expect(inserts[2]).not.toContain('"gift_card_amount"')
+      expect(inserts[2]).toContain('"shipping_amount"')
+      // Each rejected insert is rolled back to its savepoint, so the
+      // transaction stays usable for the retry and commits once.
+      expect(statements.filter((sql) => sql === 'ROLLBACK TO SAVEPOINT invoice_row')).toHaveLength(
+        2
+      )
+      expect(statements[statements.length - 1]).toBe('COMMIT')
       expect(warn).toHaveBeenCalledTimes(2)
     } finally {
       warn.mockRestore()
@@ -517,11 +534,17 @@ describe('invoice data-access — the tender columns', () => {
   })
 
   it('does not swallow any other insert failure', async () => {
-    const dataAccess = loadPostgresDataAccess(async () => {
-      throw new Error('column "customer_name" of relation "teleport_invoices" does not exist')
+    const statements: string[] = []
+    const dataAccess = loadPostgresDataAccess(async (sql: string) => {
+      statements.push(sql)
+      if (sql.startsWith('INSERT')) {
+        throw new Error('column "customer_name" of relation "teleport_invoices" does not exist')
+      }
+      return { rows: [] }
     })
-    await expect(dataAccess.insertInvoice({ id: 'inv-1', total: 96 })).rejects.toThrow(
+    await expect(dataAccess.reserveInvoice({ id: 'inv-1', total: 96 }, [], 'INV-')).rejects.toThrow(
       'customer_name'
     )
+    expect(statements[statements.length - 1]).toBe('ROLLBACK')
   })
 })

@@ -21,6 +21,7 @@ import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../loca
 import { REQUEST_LOCALE_PARAM } from '../request-locale'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
+import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 
 interface TeleportDBConfig {
   host?: string
@@ -162,6 +163,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateArrayOverlapSqlCode()}
 ${getTransformationCode(tableName, transformOptions)}
 ${getTransformWrapperCode(tableName, transformOptions)}
 ${generateRequestSqlGuardsCode()}
@@ -199,10 +201,8 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
     if (Array.isArray(value)) {
       if (value.length === 0) return null
       if (operand === 'array_overlap') {
-        // Row column is a JSON array (e.g. category_ids). Match when it
-        // shares any element with the destination set. jsonb ?| (function
-        // form) avoids the '?' placeholder-token ambiguity some drivers hit.
-        const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+        // The row's list (see array-overlap-sql.ts) shares any value with the set.
+        const clause = arrayOverlapSql((localizedColumnList(field) || [field]), '$' + paramIndex)
         queryParams.push(value.map((entry) => String(entry)))
         paramIndex++
         return clause
@@ -220,7 +220,7 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
       const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
       if (overlapValues.length === 0) return null
-      const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+      const clause = arrayOverlapSql((localizedColumnList(field) || [field]), '$' + paramIndex)
       queryParams.push(overlapValues)
       paramIndex++
       return clause
@@ -331,6 +331,8 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     }
 
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
+    // A visitor never filters, sorts or searches by a column it is not served.
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     // The language the page is in - what a translatable sort orders by.
     const requestLocale = typeof req.query.${REQUEST_LOCALE_PARAM} === 'string' ? req.query.${REQUEST_LOCALE_PARAM} : null
     
@@ -365,6 +367,7 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -379,6 +382,7 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     }
     
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
     let sql = \`SELECT * FROM ${tableName}\`
     
@@ -479,14 +483,20 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
 
     return res.status(200).json({
       success: true,
-      data: __taWithoutCredentials(__numberedData, ${JSON.stringify(tableName)}),
+      data: __taWithoutCredentials(
+        __rowPolicy ? __brpStripHidden(__rowPolicy, __numberedData) : __numberedData,
+        ${JSON.stringify(tableName)}
+      ),
       timestamp: Date.now()
     })
   } catch (error) {
     console.error('Teleport DB fetch error:', error)
+    // A database error names tables, columns and values: it stays in the server
+    // log. Only an error this route raised for the caller (it carries a status)
+    // is repeated to it.
     return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to fetch data',
+      error: error.status ? error.message : 'Failed to fetch data',
       timestamp: Date.now()
     })
   } finally {
@@ -517,6 +527,7 @@ ${generateReadGuardCall(tableName, null)}
   try {
     await client.connect()
     const { query, queryColumns, filters } = req.query
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     const conditions = []
     const queryParams = []
     let paramIndex = 1
@@ -548,6 +559,7 @@ ${generateReadGuardCall(tableName, null)}
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -564,6 +576,7 @@ ${generateReadGuardCall(tableName, null)}
     }
 
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
     let countSql = \`SELECT COUNT(*) FROM ${tableName}\`
     if (conditions.length > 0) {
@@ -582,7 +595,7 @@ ${generateReadGuardCall(tableName, null)}
     console.error('Error getting count:', error)
     return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to get count',
+      error: error.status ? error.message : 'Failed to get count',
       timestamp: Date.now()
     })
   } finally {

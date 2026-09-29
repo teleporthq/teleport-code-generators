@@ -25,7 +25,8 @@ describe('React Next Project Generator', () => {
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
+    // package.json sits at the root beside next.config.js (its security headers).
+    expect(outputFolder.files.map((file) => file.name)).toContain('package')
     expect(appFile).toBeDefined()
     expect(appFile?.content).toContain(`import "antd/dist/antd.css`)
   })
@@ -39,7 +40,8 @@ describe('React Next Project Generator', () => {
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
+    // package.json sits at the root beside next.config.js (its security headers).
+    expect(outputFolder.files.map((file) => file.name)).toContain('package')
     expect(appFile).toBeDefined()
     expect(appFile?.content).not.toContain(`import "antd/dist/antd.css`)
     expect(appFile?.content).toContain(`import './style.css'`)
@@ -61,7 +63,8 @@ describe('React Next Project Generator', () => {
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
+    // package.json sits at the root beside next.config.js (its security headers).
+    expect(outputFolder.files.map((file) => file.name)).toContain('package')
 
     const components = outputFolder.subFolders.find((folder) => folder.name === 'components')
     const pages = outputFolder.subFolders.find((folder) => folder.name === 'pages')

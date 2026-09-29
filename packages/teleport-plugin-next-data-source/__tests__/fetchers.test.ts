@@ -355,9 +355,9 @@ describe('generateDataSourceFetcher', () => {
     const code = generateDataSourceFetcher(dataSource, 'teleport_products')
 
     // The multi-select Category Filter writes ?categoryFilter=a,b,c; the scalar
-    // array_overlap branch splits it so jsonb_exists_any matches the union.
+    // array_overlap branch splits it so the overlap matches the union.
     expect(code).toContain('array_overlap')
-    expect(code).toContain('jsonb_exists_any')
+    expect(code).toContain('function arrayOverlapSql(columns, param)')
     expect(code).toContain("String(value).split(',')")
   })
 

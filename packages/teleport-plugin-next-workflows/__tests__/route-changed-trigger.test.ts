@@ -75,6 +75,46 @@ describe('event-route-changed — component scope', () => {
   })
 })
 
+describe('event-route-changed — page scope', () => {
+  // A page's component stays mounted between two routes of the same page
+  // (`/products/a` → `/products/b`); a route change bound to that page runs in
+  // its lifecycle effect, next to the page's own state setters.
+  const generatePage = async (pageId: string) => {
+    const workflow = routeChangedWorkflow('page', { pageId: 'page-product' })
+    const plugin = createNextWorkflowPlugin({ isPage: true })
+    const structure: any = {
+      uidl: {
+        name: 'ProductDetails',
+        outputOptions: { pageId },
+        node: { type: 'element', content: { elementType: 'container', name: 'Container' } },
+        stateDefinitions: { currentRoute: { type: 'string', defaultValue: '' } },
+      },
+      chunks: [jsxComponentChunk()],
+      options: {
+        workflows: { workflows: { [workflow.id]: workflow }, customNodes: {} },
+      },
+      dependencies: {},
+    }
+    await plugin(structure)
+    const moduleChunk = (structure.chunks as any[]).find((c: any) => c.name === 'workflow-module')
+    return { code: moduleChunk ? String(moduleChunk.content) : '', structure }
+  }
+
+  it('registers Router.events with an .off cleanup in its page lifecycle', async () => {
+    const { code, structure } = await generatePage('page-product')
+    const setup = code.slice(code.indexOf('const setupLifecycleTriggers'))
+    expect(setup).toContain("Router.events.on('routeChangeComplete'")
+    expect(setup).toContain("Router.events.off('routeChangeComplete'")
+    expect(setup).toContain('cleanups.push')
+    expect(structure.dependencies.Router).toMatchObject({ path: 'next/router' })
+  })
+
+  it('stays out of every other page', async () => {
+    const { code } = await generatePage('page-home')
+    expect(code).not.toContain("Router.events.on('routeChangeComplete'")
+  })
+})
+
 describe('event-route-changed — global scope', () => {
   const plugin = new NextWorkflowProjectPlugin()
   // generateGlobalWorkflowsHook is private; call it directly for a unit test.

@@ -208,6 +208,40 @@ describe('insertLink', () => {
     })
   })
 
+  it('prefers the record own canonical address, falling back to route + differentiator', () => {
+    const node = elementNode('container')
+
+    const navlink = navlinkMockedDefinition()
+    navlink.content.routeName = { type: 'static', content: 'products' }
+    navlink.content.differentiatorValue = {
+      type: 'dynamic',
+      content: { referenceType: 'prop', id: 'product', refPath: ['slug'] },
+    } as never
+    navlink.content.canonicalValue = {
+      type: 'dynamic',
+      content: { referenceType: 'prop', id: 'product', refPath: ['productPageUrl'] },
+    } as never
+    node.content.abilities = { link: navlink }
+
+    const result = insertLinks(
+      node,
+      {
+        projectRouteDefinition: {
+          type: 'route',
+          defaultValue: 'home',
+          values: [{ value: 'products', pageOptions: { navLink: '/products' } }],
+        },
+      },
+      false
+    )
+
+    expect(result.content.attrs.transitionTo).toEqual({
+      type: 'expr',
+      content:
+        '(props.product?.productPageUrl) || `/products/' + '$' + '{' + 'props.product?.slug}' + '`',
+    })
+  })
+
   it('resolves a navlink whose route value carries a folder prefix', () => {
     // A details page's route value is folder-qualified (`add-event/Add-Event`)
     // while the navlink still names the page (`Add-Event`). Matching only on

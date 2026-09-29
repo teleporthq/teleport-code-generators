@@ -1,6 +1,6 @@
 /* tslint:disable:function-constructor */
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
-import { DiscountEngine } from '@teleporthq/teleport-shared'
+import { CartCurrency, DiscountEngine } from '@teleporthq/teleport-shared'
 import { generateEcommerceContextFileContent } from '../src/ecommerce/ecommerce-context-generator'
 
 /**
@@ -227,15 +227,34 @@ describe('EcommerceProvider — what the pages bind', () => {
     ).toContain('"digitalProductsEnabled":true')
   })
 
-  it('bakes only the providers that can bill a subscription, and mirrors them for the workflows', () => {
+  it('offers a recurring cart only the providers that can bill a subscription, and mirrors them for the workflows', () => {
     expect(source).toContain(
-      'const subscriptionPaymentProviders = useMemo(() => ([{"type":"stripe","name":"Stripe","supportsSubscriptions":true},{"type":"paypal","name":"PayPal","supportsSubscriptions":true}]), [])'
+      'const subscriptionPaymentProviders = useMemo(\n    () => tqProvidersForCart(allPaymentProviders.filter((provider) => provider.supportsSubscriptions), cartItems),'
     )
     expect(source).toContain('subscriptions: {"enabled":false,"providers":["stripe","paypal"]},')
     expect(source).toContain('    subscriptionPaymentProviders,\n')
     // A store exported before the capability reads every provider as unable.
     const legacy = emit({ paymentProviders: [{ type: 'stripe', name: 'Stripe' }] })
-    expect(legacy).toContain('const subscriptionPaymentProviders = useMemo(() => ([]), [])')
+    expect(legacy).toContain('subscriptions: {"enabled":false,"providers":[]},')
+  })
+
+  it("bakes no secret name into the browser bundle, and mirrors each provider's cart kinds", () => {
+    const withSecrets = emit({
+      paymentProviders: [
+        {
+          type: 'paddle',
+          name: 'Paddle',
+          supportsSubscriptions: true,
+          credentials: { apiKey: 'CONFIGURATION_PADDLE_API_KEY' },
+          sells: { physical: false, digital: true, giftCard: false },
+          recurring: { physical: false, digital: true },
+        },
+      ],
+    })
+    expect(withSecrets).not.toContain('CONFIGURATION_PADDLE_API_KEY')
+    expect(withSecrets).toContain(
+      'paymentKinds: {"paddle":{"physical":false,"digital":true,"giftCard":false,"recurringPhysical":false,"recurringDigital":true}},'
+    )
   })
 
   it('sets the shipping quote aside for a digital-only cart, in both pricing shapes', () => {
@@ -263,9 +282,12 @@ describe('EcommerceProvider — what the pages bind', () => {
   })
 
   it('stamps the billing schedule and the delivery kind onto every hydrated line', () => {
-    expect(source).toContain('isRecurring: tqIsRecurringProduct(product),')
+    // The line is priced and flagged by the shared rule the checkout's server
+    // step prices the order with (CartLinePricing in teleport-shared).
+    expect(source).toContain('var priced = __clPriceLine(item, product, variant, Date.now(),')
+    expect(source).toContain('isRecurring: recurring,')
     expect(source).toContain('isDigital: __deBool(product.is_digital, false),')
-    expect(source).toContain('quantity: tqIsRecurringProduct(product) ? 1 : item.quantity,')
+    expect(source).toContain('quantity: recurring ? 1 : item.quantity')
     expect(source).toContain("isRecurring: __deBool(item.isRecurring, false) ? 'true' : 'false',")
     expect(source).toContain("isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',")
   })
@@ -342,8 +364,10 @@ describe('EcommerceProvider — one kind of line per cart', () => {
     return new Function(
       [
         DiscountEngine.generateDiscountEngineHelperCode(),
+        CartCurrency.generateCartCurrencyHelperCode(),
         grab(source, 'tqCartLineKind'),
         "const TQ_CART_KIND_LABELS = { subscription: 'Subscriptions', 'gift-card': 'Gift cards', digital: 'Digital products', physical: 'Physical products' }",
+        grab(source, 'tqSameCartLine'),
         grab(source, 'tqCartKindRefusal'),
         'return { refusal: tqCartKindRefusal };',
       ].join('\n')
@@ -412,5 +436,35 @@ describe('EcommerceProvider — one kind of line per cart', () => {
         isRecurring: true,
       })
     ).toEqual(alone)
+  })
+
+  it('keeps one currency per cart, after the kind', () => {
+    const api = loadKinds()
+    expect(
+      api.refusal([{ productId: 'mug', currency: 'USD' }], { productId: 'tea', currency: 'ron' })
+    ).toEqual({
+      added: false,
+      reason: 'mixed-currency',
+      message:
+        'Products priced in RON need a separate order. Complete your current order or remove the items priced in USD from your cart first.',
+    })
+    // Same currency, whatever its case; a line or cart that names none is not judged.
+    expect(
+      api.refusal([{ productId: 'mug', currency: 'usd' }], { productId: 'tea', currency: 'USD' })
+    ).toBeNull()
+    expect(api.refusal([{ productId: 'mug' }], { productId: 'tea', currency: 'RON' })).toBeNull()
+    expect(api.refusal([{ productId: 'mug', currency: 'USD' }], { productId: 'tea' })).toBeNull()
+    // Re-adding the same product compares it with the OTHER lines only.
+    expect(
+      api.refusal([{ productId: 'mug', currency: 'USD' }], { productId: 'mug', currency: 'EUR' })
+    ).toBeNull()
+    // The kind is judged first.
+    expect(
+      api.refusal([{ productId: 'mug', currency: 'USD' }], {
+        productId: 'ebook',
+        isDigital: true,
+        currency: 'EUR',
+      })?.reason
+    ).toBe('mixed-cart')
   })
 })

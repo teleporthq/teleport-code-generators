@@ -1,4 +1,5 @@
 import { SessionCookieResolver, TableAccess } from '@teleporthq/teleport-shared'
+import { generateBrowserRowAccessCall, generateBrowserRowPolicyCode } from './browser-row-policy'
 
 /**
  * The money-table guard for a generated per-table read route
@@ -10,13 +11,16 @@ import { SessionCookieResolver, TableAccess } from '@teleporthq/teleport-shared'
  * The guard refuses a protected table (see `TableAccess.PROTECTED_TABLES`)
  * unless the caller is a server segment presenting the app secret or a
  * signed-in member of a trusted role — the generated admin, whose list pages
- * are the one browser reader these tables have.
+ * are the one browser reader these tables have. It is followed by the
+ * browser row policy (see `browser-row-policy.ts`): unpublished rows and
+ * private columns of the public tables, and the admin-only tables.
  */
 
 /** Declares the session resolver and the `__ta*` guard once per module. */
 export const generateTableAccessPreamble = (trustedReaderRoles: ReadonlyArray<string>): string => {
   return `${SessionCookieResolver.generateCommonJsSessionTokenResolverCode()}
-${TableAccess.generateTableAccessHelperCode({ trustedReaderRoles })}`
+${TableAccess.generateTableAccessHelperCode({ trustedReaderRoles })}
+${generateBrowserRowPolicyCode()}`
 }
 
 /**
@@ -31,5 +35,5 @@ export const generateReadGuardCall = (tableName: string, rawQueryExpr: string | 
   if (__access) {
     return res.status(__access.status).json({ success: false, error: __access.message, timestamp: Date.now() })
   }
-`
+${generateBrowserRowAccessCall(tableName, rawQueryExpr)}`
 }

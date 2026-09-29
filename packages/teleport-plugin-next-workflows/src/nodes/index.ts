@@ -25,6 +25,7 @@ import { browserFullscreen } from './browser/browser-fullscreen'
 import { browserGetDeviceInfo } from './browser/browser-get-device-info'
 import { browserGetLocation } from './browser/browser-get-location'
 import { browserGetMediaDevices } from './browser/browser-get-media-devices'
+import { browserGetPushSubscription } from './browser/browser-get-push-subscription'
 import { browserGetNetworkStatus } from './browser/browser-get-network-status'
 import { browserPickFiles } from './browser/browser-pick-files'
 import { browserPrint } from './browser/browser-print'
@@ -35,6 +36,7 @@ import { browserSpeechToText } from './browser/browser-speech-to-text'
 import { browserSpeechRecognition } from './browser/browser-speech-recognition'
 import { browserSubscribeToPush } from './browser/browser-subscribe-to-push'
 import { browserTextToSpeech } from './browser/browser-text-to-speech'
+import { browserUnsubscribeFromPush } from './browser/browser-unsubscribe-from-push'
 import { browserWriteClipboard } from './browser/browser-write-clipboard'
 import { cacheGet } from './cache/cache-get'
 import { cacheSet } from './cache/cache-set'
@@ -44,6 +46,7 @@ import { cartAddItem } from './cart/cart-add-item'
 import { cartClear } from './cart/cart-clear'
 import { cartGetItems } from './cart/cart-get-items'
 import { cartGetTotal } from './cart/cart-get-total'
+import { cartPriceOrder } from './cart/cart-price-order'
 import { cartRemoveItem } from './cart/cart-remove-item'
 import { cartUpdateItemQuantity } from './cart/cart-update-item-quantity'
 import { ecommerceGenerateInvoice } from './ecommerce/ecommerce-generate-invoice'
@@ -95,6 +98,7 @@ import { navigationGoBack } from './navigation/navigation-go-back'
 import { navigationGoToPage } from './navigation/navigation-go-to-page'
 import { navigationNavigateToUrl } from './navigation/navigation-navigate-to-url'
 import { navigationRefreshPage } from './navigation/navigation-refresh-page'
+import { pushSendNotification } from './push/push-send-notification'
 import { paymentChargeUser } from './payment/payment-charge-user'
 import { paymentCreateCustomer } from './payment/payment-create-customer'
 import { paymentRefund } from './payment/payment-refund'
@@ -102,6 +106,7 @@ import { paymentCreateProduct } from './payment/payment-create-product'
 import { paymentEnsureSubscriptionPlan } from './payment/payment-ensure-subscription-plan'
 import { paymentManageSubscription } from './payment/payment-manage-subscription'
 import { paymentBillingPortal } from './payment/payment-billing-portal'
+import { paymentCloseCheckout } from './payment/payment-close-checkout'
 import { paymentGetCustomer } from './payment/payment-get-customer'
 import { paymentGetProduct } from './payment/payment-get-product'
 import { paymentListCustomers } from './payment/payment-list-customers'
@@ -196,6 +201,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'browser-get-device-info': browserGetDeviceInfo,
   'browser-get-location': browserGetLocation,
   'browser-get-media-devices': browserGetMediaDevices,
+  'browser-get-push-subscription': browserGetPushSubscription,
   'browser-get-network-status': browserGetNetworkStatus,
   'browser-pick-files': browserPickFiles,
   'browser-print': browserPrint,
@@ -206,11 +212,13 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'browser-speech-recognition': browserSpeechRecognition,
   'browser-subscribe-to-push': browserSubscribeToPush,
   'browser-text-to-speech': browserTextToSpeech,
+  'browser-unsubscribe-from-push': browserUnsubscribeFromPush,
   'browser-write-clipboard': browserWriteClipboard,
   'cart-add-item': cartAddItem,
   'cart-clear': cartClear,
   'cart-get-items': cartGetItems,
   'cart-get-total': cartGetTotal,
+  'cart-price-order': cartPriceOrder,
   'cart-remove-item': cartRemoveItem,
   'cart-update-item-quantity': cartUpdateItemQuantity,
   'ecommerce-generate-invoice': ecommerceGenerateInvoice,
@@ -262,6 +270,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'navigation-go-to-page': navigationGoToPage,
   'navigation-navigate-to-url': navigationNavigateToUrl,
   'navigation-refresh-page': navigationRefreshPage,
+  'push-send-notification': pushSendNotification,
   'payment-charge-user': paymentChargeUser,
   'payment-refund': paymentRefund,
   'payment-create-customer': paymentCreateCustomer,
@@ -269,6 +278,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'payment-ensure-subscription-plan': paymentEnsureSubscriptionPlan,
   'payment-manage-subscription': paymentManageSubscription,
   'payment-billing-portal': paymentBillingPortal,
+  'payment-close-checkout': paymentCloseCheckout,
   'payment-get-customer': paymentGetCustomer,
   'payment-get-product': paymentGetProduct,
   'payment-list-customers': paymentListCustomers,

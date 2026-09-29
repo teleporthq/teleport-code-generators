@@ -1,4 +1,6 @@
 import { loadHandler, HandlerFn } from './_helpers/load-handler'
+import { loadPaymentDrivers } from './_helpers/load-payment-drivers'
+import { createFakeStripe } from './_helpers/fake-stripe'
 import { paymentChargeUser } from '../src/nodes/payment/payment-charge-user'
 import { paymentManageSubscription } from '../src/nodes/payment/payment-manage-subscription'
 import { paymentEnsureSubscriptionPlan } from '../src/nodes/payment/payment-ensure-subscription-plan'
@@ -122,11 +124,68 @@ describe('payment-charge-user in subscription mode', () => {
     })
   })
 
-  it('opens Stripe Checkout in subscription mode with an inline recurring price and the trial', () => {
-    expect(source).toContain("mode: 'subscription'")
-    expect(source).toMatch(/recurring: \{ interval(: interval)?, interval_count: intervalCount \}/)
-    expect(source).toContain('subscriptionData.trial_period_days = trialDays')
-    expect(source).toContain('subscriptionData.metadata = metadata')
+  it('opens Stripe Checkout in subscription mode with an inline recurring price and the trial', async () => {
+    const { FakeStripe, calls } = createFakeStripe({
+      'checkout.sessions.create': () => ({
+        id: 'cs_sub',
+        url: 'https://checkout.stripe.com/c/cs_sub',
+      }),
+    })
+    const stripeHandler = loadHandler('payment-charge-user', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    const metadata = { orderId: 'order-1', subscriptionId: 'sub-row-1' }
+    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, async () => {
+      const result = await stripeHandler(
+        {
+          providerId: 'stripe',
+          mode: 'subscription',
+          amount: 12.5,
+          currency: 'usd',
+          recurringInterval: 'month',
+          recurringIntervalCount: 2,
+          trialDays: 7,
+          description: 'Coffee club',
+          metadata,
+          successUrl: 'https://store.test/ok',
+          cancelUrl: 'https://store.test/checkout',
+        },
+        {}
+      )
+      expect(result).toEqual({
+        checkoutUrl: 'https://checkout.stripe.com/c/cs_sub',
+        sessionId: 'cs_sub',
+        attemptRef: 'cs_sub',
+        attemptOutcome: 'created',
+        redirectUrl: 'https://checkout.stripe.com/c/cs_sub',
+        providerSubscriptionId: '',
+        __terminal: true,
+        __redirectUrl: 'https://checkout.stripe.com/c/cs_sub',
+      })
+    })
+    expect(calls).toEqual([
+      {
+        method: 'checkout.sessions.create',
+        params: {
+          mode: 'subscription',
+          success_url: 'https://store.test/ok',
+          cancel_url: 'https://store.test/checkout',
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: { name: 'Coffee club' },
+                unit_amount: 1250,
+                recurring: { interval: 'month', interval_count: 2 },
+              },
+              quantity: 1,
+            },
+          ],
+          subscription_data: { trial_period_days: 7, metadata },
+          metadata,
+        },
+      },
+    ])
     expect(resolveHandlerEntryName(source, 'payment-charge-user')).toBe('payment_charge_user')
   })
 
@@ -178,12 +237,40 @@ describe('payment-charge-user in subscription mode', () => {
   })
 
   it("takes a gift card's tender off the FIRST Stripe invoice as a one-shot coupon, and never the whole of it", async () => {
-    expect(source).toContain('stripe.coupons.create({')
-    expect(source).toContain('amount_off: unitAmount - firstChargeAmount')
-    expect(source).toContain("duration: 'once'")
-    expect(source).toContain('max_redemptions: 1')
-    expect(source).toContain('sessionParams.discounts = [{ coupon: coupon.id }]')
-    expect(source).toContain('if (firstChargeAmount < unitAmount) {')
+    const { FakeStripe, calls } = createFakeStripe({
+      'coupons.create': () => ({ id: 'co_gift' }),
+      'checkout.sessions.create': () => ({
+        id: 'cs_sub',
+        url: 'https://checkout.stripe.com/c/cs_sub',
+      }),
+    })
+    const stripeHandler = loadHandler('payment-charge-user', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+      stripeHandler(
+        {
+          providerId: 'stripe',
+          mode: 'subscription',
+          amount: 30,
+          amountDue: 20,
+          currency: 'usd',
+          recurringInterval: 'month',
+          description: 'Box',
+        },
+        {}
+      )
+    )
+    expect(calls.map((call) => call.method)).toEqual(['coupons.create', 'checkout.sessions.create'])
+    expect(calls[0].params).toEqual({
+      amount_off: 1000,
+      currency: 'usd',
+      duration: 'once',
+      max_redemptions: 1,
+      name: 'Gift card',
+      metadata: {},
+    })
+    expect((calls[1].params as { discounts: unknown }).discounts).toEqual([{ coupon: 'co_gift' }])
     await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, async () => {
       const covered = refusal(
         await handler(
@@ -304,16 +391,24 @@ describe('payment-charge-user one-time checkout email', () => {
   const handler: HandlerFn = loadHandler('payment-charge-user')
   const source = paymentChargeUser.generateHandler()
 
-  it('prefills the buyer email on the Stripe payment session, as the subscription session does', () => {
-    const start = source.indexOf('function chargeWithStripe')
-    const end = source.indexOf('function subscribeWithStripe')
-    expect(start).toBeGreaterThan(-1)
-    const oneTime = source.slice(start, end)
-    expect(oneTime).toContain("mode: 'payment'")
-    expect(oneTime).toContain('sessionParams.customer_email = String(config.customerEmail)')
+  it('prefills the buyer email on the Stripe payment session, as the subscription session does', async () => {
+    const { FakeStripe, calls } = createFakeStripe({
+      'checkout.sessions.create': () => ({ id: 'cs_1', url: 'https://checkout.stripe.com/c/cs_1' }),
+    })
+    const stripeHandler = loadHandler('payment-charge-user', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+      stripeHandler(
+        { providerId: 'stripe', amount: 9, currency: 'usd', customerEmail: 'jo@store.test' },
+        {}
+      )
+    )
+    expect(calls).toHaveLength(1)
+    expect(calls[0].params).toMatchObject({ mode: 'payment', customer_email: 'jo@store.test' })
   })
 
-  it('names the buyer as the PayPal payer, and leaves the payer out when the checkout carried no email', async () => {
+  it('opens the order with a Pay Now experience, names the buyer, and leaves the email out when the checkout carried none', async () => {
     const ordersCall = (calls: FetchCall[]) =>
       calls.find((call) => call.url.endsWith('/v2/checkout/orders'))!
     const respond: Responder = (url) =>
@@ -323,7 +418,8 @@ describe('payment-charge-user one-time checkout email', () => {
             ok: true,
             body: {
               id: 'ORDER-1',
-              links: [{ rel: 'approve', href: 'https://paypal.test/approve' }],
+              // A payment source answers the page as `payer-action`.
+              links: [{ rel: 'payer-action', href: 'https://paypal.test/approve' }],
             },
           }
     await withEnv(PAYPAL_ENV, () =>
@@ -345,14 +441,26 @@ describe('payment-charge-user one-time checkout email', () => {
           sessionId: 'ORDER-1',
         })
         const payload = JSON.parse(ordersCall(calls).init.body!)
-        expect(payload.payer).toEqual({ email_address: 'jane@example.com' })
+        expect(payload.payment_source.paypal).toEqual({
+          email_address: 'jane@example.com',
+          experience_context: {
+            return_url: 'https://shop.test/order/1',
+            cancel_url: 'https://shop.test/checkout',
+            user_action: 'PAY_NOW',
+          },
+        })
+        // The deprecated top-level fields are never sent.
+        expect(payload).not.toHaveProperty('payer')
+        expect(payload).not.toHaveProperty('application_context')
         expect(payload.purchase_units[0].amount).toEqual({ currency_code: 'USD', value: '24.00' })
       })
     )
     await withEnv(PAYPAL_ENV, () =>
       withFetch(respond, async (calls) => {
         await handler({ providerId: 'paypal', amount: 24, currency: 'usd' }, {})
-        expect(JSON.parse(ordersCall(calls).init.body!)).not.toHaveProperty('payer')
+        expect(JSON.parse(ordersCall(calls).init.body!).payment_source.paypal).not.toHaveProperty(
+          'email_address'
+        )
       })
     )
   })
@@ -401,9 +509,85 @@ describe('payment-ensure-subscription-plan', () => {
         expect(calls).toHaveLength(0)
       }
     )
-    const other = (await handler({ providerId: 'square' }, {})) as { ok: string; error: string }
+    const other = (await handler({ providerId: 'adyen' }, {})) as { ok: string; error: string }
     expect(other.ok).toBe('false')
-    expect(other.error).toBe('Payment provider "square" cannot bill a subscription.')
+    expect(other.error).toBe('Payment provider "adyen" cannot bill a subscription.')
+  })
+
+  it('checks a cached PayPal plan against the environment of the current credentials, and creates it there when unknown', async () => {
+    const known = await withEnv(PAYPAL_ENV, () =>
+      withFetch(
+        (url) =>
+          paypalAuth(url)
+            ? { ok: true, body: { access_token: 'tok' } }
+            : { ok: true, body: { id: 'P-cached' } },
+        async (calls) => ({
+          result: await handler(
+            { providerId: 'paypal', planId: 'P-cached', providerProductId: 'PROD-1' },
+            {}
+          ),
+          calls,
+        })
+      )
+    )
+    expect(known.result).toEqual({
+      ok: 'true',
+      planId: 'P-cached',
+      providerProductId: 'PROD-1',
+      created: 'false',
+    })
+    expect(
+      known.calls
+        .filter((call) => !paypalAuth(call.url))
+        .map((call) => [call.init.method, call.url.replace(/^https:\/\/[^/]+/, '')])
+    ).toEqual([['GET', '/v1/billing/plans/P-cached']])
+    // A plan the sandbox created is unknown to live credentials (and the other way round).
+    const unknown = await withEnv(PAYPAL_ENV, () =>
+      withFetch(
+        (url, init) => {
+          if (paypalAuth(url)) {
+            return { ok: true, body: { access_token: 'tok' } }
+          }
+          if (init.method === 'GET') {
+            return { ok: false, status: 404, body: { name: 'RESOURCE_NOT_FOUND' } }
+          }
+          return {
+            ok: true,
+            body: { id: url.endsWith('/v1/catalogs/products') ? 'PROD-2' : 'P-2' },
+          }
+        },
+        async () =>
+          handler(
+            {
+              providerId: 'paypal',
+              planId: 'P-other-environment',
+              providerProductId: 'PROD-1',
+              productName: 'Coffee Club',
+              amount: 24.5,
+              currency: 'usd',
+              interval: 'month',
+            },
+            {}
+          )
+      )
+    )
+    expect(unknown).toEqual({
+      ok: 'true',
+      planId: 'P-2',
+      providerProductId: 'PROD-2',
+      created: 'true',
+    })
+    // A check PayPal cannot answer right now keeps the cached plan.
+    const outage = await withEnv(PAYPAL_ENV, () =>
+      withFetch(
+        (url) =>
+          paypalAuth(url)
+            ? { ok: true, body: { access_token: 'tok' } }
+            : { ok: false, status: 503, body: {} },
+        async () => handler({ providerId: 'paypal', planId: 'P-cached' }, {})
+      )
+    )
+    expect(outage).toMatchObject({ ok: 'true', planId: 'P-cached', created: 'false' })
   })
 
   it('creates the PayPal product and an active plan: a trial cycle, then the regular cycle until cancelled', async () => {
@@ -588,6 +772,65 @@ describe('payment-ensure-subscription-plan', () => {
     }
     expect(bad.error).toBe('A subscription needs a positive amount to bill.')
   })
+
+  // PayPal's frequency limits: DAY 365, WEEK 52, MONTH 12, YEAR 1.
+  it('refuses a billing cycle or a trial longer than PayPal allows, before calling it', async () => {
+    const plan = (config: Record<string, unknown>) =>
+      withEnv(PAYPAL_ENV, () =>
+        withFetch(
+          (url) => {
+            if (paypalAuth(url)) {
+              return { ok: true, body: { access_token: 'tok' } }
+            }
+            return {
+              ok: true,
+              body: { id: url.endsWith('/v1/catalogs/products') ? 'PROD-1' : 'P-1' },
+            }
+          },
+          async (calls) => ({
+            result: (await handler(
+              { providerId: 'paypal', productName: 'Box', amount: 10, currency: 'usd', ...config },
+              {}
+            )) as { ok: string; error?: string },
+            calls,
+          })
+        )
+      )
+    const refusals: Array<[Record<string, unknown>, string]> = [
+      [
+        { interval: 'month', intervalCount: 13 },
+        'PayPal cannot bill every 13 months: its longest billing cycle is 12 months.',
+      ],
+      [
+        { interval: 'week', intervalCount: 53 },
+        'PayPal cannot bill every 53 weeks: its longest billing cycle is 52 weeks.',
+      ],
+      [
+        { interval: 'day', intervalCount: 366 },
+        'PayPal cannot bill every 366 days: its longest billing cycle is 365 days.',
+      ],
+      [
+        { interval: 'year', intervalCount: 2 },
+        'PayPal cannot bill every 2 years: its longest billing cycle is one year.',
+      ],
+      [
+        { interval: 'month', trialDays: 366 },
+        'PayPal cannot run a free trial of 366 days: its longest is 365 days.',
+      ],
+    ]
+    for (const [config, error] of refusals) {
+      const { result, calls } = await plan(config)
+      expect(result).toMatchObject({ ok: 'false', error })
+      expect(calls).toEqual([])
+    }
+    for (const config of [
+      { interval: 'month', intervalCount: 12 },
+      { interval: 'week', intervalCount: 52, trialDays: 365 },
+      { interval: 'year', intervalCount: 1 },
+    ]) {
+      expect((await plan(config)).result).toMatchObject({ ok: 'true', planId: 'P-1' })
+    }
+  })
 })
 
 describe('payment-manage-subscription', () => {
@@ -639,10 +882,10 @@ describe('payment-manage-subscription', () => {
     )) as { error: string }
     expect(badAction.error).toBe('Unknown subscription action "freeze".')
     const badProvider = (await handler(
-      { providerId: 'square', providerSubscriptionId: 's', action: 'cancel' },
+      { providerId: 'adyen', providerSubscriptionId: 's', action: 'cancel' },
       {}
     )) as { error: string }
-    expect(badProvider.error).toBe('Payment provider "square" cannot manage subscriptions.')
+    expect(badProvider.error).toBe('Payment provider "adyen" cannot manage subscriptions.')
     await withEnv(
       {
         STRIPE_SECRET_KEY: undefined,
@@ -659,28 +902,108 @@ describe('payment-manage-subscription', () => {
     )
   })
 
-  it('maps every Stripe action onto the API and the answer onto the store vocabulary', () => {
-    expect(source).toContain('stripe.subscriptions.cancel(subscriptionId)')
-    expect(source).toContain('cancel_at_period_end: true')
-    expect(source).toContain("pause_collection: { behavior: 'void' }")
-    expect(source).toContain("pause_collection: ''")
-    for (const [provider, store] of [
-      ["'past_due' || value === 'unpaid'", "'past_due'"],
-      ["value === 'canceled'", "'cancelled'"],
-      ["value === 'incomplete_expired'", "'expired'"],
-    ]) {
-      expect(source).toContain(provider)
-      expect(source).toContain(store)
+  it('maps every Stripe action onto the API and the answer onto the store vocabulary', async () => {
+    const statuses: Record<string, string> = {
+      cancel: 'canceled',
+      cancel_at_period_end: 'active',
+      pause: 'active',
+      resume: 'active',
     }
+    const answer = (status: string) => () => ({ status, current_period_end: 1700000000 })
+    const { FakeStripe, calls } = createFakeStripe({
+      'subscriptions.cancel': answer(statuses.cancel),
+      // `update(id, changes)`: the fake records the changes as the call's options.
+      'subscriptions.update': (_id, changes) => ({
+        status: 'active',
+        pause_collection: (changes as { pause_collection?: unknown }).pause_collection || null,
+        cancel_at_period_end:
+          (changes as { cancel_at_period_end?: boolean }).cancel_at_period_end === true,
+      }),
+    })
+    const stripeHandler = loadHandler('payment-manage-subscription', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    const run = (action: string) =>
+      withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+        stripeHandler({ providerId: 'stripe', providerSubscriptionId: 'sub_1', action }, {})
+      ) as Promise<{ status: string; cancelAtPeriodEnd: string }>
+    expect((await run('cancel')).status).toBe('cancelled')
+    expect(await run('cancel_at_period_end')).toMatchObject({
+      status: 'active',
+      cancelAtPeriodEnd: 'true',
+    })
+    expect((await run('pause')).status).toBe('paused')
+    expect(await run('resume')).toMatchObject({ status: 'active', cancelAtPeriodEnd: 'false' })
+    expect(calls).toEqual([
+      { method: 'subscriptions.cancel', params: 'sub_1' },
+      { method: 'subscriptions.update', params: 'sub_1', options: { cancel_at_period_end: true } },
+      {
+        method: 'subscriptions.update',
+        params: 'sub_1',
+        options: { pause_collection: { behavior: 'void' } },
+      },
+      {
+        method: 'subscriptions.update',
+        params: 'sub_1',
+        options: { pause_collection: '', cancel_at_period_end: false },
+      },
+    ])
   })
 
-  it('reads a Stripe subscription back without changing it, a dashboard `cancel_at` counting as scheduled', () => {
-    expect(source).toContain("if (action === 'refresh') {")
-    expect(source).toContain('stripe.subscriptions.retrieve(subscriptionId)')
-    expect(source).toContain('cancelAtPeriodEnd: stripeCancelScheduled(subscription)')
-    expect(source).toContain('currentPeriodStart: stripeUnixToIso(')
-    // 2025 API versions carry the period on the item.
-    expect(source).toContain('firstItem && firstItem.current_period_end')
+  // The same decisions as the editor's (the worker's `mapStripeSubscription`).
+  it('keeps an ended Stripe subscription ended and leaves a status it does not know unmapped', async () => {
+    const read = async (subscription: Record<string, unknown>) => {
+      const { FakeStripe } = createFakeStripe({ 'subscriptions.retrieve': () => subscription })
+      const stripeHandler = loadHandler('payment-manage-subscription', {
+        paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+      })
+      return (await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+        stripeHandler(
+          { providerId: 'stripe', providerSubscriptionId: 'sub_1', action: 'refresh' },
+          {}
+        )
+      )) as { status: string; cancelAtPeriodEnd: string }
+    }
+    const paused = { pause_collection: { behavior: 'void' } }
+    const ended = await read({ status: 'canceled', cancel_at_period_end: true, ...paused })
+    expect(ended).toMatchObject({ status: 'cancelled', cancelAtPeriodEnd: 'false' })
+    expect((await read({ status: 'incomplete_expired', ...paused })).status).toBe('expired')
+    expect((await read({ status: 'trialing', ...paused })).status).toBe('paused')
+    expect((await read({ status: 'past_due', ...paused })).status).toBe('paused')
+    expect((await read({ status: 'something_new' })).status).toBe('')
+    // A dashboard date after the period's end still renews first.
+    expect(
+      (await read({ status: 'active', cancel_at: 1700000900, current_period_end: 1700000500 }))
+        .cancelAtPeriodEnd
+    ).toBe('false')
+  })
+
+  it('reads a Stripe subscription back without changing it, a dashboard `cancel_at` counting as scheduled', async () => {
+    const { FakeStripe, calls } = createFakeStripe({
+      'subscriptions.retrieve': () => ({
+        status: 'past_due',
+        cancel_at: 1700000000,
+        // 2025 API versions carry the period on the item.
+        items: { data: [{ current_period_start: 1690000000, current_period_end: 1700000500 }] },
+      }),
+    })
+    const stripeHandler = loadHandler('payment-manage-subscription', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    const result = await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+      stripeHandler(
+        { providerId: 'stripe', providerSubscriptionId: 'sub_1', action: 'refresh' },
+        {}
+      )
+    )
+    expect(result).toEqual({
+      ok: 'true',
+      status: 'past_due',
+      cancelAtPeriodEnd: 'true',
+      currentPeriodStart: new Date(1690000000 * 1000).toISOString(),
+      currentPeriodEnd: new Date(1700000500 * 1000).toISOString(),
+    })
+    expect(calls).toEqual([{ method: 'subscriptions.retrieve', params: 'sub_1' }])
   })
 
   it('reads a PayPal subscription back without posting anything', async () => {
@@ -882,11 +1205,11 @@ describe('payment-billing-portal', () => {
 
   it('refuses, in one result shape, what it cannot open', async () => {
     expect(
-      await handler({ providerId: 'square', providerCustomerId: 'c', returnUrl: RETURN_URL }, {})
+      await handler({ providerId: 'adyen', providerCustomerId: 'c', returnUrl: RETURN_URL }, {})
     ).toEqual({
       ok: 'false',
       url: '',
-      error: 'Payment provider "square" has no billing portal.',
+      error: 'Payment provider "adyen" has no billing portal.',
     })
     const noCustomer = (await handler({ providerId: 'stripe', returnUrl: RETURN_URL }, {})) as {
       error: string

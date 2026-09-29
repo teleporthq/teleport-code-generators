@@ -24,9 +24,14 @@ import { generateDbImport } from './ecommerce-api-routes-generator'
  * endpoint, with the project's key, and PROXIED to the buyer — a `Range`
  * request is passed through and answered as the worker answers it — so no
  * storage address or credential ever reaches a browser. The download is
- * logged once the worker answered 2xx, and only for a whole download or a
- * range starting at 0: a resumed chunk is not a new download. 503 means the
- * store is not configured for downloads, 502 that the worker refused.
+ * counted once the worker answered 2xx, against the limit in the same
+ * transaction (410 when a concurrent request took the last one). Every
+ * request counts except a RESUMED one: a range past the first byte of a file
+ * already counted for that line within the day — for the same account on an
+ * account order, from the same address on a guest's — which is served even
+ * once the limit is reached, so the last allowed download can still finish.
+ * 503 means the store is not configured for downloads, 502 that the worker
+ * refused.
  */
 
 const DOWNLOAD_ROUTE_PATH = '/api/downloads'
@@ -85,9 +90,45 @@ export const DOWNLOAD_ENTITLEMENT_QUERY = [
   'LIMIT 1',
 ].join('\n')
 
-export const DOWNLOAD_LOG_QUERY = [
+/**
+ * Whether a download of the file was already counted for the order line
+ * within the day, for the same client: `$1` order line id, `$2` file id, `$3`
+ * the client's address, or '' for any (an account order, whose every request
+ * is already bound to the account's session).
+ */
+export const DOWNLOAD_RESUME_QUERY = [
+  'SELECT 1 FROM teleport_downloads d',
+  'WHERE d.order_item_id = $1::uuid AND d.product_file_id = $2::uuid',
+  "  AND ($3::text = '' OR d.ip_address = $3::text)",
+  "  AND d.created_at > NOW() - INTERVAL '24 hours'",
+  'LIMIT 1',
+].join('\n')
+
+/**
+ * Taken before `DOWNLOAD_CLAIM_QUERY`, in the same transaction: the limit
+ * check and the insert are one decision only because concurrent requests for
+ * the line queue here. `$1` order line id.
+ */
+export const DOWNLOAD_LINE_LOCK_QUERY =
+  'SELECT 1 FROM teleport_order_items WHERE id = $1::uuid FOR UPDATE'
+
+/**
+ * Counts the download only while the file's count for the line is under the
+ * limit, returning the new row when it did. A separate statement from the
+ * lock on purpose: under READ COMMITTED a statement counts what was committed
+ * when IT began, so this one, begun once the lock was granted, sees the
+ * download the previous holder just committed. A lock folded into this
+ * statement (a CTE `FOR UPDATE`) waits just the same but counts with the
+ * snapshot taken before it, and N parallel requests all pass. `$1` order id,
+ * `$2` order line id, `$3` file id, `$4` user id, `$5` client address, `$6`
+ * the limit (0 for none).
+ */
+export const DOWNLOAD_CLAIM_QUERY = [
   'INSERT INTO teleport_downloads (order_id, order_item_id, product_file_id, user_id, ip_address)',
-  "VALUES ($1::uuid, $2::uuid, $3::uuid, NULLIF($4, '')::uuid, NULLIF($5, ''))",
+  "SELECT $1::uuid, $2::uuid, $3::uuid, NULLIF($4, '')::uuid, NULLIF($5, '')",
+  'WHERE $6::int <= 0',
+  '  OR (SELECT COUNT(*) FROM teleport_downloads d WHERE d.order_item_id = $2::uuid AND d.product_file_id = $3::uuid) < $6::int',
+  'RETURNING id',
 ].join('\n')
 
 export const generateDownloadApiRoute = (
@@ -120,7 +161,9 @@ export const generateDownloadApiRoute = (
     "const PAID_STATUSES = ['paid', 'partially_refunded']",
     `const ORDER_QUERY = ${JSON.stringify(DOWNLOAD_ORDER_QUERY)}`,
     `const ENTITLEMENT_QUERY = ${JSON.stringify(DOWNLOAD_ENTITLEMENT_QUERY)}`,
-    `const LOG_QUERY = ${JSON.stringify(DOWNLOAD_LOG_QUERY)}`,
+    `const RESUME_QUERY = ${JSON.stringify(DOWNLOAD_RESUME_QUERY)}`,
+    `const LINE_LOCK_QUERY = ${JSON.stringify(DOWNLOAD_LINE_LOCK_QUERY)}`,
+    `const CLAIM_QUERY = ${JSON.stringify(DOWNLOAD_CLAIM_QUERY)}`,
     'const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
     'const KEY_RE = /^[A-Za-z0-9_-]{16,128}$/',
     '',
@@ -146,7 +189,8 @@ export const generateDownloadApiRoute = (
     '}',
     '',
     '// Whether the row entitles a download right now: { ok: true } or { ok: false, status, error }.',
-    'function decideDownload(row, nowMs) {',
+    '// A resumed download is past the limit check: it was counted when it began.',
+    'function decideDownload(row, nowMs, resuming) {',
     '  if (!row) {',
     '    return { ok: false, status: 404, error: DOWNLOAD_ERRORS.NOT_FOUND }',
     '  }',
@@ -161,7 +205,7 @@ export const generateDownloadApiRoute = (
     '  }',
     '  const limit = parseInt(row.download_limit, 10)',
     '  const used = parseInt(row.downloads, 10) || 0',
-    '  if (!isNaN(limit) && limit > 0 && used >= limit) {',
+    '  if (!resuming && !isNaN(limit) && limit > 0 && used >= limit) {',
     '    return { ok: false, status: 410, error: DOWNLOAD_ERRORS.LIMIT }',
     '  }',
     '  const expiryDays = parseInt(row.download_expiry_days, 10)',
@@ -199,6 +243,51 @@ export const generateDownloadApiRoute = (
     "    return String(Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',')[0].trim()",
     '  }',
     "  return (req.socket && req.socket.remoteAddress) || ''",
+    '}',
+    '',
+    '// The first byte a Range asks for when it is ONE `bytes=N-` or `bytes=N-M`',
+    '// range; 0 for no range, a range from the first byte, and anything a worker',
+    '// may answer with the whole file (a suffix, several ranges, a malformed header).',
+    'function rangeStart(range) {',
+    "  const match = /^bytes=(\\d{1,15})-(\\d{0,15})$/i.exec(String(range || '').replace(/\\s+/g, ''))",
+    '  if (!match) {',
+    '    return 0',
+    '  }',
+    '  const start = parseInt(match[1], 10)',
+    "  return match[2] !== '' && parseInt(match[2], 10) < start ? 0 : start",
+    '}',
+    '',
+    '// Counts the download if the limit still allows it; true when it did. The',
+    '// line is locked first, so the count the INSERT reads includes every',
+    '// download a concurrent request counted before it.',
+    'async function claimDownload(pool, params) {',
+    "  if (typeof pool.connect !== 'function') {",
+    '    // A driver without transactions: the conditional INSERT alone.',
+    '    const single = await pool.query(CLAIM_QUERY, params)',
+    '    return !!(single && single.rows && single.rows.length > 0)',
+    '  }',
+    '  const client = await pool.connect()',
+    '  try {',
+    "    await client.query('BEGIN')",
+    '    await client.query(LINE_LOCK_QUERY, [params[1]])',
+    '    const claimed = await client.query(CLAIM_QUERY, params)',
+    "    await client.query('COMMIT')",
+    '    return !!(claimed && claimed.rows && claimed.rows.length > 0)',
+    '  } catch (error) {',
+    "    await client.query('ROLLBACK').catch(() => undefined)",
+    '    throw error',
+    '  } finally {',
+    '    client.release()',
+    '  }',
+    '}',
+    '',
+    '// Lets the upstream connection go when its bytes will not be sent.',
+    'function discardBody(body) {',
+    "  if (body && typeof body.cancel === 'function') {",
+    '    Promise.resolve(body.cancel()).catch(() => undefined)',
+    "  } else if (body && typeof body.destroy === 'function') {",
+    '    body.destroy()',
+    '  }',
     '}',
     '',
     '// `attachment; filename="<ascii-safe>"; filename*=UTF-8\'\'<encoded>` — the',
@@ -288,7 +377,8 @@ export const generateDownloadApiRoute = (
     '      return res.status(403).json({ error: DOWNLOAD_ERRORS.INVALID })',
     '    }',
     "    const accountOrder = order.account_order === true || order.account_order === 't' || order.account_order === 'true'",
-    '    if (accountOrder && order.user_id) {',
+    '    const sessionBound = accountOrder && !!order.user_id',
+    '    if (sessionBound) {',
     '      const sessionId = sessionUserId(await ctx.sessionToken(req))',
     '      if (!sessionId) {',
     '        return res.status(401).json({ error: DOWNLOAD_ERRORS.SIGN_IN })',
@@ -299,7 +389,17 @@ export const generateDownloadApiRoute = (
     '    }',
     '    const result = await ctx.query(ENTITLEMENT_QUERY, [orderId, fileId])',
     '    const row = result && result.rows && result.rows[0] ? result.rows[0] : null',
-    '    const verdict = decideDownload(row, ctx.now())',
+    "    const range = req.headers && req.headers.range ? String(req.headers.range) : ''",
+    '    const address = clientIp(req)',
+    '    // A range past the first byte resumes a download only when one was counted',
+    "    // for this client; any other is a download of its own, or a shared link's",
+    '    // chunks would never count.',
+    '    let resuming = false',
+    '    if (row && rangeStart(range) > 0 && (sessionBound || address)) {',
+    "      const earlier = await ctx.query(RESUME_QUERY, [row.order_item_id, row.file_id, sessionBound ? '' : address])",
+    '      resuming = !!(earlier && earlier.rows && earlier.rows.length > 0)',
+    '    }',
+    '    const verdict = decideDownload(row, ctx.now(), resuming)',
     '    if (!verdict.ok) {',
     '      return res.status(verdict.status).json({ error: verdict.error })',
     '    }',
@@ -307,7 +407,6 @@ export const generateDownloadApiRoute = (
     '    if (!content) {',
     '      return res.status(503).json({ error: DOWNLOAD_ERRORS.NOT_CONFIGURED })',
     '    }',
-    "    const range = req.headers && req.headers.range ? String(req.headers.range) : ''",
     '    let upstream',
     '    try {',
     '      upstream = await ctx.fetch(content.url, {',
@@ -320,11 +419,23 @@ export const generateDownloadApiRoute = (
     '    if (!upstream || !upstream.ok) {',
     '      return res.status(502).json({ error: DOWNLOAD_ERRORS.STORAGE })',
     '    }',
-    '    // Logged only once the worker answered with the bytes, so a failed',
-    '    // fetch never costs the buyer a download; a resumed chunk is the same',
-    '    // download as the one it continues.',
-    "    if (!range || /^bytes=0-/.test(range.replace(/\\s+/g, ''))) {",
-    '      await ctx.query(LOG_QUERY, [row.order_id, row.order_item_id, row.file_id, order.user_id || row.user_id || null, clientIp(req)])',
+    '    // Counted only once the worker answered with the bytes, so a failed fetch',
+    '    // never costs the buyer a download. A resumed range the worker answered',
+    '    // with the whole file (200) is a whole download, and counts.',
+    '    if (!(resuming && upstream.status === 206)) {',
+    '      const limit = parseInt(row.download_limit, 10)',
+    '      const counted = await ctx.claim([',
+    '        row.order_id,',
+    '        row.order_item_id,',
+    '        row.file_id,',
+    '        order.user_id || row.user_id || null,',
+    '        address,',
+    '        limit > 0 ? limit : 0,',
+    '      ])',
+    '      if (!counted) {',
+    '        discardBody(upstream.body)',
+    '        return res.status(410).json({ error: DOWNLOAD_ERRORS.LIMIT })',
+    '      }',
     '    }',
     "    const upstreamHeader = (name) => (upstream.headers && typeof upstream.headers.get === 'function' ? upstream.headers.get(name) : null)",
     "    res.setHeader('Content-Type', upstreamHeader('content-type') || row.content_type || 'application/octet-stream')",
@@ -354,6 +465,7 @@ export const generateDownloadApiRoute = (
     'export default async function handler(req, res) {',
     '  return serveDownload(req, res, {',
     '    query: (text, params) => db.query(text, params),',
+    '    claim: (params) => claimDownload(db, params),',
     '    env: process.env,',
     '    fetch: fetch,',
     '    now: () => Date.now(),',

@@ -52,28 +52,13 @@ describe('payment-refund', () => {
     expect(resolveHandlerEntryName(source, 'payment-refund')).toBe('payment_refund')
   })
 
-  it('reads process through globalThis, which webpack leaves alone', () => {
-    // A bare `process` is rewritten by the GUI's browser packer into a name
-    // that does not exist on the Vercel Node runtime.
-    expect(source).toContain('globalThis.process.env')
-    // …and nowhere is `process.env` read WITHOUT that prefix.
-    expect(source.replace(/globalThis\.process\.env/g, '')).not.toContain('process.env')
-  })
-
-  it('keeps each currency list in the SAME snapshot as the code that reads it', () => {
-    // A declaration in one `.toString()`'d function and its reference in
-    // another is the "Oo is not defined" bug — a minifier renames the two
-    // independently and the generated file references a name it never declares.
-    // Slicing the emitted source per function is the only way to check that.
-    for (const fnName of ['toProviderMinorUnits', 'fromProviderMinorUnits']) {
-      const start = source.indexOf(`function ${fnName}`)
-      expect(start).toBeGreaterThanOrEqual(0)
-      const next = source.indexOf('\nfunction ', start + 1)
-      const body = next === -1 ? source.slice(start) : source.slice(start, next)
-      expect(body).toContain('zeroDecimalCurrencies = [')
-      expect(body).toContain('threeDecimalCurrencies = [')
-      expect(body).toContain('zeroDecimalCurrencies.indexOf')
-    }
+  it('carries no provider code of its own: every provider is a driver of the store', () => {
+    // Provider SDK calls, credentials and currency tables live in the emitted
+    // `utils/payments` modules — strings a minifier never rewrites — so the
+    // serialized handler reads no environment and requires nothing.
+    expect(source).toContain('__paymentDrivers')
+    expect(source).not.toContain('process')
+    expect(source).not.toMatch(/\brequire\(/)
   })
 
   it('refuses without a payment reference instead of calling a provider', async () => {
@@ -369,6 +354,23 @@ describe('payment-refund against Stripe', () => {
     expect(stripe.retrieveInvoice).not.toHaveBeenCalled()
   })
 
+  it('sends two equal partial refunds as two refunds, and a configured key untouched', async () => {
+    // The same key would make Stripe answer the second with the first refund.
+    const stripe = stripeClient()
+
+    await withStripe(stripe.client, async () => {
+      await run({ amount: 5 })
+      await run({ amount: 5 })
+      await run({ amount: 5, idempotencyKey: 'refund-request-42' })
+    })
+
+    const keys = stripe.create.mock.calls.map((call) => call[1]?.idempotencyKey)
+    expect(keys[0]).toMatch(/^refund:pi_1:5:\w+$/)
+    expect(keys[1]).toMatch(/^refund:pi_1:5:\w+$/)
+    expect(keys[0]).not.toBe(keys[1])
+    expect(keys[2]).toBe('refund-request-42')
+  })
+
   it('attaches the order id as metadata only when it is given', async () => {
     const stripe = stripeClient()
 
@@ -424,6 +426,25 @@ describe('payment-refund against Stripe', () => {
     expect(canceledResult).toMatchObject({ success: false, status: 'canceled' })
     expect(pendingResult).toMatchObject({ success: true, status: 'pending', amount: 9.99 })
   })
+
+  it('never reports a refund still waiting on the buyer as refunded', async () => {
+    const waiting = stripeClient({
+      id: 're_a',
+      amount: 999,
+      currency: 'usd',
+      status: 'requires_action',
+    })
+    const result = await withStripe(waiting.client, () => run({}))
+    expect(result).toEqual({
+      success: false,
+      refundId: 're_a',
+      amount: 0,
+      currency: 'USD',
+      status: 'requires_action',
+      error:
+        'Stripe is waiting for the buyer to act before it can pay this refund out, so nothing has been refunded yet.',
+    })
+  })
 })
 
 describe('payment-refund against PayPal', () => {
@@ -458,7 +479,9 @@ describe('payment-refund against PayPal', () => {
     ])
     const refund = calls[3]
     expect(refund.init.method).toBe('POST')
-    expect(refund.init.headers?.['PayPal-Request-Id']).toBe('refund:1AB23456CD789012E:9.99')
+    expect(refund.init.headers?.['PayPal-Request-Id']).toMatch(
+      /^refund:1AB23456CD789012E:9\.99:\w+$/
+    )
     // v1 vocabulary, and NO custom_id / invoice_number: PayPal rejects a repeated
     // invoice number, which a retried refund would be.
     expect(bodyOf(refund)).toEqual({
@@ -544,6 +567,20 @@ describe('payment-refund against PayPal', () => {
       amount: { value: '9.99', currency_code: 'USD' },
       custom_id: JSON.stringify({ orderId: 'order-1' }),
     })
+  })
+
+  it('asks v2 for the whole refund back, since its amount is what the store records', async () => {
+    const capture = await withFetch(scriptPaypal([CAPTURE, CAPTURE_REFUND]), async (seen) => {
+      await run({ paymentReference: 'CAP1' })
+      return seen
+    })
+    expect(capture[2].init.headers?.Prefer).toBe('return=representation')
+    // The v1 sale refund always answers in full.
+    const sale = await withFetch(scriptPaypal([NOT_FOUND, SALE, SALE_REFUND]), async (seen) => {
+      await run({})
+      return seen
+    })
+    expect(sale[3].init.headers?.Prefer).toBeUndefined()
   })
 
   it('reports the amount in the currency the refund came back in', async () => {

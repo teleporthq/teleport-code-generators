@@ -1,3 +1,4 @@
+import { CartCurrency } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
 import {
   COMMERCE_TRACKING_HELPER_SOURCE,
@@ -10,6 +11,11 @@ import {
 // module scope. Declaring the name emits nothing and leaves a bare identifier
 // that the appended helper source defines. See `commerce-tracking.ts`.
 declare function trackCommerceStep(step: { name: string; detail?: Record<string, unknown> }): void
+// Same, for the cart-currency rule (`CartCurrency` in teleport-shared).
+declare function __ccCurrencyRefusal(input: {
+  lines: unknown[]
+  currency: unknown
+}): { added: false; reason: string; message: string } | null
 
 async function cart_add_item(config: any) {
   const productId = config.productId
@@ -60,7 +66,8 @@ async function cart_add_item(config: any) {
   // one; a gift card is issued by email once paid; a digital line is delivered
   // from the order page; anything else ships. One order holds ONE kind, so the
   // cart does too — a line of another kind is refused here, before anything is
-  // written, and the workflow toasts why.
+  // written, and the workflow toasts why. One order is also charged in ONE
+  // currency, so a line priced in another currency is refused the same way.
   const isRecurring = readFlag(config.isRecurring)
   const isDigital = readFlag(config.isDigital)
   const recurringInterval = isRecurring ? String(config.recurringInterval || 'month') : null
@@ -83,11 +90,66 @@ async function cart_add_item(config: any) {
     physical: 'Physical products',
   }
   const lineKind = kindOf({ isRecurring, isGiftCard, isDigital })
-  const refuse = (reason: 'mixed-cart' | 'one-subscription', message: string) => ({
+  const refuse = (
+    reason: 'mixed-cart' | 'mixed-currency' | 'one-subscription' | 'options-invalid',
+    message: string
+  ) => ({
     added: false,
     reason,
     message,
   })
+
+  // The options the shopper chose, priced by the add-to-cart workflow:
+  // `configuration` is the canonical JSON of the answers and `configurationKey`
+  // its hash. A line is identified by product, variant AND configuration, so
+  // two configurations of one product are two lines. `price` already includes
+  // the options' surcharge (`configurationPriceDelta`, NET per unit) on top of
+  // `basePrice`, the charged base, so every total downstream reads `price`
+  // unchanged. A line without options carries none of these fields.
+  const rawConfiguration = config.configuration
+  const configuration = Array.isArray(rawConfiguration)
+    ? rawConfiguration.length > 0
+      ? JSON.stringify(rawConfiguration)
+      : ''
+    : typeof rawConfiguration === 'string'
+    ? rawConfiguration.trim()
+    : ''
+  const configurationKey = configuration
+    ? String(config.configurationKey == null ? '' : config.configurationKey)
+        .trim()
+        .slice(0, 64)
+    : ''
+  const configurationPriceDelta =
+    config.configurationPriceDelta == null || config.configurationPriceDelta === ''
+      ? 0
+      : Number(config.configurationPriceDelta)
+  // The same 8000-character cap the checkout enforces, so a line the checkout
+  // would refuse never reaches the cart.
+  if (configuration.length > 8000) {
+    return refuse('options-invalid', 'Your personalisation is too long. Please shorten it.')
+  }
+  if (
+    configuration &&
+    (!configurationKey || !isFinite(configurationPriceDelta) || configurationPriceDelta < 0)
+  ) {
+    return refuse(
+      'options-invalid',
+      'Some of the options you chose are no longer available. Please review them.'
+    )
+  }
+  const statedBasePrice =
+    config.basePrice == null || config.basePrice === '' ? NaN : Number(config.basePrice)
+  const lineOptions = configurationKey
+    ? {
+        configuration,
+        configurationKey,
+        configurationLabel: String(config.configurationLabel || '').slice(0, 500),
+        configurationPriceDelta,
+        basePrice: isFinite(statedBasePrice)
+          ? statedBasePrice
+          : Math.round((price - configurationPriceDelta) * 100) / 100,
+      }
+    : null
 
   // Per-product cap is published by `EcommerceProvider` to localStorage so
   // workflow handlers (which run outside React) can enforce the same limit
@@ -107,9 +169,14 @@ async function cart_add_item(config: any) {
     const raw = localStorage.getItem('workflow_cart')
     const cart: any[] = raw ? JSON.parse(raw) : []
 
+    // The key is a lookup hint, not an identity: a configured line is the same
+    // line only when its configuration is identical too.
     const existingIndex = cart.findIndex(
       (item: any) =>
-        item.productId === productId && (item.variantId || null) === (variantId || null)
+        item.productId === productId &&
+        (item.variantId || null) === (variantId || null) &&
+        String(item.configurationKey || '') === configurationKey &&
+        (!configurationKey || item.configuration === configuration)
     )
 
     // A subscription already in the cart is the one unit it will ever be.
@@ -133,6 +200,10 @@ async function cart_add_item(config: any) {
           KIND_LABELS[lineKind] +
             ' need a separate order. Complete your current order or remove the other items from your cart first.'
         )
+      }
+      const currencyRefusal = __ccCurrencyRefusal({ lines: otherLines, currency })
+      if (currencyRefusal) {
+        return refuse('mixed-currency', currencyRefusal.message)
       }
     }
 
@@ -178,6 +249,11 @@ async function cart_add_item(config: any) {
       cart[existingIndex].recurringIntervalCount = recurringIntervalCount
       cart[existingIndex].trialDays = trialDays
       cart[existingIndex].isDigital = isDigital
+      // The same answers can carry a new label or surcharge (an option renamed
+      // or repriced since the line was added).
+      if (lineOptions) {
+        Object.assign(cart[existingIndex], lineOptions)
+      }
       localStorage.setItem('workflow_cart', JSON.stringify(cart))
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('teleport:cart-changed'))
@@ -192,12 +268,16 @@ async function cart_add_item(config: any) {
           items: [{ item_id: productId, item_name: name, price, quantity }],
         },
       })
-      return {
+      const updated: any = {
         id: cart[existingIndex].id,
         productId,
         quantity: cart[existingIndex].quantity,
         added: true,
       }
+      if (lineOptions) {
+        updated.configurationKey = configurationKey
+      }
+      return updated
     } else {
       let initialQty = isRecurring ? 1 : quantity
       if (maxQty !== null && initialQty > maxQty) {
@@ -226,6 +306,9 @@ async function cart_add_item(config: any) {
         trialDays,
         isDigital,
       }
+      if (lineOptions) {
+        Object.assign(newItem, lineOptions)
+      }
       cart.push(newItem)
       localStorage.setItem('workflow_cart', JSON.stringify(cart))
       if (typeof window !== 'undefined') {
@@ -239,7 +322,11 @@ async function cart_add_item(config: any) {
           items: [{ item_id: productId, item_name: name, price, quantity: initialQty }],
         },
       })
-      return { id: newItem.id, productId, quantity: initialQty, added: true }
+      const added: any = { id: newItem.id, productId, quantity: initialQty, added: true }
+      if (lineOptions) {
+        added.configurationKey = configurationKey
+      }
+      return added
     }
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message }
@@ -249,12 +336,16 @@ export const cartAddItem: NodeHandlerGenerator = {
   nodeType: 'cart-add-item',
   executionEnv: 'client',
   generateHandler(): string {
-    // The helper is concatenated rather than imported: the handler ships as a
-    // serialized function body with no module scope. It is a string literal
-    // rather than a `.toString()` so a consumer's minifier cannot strip its
-    // declaration name. See `commerce-tracking.ts`.
+    // The helpers are concatenated rather than imported: the handler ships as
+    // a serialized function body with no module scope. They are string
+    // literals rather than a `.toString()` so a consumer's minifier cannot
+    // strip their declaration names. See `commerce-tracking.ts`.
     return assertHandlerHasNoModuleRefs(
-      handlerToString(cart_add_item) + '\n' + COMMERCE_TRACKING_HELPER_SOURCE,
+      handlerToString(cart_add_item) +
+        '\n' +
+        COMMERCE_TRACKING_HELPER_SOURCE +
+        '\n' +
+        CartCurrency.generateCartCurrencyHelperCode(),
       'cart-add-item'
     )
   },

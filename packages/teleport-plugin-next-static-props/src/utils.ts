@@ -180,26 +180,31 @@ const computePropsAST = (
           ),
         ]
 
+  // The resource call, with its `filters` param replaced when asked.
+  const fetchCallAST = (filtersOverride?: types.Expression): types.AwaitExpression =>
+    types.awaitExpression(
+      types.callExpression(types.identifier(resourceImportName), [
+        types.objectExpression([
+          types.spreadElement(
+            types.optionalMemberExpression(
+              types.identifier('context'),
+              types.identifier('params'),
+              false,
+              true
+            )
+          ),
+          ...localeAST.map((spread) => types.cloneNode(spread, true)),
+          ...funcParams.map((param) =>
+            filtersOverride && (param.key as types.StringLiteral).value === 'filters'
+              ? types.objectProperty(types.stringLiteral('filters'), filtersOverride)
+              : types.cloneNode(param, true)
+          ),
+        ]),
+      ])
+    )
+
   const declarationAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('response'),
-      types.awaitExpression(
-        types.callExpression(types.identifier(resourceImportName), [
-          types.objectExpression([
-            types.spreadElement(
-              types.optionalMemberExpression(
-                types.identifier('context'),
-                types.identifier('params'),
-                false,
-                true
-              )
-            ),
-            ...localeAST,
-            ...funcParams,
-          ]),
-        ])
-      )
-    ),
+    types.variableDeclarator(types.identifier('response'), fetchCallAST()),
   ])
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
@@ -255,8 +260,117 @@ const computePropsAST = (
   return [
     declarationAST,
     notFoundAST,
+    ...computeOwnRowPreferenceAST(initialPropsData, funcParams, fetchCallAST),
     ...computeEntityRedirectAST(initialPropsData, skipI18n, revalidateProperty),
     returnAST,
+  ]
+}
+
+/**
+ * A page that shows a SUBSET of a table's rows (`redirect.unlessFieldEquals`)
+ * and names the filter selecting its own rows (`redirect.ownRowsFilter`): two
+ * rows can share an address — two products with one slug on different
+ * product pages. When the row found belongs to another page, an own row at
+ * the same address is fetched and shown instead, so the page redirects only
+ * when it has none (and never while pre-rendering the paths it lists itself,
+ * which Next.js refuses and fails the build on).
+ *
+ *   if (String(response?.data?.[0]?.<field> ?? '') !== '<value>') {
+ *     const ownRowsResponse = await <resource>({ ...same params,
+ *       filters: JSON.stringify(JSON.parse(<filters>).concat(<ownRowsFilter>)) })
+ *     if (ownRowsResponse?.data?.[0]) {
+ *       response.data = ownRowsResponse.data
+ *     }
+ *   }
+ *
+ * `response` itself stays the one declaration later plugins find; only the
+ * rows inside it are swapped.
+ */
+const computeOwnRowPreferenceAST = (
+  initialPropsData: UIDLInitialPropsData,
+  funcParams: types.ObjectProperty[],
+  fetchCallAST: (filtersOverride?: types.Expression) => types.AwaitExpression
+): types.Statement[] => {
+  const redirect = initialPropsData.redirect
+  const guard = redirect?.unlessFieldEquals
+  const ownRowsFilter = redirect?.ownRowsFilter
+  const valuePath = initialPropsData.exposeAs.valuePath || []
+  const filtersParam = funcParams.find(
+    (param) => (param.key as types.StringLiteral).value === 'filters'
+  )
+  // The rows sit one level above the row (`data` of `data.0`); a row that IS
+  // the response cannot be swapped.
+  if (!guard || !ownRowsFilter?.length || !filtersParam || valuePath.length < 2) {
+    return []
+  }
+
+  const rowsPath = valuePath.slice(0, -1)
+  const assignablePath = (root: string): types.MemberExpression | types.Identifier =>
+    rowsPath.reduce<types.MemberExpression | types.Identifier>(
+      (object, segment) =>
+        /^\d+$/.test(segment)
+          ? types.memberExpression(object, types.numericLiteral(Number(segment)), true)
+          : types.memberExpression(object, types.identifier(segment)),
+      types.identifier(root)
+    )
+  const ownRowAST = ASTUtils.generateMemberExpressionASTFromPath([
+    'ownRowsResponse',
+    ...ASTUtils.parseValuePath(valuePath),
+  ])
+  const combinedFiltersAST = types.callExpression(
+    types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+    [
+      types.callExpression(
+        types.memberExpression(
+          types.callExpression(
+            types.memberExpression(types.identifier('JSON'), types.identifier('parse')),
+            [types.cloneNode(filtersParam.value as types.Expression, true)]
+          ),
+          types.identifier('concat')
+        ),
+        [types.valueToNode(ownRowsFilter)]
+      ),
+    ]
+  )
+
+  return [
+    types.ifStatement(
+      types.binaryExpression(
+        '!==',
+        types.callExpression(types.identifier('String'), [
+          types.logicalExpression(
+            '??',
+            ASTUtils.generateMemberExpressionASTFromPath([
+              'response',
+              ...ASTUtils.parseValuePath(valuePath),
+              guard.field,
+            ]),
+            types.stringLiteral('')
+          ),
+        ]),
+        types.stringLiteral(guard.value)
+      ),
+      types.blockStatement([
+        types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.identifier('ownRowsResponse'),
+            fetchCallAST(combinedFiltersAST)
+          ),
+        ]),
+        types.ifStatement(
+          ownRowAST,
+          types.blockStatement([
+            types.expressionStatement(
+              types.assignmentExpression(
+                '=',
+                assignablePath('response'),
+                assignablePath('ownRowsResponse')
+              )
+            ),
+          ])
+        ),
+      ])
+    ),
   ]
 }
 
@@ -290,8 +404,33 @@ const computeEntityRedirectAST = (
   ])
 
   // const entityRedirectUrl = response?.data?.[0]?.<destinationField>
+  // …or, when the page shows a SUBSET of the table's rows (`unlessFieldEquals`):
+  // const entityRedirectUrl =
+  //   String(response?.data?.[0]?.<field> ?? '') !== '<value>'
+  //     ? response?.data?.[0]?.<destinationField>
+  //     : undefined
+  const guard = redirect.unlessFieldEquals
   const destinationDeclarationAST = types.variableDeclaration('const', [
-    types.variableDeclarator(types.identifier('entityRedirectUrl'), destinationAST),
+    types.variableDeclarator(
+      types.identifier('entityRedirectUrl'),
+      guard
+        ? types.conditionalExpression(
+            types.binaryExpression(
+              '!==',
+              types.callExpression(types.identifier('String'), [
+                types.logicalExpression(
+                  '??',
+                  ASTUtils.generateMemberExpressionASTFromPath([...rowPath, guard.field]),
+                  types.stringLiteral('')
+                ),
+              ]),
+              types.stringLiteral(guard.value)
+            ),
+            destinationAST,
+            types.identifier('undefined')
+          )
+        : destinationAST
+    ),
   ])
 
   // Site-internal destinations must keep the visitor's locale: next.config.js
@@ -354,7 +493,7 @@ const computeEntityRedirectAST = (
         types.numericLiteral(302),
         types.numericLiteral(301)
       )
-    : types.numericLiteral(301)
+    : types.numericLiteral(redirect.statusCode ?? 301)
 
   const redirectReturnAST = types.returnStatement(
     types.objectExpression(
@@ -374,11 +513,39 @@ const computeEntityRedirectAST = (
     )
   )
 
+  // Next.js fails the whole build on a redirect while pre-rendering. A page
+  // showing a subset of the rows lists only its own in its paths, so this is a
+  // safety net: the path answers 404 until its revalidate window, then redirects.
+  const buildPhaseNotFoundAST = guard
+    ? [
+        types.ifStatement(
+          types.binaryExpression(
+            '===',
+            types.memberExpression(
+              types.memberExpression(types.identifier('process'), types.identifier('env')),
+              types.identifier('NEXT_PHASE')
+            ),
+            types.stringLiteral('phase-production-build')
+          ),
+          types.blockStatement([
+            types.returnStatement(
+              types.objectExpression(
+                [
+                  types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+                  revalidateProperty(),
+                ].filter(Boolean)
+              )
+            ),
+          ])
+        ),
+      ]
+    : []
+
   return [
     destinationDeclarationAST,
     types.ifStatement(
       types.identifier('entityRedirectUrl'),
-      types.blockStatement([redirectReturnAST])
+      types.blockStatement([...buildPhaseNotFoundAST, redirectReturnAST])
     ),
   ]
 }

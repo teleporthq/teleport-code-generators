@@ -1,5 +1,10 @@
-import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { ProductDiscounts, ProductRatings, StorefrontTax } from '@teleporthq/teleport-shared'
+import type { UIDLEcommerceCategory, UIDLEcommerceProductPages } from '@teleporthq/teleport-types'
+import {
+  ProductDiscounts,
+  ProductOptions,
+  ProductRatings,
+  StorefrontTax,
+} from '@teleporthq/teleport-shared'
 import { generateCategoryTaxonomyCode } from './category-taxonomy'
 
 /**
@@ -27,6 +32,67 @@ export interface EcommerceProductTransformOptions {
    * `apps/gui/app/project-page/features/e-commerce/utils/product-variants.ts`.
    */
   allowBackorders?: boolean
+  /**
+   * Where the standard product page and every custom product page live
+   * (`ecommerceSettings.productPages`). Present only when the store has a
+   * custom product page; then every product carries `productPageKey` (the page
+   * it opens on, '' = the standard one) and `productPageUrl` (its canonical
+   * locale-less address). Absent, the transform is exactly what it was.
+   */
+  productPages?: UIDLEcommerceProductPages
+}
+
+/**
+ * The product-page helpers baked into the transform. TWIN of the GUI's
+ * `features/e-commerce/utils/product-pages/product-pages-config.ts`
+ * (`normalizeProductPageKey` + `buildProductPagePath`) — both pinned by the
+ * shared `product-page-url-fixtures.json`. Only routes and attributes are baked:
+ * the page names never reach the site.
+ */
+const generateProductPagesCode = (productPages: UIDLEcommerceProductPages): string => {
+  const standard = productPages.standard
+  const baked = {
+    standard:
+      standard && typeof standard.route === 'string' && typeof standard.attribute === 'string'
+        ? { route: standard.route, attribute: standard.attribute }
+        : null,
+    pages: Object.keys(productPages.pages || {}).reduce(
+      (acc: Record<string, { route: string; attribute: string }>, key) => {
+        const page = productPages.pages[key]
+        if (page && typeof page.route === 'string' && typeof page.attribute === 'string') {
+          acc[key] = { route: page.route, attribute: page.attribute }
+        }
+        return acc
+      },
+      {}
+    ),
+  }
+  return `
+// Where every product page lives, baked from the store's custom product pages.
+// A product opens on the custom page its product_page column names while that
+// page exists, on the standard product page otherwise. Regenerating the project
+// refreshes it — do not hand-edit.
+var PRODUCT_PAGES = ${JSON.stringify(baked)}
+
+function resolveProductPageKey(raw) {
+  var key = typeof raw === 'string' ? raw.trim() : ''
+  return key !== '' && Object.prototype.hasOwnProperty.call(PRODUCT_PAGES.pages, key) ? key : ''
+}
+
+// A product's canonical address: its page's static base, then the value of the
+// column the page's address ends with, encoded. '' when either is missing.
+// values holds the slug in the page's language and the id; any other column
+// the address ends with (a SKU) is read from the row.
+function buildProductPageUrl(key, values, record) {
+  var page = key !== '' ? PRODUCT_PAGES.pages[key] : PRODUCT_PAGES.standard
+  if (!page || !page.route) return ''
+  var value = values[page.attribute]
+  if ((value === null || value === undefined) && record) value = record[page.attribute]
+  if (value === null || value === undefined || String(value) === '') return ''
+  var base = page.route === '/' ? '' : page.route
+  return base + '/' + encodeURIComponent(String(value))
+}
+`
 }
 
 /**
@@ -45,13 +111,14 @@ export const generateEcommerceProductTransformationCode = (
   return `
 ${taxHelperCode}
 ${ProductDiscounts.generateProductDiscountHelperCode()}
+${ProductOptions.generateProductOptionsHelperCode()}
 ${ProductRatings.generateProductRatingHelperCode()}
 
 // Baked from the merchant's stock settings: TRUE when stock never blocks a
 // purchase (stock management off OR backorders allowed). Regenerating the
 // project refreshes it — do not hand-edit. See EcommerceProductTransformOptions.
 var ALLOW_BACKORDERS = ${allowBackordersLiteral}
-
+${options.productPages ? generateProductPagesCode(options.productPages) : ''}
 ${generateCategoryTaxonomyCode('PRODUCT_CATEGORIES_BY_ID', options.categories)}
 // The merchant's "Show 3D model by default" toggle, as every backend may hand
 // it back: a real boolean, 1/0, 'true'/'false'/'t'/'f' strings — and NULL /
@@ -163,7 +230,12 @@ function buildEcommerceProduct(record, options) {
 
   // i18n-resolved text fields
   var name = resolveI18nField(record, 'name', 'name', currentLang, mainLang) || ''
-  var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''
+  var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''${
+    options.productPages
+      ? `
+  var productPageKey = resolveProductPageKey(pickFirst(record.product_page, record.productPage))`
+      : ''
+  }
   var description = resolveI18nField(record, 'description', 'description', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
   var tagsRaw = resolveI18nField(record, 'tags', 'tags', currentLang, mainLang)
@@ -579,6 +651,23 @@ function buildEcommerceProduct(record, options) {
   var variantsJson = safeStringifyJson(variants)
   var variantsDisplayJson = safeStringifyJson(variantsDisplay)
 
+  // Product options (configurator, configured price, card quick-add gate): the
+  // three flags always, the detail only for the details page's single-record
+  // fetch (options.includeOptionDetail). See buildProductOptionFields below.
+  var optionFields = buildProductOptionFields(record, {
+    productId: id != null ? String(id) : '',
+    currentLanguage: currentLang,
+    mainLanguage: mainLang,
+    includeDetail: options.includeOptionDetail === true,
+    basePrice: price,
+    activeDiscount: activeDiscount,
+    variants: variants,
+    defaultVariant: firstVariant,
+    symbol: currencySymbol,
+    position: getCurrencyInfo(currency).position,
+    assetMap: assetMap,
+  })
+
   return {
     id: id,
     name: name,
@@ -660,6 +749,27 @@ function buildEcommerceProduct(record, options) {
     // THIS FILE — it is one template literal, and a backtick in a comment ends
     // the string.
     reviews: reviews,
+    // Product options — see buildProductOptionFields.
+    hasProductOptions: optionFields.hasProductOptions,
+    optionsRequireInput: optionFields.optionsRequireInput,
+    optionsQuickAdd: optionFields.optionsQuickAdd,
+    optionGroups: optionFields.optionGroups,
+    optionGroupsJson: optionFields.optionGroupsJson,
+    optionsPricingJson: optionFields.optionsPricingJson,
+    optionsDefaultDisplayPrice: optionFields.optionsDefaultDisplayPrice,
+    optionsDefaultOriginalDisplayPrice: optionFields.optionsDefaultOriginalDisplayPrice,
+    optionsDefaultSummary: optionFields.optionsDefaultSummary,
+    optionsFreshKey: optionFields.optionsFreshKey,
+    optionsValidKey: optionFields.optionsValidKey,
+    optionsOriginalKey: optionFields.optionsOriginalKey,
+    optionsSummaryKey: optionFields.optionsSummaryKey,
+    optionsFilesKey: optionFields.optionsFilesKey,${
+      options.productPages
+        ? `
+    productPageKey: productPageKey,
+    productPageUrl: buildProductPageUrl(productPageKey, { slug: slug, id: id }, record),`
+        : ''
+    }
   }
 }
 
@@ -732,6 +842,378 @@ function safeStringifyJson(obj) {
   } catch (e) {
     return '[]'
   }
+}
+
+// --- Product options -------------------------------------------------------
+// MUST mirror buildStorefrontProductOptionFields in the GUI's
+// features/e-commerce/utils/product-options/product-options-storefront.ts
+// (the canvas copy): both run over __tests__/product-options-storefront.fixture.json.
+//
+// Always emitted: hasProductOptions, optionsRequireInput, optionsQuickAdd.
+// Everything else is details-page only, so a grid of cards never ships every
+// product's option tree. Structure and prices come from the main option_groups;
+// the request language's clone only overlays strings, so a stale translation
+// can never misprice. Flags are 'true'/'false' STRINGS, prices gross 2-decimal
+// strings, and every state key is scoped by the product id.
+
+// The configurator's state-key prefixes. MUST mirror OPTION_KEY_PREFIX in the
+// GUI's features/e-commerce/utils/product-options/product-options-uidl.ts.
+var OPTION_STATE_KEY_PREFIX = {
+  selected: 'sel:',
+  hidden: 'hide:',
+  shown: 'show:',
+  missing: 'miss:',
+  invalid: 'inv:',
+  rejected: 'rej:',
+  failed: 'fail:',
+  uploaded: 'up:',
+  uploading: 'load:',
+  fresh: 'fresh:',
+  valid: 'valid:',
+  original: 'orig:',
+  summary: 'sum:',
+  files: 'files:',
+}
+
+// A product without options, and the detail-free shape a listing gets.
+function emptyProductOptionFields() {
+  return {
+    hasProductOptions: 'false',
+    optionsRequireInput: 'false',
+    optionsQuickAdd: 'true',
+    optionGroups: [],
+    optionGroupsJson: '[]',
+    optionsPricingJson: '{}',
+    optionsDefaultDisplayPrice: '',
+    optionsDefaultOriginalDisplayPrice: '',
+    optionsDefaultSummary: '',
+    optionsFreshKey: '',
+    optionsValidKey: '',
+    optionsOriginalKey: '',
+    optionsSummaryKey: '',
+    optionsFilesKey: '',
+  }
+}
+
+function buildProductOptionFields(record, ctx) {
+  var groups = __poParseGroups(pickFirst(record.option_groups, record.optionGroups))
+  if (groups.length === 0) return emptyProductOptionFields()
+  // Gift cards and subscriptions may carry options, never priced ones.
+  var pricesDisabled =
+    __poFlag(pickFirst(record.is_gift_card, record.isGiftCard)) ||
+    __poText(pickFirst(record.payment_type, record.paymentType)).trim().toLowerCase() === 'recurring'
+  var defaultNet = ctx.defaultVariant
+    ? optionChargedNet(ctx.defaultVariant, ctx)
+    : __pdDiscountedPrice(ctx.basePrice, ctx.activeDiscount)
+  var fields = emptyProductOptionFields()
+  fields.hasProductOptions = 'true'
+  fields.optionsRequireInput = __poRequiresInput(groups) ? 'true' : 'false'
+  fields.optionsQuickAdd = __poQuickAdd(groups, defaultNet, pricesDisabled) ? 'true' : 'false'
+  if (!ctx.includeDetail) return fields
+
+  var localized = __poLocalize({ main: groups, clone: readOptionGroupsClone(record, ctx) })
+  var initial = __poResolve(defaultNet, localized, __poDefaultEntries(localized), pricesDisabled)
+  var view = {
+    productId: ctx.productId,
+    freshKey: OPTION_STATE_KEY_PREFIX.fresh + ctx.productId,
+    // The default answers: which price variant is in force before the shopper
+    // touches anything.
+    selection: __poDefaultSelection(localized),
+    visibleKeys: initial.visibleKeys,
+    pricesDisabled: pricesDisabled,
+    symbol: ctx.symbol,
+    position: ctx.position,
+    assetMap: ctx.assetMap,
+  }
+  var defaultOriginalNet = ctx.defaultVariant
+    ? optionListNet(ctx.defaultVariant, ctx)
+    : __pdDiscountedPrice(ctx.basePrice, null)
+  var optionGroups = []
+  for (var gi = 0; gi < localized.length; gi++) {
+    optionGroups.push(buildOptionGroupView(localized[gi], view))
+  }
+  fields.optionGroups = optionGroups
+  fields.optionGroupsJson = __poSerialize(withResolvedOptionValueImages(localized, ctx.assetMap)) || '[]'
+  fields.optionsPricingJson = JSON.stringify(buildOptionPricing(ctx, pricesDisabled))
+  fields.optionsDefaultDisplayPrice = optionDisplayMoney(defaultNet + initial.delta)
+  fields.optionsDefaultOriginalDisplayPrice = ctx.activeDiscount
+    ? optionDisplayMoney(defaultOriginalNet + initial.delta)
+    : ''
+  fields.optionsDefaultSummary = initial.label
+  fields.optionsFreshKey = view.freshKey
+  fields.optionsValidKey = OPTION_STATE_KEY_PREFIX.valid + ctx.productId
+  fields.optionsOriginalKey = OPTION_STATE_KEY_PREFIX.original + ctx.productId
+  fields.optionsSummaryKey = OPTION_STATE_KEY_PREFIX.summary + ctx.productId
+  fields.optionsFilesKey = OPTION_STATE_KEY_PREFIX.files + ctx.productId
+  return fields
+}
+
+function buildOptionGroupView(group, view) {
+  var type = group.type
+  var isChoice = type === 'choice'
+  var isMulti = type === 'multi-choice'
+  var isToggle = type === 'toggle'
+  var listsValues = isChoice || isMulti
+  var isSwatches = listsValues && group.display === 'swatches'
+  var isCards = listsValues && group.display === 'cards'
+  var isSelectable = listsValues || isToggle
+  var scope = view.productId + '|' + group.key
+  var priceVariants =
+    __poPricedTypes.indexOf(type) !== -1
+      ? buildOptionPriceVariants(group, group.key, null, type === 'number' ? group.unit : undefined, view)
+      : []
+  var acceptKind = type === 'upload' ? group.accept || 'any' : ''
+  var values = []
+  if (listsValues) {
+    var groupValues = group.values || []
+    for (var vi = 0; vi < groupValues.length; vi++) {
+      values.push(buildOptionValueView(group, groupValues[vi], isSwatches, isCards, view))
+    }
+  } else if (isToggle) {
+    values.push(buildOptionToggleValue(group, priceVariants, view))
+  }
+  var input = describeOptionInput(group)
+  return {
+    id: scope,
+    key: group.key,
+    label: group.label,
+    helpText: group.helpText || '',
+    placeholder: group.placeholder || '',
+    unit: group.unit || '',
+    required: group.required === true ? 'true' : 'false',
+    isChoice: isChoice ? 'true' : 'false',
+    isMulti: isMulti ? 'true' : 'false',
+    isText: type === 'text' ? 'true' : 'false',
+    isLongText: type === 'long-text' ? 'true' : 'false',
+    isNumber: type === 'number' ? 'true' : 'false',
+    isToggle: isToggle ? 'true' : 'false',
+    isUpload: type === 'upload' ? 'true' : 'false',
+    isButtons: isSelectable && !isSwatches && !isCards ? 'true' : 'false',
+    isSwatches: isSwatches ? 'true' : 'false',
+    isCards: isCards ? 'true' : 'false',
+    isSelectable: isSelectable ? 'true' : 'false',
+    isInput: type === 'text' || type === 'number' ? 'true' : 'false',
+    initiallyVisible: view.visibleKeys.indexOf(group.key) !== -1 ? 'true' : 'false',
+    cellRole: isChoice ? 'radio' : isMulti ? 'checkbox' : isToggle ? 'switch' : '',
+    rowRole: isChoice ? 'radiogroup' : 'group',
+    // aria-required is allowed on a radiogroup only: a group row gets null, which
+    // renders no attribute (never undefined, which getStaticProps cannot serialize).
+    rowRequired: isChoice ? (group.required === true ? 'true' : 'false') : null,
+    idleTabIndex: isChoice ? '-1' : '0',
+    inputType: input.inputType,
+    inputMode: input.inputMode,
+    maxLengthText: input.maxLengthText,
+    minText: input.minText,
+    maxText: input.maxText,
+    stepText: input.stepText,
+    defaultValueText: input.defaultValueText,
+    rangeHint: input.rangeHint,
+    acceptKind: acceptKind,
+    acceptMime: acceptKind ? __poUploadMime[acceptKind].join(',') : '',
+    priceVariants: priceVariants,
+    headerPriceVariants: isSelectable ? [] : priceVariants,
+    hiddenKey: OPTION_STATE_KEY_PREFIX.hidden + scope,
+    shownKey: OPTION_STATE_KEY_PREFIX.shown + scope,
+    missingKey: OPTION_STATE_KEY_PREFIX.missing + scope,
+    invalidKey: OPTION_STATE_KEY_PREFIX.invalid + scope,
+    rejectedKey: OPTION_STATE_KEY_PREFIX.rejected + scope,
+    failedKey: OPTION_STATE_KEY_PREFIX.failed + scope,
+    uploadedKey: OPTION_STATE_KEY_PREFIX.uploaded + scope,
+    // Product-level: one upload at a time blocks every upload button.
+    uploadingKey: OPTION_STATE_KEY_PREFIX.uploading + view.productId,
+    freshKey: view.freshKey,
+    values: values,
+  }
+}
+
+// The groups as the page's resolver reads them (data-option-groups), with each
+// value's picture as a URL the browser can load: the shopper's choices hand it
+// on to anything on the page that shows the chosen value's picture. A picture
+// that resolves to nothing is dropped, never shipped as a bare asset id. TWIN
+// of withResolvedValueImages in the GUI's product-options-storefront.ts.
+function withResolvedOptionValueImages(groups, assetMap) {
+  var out = []
+  for (var gi = 0; gi < groups.length; gi++) {
+    var group = groups[gi]
+    if (!Array.isArray(group.values)) {
+      out.push(group)
+      continue
+    }
+    var values = []
+    for (var vi = 0; vi < group.values.length; vi++) {
+      var value = group.values[vi]
+      if (!value.imageUrl) {
+        values.push(value)
+        continue
+      }
+      var valueCopy = {}
+      for (var vk in value) {
+        if (Object.prototype.hasOwnProperty.call(value, vk) && vk !== 'imageUrl') valueCopy[vk] = value[vk]
+      }
+      var resolved = resolveMediaUrl(value.imageUrl, assetMap) || ''
+      if (resolved) valueCopy.imageUrl = resolved
+      values.push(valueCopy)
+    }
+    var groupCopy = {}
+    for (var gk in group) {
+      if (Object.prototype.hasOwnProperty.call(group, gk)) groupCopy[gk] = group[gk]
+    }
+    groupCopy.values = values
+    out.push(groupCopy)
+  }
+  return out
+}
+
+function buildOptionValueView(group, value, isSwatches, isCards, view) {
+  var scope = view.productId + '|' + group.key + '|' + value.key
+  var color = value.color || ''
+  // An asset id that resolves to nothing is never shipped as a bare id.
+  var imageUrl = value.imageUrl ? resolveMediaUrl(value.imageUrl, view.assetMap) || '' : ''
+  return {
+    id: scope,
+    key: value.key,
+    label: value.label,
+    description: value.description || '',
+    color: color,
+    imageUrl: imageUrl,
+    isDefault: value['default'] === true ? 'true' : 'false',
+    showSwatch: isSwatches && color !== '' ? 'true' : 'false',
+    showImage: isCards && imageUrl !== '' ? 'true' : 'false',
+    selectedKey: OPTION_STATE_KEY_PREFIX.selected + scope,
+    freshKey: view.freshKey,
+    priceVariants: buildOptionPriceVariants(value, group.key, value.key, undefined, view),
+  }
+}
+
+// A toggle is one switch cell: its label is the group's, its price the group's price.
+function buildOptionToggleValue(group, priceVariants, view) {
+  var scope = view.productId + '|' + group.key + '|on'
+  return {
+    id: scope,
+    key: 'on',
+    label: group.label,
+    description: '',
+    color: '',
+    imageUrl: '',
+    isDefault: 'false',
+    showSwatch: 'false',
+    showImage: 'false',
+    selectedKey: OPTION_STATE_KEY_PREFIX.selected + scope,
+    freshKey: view.freshKey,
+    priceVariants: priceVariants,
+  }
+}
+
+// One entry per priceWhen override (in order), then the default price ('d').
+// The configurator shows the entry whose activeKey the resolver wrote, or the
+// isInitial one before the shopper touched anything.
+function buildOptionPriceVariants(target, groupKey, valueKey, unit, view) {
+  var initial = __poEffectiveVariant(target, view.selection, view.visibleKeys)
+  var overrides = Array.isArray(target.priceWhen) ? target.priceWhen : []
+  var variants = []
+  for (var oi = 0; oi < overrides.length; oi++) {
+    variants.push(buildOptionPriceVariant(overrides[oi].price, oi, initial, groupKey, valueKey, unit, view))
+  }
+  variants.push(buildOptionPriceVariant(target.price, 'd', initial, groupKey, valueKey, unit, view))
+  return variants
+}
+
+function buildOptionPriceVariant(rule, variant, initial, groupKey, valueKey, unit, view) {
+  return {
+    activeKey: __poPriceVariantKey(view.productId, groupKey, valueKey, variant),
+    label: view.pricesDisabled
+      ? ''
+      : __poPriceLabel(rule, view.symbol, view.position, STOREFRONT_TAX_RATE, unit),
+    isInitial: variant === initial ? 'true' : 'false',
+    // Repeated on every variant: the badge gates inside this list's mapper can
+    // only read the list's own item.
+    freshKey: view.freshKey,
+  }
+}
+
+function describeOptionInput(group) {
+  var input = {
+    inputType: '',
+    inputMode: '',
+    maxLengthText: '',
+    minText: '',
+    maxText: '',
+    stepText: '',
+    defaultValueText: '',
+    rangeHint: '',
+  }
+  if (group.type === 'text' || group.type === 'long-text') {
+    var limit = group.type === 'text' ? __poLimits.text : __poLimits.longText
+    input.inputType = 'text'
+    input.inputMode = 'text'
+    input.maxLengthText = String(typeof group.maxLength === 'number' ? Math.min(limit, group.maxLength) : limit)
+  } else if (group.type === 'number') {
+    input.inputType = 'number'
+    input.inputMode = 'decimal'
+    input.minText = typeof group.min === 'number' ? String(group.min) : ''
+    input.maxText = typeof group.max === 'number' ? String(group.max) : ''
+    input.stepText = typeof group.step === 'number' ? String(group.step) : 'any'
+    input.defaultValueText = typeof group.defaultValue === 'number' ? String(group.defaultValue) : ''
+    input.rangeHint = describeOptionRange(input.minText, input.maxText, group.unit || '')
+  }
+  return input
+}
+
+// "10 – 200 cm", "≥ 10 cm", "≤ 200 cm"; '' without bounds.
+function describeOptionRange(minText, maxText, unit) {
+  var range = ''
+  if (minText && maxText) range = minText + ' – ' + maxText
+  else if (minText) range = '≥ ' + minText
+  else if (maxText) range = '≤ ' + maxText
+  return range && unit ? range + ' ' + unit : range
+}
+
+// What the configurator's resolver needs to price the combination the shopper
+// picks in the variant picker: every combination, charged and list NET.
+function buildOptionPricing(ctx, pricesDisabled) {
+  var discounted = !!ctx.activeDiscount
+  var variants = []
+  for (var pi = 0; pi < ctx.variants.length; pi++) {
+    var variant = ctx.variants[pi]
+    variants.push({
+      id: variant.id,
+      options: variant.options,
+      net: optionChargedNet(variant, ctx),
+      originalNet: discounted ? optionListNet(variant, ctx) : null,
+    })
+  }
+  return {
+    productId: ctx.productId,
+    netBase: __pdDiscountedPrice(ctx.basePrice, ctx.activeDiscount),
+    originalNetBase: discounted ? __pdDiscountedPrice(ctx.basePrice, null) : null,
+    taxRate: STOREFRONT_TAX_RATE,
+    symbol: ctx.symbol,
+    position: ctx.position,
+    pricesDisabled: pricesDisabled,
+    defaultCombinationId: ctx.defaultVariant ? ctx.defaultVariant.id : '',
+    variants: variants,
+  }
+}
+
+// A combination's own price, else the product's (a null price inherits).
+function optionVariantListPrice(variant, basePrice) {
+  return typeof variant.price === 'number' && isFinite(variant.price) ? variant.price : basePrice
+}
+function optionChargedNet(variant, ctx) {
+  return __pdDiscountedPrice(optionVariantListPrice(variant, ctx.basePrice), ctx.activeDiscount)
+}
+function optionListNet(variant, ctx) {
+  return __pdDiscountedPrice(optionVariantListPrice(variant, ctx.basePrice), null)
+}
+
+function readOptionGroupsClone(record, ctx) {
+  if (!ctx.currentLanguage || !ctx.mainLanguage || ctx.currentLanguage === ctx.mainLanguage) return null
+  return record[ctx.currentLanguage + '_option_groups']
+}
+
+// A unit price as the shopper reads it: NET rounded to the cent, then gross.
+function optionDisplayMoney(net) {
+  return applyStorefrontTax(__poRound2(net)).toFixed(2)
 }
 
 // Parse + normalize the variant_options JSON into render-ready axes. Tolerant of

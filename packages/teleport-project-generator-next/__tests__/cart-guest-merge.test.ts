@@ -124,7 +124,7 @@ describe('cart endpoint — claiming a guest cart', () => {
 describe('cart endpoint — sync must not bury a merge', () => {
   it('returns the merged cart instead of accepting the pre-login snapshot', () => {
     expect(route).toMatch(
-      /var claim = await claimGuestCart\(identity\)\s*if \(claim\.merged\) \{[\s\S]*?merged: true, items: await readCartItems\(identity\)/
+      /var claim = await claimGuestCart\(identity\)\s*if \(claim\.merged\) \{[\s\S]*?merged: true,\s*items: await readCartItems\(identity\)/
     )
   })
 
@@ -144,7 +144,15 @@ describe('cart provider — adopting a merged cart', () => {
 
   it('adopts only when the server says it merged', () => {
     expect(provider).toMatch(
-      /if \(response && response\.merged\) \{\s*applyServerCart\(response\.items\)/
+      /if \(response && response\.merged\) \{\s*applyServerCart\(\s*response\.items,/
+    )
+  })
+
+  // A route whose table predates the options columns stores no configured line:
+  // the tab keeps its own instead of losing them to the merged answer.
+  it('keeps the tab’s configured lines when the server could not store them', () => {
+    expect(provider).toContain(
+      'response.configurationsPersisted === false ? cartItemsRef.current : null'
     )
   })
 

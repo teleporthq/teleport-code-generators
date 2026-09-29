@@ -254,7 +254,8 @@ describe('EcommerceProvider — where the tax is (and is not) applied', () => {
 
   it('does not tax enrichCartItems, which rewrites the STORED net price', () => {
     const out = taxed()
-    expect(out).toContain('price: price,')
+    // NET, with a configured line's NET options surcharge added on.
+    expect(out).toContain('price: optionsDelta != null ? __poRound2(price + optionsDelta) : price,')
     expect(out).not.toContain('price: applyStorefrontTax(price)')
   })
 })

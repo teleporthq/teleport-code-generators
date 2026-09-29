@@ -1,7 +1,7 @@
 /* tslint:disable:no-eval function-constructor */
 import { parse } from '@babel/parser'
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
-import { DiscountEngine } from '@teleporthq/teleport-shared'
+import { CartCurrency, DiscountEngine } from '@teleporthq/teleport-shared'
 import { generateEcommerceContextFileContent } from '../src/ecommerce/ecommerce-context-generator'
 import { buildWorkflowEcommerceSettingsPayload } from '../src/ecommerce/ecommerce-api-routes-generator'
 import { resolveGiftCards } from '../src/ecommerce/ecommerce-gift-card-code'
@@ -177,7 +177,7 @@ describe('EcommerceProvider — gift card emitted module', () => {
 
   it('prices both fulfilment shapes and re-renders when the card or totals move', () => {
     expect(source).toContain(
-      'computeGiftCardMeta(\n        appliedGiftCard,\n        effectiveTotal,\n        pickupTotal,\n        cartHasGiftCardLines(cartItems),\n        !!recurringLine,\n        recurringTrial\n      )'
+      'computeGiftCardMeta(\n        appliedGiftCard,\n        effectiveTotal,\n        pickupTotal,\n        cartHasGiftCardLines(cartItems),\n        !!recurringLine,\n        recurringTrial,\n        __ccCartCurrency(cartItems)\n      )'
     )
     expect(source).toContain(
       '[appliedGiftCard, effectiveTotal, pickupTotal, cartItems, recurringLine, recurringTrial]'
@@ -214,7 +214,9 @@ interface GiftCardApi {
     deliveryTotal: number,
     pickupTotal: number,
     hasGiftCardLines: boolean,
-    hasRecurringLines?: boolean
+    hasRecurringLines?: boolean,
+    hasRecurringTrial?: boolean,
+    cartCurrency?: string
   ) => GiftCardMeta
   hasGiftCardLines: (items: unknown[]) => boolean
 }
@@ -227,6 +229,7 @@ describe('EcommerceProvider — gift card projections', () => {
       'window',
       [
         DiscountEngine.generateDiscountEngineHelperCode(),
+        CartCurrency.generateCartCurrencyHelperCode(),
         constant(source, 'GIFT_CARDS'),
         constant(source, 'GIFT_CARD_STORAGE_KEY'),
         grab(source, 'formatCartMoney'),
@@ -245,10 +248,13 @@ describe('EcommerceProvider — gift card projections', () => {
     checkedAt: '2026-09-22T10:00:00.000Z',
   }
 
-  it('reads the stored card back, in the store currency only', () => {
+  it('reads the stored card back, whatever its currency: the tender decides against the cart', () => {
     const api = loadApi(JSON.stringify(CARD))
     expect(api.load()).toEqual(CARD)
-    expect(loadApi(JSON.stringify({ ...CARD, currency: 'usd' })).load()).toBeNull()
+    expect(loadApi(JSON.stringify({ ...CARD, currency: 'usd' })).load()).toEqual({
+      ...CARD,
+      currency: 'USD',
+    })
     expect(loadApi(JSON.stringify({ ...CARD, id: '' })).load()).toBeNull()
     expect(loadApi('not json').load()).toBeNull()
     expect(loadApi(null).load()).toBeNull()
@@ -306,5 +312,30 @@ describe('EcommerceProvider — gift card projections', () => {
     })
     expect(api.hasGiftCardLines([{ isGiftCard: false }, { isGiftCard: 't' }])).toBe(true)
     expect(api.hasGiftCardLines([{ isGiftCard: false }, {}])).toBe(false)
+  })
+
+  it("pays only a cart priced in the card's own currency, the store's standing in for a cart without one", () => {
+    const api = loadApi(null)
+    const none = {
+      giftCardApplied: 'false',
+      giftCardLast4: '',
+      giftCardAmount: '0.00',
+      giftCardAmountPickup: '0.00',
+      amountDue: '45.50',
+      amountDuePickup: '35.50',
+    }
+    // An EUR card on a USD cart pays nothing, and is not shown as applied.
+    expect(api.meta(CARD, 45.5, 35.5, false, false, false, 'USD')).toEqual(none)
+    // A USD card pays a USD cart even in an EUR store.
+    expect(
+      api.meta({ ...CARD, currency: 'USD' }, 45.5, 35.5, false, false, false, 'usd')
+    ).toMatchObject({ giftCardApplied: 'true', giftCardAmount: '30.00', amountDue: '15.50' })
+    // A cart whose lines name no currency is priced in the store's (EUR).
+    expect(api.meta(CARD, 45.5, 35.5, false, false, false, '')).toMatchObject({
+      giftCardApplied: 'true',
+    })
+    expect(api.meta({ ...CARD, currency: 'USD' }, 45.5, 35.5, false, false, false, '')).toEqual(
+      none
+    )
   })
 })

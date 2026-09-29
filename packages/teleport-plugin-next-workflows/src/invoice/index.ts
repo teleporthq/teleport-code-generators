@@ -7,7 +7,12 @@ import {
 import { generatePdfGeneratorCode } from './pdf-generator-code'
 import { generateEmailSenderCode, getEmailProviderDependencies } from './email-sender-code'
 import { generateDataAccessCode, getRecordMappingCode } from './data-access-code'
-import { generateInvoiceGenerateRouteCode, generateInvoicePdfRouteCode } from './api-routes-code'
+import {
+  generateInvoiceGenerateRouteCode,
+  generateInvoicePdfRouteCode,
+  generateInvoiceRegenerateRouteCode,
+} from './api-routes-code'
+import { generateInvoiceAssemblyCode } from './invoice-assembly-code'
 import { getDatabaseDriverDependencies } from '../auth-generator'
 import { ensureSentEmailLogModule } from '../sent-email-log'
 import { ensureEmailLocaleModule } from '../email-locale'
@@ -64,6 +69,19 @@ export const generateInvoiceFiles = (
         name: 'pdf-generator',
         fileType: FileType.JS,
         content: pdfGeneratorCode,
+      },
+    ],
+  })
+
+  // The order-to-invoice arithmetic, shared by the generate and regenerate
+  // routes so a rebuilt invoice is computed exactly like the one issued.
+  files.set('invoice-assembly', {
+    path: ['utils', 'invoices'],
+    files: [
+      {
+        name: 'invoice-assembly',
+        fileType: FileType.JS,
+        content: generateInvoiceAssemblyCode(invoiceSettings),
       },
     ],
   })
@@ -128,6 +146,18 @@ export const generateInvoiceFiles = (
         name: 'pdf',
         fileType: FileType.JS,
         content: pdfRouteCode,
+      },
+    ],
+  })
+
+  // The admin panel's "Regenerate" action (single row and bulk).
+  files.set('invoice-regenerate-route', {
+    path: ['pages', 'api', 'invoices', '[id]'],
+    files: [
+      {
+        name: 'regenerate',
+        fileType: FileType.JS,
+        content: generateInvoiceRegenerateRouteCode(),
       },
     ],
   })

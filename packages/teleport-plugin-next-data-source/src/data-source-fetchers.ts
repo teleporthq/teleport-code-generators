@@ -34,8 +34,9 @@ import {
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
 import type { EntityTransformOptions } from './transformations'
-import { DataCache } from '@teleporthq/teleport-shared'
+import { DataCache, TableAccess } from '@teleporthq/teleport-shared'
 import type { DataSourceServerCacheOptions } from './cache/types'
+import { isViewDependentTable } from './fetchers/utils/browser-row-policy'
 
 export { generateRawQueryFetcher, parseQueryTemplateVariables }
 
@@ -301,6 +302,9 @@ export function generateDataSourceFetcherWithCore(
   const cachePreamble = cacheOptions
     ? `import { tqWithCache } from '${isApiRoute ? '../../' : '../'}tq-cache/server'`
     : ''
+  // A module carrying the browser row policy (the Postgres-family routes) keys
+  // its cache by who is reading; see `__tqCacheByView` below.
+  const splitsCacheByView = handlerCode.indexOf('function __brpSharesPublicView(') !== -1
 
   const cacheWiring = cacheOptions
     ? `
@@ -322,8 +326,35 @@ const __tqCountCache = ${JSON.stringify({
         swr: cacheOptions.staleWhileRevalidate || 0,
       })}
 
-const cachedHandler = tqWithCache(handler, __tqDataCache)
-const cachedGetCount = tqWithCache(getCount, __tqCountCache)
+${
+  splitsCacheByView
+    ? `// The store's own server code and its administrators may be served rows a
+// visitor is not (see __brpSharesPublicView), so they read and fill a cache of
+// their own — one never marked for a shared (CDN) cache either.
+const __tqViewDependent = ${JSON.stringify(
+        isViewDependentTable(tableName, [
+          ...TableAccess.PROTECTED_TABLES,
+          ...Object.keys(TableAccess.PUBLIC_FEED_TABLES),
+        ])
+      )}
+function __tqCacheByView(fn, opts) {
+  const publicView = tqWithCache(fn, opts)
+  const trustedView = tqWithCache(fn, Object.assign({}, opts, {
+    scope: opts.scope + ':trusted',
+    versionScope: opts.versionScope || opts.scope,
+    sMaxAge: 0,
+    swr: 0,
+  }))
+  return async function (req, res) {
+    return (await __brpSharesPublicView(req, __tqViewDependent)) ? publicView(req, res) : trustedView(req, res)
+  }
+}
+
+const cachedHandler = __tqCacheByView(handler, __tqDataCache)
+const cachedGetCount = __tqCacheByView(getCount, __tqCountCache)`
+    : `const cachedHandler = tqWithCache(handler, __tqDataCache)
+const cachedGetCount = tqWithCache(getCount, __tqCountCache)`
+}
 `
     : ''
 

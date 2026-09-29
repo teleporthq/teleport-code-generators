@@ -20,10 +20,9 @@ export const generatePdfServiceClientCode = (): string => {
 // Posts the already-built HTML to a self-hosted microservice that runs
 // Puppeteer on our behalf. The service owns the Chromium process, the
 // queue, and the retry budget (up to 3 attempts); this client does NOT
-// retry on top. A caller-side retry would break invoice number
-// sequencing — the API route reserves \`INV-N\` via
-// \`getNextInvoiceNumber\` *before* invoking the renderer, so every
-// retry would burn a new number.
+// retry on top: the API route reserves \`INV-N\` (\`reserveInvoice\`)
+// *before* invoking the renderer, and a failed render leaves that
+// reservation for the next request for the order to finish.
 //
 // Contract:
 //   - Config via \`process.env.PDF_SERVICE_URL\` and

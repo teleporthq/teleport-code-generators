@@ -28,6 +28,17 @@ import * as fs from 'fs'
 // auditor. Tested directly so the per-shape decisions are clear.
 // ────────────────────────────────────────────────────────────────────
 describe('classifyStockWriteSite — single-node categorisation', () => {
+  it('classifies the statement that puts units back as a restock', () => {
+    const result = classifyStockWriteSite('Settle Unpaid Order', {
+      type: 'data-raw-query',
+      config: {
+        query:
+          'UPDATE teleport_products p SET quantity = p.quantity + d.qty FROM d WHERE p.id = d.id',
+      },
+    })
+    expect(result.category).toBe('restock')
+  })
+
   it('categorises an admin-panel data-update-item as admin', () => {
     const result = classifyStockWriteSite('Admin Panel Update Products', {
       type: 'data-update-item',
@@ -574,6 +585,8 @@ describe('stock-write audit against the real example project UIDL', () => {
     // "the place-order decrement exists" and "nothing is unknown".
     expect(audit.orderDecrement.length).toBeGreaterThanOrEqual(1)
     expect(audit.unknown).toEqual([])
+    // Cancelling or expiring an unpaid order puts its units back.
+    expect(audit.restock.map((site) => site.workflowName)).toContain('Settle Unpaid Order')
 
     // The place-order decrement MUST appear in the place-order
     // workflows specifically — not in any other workflow.

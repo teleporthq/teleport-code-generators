@@ -2,6 +2,27 @@ import { UIDLWorkflowProtection } from '@teleporthq/teleport-types'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 
 /**
+ * `roleOf(token)` — the role a decoded session token carries (`role`,
+ * `roleName`, or the first of `roles`), or null. Shared by every generated
+ * guard that authorises by role, so they can never read the claim differently.
+ */
+export const ROLE_OF_TOKEN_CODE = `function roleOf(token) {
+  if (!token || typeof token !== 'object') {
+    return null;
+  }
+  if (typeof token.role === 'string') {
+    return token.role;
+  }
+  if (typeof token.roleName === 'string') {
+    return token.roleName;
+  }
+  if (Array.isArray(token.roles) && token.roles.length > 0 && typeof token.roles[0] === 'string') {
+    return token.roles[0];
+  }
+  return null;
+}`
+
+/**
  * The shared, stateless auth guard for generated workflow API routes, emitted
  * once at `utils/workflows/workflow-auth.js`.
  *
@@ -44,21 +65,7 @@ function sessionUserId(token) {
   return token.id != null ? token.id : (token.sub != null ? token.sub : null);
 }
 
-function roleOf(token) {
-  if (!token || typeof token !== 'object') {
-    return null;
-  }
-  if (typeof token.role === 'string') {
-    return token.role;
-  }
-  if (typeof token.roleName === 'string') {
-    return token.roleName;
-  }
-  if (Array.isArray(token.roles) && token.roles.length > 0 && typeof token.roles[0] === 'string') {
-    return token.roles[0];
-  }
-  return null;
-}
+${ROLE_OF_TOKEN_CODE}
 
 ${generateSubscriberAccessLoader(options.withSubscriberAccess === true)}
 
@@ -94,8 +101,27 @@ function bindPath(root, path, value) {
 
 // Returns null when the request may proceed, or { status, message } to reject.
 // Mutates \`context\` in place to bind user-owned columns to the session user.
+function sameSecret(given, expected) {
+  if (typeof given !== 'string' || typeof expected !== 'string' || given.length !== expected.length) {
+    return false;
+  }
+  return require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+}
+
 async function guardWorkflowRequest(req, context, policy) {
   if (!policy) {
+    return null;
+  }
+
+  // This deployment's own server code (a webhook or cron route running a
+  // custom node) carries the internal-call token and passes every gate. A route
+  // only such code may call (serverOnly) answers nothing to anyone else — not a
+  // browser, not a signed-in admin.
+  var internalCall = require('./server-runtime').isInternalCall(req);
+  if (policy.serverOnly) {
+    return internalCall ? null : { status: 401, message: 'Unauthenticated' };
+  }
+  if (internalCall) {
     return null;
   }
 
@@ -103,7 +129,7 @@ async function guardWorkflowRequest(req, context, policy) {
   // present the app secret in a header; only server code can read
   // NEXTAUTH_SECRET, so a browser cannot forge it. These bypass the check.
   var internal = req && req.headers && req.headers['x-internal-data-secret'];
-  if (internal && process.env.NEXTAUTH_SECRET && internal === process.env.NEXTAUTH_SECRET) {
+  if (internal && process.env.NEXTAUTH_SECRET && sameSecret(internal, process.env.NEXTAUTH_SECRET)) {
     return null;
   }
 
@@ -218,7 +244,10 @@ const EMPTY_INJECTION: WorkflowAuthInjection = { requireLine: '', policyConst: '
 export const buildWorkflowAuthInjection = (
   protection: UIDLWorkflowProtection | undefined
 ): WorkflowAuthInjection => {
-  if (!protection || (!protection.requiresAuth && !protection.userScoped)) {
+  if (
+    !protection ||
+    (!protection.requiresAuth && !protection.userScoped && !protection.serverOnly)
+  ) {
     return EMPTY_INJECTION
   }
 
@@ -226,12 +255,16 @@ export const buildWorkflowAuthInjection = (
   const policy: {
     requiresAuth: boolean
     allowedRoles: string[]
+    serverOnly?: boolean
     userScoped?: UIDLWorkflowProtection['userScoped']
     requiresSubscription?: boolean
     subscriptionProductIds?: string[]
   } = {
     requiresAuth: !!protection.requiresAuth,
     allowedRoles: protection.allowedRoles || [],
+  }
+  if (protection.serverOnly) {
+    policy.serverOnly = true
   }
   if (protection.userScoped) {
     policy.userScoped = protection.userScoped

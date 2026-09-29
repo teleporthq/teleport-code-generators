@@ -71,7 +71,8 @@ describe('EcommerceProvider — regional pricing is opt-in', () => {
     const legacy = generateEcommerceContextFileContent(baseSettings(), INVOICE, 'ds-1')
     expect(legacy).not.toContain('__rpQuote')
     expect(legacy).not.toContain('teleport_shipping_zones')
-    expect(legacy).not.toContain('weightUnit')
+    // Lines are priced without the weight only the regional rates read.
+    expect(legacy).toContain('__clPriceLine(item, product, variant, Date.now(), false)')
     // The checkout's regional surfaces still resolve, to "nothing to show".
     expect(legacy).toContain("shippingOptionsVisible: 'false'")
     expect(legacy).toContain("shippingStatus: 'ok'")
@@ -123,7 +124,8 @@ describe('EcommerceProvider — regional pricing emitted module', () => {
   })
 
   it('stamps weight onto hydrated cart lines, beside the categories every store stamps', () => {
-    expect(source).toContain('weightUnit: product.weight_unit || null')
+    expect(source).toContain('__clPriceLine(item, product, variant, Date.now(), true)')
+    expect(source).toContain('priced.weightUnit = product.weight_unit || null;')
     // Categories are the discount engine's too, so they are stamped through
     // its parser on every store — the regional block no longer owns them.
     expect(source).toContain(

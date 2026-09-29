@@ -1,5 +1,12 @@
 import { generateInvoiceGenerateRouteCode } from '../src/invoice/api-routes-code'
+import { generateInvoiceAssemblyCode } from '../src/invoice/invoice-assembly-code'
 import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
+import {
+  INVOICE_TEST_APP_SECRET,
+  createInvoiceRouteRequire,
+  evaluateEmittedModule,
+  serverCallHeaders,
+} from './_helpers/load-invoice-route'
 
 // `/api/invoices/generate` used to invoice a HALF-WRITTEN order.
 //
@@ -109,12 +116,11 @@ async function runHandler(options: {
         items: ITEM_ROWS.slice(0, options.visibleItemsPerRead(reads)),
       }
     },
-    getNextInvoiceNumber: async () => 1,
-    insertInvoice: async (invoiceData: Record<string, unknown>) => invoiceData,
-    insertInvoiceItems: async (_invoiceId: string, items: unknown[]) => {
+    reserveInvoice: async (invoiceData: Record<string, unknown>, items: unknown[]) => {
       insertedItems.push(...items)
-      return items
+      return { invoice: invoiceData, created: true }
     },
+    storeInvoicePdf: async () => ({}),
     updateInvoice: async () => ({}),
   }
 
@@ -123,27 +129,13 @@ async function runHandler(options: {
     COMPANY_DETAILS: {},
   }
 
-  const stubRequire = ((id: string) => {
-    if (id.indexOf('data-access') !== -1) return dataAccessStub
-    if (id.indexOf('pdf-generator') !== -1) return pdfGeneratorStub
-    if (id === 'pg') return { Client: class {} }
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(id)
-  }) as unknown as NodeRequire
-
-  const factory = new Function(
-    'require',
-    'module',
-    'exports',
-    `${code}; return module.exports;`
-  ) as (
-    req: NodeRequire,
-    mod: { exports: unknown },
-    exp: unknown
-  ) => (req: unknown, res: unknown) => Promise<void>
-
-  const moduleObject = { exports: {} as unknown }
-  const handler = factory(stubRequire, moduleObject, moduleObject.exports)
+  const handler = evaluateEmittedModule<(req: unknown, res: unknown) => Promise<void>>(
+    code,
+    createInvoiceRouteRequire(FAKE_SETTINGS, {
+      dataAccess: dataAccessStub,
+      pdfGenerator: pdfGeneratorStub,
+    })
+  )
 
   let status = 0
   let payload: Record<string, unknown> = {}
@@ -164,7 +156,7 @@ async function runHandler(options: {
     },
   }
 
-  await handler({ method: 'POST', headers: { host: 'localhost:3000' }, body: options.body }, res)
+  await handler({ method: 'POST', headers: serverCallHeaders(), body: options.body }, res)
 
   return { status, payload, insertedItems, reads }
 }
@@ -173,6 +165,7 @@ describe('/api/invoices/generate — waits for the order to be fully written', (
   const originalFetch = globalThis.fetch
   const originalConnString = process.env.TELEPORT_DB_CONNECTION_STRING
   const originalDatabaseUrl = process.env.DATABASE_URL
+  const originalAppSecret = process.env.NEXTAUTH_SECRET
 
   beforeAll(() => {
     // The route self-fetches the runtime-storage proxy and mirrors onto
@@ -183,10 +176,17 @@ describe('/api/invoices/generate — waits for the order to be fully written', (
     }) as unknown as typeof fetch
     delete process.env.TELEPORT_DB_CONNECTION_STRING
     delete process.env.DATABASE_URL
+    // The route issues invoices for the store's own server code only.
+    process.env.NEXTAUTH_SECRET = INVOICE_TEST_APP_SECRET
   })
 
   afterAll(() => {
     globalThis.fetch = originalFetch
+    if (originalAppSecret === undefined) {
+      delete process.env.NEXTAUTH_SECRET
+    } else {
+      process.env.NEXTAUTH_SECRET = originalAppSecret
+    }
     if (originalConnString !== undefined) {
       process.env.TELEPORT_DB_CONNECTION_STRING = originalConnString
     }
@@ -301,8 +301,13 @@ describe('/api/invoices/generate — settle contract (emitted source)', () => {
   it('warns when the invoice total disagrees with the amount charged', () => {
     // The tripwire that would have caught this the first time: the invoice is
     // summed from line items, `teleport_orders.total_amount` is what the buyer
-    // actually paid, and a missing line makes them disagree.
-    expect(route).toContain('var orderTotalAmount = Number(orderShippingSource.total_amount);')
-    expect(route).toContain('[invoice] Total mismatch for order ')
+    // actually paid, and a missing line makes them disagree. The arithmetic
+    // lives in the assembly the route hands every invoice to.
+    const assembly = generateInvoiceAssemblyCode(FAKE_SETTINGS)
+    expect(route).toContain(
+      'invoiceAssembly.assembleInvoiceData(body, hydratedOrder, hydratedItems)'
+    )
+    expect(assembly).toContain('var orderTotalAmount = Number(orderShippingSource.total_amount);')
+    expect(assembly).toContain('[invoice] Total mismatch for order ')
   })
 })

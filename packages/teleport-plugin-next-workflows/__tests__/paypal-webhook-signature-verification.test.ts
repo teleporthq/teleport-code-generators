@@ -108,6 +108,31 @@ describe('generated PayPal webhook verifier', () => {
     expect(sent.webhook_event).toEqual(event)
   })
 
+  // PayPal signs the bytes it sent: parsed and serialised again, `1.50` comes
+  // back `1.5` and an escaped character comes back unescaped.
+  it('posts the event back exactly as it arrived', async () => {
+    process.env.PAYPAL_CLIENT_ID = 'AbC'
+    process.env.PAYPAL_CLIENT_SECRET = 'secret'
+    process.env.PAYPAL_WEBHOOK_ID = 'WH-1'
+    const escaped = '\\' + 'u00e9'
+    const raw =
+      '{ "event_type": "PAYMENT.SALE.COMPLETED", "resource": { "id": "SALE1", "total": 1.50, ' +
+      '"note": "caf' +
+      escaped +
+      ' $& $$ $\'" } }\n'
+    const calls: Call[] = []
+    installFetch('SUCCESS', calls)
+    const ok = await load()({ headers: headersFor('api.paypal.com') }, Buffer.from(raw), {
+      signatureSecret: 'PAYPAL_WEBHOOK_ID',
+    })
+    expect(ok).toBe(true)
+    expect(calls[1].body.endsWith(',"webhook_event":' + raw + '}')).toBe(true)
+    const sent = JSON.parse(calls[1].body)
+    expect(sent.webhook_id).toBe('WH-1')
+    expect(sent.transmission_sig).toBe('sig')
+    expect(sent.webhook_event.resource.note).toBe("café $& $$ $'")
+  })
+
   it('verifies a live event against the live API', async () => {
     process.env.PAYPAL_CLIENT_ID = 'AbC'
     process.env.PAYPAL_CLIENT_SECRET = 'secret'

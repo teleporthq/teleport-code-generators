@@ -1025,7 +1025,7 @@ function isUsableNextAuthUrl(value) {
 // ships a localhost default. Derive the correct origin from the incoming
 // request here so OAuth works on whatever domain the project is published to —
 // WITHOUT hardcoding it. An explicitly-configured (non-local) NEXTAUTH_URL is
-// always respected; local dev (host = localhost) is left untouched.
+// always respected; a local host gets its own plain-http origin.
 //
 // "Explicitly configured" means a REAL absolute http(s) origin. Project
 // a62338f9 shipped \`NEXTAUTH_URL=teleporthq.secrets.NEXTAUTH_URL\` — an
@@ -1035,33 +1035,75 @@ function isUsableNextAuthUrl(value) {
 // origin and issued \`__Host-\`/\`__Secure-\` cookies against it. Treating anything
 // that is not a usable URL as unset lets an already-published site self-heal on
 // its next request.
-module.exports = function nextAuthRoute(req, res) {
-  try {
-    const fwdHost = req.headers['x-forwarded-host'] || req.headers.host || '';
-    const host = Array.isArray(fwdHost) ? fwdHost[0] : fwdHost;
-    const hostIsLocal = host.indexOf('localhost') === 0 || host.indexOf('127.0.0.1') === 0;
-    const current = process.env.NEXTAUTH_URL || '';
-    if (current && !isUsableNextAuthUrl(current)) {
+//
+// The origin is decided PER REQUEST, from the value the deployment configured —
+// read once, here, before any request could have rewritten it. It used to be
+// written back into process.env and kept: one request through a tunnel (an
+// ngrok URL forwarding webhooks to a local dev server) made every later
+// localhost request run under the tunnel's https origin, so NextAuth issued
+// "__Secure-" cookies on localhost beside the plain ones it had issued before,
+// and the middleware — reading the plain, stale one — refused a signed-in admin.
+// NextAuth reads process.env.NEXTAUTH_URL synchronously when the handler is
+// entered, so setting it right before the call is exact for this request.
+//
+// The configured value is kept on globalThis, once per process: a dev server
+// re-evaluates this module on every change, and by then process.env holds
+// whatever the last request set — capturing it again would make that request's
+// host look configured.
+const CONFIGURED_NEXTAUTH_URL = (function () {
+  const store = globalThis;
+  if (typeof store.__tqConfiguredNextAuthUrl !== 'string') {
+    const raw = process.env.NEXTAUTH_URL;
+    store.__tqConfiguredNextAuthUrl = isUsableNextAuthUrl(raw) ? raw : '';
+    if (raw && !store.__tqConfiguredNextAuthUrl) {
       console.error(
-        '[auth] NEXTAUTH_URL is not a usable origin (' + current + ') — deriving it from the request instead.'
+        '[auth] NEXTAUTH_URL is not a usable origin (' + raw + ') — deriving it from each request instead.'
       );
     }
-    const currentIsLocalOrEmpty =
-      !isUsableNextAuthUrl(current) ||
-      current.indexOf('localhost') !== -1 ||
-      current.indexOf('127.0.0.1') !== -1;
-    if (host && !hostIsLocal && currentIsLocalOrEmpty) {
-      const fwdProto = req.headers['x-forwarded-proto'];
-      const proto = (Array.isArray(fwdProto) ? fwdProto[0] : fwdProto) || 'https';
-      process.env.NEXTAUTH_URL = proto + '://' + host;
-    } else if (hostIsLocal && !isUsableNextAuthUrl(current)) {
-      // Local dev with an unusable value would otherwise leave NextAuth
-      // deriving \`https://…\` from the placeholder, so its cookies get the
-      // \`Secure\` prefix and the browser drops them over plain http.
-      process.env.NEXTAUTH_URL = 'http://' + (host || 'localhost:3000');
-    }
+  }
+  return store.__tqConfiguredNextAuthUrl;
+})();
+
+function isLocalHost(host) {
+  const name = String(host || '').toLowerCase();
+  return (
+    name.indexOf('localhost') === 0 ||
+    name.indexOf('127.0.0.1') === 0 ||
+    name.indexOf('[::1]') === 0 ||
+    name.indexOf('0.0.0.0') === 0
+  );
+}
+
+function firstHeaderValue(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return typeof raw === 'string' ? raw.split(',')[0].trim() : '';
+}
+
+// The origin NextAuth builds its URLs and cookie names from for THIS request:
+// the configured one when it names a real (non-local) domain, else the
+// request's own host and protocol — plain http for a local host.
+function resolveRequestOrigin(req) {
+  const configuredIsLocal =
+    CONFIGURED_NEXTAUTH_URL.indexOf('localhost') !== -1 ||
+    CONFIGURED_NEXTAUTH_URL.indexOf('127.0.0.1') !== -1;
+  if (CONFIGURED_NEXTAUTH_URL && !configuredIsLocal) {
+    return CONFIGURED_NEXTAUTH_URL;
+  }
+  const headers = (req && req.headers) || {};
+  const host = firstHeaderValue(headers['x-forwarded-host']) || firstHeaderValue(headers.host);
+  if (!host) {
+    return CONFIGURED_NEXTAUTH_URL || 'http://localhost:3000';
+  }
+  const proto =
+    firstHeaderValue(headers['x-forwarded-proto']) || (isLocalHost(host) ? 'http' : 'https');
+  return proto + '://' + host;
+}
+
+module.exports = function nextAuthRoute(req, res) {
+  try {
+    process.env.NEXTAUTH_URL = resolveRequestOrigin(req);
   } catch (e) {
-    /* fall back to the configured NEXTAUTH_URL */
+    /* fall back to whatever NEXTAUTH_URL holds */
   }
   return authHandler(req, res);
 };
@@ -1164,7 +1206,11 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
 
     createUserCall = `    const exists = await userExistsByEmail(email);
     if (exists) {
-      res.status(409).json({ error: 'User with this email already exists' });
+      // A newsletter subscriber or a contact the owner added has a row but no
+      // password. Signing up must not hand that row — and what the site knows
+      // about the person — to whoever types the address first; the password
+      // reset proves the mailbox is theirs.
+      res.status(409).json({ error: 'An account with this email already exists. Sign in, or use "Forgot password" to set a password.' });
       return;
     }
 

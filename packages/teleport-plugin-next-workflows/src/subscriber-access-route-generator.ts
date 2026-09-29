@@ -49,14 +49,36 @@ const routeValuesOf = (uidl: ProjectUIDL | undefined): any[] => {
   return Array.isArray(values) ? values : []
 }
 
+/** The feature identifier every storefront product page exposes its product under. */
+const STOREFRONT_PRODUCT_FEATURE = 'ecommerceProduct'
+
+const toProductRoute = (route: unknown, attribute: unknown): ProductDetailsRoute | null => {
+  const staticBase = typeof route === 'string' && route.startsWith('/') ? route : ''
+  const column = typeof attribute === 'string' ? attribute : ''
+  return staticBase && IDENTIFIER_RE.test(column)
+    ? { staticBase, differentiatorColumn: column }
+    : null
+}
+
 /**
- * The product-details page: the route value whose `detailsPageInfo` reads the
- * products table. Its `navLink` is `<base>/[<column>]`; the base is what the
- * list page shares with it by platform convention.
+ * The STANDARD product-details page. When the store has custom product pages
+ * the UIDL names it (`ecommerceSettings.productPages.standard`). Otherwise it is
+ * the route value whose `detailsPageInfo` reads the products table — a
+ * storefront product page first, since the write-a-review page reads that table
+ * too. Its `navLink` is `<base>/[<column>]`; the base is what the list page
+ * shares with it by platform convention.
  */
 export const resolveProductDetailsRoute = (
   uidl: ProjectUIDL | undefined
 ): ProductDetailsRoute | null => {
+  const standard = uidl?.ecommerceSettings?.productPages?.standard
+  if (standard) {
+    const route = toProductRoute(standard.route, standard.attribute)
+    if (route) {
+      return route
+    }
+  }
+  const candidates: Array<{ route: ProductDetailsRoute; storefront: boolean }> = []
   for (const routeValue of routeValuesOf(uidl)) {
     const pageOptions = routeValue?.pageOptions
     const info = pageOptions?.detailsPageInfo
@@ -65,13 +87,32 @@ export const resolveProductDetailsRoute = (
     }
     const navLink = String(pageOptions.navLink || '')
     const column = String(info.differentiatorColumn || pageOptions.dynamicRouteAttribute || '')
-    if (!navLink.startsWith('/') || !IDENTIFIER_RE.test(column)) {
-      continue
+    const route = toProductRoute(navLink.replace(/\/\[[^\]]*\]$/, '') || '/', column)
+    if (navLink.startsWith('/') && route) {
+      candidates.push({ route, storefront: info.featureIdentifier === STOREFRONT_PRODUCT_FEATURE })
     }
-    const staticBase = navLink.replace(/\/\[[^\]]*\]$/, '') || '/'
-    return { staticBase, differentiatorColumn: column }
   }
-  return null
+  const chosen = candidates.find((candidate) => candidate.storefront) || candidates[0]
+  return chosen ? chosen.route : null
+}
+
+/**
+ * Every custom product page by key (`ecommerceSettings.productPages.pages`),
+ * so a product that opens on one is sent there. Empty on a store without
+ * custom product pages.
+ */
+export const resolveCustomProductPageRoutes = (
+  uidl: ProjectUIDL | undefined
+): Record<string, ProductDetailsRoute> => {
+  const pages = uidl?.ecommerceSettings?.productPages?.pages || {}
+  const routes: Record<string, ProductDetailsRoute> = {}
+  for (const key of Object.keys(pages)) {
+    const route = toProductRoute(pages[key]?.route, pages[key]?.attribute)
+    if (route) {
+      routes[key] = route
+    }
+  }
+  return routes
 }
 
 /**
@@ -90,8 +131,70 @@ export const resolveSubscriptionFallbackRoute = (uidl: ProjectUIDL | undefined):
   return hasListing ? details.staticBase : '/'
 }
 
+// The storefront page of the FIRST product a page names, on the standard page.
+const STANDARD_PAGE_REDIRECT = `async function resolveProductRedirect(productIds) {
+  var ids = normalizeProductIds(productIds);
+  if (!PRODUCT_DETAILS || ids.length === 0) {
+    return null;
+  }
+  try {
+    return await withClient(async function (client) {
+      var result = await client.query(
+        'SELECT "' + PRODUCT_DETAILS.differentiatorColumn + '" AS value FROM ' + PRODUCTS_TABLE + ' WHERE id::text = $1 LIMIT 1',
+        [ids[0]]
+      );
+      var value = result && result.rows && result.rows[0] ? result.rows[0].value : null;
+      if (value == null || String(value) === '') {
+        return null;
+      }
+      var base = PRODUCT_DETAILS.staticBase === '/' ? '' : PRODUCT_DETAILS.staticBase;
+      return base + '/' + encodeURIComponent(String(value));
+    });
+  } catch (e) {
+    return null;
+  }
+}`
+
+// The same, on a store with custom product pages: the product's own page — the
+// custom one its product_page names while that page exists, else the standard
+// one. The row is read whole (to_jsonb) so a store whose table lacks one of the
+// columns still answers.
+const PRODUCT_PAGE_AWARE_REDIRECT = `async function resolveProductRedirect(productIds) {
+  var ids = normalizeProductIds(productIds);
+  if (!PRODUCT_DETAILS || ids.length === 0) {
+    return null;
+  }
+  try {
+    return await withClient(async function (client) {
+      var result = await client.query(
+        'SELECT to_jsonb(p) AS row FROM ' + PRODUCTS_TABLE + ' p WHERE p.id::text = $1 LIMIT 1',
+        [ids[0]]
+      );
+      var row = result && result.rows && result.rows[0] ? result.rows[0].row : null;
+      if (!row) {
+        return null;
+      }
+      var key = typeof row.product_page === 'string' ? row.product_page.trim() : '';
+      var page =
+        key !== '' && Object.prototype.hasOwnProperty.call(PRODUCT_PAGES, key)
+          ? PRODUCT_PAGES[key]
+          : PRODUCT_DETAILS;
+      var value = row[page.differentiatorColumn];
+      if (value == null || String(value) === '') {
+        return null;
+      }
+      var base = page.staticBase === '/' ? '' : page.staticBase;
+      return base + '/' + encodeURIComponent(String(value));
+    });
+  } catch (e) {
+    return null;
+  }
+}`
+
 export interface SubscriberAccessHelperOptions {
   productDetails: ProductDetailsRoute | null
+  /** Custom product pages by key (`resolveCustomProductPageRoutes`); absent or empty = none. */
+  productPages?: Record<string, ProductDetailsRoute>
 }
 
 /**
@@ -111,6 +214,8 @@ export const generateSubscriberAccessHelperModule = (
     options.productDetails && IDENTIFIER_RE.test(options.productDetails.differentiatorColumn)
       ? options.productDetails
       : null
+  const productPages = options.productPages || {}
+  const hasProductPages = !!details && Object.keys(productPages).length > 0
 
   return `'use strict';
 
@@ -130,7 +235,14 @@ var MAX_PRODUCT_IDS = ${MAX_PRODUCT_IDS};
 // The product-details page, when the store has one: its static base and the
 // product column its dynamic segment carries.
 var PRODUCT_DETAILS = ${JSON.stringify(details)};
-var PRODUCTS_TABLE = ${JSON.stringify(PRODUCTS_TABLE)};
+var PRODUCTS_TABLE = ${JSON.stringify(PRODUCTS_TABLE)};${
+    hasProductPages
+      ? `
+// The custom product pages by key: a product whose product_page names one
+// opens there instead of on the standard product page.
+var PRODUCT_PAGES = ${JSON.stringify(productPages)};`
+      : ''
+  }
 
 function normalizeProductIds(value) {
   var raw = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
@@ -169,28 +281,7 @@ async function isSubscriberEntitled(userId, productIds) {
 }
 
 // The storefront page of the first product a page names, or null.
-async function resolveProductRedirect(productIds) {
-  var ids = normalizeProductIds(productIds);
-  if (!PRODUCT_DETAILS || ids.length === 0) {
-    return null;
-  }
-  try {
-    return await withClient(async function (client) {
-      var result = await client.query(
-        'SELECT "' + PRODUCT_DETAILS.differentiatorColumn + '" AS value FROM ' + PRODUCTS_TABLE + ' WHERE id::text = $1 LIMIT 1',
-        [ids[0]]
-      );
-      var value = result && result.rows && result.rows[0] ? result.rows[0].value : null;
-      if (value == null || String(value) === '') {
-        return null;
-      }
-      var base = PRODUCT_DETAILS.staticBase === '/' ? '' : PRODUCT_DETAILS.staticBase;
-      return base + '/' + encodeURIComponent(String(value));
-    });
-  } catch (e) {
-    return null;
-  }
-}
+${hasProductPages ? PRODUCT_PAGE_AWARE_REDIRECT : STANDARD_PAGE_REDIRECT}
 
 module.exports = {
   SUBSCRIPTION_ENTITLED_STATUSES: SUBSCRIPTION_ENTITLED_STATUSES,

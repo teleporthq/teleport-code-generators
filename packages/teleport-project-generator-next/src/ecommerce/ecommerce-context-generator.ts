@@ -1,6 +1,17 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
-import { ProductDiscounts, StorefrontTax } from '@teleporthq/teleport-shared'
+import {
+  CartCurrency,
+  CartLinePricing,
+  ProductDiscounts,
+  ProductOptions,
+  StorefrontTax,
+} from '@teleporthq/teleport-shared'
 import { buildWorkflowEcommerceSettingsPayload } from './ecommerce-api-routes-generator'
+import { buildCartPricingSettings } from './cart-pricing-settings'
+import {
+  PAYMENT_PROVIDER_KIND_FILTER_CODE,
+  toClientPaymentProvider,
+} from './payment-provider-kinds'
 import {
   generateRegionalPricingModuleCode,
   generateRegionalPricingProviderCode,
@@ -178,7 +189,8 @@ function isDigitalOnlyCart(items) {
 
 // A line's kind: a subscription checks out alone at quantity one, a gift card
 // is issued by email once paid, a digital line is delivered from the order
-// page, anything else ships. One order holds ONE kind, so the cart does too.
+// page, anything else ships. One order holds ONE kind, so the cart does too —
+// and it is charged in ONE currency, so the cart holds one currency as well.
 function tqCartLineKind(line) {
   if (__deBool(line && line.isRecurring, false)) return 'subscription'
   if (__deBool(line && line.isGiftCard, false)) return 'gift-card'
@@ -197,10 +209,7 @@ const TQ_CART_KIND_LABELS = {
 // wording the add-to-cart workflow node gives, so a custom caller of
 // \`addToCart\` is told the same thing the storefront button says.
 function tqCartKindRefusal(items, item) {
-  const others = (items || []).filter(
-    (line) =>
-      !(line.productId === item.productId && (line.variantId || '') === (item.variantId || ''))
-  )
+  const others = (items || []).filter((line) => !tqSameCartLine(line, item))
   const existing = (items || []).length !== others.length
   const kind = tqCartLineKind(item)
   const oneSubscription = {
@@ -220,7 +229,7 @@ function tqCartKindRefusal(items, item) {
         ' need a separate order. Complete your current order or remove the other items from your cart first.',
     }
   }
-  return null
+  return __ccCurrencyRefusal({ lines: others, currency: item.currency })
 }
 
 // Same shape \`computeShippingMeta\` returns, for a cart that ships nothing.
@@ -232,6 +241,61 @@ function digitalOnlyShippingMeta(goodsTotal) {
     freeDeliveryProgress: '100%',
     freeDeliveryRemaining: 0,
   }
+}
+`
+
+/**
+ * Cart lines bought with product options, read through the shared option
+ * helpers spliced above them (`ProductOptions.generateProductOptionsHelperCode`).
+ * A line is identified by product, variant AND its chosen options — the same
+ * identity the add-to-cart node, the add-to-cart limit check and the database
+ * cart route use. A line without options has neither field and matches exactly
+ * as before.
+ */
+const CART_LINE_OPTIONS_HELPERS = `
+// One cart line: the same product, variant and chosen options. The options'
+// key is a short hash, so the answers themselves must be identical too.
+function tqSameCartLine(line, item) {
+  return (
+    line.productId === item.productId &&
+    (line.variantId || '') === (item.variantId || '') &&
+    (line.configurationKey || '') === (item.configurationKey || '') &&
+    (!item.configurationKey || line.configuration === item.configuration)
+  )
+}
+
+// A caller's line with its answers as the canonical string and their key,
+// computed when the caller sent none. A line without answers carries neither.
+function tqWithLineConfiguration(item) {
+  const configuration = __poCanonical(item && item.configuration)
+  if (!configuration) {
+    return Object.assign({}, item, { configuration: '', configurationKey: '' })
+  }
+  const key = item.configurationKey ? String(item.configurationKey).slice(0, 64) : __poKey(configuration)
+  return Object.assign({}, item, { configuration: configuration, configurationKey: key })
+}
+
+// The files a line's upload options carry, as the cart's file links render
+// them: https only — a crafted javascript: or data: link never reaches an href
+// — and at most 10. \`isImage\` is a 'true'/'false' string for the page's
+// rendering conditions.
+function tqConfigurationFiles(raw) {
+  const files = []
+  const entries = __poParseEntries(raw)
+  for (let i = 0; i < entries.length && files.length < 10; i++) {
+    const value = entries[i].value
+    if (!Array.isArray(value)) continue
+    for (let j = 0; j < value.length && files.length < 10; j++) {
+      if (__poIsFileRef(value[j])) {
+        files.push({
+          name: value[j].name || value[j].id,
+          url: value[j].url,
+          isImage: __poIsImage(value[j]) ? 'true' : 'false',
+        })
+      }
+    }
+  }
+  return files
 }
 `
 
@@ -272,23 +336,29 @@ export const generateEcommerceContextFileContent = (
 ): string => {
   const settingsJson = JSON.stringify(buildSettingsObject(ecommerceSettings, invoiceSettings))
   const maxQtyLiteral = ecommerceSettings.stockManagementConfig?.maxQuantityPerProduct ?? null
-  const paymentProvidersJson = JSON.stringify(ecommerceSettings.paymentProviders || [])
-  const hasPaymentProviders = (ecommerceSettings.paymentProviders || []).length > 0
-  // The providers that can bill a recurring product — what a checkout page
-  // offers a cart holding a subscription instead of the full list. Baked like
-  // `paymentProviders`; a store exported before the capability existed reads
-  // every provider as unable, so a recurring cart is offered none.
-  const subscriptionPaymentProviders = (ecommerceSettings.paymentProviders || []).filter(
-    (provider) => provider.supportsSubscriptions === true
+  // Baked into the browser bundle without the names of any secret. Each cart
+  // is offered only the providers whose terms cover what it holds (see
+  // `tqProvidersForCart`).
+  const clientPaymentProviders = (ecommerceSettings.paymentProviders || []).map(
+    toClientPaymentProvider
   )
-  const subscriptionPaymentProvidersJson = JSON.stringify(subscriptionPaymentProviders)
+  const paymentProvidersJson = JSON.stringify(clientPaymentProviders)
+  const hasPaymentProviders = clientPaymentProviders.length > 0
+  // The cart-pricing snapshot this storefront shares with the checkout's server
+  // step (see cart-pricing-settings.ts): the mirrors below are its fields.
+  const pricingSettings = buildCartPricingSettings(
+    ecommerceSettings,
+    invoiceSettings,
+    dataSourceId || null,
+    dataSourceType || null
+  )
+  // Mirrored for the place-order script, which refuses on the server a
+  // provider that may not take the cart.
+  const paymentKindsMirrorJson = JSON.stringify(pricingSettings.paymentKinds)
   // Mirrored into `workflow_cart_settings` so the checkout's page-load workflow
   // can pre-select a capable provider for a recurring cart without reaching
   // into React — the same channel `deliveryConfig` travels.
-  const subscriptionsMirrorJson = JSON.stringify({
-    enabled: ecommerceSettings.subscriptions?.enabled === true,
-    providers: subscriptionPaymentProviders.map((provider) => provider.type),
-  })
+  const subscriptionsMirrorJson = JSON.stringify(pricingSettings.subscriptions)
   // Static nested category tree for the storefront category filter, exposed as
   // `useEcommerce().ecommerceCategories` (the `E-Commerce Categories` global).
   // Each node's `name`/`description` are the main-language values; per-language
@@ -312,14 +382,7 @@ export const generateEcommerceContextFileContent = (
   // fulfilment choice can attract a fee at all (a pickup-only store has no
   // delivery tab to click, so its `deliveryOption` state never leaves its
   // `'delivery'` default and would otherwise be charged the stale rate).
-  const deliveryConfigJson = JSON.stringify({
-    deliveryEnabled: ecommerceSettings.deliveryEnabled === true,
-    storePickupEnabled: ecommerceSettings.storePickupEnabled === true,
-    deliveryPrice: Number(ecommerceSettings.deliveryConfig?.deliveryPrice ?? 0) || 0,
-    freeDeliveryEnabled: !!ecommerceSettings.deliveryConfig?.freeDeliveryEnabled,
-    freeDeliveryThreshold:
-      Number(ecommerceSettings.deliveryConfig?.freeDeliveryThreshold ?? 0) || 0,
-  })
+  const deliveryConfigJson = JSON.stringify(pricingSettings.deliveryConfig)
 
   // Percentage the storefront must ADD to every stored product price, or 0.
   //
@@ -337,18 +400,10 @@ export const generateEcommerceContextFileContent = (
   // Shipping zones + tax jurisdictions. Null for a store without the feature,
   // which then gets none of the fragments below and prices exactly as before.
   const regional = resolveRegionalPricing(ecommerceSettings, dataSourceId)
-  const regionalModuleCode = regional
-    ? generateRegionalPricingModuleCode(regional, {
-        deliveryEnabled: ecommerceSettings.deliveryEnabled === true,
-        storePickupEnabled: ecommerceSettings.storePickupEnabled === true,
-        deliveryPrice: Number(ecommerceSettings.deliveryConfig?.deliveryPrice ?? 0) || 0,
-        freeDeliveryEnabled: !!ecommerceSettings.deliveryConfig?.freeDeliveryEnabled,
-        freeDeliveryThreshold:
-          Number(ecommerceSettings.deliveryConfig?.freeDeliveryThreshold ?? 0) || 0,
-        defaultTaxRate: Number(invoiceSettings?.defaultTaxRate) || 0,
-        defaultTaxIncluded: invoiceSettings?.taxIncludedInPrice === true,
-      })
-    : ''
+  const regionalModuleCode =
+    regional && pricingSettings.regional
+      ? generateRegionalPricingModuleCode(regional, pricingSettings.regional.store)
+      : ''
 
   // The discount engine's rule feed and the gift-card tender. Each is null for
   // a store without the feature, which then gets none of that feature's
@@ -392,7 +447,8 @@ export const generateEcommerceContextFileContent = (
   // discounted, never payable with one), whether it is billed on a schedule
   // (the plan the provider bills, never discounted) or delivered as a download
   // (no shipping), and — for a store with regional pricing, whose
-  // weight-tiered rates are the only reader — its weight.
+  // weight-tiered rates are the only reader — its weight. A line of a product
+  // with options also re-prices its options (see `__clPriceLineOptions` in CartLinePricing).
   const enrichedFields = [
     'name',
     'price',
@@ -411,59 +467,15 @@ export const generateEcommerceContextFileContent = (
     'recurringIntervalCount',
     'trialDays',
     'isDigital',
+    'basePrice',
+    'configurationLabel',
+    'configurationPriceDelta',
+    'configurationStale',
     'quantity',
     ...(regional ? ['weight', 'weightUnit'] : []),
   ]
-  const regionalStampLines = regional
-    ? [
-        '        weight: product.weight != null ? Number(product.weight) : null,',
-        '        weightUnit: product.weight_unit || null,',
-      ]
-    : []
   const enrichFnCode = dataSourceId
     ? [
-        // Build a human-readable variant label ("Red / XL") from the product's
-        // (language-resolved) variant_options axes + a variant row's option map.
-        'function tqBuildVariantLabel(variantOptionsRaw, optionsMap) {',
-        '  var axes = variantOptionsRaw',
-        "  if (typeof axes === 'string') { try { axes = JSON.parse(axes) } catch (e) { axes = [] } }",
-        '  if (!Array.isArray(axes)) return ""',
-        '  var opts = optionsMap',
-        "  if (typeof opts === 'string') { try { opts = JSON.parse(opts) } catch (e) { opts = {} } }",
-        '  if (!opts) opts = {}',
-        '  var parts = []',
-        '  for (var a = 0; a < axes.length; a++) {',
-        '    var axis = axes[a]',
-        '    if (!axis || !axis.key) continue',
-        '    var valueKey = opts[axis.key]',
-        '    if (valueKey == null) continue',
-        '    var label = valueKey',
-        '    var values = Array.isArray(axis.values) ? axis.values : []',
-        '    for (var v = 0; v < values.length; v++) { if (values[v] && values[v].value === valueKey) { label = values[v].label || valueKey; break } }',
-        '    parts.push(label)',
-        '  }',
-        '  return parts.join(" / ")',
-        '}',
-        // Colour hex(es) for the selected value(s) of any COLOUR-type axis, so the
-        // cart/checkout can render a colour circle next to the variant label.
-        'function tqBuildVariantSwatches(variantOptionsRaw, optionsMap) {',
-        '  var axes = variantOptionsRaw',
-        "  if (typeof axes === 'string') { try { axes = JSON.parse(axes) } catch (e) { axes = [] } }",
-        '  if (!Array.isArray(axes)) return []',
-        '  var opts = optionsMap',
-        "  if (typeof opts === 'string') { try { opts = JSON.parse(opts) } catch (e) { opts = {} } }",
-        '  if (!opts) opts = {}',
-        '  var swatches = []',
-        '  for (var a = 0; a < axes.length; a++) {',
-        '    var axis = axes[a]',
-        "    if (!axis || !axis.key || axis.type !== 'color') continue",
-        '    var valueKey = opts[axis.key]',
-        '    if (valueKey == null) continue',
-        '    var values = Array.isArray(axis.values) ? axis.values : []',
-        '    for (var v = 0; v < values.length; v++) { if (values[v] && values[v].value === valueKey && values[v].color) { swatches.push({ color: values[v].color }); break } }',
-        '  }',
-        '  return swatches',
-        '}',
         // Reports whether the freshly-built line differs from the stored one on
         // any field enrichment owns, so an unchanged cart can be returned by
         // reference. Compared field-by-field rather than by JSON.stringify:
@@ -566,56 +578,30 @@ export const generateEcommerceContextFileContent = (
         '      var product = entry.product',
         '      if (!product) return item',
         '      var variant = entry.variant',
-        '      var price = product.price != null ? Number(product.price) : 0',
         ...resolveImageLines,
         '      var variantLabel = item.variant || ""',
         '      var variantSwatches = item.variantSwatches || []',
         '      if (variant) {',
-        '        if (variant.price != null) price = Number(variant.price)',
-        '        variantLabel = tqBuildVariantLabel(product.variant_options, variant.options)',
-        '        variantSwatches = tqBuildVariantSwatches(product.variant_options, variant.options)',
+        '        variantLabel = __clVariantLabel(product.variant_options, variant.options)',
+        '        variantSwatches = __clVariantSwatches(product.variant_options, variant.options)',
         '      }',
-        // The markdown live RIGHT NOW, applied to whichever net price won above
-        // (the variant override, or the product base). The cart stays NET, so
-        // this is the net price the shopper is charged, and the tax and every
-        // total downstream are computed from it exactly as before.
-        '      var discount = __pdResolveActive(product.discounts, Date.now())',
-        '      var listPrice = price',
-        '      price = __pdDiscountedPrice(listPrice, discount)',
+        // What the line costs and what the totals read off its product — the
+        // same rule the checkout's server step prices the order with (see
+        // CartLinePricing in teleport-shared). The markdown live RIGHT NOW is
+        // re-stamped on every hydration, back to null/0 once it has expired, so
+        // the placed order records what was actually given away.
+        `      var priced = __clPriceLine(item, product, variant, Date.now(), ${
+          regional ? 'true' : 'false'
+        })`,
         '      return markIfChanged(item, Object.assign({}, item, {',
         "        name: product.name || item.name || '',",
-        '        price: price,',
         '        image: image,',
         '        variant: variantLabel,',
         '        variantSwatches: variantSwatches,',
         '        currency: product.currency || item.currency || null,',
         '        currencySymbol: product.currency_symbol || product.currencySymbol || item.currencySymbol || null,',
         '        slug: product.slug || item.slug || null,',
-        // Re-stamped on every hydration, including back to null/0 once a
-        // discount has expired — the placed order must record what was actually
-        // given away, not what was live when the line was added.
-        '        originalPrice: discount ? listPrice : null,',
-        '        discountType: discount ? discount.type : null,',
-        '        discountValue: discount ? discount.value : null,',
-        '        discountAmount: discount ? __pdDiscountAmount(listPrice, discount) : 0,',
-        // Categories (assigned ids plus ancestors) and the gift-card flag, read
-        // through the engine's own row parsers so a missing or malformed column
-        // reads as "none" / "not a gift card" rather than throwing.
-        '        categoryIds: __deStringArray(product.category_filter_ids || product.category_ids),',
-        '        isGiftCard: __deBool(product.is_gift_card, false),',
-        // The billing schedule and the delivery kind, re-stamped like the
-        // markdown: a product switched to recurring (or back) re-prices on the
-        // next hydration. A subscription is ONE unit — the provider bills the
-        // plan, not a quantity — so a line that arrived with more (a cart merged
-        // across devices, a hand-edited storage) is brought back to one here.
-        '        isRecurring: tqIsRecurringProduct(product),',
-        '        recurringInterval: tqIsRecurringProduct(product) ? tqNormalizeBillingInterval(product.recurring_interval) : null,',
-        '        recurringIntervalCount: tqIsRecurringProduct(product) ? tqNormalizeBillingIntervalCount(product.recurring_interval_count) : null,',
-        '        trialDays: tqIsRecurringProduct(product) ? tqPositiveCount(product.trial_days) : null,',
-        '        isDigital: __deBool(product.is_digital, false),',
-        '        quantity: tqIsRecurringProduct(product) ? 1 : item.quantity,',
-        ...regionalStampLines,
-        '      }))',
+        '      }, priced))',
         '    })',
         '    return didChange ? enriched : items',
         '  } catch(e) { return items }',
@@ -685,7 +671,14 @@ function persistCartToDb(items) {
   if (typeof window === 'undefined') return Promise.resolve(null)
   try {
     const payload = (items || []).map(function (i) {
-      return { productId: i.productId, variantId: i.variantId || null, quantity: i.quantity }
+      const line = { productId: i.productId, variantId: i.variantId || null, quantity: i.quantity }
+      // A line bought with product options carries them: the route stores them
+      // where its table has the columns, and keeps the line out otherwise.
+      if (i.configurationKey) {
+        line.configuration = i.configuration
+        line.configurationKey = i.configurationKey
+      }
+      return line
     })
     // Resolves with the server's answer so the caller can react to a MERGE: on
     // the first sync after sign-in the server claims the guest cart, refuses to
@@ -720,18 +713,31 @@ function persistCartToDb(items) {
   // then the async enrichment pass. One implementation, because the two callers
   // (first-visit hydrate, post-sign-in merge) must produce identical results —
   // a shopper should not be able to tell which path filled their cart.
-  const applyServerCart = useCallback((dbItems) => {
+  //
+  // \`keepLocal\` is this tab's cart when the server could not store lines bought
+  // with product options (its table predates the columns): those lines are
+  // kept here rather than dropped with the server's answer.
+  const applyServerCart = useCallback((dbItems, keepLocal) => {
     const rows = dbItems || []
     if (!rows.length) return
-    const mapped = rows.map(function (d) {
+    const serverLines = rows.map(function (d) {
       const vid = d.variantId || null
-      return {
-        id: d.productId + (vid ? '__' + vid : ''),
+      const line = {
+        id: d.productId + (vid ? '__' + vid : '') + (d.configurationKey ? '__' + d.configurationKey : ''),
         productId: d.productId,
         variantId: vid,
         quantity: d.quantity,
       }
+      if (d.configurationKey) {
+        line.configuration = d.configuration
+        line.configurationKey = d.configurationKey
+      }
+      return line
     })
+    const localOnly = (keepLocal || []).filter(function (local) {
+      return local.configurationKey && !serverLines.some(function (line) { return tqSameCartLine(line, local) })
+    })
+    const mapped = localOnly.length ? serverLines.concat(localOnly) : serverLines
     setCartItems(mapped)
     setCartMeta(computeCartMeta(mapped))
     saveCartToStorage(mapped)
@@ -750,7 +756,10 @@ function persistCartToDb(items) {
   // sync with nothing to adopt.
   const adoptMergedCart = useCallback((response) => {
     if (response && response.merged) {
-      applyServerCart(response.items)
+      applyServerCart(
+        response.items,
+        response.configurationsPersisted === false ? cartItemsRef.current : null
+      )
     }
   }, [applyServerCart])
 
@@ -902,6 +911,18 @@ if (typeof window !== 'undefined') {
     engineEnabled: discountEngine !== null,
   })
   const giftCardMetaCode = generateGiftCardMetaCode(giftCards !== null)
+  // The product options a line was bought with, as the cart's line surfaces
+  // bind them: the short label, the uploaded files (https links only), whether
+  // the line carries options, and whether they changed since it was added.
+  // Flags are 'true'/'false' STRINGS like the ones beside them.
+  // `hasConfiguration` opens the block the stale note sits in, so it is also
+  // 'true' for a line WITHOUT answers that hydration flagged (its product now
+  // requires one): the checkout refuses that line too.
+  const displayConfigurationLines = `
+          hasConfiguration: item.configurationKey || item.configurationStale === true ? 'true' : 'false',
+          configurationLabel: item.configurationLabel || '',
+          configurationStale: item.configurationStale === true ? 'true' : 'false',
+          configurationFiles: tqConfigurationFiles(item.configuration),`
   const displayCartItemsCode = regional
     ? `  // Same projection as a single-rate store's, with each line priced in the
   // destination's tax by the quote.
@@ -916,7 +937,7 @@ if (typeof window !== 'undefined') {
             pricing.originalLineTotal === null ? '' : formatCartMoney(pricing.originalLineTotal),
           hasDiscount: cartItemHasDiscount(item) ? 'true' : 'false',
           isRecurring: __deBool(item.isRecurring, false) ? 'true' : 'false',
-          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',
+          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',${displayConfigurationLines}
         })
       }),
     [cartItems, regionalQuote]
@@ -942,7 +963,7 @@ if (typeof window !== 'undefined') {
           // Same convention: the cart line hides its quantity stepper for a
           // subscription (one unit, billed by the provider).
           isRecurring: __deBool(item.isRecurring, false) ? 'true' : 'false',
-          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',
+          isDigital: __deBool(item.isDigital, false) ? 'true' : 'false',${displayConfigurationLines}
         })
       ),
     [cartItems]
@@ -982,12 +1003,17 @@ function loadCartFromStorage() {
 }
 
 ${ProductDiscounts.generateProductDiscountHelperCode()}
+${ProductOptions.generateProductOptionsHelperCode()}
+${CartLinePricing.generateCartLinePricingHelperCode()}
+${CartCurrency.generateCartCurrencyHelperCode()}
+${CART_LINE_OPTIONS_HELPERS}
 ${generateDiscountProjectionCode()}
 ${regionalModuleCode}
 ${discountEngineModuleCode}
 ${giftCardModuleCode}
 ${enrichFnCode}
 ${SUBSCRIPTION_HELPERS}
+${PAYMENT_PROVIDER_KIND_FILTER_CODE}
 
 function saveCartToStorage(items) {
   if (typeof window === 'undefined') return
@@ -1262,6 +1288,11 @@ ${
       // Manual parse — avoids an URLSearchParams polyfill on older runtimes.
       var paymentSuccess = false
       var paypalOrderId = ''
+      // PayPal returns an approved ORDER with \`PayerID\` beside the token; a
+      // subscription approval (or another provider's return) carries none.
+      var paypalPayer = ''
+      // A subscription approval returns its id (\`I-…\`) instead.
+      var paypalSubscriptionId = ''
       var stripped = search.charAt(0) === '?' ? search.slice(1) : search
       var parts = stripped.split('&')
       for (var pi = 0; pi < parts.length; pi++) {
@@ -1272,18 +1303,27 @@ ${
         try { v = decodeURIComponent(v) } catch (_e) {}
         if (k === 'payment' && v === 'success') paymentSuccess = true
         else if (k === 'token' && v) paypalOrderId = v
+        else if (k === 'PayerID' && v) paypalPayer = v
+        else if (k === 'subscription_id' && v) paypalSubscriptionId = v
       }
-      if (!paymentSuccess || !paypalOrderId) return
-      if (paypalCaptureRef.current.has(paypalOrderId)) return
-      paypalCaptureRef.current.add(paypalOrderId)
+      if (!paymentSuccess) return
+      // The route captures an order and settles what PayPal took (a
+      // subscription: its mandate and first payment) from PayPal's own answer.
+      var paypalReturn = paypalSubscriptionId
+        ? { key: paypalSubscriptionId, body: { subscriptionId: paypalSubscriptionId } }
+        : paypalOrderId && paypalPayer
+        ? { key: paypalOrderId, body: { orderId: paypalOrderId } }
+        : null
+      if (!paypalReturn || paypalCaptureRef.current.has(paypalReturn.key)) return
+      paypalCaptureRef.current.add(paypalReturn.key)
       fetch('/api/ecommerce/paypal/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: paypalOrderId }),
+        body: JSON.stringify(paypalReturn.body),
       }).catch(function () {
-        // Capture is fire-and-forget from the buyer's perspective: PayPal
-        // already sent them back with success. The webhook will retry on
-        // the server side; failure here doesn't change what the buyer sees.
+        // Fire-and-forget from the buyer's perspective: PayPal already sent
+        // them back with success, and PayPal's webhook settles the payment
+        // too; a failure here doesn't change what the buyer sees.
       })
     } catch (_e) {}
   }, [])
@@ -1357,6 +1397,8 @@ ${
           // the checkout's page-load workflow pre-selects the first for a
           // cart holding a subscription.
           subscriptions: ${subscriptionsMirrorJson},
+          // Which cart kinds each provider may be paid for.
+          paymentKinds: ${paymentKindsMirrorJson},
           customer: customer,
         })
       )
@@ -1367,16 +1409,23 @@ ${
   // a line whose kind (subscription / digital / physical) differs from the
   // cart's, or a second subscription, is refused so one order never holds two
   // kinds of fulfilment. The kind comes from the line handed in (the product
-  // row's \`payment_type\` / \`is_digital\`), never from a later fetch.
-  const addToCart = useCallback((item) => {
+  // row's \`payment_type\` / \`is_digital\`), never from a later fetch. A line
+  // priced in another currency than the cart's is refused too, and the line
+  // keeps the currency it was handed so the next add is checked against it
+  // before the enrichment pass re-reads the product.
+  //
+  // The chosen product options (\`configuration\`) are part of the line: the same
+  // product with other answers is another line. Such a line is priced by the
+  // enrichment pass right after, from the product's own option definitions —
+  // never from a surcharge the caller states.
+  const addToCart = useCallback((input) => {
+    const item = tqWithLineConfiguration(input)
     const refusal = tqCartKindRefusal(cartItemsRef.current, item)
     if (refusal) {
       return refusal
     }
     setCartItems((prev) => {
-      const existing = prev.find(
-        (i) => i.productId === item.productId && (i.variantId || '') === (item.variantId || '')
-      )
+      const existing = prev.find((i) => tqSameCartLine(i, item))
       const currentQty = existing ? existing.quantity : 0
       let desiredQty = currentQty + (item.quantity || 1)
       if (maxQtyPerProduct !== null && desiredQty > maxQtyPerProduct) {
@@ -1387,27 +1436,44 @@ ${
       }
       let next
       if (existing) {
-        next = prev.map((i) =>
-          i.productId === item.productId && (i.variantId || '') === (item.variantId || '')
-            ? { ...i, quantity: desiredQty }
-            : i
-        )
+        next = prev.map((i) => (tqSameCartLine(i, item) ? { ...i, quantity: desiredQty } : i))
       } else {
-        next = [
-          ...prev,
-          {
-            id: item.id || (item.productId + '_' + Date.now()),
-            productId: item.productId,
-            variantId: item.variantId || null,
-            quantity: desiredQty,
-            price: item.price || 0,
-            name: item.name || '',
-            image: item.image || null,
-          },
-        ]
+        // A configured line's id names its options too: two configurations of
+        // one product added in the same millisecond stay two ids.
+        const line = {
+          id: item.id || (item.productId + (item.configurationKey ? '__' + item.configurationKey : '') + '_' + Date.now()),
+          productId: item.productId,
+          variantId: item.variantId || null,
+          quantity: desiredQty,
+          price: item.price || 0,
+          name: item.name || '',
+          image: item.image || null,
+        }
+        if (item.currency) {
+          line.currency = item.currency
+          line.currencySymbol = item.currencySymbol || null
+        }
+        if (item.configurationKey) {
+          line.configuration = item.configuration
+          line.configurationKey = item.configurationKey
+        }
+        next = [...prev, line]
       }
       setCartMeta(computeCartMeta(next))
       saveCartToStorage(next)
+      if (item.configurationKey) {
+        // Applied only to the cart it priced: a cart changed meanwhile keeps
+        // its lines, and the line is priced by the next hydration instead.
+        enrichCartItems(next).then(function (enriched) {
+          if (enriched === next) return
+          setCartItems(function (current) {
+            if (current !== next) return current
+            setCartMeta(computeCartMeta(enriched))
+            saveCartToStorage(enriched)
+            return enriched
+          })
+        })
+      }
       return next
     })
   }, [maxQtyPerProduct])
@@ -1447,8 +1513,15 @@ ${
   }, [])
 
   const settings = useMemo(() => (${settingsJson}), [])
-  const paymentProviders = useMemo(() => (${paymentProvidersJson}), [])
-  const subscriptionPaymentProviders = useMemo(() => (${subscriptionPaymentProvidersJson}), [])
+  const allPaymentProviders = useMemo(() => (${paymentProvidersJson}), [])
+  const paymentProviders = useMemo(
+    () => tqProvidersForCart(allPaymentProviders, cartItems),
+    [allPaymentProviders, cartItems]
+  )
+  const subscriptionPaymentProviders = useMemo(
+    () => tqProvidersForCart(allPaymentProviders.filter((provider) => provider.supportsSubscriptions), cartItems),
+    [allPaymentProviders, cartItems]
+  )
   const ecommerceCategoriesRaw = useMemo(() => (${ecommerceCategoriesJson}), [])
   const ecommerceCategories = useMemo(
     () => resolveCategoryTranslations(ecommerceCategoriesRaw, router.locale),
@@ -1613,7 +1686,8 @@ ${giftCardMetaCode}
     Settings: ${settingsExpression},
     paymentProviders,
     hasPaymentProviders: ${hasPaymentProviders},
-    // The providers a recurring cart is offered instead of \`paymentProviders\`.
+    // The providers a recurring cart is offered instead of \`paymentProviders\`;
+    // both lists hold only the providers that may take the cart as it is.
     subscriptionPaymentProviders,
     storeLocations,
     defaultPickupStoreId,

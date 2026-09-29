@@ -255,6 +255,9 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     object({
       destinationField: string(),
       typeField: optional(string()),
+      unlessFieldEquals: optional(object({ field: string(), value: string() })),
+      ownRowsFilter: optional(array(anyJson())),
+      statusCode: optional(oneOf(constant(301), constant(302), constant(307), constant(308))),
     })
   ),
 })
@@ -692,6 +695,7 @@ export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
     differentiatorValue: optional(
       union(dynamicValueDecoder, staticValueDecoder, expressionValueDecoder)
     ),
+    canonicalValue: optional(union(dynamicValueDecoder, expressionValueDecoder)),
   }),
 })
 
@@ -1362,6 +1366,7 @@ export const formDefinitionDecoder = object({
     object({
       captchaPublicKey: optional(union(staticValueDecoder, envValueDecoder)),
       honeypotField: optional(staticValueDecoder),
+      captchaEnabled: optional(staticValueDecoder),
     })
   ),
   constraints: optional(
@@ -1375,6 +1380,13 @@ export const formDefinitionDecoder = object({
       success: optional(staticValueDecoder),
       error: optional(staticValueDecoder),
       limit: optional(staticValueDecoder),
+      translationKeys: optional(
+        object({
+          success: optional(string()),
+          error: optional(string()),
+          limit: optional(string()),
+        })
+      ),
     })
   ),
   meta: optional(

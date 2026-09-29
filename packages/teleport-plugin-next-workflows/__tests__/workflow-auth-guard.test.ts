@@ -28,6 +28,9 @@ interface SubscriberAccessStub {
   calls: Array<{ userId: string; productIds: string[] }>
 }
 
+/** What the stubbed server runtime accepts as this deployment's internal-call token. */
+const INTERNAL_TOKEN = 'internal-call-token'
+
 /** Boots the emitted guard file with getToken stubbed to read `req.__token`. */
 function bootGuard(secret: string | undefined, subscriberAccess?: SubscriberAccessStub): Guard {
   const code = generateWorkflowAuthHelperFile({
@@ -37,6 +40,9 @@ function bootGuard(secret: string | undefined, subscriberAccess?: SubscriberAcce
   const fakeRequire = (name: string): any => {
     if (name === 'next-auth/jwt') {
       return { getToken: async ({ req }: any) => (req && req.__token) || null }
+    }
+    if (name === './server-runtime') {
+      return { isInternalCall: (req: any) => req.headers['x-teleport-internal'] === INTERNAL_TOKEN }
     }
     if (name === '../auth/subscriber-access') {
       if (!subscriberAccess || subscriberAccess.absent) {
@@ -66,6 +72,40 @@ function bootGuard(secret: string | undefined, subscriberAccess?: SubscriberAcce
 }
 
 const reqWith = (extra: Record<string, unknown> = {}): any => ({ headers: {}, ...extra })
+
+describe("guardWorkflowRequest — calls from this deployment's own server code", () => {
+  const serverOnly = { requiresAuth: false, allowedRoles: [], serverOnly: true }
+  const adminOnly = { requiresAuth: true, allowedRoles: ['admin'] }
+
+  it('answers a server-only route to the internal-call token alone', async () => {
+    const guard = bootGuard('server-secret')
+    expect(await guard(reqWith(), {}, serverOnly)).toEqual({
+      status: 401,
+      message: 'Unauthenticated',
+    })
+    expect(await guard(reqWith({ __token: { id: 'u1', role: 'admin' } }), {}, serverOnly)).toEqual({
+      status: 401,
+      message: 'Unauthenticated',
+    })
+    expect(
+      await guard(reqWith({ headers: { 'x-teleport-internal': 'forged' } }), {}, serverOnly)
+    ).toEqual({ status: 401, message: 'Unauthenticated' })
+    expect(
+      await guard(reqWith({ headers: { 'x-teleport-internal': INTERNAL_TOKEN } }), {}, serverOnly)
+    ).toBeNull()
+  })
+
+  it('lets the internal-call token through a gated route (a webhook running an admin node)', async () => {
+    const guard = bootGuard('server-secret')
+    expect(await guard(reqWith(), {}, adminOnly)).toEqual({
+      status: 401,
+      message: 'Unauthenticated',
+    })
+    expect(
+      await guard(reqWith({ headers: { 'x-teleport-internal': INTERNAL_TOKEN } }), {}, adminOnly)
+    ).toBeNull()
+  })
+})
 
 describe('guardWorkflowRequest (runtime enforcement)', () => {
   const guard = bootGuard('server-secret')

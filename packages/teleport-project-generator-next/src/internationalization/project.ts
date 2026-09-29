@@ -165,7 +165,8 @@ export const useGlobalContext = () => {
 `
 }
 
-const extractBaseUrl = (
+/** The site's origin, read off the first page's canonical address. */
+export const extractBaseUrl = (
   routeValues: Array<{ seo?: { assets?: Array<{ type: string }> } }>
 ): string | null => {
   for (const route of routeValues) {

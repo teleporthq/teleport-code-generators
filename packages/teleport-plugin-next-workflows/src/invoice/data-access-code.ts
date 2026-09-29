@@ -17,26 +17,34 @@ export const generateDataAccessCode = (
 
 ${generateConnectionCode(dsType, dataSourceConfig)}
 
-${generateInsertInvoiceCode(dsType, invoicesTable)}
-
 ${generateInsertInvoiceItemsCode(dsType, invoiceItemsTable)}
+
+${generateReserveInvoiceCode(dsType, invoicesTable)}
+
+${generateClaimStaleInvoiceCode(dsType, invoicesTable)}
 
 ${generateGetInvoiceByIdCode(dsType, invoicesTable)}
 
 ${generateUpdateInvoiceCode(dsType, invoicesTable)}
 
-${generateGetNextInvoiceNumberCode(dsType, invoicesTable)}
+${generateStoreInvoicePdfCode(dsType)}
 
 ${generateGetOrderWithItemsCode(dsType)}
 
+${generateReplaceInvoiceCode(dsType, invoicesTable, invoiceItemsTable)}
+
+${generateLinkOrderToInvoiceCode(dsType)}
+
 module.exports = {
   getClient: getClient,
-  insertInvoice: insertInvoice,
-  insertInvoiceItems: insertInvoiceItems,
+  reserveInvoice: reserveInvoice,
+  claimStaleInvoice: claimStaleInvoice,
+  storeInvoicePdf: storeInvoicePdf,
   getInvoiceById: getInvoiceById,
   updateInvoice: updateInvoice,
-  getNextInvoiceNumber: getNextInvoiceNumber,
   getOrderWithItems: getOrderWithItems,
+  replaceInvoice: replaceInvoice,
+  linkOrderToInvoice: linkOrderToInvoice,
 };
 `
 }
@@ -152,50 +160,213 @@ function getClient() {
 }`
 }
 
-// Every dialect's `insertInvoice` goes through `insertInvoiceRecord`, which
-// retries without a column the database rejected as unknown — see
-// `missingOptionalInvoiceColumn` in the record-mapping code for which ones
-// and why.
-function generateInsertInvoiceCode(dsType: string, table: string): string {
+// Issuing an invoice takes its number and writes the row that holds it as one
+// step, before the PDF is rendered: the number is read and the row written
+// under one lock (Postgres: a transaction-scoped advisory lock; MySQL: a named
+// lock), so two orders paid in the same second never print the same number.
+// The same lock keeps one invoice per order: a second request for an order
+// that already has one — a provider delivering a slow webhook again while the
+// first delivery still renders — gets that invoice back (`created: false`)
+// instead of issuing another. Every dialect writes through
+// `writeInvoiceRecord`, which retries without a column the database rejected
+// as unknown — see `missingOptionalInvoiceColumn` in the record-mapping code.
+function generateReserveInvoiceCode(dsType: string, table: string): string {
+  const formatNumber = `
+function formatInvoiceNumber(prefix, lastNumber) {
+  var last = Number(lastNumber);
+  return prefix + String((isFinite(last) && last > 0 ? Math.floor(last) : 0) + 1).padStart(4, '0');
+}`
+
   if (dsType === 'supabase') {
-    return `
-async function insertInvoice(invoiceData) {
+    return `${formatNumber}
+
+// PostgREST holds no lock across requests: the order's invoice is looked up
+// right before one is issued, which leaves a twin request only the moment
+// between the lookup and the insert.
+async function reserveInvoice(invoiceData, items, prefix) {
   var client = getClient();
-  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+  if (invoiceData.orderId) {
+    var held = await client.from('${table}').select('*').eq('order_id', invoiceData.orderId)
+      .order('created_at', { ascending: true }).limit(1);
+    if (held.error) throw new Error(held.error.message);
+    if (held.data && held.data.length > 0) return { invoice: held.data[0], created: false };
+  }
+  var last = await client.from('${table}').select('invoice_number').like('invoice_number', prefix + '%')
+    .order('created_at', { ascending: false }).limit(1);
+  if (last.error) throw new Error(last.error.message);
+  var lastNumber = last.data && last.data[0] ? parseInt(String(last.data[0].invoice_number).slice(prefix.length), 10) : 0;
+  invoiceData.invoiceNumber = formatInvoiceNumber(prefix, lastNumber);
+  var row = await writeInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
     var result = await client.from('${table}').insert(record).select().single();
     if (result.error) throw new Error(result.error.message);
     return result.data;
   });
+  await insertInvoiceItems(row.id, items);
+  return { invoice: row, created: true };
+}`
+  }
+
+  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
+    return `${formatNumber}
+
+var INVOICE_ISSUE_LOCK = '${table}:issue';
+
+async function reserveInvoice(invoiceData, items, prefix) {
+  var conn = await getClient().getConnection();
+  var locked = false;
+  try {
+    var [lockRows] = await conn.execute('SELECT GET_LOCK(?, 30) AS acquired', [INVOICE_ISSUE_LOCK]);
+    locked = !!(lockRows[0] && Number(lockRows[0].acquired) === 1);
+    if (!locked) throw new Error('Another invoice is being issued; the request can be sent again.');
+    await conn.beginTransaction();
+    try {
+      if (invoiceData.orderId) {
+        var [heldRows] = await conn.execute(
+          'SELECT * FROM ${table} WHERE order_id = ? ORDER BY created_at ASC LIMIT 1',
+          [String(invoiceData.orderId)]
+        );
+        if (heldRows.length > 0) {
+          await conn.commit();
+          return { invoice: heldRows[0], created: false };
+        }
+      }
+      var [lastRows] = await conn.execute(
+        'SELECT MAX(CAST(SUBSTRING(invoice_number, CHAR_LENGTH(?) + 1) AS UNSIGNED)) AS last_number FROM ${table} ' +
+          "WHERE LEFT(invoice_number, CHAR_LENGTH(?)) = ? AND SUBSTRING(invoice_number, CHAR_LENGTH(?) + 1) REGEXP '^[0-9]{1,15}$'",
+        [prefix, prefix, prefix, prefix]
+      );
+      invoiceData.invoiceNumber = formatInvoiceNumber(prefix, lastRows[0] && lastRows[0].last_number);
+      var row = await writeInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+        var columns = Object.keys(record);
+        var quotedCols = columns.map(quoteIdent).join(', ');
+        var placeholders = columns.map(function() { return '?'; }).join(', ');
+        var values = columns.map(function(k) { return record[k]; });
+        await conn.execute('INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ')', values);
+        return record;
+      });
+      await insertInvoiceItemRows(conn, row.id, items);
+      await conn.commit();
+      return { invoice: row, created: true };
+    } catch (err) {
+      try { await conn.rollback(); } catch (_rollbackErr) {}
+      throw err;
+    }
+  } finally {
+    if (locked) {
+      try { await conn.execute('SELECT RELEASE_LOCK(?)', [INVOICE_ISSUE_LOCK]); } catch (_releaseErr) {}
+    }
+    conn.release();
+  }
+}`
+  }
+
+  return `${formatNumber}
+
+var INVOICE_ISSUE_LOCK = '${table}:issue';
+
+async function reserveInvoice(invoiceData, items, prefix) {
+  var client = await getClient().connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [INVOICE_ISSUE_LOCK]);
+    if (invoiceData.orderId) {
+      var held = await client.query(
+        'SELECT * FROM ${table} WHERE order_id::text = $1 ORDER BY created_at ASC LIMIT 1',
+        [String(invoiceData.orderId)]
+      );
+      if (held.rows.length > 0) {
+        await client.query('COMMIT');
+        return { invoice: held.rows[0], created: false };
+      }
+    }
+    var last = await client.query(
+      'SELECT MAX(substring(invoice_number FROM char_length($1) + 1)::bigint) AS last_number FROM ${table} ' +
+        "WHERE left(invoice_number, char_length($1)) = $1 AND substring(invoice_number FROM char_length($1) + 1) ~ '^[0-9]{1,15}$'",
+      [prefix]
+    );
+    invoiceData.invoiceNumber = formatInvoiceNumber(prefix, last.rows[0] && last.rows[0].last_number);
+    var row = await writeInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
+      var columns = Object.keys(record);
+      var quotedCols = columns.map(quoteIdent).join(', ');
+      var placeholders = columns.map(function(_, i) { return '$' + (i + 1); }).join(', ');
+      var values = columns.map(function(k) { return record[k]; });
+      // A rejected column fails the statement, and a failed statement ends
+      // the transaction — the savepoint keeps it open for the retry.
+      await client.query('SAVEPOINT invoice_row');
+      try {
+        var result = await client.query('INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ') RETURNING *', values);
+        await client.query('RELEASE SAVEPOINT invoice_row');
+        return result.rows[0];
+      } catch (err) {
+        await client.query('ROLLBACK TO SAVEPOINT invoice_row');
+        throw err;
+      }
+    });
+    await insertInvoiceItemRows(client, row.id, items);
+    await client.query('COMMIT');
+    return { invoice: row, created: true };
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_rollbackErr) {}
+    throw err;
+  } finally {
+    client.release();
+  }
+}`
+}
+
+// A reserved invoice whose PDF never arrived — the request that reserved it
+// died while rendering — is finished by the next request for its order: once,
+// by whichever request moves its `updated_at` first. Timestamps are written by
+// the app on both sides of the comparison, so the database's time zone never
+// enters it.
+function generateClaimStaleInvoiceCode(dsType: string, table: string): string {
+  const cutoff = `  var now = new Date();
+  var staleBefore = new Date(now.getTime() - staleSeconds * 1000).toISOString();`
+  if (dsType === 'supabase') {
+    return `
+async function claimStaleInvoice(invoiceId, staleSeconds) {
+${cutoff}
+  var result = await getClient().from('${table}').update({ updated_at: now.toISOString() })
+    .eq('id', invoiceId).is('pdf_size_bytes', null).lt('updated_at', staleBefore).select('id');
+  if (result.error) throw new Error(result.error.message);
+  return !!(result.data && result.data.length > 0);
 }`
   }
 
   if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
     return `
-async function insertInvoice(invoiceData) {
-  var pool = getClient();
-  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
-    var columns = Object.keys(record);
-    var quotedCols = columns.map(quoteIdent).join(', ');
-    var placeholders = columns.map(function() { return '?'; }).join(', ');
-    var values = columns.map(function(k) { return record[k]; });
-    var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ')';
-    var [result] = await pool.execute(sql, values);
-    return Object.assign({}, record, { _insertId: result.insertId });
-  });
+async function claimStaleInvoice(invoiceId, staleSeconds) {
+${cutoff}
+  var [result] = await getClient().execute(
+    'UPDATE ${table} SET updated_at = ? WHERE id = ? AND pdf_size_bytes IS NULL AND updated_at < ?',
+    [now.toISOString(), String(invoiceId), staleBefore]
+  );
+  return !!(result && result.affectedRows > 0);
 }`
   }
 
   return `
-async function insertInvoice(invoiceData) {
-  var pool = getClient();
-  return insertInvoiceRecord(mapInvoiceToRecord(invoiceData), async function (record) {
-    var columns = Object.keys(record);
-    var quotedCols = columns.map(quoteIdent).join(', ');
-    var placeholders = columns.map(function(_, i) { return '$' + (i + 1); }).join(', ');
-    var values = columns.map(function(k) { return record[k]; });
-    var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ') RETURNING *';
-    var result = await pool.query(sql, values);
-    return result.rows[0];
+async function claimStaleInvoice(invoiceId, staleSeconds) {
+${cutoff}
+  var result = await getClient().query(
+    'UPDATE ${table} SET updated_at = $1 WHERE id::text = $2 AND pdf_size_bytes IS NULL AND updated_at < $3 RETURNING id',
+    [now.toISOString(), String(invoiceId), staleBefore]
+  );
+  return result.rowCount > 0;
+}`
+}
+
+// Puts the rendered PDF on the reserved row; `pdf_size_bytes` is what marks
+// the invoice finished (see `claimStaleInvoice`).
+function generateStoreInvoicePdfCode(dsType: string): string {
+  const pdfData = dsType === 'supabase' ? `pdfBuffer.toString('base64')` : 'pdfBuffer'
+  return `
+async function storeInvoicePdf(invoiceId, pdfBuffer, pdfUrl) {
+  return updateInvoice(invoiceId, {
+    pdf_data: ${pdfData},
+    pdf_size_bytes: pdfBuffer.length,
+    pdf_content_type: 'application/pdf',
+    pdf_url: pdfUrl,
   });
 }`
 }
@@ -217,9 +388,9 @@ async function insertInvoiceItems(invoiceId, items) {
 
   if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
     return `
-async function insertInvoiceItems(invoiceId, items) {
+// \`connection\` is the pool, or the connection of an open transaction.
+async function insertInvoiceItemRows(connection, invoiceId, items) {
   if (!items || items.length === 0) return [];
-  var pool = getClient();
   var results = [];
   for (var i = 0; i < items.length; i++) {
     var record = mapInvoiceItemToRecord(invoiceId, items[i], i);
@@ -228,7 +399,7 @@ async function insertInvoiceItems(invoiceId, items) {
     var placeholders = columns.map(function() { return '?'; }).join(', ');
     var values = columns.map(function(k) { return record[k]; });
     var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ')';
-    var [result] = await pool.execute(sql, values);
+    var [result] = await connection.execute(sql, values);
     results.push(Object.assign({}, record, { id: result.insertId }));
   }
   return results;
@@ -236,9 +407,9 @@ async function insertInvoiceItems(invoiceId, items) {
   }
 
   return `
-async function insertInvoiceItems(invoiceId, items) {
+// \`queryable\` is the pool, or the client of an open transaction.
+async function insertInvoiceItemRows(queryable, invoiceId, items) {
   if (!items || items.length === 0) return [];
-  var pool = getClient();
   var results = [];
   for (var i = 0; i < items.length; i++) {
     var record = mapInvoiceItemToRecord(invoiceId, items[i], i);
@@ -247,7 +418,7 @@ async function insertInvoiceItems(invoiceId, items) {
     var placeholders = columns.map(function(_, j) { return '$' + (j + 1); }).join(', ');
     var values = columns.map(function(k) { return record[k]; });
     var sql = 'INSERT INTO ${table} (' + quotedCols + ') VALUES (' + placeholders + ') RETURNING *';
-    var result = await pool.query(sql, values);
+    var result = await queryable.query(sql, values);
     results.push(result.rows[0]);
   }
   return results;
@@ -323,78 +494,6 @@ async function updateInvoice(invoiceId, updates) {
 }`
 }
 
-function generateGetNextInvoiceNumberCode(dsType: string, table: string): string {
-  if (dsType === 'supabase') {
-    return `
-async function getNextInvoiceNumber(prefix) {
-  var client = getClient();
-  var result = await client.from('${table}')
-    .select('invoice_number')
-    .like('invoice_number', prefix + '%')
-    .order('created_at', { ascending: false })
-    .limit(1);
-  if (result.error || !result.data || result.data.length === 0) return 1;
-  var lastNum = result.data[0].invoice_number.replace(prefix, '');
-  var parsed = parseInt(lastNum, 10);
-  return isNaN(parsed) ? 1 : parsed + 1;
-}`
-  }
-
-  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
-    return `
-async function getNextInvoiceNumber(prefix) {
-  var pool = getClient();
-  var conn = await pool.getConnection();
-  try {
-    await conn.execute('START TRANSACTION');
-    var [rows] = await conn.execute(
-      'SELECT invoice_number FROM ${table} WHERE invoice_number LIKE ? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',
-      [prefix + '%']
-    );
-    var nextNum = 1;
-    if (rows.length > 0) {
-      var lastNum = rows[0].invoice_number.replace(prefix, '');
-      var parsed = parseInt(lastNum, 10);
-      nextNum = isNaN(parsed) ? 1 : parsed + 1;
-    }
-    await conn.execute('COMMIT');
-    return nextNum;
-  } catch (err) {
-    await conn.execute('ROLLBACK');
-    throw err;
-  } finally {
-    conn.release();
-  }
-}`
-  }
-
-  return `
-async function getNextInvoiceNumber(prefix) {
-  var pool = getClient();
-  var client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    var result = await client.query(
-      'SELECT invoice_number FROM ${table} WHERE invoice_number LIKE $1 ORDER BY created_at DESC LIMIT 1 FOR UPDATE',
-      [prefix + '%']
-    );
-    var nextNum = 1;
-    if (result.rows.length > 0) {
-      var lastNum = result.rows[0].invoice_number.replace(prefix, '');
-      var parsed = parseInt(lastNum, 10);
-      nextNum = isNaN(parsed) ? 1 : parsed + 1;
-    }
-    await client.query('COMMIT');
-    return nextNum;
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-}`
-}
-
 // Fetches a `teleport_orders` row + its `teleport_order_items` children in a
 // single call. Consumed by `/api/invoices/generate` when only `orderId` is
 // provided — the caller (the payment webhook's Process Payment Webhook
@@ -458,6 +557,165 @@ async function getOrderWithItems(orderId) {
     [orderId]
   );
   return { order: orderRes.rows[0], items: itemsRes.rows || [] };
+}`
+}
+
+// Rewrites one invoice in place — its figures, customer, PDF and lines — for
+// `/api/invoices/[id]/regenerate`. The row keeps its id, so everything that
+// points at it (the order, the sent-email ledger) stays valid. Postgres and
+// MySQL do it in one transaction, and Supabase undoes its steps, so a failure
+// leaves the old invoice whole.
+function generateReplaceInvoiceCode(dsType: string, table: string, itemsTable: string): string {
+  if (dsType === 'supabase') {
+    return `
+async function replaceInvoice(invoiceId, invoiceData, items) {
+  var client = getClient();
+  // PostgREST has no transactions, so each step undoes the ones before it
+  // when it fails: new lines first (one INSERT, whole or nothing), then the
+  // row, then the old lines — and a failure puts the row and lines back.
+  var previousRow = await client.from('${table}').select('*').eq('id', invoiceId).maybeSingle();
+  if (previousRow.error) throw new Error(previousRow.error.message);
+  if (!previousRow.data) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+  var previousLines = await client.from('${itemsTable}').select('id').eq('invoice_id', invoiceId);
+  if (previousLines.error) throw new Error(previousLines.error.message);
+  var previousIds = (previousLines.data || []).map(function (row) { return row.id; });
+
+  var inserted = await insertInvoiceItems(invoiceId, items);
+  var insertedIds = (inserted || []).map(function (row) { return row.id; });
+  var written = null;
+  try {
+    var record = await writeInvoiceRecord(mapInvoiceReplacementToRecord(invoiceData), async function (fields) {
+      var result = await client.from('${table}').update(fields).eq('id', invoiceId).select('id');
+      if (result.error) throw new Error(result.error.message);
+      if (!result.data || result.data.length === 0) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      written = fields;
+      return fields;
+    });
+    if (previousIds.length > 0) {
+      var removed = await client.from('${itemsTable}').delete().in('id', previousIds);
+      if (removed.error) throw new Error(removed.error.message);
+    }
+    return record;
+  } catch (err) {
+    if (written) {
+      var restored = {};
+      Object.keys(written).forEach(function (column) { restored[column] = previousRow.data[column]; });
+      var restoreResult = await client.from('${table}').update(restored).eq('id', invoiceId);
+      if (restoreResult.error) console.error('[invoice] Regenerate: could not restore invoice ' + invoiceId + ' — ' + restoreResult.error.message);
+    }
+    if (insertedIds.length > 0) {
+      var undone = await client.from('${itemsTable}').delete().in('id', insertedIds);
+      if (undone.error) console.error('[invoice] Regenerate: could not remove the new lines of invoice ' + invoiceId + ' — ' + undone.error.message);
+    }
+    throw err;
+  }
+}`
+  }
+
+  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
+    return `
+async function replaceInvoice(invoiceId, invoiceData, items) {
+  var pool = getClient();
+  return writeInvoiceRecord(mapInvoiceReplacementToRecord(invoiceData), async function (fields) {
+    var conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      var columns = Object.keys(fields);
+      var setClauses = columns.map(function(k) { return quoteIdent(k) + ' = ?'; }).join(', ');
+      var values = columns.map(function(k) { return fields[k]; });
+      values.push(invoiceId);
+      var [updated] = await conn.execute('UPDATE ${table} SET ' + setClauses + ' WHERE id = ?', values);
+      if (!updated || !updated.affectedRows) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      await conn.execute('DELETE FROM ${itemsTable} WHERE invoice_id = ?', [invoiceId]);
+      await insertInvoiceItemRows(conn, invoiceId, items);
+      await conn.commit();
+      return fields;
+    } catch (err) {
+      try { await conn.rollback(); } catch (_rollbackErr) {}
+      throw err;
+    } finally {
+      conn.release();
+    }
+  });
+}`
+  }
+
+  return `
+async function replaceInvoice(invoiceId, invoiceData, items) {
+  var pool = getClient();
+  return writeInvoiceRecord(mapInvoiceReplacementToRecord(invoiceData), async function (fields) {
+    var client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      var columns = Object.keys(fields);
+      var setClauses = columns.map(function(k, i) { return quoteIdent(k) + ' = $' + (i + 1); }).join(', ');
+      var values = columns.map(function(k) { return fields[k]; });
+      values.push(invoiceId);
+      // The UPDATE takes the row lock first, so two regenerations of the same
+      // invoice run one after the other instead of interleaving their lines.
+      var updated = await client.query('UPDATE ${table} SET ' + setClauses + ' WHERE id = $' + values.length, values);
+      if (!updated.rowCount) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      await client.query('DELETE FROM ${itemsTable} WHERE invoice_id = $1', [invoiceId]);
+      await insertInvoiceItemRows(client, invoiceId, items);
+      await client.query('COMMIT');
+      return fields;
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_rollbackErr) {}
+      throw err;
+    } finally {
+      client.release();
+    }
+  });
+}`
+}
+
+// Points an order at its (regenerated) invoice — but only an order that
+// points at THIS invoice or at none: an order whose link names a different
+// invoice keeps it. Returns whether the order was updated.
+function generateLinkOrderToInvoiceCode(dsType: string): string {
+  if (dsType === 'supabase') {
+    return `
+async function linkOrderToInvoice(orderId, invoiceId, invoiceNumber, pdfUrl) {
+  if (!orderId || !invoiceId) return false;
+  var client = getClient();
+  var result = await client
+    .from('teleport_orders')
+    .update({
+      invoice_id: invoiceId,
+      invoice_number: invoiceNumber,
+      invoice_pdf_url: pdfUrl || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .or('invoice_id.is.null,invoice_id.eq.' + invoiceId)
+    .select('id');
+  if (result.error) throw new Error(result.error.message);
+  return !!(result.data && result.data.length > 0);
+}`
+  }
+
+  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
+    return `
+async function linkOrderToInvoice(orderId, invoiceId, invoiceNumber, pdfUrl) {
+  if (!orderId || !invoiceId) return false;
+  var pool = getClient();
+  var [result] = await pool.execute(
+    'UPDATE teleport_orders SET invoice_id = ?, invoice_number = ?, invoice_pdf_url = ?, updated_at = NOW() WHERE id = ? AND (invoice_id IS NULL OR invoice_id = ?)',
+    [invoiceId, invoiceNumber, pdfUrl || null, orderId, invoiceId]
+  );
+  return !!(result && result.affectedRows > 0);
+}`
+  }
+
+  return `
+async function linkOrderToInvoice(orderId, invoiceId, invoiceNumber, pdfUrl) {
+  if (!orderId || !invoiceId) return false;
+  var pool = getClient();
+  var result = await pool.query(
+    'UPDATE teleport_orders SET invoice_id = $1, invoice_number = $2, invoice_pdf_url = $3, updated_at = NOW() WHERE id = $4 AND (invoice_id IS NULL OR invoice_id::text = $5)',
+    [invoiceId, invoiceNumber, pdfUrl || null, orderId, String(invoiceId)]
+  );
+  return result.rowCount > 0;
 }`
 }
 
@@ -528,7 +786,7 @@ function mapInvoiceToRecord(data) {
 // Columns added to the invoices table after stores already had one. The
 // editor adds missing columns when the e-commerce activation runs, but a
 // store that only republished still has the old table — and an invoice that
-// fails to insert is an order the buyer is never billed for. So the insert
+// fails to insert is an order the buyer is never billed for. So the write
 // retries without the column the database rejected, and says what to re-run.
 var OPTIONAL_INVOICE_COLUMNS = ['shipping_amount', 'gift_card_amount', 'amount_due', 'refunded_amount'];
 
@@ -546,18 +804,32 @@ function missingOptionalInvoiceColumn(err, record) {
   return null;
 }
 
-async function insertInvoiceRecord(record, insert) {
+async function writeInvoiceRecord(record, write) {
   for (var attempt = 0; attempt <= OPTIONAL_INVOICE_COLUMNS.length; attempt++) {
     try {
-      return await insert(record);
+      return await write(record);
     } catch (err) {
       var missing = missingOptionalInvoiceColumn(err, record);
       if (!missing) throw err;
-      console.warn('[invoice] The invoices table has no "' + missing + '" column — inserting without it. Re-run the e-commerce activation in the editor to add it.');
+      console.warn('[invoice] The invoices table has no "' + missing + '" column — writing without it. Re-run the e-commerce activation in the editor to add it.');
       delete record[missing];
     }
   }
-  return insert(record);
+  return write(record);
+}
+
+// The columns a regeneration rewrites: everything the assembly produces,
+// except the row's identity (id, created_at), \`refunded_amount\` — money
+// already returned against the invoice stays recorded on it — and the two
+// columns the assembly never fills, which keep whatever they hold.
+function mapInvoiceReplacementToRecord(data) {
+  var record = mapInvoiceToRecord(data);
+  delete record.id;
+  delete record.created_at;
+  delete record.refunded_amount;
+  delete record.payment_provider_invoice_id;
+  delete record.metadata;
+  return record;
 }
 
 function mapInvoiceItemToRecord(invoiceId, item, sortOrder) {

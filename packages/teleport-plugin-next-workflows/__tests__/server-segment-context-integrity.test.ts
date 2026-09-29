@@ -1,6 +1,7 @@
-import { generateSharedRuntimeUtilsCode, generateServerSegmentAPIRoute } from '../src'
+import { generateServerSegmentAPIRoute } from '../src'
 import { splitIntoSegments } from '../src/segment-splitter'
 import type { WorkflowSegment } from '../src/types'
+import { loadServerRuntime } from './_helpers/load-server-runtime'
 import type { ServerSegmentRouteOptions } from '../src/api-route-generator'
 
 // A server segment's nodes run inside the route, and whatever the request says
@@ -15,19 +16,9 @@ interface RouteReply {
   body: { success: boolean; results?: Record<string, unknown>; error?: string }
 }
 
-function loadSharedRuntime(): Record<string, unknown> {
-  const utilsModule: { exports: Record<string, unknown> } = { exports: {} }
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  new Function('module', 'exports', generateSharedRuntimeUtilsCode())(
-    utilsModule,
-    utilsModule.exports
-  )
-  return utilsModule.exports
-}
-
 function bootRoute(segment: WorkflowSegment, options?: ServerSegmentRouteOptions) {
   const source = generateServerSegmentAPIRoute(segment, 'Integrity', undefined, options)
-  const utils = loadSharedRuntime()
+  const utils = loadServerRuntime()
   const requireStub = (id: string) => (id.endsWith('server-runtime') ? utils : {})
   const routeModule: { exports: unknown } = { exports: {} }
   // eslint-disable-next-line @typescript-eslint/no-implied-eval

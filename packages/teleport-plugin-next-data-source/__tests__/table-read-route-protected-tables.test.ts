@@ -307,10 +307,20 @@ describe('per-table read routes — money and customer tables are read only by t
     // A readable statement that names nothing protected still passes, dollar
     // quotes and nested comments included.
     for (const rawQuery of [
-      "SELECT 1 FROM teleport_products WHERE name = 'teleport_gift_cards'",
-      "SELECT $$it's fine$$ /* a /* nested */ note */ FROM teleport_products",
+      "SELECT 1 FROM team_members WHERE name = 'teleport_gift_cards'",
+      "SELECT $$it's fine$$ /* a /* nested */ note */ FROM team_members",
     ]) {
       expect((await open({ handler: 'handler', query: { rawQuery } })).status).toBe(200)
+    }
+    // A statement over a table a visitor only reads narrowed (the published
+    // posts, the active products) cannot be narrowed, so it is refused whole.
+    for (const rawQuery of [
+      "SELECT 1 FROM teleport_products WHERE name = 'teleport_gift_cards'",
+      'SELECT title, author_email FROM teleport_blog_posts',
+    ]) {
+      const refused = await open({ handler: 'handler', query: { rawQuery } })
+      expect(refused.status).toBe(403)
+      expect(refused.queries).toEqual([])
     }
   })
 

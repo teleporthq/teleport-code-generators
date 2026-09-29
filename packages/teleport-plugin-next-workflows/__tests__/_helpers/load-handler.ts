@@ -1,4 +1,6 @@
 import { nodeRegistry } from '../../src'
+import { PAYMENT_DRIVER_NODE_TYPES } from '../../src/payments/payment-drivers-scope'
+import { loadPaymentDrivers, PaymentDriverRegistry } from './load-payment-drivers'
 
 // Shared loader for re-evaluating a runtime handler in the test process.
 //
@@ -78,15 +80,32 @@ const handlerSymbolFor = (nodeType: string): string => nodeType.replace(/-/g, '_
  * Throws if the type isn't registered. The returned function captures the
  * eval scope, so `__awaiter`/`__generator` references inside it resolve to
  * the helpers piped in here.
+ *
+ * A payment node reaches its provider through `__paymentDrivers`, which a
+ * generated route binds before its handlers: it is bound here to the store's
+ * emitted drivers (every provider, a missing Stripe SDK) unless a test hands
+ * its own registry.
  */
-export const loadHandler = (nodeType: string): HandlerFn => {
+export const loadHandler = (
+  nodeType: string,
+  options: { paymentDrivers?: PaymentDriverRegistry; cartPricingSettings?: unknown } = {}
+): HandlerFn => {
   const generator = nodeRegistry[nodeType]
   if (!generator) {
     throw new Error(`No handler registered for node type: ${nodeType}`)
   }
   const src = generator.generateHandler()
   const symbol = handlerSymbolFor(nodeType)
+  const paymentDrivers =
+    options.paymentDrivers ||
+    (PAYMENT_DRIVER_NODE_TYPES.has(nodeType) ? loadPaymentDrivers() : undefined)
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const factory = new Function(`${TS_EMIT_HELPERS}\n${src}\nreturn ${symbol};`)
-  return factory() as HandlerFn
+  // `__cartPricingSettings` stands in for the route preamble's require of
+  // `utils/ecommerce/cart-pricing-settings` (cart-pricing-preamble.ts).
+  const factory = new Function(
+    '__paymentDrivers',
+    '__cartPricingSettings',
+    `${TS_EMIT_HELPERS}\n${src}\nreturn ${symbol};`
+  )
+  return factory(paymentDrivers, options.cartPricingSettings) as HandlerFn
 }

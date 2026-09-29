@@ -434,6 +434,31 @@ describe('cart-get-total — discount engine and gift-card tender', () => {
     expect((await runHandler()).giftCard).toBeNull()
   })
 
+  it("pays a gift card only on a cart priced in the card's currency, and names the cart's", async () => {
+    const settings = settingsWith({ giftCards: { enabled: true, currency: 'EUR' } })
+    const priced = (currency: string) => CART.map((line) => ({ ...line, currency }))
+    // A USD cart in an EUR store: an EUR card pays nothing, a USD card pays.
+    mount({
+      workflow_cart: priced('USD'),
+      workflow_cart_settings: settings,
+      workflow_gift_card: CARD,
+    })
+    const eurCard = await runHandler()
+    expect(eurCard.currency).toBe('USD')
+    expect(eurCard.giftCard).toBeNull()
+    mount({
+      workflow_cart: priced('usd'),
+      workflow_cart_settings: settings,
+      workflow_gift_card: { ...CARD, currency: 'USD' },
+    })
+    expect((await runHandler()).giftCard).toMatchObject({ amount: 40, amountDue: 220 })
+    // Lines that name no currency are priced in the store's.
+    mount({ workflow_cart: CART, workflow_cart_settings: settings, workflow_gift_card: CARD })
+    const unnamed = await runHandler()
+    expect(unnamed.currency).toBe('')
+    expect(unnamed.giftCard).toMatchObject({ amount: 40 })
+  })
+
   it('returns the untouched zeroed shape when localStorage is unreadable', async () => {
     ;(global as any).localStorage = {
       getItem: () => {

@@ -20,6 +20,38 @@ async function data_update_item(config: any, context: any) {
   // and run an UNSCOPED update (that would rewrite every row); no-op is the only
   // safe degrade. (A columnMapping sentinel still degrades to null below so the
   // write's VALUES survive.) Observable via the warn + __skippedUnavailableFilter.
+  // A filter whose value never arrived — its binding produced nothing, or the
+  // hand-off to the server dropped an oversized value — cannot identify its
+  // row. Leaving it out would update EVERY row, so the update is a no-op.
+  for (let __mi = 0; __mi < filters.length; __mi++) {
+    const __mf: any = filters[__mi]
+    if (!__mf || typeof __mf !== 'object') {
+      continue
+    }
+    const __mv = __mf.destination !== undefined ? __mf.destination : __mf.value
+    const __missing =
+      __mv === undefined ||
+      (!!__mv &&
+        typeof __mv === 'object' &&
+        !Array.isArray(__mv) &&
+        (__mv.__truncated === true || __mv.__serializationError === true))
+    if (__missing) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(
+          '[workflow] data-update-item skipped (no-op) — the filter on "' +
+            (__mf.column || __mf.source || __mf.field || 'unknown') +
+            '" has no value; nothing was changed'
+        )
+      }
+      return {
+        id: null,
+        updatedCount: 0,
+        affected: 0,
+        success: true,
+        __skippedMissingFilter: true,
+      }
+    }
+  }
   for (let __fi = 0; __fi < filters.length; __fi++) {
     const __f: any = filters[__fi]
     if (

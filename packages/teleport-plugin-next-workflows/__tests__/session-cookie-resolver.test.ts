@@ -270,6 +270,65 @@ describe('the emitted session-cookie resolver', () => {
       })
     })
 
+    it('THE ROLE DEFECT: when both cookies decode, the most recently issued one wins over the protocol order', async () => {
+      // A local dev server whose NextAuth ran under an https origin for a while
+      // (a tunnel request had rewritten NEXTAUTH_URL) left the browser with
+      // both cookies: the plain one frozen when the account was still a
+      // "user", the "__Secure-" one re-issued on every session read since the
+      // promotion. The request is plain http, so the plain cookie is tried
+      // first — and used to be returned.
+      const tokens: Record<string, { email: string; role: string; iat: number }> = {
+        'next-auth.session-token': { email: 'a@shop.test', role: 'user', iat: 1790000000 },
+        '__Secure-next-auth.session-token': {
+          email: 'a@shop.test',
+          role: 'admin',
+          iat: 1790336037,
+        },
+      }
+      const getToken = jest.fn(async (params: { cookieName?: string }) =>
+        params.cookieName ? tokens[params.cookieName] || null : null
+      )
+      const req = {
+        headers: {
+          cookie: 'next-auth.session-token=old; __Secure-next-auth.session-token=live',
+        },
+      }
+      expect(resolver.__tqSessionTokenCandidates(req)[0].cookieName).toBe('next-auth.session-token')
+
+      const token = (await resolver.__tqResolveSessionToken(getToken, req, 'secret')) as {
+        role: string
+      }
+      expect(token.role).toBe('admin')
+      expect(getToken).toHaveBeenCalledTimes(2)
+
+      // And the other way round: the plain cookie is the live one.
+      tokens['next-auth.session-token'].iat = 1790400000
+      const again = (await resolver.__tqResolveSessionToken(getToken, req, 'secret')) as {
+        role: string
+      }
+      expect(again.role).toBe('user')
+    })
+
+    it('keeps the protocol-matching cookie on a tie, and a token without iat still beats none', async () => {
+      const getToken = async (params: { cookieName?: string }) =>
+        params.cookieName === '__Secure-next-auth.session-token'
+          ? { id: 'secure', iat: 5 }
+          : params.cookieName === 'next-auth.session-token'
+          ? { id: 'plain', iat: 5 }
+          : null
+      const both = httpsReq('next-auth.session-token=a; __Secure-next-auth.session-token=b')
+      expect(await resolver.__tqResolveSessionToken(getToken, both, 'secret')).toEqual({
+        id: 'secure',
+        iat: 5,
+      })
+
+      const noIat = async (params: { cookieName?: string }) =>
+        params.cookieName === 'next-auth.session-token' ? { id: 'plain' } : null
+      expect(await resolver.__tqResolveSessionToken(noIat, both, 'secret')).toEqual({
+        id: 'plain',
+      })
+    })
+
     it('returns null rather than throwing when getToken throws', async () => {
       const throwing = async () => {
         throw new Error('JWEDecryptionFailed')

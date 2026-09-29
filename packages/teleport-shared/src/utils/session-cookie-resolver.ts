@@ -215,19 +215,30 @@ function __tqSessionTokenCandidates(req) {
   return candidates;
 }
 
-// The decoded session token, or null. Tries each candidate cookie in turn so a
-// project that renamed its cookie, or one reached over both protocols, still
-// resolves. Never throws.
+// When a browser carries BOTH session cookies, both usually decode — they are
+// two snapshots of the same account written at different times (NextAuth
+// switches between the plain and the "__Secure-" name with the origin it
+// derives, and never clears the other one). The one NextAuth is maintaining is
+// re-issued on every session read, so it is the most recently issued; the
+// other is frozen at whatever the account looked like when NextAuth last used
+// that name, role included. Trusting it by protocol alone made a promoted admin
+// read as "user" at the edge while /api/auth/session said "admin".
+function __tqTokenIssuedAt(token) {
+  var issued = token && typeof token === 'object' ? token.iat : null;
+  return typeof issued === 'number' && isFinite(issued) ? issued : 0;
+}
+
+// The decoded session token, or null. Decodes every candidate cookie (normally
+// exactly one) and keeps the most recently issued, so a project that renamed
+// its cookie, or one reached over both protocols, resolves to the session
+// NextAuth is actually maintaining. A tie keeps the protocol-matching
+// candidate. Never throws.
 function ${SESSION_TOKEN_RESOLVER_FN}(getToken, req, secret) {
   if (!secret || typeof getToken !== 'function') {
     return Promise.resolve(null);
   }
   var candidates = __tqSessionTokenCandidates(req);
-  var attempt = function (index) {
-    if (index >= candidates.length) {
-      return Promise.resolve(null);
-    }
-    var candidate = candidates[index];
+  var decode = function (candidate) {
     var params = { req: req, secret: secret, secureCookie: candidate.secureCookie };
     if (candidate.cookieName) {
       params.cookieName = candidate.cookieName;
@@ -238,12 +249,25 @@ function ${SESSION_TOKEN_RESOLVER_FN}(getToken, req, secret) {
       })
       .catch(function () {
         return null;
-      })
-      .then(function (token) {
-        return token || attempt(index + 1);
       });
   };
-  return attempt(0);
+  var decodes = [];
+  for (var i = 0; i < candidates.length; i++) {
+    decodes.push(decode(candidates[i]));
+  }
+  return Promise.all(decodes)
+    .then(function (tokens) {
+      var best = null;
+      for (var t = 0; t < tokens.length; t++) {
+        if (tokens[t] && (best === null || __tqTokenIssuedAt(tokens[t]) > __tqTokenIssuedAt(best))) {
+          best = tokens[t];
+        }
+      }
+      return best;
+    })
+    .catch(function () {
+      return null;
+    });
 }
 `
 }

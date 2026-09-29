@@ -250,6 +250,12 @@ function computeNetFromGrossValue(amount, rate, included) {
   return n / (1 + rate / 100);
 }
 
+// At most \`max\` characters, never splitting a character in two.
+function clampLineText(text, max) {
+  var chars = Array.from(String(text));
+  return chars.length > max ? chars.slice(0, max - 1).join('') + '\\u2026' : chars.join('');
+}
+
 function formatDateValue(raw) {
   if (!raw) return '';
   try {
@@ -405,10 +411,15 @@ function buildInvoiceDataScope(invoiceData) {
     var lineGross = lineNet + lineVat;
 
     // Append the purchased variant to the item name so it appears on the PDF
-    // (e.g. "Cotton Tee — Red / XL"). Empty for flat products.
+    // (e.g. "Cotton Tee — Red / XL"). Empty for flat products. A line bought
+    // with product options appends their short label too, clamped so a long
+    // engraving cannot swamp the row ("Photo print — Size: A3 · Paper: Glossy");
+    // every answer in full is the line's description.
     var baseName = it.name || it.product_name || '';
     var variantLabel = it.variantLabel || it.variant_label || '';
-    var displayName = variantLabel ? (baseName + ' — ' + variantLabel) : baseName;
+    var configurationLabel = clampLineText(it.configurationLabel || it.configuration_label || '', 160);
+    var nameSuffix = [variantLabel, configurationLabel].filter(Boolean).join(' · ');
+    var displayName = nameSuffix ? (baseName + ' — ' + nameSuffix) : baseName;
 
     // Colour swatch hex(es) for the variant's colour-type axes (JSON array of
     // { color }), for the GUI template's swatch mapper + the fallback HTML row.
@@ -974,8 +985,13 @@ function buildFallbackInvoiceHtml(scope) {
     '<th style="text-align:right;border-bottom:2px solid #333;padding:6px;">Total</th>' +
     '</tr></thead><tbody>');
   products.forEach(function (p) {
+    // A line's description (the options it was bought with, one per line)
+    // under its name.
+    var descriptionHtml = p.description
+      ? '<div style="color:#666;font-size:11px;">' + String(p.description).split(/\\r?\\n/).map(escapeHtml).join('<br>') + '</div>'
+      : '';
     parts.push('<tr>' +
-      '<td style="border-bottom:1px solid #eee;padding:6px;">' + (p.variantSwatchesHtml || '') + escapeHtml(p.name) + '</td>' +
+      '<td style="border-bottom:1px solid #eee;padding:6px;">' + (p.variantSwatchesHtml || '') + escapeHtml(p.name) + descriptionHtml + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.quantity) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.unitPriceNet) + '</td>' +
       '<td style="border-bottom:1px solid #eee;padding:6px;text-align:right;">' + escapeHtml(p.lineVatRate) + '</td>' +

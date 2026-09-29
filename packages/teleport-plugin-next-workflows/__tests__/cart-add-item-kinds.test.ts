@@ -157,6 +157,34 @@ describe('cart-add-item — one kind of line per cart', () => {
     expect(storedCart(store)[0].quantity).toBe(1)
   })
 
+  it('refuses the same subscription again with other options: another configuration is another line', async () => {
+    const store = withCart([
+      {
+        id: 'c1',
+        productId: 'plan',
+        quantity: 1,
+        price: 24,
+        isRecurring: true,
+        configuration: '[{"key":"roast","value":"dark"}]',
+        configurationKey: 'aaaaaaaaaaaaaaaa',
+      },
+    ])
+    const result = await loadHandler(store)({
+      productId: 'plan',
+      price: 24,
+      isRecurring: true,
+      configuration: '[{"key":"roast","value":"light"}]',
+      configurationKey: 'bbbbbbbbbbbbbbbb',
+    })
+    expect(result).toEqual({
+      added: false,
+      reason: 'one-subscription',
+      message:
+        'Subscriptions are checked out on their own. Finish or empty your current cart first.',
+    })
+    expect(storedCart(store)).toHaveLength(1)
+  })
+
   it('lets a line of the same kind join, and re-stamps the kind on an existing line', async () => {
     const store = withCart([
       { id: 'c1', productId: 'ebook', quantity: 1, price: 9, isDigital: true },
@@ -171,5 +199,61 @@ describe('cart-add-item — one kind of line per cart', () => {
     })
     expect(bumped).toMatchObject({ added: true, quantity: 2 })
     expect(storedCart(store).map((line) => line.isDigital)).toEqual([true, true])
+  })
+})
+
+describe('cart-add-item — one currency per cart', () => {
+  it('refuses a line priced in another currency, naming both, and writes nothing', async () => {
+    const store = withCart([
+      { id: 'c1', productId: 'mug', quantity: 1, price: 12, currency: 'USD' },
+    ])
+    const result = await loadHandler(store)({ productId: 'tea', price: 19.99, currency: 'ron' })
+    expect(result).toEqual({
+      added: false,
+      reason: 'mixed-currency',
+      message:
+        'Products priced in RON need a separate order. Complete your current order or remove the items priced in USD from your cart first.',
+    })
+    expect(storedCart(store)).toHaveLength(1)
+  })
+
+  it('judges the kind first', async () => {
+    const store = withCart([
+      { id: 'c1', productId: 'mug', quantity: 1, price: 12, currency: 'USD' },
+    ])
+    const result = await loadHandler(store)({
+      productId: 'ebook',
+      isDigital: true,
+      currency: 'EUR',
+    })
+    expect(result).toMatchObject({ added: false, reason: 'mixed-cart' })
+  })
+
+  it('lets a line of the same currency join, and a re-added line change its own', async () => {
+    const store = withCart([
+      { id: 'c1', productId: 'mug', quantity: 1, price: 12, currency: 'usd' },
+    ])
+    const joined = await loadHandler(store)({ productId: 'tea', price: 5, currency: 'USD' })
+    expect(joined).toMatchObject({ added: true })
+    // The only line: nothing else to be priced against.
+    const alone = withCart([
+      { id: 'c1', productId: 'mug', quantity: 1, price: 12, currency: 'USD' },
+    ])
+    const bumped = await loadHandler(alone)({ productId: 'mug', price: 12, currency: 'EUR' })
+    expect(bumped).toMatchObject({ added: true, quantity: 2 })
+    expect(storedCart(alone)[0]).toMatchObject({ currency: 'EUR' })
+  })
+
+  it('does not judge a line, or a cart, that names no currency', async () => {
+    const legacy = withCart([{ id: 'c1', productId: 'mug', quantity: 1, price: 12 }])
+    expect(
+      await loadHandler(legacy)({ productId: 'tea', price: 5, currency: 'RON' })
+    ).toMatchObject({ added: true })
+    const priced = withCart([
+      { id: 'c1', productId: 'mug', quantity: 1, price: 12, currency: 'USD' },
+    ])
+    expect(await loadHandler(priced)({ productId: 'tea', price: 5 })).toMatchObject({
+      added: true,
+    })
   })
 })

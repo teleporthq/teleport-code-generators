@@ -29,6 +29,14 @@ export type { EcommerceProductTransformOptions }
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
   /** Blog post-category taxonomy — see `blogSettings.categories`. */
   blogCategories?: UIDLEcommerceCategory[]
+  /** Post content headings get ids and `#` links — see `blogSettings.headingAnchors`. */
+  blogHeadingAnchors?: boolean
+  /**
+   * A post details fetch carries the post's approved comments — see
+   * `blogSettings.comments`. Off, the comments table is never queried: a blog
+   * without comments has no such table.
+   */
+  blogComments?: boolean
   /**
    * The languages the rows are stored in — absent for a single-language
    * project. The transform resolves every translatable field against the
@@ -89,8 +97,11 @@ export const buildProductTransformOptions = (
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
   blogCategories: options.blogSettings?.categories,
+  blogHeadingAnchors: options.blogSettings?.headingAnchors === true,
+  blogComments: options.blogSettings?.comments === true,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
   allowBackorders: resolveAllowBackorders(options.ecommerceSettings),
+  productPages: options.ecommerceSettings?.productPages,
   localization: resolveContentLocalization(options),
   trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth || options.authentication),
 })
@@ -157,7 +168,13 @@ export const getTransformationCode = (
 
   switch (type) {
     case 'blog-post':
-      return shared + generateBlogPostTransformationCode({ categories: options.blogCategories })
+      return (
+        shared +
+        generateBlogPostTransformationCode({
+          categories: options.blogCategories,
+          headingAnchors: options.blogHeadingAnchors,
+        })
+      )
     case 'ecommerce-product':
       return shared + generateEcommerceProductTransformationCode(options)
     case 'custom-page':
@@ -168,28 +185,97 @@ export const getTransformationCode = (
 }
 
 /**
+ * The request parameter that asks a transformed table for its rows AS STORED.
+ *
+ * The product, blog-post and custom-page transforms build a storefront view
+ * model: camelCased keys, flags as `"true"`/`"false"` strings, derived fields,
+ * and several columns left out altogether (a product's `discounts`,
+ * `category_ids`, `download_limit`, …). A caller that WRITES the row back —
+ * the generated admin's edit forms — needs the columns themselves: fed the view
+ * model, its form showed a digital product as not digital, a gift card switch
+ * ticked on a product that is not one, no discounts, and every save wrote the
+ * missing columns back blank.
+ *
+ * ⛔ PAIRED with `ADMIN_RAW_ROWS_PARAM` in the GUI's
+ * `mappers/domain-to-uidl/feature-detail-page-options.ts`, which bakes it into
+ * the admin update pages' detail resource.
+ */
+export const RAW_ROWS_PARAM = 'rawRows'
+
+/**
  * Returns the JavaScript expression that transforms the data array.
  * This expression assumes the data array variable is called `safeData`,
  * that `getClient` is available for asset resolution, and that `req` is in scope.
- * Returns null if no transformation is needed.
+ * Returns null if no transformation is needed. A request carrying
+ * `RAW_ROWS_PARAM` gets the stored rows instead (see `rawRecords`).
  */
 export const getTransformExpression = (tableName: string): string | null => {
-  const type = detectTransformationType(tableName)
-  if (!type) {
+  if (!detectTransformationType(tableName)) {
     return null
   }
-
-  switch (type) {
-    case 'blog-post':
-      return 'await transformRecords(safeData, getClient, req.query)'
-    case 'ecommerce-product':
-      return 'await transformRecords(safeData, getClient, req.query)'
-    case 'custom-page':
-      return 'await transformRecords(safeData, getClient, req.query)'
-    default:
-      return null
-  }
+  return '(__tqWantsRawRows(req.query) ? await rawRecords(safeData, getClient) : await transformRecords(safeData, getClient, req.query))'
 }
+
+/**
+ * The raw-rows mode every transformed table's fetcher carries: the rows as
+ * stored, with one exception — a value that is an uploaded asset's ID, alone or
+ * inside a JSON list column, becomes the URL the transform would have shown, so
+ * an edit form's image previews keep working. Nothing else is renamed, derived
+ * or dropped. The response cache keys on the query, so the two modes never
+ * share an entry.
+ */
+const RAW_ROWS_CODE = `
+function __tqWantsRawRows(query) {
+  var flag = query ? query.${RAW_ROWS_PARAM} : undefined
+  return flag === true || flag === 'true'
+}
+
+async function rawRecords(records, getClientFn) {
+  if (!Array.isArray(records)) return []
+  var assetMap = {}
+  try {
+    assetMap = await getAssetMap(getClientFn)
+  } catch (e) {
+    // Asset resolution is best-effort; the stored values pass through as they are.
+  }
+  return records.map(function(record) { return __tqResolveRowAssets(record, assetMap || {}) })
+}
+
+function __tqResolveRowAssets(record, assetMap) {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return record
+  var out = {}
+  for (var key in record) {
+    if (!Object.prototype.hasOwnProperty.call(record, key)) continue
+    out[key] = __tqResolveAssetValue(record[key], assetMap)
+  }
+  return out
+}
+
+function __tqIsAssetId(value, assetMap) {
+  return typeof value === 'string' && value !== '' && Object.prototype.hasOwnProperty.call(assetMap, value)
+}
+
+function __tqResolveAssetValue(value, assetMap) {
+  if (typeof value !== 'string' || !value) return value
+  if (__tqIsAssetId(value, assetMap)) return resolveAssetUrl(value, assetMap)
+  var trimmed = value.trim()
+  if (trimmed.charAt(0) !== '[') return value
+  var list
+  try {
+    list = JSON.parse(trimmed)
+  } catch (e) {
+    return value
+  }
+  if (!Array.isArray(list)) return value
+  var changed = false
+  var resolved = list.map(function(item) {
+    if (!__tqIsAssetId(item, assetMap)) return item
+    changed = true
+    return resolveAssetUrl(item, assetMap)
+  })
+  return changed ? JSON.stringify(resolved) : value
+}
+`
 
 /**
  * How many reviews a product page carries into its structured data.
@@ -214,7 +300,7 @@ export const REVIEWS_PER_PRODUCT = 5
  */
 export const getTransformWrapperCode = (
   tableName: string,
-  options: Pick<EntityTransformOptions, 'localization'> = {}
+  options: Pick<EntityTransformOptions, 'localization' | 'blogComments'> = {}
 ): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
@@ -298,9 +384,11 @@ export const getTransformWrapperCode = (
   }`
       : ''
 
+  // `includeOptionDetail` uses the same single-record heuristic as the related
+  // items: only the details page carries a product's full option tree.
   const variantOption =
     type === 'ecommerce-product'
-      ? ', variantsByProductId: variantsByProductId, ratingsByProductId: ratingsByProductId, reviewsByProductId: reviewsByProductId'
+      ? ', variantsByProductId: variantsByProductId, ratingsByProductId: ratingsByProductId, reviewsByProductId: reviewsByProductId, includeOptionDetail: Array.isArray(records) && records.length === 1'
       : ''
 
   // Related items are resolved for a SINGLE-record fetch only — which is the
@@ -332,16 +420,46 @@ export const getTransformWrapperCode = (
     : ''
   const relatedOption = hasRelatedItems ? `, ${relatedMapVar}: ${relatedMapVar}` : ''
 
-  return `
+  // A post page's neighbours and comments, on the same single-record heuristic
+  // as the related rail. The comments are only asked for when the blog takes
+  // them — see `EntityTransformOptions.blogComments`.
+  const blogPageEnrichment =
+    type === 'blog-post'
+      ? `
+  var adjacentPostsById = null
+  var commentsByPostId = null
+  if (Array.isArray(records) && records.length === 1) {
+    try {
+      adjacentPostsById = await getAdjacentPostsMap(getClientFn, records)
+    } catch (e) {
+      // Best-effort; the post navigation stays hidden.
+    }${
+      options.blogComments
+        ? `
+    try {
+      commentsByPostId = await getBlogCommentsMap(getClientFn, records)
+    } catch (e) {
+      // Best-effort; the post renders without comments.
+    }`
+        : ''
+    }
+  }`
+      : ''
+  const blogPageOption =
+    type === 'blog-post'
+      ? ', adjacentPostsById: adjacentPostsById, commentsByPostId: commentsByPostId'
+      : ''
+
+  return `${RAW_ROWS_CODE}
 async function transformRecords(records, getClientFn, reqQuery) {
   var assetMap = {}
   try {
     assetMap = await getAssetMap(getClientFn)
   } catch (e) {
     // Asset resolution is best-effort; continue without it
-  }${relatedEnrichment}${variantEnrichment}
+  }${relatedEnrichment}${blogPageEnrichment}${variantEnrichment}
   var currentLanguage = reqQuery && typeof reqQuery.${REQUEST_LOCALE_PARAM} === 'string' && reqQuery.${REQUEST_LOCALE_PARAM} ? reqQuery.${REQUEST_LOCALE_PARAM} : null
-  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: ${mainLanguageLiteral}${variantOption}${relatedOption} }
+  var options = { assetMap: assetMap, currentLanguage: currentLanguage, mainLanguage: ${mainLanguageLiteral}${variantOption}${relatedOption}${blogPageOption} }
   return ${transformFn}(records, options)
 }
 `

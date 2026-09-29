@@ -10,6 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 type NavlinkDifferentiatorValue = NonNullable<UIDLNavLinkNode['content']['differentiatorValue']>
+type NavlinkCanonicalValue = NonNullable<UIDLNavLinkNode['content']['canonicalValue']>
 
 // Whitelist of attributes that are safe to transfer to anchor tags
 const ANCHOR_SAFE_ATTRIBUTES = new Set([
@@ -560,7 +561,11 @@ const createLinkAttributes = (
       const differentiatorValue = link.content.differentiatorValue
       if (differentiatorValue) {
         return {
-          transitionTo: buildDifferentiatorTransitionTo(baseRoute, differentiatorValue),
+          transitionTo: buildDifferentiatorTransitionTo(
+            baseRoute,
+            differentiatorValue,
+            link.content.canonicalValue
+          ),
         }
       }
       // No differentiator + a dynamic destination = nothing navigable. See
@@ -755,7 +760,8 @@ const differentiatorToJsExpression = (value: NavlinkDifferentiatorValue): string
 
 const buildDifferentiatorTransitionTo = (
   baseRoute: UIDLAttributeValue,
-  differentiatorValue: NavlinkDifferentiatorValue
+  differentiatorValue: NavlinkDifferentiatorValue,
+  canonicalValue?: NavlinkCanonicalValue
 ): UIDLAttributeValue => {
   // If the base route is a static value we can inline it into the template
   // literal; otherwise fall back to leaving the base untouched and emitting
@@ -770,15 +776,25 @@ const buildDifferentiatorTransitionTo = (
   // a bare identifier).
   if (differentiatorValue.type === 'static') {
     const staticPath = encodeURIComponent(String(differentiatorValue.content))
-    return {
-      type: 'static',
-      content: `${String(baseRoute.content)}/${staticPath}`,
-    }
+    const staticHref = `${String(baseRoute.content)}/${staticPath}`
+    return canonicalValue
+      ? {
+          type: 'expr',
+          content: `(${differentiatorToJsExpression(canonicalValue)}) || ${JSON.stringify(
+            staticHref
+          )}`,
+        }
+      : { type: 'static', content: staticHref }
   }
 
   const diffExpr = differentiatorToJsExpression(differentiatorValue)
+  const routedHref = `\`${baseText}/\${${diffExpr}}\``
+  // The record's own canonical address wins whenever it has one (a product on
+  // a custom product page); every other row keeps the route + differentiator.
   return {
     type: 'expr',
-    content: `\`${baseText}/\${${diffExpr}}\``,
+    content: canonicalValue
+      ? `(${differentiatorToJsExpression(canonicalValue)}) || ${routedHref}`
+      : routedHref,
   }
 }

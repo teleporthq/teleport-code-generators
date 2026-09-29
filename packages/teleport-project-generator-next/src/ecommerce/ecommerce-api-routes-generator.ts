@@ -1,6 +1,5 @@
 import { UIDLEcommerceSettings, UIDLInvoiceSettings } from '@teleporthq/teleport-types'
-import { EmailDate, StorefrontTax } from '@teleporthq/teleport-shared'
-import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
+import { EmailDate, ProductOptions, StorefrontTax } from '@teleporthq/teleport-shared'
 
 // The settings payload every workflow-facing consumer shares: the
 // /api/ecommerce/settings route bakes it as its response literal, and the
@@ -60,223 +59,6 @@ export const generateEcommerceSettingsApiRoute = (
     return res.status(405).json({ error: 'Method not allowed' })
   }
   return res.status(200).json(${settingsPayload})
-}
-`
-}
-
-export const generateCheckoutApiRoute = (
-  settings: UIDLEcommerceSettings,
-  dataSourceType: string | null,
-  dataSourceConfig: Record<string, unknown> | null
-): string => {
-  const dbImport = generateDbImport(dataSourceType, dataSourceConfig)
-  const paymentProviders = settings.paymentProviders || []
-  const providerTypes = paymentProviders.map((p) => p.type)
-  const hasStripe = providerTypes.includes('stripe')
-  const hasPaypal = providerTypes.includes('paypal')
-
-  const stripeBlock = hasStripe
-    ? `
-  if (paymentMethod === 'stripe') {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
-    // No payment_method_types — Stripe Dynamic Payment Methods surface every
-    // method enabled in the merchant's Dashboard (card, Apple Pay, Google Pay…).
-    const session = await stripe.checkout.sessions.create({
-      line_items: cartItems.map((item) => ({
-        price_data: {
-          currency: currency || 'usd',
-          product_data: { name: item.name || 'Product' },
-          unit_amount: Math.round((item.price || 0) * 100),
-        },
-        quantity: item.quantity || 1,
-      })),
-      mode: 'payment',
-      success_url: (process.env.NEXTAUTH_URL || 'http://localhost:3000') + '/checkout/success?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: (process.env.NEXTAUTH_URL || 'http://localhost:3000') + '/checkout/cancel',
-      metadata: { orderId: String(orderId) },
-    })
-    return res.status(200).json({ success: true, orderId, sessionId: session.id, url: session.url })
-  }`
-    : ''
-
-  const paypalBlock = hasPaypal
-    ? `
-  if (paymentMethod === 'paypal') {
-    return res.status(200).json({ success: true, orderId, paymentMethod: 'paypal' })
-  }`
-    : ''
-
-  const codBlock = settings.cashOnDelivery
-    ? `
-  if (paymentMethod === 'cash_on_delivery') {
-    ${
-      dbImport
-        ? `await db.query(
-      'UPDATE teleport_orders SET status = $1, payment_status = $2 WHERE id = $3',
-      ['confirmed', 'pending', orderId]
-    )`
-        : ''
-    }
-    return res.status(200).json({ success: true, orderId, paymentMethod: 'cash_on_delivery' })
-  }`
-    : ''
-
-  return `${dbImport ? dbImport + '\n' + generateCommonJsSessionTokenResolverCode() : ''}
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  try {
-    const {
-      cartItems,
-      customer,
-      deliveryAddress,
-      fulfillmentMethod,
-      paymentMethod,
-      deliveryNotes,
-      storeLocationId,
-      currency,
-    } = req.body
-
-    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' })
-    }
-${
-  settings.stockManagementConfig?.maxQuantityPerProduct != null
-    ? `
-    const maxQtyPerProduct = ${settings.stockManagementConfig.maxQuantityPerProduct}
-    for (const item of cartItems) {
-      if ((item.quantity || 1) > maxQtyPerProduct) {
-        return res.status(400).json({
-          error: 'Maximum ' + maxQtyPerProduct + ' units allowed per product',
-          productId: item.productId,
-        })
-      }
-    }
-`
-    : ''
-}
-    if (!paymentMethod) {
-      return res.status(400).json({ error: 'Payment method is required' })
-    }
-${
-  settings.guestCheckout
-    ? ''
-    : `
-    if (!customer || !customer.email) {
-      return res.status(400).json({ error: 'Customer information is required' })
-    }
-`
-}${
-    settings.deliveryEnabled
-      ? `
-    if (fulfillmentMethod === 'delivery' && (!deliveryAddress || !deliveryAddress.street)) {
-      return res.status(400).json({ error: 'Delivery address is required' })
-    }
-`
-      : ''
-  }${
-    settings.storePickupEnabled
-      ? `
-    if (fulfillmentMethod === 'store_pickup' && !storeLocationId) {
-      return res.status(400).json({ error: 'Store location is required for pickup' })
-    }
-`
-      : ''
-  }
-    let subtotal = 0
-    for (const item of cartItems) {
-      subtotal += (item.price || 0) * (item.quantity || 1)
-    }
-
-    let deliveryCost = 0
-${
-  settings.deliveryEnabled && settings.deliveryConfig
-    ? `    if (fulfillmentMethod === 'delivery') {
-      deliveryCost = ${settings.deliveryConfig.deliveryPrice}
-${
-  settings.deliveryConfig.freeDeliveryEnabled
-    ? `      if (subtotal >= ${settings.deliveryConfig.freeDeliveryThreshold}) {
-        deliveryCost = 0
-      }`
-    : ''
-}
-    }
-`
-    : ''
-}
-    const totalAmount = subtotal + deliveryCost
-
-    let orderId = null
-${
-  dbImport
-    ? `    const orderResult = await db.query(
-      \`INSERT INTO teleport_orders (
-        customer_email, customer_name, payment_method, fulfillment_method,
-        subtotal, delivery_cost, total_amount, status, payment_status,
-        shipping_street, shipping_city, shipping_state, shipping_zip, shipping_country,
-        store_location_id, delivery_notes, created_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())
-      RETURNING id\`,
-      [
-        customer?.email || null,
-        customer?.name || null,
-        paymentMethod,
-        fulfillmentMethod || 'delivery',
-        subtotal,
-        deliveryCost,
-        totalAmount,
-        'pending',
-        'pending',
-        deliveryAddress?.street || null,
-        deliveryAddress?.city || null,
-        deliveryAddress?.state || null,
-        deliveryAddress?.zip || null,
-        deliveryAddress?.country || null,
-        storeLocationId || null,
-        deliveryNotes || null,
-      ]
-    )
-    orderId = orderResult.rows[0].id
-
-    for (const item of cartItems) {
-      await db.query(
-        \`INSERT INTO teleport_order_items (order_id, product_id, variant_id, quantity, price, name)
-         VALUES ($1,$2,$3,$4,$5,$6)\`,
-        [orderId, item.productId, item.variantId || null, item.quantity || 1, item.price || 0, item.name || '']
-      )
-    }
-
-    // Best-effort: mark this buyer's active cart as ordered. Wrapped so a
-    // failure never aborts the (already successful) order response.
-    try {
-      let __cartUserId = null
-      try {
-        const __tok = await __tqSessionToken(req)
-        if (__tok) __cartUserId = __tok.id || __tok.sub || null
-      } catch (e) { __cartUserId = null }
-      const __cartSessionId = req.body && req.body.sessionId ? String(req.body.sessionId).slice(0, 255) : null
-      const __clauses = []
-      const __params = []
-      if (__cartUserId) { __params.push(__cartUserId); __clauses.push('user_id = $' + __params.length) }
-      if (__cartSessionId) { __params.push(__cartSessionId); __clauses.push('(session_id = $' + __params.length + ' AND user_id IS NULL)') }
-      if (__clauses.length > 0) {
-        await db.query(
-          "UPDATE teleport_cart SET status = 'ordered', updated_at = NOW() WHERE status = 'active' AND (" + __clauses.join(' OR ') + ')',
-          __params
-        )
-      }
-    } catch (e) {}`
-    : `    orderId = 'order_' + Date.now()`
-}
-${stripeBlock}${paypalBlock}${codBlock}
-
-    return res.status(200).json({ success: true, orderId, totalAmount })
-  } catch (error) {
-    console.error('Checkout error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
-  }
 }
 `
 }
@@ -451,154 +233,164 @@ export default async function handler(req, res) {
 `
 }
 
-// Server-side endpoint the order-details page hits after PayPal redirects
-// the buyer back with `?payment=success&token={paypalOrderId}`. Without this
-// `/v2/checkout/orders/{id}/capture` call PayPal never moves the funds and
-// never fires `PAYMENT.CAPTURE.COMPLETED` (or any other capture-related
-// webhook). The webhook simulator works regardless because it spoofs events
-// directly, but real money requires capture.
+/**
+ * The two routes that settle a payment from the provider's own answer (the
+ * PayPal capture, the confirmation any provider's buyer comes back to) share
+ * how they reach the store's webhook route: the settlement request carries
+ * the runtime's internal-call token, so the webhook route reads the payment
+ * from the provider with the store's credentials and runs what its webhook
+ * runs. Nothing but a provider id comes from the buyer's request.
+ */
+const STORE_SETTLEMENT_CODE = `var paymentDrivers = null;
+try { paymentDrivers = require('../../../../utils/payments'); } catch (_e) { paymentDrivers = null; }
+var serverRuntime = null;
+try { serverRuntime = require('../../../../utils/workflows/server-runtime'); } catch (_e) { serverRuntime = null; }
+
+// The internal-call token travels only to this deployment's own origin: the
+// host Vercel routed, NEXTAUTH_URL, or a development server on loopback.
+// Anywhere else the Host header is the caller's to choose, so nothing is sent.
+function settlementBaseUrl(req) {
+  const base = serverRuntime.trustedBaseUrl(req)
+  if (process.env.VERCEL) {
+    return base
+  }
+  try {
+    const host = new URL(base).hostname
+    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') {
+      return base
+    }
+    return new URL(String(process.env.NEXTAUTH_URL || '')).origin === base ? base : ''
+  } catch (_error) {
+    return ''
+  }
+}
+
+// Whether the webhook route at \`settleUrl\` settled the payment \`request\`
+// names; it answers an error when the provider has nothing to settle yet.
+async function settleWithStore(req, settleUrl, request) {
+  if (!settleUrl || !serverRuntime) {
+    return false
+  }
+  const baseUrl = settlementBaseUrl(req)
+  if (!baseUrl) {
+    return false
+  }
+  try {
+    const response = await fetch(baseUrl + settleUrl, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, serverRuntime.internalRequestHeaders(req)),
+      body: JSON.stringify({ teleportReconcile: request }),
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Payment settlement request failed:', error && error.message)
+    return false
+  }
+}
+`
+
+// Server-side endpoint the store's pages hit after PayPal sends the buyer
+// back: `?payment=success&token={paypalOrderId}&PayerID=…` for an order (which
+// PayPal does not pay until it is CAPTURED), `?subscription_id=I-…` for a
+// subscription. The capture itself is the store's PayPal driver
+// (`utils/payments`), which owns the credentials and the sandbox/live
+// detection; capturing an order twice is answered as success.
 //
-// The auth helper is duplicated from `payment-charge-user.ts` rather than
-// shared via import: every `pages/api/*` file has to be self-contained
-// because Next.js bundles each route independently and we cannot rely on
-// out-of-tree relative requires resolving in production builds.
-export const generatePaypalCaptureApiRoute = (): string => {
-  return `// Auto-detect sandbox vs live by trying sandbox first and falling over to
-// live on \`invalid_client\`. Cached on \`global\` so subsequent captures in the
-// same warm process skip the failover round-trip. Mirrors the
-// \`paypalAuthenticate\` helper emitted into the place-order workflow segment.
-async function paypalAuthenticate(clientId, clientSecret) {
-  const SANDBOX = 'https://api-m.sandbox.paypal.com'
-  const LIVE = 'https://api-m.paypal.com'
-  const basicAuth = 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64')
-
-  async function tryAuth(baseUrl) {
-    try {
-      const res = await fetch(baseUrl + '/v1/oauth2/token', {
-        method: 'POST',
-        headers: { 'Authorization': basicAuth, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'grant_type=client_credentials',
-      })
-      const data = await res.json()
-      if (data && data.access_token) return { accessToken: data.access_token }
-      return {
-        invalidClient: data && data.error === 'invalid_client',
-        errorMessage: (data && (data.error_description || data.error)) || ('HTTP ' + res.status),
-      }
-    } catch (e) {
-      return { errorMessage: 'network error: ' + e.message }
-    }
-  }
-
-  const cached = global.__paypalBaseUrlCache
-  if (cached === SANDBOX || cached === LIVE) {
-    const r = await tryAuth(cached)
-    if (r.accessToken) return { baseUrl: cached, accessToken: r.accessToken }
-    if (!r.invalidClient) return { error: r.errorMessage }
-    global.__paypalBaseUrlCache = undefined
-  }
-
-  const sb = await tryAuth(SANDBOX)
-  if (sb.accessToken) {
-    global.__paypalBaseUrlCache = SANDBOX
-    return { baseUrl: SANDBOX, accessToken: sb.accessToken }
-  }
-  if (!sb.invalidClient) return { error: sb.errorMessage }
-
-  const live = await tryAuth(LIVE)
-  if (live.accessToken) {
-    global.__paypalBaseUrlCache = LIVE
-    return { baseUrl: LIVE, accessToken: live.accessToken }
-  }
-  return { error: live.errorMessage || 'invalid_client' }
-}
-
-function resolveSecret(candidates, prefixScan) {
-  for (const key of candidates) {
-    const value = process.env[key]
-    if (value && String(value).length > 0) return String(value)
-  }
-  if (prefixScan) {
-    for (const key of Object.keys(process.env)) {
-      if (key.indexOf(prefixScan) === 0) {
-        const value = process.env[key]
-        if (value && String(value).length > 0) return String(value)
-      }
-    }
-  }
-  return ''
-}
+// The payment is then SETTLED at once through the store's own PayPal webhook
+// route (`settleUrl`), so an order is marked paid even when PayPal's webhook
+// never arrives (a store on localhost, a Webhook ID of another app). The
+// webhook PayPal sends later is a replay. `settleUrl` is null when no
+// workflow receives PayPal's webhook: the capture alone runs.
+export const generatePaypalCaptureApiRoute = (settleUrl: string | null): string => {
+  return `${STORE_SETTLEMENT_CODE}
+var SETTLE_URL = ${JSON.stringify(settleUrl)}
+var SUBSCRIPTION_ID = /^I-[A-Z0-9]{6,40}$/
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+  const body = req.body || {}
 
-  const orderId = req.body && (req.body.orderId || req.body.token)
+  // A subscription the buyer approved: its mandate, then its first payment.
+  const subscriptionId = typeof body.subscriptionId === 'string' ? body.subscriptionId.trim() : ''
+  if (subscriptionId) {
+    if (!SUBSCRIPTION_ID.test(subscriptionId)) {
+      return res.status(400).json({ error: 'Invalid PayPal subscription id' })
+    }
+    const activated = await settleWithStore(req, SETTLE_URL, { kind: 'subscription', id: subscriptionId })
+    const paid = await settleWithStore(req, SETTLE_URL, { kind: 'subscription-payment', id: subscriptionId })
+    return res.status(200).json({ success: true, subscriptionId, settled: activated && paid })
+  }
+
+  const orderId = body.orderId || body.token
   if (!orderId || typeof orderId !== 'string') {
     return res.status(400).json({ error: 'Missing PayPal order id' })
   }
 
-  const clientId = resolveSecret(
-    ['PAYPAL_CLIENT_ID', 'CONFIGURATION_PAYPAL_CLIENT_ID'],
-    'CONFIGURATION_PAYPAL_CLIENT_ID'
-  )
-  const clientSecret = resolveSecret(
-    ['PAYPAL_CLIENT_SECRET', 'CONFIGURATION_PAYPAL_CLIENT_SECRET'],
-    'CONFIGURATION_PAYPAL_CLIENT_SECRET'
-  )
-  if (!clientId || !clientSecret) {
-    return res.status(500).json({ error: 'PayPal credentials are not configured' })
+  const driver = paymentDrivers ? paymentDrivers.get('paypal') : null
+  if (!driver) {
+    return res.status(500).json({ error: 'This store has no PayPal payment driver' })
   }
 
-  const auth = await paypalAuthenticate(clientId, clientSecret)
-  if (auth.error) {
-    return res.status(502).json({ error: 'PayPal authentication failed: ' + auth.error })
+  const result = await driver.confirmReturn({ query: { token: orderId } })
+  if (!result.ok) {
+    // An order the store closed (paid another way, or cancelled) is refused,
+    // not failed: nothing was captured, and nothing should be.
+    return res.status(result.closed ? 409 : 502).json({ error: result.error || 'PayPal capture failed' })
   }
+  const settled = await settleWithStore(req, SETTLE_URL, { kind: 'order', id: orderId })
+  return res.status(200).json({
+    success: true,
+    alreadyCaptured: !!result.alreadyCaptured,
+    orderId,
+    status: result.status || 'COMPLETED',
+    settled,
+  })
+}
+`
+}
 
-  try {
-    const captureRes = await fetch(auth.baseUrl + '/v2/checkout/orders/' + encodeURIComponent(orderId) + '/capture', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + auth.accessToken,
-        'Content-Type': 'application/json',
-      },
-      // PayPal accepts an empty JSON body for capture; sending one keeps
-      // some hardened reverse proxies (which strip POSTs without bodies)
-      // happy in production.
-      body: '{}',
-    })
-    const captureData = await captureRes.json()
+/** The longest checkout reference a provider hands out (Square's is two ids joined). */
+const MAX_CHECKOUT_REFERENCE_LENGTH = 200
 
-    // Idempotency: if the order is already captured (buyer hit the return
-    // URL twice, browser back/forward, etc.) PayPal returns 422 with
-    // ORDER_ALREADY_CAPTURED. Treat that as success so the page-load
-    // workflow continues to the cart-clear step.
-    const alreadyCaptured =
-      captureRes.status === 422 &&
-      captureData &&
-      Array.isArray(captureData.details) &&
-      captureData.details.some(function (d) { return d.issue === 'ORDER_ALREADY_CAPTURED' })
+// Server-side endpoint the order page asks while it tells a buyer back from
+// the provider that their payment is being confirmed: the checkout the order
+// recorded (`payment_attempt_ref`) is read from the provider and settled
+// through that provider's webhook route (`settleUrls`, by provider id), as
+// its webhook would. A store the provider cannot reach (localhost, where
+// Mollie is given no webhook address; a webhook set up wrong) still sees its
+// orders paid, and a webhook arriving later is a replay.
+//
+// Anyone may ask: the answer comes from the provider, so a made-up reference
+// settles nothing, and a real one only what the provider says happened.
+export const generatePaymentConfirmApiRoute = (settleUrls: Record<string, string>): string => {
+  return `${STORE_SETTLEMENT_CODE}
+var SETTLE_URLS = ${JSON.stringify(settleUrls)}
+var MAX_REFERENCE_LENGTH = ${MAX_CHECKOUT_REFERENCE_LENGTH}
 
-    if (!captureRes.ok && !alreadyCaptured) {
-      return res.status(captureRes.status || 502).json({
-        error: (captureData && captureData.message) ||
-          (captureData && captureData.details && captureData.details[0] && captureData.details[0].description) ||
-          'PayPal capture failed',
-        details: captureData && captureData.details,
-      })
-    }
-
-    return res.status(200).json({
-      success: true,
-      alreadyCaptured: !!alreadyCaptured,
-      orderId,
-      status: (captureData && captureData.status) || 'COMPLETED',
-    })
-  } catch (err) {
-    console.error('PayPal capture error:', err)
-    return res.status(500).json({ error: 'PayPal capture failed: ' + (err && err.message) })
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
   }
+  const body = req.body || {}
+  const provider = typeof body.provider === 'string' ? body.provider.trim().toLowerCase() : ''
+  const reference = typeof body.reference === 'string' ? body.reference.trim() : ''
+  const settleUrl = Object.prototype.hasOwnProperty.call(SETTLE_URLS, provider) ? SETTLE_URLS[provider] : ''
+  const driver = settleUrl && paymentDrivers ? paymentDrivers.get(provider) : null
+  if (!driver || typeof driver.reconcileKinds !== 'function') {
+    return res.status(400).json({ error: 'This store cannot confirm payments of that provider' })
+  }
+  const kinds = reference && reference.length <= MAX_REFERENCE_LENGTH ? driver.reconcileKinds(reference) : []
+  if (!Array.isArray(kinds) || kinds.length === 0) {
+    return res.status(400).json({ error: 'Unknown checkout reference' })
+  }
+  // In order: a subscription's mandate before its first payment.
+  let settled = false
+  for (const kind of kinds) {
+    settled = (await settleWithStore(req, settleUrl, { kind, id: reference })) || settled
+  }
+  return res.status(200).json({ success: true, settled })
 }
 `
 }
@@ -650,6 +442,42 @@ export const generateDeliveryPriceApiRoute = (settings: UIDLEcommerceSettings): 
 `
 }
 
+/**
+ * The order-notification and low-stock-alert routes email the MERCHANT what
+ * their request body says. Only the store's own server code calls them — the
+ * order INSERT's auto-fire (data-create-item, presenting the internal-call
+ * token of utils/workflows/server-runtime), the data API's low-stock auto-fire
+ * and the legacy payment webhooks (both presenting the app secret) — so
+ * anything else is refused: an open route let anyone send the merchant mail
+ * with content of their choosing, from the store's own address. The secret is
+ * compared in constant time, and with no NEXTAUTH_SECRET at all nothing
+ * passes. The runtime module is required lazily and guarded: a project with no
+ * server workflow has no such module and no caller presenting its token.
+ */
+const STORE_SERVER_CALLER_CODE = `// See STORE_SERVER_CALLER_CODE in ecommerce-api-routes-generator.ts.
+function __isStoreServerCall(req) {
+  var expected = process.env.NEXTAUTH_SECRET
+  if (!expected) return false
+  var given = req && req.headers ? req.headers['x-internal-data-secret'] : ''
+  if (typeof given === 'string' && given) {
+    var a = Buffer.from(given)
+    var b = Buffer.from(String(expected))
+    if (a.length === b.length && require('crypto').timingSafeEqual(a, b)) return true
+  }
+  try {
+    var runtime = require('../../../utils/workflows/server-runtime')
+    return !!(runtime && typeof runtime.isInternalCall === 'function' && runtime.isInternalCall(req))
+  } catch (e) {
+    return false
+  }
+}
+`
+
+const STORE_SERVER_CALLER_CHECK = `  if (!__isStoreServerCall(req)) {
+    return res.status(401).json({ error: 'Unauthenticated' })
+  }
+`
+
 export const generateOrderNotificationApiRoute = (
   settings: UIDLEcommerceSettings,
   dataSourceType: string | null = null,
@@ -679,6 +507,9 @@ export const generateOrderNotificationApiRoute = (
   const subjectTemplate = config.subject || 'New Order {{orderNumber}}'
   const bodyTemplate = config.body || 'A new order ({{orderNumber}}) was placed.'
   const notificationEmails = JSON.stringify(config.notificationEmails || [])
+  // A template written before product options existed has no `{{configuration}}`
+  // token in its item rows; its lines then carry the options in the product name.
+  const bodyHasConfigurationToken = /\{\{\s*configuration\s*\}\}/.test(bodyTemplate)
 
   // The order-line fallback below is Postgres-only: it uses `$N` placeholders
   // and joins the teleport_* order tables, exactly like the checkout / cart
@@ -702,13 +533,24 @@ export const generateOrderNotificationApiRoute = (
   // `to_jsonb(...) ->>` rather than named: a store provisioned before either
   // existed has no such column, and a named column that is absent fails the
   // whole statement — and with it every line of the email.
+  //
+  // The product options a line was bought with are read the same way, and
+  // through the shared snapshot parser (`ProductOptions`), which reads both the
+  // current snapshot and the compact form older checkouts wrote.
+  //
+  // A line is in its ORDER's currency: checkout never writes the line's own
+  // column, which holds its USD default.
   const orderItemsLoader = dbImport
     ? `
+${ProductOptions.generateProductOptionsHelperCode()}
+
 const ORDER_ITEMS_QUERY =
-  "SELECT oi.product_id, oi.product_name, oi.variant_label, oi.quantity, oi.unit_price, oi.total_price, oi.currency, " +
+  "SELECT oi.product_id, oi.product_name, oi.variant_label, oi.quantity, oi.unit_price, oi.total_price, " +
+  "COALESCE(NULLIF(TRIM(o.currency), ''), oi.currency) AS currency, " +
   "to_jsonb(oi) ->> 'variant_id' AS variant_id, " +
   "to_jsonb(oi) ->> 'unit_price_paid' AS unit_price_paid, to_jsonb(oi) ->> 'total_price_paid' AS total_price_paid, " +
   "to_jsonb(oi) ->> 'tax_rate' AS tax_rate, to_jsonb(oi) ->> 'tax_included' AS tax_included, " +
+  "to_jsonb(oi) ->> 'configuration' AS configuration, to_jsonb(oi) ->> 'configuration_label' AS configuration_label, " +
   "to_jsonb(o) ->> 'tax_breakdown' AS tax_breakdown, " +
   "COALESCE(NULLIF(v.image_url, ''), NULLIF(p.image_url, ''), '') AS image_url " +
   'FROM teleport_order_items oi ' +
@@ -743,7 +585,17 @@ async function loadOrderLines(orderId) {
       const unit = Number(row.unit_price) || 0
       const total = row.total_price != null ? Number(row.total_price) : unit * qty
       const label = row.variant_label ? row.product_name + ' (' + row.variant_label + ')' : row.product_name
+      // Every answer in full, one per line — what the merchant makes the order
+      // from — and the short one-line label. '' for a line without options.
+      // The compact form older checkouts wrote names no option, so its stored
+      // label reads better than its keys.
+      const snapshot = __poParseSnapshot(row.configuration)
+      const storedLabel = String(row.configuration_label || '')
+      const fromSnapshot =
+        snapshot !== null && snapshot.entries.length > 0 && (snapshot.version === 1 || !storedLabel)
       return {
+        configuration: fromSnapshot ? __poDetails(snapshot.entries) : storedLabel,
+        configurationLabel: storedLabel || (fromSnapshot ? __poLabel(snapshot.entries) : ''),
         name: label || 'Item',
         sku: '',
         quantity: qty,
@@ -837,13 +689,40 @@ function grossOrderItems(items, taxBreakdown) {
   })
 }
 
+// The product options each line was bought with, as both renderers read them:
+// \`configuration\` — every answer, one per line — for a template's
+// {{configuration}} token and the {{itemsList}} blob. Never null, so a line
+// without options blanks the token instead of leaving it in the email. A
+// caller's own lines (the checkout's cart) carry only the short label. A
+// template written before options existed has no such token: there the short
+// label is appended to the row's product name instead.
+var BODY_HAS_CONFIGURATION_TOKEN = ${bodyHasConfigurationToken}
+function withOrderLineConfiguration(items, fromOrder) {
+  return items.map(function (item) {
+    var label = String(item.configurationLabel || item.configuration_label || '')
+    var text = fromOrder ? String(item.configuration || '') : label
+    var row = Object.assign({}, item, { configuration: text })
+    if (text && !BODY_HAS_CONFIGURATION_TOKEN) {
+      row.product_name = String(row.product_name || row.name || 'Item') + ' — ' + clipText(label, 120)
+    }
+    return row
+  })
+}
+
+// At most \`max\` characters, never splitting a character in two.
+function clipText(text, max) {
+  var chars = Array.from(String(text))
+  return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : chars.join('')
+}
+
 ${EmailDate.generateEmailDateHelperCode('formatOrderDate')}
 ${dbImport ? `${dbImport}\n` : ''}${orderItemsLoader}
+${STORE_SERVER_CALLER_CODE}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-
+${STORE_SERVER_CALLER_CHECK}
   try {
     const {
       orderId,
@@ -882,9 +761,12 @@ export default async function handler(req, res) {
     // HERE, once, whichever way they arrived: from the line's record, else at
     // the order's recorded rates (sent by the caller, or read with the lines).
     const loadedLines = callerItems ? null : await loadOrderLines(orderId)
-    const itemsArr = grossOrderItems(
-      callerItems || loadedLines.items,
-      taxBreakdown || (loadedLines ? loadedLines.taxBreakdown : null)
+    const itemsArr = withOrderLineConfiguration(
+      grossOrderItems(
+        callerItems || loadedLines.items,
+        taxBreakdown || (loadedLines ? loadedLines.taxBreakdown : null)
+      ),
+      !callerItems
     )
     const itemsCount = itemsArr.reduce(function(sum, it) {
       var q = Number(it && it.quantity) || 1
@@ -937,9 +819,15 @@ export default async function handler(req, res) {
         var imgFrag = imgUrl
           ? '<img src="' + htmlEscape(imgUrl) + '" alt="" width="44" height="44" style="width:44px;height:44px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:10px;" />'
           : ''
+        // The product options the line was bought with, one answer per line.
+        var configurationFrag = it.configuration
+          ? '<div style="color:#666;font-size:13px;margin:2px 0 0;">' +
+            String(it.configuration).split(/\\r?\\n/).map(htmlEscape).join('<br>') +
+            '</div>'
+          : ''
         parts.push('<li style="margin:0 0 8px;">' + imgFrag + '<strong>' + name + '</strong>' + skuFrag +
           ' — ' + qty + ' × ' + unit +
-          ' = <strong>' + total + '</strong></li>')
+          ' = <strong>' + total + '</strong>' + configurationFrag + '</li>')
       }
       parts.push('</ul>')
       itemsListHtml = parts.join('')
@@ -1033,7 +921,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('[order-notification] handler error: ' + (error && error.message ? error.message : String(error)))
     await sender.settleSentEmailLog()
-    return res.status(500).json({ sent: false, error: error && error.message ? error.message : 'Failed to send notification' })
+    // The reason stays in the log above: it can be a database error, and the
+    // caller needs only to know the notification was not sent.
+    return res.status(500).json({ sent: false, error: 'Failed to send notification' })
   }
 }
 `
@@ -1107,11 +997,12 @@ function buildProductsListHtml(products) {
   return '<ul>' + rows.join('') + '</ul>'
 }
 
+${STORE_SERVER_CALLER_CODE}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-
+${STORE_SERVER_CALLER_CHECK}
   try {
     const { products, threshold: providedThreshold } = req.body || {}
     const productsArr = Array.isArray(products) ? products : []
@@ -1161,7 +1052,8 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('[low-stock-alert] handler error: ' + (error && error.message ? error.message : String(error)))
     await sender.settleSentEmailLog()
-    return res.status(500).json({ sent: false, error: error && error.message ? error.message : 'Failed to send low-stock alert' })
+    // The reason stays in the log above, never in the answer.
+    return res.status(500).json({ sent: false, error: 'Failed to send low-stock alert' })
   }
 }
 `

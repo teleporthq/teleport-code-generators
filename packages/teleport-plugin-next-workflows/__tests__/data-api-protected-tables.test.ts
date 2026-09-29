@@ -307,14 +307,16 @@ describe('data API — money tables are server-only', () => {
     ).toBe(200)
   })
 
-  it('serves a browser every other table to READ, and nothing more', async () => {
+  it('serves a browser the storefront catalogue to READ, and nothing more', async () => {
     // Generated browser code only reads here (the storefront feeds); every
     // write and every raw statement comes from a server segment presenting
     // the secret. So a browser that writes is not the store: it could mark
-    // its own order paid.
+    // its own order paid. And it reads only the catalogue tables the
+    // storefront itself reads — any other table is refused (see
+    // data-api-browser-reads.test.ts).
     expect((await run('select', { tableName: 'teleport_products' })).status).toBe(200)
     expect((await run('count', { tableName: 'teleport_products' })).status).toBe(200)
-    expect((await run('select', { tableName: 'teleport_gift_cards_archive' })).status).toBe(200)
+    expect((await run('select', { tableName: 'teleport_gift_cards_archive' })).status).toBe(403)
     for (const [operation, body] of [
       ['create', { tableName: 'teleport_orders', columnMappings: { status: 'pending' } }],
       [
@@ -565,6 +567,24 @@ describe('data API — money tables are server-only', () => {
       ).toBe(403)
     }
     expect((await run('select', { tableName: 'password_reset_tokens' }, internal)).status).toBe(200)
+  })
+
+  it('keeps push subscriptions server-only — an endpoint and its keys can notify that device', async () => {
+    expect((await run('select', { tableName: 'teleport_push_subscriptions' })).status).toBe(403)
+    for (const headers of [{}, restricted]) {
+      expect(
+        (
+          await run(
+            'raw-query',
+            { query: 'SELECT endpoint, p256dh, auth FROM teleport_push_subscriptions', params: [] },
+            headers
+          )
+        ).status
+      ).toBe(403)
+    }
+    expect(
+      (await run('select', { tableName: 'teleport_push_subscriptions' }, internal)).status
+    ).toBe(200)
   })
 })
 

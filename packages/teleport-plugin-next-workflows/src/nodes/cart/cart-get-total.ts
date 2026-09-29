@@ -1,4 +1,4 @@
-import { DiscountEngine, RegionalPricing } from '@teleporthq/teleport-shared'
+import { CartCurrency, DiscountEngine, RegionalPricing } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
 
 // AMBIENT, not imported: the handler ships as a serialized function with no
@@ -14,6 +14,8 @@ declare function __deLinesFromCart(items: unknown): unknown[]
 declare function __deResolve(input: Record<string, unknown>): any
 declare function __deTender(input: Record<string, unknown>): { applied: number; amountDue: number }
 declare function __deBool(value: unknown, fallback: boolean): boolean
+declare function __ccCode(value: unknown): string
+declare function __ccCartCurrency(lines: unknown): string
 
 async function cart_get_total() {
   try {
@@ -76,6 +78,8 @@ async function cart_get_total() {
     // at export, so the place-order script reads the CURRENT capability rather
     // than the list baked into it when the checkout page was built.
     let subscriptionsSnapshot: Record<string, any> | null = null
+    // Which cart kinds each provider may be paid for (see the storefront context).
+    let paymentKindsSnapshot: Record<string, unknown> | null = null
     let vouchersEnabled = true
     // The gift card the shopper applied — `{ id, last4, balance, currency }`
     // as the Apply Gift Card workflow left it. The place-order workflow uses
@@ -150,6 +154,9 @@ async function cart_get_total() {
           if (parsed.subscriptions && typeof parsed.subscriptions === 'object') {
             subscriptionsSnapshot = parsed.subscriptions
           }
+          if (parsed.paymentKinds && typeof parsed.paymentKinds === 'object') {
+            paymentKindsSnapshot = parsed.paymentKinds
+          }
         }
       }
     } catch (_settingsErr) {
@@ -198,6 +205,10 @@ async function cart_get_total() {
 
     let roundedGross = round(gross)
     let tax = round(gross - net)
+    // The currency every line is priced in — one per cart (the add-to-cart
+    // node refuses a second) — or '' for a cart whose lines name none. The
+    // place-order workflow records and charges the order in it.
+    const cartCurrency = __ccCartCurrency(cart)
 
     // The subscription in the basket (at most one — the add-to-cart node
     // refuses a second), whether its first charge is a free trial, and
@@ -256,6 +267,8 @@ async function cart_get_total() {
         destination: quote.destination,
         zoneName: quote.zone ? quote.zone.name : '',
         rateName: quote.rateName,
+        // The rate the buyer picked, so the server step prices the same one.
+        selectedRateId: quote.selectedRateId || '',
         codAvailable: quote.codAvailable,
         goodsNet: quote.goodsNet,
         goodsTax: quote.goodsTax,
@@ -296,6 +309,7 @@ async function cart_get_total() {
       // rounding, same source of truth.
       total: roundedGross,
       itemCount,
+      currency: cartCurrency,
       // NET sum of the per-product markdowns already reflected in the prices
       // above. Recorded on the order for reporting; never subtracted again.
       productDiscountTotal: round(productDiscount),
@@ -315,6 +329,9 @@ async function cart_get_total() {
     }
     if (subscriptionsSnapshot) {
       result.subscriptions = subscriptionsSnapshot
+    }
+    if (paymentKindsSnapshot) {
+      result.paymentKinds = paymentKindsSnapshot
     }
 
     // The discount engine and the gift-card tender, re-priced HERE, at submit,
@@ -428,12 +445,12 @@ async function cart_get_total() {
       let displayedAmountDue = deliveryTotal
       if (giftCardsEnabled) {
         let giftCard: Record<string, unknown> | null = null
-        // A card is only ever redeemed in the store's own currency — the same
-        // gate the provider's loader applies.
-        const storeCurrency =
-          typeof giftCardsSnapshot.currency === 'string' ? giftCardsSnapshot.currency : ''
-        const cardCurrency = storedGiftCard ? String(storedGiftCard.currency || '') : ''
-        if (storedGiftCard && cardCurrency.toUpperCase() === storeCurrency.toUpperCase()) {
+        // A card pays only in its own currency, so only a cart priced in it:
+        // the cart's currency, or the store's for a cart whose lines name
+        // none — the same gate the provider's tender applies.
+        const tenderCurrency = cartCurrency || __ccCode(giftCardsSnapshot.currency)
+        const cardCurrency = storedGiftCard ? __ccCode(storedGiftCard.currency) : ''
+        if (storedGiftCard && tenderCurrency !== '' && cardCurrency === tenderCurrency) {
           let hasGiftCardLines = false
           for (const item of cart) {
             if (item && __deBool(item.isGiftCard, false)) hasGiftCardLines = true
@@ -444,7 +461,7 @@ async function cart_get_total() {
             // On the DELIVERY total: the larger of the two shapes, so a pickup
             // order's amount due can only come out lower than what was shown.
             total: deliveryTotal,
-            currency: storeCurrency,
+            currency: tenderCurrency,
             hasGiftCardLines,
             // A subscription is billed by the provider every cycle: the card
             // pays part of the first charge only, none of a free trial, and
@@ -499,6 +516,8 @@ export const cartGetTotal: NodeHandlerGenerator = {
       RegionalPricing.generateRegionalPricingHelperCode() +
       '\n' +
       DiscountEngine.generateDiscountEngineHelperCode() +
+      '\n' +
+      CartCurrency.generateCartCurrencyHelperCode() +
       source.slice(bodyStart)
     )
   },

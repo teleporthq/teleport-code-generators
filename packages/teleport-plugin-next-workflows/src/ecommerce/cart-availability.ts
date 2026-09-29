@@ -415,25 +415,34 @@ function customHandler(previousContext, params) {
   // Mirrors the runtime cart-add-item node, the React provider, and the DB cart
   // route, all of which key by productId + variantId.
   var variantId = extractCtx && extractCtx.variantId ? extractCtx.variantId : null;
+  // The chosen product options are part of the line's identity too: two
+  // configurations of one product are two lines. The key is a lookup hint
+  // only, so a line matches when its configuration is identical as well.
+  var configurationKey = foundCtx && foundCtx.productConfigurationKey ? String(foundCtx.productConfigurationKey) : '';
+  var configuration = configurationKey && foundCtx.productConfiguration ? String(foundCtx.productConfiguration) : '';
   var requestedQty = parseInt(extractCtx && extractCtx.quantity, 10);
   if (isNaN(requestedQty) || requestedQty <= 0) requestedQty = 1;
 
-  // Find the existing cart entry for this product + variant (if any).
+  // Find the existing cart entry for this product + variant + configuration
+  // (if any), and how many units of this product + variant the cart already
+  // holds across ALL its configurations: they draw on one stock row, and the
+  // per-product cap counts them together.
   var existingItem = null;
-  var existingQuantity = 0;
+  var inCartQuantity = 0;
   for (var k = 0; k < cartItems.length; k++) {
+    var line = cartItems[k];
+    if (!line || line.productId !== productId || (line.variantId || null) !== variantId) continue;
+    inCartQuantity += Number(line.quantity) || 0;
     if (
-      cartItems[k] &&
-      cartItems[k].productId === productId &&
-      (cartItems[k].variantId || null) === variantId
+      !existingItem &&
+      String(line.configurationKey || '') === configurationKey &&
+      (!configurationKey || line.configuration === configuration)
     ) {
-      existingItem = cartItems[k];
-      existingQuantity = Number(cartItems[k].quantity) || 0;
-      break;
+      existingItem = line;
     }
   }
   var existingItemId = existingItem ? existingItem.id : null;
-  var newQuantity = existingQuantity + requestedQty;
+  var newQuantity = inCartQuantity + requestedQty;
 
   // Name resolution: DB (definitive), then cart line, then trigger
   // payload, then a safe fallback.
@@ -457,7 +466,7 @@ function customHandler(previousContext, params) {
   }
 
   // 2. Cart-aware stock check (only when stock management is on
-  //    AND backorders are NOT allowed). The new quantity (existing
+  //    AND backorders are NOT allowed). The new quantity (in cart
   //    + requested) must not exceed available stock. NULL stock
   //    means "unlimited" — skipped.
   var stockManagement = settingsCtx ? settingsCtx.stockManagement : false;
@@ -467,7 +476,7 @@ function customHandler(previousContext, params) {
     if (stock != null) {
       var stockN = Number(stock);
       if (!isNaN(stockN) && newQuantity > stockN) {
-        if (existingQuantity >= stockN) {
+        if (inCartQuantity >= stockN) {
           return {
             canAdd: false,
             message: '"' + name + '" is out of stock.',
@@ -475,11 +484,11 @@ function customHandler(previousContext, params) {
             shouldIncrement: false,
           };
         }
-        var remaining = stockN - existingQuantity;
+        var remaining = stockN - inCartQuantity;
         return {
           canAdd: false,
           message: 'Only ' + remaining + ' more of "' + name + '" can be added (you have ' +
-            existingQuantity + ' in cart, ' + stockN + ' in stock).',
+            inCartQuantity + ' in cart, ' + stockN + ' in stock).',
           existingItemId: existingItemId,
           shouldIncrement: false,
         };

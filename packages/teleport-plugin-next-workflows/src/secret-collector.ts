@@ -30,6 +30,8 @@ const KNOWN_SECRET_FIELDS: Record<string, string[]> = {
   'payment-manage-subscription': ['secretKey', 'clientId', 'clientSecret'],
   // The subscriber's billing page at the same provider.
   'payment-billing-portal': ['secretKey', 'clientId', 'clientSecret'],
+  // Closing an order's open checkout goes back through the provider that opened it.
+  'payment-close-checkout': ['secretKey', 'clientId', 'clientSecret'],
   'payment-create-customer': ['secretKey', 'clientId', 'clientSecret'],
   'payment-create-product': ['secretKey'],
   'payment-get-customer': ['secretKey'],

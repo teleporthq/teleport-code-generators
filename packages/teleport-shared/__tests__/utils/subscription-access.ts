@@ -14,10 +14,18 @@ describe('subscription access', () => {
 
   it('is one parameterised statement: user, statuses, products (empty = any)', () => {
     expect(SUBSCRIPTION_ENTITLEMENT_SQL).toBe(
-      'SELECT 1 FROM teleport_subscriptions WHERE user_id::text = $1 AND status = ANY($2::text[]) ' +
-        'AND (cardinality($3::text[]) = 0 OR product_id::text = ANY($3::text[])) LIMIT 1'
+      'SELECT 1 FROM teleport_subscriptions s WHERE s.user_id::text = $1 AND s.status = ANY($2::text[]) ' +
+        'AND (cardinality($3::text[]) = 0 OR s.product_id::text = ANY($3::text[])) ' +
+        "AND ((to_jsonb(s) ->> 'access_until') IS NULL " +
+        "OR (to_jsonb(s) ->> 'access_until')::timestamp > NOW()) LIMIT 1"
     )
     expect(SUBSCRIPTION_ENTITLEMENT_SQL).not.toMatch(/\$[4-9]/)
+  })
+
+  it('ends a store-billed row at its access date, read so an older table without the column still answers', () => {
+    // `to_jsonb` of a row without the column has no key: NULL, never a limit.
+    expect(SUBSCRIPTION_ENTITLEMENT_SQL).not.toMatch(/\baccess_until\s*[<>=]/)
+    expect(SUBSCRIPTION_ENTITLEMENT_SQL).toContain("(to_jsonb(s) ->> 'access_until') IS NULL")
   })
 
   it('normalises ids from an array or a comma list', () => {

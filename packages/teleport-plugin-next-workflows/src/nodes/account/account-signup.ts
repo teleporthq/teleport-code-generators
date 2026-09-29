@@ -98,8 +98,9 @@ async function account_signup(config: any, context: Record<string, unknown>) {
       } catch (_e) {}
     }
     window.dispatchEvent(new CustomEvent('teleport:auth-user-changed', { detail: { user } }))
-    // Home page of the language the visitor signed up from.
-    window.location.href = __workflowUtils.localizeHref('/', runLocale)
+    // Back to the page the visitor was sent to sign in from, else the home
+    // page — in the language they signed up from.
+    window.location.href = __workflowUtils.signedInDestination(runLocale)
   }
 
   // Contract exposes user fields flat (id, email, name, ...) plus `user`/`success`.
@@ -151,7 +152,7 @@ export const accountSignup: NodeHandlerGenerator = {
 
   const exists = await authUtils.userExistsByEmail(email);
   if (exists) {
-    throw new Error('User with this email already exists');
+    throw new Error('An account with this email already exists. Sign in, or use "Forgot password" to set a password.');
   }
 
   const hashedPassword = hashPassword(password);

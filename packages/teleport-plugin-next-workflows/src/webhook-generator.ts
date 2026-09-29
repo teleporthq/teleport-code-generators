@@ -4,6 +4,45 @@ import {
   UIDLInvoiceSettings,
   UIDLEcommerceSettings,
 } from '@teleporthq/teleport-types'
+import { ensurePaymentDriversModule, resolveStorePaymentDriverIds } from './payments'
+import { DEFAULT_PAYMENT_DRIVER_IDS } from './payments/payment-drivers-scope'
+
+/**
+ * The origin a legacy webhook route calls this deployment's own routes on
+ * (`/api/invoices/generate`, `/api/ecommerce/order-notification`). Those
+ * self-calls carry the app secret, so the origin must never be a host the
+ * request named — outside Vercel the Host header is whatever the caller sent.
+ * The rule of the server runtime's `trustedBaseUrl` (server-runtime-code.ts),
+ * inlined because these routes do not load the server runtime: on Vercel the
+ * request's host (the domain Vercel routed to this deployment); elsewhere
+ * NEXTAUTH_URL's origin when it is set — except that a local server on another
+ * port than a local NEXTAUTH_URL keeps its own loopback address (NEXTAUTH_URL
+ * stuck at :3000 while `next dev` runs on :3001). With no Host header at all,
+ * the configured URLs as before.
+ */
+const WEBHOOK_BASE_URL_CODE = `function __isLoopbackHost(host) {
+  var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
+  return name === 'localhost' || name === '127.0.0.1' || name === '[::1]';
+}
+
+function __webhookBaseUrl(req) {
+  var headers = (req && req.headers) || {};
+  var host = headers.host || '';
+  if (!host) {
+    var envBaseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '';
+    if (envBaseUrl && !envBaseUrl.startsWith('http')) envBaseUrl = 'https://' + envBaseUrl;
+    return envBaseUrl || 'http://localhost:3000';
+  }
+  var proto = headers['x-forwarded-proto'] || (__isLoopbackHost(host) ? 'http' : 'https');
+  var requestOrigin = String(proto).split(',')[0].trim() + '://' + host;
+  if (process.env.VERCEL) return requestOrigin;
+  var configured = String(process.env.NEXTAUTH_URL || '').trim();
+  if (!configured) return requestOrigin;
+  var origin;
+  try { origin = new URL(configured).origin; } catch (e) { return requestOrigin; }
+  if (__isLoopbackHost(host) && __isLoopbackHost(new URL(origin).host)) return requestOrigin;
+  return origin;
+}`
 
 export const generateStripeWebhookCode = (
   invoiceSettings: UIDLInvoiceSettings | undefined,
@@ -29,26 +68,27 @@ try { invoiceGenerate = require('../invoices/generate'); } catch (e) { invoiceGe
     : ''
 }
 
-// Mirrors the lookup used by /api/ecommerce/paypal/capture and the PayPal
-// webhook so the Stripe handler resolves credentials from either STRIPE_*
-// (legacy) or CONFIGURATION_STRIPE_* (current generator output) without
-// forcing the user to duplicate env vars.
-function __resolveStripeSecret(candidates, prefixScan) {
-  for (var i = 0; i < candidates.length; i++) {
-    var v = process.env[candidates[i]];
-    if (v && String(v).length > 0) return String(v);
-  }
-  if (prefixScan) {
-    var keys = Object.keys(process.env);
-    for (var j = 0; j < keys.length; j++) {
-      if (keys[j].indexOf(prefixScan) === 0) {
-        var v2 = process.env[keys[j]];
-        if (v2 && String(v2).length > 0) return String(v2);
-      }
-    }
-  }
-  return '';
+var __paymentDrivers;
+try { __paymentDrivers = require('../../../utils/payments'); } catch (e) { __paymentDrivers = null; }
+
+// The key is read the way the store's payment drivers read it: the deployed
+// name, then the secret the editor saved it under (an older store's
+// STRIPE_TEST_KEY last).
+function __stripeSecretKey() {
+  return __paymentDrivers.core.credential('stripe', 'secretKey', ['STRIPE_TEST_KEY']);
 }
+${
+  autoGenerateInvoice || hasOrderNotifications
+    ? `
+// Stripe reports money in the currency's smallest unit (JPY has none, KWD a
+// thousandth); the store keeps the major one, converted as its drivers do.
+function __stripeMajor(minor, currency) {
+  return __paymentDrivers.core.fromMinor(Number(minor) || 0, currency);
+}
+`
+    : ''
+}
+${WEBHOOK_BASE_URL_CODE}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -56,18 +96,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Live request origin tracks the actual port the dev server bound to —
-  // NEXTAUTH_URL is often set to :3000 while dev runs on :3001, which
-  // breaks every self-fetch (invoice generation, order notification).
-  var __proto = req.headers['x-forwarded-proto'] ||
-    (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-  var __reqBaseUrl = req.headers.host ? (__proto + '://' + req.headers.host) : '';
-  var __envBaseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '';
-  if (__envBaseUrl && !__envBaseUrl.startsWith('http')) __envBaseUrl = 'https://' + __envBaseUrl;
-  var __baseUrl = __reqBaseUrl || __envBaseUrl || 'http://localhost:3000';
+  // This deployment's own origin for the self-calls (invoice generation, order
+  // notification), which carry the app secret — never a host the request named.
+  var __baseUrl = __webhookBaseUrl(req);
 
-  var stripeSecretKey = __resolveStripeSecret(['STRIPE_SECRET_KEY', 'CONFIGURATION_STRIPE_SECRET_KEY', 'STRIPE_TEST_KEY'], 'CONFIGURATION_STRIPE_SECRET_KEY');
-  var webhookSecret = __resolveStripeSecret(['STRIPE_WEBHOOK_SECRET', 'CONFIGURATION_STRIPE_WEBHOOK_SECRET'], 'CONFIGURATION_STRIPE_WEBHOOK_SECRET');
+  // Verified by the store's Stripe driver: the signature when a signing
+  // secret is configured, else the event read back from Stripe — never the
+  // request as it arrived. Without the driver nothing can be verified.
+  var driver = __paymentDrivers ? __paymentDrivers.get('stripe') : null;
+  if (!driver) {
+    console.error('Stripe webhook rejected: this store has no Stripe payment driver');
+    res.status(400).json({ error: 'Invalid webhook signature' });
+    return;
+  }
+
+  var stripeSecretKey = __stripeSecretKey();
 
   if (!stripeSecretKey) {
     res.status(500).json({ error: 'Stripe secret key not configured' });
@@ -76,26 +119,26 @@ module.exports = async function handler(req, res) {
 
   try {
     var rawBody = await getRawBody(req);
-    var event;
-
-    if (webhookSecret) {
-      var sig = req.headers['stripe-signature'];
-      if (!sig) {
-        res.status(400).json({ error: 'Missing stripe-signature header' });
-        return;
-      }
-      event = verifyStripeSignature(rawBody, sig, webhookSecret);
-      if (!event) {
-        res.status(400).json({ error: 'Invalid webhook signature' });
-        return;
-      }
-    } else {
-      event = JSON.parse(rawBody.toString('utf-8'));
+    var parsed;
+    try { parsed = JSON.parse(rawBody.toString('utf-8')); } catch (_e) { parsed = {}; }
+    var verification = await driver.verifyWebhook({ headers: req.headers, rawBody: rawBody, body: parsed, secret: '' });
+    if (!verification.ok) {
+      console.error('Stripe webhook rejected: ' + (verification.reason || 'not verified'));
+      res.status(400).json({ error: 'Invalid webhook signature' });
+      return;
     }
+    var event = verification.body;
 
     switch (event.type) {
+      // A bank debit or a transfer completes the session UNPAID, and Stripe
+      // reports the money later (or never): only a paid session pays the order.
+      case 'checkout.session.async_payment_succeeded':
       case 'checkout.session.completed': {
         var session = event.data.object;
+        if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+          console.log('Checkout session completed, payment not received yet:', session.id);
+          break;
+        }
         ${
           autoGenerateInvoice
             ? `await handleInvoiceGeneration(session, 'checkout', __baseUrl, stripeSecretKey);`
@@ -108,6 +151,25 @@ module.exports = async function handler(req, res) {
 
       case 'payment_intent.succeeded': {
         var paymentIntent = event.data.object;
+        // The PaymentIntent of the store's own Checkout Session carries the
+        // order in its metadata (the driver copies it there so a refund names
+        // the order): the session's event pays and invoices that order, and
+        // this one would do it a second time.
+        if (paymentIntent.metadata && paymentIntent.metadata.orderId) {
+          console.log('Payment intent succeeded for a checkout session order:', paymentIntent.id);
+          break;
+        }
+        ${
+          autoGenerateInvoice
+            ? `// An intent that pays a Stripe invoice (a subscription's first
+        // payment, a renewal) is invoiced from invoice.payment_succeeded,
+        // with the invoice's own lines: invoiced here too, it would be twice.
+        if (await __paysStripeInvoice(paymentIntent, stripeSecretKey)) {
+          console.log('Payment intent succeeded for a Stripe invoice:', paymentIntent.id);
+          break;
+        }`
+            : ''
+        }
         ${
           autoGenerateInvoice
             ? `await handleInvoiceGeneration(paymentIntent, 'payment_intent', __baseUrl, stripeSecretKey);`
@@ -132,7 +194,14 @@ module.exports = async function handler(req, res) {
         var stripeInvoice = event.data.object;
         ${
           autoGenerateInvoice
-            ? `await handleStripeInvoicePayment(stripeInvoice, __baseUrl);`
+            ? `// A subscription's first invoice, from a checkout the store opened
+        // for an order, is invoiced from that checkout's own event with the
+        // order it pays: invoiced here too, it would be twice.
+        if (__opensStoreOrder(stripeInvoice)) {
+          console.log('Invoice payment succeeded for a store checkout order:', stripeInvoice.id);
+          break;
+        }
+        await handleStripeInvoicePayment(stripeInvoice, __baseUrl);`
             : `console.log('Invoice payment succeeded:', stripeInvoice.id);`
         }
         break;
@@ -162,47 +231,6 @@ function getRawBody(req) {
   });
 }
 
-function verifyStripeSignature(payload, sigHeader, secret) {
-  try {
-    var crypto = require('crypto');
-    var parts = sigHeader.split(',');
-    var timestamp = '';
-    var signatures = [];
-
-    for (var i = 0; i < parts.length; i++) {
-      var kv = parts[i].trim().split('=');
-      if (kv[0] === 't') timestamp = kv[1];
-      if (kv[0] === 'v1') signatures.push(kv[1]);
-    }
-
-    if (!timestamp || signatures.length === 0) return null;
-
-    var signedPayload = timestamp + '.' + payload.toString('utf-8');
-    var expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(signedPayload)
-      .digest('hex');
-
-    var valid = false;
-    for (var j = 0; j < signatures.length; j++) {
-      if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signatures[j]))) {
-        valid = true;
-        break;
-      }
-    }
-
-    if (!valid) return null;
-
-    var tolerance = 300;
-    var now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - Number(timestamp)) > tolerance) return null;
-
-    return JSON.parse(payload.toString('utf-8'));
-  } catch (e) {
-    return null;
-  }
-}
-
 module.exports.config = { api: { bodyParser: false } };
 
 ${autoGenerateInvoice ? generateInvoiceHandlerCode() : ''}
@@ -227,8 +255,9 @@ async function handleEcommerceOrderUpdate(session) {
     var client = new pg.Client({ connectionString: connStr, ssl: connStr.indexOf('sslmode=require') !== -1 ? { rejectUnauthorized: false } : undefined });
     try {
       await client.connect();
+      // A cancelled order stays cancelled, whatever pays for it late.
       await client.query(
-        "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), updated_at = NOW() WHERE id = $4",
+        "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), updated_at = NOW() WHERE id = $4 AND status IS DISTINCT FROM 'cancelled'",
         ['paid', 'paid', String(session.payment_intent || session.id || ''), orderId]
       );
     } finally {
@@ -251,12 +280,13 @@ async function sendOrderNotification(session, baseUrl) {
 
     await fetch(resolvedBaseUrl + '/api/ecommerce/order-notification', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The route emails the merchant only for the store's own server code.
+      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
       body: JSON.stringify({
         orderId: orderId || session.id,
         customerEmail: session.customer_email || (session.customer_details && session.customer_details.email) || '',
         customerName: (session.customer_details && session.customer_details.name) || '',
-        totalAmount: (session.amount_total || 0) / 100,
+        totalAmount: __stripeMajor(session.amount_total, session.currency),
         paymentMethod: 'stripe',
       }),
     });
@@ -277,9 +307,10 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
     var currency = 'usd';
     var paymentIntentId = paymentObj.id || '';
     // For checkout sessions, the place-order workflow embeds the internal
-    // teleport_orders UUID in metadata.orderId. Falling back to '' means we
-    // skip hydration cleanly when called via payment_intent.succeeded events
-    // (which carry no metadata).
+    // teleport_orders UUID in metadata.orderId. A payment_intent.succeeded
+    // event reaches here only for an intent that names no order (one the
+    // store's checkout opened is settled by its session's event), so '' then
+    // skips hydration cleanly.
     var internalOrderId = (paymentObj.metadata && typeof paymentObj.metadata.orderId === 'string') ? paymentObj.metadata.orderId : '';
 
     if (source === 'checkout') {
@@ -292,8 +323,8 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
           return {
             name: li.description || '',
             quantity: li.quantity || 1,
-            unitPrice: (li.amount_total || 0) / (li.quantity || 1) / 100,
-            totalPrice: (li.amount_total || 0) / 100,
+            unitPrice: __stripeMajor(li.amount_total, currency) / (li.quantity || 1),
+            totalPrice: __stripeMajor(li.amount_total, currency),
             currency: currency.toUpperCase(),
           };
         });
@@ -310,8 +341,8 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
               return {
                 name: li.description || '',
                 quantity: li.quantity || 1,
-                unitPrice: (li.amount_total || 0) / (li.quantity || 1) / 100,
-                totalPrice: (li.amount_total || 0) / 100,
+                unitPrice: __stripeMajor(li.amount_total, currency) / (li.quantity || 1),
+                totalPrice: __stripeMajor(li.amount_total, currency),
                 currency: currency.toUpperCase(),
               };
             });
@@ -326,8 +357,8 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
       items = [{
         name: paymentObj.description || 'Payment',
         quantity: 1,
-        unitPrice: (paymentObj.amount || 0) / 100,
-        totalPrice: (paymentObj.amount || 0) / 100,
+        unitPrice: __stripeMajor(paymentObj.amount, currency),
+        totalPrice: __stripeMajor(paymentObj.amount, currency),
         currency: currency.toUpperCase(),
       }];
 
@@ -369,7 +400,9 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
 
     var response = await fetch(resolvedBaseUrl + '/api/invoices/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The route issues invoices only for the store's own server code, which
+      // presents the app secret.
+      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
       body: JSON.stringify(invoicePayload),
     });
 
@@ -415,14 +448,62 @@ async function __linkInvoiceToOrder(internalOrderId, invoiceResp, paymentIntentI
     var invoiceId = (invoiceResp && invoiceResp.invoiceId) || null;
     var invoiceNumber = (invoiceResp && invoiceResp.invoiceNumber) || null;
     // status / payment_status are independent: status tracks the order
-    // lifecycle (confirmed = order accepted), payment_status tracks money.
+    // lifecycle (confirmed = order accepted), payment_status tracks money. A
+    // cancelled order stays cancelled, whatever pays for it late.
     await client.query(
-      "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), invoice_id = COALESCE($4, invoice_id), invoice_number = COALESCE($5, invoice_number), invoice_pdf_url = COALESCE(NULLIF($6, ''), invoice_pdf_url), updated_at = NOW() WHERE id = $7",
+      "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), invoice_id = COALESCE($4, invoice_id), invoice_number = COALESCE($5, invoice_number), invoice_pdf_url = COALESCE(NULLIF($6, ''), invoice_pdf_url), updated_at = NOW() WHERE id = $7 AND status IS DISTINCT FROM 'cancelled'",
       ['confirmed', 'paid', paymentIntentId || '', invoiceId, invoiceNumber, pdfUrl, internalOrderId]
     );
     console.info('[stripe webhook] order ' + internalOrderId + ' marked confirmed/paid — invoice=' + (invoiceNumber || '(none)') + ' pdf=' + (pdfUrl || '(none)'));
   } finally {
     try { await client.end(); } catch (_e) {}
+  }
+}
+
+// Whether a subscription's invoice is the first one of a subscription the
+// store's own Checkout Session opened for an order. The session copies the
+// order onto the subscription's metadata, which Stripe snapshots onto each
+// invoice — on the invoice itself in the classic API, under \`parent\` from the
+// 2025-03-31 versions on.
+function __opensStoreOrder(stripeInvoice) {
+  if (!stripeInvoice || stripeInvoice.billing_reason !== 'subscription_create') {
+    return false;
+  }
+  var details = stripeInvoice.subscription_details ||
+    (stripeInvoice.parent && stripeInvoice.parent.subscription_details) || {};
+  var metadata = details.metadata || {};
+  return typeof metadata.orderId === 'string' && metadata.orderId !== '';
+}
+
+// Whether a PaymentIntent pays a Stripe invoice. The classic API names the
+// invoice on the intent; from the 2025-03-31 versions on the intent names none,
+// and the invoice payments are searched by the intent instead (that search is
+// pinned to the version that introduced it). A search Stripe does not answer
+// fails the delivery, so Stripe sends it again: taken as a payment of its own,
+// an invoice's payment would be invoiced twice.
+async function __paysStripeInvoice(paymentIntent, stripeSecretKey) {
+  if (paymentIntent.invoice) {
+    return true;
+  }
+  if (!stripeSecretKey || !paymentIntent.id) {
+    return false;
+  }
+  try {
+    var params = new URLSearchParams();
+    params.append('payment[type]', 'payment_intent');
+    params.append('payment[payment_intent]', paymentIntent.id);
+    params.append('limit', '1');
+    var found = await fetch('https://api.stripe.com/v1/invoice_payments?' + params.toString(), {
+      headers: { 'Authorization': 'Bearer ' + stripeSecretKey, 'Stripe-Version': '2025-03-31.basil' },
+    });
+    if (!found.ok) {
+      throw new Error('Stripe answered ' + found.status);
+    }
+    var page = await found.json();
+    return !!(page && Array.isArray(page.data) && page.data.length > 0);
+  } catch (e) {
+    console.error('Failed to look up the invoice of payment intent ' + paymentIntent.id + ':', e.message);
+    throw new Error('Could not tell whether payment intent ' + paymentIntent.id + ' pays a Stripe invoice');
   }
 }
 
@@ -434,8 +515,8 @@ async function handleStripeInvoicePayment(stripeInvoice, baseUrl) {
         return {
           name: li.description || '',
           quantity: li.quantity || 1,
-          unitPrice: (li.amount || 0) / 100,
-          totalPrice: (li.amount || 0) / 100,
+          unitPrice: __stripeMajor(li.amount, stripeInvoice.currency),
+          totalPrice: __stripeMajor(li.amount, stripeInvoice.currency),
           currency: (stripeInvoice.currency || 'usd').toUpperCase(),
         };
       });
@@ -459,7 +540,9 @@ async function handleStripeInvoicePayment(stripeInvoice, baseUrl) {
 
     var response = await fetch(resolvedBaseUrl + '/api/invoices/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The route issues invoices only for the store's own server code, which
+      // presents the app secret.
+      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
       body: JSON.stringify(invoicePayload),
     });
 
@@ -497,25 +580,16 @@ try { invoiceGenerate = require('../invoices/generate'); } catch (e) { invoiceGe
     : ''
 }
 
-// Mirrors the lookup used by /api/ecommerce/paypal/capture so the webhook
-// resolves credentials from either PAYPAL_* (legacy) or CONFIGURATION_PAYPAL_*
-// (current generator output) without forcing the user to duplicate env vars.
-function __resolvePaypalSecret(candidates, prefixScan) {
-  for (var i = 0; i < candidates.length; i++) {
-    var v = process.env[candidates[i]];
-    if (v && String(v).length > 0) return String(v);
-  }
-  if (prefixScan) {
-    var keys = Object.keys(process.env);
-    for (var j = 0; j < keys.length; j++) {
-      if (keys[j].indexOf(prefixScan) === 0) {
-        var v2 = process.env[keys[j]];
-        if (v2 && String(v2).length > 0) return String(v2);
-      }
-    }
-  }
-  return '';
+var __paymentDrivers;
+try { __paymentDrivers = require('../../../utils/payments'); } catch (e) { __paymentDrivers = null; }
+
+// The credentials are read the way the store's payment drivers read them:
+// the deployed name, then the secret the editor saved them under.
+function __paypalCredential(field) {
+  return __paymentDrivers.core.credential('paypal', field);
 }
+
+${WEBHOOK_BASE_URL_CODE}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -523,46 +597,60 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  var clientId = __resolvePaypalSecret(['PAYPAL_CLIENT_ID', 'CONFIGURATION_PAYPAL_CLIENT_ID'], 'CONFIGURATION_PAYPAL_CLIENT_ID');
-  var clientSecret = __resolvePaypalSecret(['PAYPAL_CLIENT_SECRET', 'CONFIGURATION_PAYPAL_CLIENT_SECRET'], 'CONFIGURATION_PAYPAL_CLIENT_SECRET');
-  var webhookId = __resolvePaypalSecret(['PAYPAL_WEBHOOK_ID', 'CONFIGURATION_PAYPAL_WEBHOOK_ID'], 'CONFIGURATION_PAYPAL_WEBHOOK_ID');
+  // Verified by the store's PayPal driver: PayPal's signature check when a
+  // webhook id is configured, else the event read back from PayPal — never
+  // the request as it arrived. Without the driver nothing can be verified.
+  var driver = __paymentDrivers ? __paymentDrivers.get('paypal') : null;
+  if (!driver) {
+    console.error('PayPal webhook rejected: this store has no PayPal payment driver');
+    res.status(400).json({ error: 'Invalid webhook signature' });
+    return;
+  }
+
+  var clientId = __paypalCredential('clientId');
+  var clientSecret = __paypalCredential('clientSecret');
 
   if (!clientId || !clientSecret) {
     res.status(500).json({ error: 'PayPal credentials not configured' });
     return;
   }
 
-  // Live request origin — preferred over NEXTAUTH_URL because it tracks the
-  // actual port the dev server is bound to. Falls back to NEXTAUTH_URL /
-  // VERCEL_URL when the request lacks a host header (shouldn't happen under
-  // Next.js, but stays defensive). Same pattern as /api/invoices/generate.
-  var __proto = req.headers['x-forwarded-proto'] ||
-    (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-  var __reqBaseUrl = req.headers.host ? (__proto + '://' + req.headers.host) : '';
-  var __envBaseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '';
-  if (__envBaseUrl && !__envBaseUrl.startsWith('http')) __envBaseUrl = 'https://' + __envBaseUrl;
-  var __baseUrl = __reqBaseUrl || __envBaseUrl || 'http://localhost:3000';
+  // This deployment's own origin for the self-calls (invoice generation, order
+  // notification), which carry the app secret — never a host the request named.
+  var __baseUrl = __webhookBaseUrl(req);
 
   try {
-    var body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-
-    if (webhookId) {
-      var verified = await verifyPaypalWebhook(req.headers, body, webhookId, clientId, clientSecret);
-      if (!verified) {
-        res.status(400).json({ error: 'Invalid webhook signature' });
-        return;
-      }
+    var rawBody = await getRawBody(req);
+    var parsed;
+    try { parsed = JSON.parse(rawBody.toString('utf-8')); } catch (_e) { parsed = {}; }
+    var verification = await driver.verifyWebhook({ headers: req.headers, rawBody: rawBody, body: parsed, secret: '' });
+    if (!verification.ok) {
+      console.error('PayPal webhook rejected: ' + (verification.reason || 'not verified'));
+      res.status(400).json({ error: 'Invalid webhook signature' });
+      return;
     }
+    var body = verification.body || {};
 
     var eventType = body.event_type || '';
 
     switch (eventType) {
-      case 'CHECKOUT.ORDER.APPROVED':
+      // Only a capture moves money. An approval moves none (the driver
+      // captures an approved order as it verifies the approval), and the
+      // capture's own event, which follows, is what pays the order.
       case 'PAYMENT.CAPTURE.COMPLETED': {
         var resource = body.resource || {};
         ${
+          autoGenerateInvoice || hasOrderNotifications
+            ? `var capture = await __checkPaypalCapture(resource);
+        if (!capture.ok) {
+          console.error('PayPal capture ' + (resource.id || '') + ' not applied: ' + capture.reason);
+          break;
+        }`
+            : ''
+        }
+        ${
           autoGenerateInvoice
-            ? `await handlePaypalInvoiceGeneration(resource, eventType, clientId, clientSecret, __baseUrl);`
+            ? `await handlePaypalInvoiceGeneration(resource, __baseUrl);`
             : `console.log('PayPal payment completed:', resource.id);`
         }
         ${
@@ -570,7 +658,8 @@ module.exports = async function handler(req, res) {
             ? `try {
           await fetch(__baseUrl + '/api/ecommerce/order-notification', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            // The route emails the merchant only for the store's own server code.
+            headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
             body: JSON.stringify({
               // The internal order id, so the route can load the order's own
               // lines and the rates they were charged at; the capture id is
@@ -611,57 +700,21 @@ module.exports = async function handler(req, res) {
   }
 };
 
-async function verifyPaypalWebhook(headers, body, webhookId, clientId, clientSecret) {
-  try {
-    // Detect environment from the cert URL PayPal embedded in the request,
-    // not from the client id prefix. Sandbox client ids do NOT consistently
-    // start with "sb-" — that heuristic was wrong and routed sandbox webhook
-    // verifications to the live API, which then rejected the sandbox cert
-    // with verification_status=FAILURE. The cert URL itself authoritatively
-    // says "sandbox" vs production.
-    var certUrl = String(headers['paypal-cert-url'] || '');
-    var isSandbox = certUrl.indexOf('sandbox.paypal.com') !== -1 ||
-                    certUrl.indexOf('api.sandbox.paypal.com') !== -1;
-    var baseUrl = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
-
-    var authResponse = await fetch(baseUrl + '/v1/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64'),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-    });
-    var authData = await authResponse.json();
-    if (!authData.access_token) return false;
-
-    var verifyResponse = await fetch(baseUrl + '/v1/notifications/verify-webhook-signature', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + authData.access_token,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        auth_algo: headers['paypal-auth-algo'] || '',
-        cert_url: headers['paypal-cert-url'] || '',
-        transmission_id: headers['paypal-transmission-id'] || '',
-        transmission_sig: headers['paypal-transmission-sig'] || '',
-        transmission_time: headers['paypal-transmission-time'] || '',
-        webhook_id: webhookId,
-        webhook_event: body,
-      }),
-    });
-    var verifyData = await verifyResponse.json();
-    var ok = verifyData.verification_status === 'SUCCESS';
-    if (!ok) {
-      console.error('PayPal webhook verification rejected by ' + baseUrl + ' — verification_status=' + (verifyData.verification_status || '(missing)') + ', name=' + (verifyData.name || '(none)') + ', message=' + (verifyData.message || '(none)'));
+function getRawBody(req) {
+  return new Promise(function(resolve, reject) {
+    if (req.body && Buffer.isBuffer(req.body)) {
+      resolve(req.body);
+      return;
     }
-    return ok;
-  } catch (e) {
-    console.error('PayPal webhook verification failed:', e.message);
-    return false;
-  }
+    var chunks = [];
+    req.on('data', function(chunk) { chunks.push(chunk); });
+    req.on('end', function() { resolve(Buffer.concat(chunks)); });
+    req.on('error', function(err) { reject(err); });
+  });
 }
+
+// PayPal's signature check needs the event exactly as it was sent.
+module.exports.config = { api: { bodyParser: false } };
 
 ${
   autoGenerateInvoice || hasOrderNotifications
@@ -686,6 +739,72 @@ function __extractInternalOrderId(resource) {
   }
   return '';
 }
+
+// Whether a completed capture may pay the store order it names: the capture
+// took the money, and the order exists, is neither cancelled nor settled
+// already (a redelivered event pays and announces nothing twice), and is due
+// exactly what was captured — its total less what a gift card covered — in
+// its own currency. A capture that names no store order has nothing to check.
+async function __checkPaypalCapture(resource) {
+  var captureStatus = String(resource.status || 'COMPLETED').toUpperCase();
+  if (captureStatus !== 'COMPLETED') {
+    return { ok: false, reason: 'the capture is ' + captureStatus };
+  }
+  var internalOrderId = __extractInternalOrderId(resource);
+  if (!internalOrderId) {
+    return { ok: true };
+  }
+  var connStr = process.env.TELEPORT_DB_CONNECTION_STRING || process.env.DATABASE_URL || '';
+  if (!connStr) {
+    return { ok: false, reason: 'no database connection to check order ' + internalOrderId + ' against' };
+  }
+  var pg;
+  try {
+    pg = require('pg');
+  } catch (e) {
+    return { ok: false, reason: 'the pg module is unavailable to check order ' + internalOrderId };
+  }
+  var client = new pg.Client({ connectionString: connStr, ssl: connStr.indexOf('sslmode=require') !== -1 ? { rejectUnauthorized: false } : undefined });
+  var order = null;
+  try {
+    await client.connect();
+    // gift_card_amount is read through the row's JSON: a store provisioned
+    // before gift cards has no such column.
+    var found = await client.query(
+      "SELECT o.status, o.payment_status, o.currency, o.total_amount, COALESCE(to_jsonb(o) ->> 'gift_card_amount', '0') AS gift_card_amount FROM teleport_orders o WHERE o.id = $1",
+      [internalOrderId]
+    );
+    order = found && found.rows && found.rows[0] ? found.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+  if (!order) {
+    return { ok: false, reason: 'the store has no order ' + internalOrderId };
+  }
+  if (String(order.status || '').toLowerCase() === 'cancelled') {
+    return { ok: false, reason: 'order ' + internalOrderId + ' was cancelled' };
+  }
+  var paymentStatus = String(order.payment_status || '').toLowerCase();
+  if (paymentStatus === 'paid' || paymentStatus === 'refunded' || paymentStatus === 'partially_refunded') {
+    return { ok: false, reason: 'order ' + internalOrderId + ' is already ' + paymentStatus };
+  }
+  var amount = resource.amount || {};
+  var capturedCurrency = String(amount.currency_code || '').toUpperCase();
+  var orderCurrency = String(order.currency || '').toUpperCase();
+  if (orderCurrency && capturedCurrency !== orderCurrency) {
+    return { ok: false, reason: 'the capture is in ' + (capturedCurrency || 'no currency') + ' and order ' + internalOrderId + ' in ' + orderCurrency };
+  }
+  // Whole cents, so 12.30 - 4.10 compares as 820 and never 8.199999999999999.
+  var due = Math.max(0, Math.round((Number(order.total_amount) - Number(order.gift_card_amount || 0)) * 100));
+  var captured = Math.round(Number(amount.value) * 100);
+  if (!isFinite(due) || captured !== due) {
+    return {
+      ok: false,
+      reason: 'the capture took ' + String(amount.value) + ' ' + capturedCurrency + ' and order ' + internalOrderId + ' is due ' + (due / 100).toFixed(2),
+    };
+  }
+  return { ok: true };
+}
 `
     : ''
 }
@@ -693,60 +812,21 @@ function __extractInternalOrderId(resource) {
 ${
   autoGenerateInvoice
     ? `
-async function handlePaypalInvoiceGeneration(resource, eventType, clientId, clientSecret, baseUrl) {
+// Invoices a completed capture; the capture resource names no buyer, so the
+// invoice route hydrates them from the order when the capture names one.
+async function handlePaypalInvoiceGeneration(resource, baseUrl) {
   try {
     var customerEmail = '';
     var customerName = '';
-    var items = [];
-    var currency = 'USD';
-    var total = 0;
-
-    if (eventType === 'PAYMENT.CAPTURE.COMPLETED') {
-      currency = (resource.amount && resource.amount.currency_code) || 'USD';
-      total = Number(resource.amount && resource.amount.value) || 0;
-      items = [{
-        name: 'PayPal Payment',
-        quantity: 1,
-        unitPrice: total,
-        totalPrice: total,
-        currency: currency,
-      }];
-    } else if (eventType === 'CHECKOUT.ORDER.APPROVED') {
-      var purchaseUnit = (resource.purchase_units && resource.purchase_units[0]) || {};
-      currency = (purchaseUnit.amount && purchaseUnit.amount.currency_code) || 'USD';
-      total = Number(purchaseUnit.amount && purchaseUnit.amount.value) || 0;
-
-      if (purchaseUnit.items) {
-        items = purchaseUnit.items.map(function(item) {
-          return {
-            name: item.name || '',
-            quantity: Number(item.quantity) || 1,
-            unitPrice: Number(item.unit_amount && item.unit_amount.value) || 0,
-            totalPrice: (Number(item.quantity) || 1) * (Number(item.unit_amount && item.unit_amount.value) || 0),
-            currency: currency,
-          };
-        });
-      } else {
-        items = [{
-          name: 'PayPal Order',
-          quantity: 1,
-          unitPrice: total,
-          totalPrice: total,
-          currency: currency,
-        }];
-      }
-
-      if (purchaseUnit.shipping && purchaseUnit.shipping.name) {
-        customerName = purchaseUnit.shipping.name.full_name || '';
-      }
-      if (resource.payer) {
-        customerEmail = resource.payer.email_address || '';
-        if (!customerName && resource.payer.name) {
-          customerName = (resource.payer.name.given_name || '') + ' ' + (resource.payer.name.surname || '');
-          customerName = customerName.trim();
-        }
-      }
-    }
+    var currency = (resource.amount && resource.amount.currency_code) || 'USD';
+    var total = Number(resource.amount && resource.amount.value) || 0;
+    var items = [{
+      name: 'PayPal Payment',
+      quantity: 1,
+      unitPrice: total,
+      totalPrice: total,
+      currency: currency,
+    }];
 
     // baseUrl is passed in from the request handler so the self-fetch tracks
     // the actual port the dev server bound to. Falls back to env vars for
@@ -789,7 +869,9 @@ async function handlePaypalInvoiceGeneration(resource, eventType, clientId, clie
 
     var response = await fetch(resolvedBaseUrl + '/api/invoices/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The route issues invoices only for the store's own server code, which
+      // presents the app secret.
+      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
       body: JSON.stringify(invoicePayload),
     });
 
@@ -853,9 +935,10 @@ async function __linkInvoiceToOrder(internalOrderId, invoiceResp, paymentIntentI
     // payment_status is the MONEY state (unpaid → paid → refunded). A paid
     // online order should set status='confirmed' (not 'paid'), matching the
     // Stripe + COD paths so the order-details page renders a consistent
-    // "Status: Confirmed / Payment: Paid".
+    // "Status: Confirmed / Payment: Paid". A cancelled order stays
+    // cancelled, whatever pays for it late.
     await client.query(
-      "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), invoice_id = COALESCE($4, invoice_id), invoice_number = COALESCE($5, invoice_number), invoice_pdf_url = COALESCE(NULLIF($6, ''), invoice_pdf_url), updated_at = NOW() WHERE id = $7",
+      "UPDATE teleport_orders SET status = $1, payment_status = $2, payment_intent_id = COALESCE(NULLIF($3, ''), payment_intent_id), invoice_id = COALESCE($4, invoice_id), invoice_number = COALESCE($5, invoice_number), invoice_pdf_url = COALESCE(NULLIF($6, ''), invoice_pdf_url), updated_at = NOW() WHERE id = $7 AND status IS DISTINCT FROM 'cancelled'",
       ['confirmed', 'paid', paymentIntentId || '', invoiceId, invoiceNumber, pdfUrl, internalOrderId]
     );
     console.info('[paypal webhook] order ' + internalOrderId + ' marked confirmed/paid — invoice=' + (invoiceNumber || '(none)') + ' pdf=' + (pdfUrl || '(none)'));
@@ -874,7 +957,7 @@ export interface GenerateWebhookFilesOptions {
   // route (event-webhook-received + webhookConfig). The legacy hard-coded
   // emission is skipped for those providers to avoid two concurrent
   // implementations of the same webhook in the generated project.
-  skipProviders?: Set<'stripe' | 'paypal'>
+  skipProviders?: ReadonlySet<string>
 }
 
 export const generateWebhookFiles = (
@@ -887,19 +970,35 @@ export const generateWebhookFiles = (
   const ecommerceSettings = uidl.ecommerceSettings
   const ecommerceProviders = ecommerceSettings?.paymentProviders || []
   const providerTypes = ecommerceProviders.map((p) => p.type)
-  const skipProviders = options.skipProviders || new Set<'stripe' | 'paypal'>()
+  const skipProviders = options.skipProviders || new Set<string>()
 
-  const hasStripe =
-    Object.keys(env).some(
+  const emitStripe =
+    (Object.keys(env).some(
       (k) => k.includes('STRIPE_SECRET_KEY') || k.includes('STRIPE_WEBHOOK_SECRET')
-    ) || providerTypes.includes('stripe')
+    ) ||
+      providerTypes.includes('stripe')) &&
+    !skipProviders.has('stripe')
 
-  const hasPaypal =
-    Object.keys(env).some(
+  const emitPaypal =
+    (Object.keys(env).some(
       (k) => k.includes('PAYPAL_CLIENT_ID') || k.includes('PAYPAL_CLIENT_SECRET')
-    ) || providerTypes.includes('paypal')
+    ) ||
+      providerTypes.includes('paypal')) &&
+    !skipProviders.has('paypal')
 
-  if (hasStripe && !skipProviders.has('stripe')) {
+  if (!emitStripe && !emitPaypal) {
+    return
+  }
+  // Both routes verify through the store's drivers. The module is written
+  // once, by whichever emitter comes first, so it carries every provider the
+  // store uses — not only the two these routes need.
+  const storeDriverIds = resolveStorePaymentDriverIds(uidl, [])
+  ensurePaymentDriversModule(
+    structure,
+    storeDriverIds.length > 0 ? storeDriverIds : DEFAULT_PAYMENT_DRIVER_IDS
+  )
+
+  if (emitStripe) {
     files.set('webhook-stripe', {
       path: ['pages', 'api', 'webhooks'],
       files: [
@@ -912,7 +1011,7 @@ export const generateWebhookFiles = (
     })
   }
 
-  if (hasPaypal && !skipProviders.has('paypal')) {
+  if (emitPaypal) {
     files.set('webhook-paypal', {
       path: ['pages', 'api', 'webhooks'],
       files: [

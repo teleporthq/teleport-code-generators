@@ -3,6 +3,7 @@ import {
   generateSubscriberAccessHelperModule,
   generateSubscriberAccessRoute,
   hasSubscriberOnlyPages,
+  resolveCustomProductPageRoutes,
   resolveProductDetailsRoute,
   resolveSubscriptionFallbackRoute,
 } from '../src/subscriber-access-route-generator'
@@ -39,9 +40,10 @@ const makePgStub = (): PgStub => ({
 
 const bootHelper = (
   pg: PgStub,
-  details: { staticBase: string; differentiatorColumn: string } | null
+  details: { staticBase: string; differentiatorColumn: string } | null,
+  productPages?: Record<string, { staticBase: string; differentiatorColumn: string }>
 ) => {
-  const code = generateSubscriberAccessHelperModule({ productDetails: details })
+  const code = generateSubscriberAccessHelperModule({ productDetails: details, productPages })
   class Client {
     public async connect() {
       pg.connections += 1
@@ -200,6 +202,31 @@ describe('the subscriber-access helper module', () => {
     ).toBe('/coffee-club')
   })
 
+  it('sends a product that has a custom product page to that page', async () => {
+    const pg = makePgStub()
+    const helper = bootHelper(pg, productDetails, {
+      personalise: { staticBase: '/personalise', differentiatorColumn: 'slug' },
+    })
+    pg.productRows = [{ row: { id: 'prod-1', slug: 'postcard', product_page: 'personalise' } }]
+    expect(await helper.resolveProductRedirect(['prod-1'])).toBe('/personalise/postcard')
+    expect(pg.calls[0].sql).toContain(
+      'SELECT to_jsonb(p) AS row FROM teleport_products p WHERE p.id::text = $1'
+    )
+
+    // A page no longer there, or none at all: the standard product page.
+    pg.productRows = [{ row: { id: 'prod-2', slug: 'mug', product_page: 'gone' } }]
+    expect(await helper.resolveProductRedirect(['prod-2'])).toBe('/products/mug')
+    pg.productRows = [{ row: { id: 'prod-3', slug: 'tee' } }]
+    expect(await helper.resolveProductRedirect(['prod-3'])).toBe('/products/tee')
+  })
+
+  it('reads the products table exactly as before on a store without custom product pages', () => {
+    const code = generateSubscriberAccessHelperModule({ productDetails, productPages: {} })
+    expect(code).not.toContain('PRODUCT_PAGES')
+    expect(code).not.toContain('to_jsonb(p)')
+    expect(code).toBe(generateSubscriberAccessHelperModule({ productDetails }))
+  })
+
   it('never bakes a product column that is not a plain identifier', () => {
     const code = generateSubscriberAccessHelperModule({
       productDetails: { staticBase: '/products', differentiatorColumn: 'slug"; DROP TABLE x; --' },
@@ -322,5 +349,58 @@ describe('what the plugin reads off the UIDL', () => {
 
     expect(resolveProductDetailsRoute(uidlWith([]))).toBeNull()
     expect(resolveSubscriptionFallbackRoute(undefined)).toBe('/')
+  })
+
+  it('never takes the write-a-review page for the product page', () => {
+    const uidl = uidlWith([
+      {
+        value: 'create-review',
+        pageId: 'r',
+        pageOptions: {
+          navLink: '/create-review/[slug]',
+          detailsPageInfo: {
+            tableName: 'teleport_products',
+            differentiatorColumn: 'slug',
+            featureIdentifier: 'teleportProduct',
+          },
+        },
+      },
+      {
+        value: 'product-details',
+        pageId: 'd',
+        pageOptions: {
+          navLink: '/products/[slug]',
+          detailsPageInfo: {
+            tableName: 'teleport_products',
+            differentiatorColumn: 'slug',
+            featureIdentifier: 'ecommerceProduct',
+          },
+        },
+      },
+    ])
+    expect(resolveProductDetailsRoute(uidl)?.staticBase).toBe('/products')
+  })
+
+  it('takes the standard and the custom product pages from the exported settings', () => {
+    const uidl = {
+      ...uidlWith([]),
+      ecommerceSettings: {
+        productPages: {
+          standard: { route: '/shop', attribute: 'slug' },
+          pages: {
+            personalise: { route: '/personalise', attribute: 'slug', name: 'Personalise' },
+            broken: { route: 'no-slash', attribute: 'slug', name: 'Broken' },
+          },
+        },
+      },
+    }
+    expect(resolveProductDetailsRoute(uidl)).toEqual({
+      staticBase: '/shop',
+      differentiatorColumn: 'slug',
+    })
+    expect(resolveCustomProductPageRoutes(uidl)).toEqual({
+      personalise: { staticBase: '/personalise', differentiatorColumn: 'slug' },
+    })
+    expect(resolveCustomProductPageRoutes(uidlWith([]))).toEqual({})
   })
 })

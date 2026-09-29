@@ -28,11 +28,20 @@ export const SUBSCRIPTIONS_TABLE = 'teleport_subscriptions'
  *       column is a uuid),
  *  $2 — the entitled statuses,
  *  $3 — the product ids the page names; an EMPTY array means any product.
+ *
+ * A subscription the STORE bills (a provider that cannot charge a saved
+ * payment method) carries `access_until`: the end of the paid period plus the
+ * grace for the next payment. Past it the row stops entitling on its own, so
+ * access ends on time even when the scheduled billing run is late or off.
+ * Read through `to_jsonb` so a store whose table predates the column still
+ * answers (a missing key reads NULL, which never limits).
  */
 export const SUBSCRIPTION_ENTITLEMENT_SQL =
-  `SELECT 1 FROM ${SUBSCRIPTIONS_TABLE} ` +
-  'WHERE user_id::text = $1 AND status = ANY($2::text[]) ' +
-  'AND (cardinality($3::text[]) = 0 OR product_id::text = ANY($3::text[])) LIMIT 1'
+  `SELECT 1 FROM ${SUBSCRIPTIONS_TABLE} s ` +
+  'WHERE s.user_id::text = $1 AND s.status = ANY($2::text[]) ' +
+  'AND (cardinality($3::text[]) = 0 OR s.product_id::text = ANY($3::text[])) ' +
+  "AND ((to_jsonb(s) ->> 'access_until') IS NULL " +
+  "OR (to_jsonb(s) ->> 'access_until')::timestamp > NOW()) LIMIT 1"
 
 /** Trimmed, de-duplicated, non-empty ids — whatever shape the caller had them in. */
 export const normalizeSubscriptionProductIds = (value: unknown): string[] => {

@@ -13,6 +13,7 @@ import {
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
+import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -72,6 +73,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateArrayOverlapSqlCode()}
 
 // Builds one SQL clause for the whole filter tree, so an OR group nested in
 // the root AND keeps its meaning instead of being flattened into ANDs.
@@ -102,7 +104,8 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
     if (Array.isArray(value)) {
       if (value.length === 0) return null
       if (operand === 'array_overlap') {
-        const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+        // The row's list (see array-overlap-sql.ts) shares any value with the set.
+        const clause = arrayOverlapSql([field], '$' + paramIndex)
         queryParams.push(value.map((entry) => String(entry)))
         paramIndex++
         return clause
@@ -120,7 +123,7 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
       const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
       if (overlapValues.length === 0) return null
-      const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+      const clause = arrayOverlapSql([field], '$' + paramIndex)
       queryParams.push(overlapValues)
       paramIndex++
       return clause
@@ -163,6 +166,8 @@ ${generateReadGuardCall(tableName, null)}
     ${schema ? `await client.query('SET search_path TO ${schema}')` : ''}
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
+    // A visitor never filters, sorts or searches by a column it is not served.
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     
     const conditions = []
     const queryParams = []
@@ -197,6 +202,7 @@ ${generateReadGuardCall(tableName, null)}
           // Continue without search if we can't get columns
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -212,6 +218,7 @@ ${generateReadGuardCall(tableName, null)}
 
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
     let sql = \`SELECT * FROM "${tableName}"\`
     
@@ -289,14 +296,20 @@ ${generateReadGuardCall(tableName, null)}
 
     return res.status(200).json({
       success: true,
-      data: __taWithoutCredentials(safeData, ${JSON.stringify(tableName)}),
+      data: __taWithoutCredentials(
+        __rowPolicy ? __brpStripHidden(__rowPolicy, safeData) : safeData,
+        ${JSON.stringify(tableName)}
+      ),
       timestamp: Date.now()
     })
   } catch (error) {
     console.error('PostgreSQL fetch error:', error)
+    // A database error names tables, columns and values: it stays in the server
+    // log. Only an error this route raised for the caller (it carries a status)
+    // is repeated to it.
     return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to fetch data',
+      error: error.status ? error.message : 'Failed to fetch data',
       timestamp: Date.now()
     })
   } finally {
@@ -327,6 +340,7 @@ ${generateReadGuardCall(tableName, null)}
   try {
     await client.connect()
     const { query, queryColumns, filters } = req.query
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     const conditions = []
     const queryParams = []
     let paramIndex = 1
@@ -361,6 +375,7 @@ ${generateReadGuardCall(tableName, null)}
           // Continue without search if we can't get columns
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -378,6 +393,7 @@ ${generateReadGuardCall(tableName, null)}
 
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
     let countSql = \`SELECT COUNT(*) FROM "${tableName}"\`
     if (conditions.length > 0) {
@@ -396,7 +412,7 @@ ${generateReadGuardCall(tableName, null)}
     console.error('Error getting count:', error)
     return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to get count',
+      error: error.status ? error.message : 'Failed to get count',
       timestamp: Date.now()
     })
   } finally {

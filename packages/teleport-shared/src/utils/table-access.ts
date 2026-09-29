@@ -75,6 +75,20 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   // email and the ones still in moderation; the product page reads the
   // approved ones server-side.
   'teleport_product_reviews',
+  // A push subscription is a capability: whoever holds the endpoint and its
+  // keys can notify that device. Only the app's push routes read the table.
+  'teleport_push_subscriptions',
+  // A comment is public once approved, but the row carries the commenter's
+  // email and the comments still waiting for approval; the post page reads
+  // the approved ones server-side, public columns only.
+  'teleport_blog_comments',
+  // What visitors told the AI assistant, and the merchant's private knowledge
+  // base it answers from: the assistant reads them in its own server
+  // segments, the admin lists them with its session.
+  'teleport_ai_chat_knowledge_sources',
+  'teleport_ai_chat_documents',
+  'teleport_ai_chat_conversations',
+  'teleport_ai_chat_messages',
 ]
 
 export const PROTECTED_TABLES: ReadonlyArray<string> = [...MONEY_TABLES, ...CUSTOMER_RECORD_TABLES]

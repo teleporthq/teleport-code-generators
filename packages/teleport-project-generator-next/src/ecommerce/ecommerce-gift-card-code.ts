@@ -48,9 +48,10 @@ export const resolveGiftCards = (
  * the summary rows bind.
  */
 export const generateGiftCardModuleCode = (giftCards: UIDLEcommerceGiftCards): string => `
-// Baked at export: a card is only ever redeemed in the store's own currency,
-// and pays part of a subscription's first charge only on a checkout whose
-// place-order workflow hands the provider the reduced charge.
+// Baked at export: the store's currency (what a cart whose lines name none is
+// priced in), and whether a card pays part of a subscription's first charge —
+// only on a checkout whose place-order workflow hands the provider the reduced
+// charge.
 const GIFT_CARDS = ${JSON.stringify({
   currency: giftCards.currency,
   recurringTender: giftCards.recurringTender === true,
@@ -59,10 +60,12 @@ const GIFT_CARD_STORAGE_KEY = '${DiscountEngine.GIFT_CARD_STORAGE_KEY}'
 const GIFT_CARD_CHANGED_EVENT = '${DiscountEngine.GIFT_CARD_CHANGED_EVENT}'
 
 // The gift card the shopper applied at checkout, as the Apply Gift Card
-// workflow left it. Anything unparseable, and a card in another currency, is
-// "no card" rather than an exception: this runs in an effect, and a malformed
-// value must never take the storefront down. \`balance\` is what the workflow
-// saw when it checked the card — the place-order workflow re-reads it.
+// workflow left it. Anything unparseable is "no card" rather than an
+// exception: this runs in an effect, and a malformed value must never take the
+// storefront down. \`balance\` is what the workflow saw when it checked the
+// card — the place-order workflow re-reads it. Whether its currency is the
+// cart's is decided when the tender is priced: the cart can change currency
+// after the card was applied.
 function loadGiftCardFromStorage() {
   if (typeof window === 'undefined') return null
   try {
@@ -70,13 +73,12 @@ function loadGiftCardFromStorage() {
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object' || !parsed.id) return null
-    if (String(parsed.currency || '').toUpperCase() !== GIFT_CARDS.currency.toUpperCase()) return null
     const balance = Number(parsed.balance)
     return {
       id: String(parsed.id),
       last4: String(parsed.last4 || ''),
       balance: isFinite(balance) && balance > 0 ? balance : 0,
-      currency: GIFT_CARDS.currency,
+      currency: __ccCode(parsed.currency),
       checkedAt: parsed.checkedAt || null,
     }
   } catch {
@@ -106,12 +108,18 @@ function cartHasGiftCardLines(items) {
 // of the FIRST charge only, never all of it, and nothing of a first charge
 // that is a free trial — the same rule the place-order workflow's tender
 // applies.
-function computeGiftCardMeta(card, deliveryTotal, pickupTotal, hasGiftCardLines, hasRecurringLines, hasRecurringTrial) {
+//
+// A card pays only in its own currency, so only a cart priced in it: the
+// cart's currency (its lines'), or the store's for a cart whose lines name
+// none. A card in another currency is shown as not applied.
+function computeGiftCardMeta(stored, deliveryTotal, pickupTotal, hasGiftCardLines, hasRecurringLines, hasRecurringTrial, cartCurrency) {
+  const currency = __ccCode(cartCurrency) || __ccCode(GIFT_CARDS.currency)
+  const card = stored !== null && currency !== '' && stored.currency === currency ? stored : null
   const balance = card ? card.balance : 0
   const delivery = __deTender({
     balance: balance,
     total: deliveryTotal,
-    currency: GIFT_CARDS.currency,
+    currency: currency,
     hasGiftCardLines: hasGiftCardLines,
     hasRecurringLines: hasRecurringLines === true,
     recurringTenderAllowed: GIFT_CARDS.recurringTender === true,
@@ -120,7 +128,7 @@ function computeGiftCardMeta(card, deliveryTotal, pickupTotal, hasGiftCardLines,
   const pickup = __deTender({
     balance: balance,
     total: pickupTotal,
-    currency: GIFT_CARDS.currency,
+    currency: currency,
     hasGiftCardLines: hasGiftCardLines,
     hasRecurringLines: hasRecurringLines === true,
     recurringTenderAllowed: GIFT_CARDS.recurringTender === true,
@@ -165,9 +173,10 @@ export const generateGiftCardProviderCode = (): string => `
     }
   }, [])
 
-  // Tells \`cart-get-total\` that a stored card is to be honoured and in which
-  // currency. Merged rather than written whole: the quantity cap, delivery
-  // snapshot and the other feature mirrors share the key.
+  // Tells \`cart-get-total\` that a stored card is to be honoured, and the
+  // store's currency for a cart whose lines name none. Merged rather than
+  // written whole: the quantity cap, delivery snapshot and the other feature
+  // mirrors share the key.
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
@@ -206,7 +215,8 @@ export const generateGiftCardMetaCode = (giftCardsEnabled: boolean): string => {
         pickupTotal,
         cartHasGiftCardLines(cartItems),
         !!recurringLine,
-        recurringTrial
+        recurringTrial,
+        __ccCartCurrency(cartItems)
       ),
     [appliedGiftCard, effectiveTotal, pickupTotal, cartItems, recurringLine, recurringTrial]
   )

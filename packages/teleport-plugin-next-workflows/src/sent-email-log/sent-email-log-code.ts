@@ -1,4 +1,4 @@
-import { generatePgClientCode } from '../pg-client-code'
+import { generateLazyPgClientCode } from '../pg-client-code'
 
 /**
  * Emits `utils/email/sent-email-log.js` — the ONE place every email the
@@ -19,28 +19,6 @@ import { generatePgClientCode } from '../pg-client-code'
  * `pgSupported=false` (a MySQL / Mongo / Firestore project) emits a module with
  * the same exports that records nothing, so consumers need no branching.
  */
-const PG_REQUIRE_LINE = "const { Client } = require('pg');"
-
-/**
- * The shared `getClient()` boilerplate with its eager `require('pg')` swapped
- * for the lazy loader above: a project can carry an email node and no
- * Postgres driver, and a top-level require would fail the build of every
- * workflow route ("Collecting page data"). `new Client(opts)` keeps working —
- * a constructor that returns an object yields that object.
- */
-const lazyPgClientCode = (): string => {
-  const code = generatePgClientCode()
-  if (!code.startsWith(PG_REQUIRE_LINE)) {
-    throw new Error(
-      'sent-email-log: generatePgClientCode() no longer starts with the pg require line'
-    )
-  }
-  return code.replace(
-    PG_REQUIRE_LINE,
-    'function Client(opts) { var pg = __loadPg(); return new pg.Client(opts); }'
-  )
-}
-
 export const generateSentEmailLogCode = (options: { pgSupported: boolean }): string => {
   if (!options.pgSupported) {
     return `/**
@@ -65,15 +43,7 @@ module.exports = { recordSentEmail, settleSentEmailLog, wrapEmailNodeHandler };
  * Never awaited by the send itself; never throws; drained before a route
  * replies (see settleSentEmailLog).
  */
-var __pg = null;
-var __pgLoadFailed = false;
-function __loadPg() {
-  if (__pg || __pgLoadFailed) return __pg;
-  try { __pg = require('pg'); } catch (_e) { __pgLoadFailed = true; __pg = null; }
-  return __pg;
-}
-
-${lazyPgClientCode()}
+${generateLazyPgClientCode()}
 
 var TABLE_NAME = 'teleport_sent_emails';
 var BODY_MAX_CHARS = 1000000;

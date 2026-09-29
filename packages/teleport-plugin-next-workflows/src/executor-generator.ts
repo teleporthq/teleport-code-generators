@@ -3,6 +3,7 @@ import {
   generateEmailLocaleHelpersCode,
   generateWorkflowLocaleHelpersCode,
 } from './email-locale'
+import { generateSignedInDestinationCode } from './auth-return/signed-in-destination-code'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -28,6 +29,7 @@ export const generateSharedRuntimeUtilsCode = (options: SharedRuntimeUtilsOption
  */
 ${generateEmailLocaleHelpersCode(options.emailLocales || NO_EMAIL_LOCALES)}
 ${generateWorkflowLocaleHelpersCode()}
+${generateSignedInDestinationCode()}
 function resolveValue(value, context) {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) {
@@ -1464,6 +1466,7 @@ module.exports = {
   resolveEmailLocale,
   getClientLocale,
   localizeHref,
+  signedInDestination,
   pickLocalizedTemplate,
   resolveValue,
   resolveSecret,
@@ -1649,6 +1652,16 @@ function pruneContext(context, stateKeys) {
     // them; serializing them would ship a list of empty objects and let a
     // server response overwrite the client's live list.
     if (key === '__pendingNodePromises') continue;
+    // Credentials for a server-side caller's own requests travel as HEADERS
+    // (see segmentRequestHeaders), never in the body.
+    if (key === '__internalHeaders') continue;
+    // The signatures of earlier server results and of the key order must
+    // cross whole: a pruned signature no longer matches, and the server then
+    // treats the result it covers as never produced.
+    if (key === '__sig' || key === '__sigOrder') {
+      pruned[key] = val;
+      continue;
+    }
     if (filterState) {
       if (key === '__stateValues') {
         val = pruneStateValues(val, stateKeys);
@@ -1731,12 +1744,26 @@ function absolutizeSegmentUrl(segmentUrl, context) {
   return segmentUrl.charAt(0) === '/' ? trimmed + segmentUrl : trimmed + '/' + segmentUrl;
 }
 
+// A server-side caller (a webhook or cron route running a custom node) sends
+// the credentials its route derived — the forwarded cookie, the deployment
+// protection bypass and the internal-call token a server-only route requires.
+// A browser has none, so it sends only the content type.
+function segmentRequestHeaders(context) {
+  var headers = { 'Content-Type': 'application/json' };
+  if (typeof window === 'undefined' && context && context.__internalHeaders && typeof context.__internalHeaders === 'object') {
+    Object.keys(context.__internalHeaders).forEach(function(name) {
+      headers[name] = context.__internalHeaders[name];
+    });
+  }
+  return headers;
+}
+
 async function callServerSegment(segmentUrl, context, stateKeys) {
   const prunedContext = pruneContext(context, stateKeys);
   const targetUrl = absolutizeSegmentUrl(segmentUrl, context);
   const response = await fetch(targetUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: segmentRequestHeaders(context),
     body: JSON.stringify({ context: prunedContext })
   });
   if (!response.ok) {
@@ -1832,7 +1859,7 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
   const streamingTargetUrl = absolutizeSegmentUrl(segmentUrl, context);
   const response = await fetch(streamingTargetUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: segmentRequestHeaders(context),
     body: JSON.stringify({ context: prunedContext })
   });
 
@@ -2132,12 +2159,5 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
 }
 
 module.exports = { executeWorkflowWithSegments, callServerSegment, callStreamingServerSegment, mergeServerResults, findStreamingAINodes };
-`
-}
-
-export const generateServerRuntimeCode = (): string => {
-  return `const utils = require('./runtime-utils');
-
-module.exports = utils;
 `
 }

@@ -222,6 +222,10 @@ async function data_create_item(config: any, context: any) {
       //
       // The product + variant ids ride along so the endpoint can price each
       // line at the rate the order's tax breakdown recorded for it.
+      //
+      // So does the short label of the product options the line was bought
+      // with ('' without options): the endpoint shows a caller's lines with
+      // that label, and without it the merchant never learns what to make.
       const orderCurrency = item.currency || ''
       const normalisedItems = cartItems.map(function (it: any) {
         const unitPrice = Number(it.unitPrice != null ? it.unitPrice : it.price) || 0
@@ -244,6 +248,8 @@ async function data_create_item(config: any, context: any) {
           image_url: imageUrl,
           product_id: it.productId || it.product_id || '',
           variant_id: it.variantId || it.variant_id || '',
+          configurationLabel:
+            typeof it.configurationLabel === 'string' ? it.configurationLabel.slice(0, 500) : '',
         }
       })
 

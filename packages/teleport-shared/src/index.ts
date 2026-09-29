@@ -16,6 +16,9 @@ import * as ProductDiscounts from './utils/product-discounts'
 import * as ProductRatings from './utils/product-ratings'
 import * as RegionalPricing from './utils/regional-pricing'
 import * as DiscountEngine from './utils/discount-engine'
+import * as ProductOptions from './utils/product-options'
+import * as CartLinePricing from './utils/cart-line-pricing'
+import * as CartCurrency from './utils/cart-currency'
 import * as TableAccess from './utils/table-access'
 import * as SessionCookieResolver from './utils/session-cookie-resolver'
 import * as SubscriptionAccess from './utils/subscription-access'
@@ -25,6 +28,7 @@ import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
+import * as WebPush from './utils/web-push'
 
 export {
   Constants,
@@ -45,6 +49,9 @@ export {
   ProductRatings,
   RegionalPricing,
   DiscountEngine,
+  ProductOptions,
+  CartLinePricing,
+  CartCurrency,
   TableAccess,
   SessionCookieResolver,
   SubscriptionAccess,
@@ -54,4 +61,5 @@ export {
   RichTextEmbedsCodegen,
   DataCache,
   PageRevalidate,
+  WebPush,
 }
