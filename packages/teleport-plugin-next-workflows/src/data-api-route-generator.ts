@@ -13,6 +13,7 @@
 
 import { generateSqlValidatorCode } from './sql-validator'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
+import { TableAccess } from '@teleporthq/teleport-shared'
 
 const DATA_NODE_TYPES = new Set([
   'data-select',
@@ -55,6 +56,52 @@ export interface DataAPIRouteOptions {
   lowStockThreshold?: number
 }
 
+/**
+ * The only tables a BROWSER reads through this route, in an app whose server
+ * code identifies itself with the app secret (see `__taBrowserIsReadOnly`).
+ *
+ * Every workflow data node runs server-side and presents the secret, so the
+ * browser's reads here are the storefront's own: the cart re-reading its
+ * products, the discount feed, the regional-pricing tables. Anything else a
+ * browser names — a merchant's own table, the AI assistant's conversations and
+ * knowledge base, `information_schema`, a `pg_*` catalog or statistics view —
+ * is refused, rather than refused only when a list of dangerous names
+ * remembered it. (An app without a secret cannot tell its server calls from a
+ * browser's; there `assertNoSystemCatalogRead` still keeps the catalogs out, and
+ * the shared protected set — `TableAccess.PROTECTED_TABLES`, the AI assistant's
+ * tables among them — the store's private tables.)
+ */
+export const BROWSER_READABLE_TABLES: ReadonlyArray<string> = [
+  'teleport_products',
+  'teleport_product_variants',
+  'teleport_discounts',
+  'teleport_shipping_zones',
+  'teleport_shipping_rates',
+  'teleport_tax_rates',
+  'teleport_store_locations',
+  'teleport_blog_posts',
+]
+
+/**
+ * What a browser is served of the readable tables whose unpublished rows sit
+ * beside the public ones — the same policy the per-table read routes apply
+ * (teleport-plugin-next-data-source `browser-row-policy.ts`, which this mirrors;
+ * keep the two in step). A browser may not filter or sort by a hidden column:
+ * a filter is an oracle for a column it never returns.
+ */
+export const BROWSER_ROW_POLICIES: Readonly<
+  Record<string, { predicate: string; hiddenColumns: ReadonlyArray<string> }>
+> = {
+  teleport_blog_posts: {
+    predicate: "status = 'published'",
+    hiddenColumns: ['author_email', 'authorEmail'],
+  },
+  teleport_products: {
+    predicate: "LOWER(TRIM(status)) = 'active'",
+    hiddenColumns: [],
+  },
+}
+
 export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string => {
   const validatorCode = generateSqlValidatorCode()
   const authUsersTable = options.authUsersTableName || null
@@ -75,7 +122,13 @@ ${
 const LOW_STOCK_ALERTS_ENABLED = ${JSON.stringify(lowStockAlertsEnabled)};
 const LOW_STOCK_THRESHOLD = ${JSON.stringify(lowStockThreshold)};
 ${validatorCode}
-
+${
+  // The money-table lists and the guards over them, shared with the per-table
+  // read routes so both families refuse the same tables. No browser reads a
+  // protected table through THIS route (workflow data nodes run server-side),
+  // so the roles that may read from a browser are irrelevant here.
+  TableAccess.generateTableAccessHelperCode({ trustedReaderRoles: [] })
+}
 function getPgSslFromEnv() {
   if (process.env.TELEPORT_DB_SSL === 'false') return false;
   if (process.env.TELEPORT_DB_SSL === 'true') return { rejectUnauthorized: false };
@@ -212,10 +265,28 @@ function isAllSentinelFilterValue(value, filter) {
   return normalized === 'all' || normalized === 'any' || normalized === 'everything' || normalized === '__all__';
 }
 
+// A filter value that never reached the server: its binding produced nothing,
+// or the client→server hand-off replaced an oversized value with a placeholder.
+function isMissingFilterValue(value) {
+  if (value === undefined) return true;
+  return !!value && typeof value === 'object' && !Array.isArray(value) &&
+    (value.__truncated === true || value.__serializationError === true);
+}
+
+function refuseUnscopedWrite(field) {
+  var err = new Error('Refused: the filter on "' + (field || 'unknown') + '" has no value, so this write would change every row.');
+  err.status = 400;
+  return err;
+}
+
+// \`strict\` (every UPDATE and DELETE): a filter that lost its value, or names no
+// column, REFUSES the write instead of being left out — leaving it out widens
+// the write to every row of the table. An empty list matches no row.
 function buildWhereClause(filters, queryParams, startIndex, options) {
   var conditions = [];
   var paramIndex = startIndex;
   var skipOptionalEmpty = !!(options && options.skipOptionalEmpty);
+  var strict = !!(options && options.strict);
 
   if (!filters || !Array.isArray(filters) || filters.length === 0) {
     return { clause: '', paramIndex: paramIndex };
@@ -226,15 +297,22 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   for (var i = 0; i < filters.length; i++) {
     var f = filters[i];
     var field = f.source || f.field;
-    if (!field) continue;
+    if (!field) {
+      if (strict) throw refuseUnscopedWrite('');
+      continue;
+    }
     var value = f.destination !== undefined ? f.destination : f.value;
     var operand = f.operand || f.operator || '=';
 
+    if (strict && isMissingFilterValue(value)) throw refuseUnscopedWrite(field);
     if (value === undefined) continue;
     if (skipOptionalEmpty && (isSkippableFilterValue(value) || isAllSentinelFilterValue(value, f))) continue;
 
     if (Array.isArray(value)) {
-      if (value.length === 0) continue;
+      if (value.length === 0) {
+        if (strict) conditions.push('FALSE');
+        continue;
+      }
       var placeholders = value.map(function() { return '$' + (paramIndex++); });
       queryParams.push.apply(queryParams, value);
       if (operand === '!=') {
@@ -294,7 +372,7 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   };
 }
 
-async function handleSelect(client, body) {
+async function handleSelect(client, body, req) {
   var tableName = body.tableName;
   var filters = body.filters || [];
   var sorts = body.sorts || [];
@@ -318,12 +396,32 @@ async function handleSelect(client, body) {
     }
   }
 
+  // A browser reads a feed table only as its feed: the pricing columns of the
+  // rows the DATABASE calls live. The window is therefore the server's
+  // judgement, not the browser clock's, and nothing unlaunched is handed out.
+  var feed = __taPublicFeed(req, tableName);
+  if (feed) {
+    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+    __taAssertFeedFields(tableName, feed, sorts.map(function(s) { return s && s.field; }));
+  }
+  // A browser reads a published table's public rows, and never names a hidden
+  // column — to read it, filter by it or sort by it.
+  var rowPolicy = __dataRowPolicy(req, tableName);
+  if (rowPolicy) {
+    __dataAssertVisibleFields(rowPolicy, filters.map(function(f) { return f && (f.source || f.field); }));
+    __dataAssertVisibleFields(rowPolicy, sorts.map(function(s) { return s && s.field; }));
+    __dataAssertVisibleFields(rowPolicy, selectedColumns);
+  }
+
   var queryParams = [];
   var cols = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
+  if (feed) cols = feed.columns.join(', ');
   var sql = 'SELECT ' + cols + ' FROM ' + tableName;
 
   var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
+  if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
+  if (rowPolicy) sql += (where.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
 
   if (sorts.length > 0) {
     var orderClauses = sorts.map(function(s) {
@@ -359,28 +457,43 @@ async function handleSelect(client, body) {
 
   var result = await safeQuery(client, sql, queryParams, 'select');
   var rows = Array.isArray(result.rows) ? result.rows : [];
+  // A browser reads the users table's profile, never its credentials.
+  if (!isInternalDataRequest(req)) rows = __taWithoutCredentials(rows, tableName);
+  if (rowPolicy) rows = __dataWithoutHidden(rowPolicy, rows);
 
   var countSql = 'SELECT COUNT(*) FROM ' + tableName;
   var countParams = [];
   var countWhere = buildWhereClause(filters, countParams, 1, { skipOptionalEmpty: true });
   countSql += countWhere.clause;
+  if (feed) countSql += (countWhere.clause ? ' AND ' : ' WHERE ') + feed.predicate;
+  if (rowPolicy) countSql += (countWhere.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
   var countResult = await safeQuery(client, countSql, countParams, 'count');
   var count = parseInt(countResult.rows[0].count, 10);
 
   return { rows: rows, count: count };
 }
 
-async function handleCount(client, body) {
+async function handleCount(client, body, req) {
   var tableName = body.tableName;
   var filters = body.filters || [];
 
   // Validate table name
   assertIdentifierSafe(tableName, 'table name');
 
+  var feed = __taPublicFeed(req, tableName);
+  if (feed) {
+    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+  }
+  var rowPolicy = __dataRowPolicy(req, tableName);
+  if (rowPolicy) {
+    __dataAssertVisibleFields(rowPolicy, filters.map(function(f) { return f && (f.source || f.field); }));
+  }
   var queryParams = [];
   var sql = 'SELECT COUNT(*) FROM ' + tableName;
   var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
   sql += where.clause;
+  if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
+  if (rowPolicy) sql += (where.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
 
   var result = await safeQuery(client, sql, queryParams, 'count');
   var count = parseInt(result.rows[0].count, 10);
@@ -542,6 +655,33 @@ function stampRequestLocale(tableName, entries, colTypes, requestLocale) {
   return entries.concat([[LOCALE_COLUMN, requestLocale.slice(0, 10)]]);
 }
 
+// Columns a feature added after stores were provisioned: product options
+// (the definitions on the product, the chosen configuration on an order line).
+// A write naming one on a store whose table never gained it drops that column
+// instead of failing the whole statement — an order must never lose its lines
+// over a column that was not added. Only when the table's columns are known:
+// an unreadable schema leaves the write exactly as it was.
+var OPTIONAL_FEATURE_COLUMNS = {
+  teleport_products: ['option_groups', 'product_page'],
+  teleport_order_items: ['configuration', 'configuration_label'],
+};
+
+function dropMissingOptionalColumns(tableName, entries, colTypes) {
+  if (!Object.prototype.hasOwnProperty.call(OPTIONAL_FEATURE_COLUMNS, tableName)) return entries;
+  if (Object.keys(colTypes).length === 0) return entries;
+  var optional = OPTIONAL_FEATURE_COLUMNS[tableName];
+  var dropped = [];
+  var kept = entries.filter(function(e) {
+    var missing = optional.indexOf(e[0]) !== -1 && !colTypes[e[0]];
+    if (missing) dropped.push(e[0]);
+    return !missing;
+  });
+  if (dropped.length > 0) {
+    console.warn('[data-api] ' + tableName + ' has no ' + dropped.join(', ') + ' column; written without it.');
+  }
+  return kept;
+}
+
 async function handleCreate(client, body) {
   var tableName = body.tableName;
   var columnMappings = body.columnMappings || {};
@@ -569,6 +709,7 @@ async function handleCreate(client, body) {
 
   var colTypes = await getColumnTypes(client, tableName);
   entries = stampRequestLocale(tableName, entries, colTypes, body.__requestLocale);
+  entries = dropMissingOptionalColumns(tableName, entries, colTypes);
 
   var TEXT_TYPES = { 'character varying': 1, 'text': 1, 'char': 1, 'character': 1, 'varchar': 1, 'name': 1 };
   var columns = entries.map(function(e) { return e[0]; });
@@ -641,6 +782,10 @@ async function handleUpdate(client, body) {
   }
 
   var colTypes = await getColumnTypes(client, tableName);
+  entries = dropMissingOptionalColumns(tableName, entries, colTypes);
+  if (entries.length === 0) {
+    return { updatedCount: 0, item: null, id: null };
+  }
   var TEXT_TYPES = { 'character varying': 1, 'text': 1, 'char': 1, 'character': 1, 'varchar': 1, 'name': 1 };
 
   var queryParams = [];
@@ -658,7 +803,7 @@ async function handleUpdate(client, body) {
   });
 
   var sql = 'UPDATE ' + tableName + ' SET ' + setClauses.join(', ');
-  var where = buildWhereClause(filters, queryParams, paramIndex);
+  var where = buildWhereClause(filters, queryParams, paramIndex, { strict: true });
   sql += where.clause;
   sql += ' RETURNING *';
 
@@ -687,7 +832,7 @@ async function handleDelete(client, body) {
 
   var queryParams = [];
   var sql = 'DELETE FROM ' + tableName;
-  var where = buildWhereClause(filters, queryParams, 1);
+  var where = buildWhereClause(filters, queryParams, 1, { strict: true });
   sql += where.clause;
 
   var result = await safeQuery(client, sql, queryParams, 'delete');
@@ -731,19 +876,34 @@ function extractThresholdFromQuery(query) {
   return isFinite(n) && n >= 0 ? n : LOW_STOCK_THRESHOLD;
 }
 
-// Resolves the base URL for an internal fire-and-forget POST.
-// Prefers the live request host because it is always accurate to
-// where we are currently running — defends against the common dev
-// foot-gun where NEXTAUTH_URL is stuck at :3000 from a previous
-// run while the dev server is on :3001. Env vars are tried as
-// fallbacks for the rare serverless background-work case where
-// the request context isn't visible.
+// Resolves the base URL for an internal fire-and-forget POST — the store's
+// own origin, NEVER a host the request named: the POST carries the store's
+// stock levels, and outside Vercel the Host header is whatever the caller
+// sent. The rule of the server runtime's \`trustedBaseUrl\`
+// (server-runtime-code.ts), inlined because this route must not depend on
+// that module: on Vercel the request's host (the domain Vercel routed to this
+// deployment); elsewhere NEXTAUTH_URL's origin when it is set — except that a
+// local server on another port than a local NEXTAUTH_URL keeps its own
+// loopback address (NEXTAUTH_URL stuck at :3000 while the dev server runs on
+// :3001). Env vars are tried as fallbacks for the rare serverless
+// background-work case where the request context isn't visible.
+function isLoopbackHost(host) {
+  var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
+  return name === 'localhost' || name === '127.0.0.1' || name === '[::1]';
+}
+
 function resolveSelfBaseUrl(req) {
   var host = req && req.headers && req.headers.host;
   if (host) {
-    var proto = (req && req.headers && req.headers['x-forwarded-proto'])
-      || (String(host).indexOf('localhost') === 0 || String(host).indexOf('127.0.0.1') === 0 ? 'http' : 'https');
-    return proto + '://' + host;
+    var proto = (req && req.headers && req.headers['x-forwarded-proto']) || (isLoopbackHost(host) ? 'http' : 'https');
+    var requestOrigin = String(proto).split(',')[0].trim() + '://' + host;
+    if (process.env.VERCEL) return requestOrigin;
+    var configured = String(process.env.NEXTAUTH_URL || '').trim();
+    if (!configured) return requestOrigin;
+    var origin;
+    try { origin = new URL(configured).origin; } catch (e) { return requestOrigin; }
+    if (isLoopbackHost(host) && isLoopbackHost(new URL(origin).host)) return requestOrigin;
+    return origin;
   }
   if (process.env.NEXTAUTH_URL) return String(process.env.NEXTAUTH_URL).replace(/\\/+$/, '');
   if (process.env.VERCEL_URL) return 'https://' + String(process.env.VERCEL_URL).replace(/\\/+$/, '');
@@ -778,7 +938,9 @@ function fireAndForgetLowStockAlert(req, rows, threshold) {
     var fetchImpl = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
     fetchImpl(base + '/api/ecommerce/low-stock-alert', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The alert route emails the merchant only for the store's own server
+      // code, which presents the app secret.
+      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
       body: JSON.stringify(payload),
     }).catch(function(err) {
       console.error('[data-api] low-stock alert POST failed: ' + (err && err.message ? err.message : String(err)));
@@ -826,21 +988,191 @@ async function handleRawQuery(client, body, req) {
   return { rows: rows };
 }
 
+// Trusted internal server-side workflow calls (the data nodes of a server
+// segment, password reset, server-side profile updates) carry the app's
+// internal secret in a header — see __taIsInternalRequest. Direct
+// (non-workflow) client calls have no secret and stay guarded.
+function isInternalDataRequest(req) {
+  return __taIsInternalRequest(req);
+}
+
+var WRITE_OPERATIONS = { create: 1, update: 1, delete: 1 };
+
+// See BROWSER_READABLE_TABLES / BROWSER_ROW_POLICIES in data-api-route-generator.ts.
+var BROWSER_READABLE_TABLES = ${JSON.stringify(BROWSER_READABLE_TABLES)};
+var BROWSER_ROW_POLICIES = ${JSON.stringify(BROWSER_ROW_POLICIES)};
+
+// The table a structured request names, or null when it names another schema
+// than the app's own: \`information_schema.tables\`, \`pg_catalog.pg_user\`.
+function __dataPublicTable(tableName) {
+  var parts = String(tableName || '').trim().toLowerCase().replace(/"/g, '').split('.');
+  if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'public')) return null;
+  return parts[parts.length - 1];
+}
+
+// Postgres searches pg_catalog before the app's own schema, so a bare \`pg_*\`
+// name is a system catalog or statistics view (pg_user, pg_stats, pg_settings).
+var SYSTEM_CATALOG_SQL_RE = /\\b(?:information_schema|pg_catalog|pg_toast)\\b|\\bpg_[a-z0-9_]+/i;
+
+function __forbidSystemCatalog() {
+  var err = new Error('Forbidden: system catalogs are not readable through this route');
+  err.status = 403;
+  throw err;
+}
+
+// No caller but the app's own server code reads the database's catalogs — the
+// schema, the roles, the planner's sampled column values of every table. Holds
+// in an app without a secret too, where every caller counts as a browser.
+function assertNoSystemCatalogRead(operation, body) {
+  var sql = operation === 'raw-query' ? body.query : body.rawQueryUserPart;
+  if (typeof sql === 'string' && sql.length > 0) {
+    var cleaned = __taCleanSql(sql);
+    if (!cleaned.ok || SYSTEM_CATALOG_SQL_RE.test(cleaned.text)) __forbidSystemCatalog();
+  }
+  if (operation === 'raw-query' || body.tableName === undefined) return;
+  var table = __dataPublicTable(body.tableName);
+  if (table === null || table.indexOf('pg_') === 0) __forbidSystemCatalog();
+}
+
+// A browser's view of a readable table: the rows the storefront publishes,
+// never a hidden column. null for a server-side call, which reads it whole —
+// and in an app without a secret, where a server call (the scheduled-post
+// publisher, a blog workflow) cannot be told apart from a browser.
+function __dataRowPolicy(req, tableName) {
+  if (!__taBrowserIsReadOnly(req)) return null;
+  var table = __dataPublicTable(tableName);
+  return table && Object.prototype.hasOwnProperty.call(BROWSER_ROW_POLICIES, table) ? BROWSER_ROW_POLICIES[table] : null;
+}
+
+function __dataIsHidden(policy, field) {
+  var parts = String(field == null ? '' : field).replace(/"/g, '').trim().toLowerCase().split('.');
+  var name = parts[parts.length - 1];
+  for (var i = 0; i < policy.hiddenColumns.length; i++) {
+    if (policy.hiddenColumns[i].toLowerCase() === name) return true;
+  }
+  return false;
+}
+
+function __dataAssertVisibleFields(policy, fields) {
+  for (var i = 0; i < fields.length; i++) {
+    if (fields[i] && __dataIsHidden(policy, fields[i])) {
+      var err = new Error('Forbidden: ' + fields[i] + ' is not readable');
+      err.status = 403;
+      throw err;
+    }
+  }
+}
+
+function __dataWithoutHidden(policy, rows) {
+  if (!Array.isArray(rows) || policy.hiddenColumns.length === 0) return rows;
+  return rows.map(function(row) {
+    if (!row || typeof row !== 'object') return row;
+    var copy = {};
+    Object.keys(row).forEach(function(key) {
+      if (!__dataIsHidden(policy, key)) copy[key] = row[key];
+    });
+    return copy;
+  });
+}
+
+function __forbidBrowserOperation(what) {
+  var err = new Error('Forbidden: ' + what + ' is only available to server-side workflow nodes');
+  err.status = 403;
+  throw err;
+}
+
+// Refuses a browser's access to the money tables (see the shared table-access
+// helper above); a trusted internal call passes untouched. Where the app can
+// tell its own server-side calls apart (__taBrowserIsReadOnly), a browser only
+// reads, through the structured select and count.
+function assertTableAccess(req, operation, body) {
+  if (isInternalDataRequest(req)) return;
+  if (!body || typeof body !== 'object') return;
+  if (__taBrowserIsReadOnly(req)) {
+    if (operation !== 'select' && operation !== 'count') __forbidBrowserOperation('the ' + operation + ' operation');
+    if (body.rawQueryUserPart) __forbidBrowserOperation('a raw query');
+    if (BROWSER_READABLE_TABLES.indexOf(__dataPublicTable(body.tableName)) === -1) {
+      __forbidBrowserOperation('reading ' + String(body.tableName || 'this table'));
+    }
+  }
+  assertNoSystemCatalogRead(operation, body);
+  if (operation === 'raw-query') {
+    if (typeof body.query === 'string') __taAssertSqlTextAllowed(body.query);
+    return;
+  }
+  var table = __taNormalizeTable(body.tableName);
+  if (__TA_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
+  if (WRITE_OPERATIONS[operation] && __TA_WRITE_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
+  // A select's raw override replaces the assembled SELECT wholesale, so its
+  // text is checked like a raw query rather than trusting \`tableName\`.
+  if (operation === 'select' && typeof body.rawQueryUserPart === 'string') {
+    __taAssertSqlTextAllowed(body.rawQueryUserPart);
+  }
+}
+
+// The columns of the auth users table that decide what a session may DO, not
+// who it is. The session token carries role / roleName / roles off the
+// \`users\` row, and the middleware's page gates and the money-table guard
+// both read the role off it — so a browser that could write one of these
+// columns would be handing itself the store administrator's reads. Everything
+// else on the row stays writable: a generated profile form updates whatever
+// columns the merchant put there, and only the server-side segments (which
+// present the app secret) may grant a role.
+var AUTH_ROLE_COLUMNS = { role: 1, roles: 1, rolename: 1, role_name: 1 };
+
+// The identity table this route guards, and \`users\`, which is where the auth
+// options read the session's role from whatever the identity table is called.
+var ROLE_SOURCE_TABLES = AUTH_USERS_TABLE
+  ? [__taNormalizeTable(AUTH_USERS_TABLE), 'users'].filter(function(t, i, all) { return all.indexOf(t) === i; })
+  : [];
+
+function __forbidRoleWrite(what) {
+  var err = new Error('Forbidden: ' + what + ' is not settable from a browser');
+  err.status = 403;
+  throw err;
+}
+
+// Refuses a browser every way of writing a role column: a create or update
+// naming one (however the column is spelled), and any raw statement that
+// writes and mentions a role-source table — a positional INSERT or a
+// row-valued SET names no column, so the statement is refused whole, the way
+// the write-protected money tables are.
+function assertNoBrowserRoleWrite(req, operation, body) {
+  if (ROLE_SOURCE_TABLES.length === 0 || isInternalDataRequest(req)) return;
+  if (!body || typeof body !== 'object') return;
+  var sql = operation === 'raw-query' ? body.query : operation === 'select' ? body.rawQueryUserPart : null;
+  if (typeof sql === 'string' && sql.length > 0) {
+    var cleaned = __taCleanSql(sql);
+    if (cleaned.ok && !__TA_SQL_WRITE_RE.test(cleaned.text)) return;
+    for (var ti = 0; ti < ROLE_SOURCE_TABLES.length; ti++) {
+      if (__taSqlMentionsTable(sql, ROLE_SOURCE_TABLES[ti])) __forbidRoleWrite('a write to ' + ROLE_SOURCE_TABLES[ti]);
+    }
+    return;
+  }
+  if (operation !== 'create' && operation !== 'update') return;
+  if (ROLE_SOURCE_TABLES.indexOf(__taNormalizeTable(body.tableName)) === -1) return;
+  var columnMappings = body.columnMappings || {};
+  var written = Array.isArray(columnMappings)
+    ? columnMappings.map(function(m) { return m && (m.source || m.column); })
+    : Object.keys(columnMappings);
+  for (var i = 0; i < written.length; i++) {
+    if (AUTH_ROLE_COLUMNS[__taNormalizeTable(written[i])]) __forbidRoleWrite(written[i]);
+  }
+}
+
 // Enforces that any update/delete against the auth users table is keyed by
 // the session user's id. Prevents a logged-in user from coercing a mutation
 // targeting another user's row via a client-supplied filter.
 async function assertSessionOwnsUsersRow(req, operation, body) {
   if (!AUTH_USERS_TABLE) return;
   if (operation !== 'update' && operation !== 'delete') return;
-  if (!body || body.tableName !== AUTH_USERS_TABLE) return;
+  // Schema-qualified and quoted spellings reach the SAME table — the identifier
+  // validator allows both — so the guard compares the bare name.
+  if (!body || __taNormalizeTable(body.tableName) !== __taNormalizeTable(AUTH_USERS_TABLE)) return;
 
   // Trusted internal server-side workflow calls (e.g. password reset, which has
-  // NO logged-in session, and server-side profile updates) carry the app's
-  // internal secret in a header. Only server code can read NEXTAUTH_SECRET, so a
-  // browser client cannot forge it — these calls bypass the per-session
-  // ownership check. Direct (non-workflow) client calls have no secret and stay guarded.
-  var internalSecret = req && req.headers && req.headers['x-internal-data-secret'];
-  if (internalSecret && process.env.NEXTAUTH_SECRET && internalSecret === process.env.NEXTAUTH_SECRET) {
+  // NO logged-in session) bypass the per-session ownership check.
+  if (isInternalDataRequest(req)) {
     return;
   }
 
@@ -888,16 +1220,18 @@ module.exports = async function handler(req, res) {
   var client = getClient();
 
   try {
+    assertTableAccess(req, operation, body);
+    assertNoBrowserRoleWrite(req, operation, body);
     await assertSessionOwnsUsersRow(req, operation, body);
     await client.connect();
     var result;
 
     switch (operation) {
       case 'select':
-        result = await handleSelect(client, body);
+        result = await handleSelect(client, body, req);
         break;
       case 'count':
-        result = await handleCount(client, body);
+        result = await handleCount(client, body, req);
         break;
       case 'create':
         result = await handleCreate(client, body);
@@ -922,7 +1256,12 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     // Return proper status codes for validation errors
     var statusCode = error.status || 500;
-    var errorResponse = { error: error.message || 'Internal server error' };
+    // An error this route raised for the caller carries a status and a message
+    // written for it. Anything else is the database's, and its text names
+    // tables, columns, constraints and values: it stays in the server log. The
+    // SQLSTATE travels on — a caller can act on it (23505, a duplicate) and it
+    // says nothing about the schema.
+    var errorResponse = { error: error.status ? error.message || 'Request refused' : 'Internal server error' };
 
     if (error.code === 'FORBIDDEN_SQL_OPERATION') {
       errorResponse.error = 'FORBIDDEN_SQL_OPERATION';
@@ -933,6 +1272,9 @@ module.exports = async function handler(req, res) {
       errorResponse.message = error.message;
     } else {
       console.error('Data API error (' + operation + '):', error);
+      if (!error.status && typeof error.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) {
+        errorResponse.code = error.code;
+      }
     }
 
     return res.status(statusCode).json(errorResponse);

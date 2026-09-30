@@ -15,6 +15,38 @@ async function data_delete_item(config: any, context: any) {
   // Unresolved route-param sentinel in a filter → validation error (see
   // resolveTemplateTokenString in runtime-utils). A DELETE must never run
   // with a filter that silently matches nothing (or worse, gets dropped).
+  // A filter whose value never arrived — its binding produced nothing, or the
+  // hand-off to the server dropped an oversized value — cannot identify its
+  // row. Leaving it out would delete EVERY row, so the delete is a no-op.
+  for (let __mi = 0; __mi < filters.length; __mi++) {
+    const __mf: any = filters[__mi]
+    if (!__mf || typeof __mf !== 'object') {
+      continue
+    }
+    const __mv = __mf.destination !== undefined ? __mf.destination : __mf.value
+    const __missing =
+      __mv === undefined ||
+      (!!__mv &&
+        typeof __mv === 'object' &&
+        !Array.isArray(__mv) &&
+        (__mv.__truncated === true || __mv.__serializationError === true))
+    if (__missing) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(
+          '[workflow] data-delete-item skipped (no-op) — the filter on "' +
+            (__mf.column || __mf.source || __mf.field || 'unknown') +
+            '" has no value; nothing was changed'
+        )
+      }
+      return {
+        deletedId: null,
+        success: true,
+        deletedCount: 0,
+        affected: 0,
+        __skippedMissingFilter: true,
+      }
+    }
+  }
   for (let __fi = 0; __fi < filters.length; __fi++) {
     const __f: any = filters[__fi]
     if (

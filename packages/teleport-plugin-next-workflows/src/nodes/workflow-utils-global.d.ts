@@ -9,4 +9,9 @@ declare const __workflowUtils: {
    * non-default languages under; everything else passes through untouched).
    */
   localizeHref(href: string, locale: unknown): string
+  /**
+   * Where a visitor lands once signed in or up: the same-site `callbackUrl`
+   * of the page they are on, else the home page — localized to `locale`.
+   */
+  signedInDestination(locale: unknown): string
 }

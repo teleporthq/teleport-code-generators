@@ -5,6 +5,11 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import {
+  RESTAPICacheConfig,
+  generateRESTAPIResponseCacheCode,
+  resolveRESTAPICacheTTLSeconds,
+} from './utils/rest-api-response-cache'
 
 export const validateRESTAPIConfig = (
   config: Record<string, unknown>
@@ -76,11 +81,16 @@ interface RESTAPIConfig {
   authorization?: Authorization
   bodyType?: string
   body?: string
+  cache?: RESTAPICacheConfig
 }
 
 export const generateRESTAPIFetcher = (config: Record<string, unknown>): string => {
   const restConfig = config as RESTAPIConfig
   const authCode = generateAuthCode(restConfig.authorization || {})
+  // Every cache-only fragment below is empty when caching is off, so an
+  // uncached data source keeps generating byte-identical output.
+  const cacheTTLSeconds = resolveRESTAPICacheTTLSeconds(restConfig.cache)
+  const cached = cacheTTLSeconds !== undefined
 
   return `import fetch from 'node-fetch'
 
@@ -92,11 +102,13 @@ ${generateSortFilterHelperCode()}
 
 ${generateFilterTreeHelpersCode()}
 
-${generateCollectionPathHelperCode()}
+${generateCollectionPathHelperCode()}${
+    cached ? `\n\n${generateRESTAPIResponseCacheCode(cacheTTLSeconds)}` : ''
+  }
 
 export default async function handler(req, res) {
   try {
-    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset, collectionPath } = req.query
+    const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset, collectionPath, itemsPath } = req.query
     
     const url = ${JSON.stringify(restConfig.url)}
     const method = ${JSON.stringify(restConfig.method || 'GET')}
@@ -134,7 +146,7 @@ export default async function handler(req, res) {
         : ''
     }
     
-    const response = await fetch(url, options)
+    const response = await ${cached ? 'fetchRestApiWithCache' : 'fetch'}(url, options)
     
     if (!response.ok) {
       return res.status(response.status).json({
@@ -144,9 +156,13 @@ export default async function handler(req, res) {
       })
     }
     
-    let data = await response.json()
+    let data = ${cached ? 'JSON.parse(response.bodyText)' : 'await response.json()'}
     
     data = resolveCollectionPath(data, collectionPath)
+    const itemsEnvelope = openItemsEnvelope(data, itemsPath)
+    if (itemsEnvelope) {
+      data = itemsEnvelope.items
+    }
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
@@ -278,9 +294,15 @@ export default async function handler(req, res) {
       }
     }
     
+    if (itemsEnvelope) {
+      data = itemsEnvelope.close(data)
+    }
+    
     const safeData = JSON.parse(JSON.stringify(data, dateReplacer))
     
-    return res.status(200).json({
+    ${
+      cached ? 'applyRestApiCacheHeaders(req, res, response.fetchedAt)\n    \n    ' : ''
+    }return res.status(200).json({
       success: true,
       data: safeData,
       timestamp: Date.now()

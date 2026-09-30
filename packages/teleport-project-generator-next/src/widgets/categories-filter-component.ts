@@ -139,7 +139,7 @@ const computeMinimalSelectedIds = (categories, checkedSet) => {
 //
 // ids + names, matched EXACTLY, and nothing else: this has to accept exactly
 // the tokens \`category_filter_ids\` carries, since the products list filters
-// with a case-sensitive \`jsonb_exists_any\` over that same column. A value only
+// with a case-sensitive list overlap over that same column. A value only
 // this side understands (a slug, or a lowercased name) does not make the page
 // work — it ticks a box over an empty grid.
 const indexIdByToken = (categories) => {

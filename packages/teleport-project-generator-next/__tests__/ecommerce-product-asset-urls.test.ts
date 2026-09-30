@@ -423,6 +423,15 @@ describe('cart hydration — product images stored as project-asset ids', () => 
         discountType: null,
         discountValue: null,
         discountAmount: 0,
+        // Stamped by hydration too: a line resolved before these existed is
+        // rewritten exactly once to gain them, then comes back by reference.
+        categoryIds: [],
+        isGiftCard: false,
+        isRecurring: false,
+        recurringInterval: null,
+        recurringIntervalCount: null,
+        trialDays: null,
+        isDigital: false,
       },
     ]
     expect(await enrich(items)).toBe(items)

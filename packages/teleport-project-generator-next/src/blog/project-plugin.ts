@@ -1,12 +1,14 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { generateBlogContextFileContent } from './blog-context-generator'
+import { addBlogRssFeed } from './rss-feed'
 
 /** The import specifier the generated blog pages resolve `useBlogCategories` from. */
 const BLOG_CONTEXT_MODULE = '@/blog-context'
 
 /**
  * Emits the generated `blog-context.js` module — the blog's baked category
- * taxonomy behind `useBlogCategories()` (see `blog-context-generator.ts`).
+ * taxonomy behind `useBlogCategories()` (see `blog-context-generator.ts`) —
+ * and, when the blog has one, its RSS feed (see `rss-feed.ts`).
  *
  * Emitted when the project carries `blogSettings`, and ALSO — with an empty
  * taxonomy — whenever any generated file imports the module without it. That
@@ -39,6 +41,10 @@ export class NextBlogProjectPlugin implements ProjectPlugin {
         },
       ],
     })
+
+    if (blogSettings?.rssFeed) {
+      addBlogRssFeed(structure, blogSettings.rssFeed)
+    }
 
     return structure
   }

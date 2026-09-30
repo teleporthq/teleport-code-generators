@@ -64,9 +64,10 @@ async function account_login(config: any, context: Record<string, unknown>) {
       } catch (_e) {}
     }
     window.dispatchEvent(new CustomEvent('teleport:auth-user-changed', { detail: { user } }))
-    // Home page of the language the visitor signed in from (see buildContext
-    // for how the run learns it).
-    window.location.href = __workflowUtils.localizeHref('/', context && (context as any).__locale)
+    // Back to the page the visitor was sent to sign in from, else the home
+    // page — in the language they signed in from (see buildContext for how
+    // the run learns it).
+    window.location.href = __workflowUtils.signedInDestination(context && (context as any).__locale)
   }
 
   // Contract exposes user fields flat (id, email, name, ...) plus `user`/`success`.

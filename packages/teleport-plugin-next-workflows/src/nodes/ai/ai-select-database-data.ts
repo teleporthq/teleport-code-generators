@@ -114,10 +114,19 @@ async function ai_select_database_data(config: any, context: any) {
 
   const baseUrl = (context && context.__baseUrl) || ''
   const __internalHeaders = (context && context.__internalHeaders) || {}
+  const __env = (globalThis as any).process && (globalThis as any).process.env
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/raw-query', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        // A server-side call, so it may run raw SQL at all — but the SQL is a
+        // model's answer to a visitor's question, so the route still keeps it
+        // off the money tables and the auth tables' roles.
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        'x-tq-restricted-sql': '1',
+        ...__internalHeaders,
+      },
       body: JSON.stringify({ query: sql, params: [] }),
     })
     const data = await response.json()

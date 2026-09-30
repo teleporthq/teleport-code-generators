@@ -92,6 +92,19 @@ describe('teleport-plugin-next-static-paths: same-table-mutation getServerSidePr
     expect(result.chunks.find((chunk) => chunk.name === 'getStaticProps')).toBeUndefined()
   })
 
+  it('emits no getStaticPaths for a page that reads a money table — it renders per request', async () => {
+    const structure = makeStructure({
+      folderPath: ['admin', 'vouchers', 'update'],
+      fileName: '[id]',
+      tableName: 'teleport_vouchers',
+      workflows: undefined,
+    })
+
+    const result = await plugin(structure)
+    expect(result.chunks.find((chunk) => chunk.name === 'getStaticPaths')).toBeUndefined()
+    expect(result.chunks.find((chunk) => chunk.name === 'getStaticProps')).toBeUndefined()
+  })
+
   it('still emits a fallback getStaticPaths when detailsPageInfo is present but no mutation workflow targets its table', async () => {
     const structure = makeStructure({
       folderPath: ['view-press-item'],

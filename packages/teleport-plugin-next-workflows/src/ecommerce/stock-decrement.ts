@@ -317,6 +317,9 @@ ${STOCK_DECREMENT_HELPERS}
 //   * `order-decrement`  — the place-order workflow's stock-decrement
 //                          customHandler (raw SQL `UPDATE teleport_products
 //                          SET quantity = quantity - …`). Allowed.
+//   * `restock`          — the statement that PUTS UNITS BACK
+//                          (`SET quantity = quantity + …`) when an unpaid
+//                          order is cancelled or its payment expires.
 //   * `unknown`          — anything else. The auditor warns on these so
 //                          a future AI version that drifts (e.g. starts
 //                          decrementing stock from an add-to-cart
@@ -330,7 +333,7 @@ export interface StockWriteSite {
   nodeId: string
   nodeType: string
   stepNumber: number | undefined
-  category: 'admin' | 'order-decrement' | 'unknown'
+  category: 'admin' | 'order-decrement' | 'restock' | 'unknown'
   // For raw-query sites, this is the literal SQL fragment that
   // matched (after a `\n` strip + trim). For typed nodes, it's empty.
   sqlSnippet: string
@@ -363,6 +366,10 @@ const isAdminWorkflowName = (name: string): boolean => {
  */
 const ORDER_DECREMENT_SQL_RE =
   /UPDATE\s+teleport_products\s+(?:AS\s+)?\w*\s*SET\s+quantity\s*=\s*(?:\w+\.)?quantity\s*-/i
+
+/** Units going back on the shelf: the table may be aliased, the column qualified. */
+const ORDER_RESTOCK_SQL_RE =
+  /UPDATE\s+teleport_products\s+(?:AS\s+)?\w*\s*SET\s+quantity\s*=\s*(?:\w+\.)?quantity\s*\+/i
 
 /** The GREATEST / NULL-preserving guards, independent of how the row is addressed. */
 const ORDER_DECREMENT_GUARD_RES: RegExp[] = [
@@ -450,6 +457,9 @@ export const classifyStockWriteSite = (
   if (nodeType === 'data-raw-query') {
     if (looksLikeOrderDecrementSql(query)) {
       return { category: 'order-decrement', sqlSnippet: extractSqlSnippet(query) }
+    }
+    if (ORDER_RESTOCK_SQL_RE.test(query)) {
+      return { category: 'restock', sqlSnippet: extractSqlSnippet(query) }
     }
     if (
       /UPDATE\s+teleport_products|DELETE\s+(?:FROM\s+)?teleport_products|INSERT\s+(?:INTO\s+)?teleport_products/i.test(
@@ -604,6 +614,7 @@ export interface StockWriteAudit {
   sites: StockWriteSite[]
   admin: StockWriteSite[]
   orderDecrement: StockWriteSite[]
+  restock: StockWriteSite[]
   unknown: StockWriteSite[]
 }
 
@@ -615,6 +626,7 @@ export const auditStockWriteSites = (uidl: ProjectUIDL): StockWriteAudit => {
     sites,
     admin: sites.filter((s) => s.category === 'admin'),
     orderDecrement: sites.filter((s) => s.category === 'order-decrement'),
+    restock: sites.filter((s) => s.category === 'restock'),
     unknown: sites.filter((s) => s.category === 'unknown'),
   }
 }

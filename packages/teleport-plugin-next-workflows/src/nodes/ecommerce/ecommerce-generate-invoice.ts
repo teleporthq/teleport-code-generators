@@ -37,9 +37,19 @@ async function ecommerce_generate_invoice(config: any, context: any) {
     const targetUrl = baseUrl + '/api/invoices/generate'
     console.info('[invoice-node] POST ' + targetUrl + ' payload=' + JSON.stringify(payload))
 
+    // The route issues invoices only for the store itself: this node presents
+    // the app secret, which only server code can read. The internal headers
+    // carry the deployment-protection bypass for a self-call (see
+    // internalRequestHeaders in runtime-utils).
+    const __internalHeaders = (context && context.__internalHeaders) || {}
+    const __env = (globalThis as any).process && (globalThis as any).process.env
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
+      },
       body: JSON.stringify(payload),
     })
 

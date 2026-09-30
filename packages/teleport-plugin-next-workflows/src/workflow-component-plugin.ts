@@ -19,12 +19,19 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
+import { collectSegmentStateKeys } from './segment-context-needs'
+import {
+  ADMIN_CUSTOM_NODES_MODULE,
+  callsCustomNodeTransitively,
+  collectAdminModuleCustomNodeIds,
+} from './custom-node-modules'
 import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
 import { formControlPropertyReads } from './trigger-generator'
 import { restoreControlledSelectValue } from './controlled-select'
+import { findFormStateKeyForHydration } from './admin-form-hydration'
 
 interface WorkflowPluginConfig {
   isPage?: boolean
@@ -409,6 +416,14 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
     const hasCustomNodes = activeWorkflows.some((wf) =>
       wf.nodes.some((n) => n.type === 'general-custom-node')
     )
+    // Nodes only the admin pages call live in their own module, imported only
+    // where a workflow calls one of them (see custom-node-modules.ts).
+    const adminModuleCustomNodeIds = hasCustomNodes
+      ? collectAdminModuleCustomNodeIds(workflows.customNodes)
+      : new Set<string>()
+    const callsAdminModuleCustomNodes = activeWorkflows.some((wf) =>
+      callsCustomNodeTransitively(wf.nodes, adminModuleCustomNodeIds, workflows.customNodes)
+    )
 
     // Walk into referenced custom-node workflows as well: the Add/Remove
     // favourites flows (and similar shared logic) update global state from
@@ -440,16 +455,7 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
 
     const outputOptionsForHydration = (uidl as any).outputOptions ?? {}
     const initialPropsForHydration = outputOptionsForHydration.initialPropsData
-    const formDataStateKeyForHydration = Object.keys(stateDefinitions).find((key) => {
-      const def = stateDefinitions[key]
-      return (
-        def.type === 'object' &&
-        typeof def.defaultValue === 'object' &&
-        def.defaultValue !== null &&
-        !Array.isArray(def.defaultValue) &&
-        Object.keys(def.defaultValue as Record<string, unknown>).length > 0
-      )
-    })
+    const formDataStateKeyForHydration = findFormStateKeyForHydration(stateDefinitions)
     const needsAdminFormHydration = !!(
       initialPropsForHydration?.exposeAs?.name && formDataStateKeyForHydration
     )
@@ -491,7 +497,9 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       hasAudioNodes,
       needsAdminFormHydration,
       isRowOwnedSelfGuardedPage,
-      dynamicRouteAttribute
+      dynamicRouteAttribute,
+      workflows?.customNodes,
+      callsAdminModuleCustomNodes
     )
 
     if (moduleCode) {
@@ -660,6 +668,13 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
         dependencies.workflowCustomNodes = {
           type: 'local',
           path: `${pathPrefix}utils/workflows/custom-nodes`,
+        }
+      }
+
+      if (callsAdminModuleCustomNodes) {
+        dependencies.workflowCustomNodesAdmin = {
+          type: 'local',
+          path: `${pathPrefix}utils/workflows/${ADMIN_CUSTOM_NODES_MODULE}`,
         }
       }
 
@@ -1296,7 +1311,9 @@ const generateModuleLevelCode = (
   hasAudioNodes?: boolean,
   includeAdminFormHydrationHelper?: boolean,
   isRowOwnedSelfGuardedPage?: boolean,
-  dynamicRouteAttribute?: string
+  dynamicRouteAttribute?: string,
+  customNodes?: Record<string, UIDLCustomWorkflowNode>,
+  callsAdminModuleCustomNodes?: boolean
 ): string => {
   if (allWorkflows.length === 0) {
     return ''
@@ -1308,6 +1325,15 @@ const generateModuleLevelCode = (
   if (Array.isArray(v)) return v.map(String).join(', ')
   if (typeof v === 'string') {
     var s = v.trim()
+    // The editor stores tags as a JSON list; a row loaded as stored carries it.
+    if (s[0] === '[' && s[s.length - 1] === ']') {
+      try {
+        var list = JSON.parse(s)
+        if (Array.isArray(list)) return list.map(String).filter(Boolean).join(', ')
+      } catch (e) {
+        // Not JSON after all — shown as typed.
+      }
+    }
     if (s[0] === '{' && s[s.length - 1] === '}') {
       var inner = s.slice(1, -1)
       if (!inner) return ''
@@ -1334,10 +1360,27 @@ function __normalizeAdminFormRow(row, defaults) {
     if (k === 'tags' || /^.{2,5}_tags$/.test(k)) {
       v = __normalizeTagsForFormInput(v)
     }
+    // A gallery is edited one URL per line; the column stores a JSON list,
+    // which is what a row loaded as stored carries.
     if (k === 'gallery_images' || k === 'additional_image_urls') {
+      if (typeof v === 'string' && v.trim().charAt(0) === '[') {
+        try {
+          var parsedList = JSON.parse(v)
+          if (Array.isArray(parsedList)) v = parsedList
+        } catch (e) {
+          // Not a list after all — kept as typed.
+        }
+      }
       if (Array.isArray(v)) v = v.map(String).join(String.fromCharCode(10))
       else if (v != null && typeof v === 'object') v = JSON.stringify(v)
       else if (typeof v !== 'string') v = v == null ? '' : String(v)
+    }
+    // A switch is a boolean field: a flag that arrives as text ("true",
+    // "false", Postgres' "t"/"f") must not read as a ticked box because the
+    // string is not empty.
+    if (typeof defaults[k] === 'boolean' && typeof v === 'string') {
+      var flag = v.trim().toLowerCase()
+      v = flag === 'true' || flag === 't' || flag === '1'
     }
     out[k] = v !== undefined && v !== null ? v : defaults[k]
   }
@@ -1399,6 +1442,9 @@ function __normalizeAdminFormRow(row, defaults) {
         // Every node in this segment runs fire-and-forget, so the browser
         // dispatches it and carries on instead of waiting for the round trip.
         fireAndForget: isFireAndForgetSegment(s),
+        // The page state a server segment may read; the client sends only that
+        // (see segment-context-needs).
+        ...(s.env === 'server' ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) } : {}),
         nodes: s.nodes.map((n) => ({
           id: n.id,
           type: n.type,
@@ -1785,7 +1831,11 @@ ${
     : ''
 }
     var fullConfig = typeof workflowCustomNodes !== 'undefined'
-      ? Object.assign({}, config, { customNodes: workflowCustomNodes })
+      ? Object.assign({}, config, { customNodes: ${
+        callsAdminModuleCustomNodes
+          ? 'Object.assign({}, workflowCustomNodes, workflowCustomNodesAdmin)'
+          : 'workflowCustomNodes'
+      } })
       : config;
     return workflowRuntime.executeWorkflowWithSegments(fullConfig, triggerContext, __handlers, serverUrls)
       .then(function(ctx) {
@@ -1946,21 +1996,28 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
         // `value={…}` prop only changes after the 300ms delay, the user sees
         // a frozen text field, and the workflow never gets a chance to run
         // because every keystroke clears the timer.
+        //
+        // One timer PER FIELD: a repeater renders every row with this same
+        // handler, and a shared timer let typing in the next row within the
+        // window cancel the previous row's pending run, so its value never
+        // reached the workflow. A field that is not repeated debounces as before.
         return (
           `(function() {\n` +
-          `      let timer = null;\n` +
+          `      const timers = new WeakMap();\n` +
           `      return function(event) {\n` +
-          `        const value = event.target.value;\n` +
+          `        const field = event.target;\n` +
+          `        const value = field.value;\n` +
           `        // Plan v35 D4 — dispatch IMMEDIATELY so the controlled-input mirror\n` +
           `        // state updates without waiting for the workflow debounce.\n` +
           `        try {\n` +
-          `          event.target.dispatchEvent(new CustomEvent('__wfDebouncedInput', { detail: { value: value, elementId: '${elementId}' }, bubbles: true }));\n` +
+          `          field.dispatchEvent(new CustomEvent('__wfDebouncedInput', { detail: { value: value, elementId: '${elementId}' }, bubbles: true }));\n` +
           `        } catch (e) { /* non-fatal */ }\n` +
-          `        clearTimeout(timer);\n` +
-          `        timer = setTimeout(async function() {\n` +
-          `          const triggerContext = { value: value, elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n` +
+          `        clearTimeout(timers.get(field));\n` +
+          `        timers.set(field, setTimeout(async function() {\n` +
+          `          timers.delete(field);\n` +
+          `          const triggerContext = { value: value, elementId: '${elementId}', triggerElement: field, element: field, timestamp: Date.now() };\n` +
           `          __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});\n` +
-          `        }, ${debounce});\n` +
+          `        }, ${debounce}));\n` +
           `      };\n` +
           `    })()`
         )

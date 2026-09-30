@@ -1,0 +1,2510 @@
+{
+  "about": "Product-options storefront fields, shared byte for byte by teleport-gui (apps/gui/app/project-page/features/e-commerce/utils/product-options/__tests__/fixtures/product-options-storefront.fixture.json, run through packages/renderer/src/utils/ecommerce-products.ts) and teleport-code-generators (packages/teleport-plugin-next-data-source/__tests__/product-options-storefront.fixture.json, run through the generated product transform). Each case is a raw product row, its variant combinations (null = not looked up), the storefront tax rate, the request language and whether the product is the details page's single product; expected holds every product-options field both transforms must emit. Change both copies together.",
+  "cases": [
+    {
+      "name": "worked print example on its details page",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "print",
+        "name": "print",
+        "slug": "print",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{\"key\": \"size\", \"label\": \"Size\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"a5\", \"label\": \"A5\", \"price\": {\"mode\": \"none\"}, \"default\": true}, {\"key\": \"a4\", \"label\": \"A4\", \"price\": {\"mode\": \"fixed\", \"amount\": 4}}, {\"key\": \"a3\", \"label\": \"A3\", \"price\": {\"mode\": \"fixed\", \"amount\": 9}}]}, {\"key\": \"paper\", \"label\": \"Paper\", \"type\": \"choice\", \"display\": \"cards\", \"required\": true, \"values\": [{\"key\": \"matte\", \"label\": \"Matte\", \"description\": \"Soft, no glare\", \"price\": {\"mode\": \"none\"}, \"default\": true, \"imageUrl\": \"https://cdn.example.com/matte.jpg\"}, {\"key\": \"glossy\", \"label\": \"Glossy\", \"price\": {\"mode\": \"fixed\", \"amount\": 3}, \"imageUrl\": \"TQ_unknown_asset\", \"priceWhen\": [{\"groupKey\": \"size\", \"valueKeys\": [\"a4\"], \"price\": {\"mode\": \"fixed\", \"amount\": 5}}, {\"groupKey\": \"size\", \"valueKeys\": [\"a3\"], \"price\": {\"mode\": \"fixed\", \"amount\": 8}}]}, {\"key\": \"fine-art\", \"label\": \"Fine-art\", \"price\": {\"mode\": \"percent\", \"percent\": 40}}]}, {\"key\": \"photo\", \"label\": \"Your photo\", \"type\": \"upload\", \"required\": true, \"accept\": \"image\", \"helpText\": \"At least 2000 px wide\"}, {\"key\": \"message\", \"label\": \"Message\", \"type\": \"text\", \"required\": false, \"maxLength\": 120, \"placeholder\": \"For Ana\"}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "true",
+        "optionsQuickAdd": "false",
+        "optionGroups": [
+          {
+            "id": "print|size",
+            "key": "size",
+            "label": "Size",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print|size",
+            "shownKey": "show:print|size",
+            "missingKey": "miss:print|size",
+            "invalidKey": "inv:print|size",
+            "rejectedKey": "rej:print|size",
+            "failedKey": "fail:print|size",
+            "uploadedKey": "up:print|size",
+            "uploadingKey": "load:print",
+            "freshKey": "fresh:print",
+            "values": [
+              {
+                "id": "print|size|a5",
+                "key": "a5",
+                "label": "A5",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print|size|a5",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|size|a5|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              },
+              {
+                "id": "print|size|a4",
+                "key": "a4",
+                "label": "A4",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print|size|a4",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|size|a4|d",
+                    "label": "+$4.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              },
+              {
+                "id": "print|size|a3",
+                "key": "a3",
+                "label": "A3",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print|size|a3",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|size|a3|d",
+                    "label": "+$9.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print|paper",
+            "key": "paper",
+            "label": "Paper",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "true",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print|paper",
+            "shownKey": "show:print|paper",
+            "missingKey": "miss:print|paper",
+            "invalidKey": "inv:print|paper",
+            "rejectedKey": "rej:print|paper",
+            "failedKey": "fail:print|paper",
+            "uploadedKey": "up:print|paper",
+            "uploadingKey": "load:print",
+            "freshKey": "fresh:print",
+            "values": [
+              {
+                "id": "print|paper|matte",
+                "key": "matte",
+                "label": "Matte",
+                "description": "Soft, no glare",
+                "color": "",
+                "imageUrl": "https://cdn.example.com/matte.jpg",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "true",
+                "selectedKey": "sel:print|paper|matte",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|paper|matte|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              },
+              {
+                "id": "print|paper|glossy",
+                "key": "glossy",
+                "label": "Glossy",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print|paper|glossy",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|paper|glossy|0",
+                    "label": "+$5.00",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print"
+                  },
+                  {
+                    "activeKey": "pv:print|paper|glossy|1",
+                    "label": "+$8.00",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print"
+                  },
+                  {
+                    "activeKey": "pv:print|paper|glossy|d",
+                    "label": "+$3.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              },
+              {
+                "id": "print|paper|fine-art",
+                "key": "fine-art",
+                "label": "Fine-art",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print|paper|fine-art",
+                "freshKey": "fresh:print",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print|paper|fine-art|d",
+                    "label": "+40%",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print|photo",
+            "key": "photo",
+            "label": "Your photo",
+            "helpText": "At least 2000 px wide",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "true",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "image",
+            "acceptMime": "image/jpeg,image/png,image/webp,image/gif",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print"
+              }
+            ],
+            "hiddenKey": "hide:print|photo",
+            "shownKey": "show:print|photo",
+            "missingKey": "miss:print|photo",
+            "invalidKey": "inv:print|photo",
+            "rejectedKey": "rej:print|photo",
+            "failedKey": "fail:print|photo",
+            "uploadedKey": "up:print|photo",
+            "uploadingKey": "load:print",
+            "freshKey": "fresh:print",
+            "values": []
+          },
+          {
+            "id": "print|message",
+            "key": "message",
+            "label": "Message",
+            "helpText": "",
+            "placeholder": "For Ana",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "true",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "120",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print"
+              }
+            ],
+            "hiddenKey": "hide:print|message",
+            "shownKey": "show:print|message",
+            "missingKey": "miss:print|message",
+            "invalidKey": "inv:print|message",
+            "rejectedKey": "rej:print|message",
+            "failedKey": "fail:print|message",
+            "uploadedKey": "up:print|message",
+            "uploadingKey": "load:print",
+            "freshKey": "fresh:print",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"size\",\"label\":\"Size\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"a5\",\"label\":\"A5\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"a4\",\"label\":\"A4\",\"price\":{\"mode\":\"fixed\",\"amount\":4}},{\"key\":\"a3\",\"label\":\"A3\",\"price\":{\"mode\":\"fixed\",\"amount\":9}}]},{\"key\":\"paper\",\"label\":\"Paper\",\"type\":\"choice\",\"required\":true,\"display\":\"cards\",\"values\":[{\"key\":\"matte\",\"label\":\"Matte\",\"description\":\"Soft, no glare\",\"imageUrl\":\"https://cdn.example.com/matte.jpg\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"glossy\",\"label\":\"Glossy\",\"price\":{\"mode\":\"fixed\",\"amount\":3},\"priceWhen\":[{\"groupKey\":\"size\",\"valueKeys\":[\"a4\"],\"price\":{\"mode\":\"fixed\",\"amount\":5}},{\"groupKey\":\"size\",\"valueKeys\":[\"a3\"],\"price\":{\"mode\":\"fixed\",\"amount\":8}}]},{\"key\":\"fine-art\",\"label\":\"Fine-art\",\"price\":{\"mode\":\"percent\",\"percent\":40}}]},{\"key\":\"photo\",\"label\":\"Your photo\",\"type\":\"upload\",\"required\":true,\"helpText\":\"At least 2000 px wide\",\"price\":{\"mode\":\"none\"},\"accept\":\"image\",\"maxFiles\":1},{\"key\":\"message\",\"label\":\"Message\",\"type\":\"text\",\"required\":false,\"placeholder\":\"For Ana\",\"maxLength\":120,\"price\":{\"mode\":\"none\"}}]",
+        "optionsPricingJson": "{\"productId\":\"print\",\"netBase\":10,\"originalNetBase\":null,\"taxRate\":0,\"symbol\":\"$\",\"position\":\"before\",\"pricesDisabled\":false,\"defaultCombinationId\":\"\",\"variants\":[]}",
+        "optionsDefaultDisplayPrice": "10.00",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "Size: A5 · Paper: Matte",
+        "optionsFreshKey": "fresh:print",
+        "optionsValidKey": "valid:print",
+        "optionsOriginalKey": "orig:print",
+        "optionsSummaryKey": "sum:print",
+        "optionsFilesKey": "files:print"
+      }
+    },
+    {
+      "name": "the same product in a listing gets the flags only",
+      "includeDetail": false,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "print",
+        "name": "print",
+        "slug": "print",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{\"key\": \"size\", \"label\": \"Size\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"a5\", \"label\": \"A5\", \"price\": {\"mode\": \"none\"}, \"default\": true}, {\"key\": \"a4\", \"label\": \"A4\", \"price\": {\"mode\": \"fixed\", \"amount\": 4}}, {\"key\": \"a3\", \"label\": \"A3\", \"price\": {\"mode\": \"fixed\", \"amount\": 9}}]}, {\"key\": \"paper\", \"label\": \"Paper\", \"type\": \"choice\", \"display\": \"cards\", \"required\": true, \"values\": [{\"key\": \"matte\", \"label\": \"Matte\", \"description\": \"Soft, no glare\", \"price\": {\"mode\": \"none\"}, \"default\": true, \"imageUrl\": \"https://cdn.example.com/matte.jpg\"}, {\"key\": \"glossy\", \"label\": \"Glossy\", \"price\": {\"mode\": \"fixed\", \"amount\": 3}, \"imageUrl\": \"TQ_unknown_asset\", \"priceWhen\": [{\"groupKey\": \"size\", \"valueKeys\": [\"a4\"], \"price\": {\"mode\": \"fixed\", \"amount\": 5}}, {\"groupKey\": \"size\", \"valueKeys\": [\"a3\"], \"price\": {\"mode\": \"fixed\", \"amount\": 8}}]}, {\"key\": \"fine-art\", \"label\": \"Fine-art\", \"price\": {\"mode\": \"percent\", \"percent\": 40}}]}, {\"key\": \"photo\", \"label\": \"Your photo\", \"type\": \"upload\", \"required\": true, \"accept\": \"image\", \"helpText\": \"At least 2000 px wide\"}, {\"key\": \"message\", \"label\": \"Message\", \"type\": \"text\", \"required\": false, \"maxLength\": 120, \"placeholder\": \"For Ana\"}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "true",
+        "optionsQuickAdd": "false",
+        "optionGroups": [],
+        "optionGroupsJson": "[]",
+        "optionsPricingJson": "{}",
+        "optionsDefaultDisplayPrice": "",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "",
+        "optionsFreshKey": "",
+        "optionsValidKey": "",
+        "optionsOriginalKey": "",
+        "optionsSummaryKey": "",
+        "optionsFilesKey": ""
+      }
+    },
+    {
+      "name": "taxed store with the symbol after the amount",
+      "includeDetail": true,
+      "taxRate": 19,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "print-se",
+        "name": "print-se",
+        "slug": "print-se",
+        "price": "129.00",
+        "currency": "SEK",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{\"key\": \"size\", \"label\": \"Size\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"a5\", \"label\": \"A5\", \"price\": {\"mode\": \"none\"}, \"default\": true}, {\"key\": \"a4\", \"label\": \"A4\", \"price\": {\"mode\": \"fixed\", \"amount\": 4}}, {\"key\": \"a3\", \"label\": \"A3\", \"price\": {\"mode\": \"fixed\", \"amount\": 9}}]}, {\"key\": \"paper\", \"label\": \"Paper\", \"type\": \"choice\", \"display\": \"cards\", \"required\": true, \"values\": [{\"key\": \"matte\", \"label\": \"Matte\", \"description\": \"Soft, no glare\", \"price\": {\"mode\": \"none\"}, \"default\": true, \"imageUrl\": \"https://cdn.example.com/matte.jpg\"}, {\"key\": \"glossy\", \"label\": \"Glossy\", \"price\": {\"mode\": \"fixed\", \"amount\": 3}, \"imageUrl\": \"TQ_unknown_asset\", \"priceWhen\": [{\"groupKey\": \"size\", \"valueKeys\": [\"a4\"], \"price\": {\"mode\": \"fixed\", \"amount\": 5}}, {\"groupKey\": \"size\", \"valueKeys\": [\"a3\"], \"price\": {\"mode\": \"fixed\", \"amount\": 8}}]}, {\"key\": \"fine-art\", \"label\": \"Fine-art\", \"price\": {\"mode\": \"percent\", \"percent\": 40}}]}, {\"key\": \"photo\", \"label\": \"Your photo\", \"type\": \"upload\", \"required\": true, \"accept\": \"image\", \"helpText\": \"At least 2000 px wide\"}, {\"key\": \"message\", \"label\": \"Message\", \"type\": \"text\", \"required\": false, \"maxLength\": 120, \"placeholder\": \"For Ana\"}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "true",
+        "optionsQuickAdd": "false",
+        "optionGroups": [
+          {
+            "id": "print-se|size",
+            "key": "size",
+            "label": "Size",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print-se|size",
+            "shownKey": "show:print-se|size",
+            "missingKey": "miss:print-se|size",
+            "invalidKey": "inv:print-se|size",
+            "rejectedKey": "rej:print-se|size",
+            "failedKey": "fail:print-se|size",
+            "uploadedKey": "up:print-se|size",
+            "uploadingKey": "load:print-se",
+            "freshKey": "fresh:print-se",
+            "values": [
+              {
+                "id": "print-se|size|a5",
+                "key": "a5",
+                "label": "A5",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-se|size|a5",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|size|a5|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              },
+              {
+                "id": "print-se|size|a4",
+                "key": "a4",
+                "label": "A4",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-se|size|a4",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|size|a4|d",
+                    "label": "+4.76 kr",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              },
+              {
+                "id": "print-se|size|a3",
+                "key": "a3",
+                "label": "A3",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-se|size|a3",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|size|a3|d",
+                    "label": "+10.71 kr",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print-se|paper",
+            "key": "paper",
+            "label": "Paper",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "true",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print-se|paper",
+            "shownKey": "show:print-se|paper",
+            "missingKey": "miss:print-se|paper",
+            "invalidKey": "inv:print-se|paper",
+            "rejectedKey": "rej:print-se|paper",
+            "failedKey": "fail:print-se|paper",
+            "uploadedKey": "up:print-se|paper",
+            "uploadingKey": "load:print-se",
+            "freshKey": "fresh:print-se",
+            "values": [
+              {
+                "id": "print-se|paper|matte",
+                "key": "matte",
+                "label": "Matte",
+                "description": "Soft, no glare",
+                "color": "",
+                "imageUrl": "https://cdn.example.com/matte.jpg",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "true",
+                "selectedKey": "sel:print-se|paper|matte",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|paper|matte|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              },
+              {
+                "id": "print-se|paper|glossy",
+                "key": "glossy",
+                "label": "Glossy",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-se|paper|glossy",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|paper|glossy|0",
+                    "label": "+5.95 kr",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print-se"
+                  },
+                  {
+                    "activeKey": "pv:print-se|paper|glossy|1",
+                    "label": "+9.52 kr",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print-se"
+                  },
+                  {
+                    "activeKey": "pv:print-se|paper|glossy|d",
+                    "label": "+3.57 kr",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              },
+              {
+                "id": "print-se|paper|fine-art",
+                "key": "fine-art",
+                "label": "Fine-art",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-se|paper|fine-art",
+                "freshKey": "fresh:print-se",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-se|paper|fine-art|d",
+                    "label": "+40%",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-se"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print-se|photo",
+            "key": "photo",
+            "label": "Your photo",
+            "helpText": "At least 2000 px wide",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "true",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "image",
+            "acceptMime": "image/jpeg,image/png,image/webp,image/gif",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print-se|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-se"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print-se|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-se"
+              }
+            ],
+            "hiddenKey": "hide:print-se|photo",
+            "shownKey": "show:print-se|photo",
+            "missingKey": "miss:print-se|photo",
+            "invalidKey": "inv:print-se|photo",
+            "rejectedKey": "rej:print-se|photo",
+            "failedKey": "fail:print-se|photo",
+            "uploadedKey": "up:print-se|photo",
+            "uploadingKey": "load:print-se",
+            "freshKey": "fresh:print-se",
+            "values": []
+          },
+          {
+            "id": "print-se|message",
+            "key": "message",
+            "label": "Message",
+            "helpText": "",
+            "placeholder": "For Ana",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "true",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "120",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print-se|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-se"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print-se|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-se"
+              }
+            ],
+            "hiddenKey": "hide:print-se|message",
+            "shownKey": "show:print-se|message",
+            "missingKey": "miss:print-se|message",
+            "invalidKey": "inv:print-se|message",
+            "rejectedKey": "rej:print-se|message",
+            "failedKey": "fail:print-se|message",
+            "uploadedKey": "up:print-se|message",
+            "uploadingKey": "load:print-se",
+            "freshKey": "fresh:print-se",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"size\",\"label\":\"Size\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"a5\",\"label\":\"A5\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"a4\",\"label\":\"A4\",\"price\":{\"mode\":\"fixed\",\"amount\":4}},{\"key\":\"a3\",\"label\":\"A3\",\"price\":{\"mode\":\"fixed\",\"amount\":9}}]},{\"key\":\"paper\",\"label\":\"Paper\",\"type\":\"choice\",\"required\":true,\"display\":\"cards\",\"values\":[{\"key\":\"matte\",\"label\":\"Matte\",\"description\":\"Soft, no glare\",\"imageUrl\":\"https://cdn.example.com/matte.jpg\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"glossy\",\"label\":\"Glossy\",\"price\":{\"mode\":\"fixed\",\"amount\":3},\"priceWhen\":[{\"groupKey\":\"size\",\"valueKeys\":[\"a4\"],\"price\":{\"mode\":\"fixed\",\"amount\":5}},{\"groupKey\":\"size\",\"valueKeys\":[\"a3\"],\"price\":{\"mode\":\"fixed\",\"amount\":8}}]},{\"key\":\"fine-art\",\"label\":\"Fine-art\",\"price\":{\"mode\":\"percent\",\"percent\":40}}]},{\"key\":\"photo\",\"label\":\"Your photo\",\"type\":\"upload\",\"required\":true,\"helpText\":\"At least 2000 px wide\",\"price\":{\"mode\":\"none\"},\"accept\":\"image\",\"maxFiles\":1},{\"key\":\"message\",\"label\":\"Message\",\"type\":\"text\",\"required\":false,\"placeholder\":\"For Ana\",\"maxLength\":120,\"price\":{\"mode\":\"none\"}}]",
+        "optionsPricingJson": "{\"productId\":\"print-se\",\"netBase\":129,\"originalNetBase\":null,\"taxRate\":19,\"symbol\":\"kr\",\"position\":\"after\",\"pricesDisabled\":false,\"defaultCombinationId\":\"\",\"variants\":[]}",
+        "optionsDefaultDisplayPrice": "153.51",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "Size: A5 · Paper: Matte",
+        "optionsFreshKey": "fresh:print-se",
+        "optionsValidKey": "valid:print-se",
+        "optionsOriginalKey": "orig:print-se",
+        "optionsSummaryKey": "sum:print-se",
+        "optionsFilesKey": "files:print-se"
+      }
+    },
+    {
+      "name": "variants, a discount, per-unit length priced by material, toggle and dependent group",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": [
+        {
+          "id": "v-small",
+          "options": {
+            "size": "s"
+          },
+          "price": 30,
+          "quantity": 0
+        },
+        {
+          "id": "v-large",
+          "options": {
+            "size": "l"
+          },
+          "price": null,
+          "quantity": 5
+        }
+      ],
+      "record": {
+        "id": "machine",
+        "name": "machine",
+        "slug": "machine",
+        "price": "20.00",
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "discounts": "[{\"id\": \"d1\", \"type\": \"percentage\", \"value\": 10, \"startsAt\": null, \"endsAt\": \"2099-01-01T00:00:00.000Z\"}]",
+        "option_groups": [
+          {
+            "key": "material",
+            "label": "Material",
+            "type": "choice",
+            "display": "swatches",
+            "required": true,
+            "values": [
+              {
+                "key": "steel",
+                "label": "Steel",
+                "color": "#888888",
+                "price": {
+                  "mode": "none"
+                },
+                "default": true
+              },
+              {
+                "key": "alu",
+                "label": "Aluminium",
+                "price": {
+                  "mode": "percent",
+                  "percent": 10
+                }
+              }
+            ]
+          },
+          {
+            "key": "length",
+            "label": "Length",
+            "type": "number",
+            "required": true,
+            "min": 1,
+            "max": 20,
+            "step": 0.5,
+            "unit": "m",
+            "defaultValue": 2,
+            "price": {
+              "mode": "per-unit",
+              "amount": 5
+            },
+            "priceWhen": [
+              {
+                "groupKey": "material",
+                "valueKeys": [
+                  "alu"
+                ],
+                "price": {
+                  "mode": "per-unit",
+                  "amount": 3
+                }
+              }
+            ]
+          },
+          {
+            "key": "accessories",
+            "label": "Accessories",
+            "type": "multi-choice",
+            "maxSelected": 2,
+            "values": [
+              {
+                "key": "clamp",
+                "label": "Clamp",
+                "price": {
+                  "mode": "fixed",
+                  "amount": 12.5
+                },
+                "default": true
+              },
+              {
+                "key": "stand",
+                "label": "Stand",
+                "price": {
+                  "mode": "fixed",
+                  "amount": 40
+                }
+              },
+              {
+                "key": "cover",
+                "label": "Cover",
+                "price": {
+                  "mode": "fixed",
+                  "amount": 9.99
+                }
+              }
+            ]
+          },
+          {
+            "key": "coat",
+            "label": "Protective coat",
+            "type": "toggle",
+            "price": {
+              "mode": "fixed",
+              "amount": 6
+            },
+            "priceWhen": [
+              {
+                "groupKey": "material",
+                "valueKeys": [
+                  "alu"
+                ],
+                "price": {
+                  "mode": "none"
+                }
+              }
+            ]
+          },
+          {
+            "key": "coat-colour",
+            "label": "Coat colour",
+            "type": "choice",
+            "required": true,
+            "visibleWhen": [
+              {
+                "groupKey": "coat",
+                "operator": "is-set"
+              }
+            ],
+            "values": [
+              {
+                "key": "black",
+                "label": "Black",
+                "price": {
+                  "mode": "none"
+                }
+              },
+              {
+                "key": "red",
+                "label": "Red",
+                "price": {
+                  "mode": "fixed",
+                  "amount": 2
+                },
+                "priceWhen": [
+                  {
+                    "groupKey": "coat",
+                    "valueKeys": [
+                      "on"
+                    ],
+                    "price": {
+                      "mode": "fixed",
+                      "amount": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "drawing",
+            "label": "Drawing",
+            "type": "upload",
+            "accept": "pdf",
+            "price": {
+              "mode": "fixed",
+              "amount": 15
+            }
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "long-text",
+            "helpText": "Anything we should know"
+          }
+        ],
+        "variant_options": "[{\"key\": \"size\", \"name\": \"Size\", \"type\": \"text\", \"values\": [{\"value\": \"s\", \"label\": \"S\"}, {\"value\": \"l\", \"label\": \"L\"}]}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "false",
+        "optionGroups": [
+          {
+            "id": "machine|material",
+            "key": "material",
+            "label": "Material",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "true",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:machine|material",
+            "shownKey": "show:machine|material",
+            "missingKey": "miss:machine|material",
+            "invalidKey": "inv:machine|material",
+            "rejectedKey": "rej:machine|material",
+            "failedKey": "fail:machine|material",
+            "uploadedKey": "up:machine|material",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": [
+              {
+                "id": "machine|material|steel",
+                "key": "steel",
+                "label": "Steel",
+                "description": "",
+                "color": "#888888",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "true",
+                "showImage": "false",
+                "selectedKey": "sel:machine|material|steel",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|material|steel|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              },
+              {
+                "id": "machine|material|alu",
+                "key": "alu",
+                "label": "Aluminium",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|material|alu",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|material|alu|d",
+                    "label": "+10%",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "machine|length",
+            "key": "length",
+            "label": "Length",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "m",
+            "required": "true",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "true",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "number",
+            "inputMode": "decimal",
+            "maxLengthText": "",
+            "minText": "1",
+            "maxText": "20",
+            "stepText": "0.5",
+            "defaultValueText": "2",
+            "rangeHint": "1 – 20 m",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:machine|length|0",
+                "label": "+$3.00 / m",
+                "isInitial": "false",
+                "freshKey": "fresh:machine"
+              },
+              {
+                "activeKey": "pv:machine|length|d",
+                "label": "+$5.00 / m",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:machine|length|0",
+                "label": "+$3.00 / m",
+                "isInitial": "false",
+                "freshKey": "fresh:machine"
+              },
+              {
+                "activeKey": "pv:machine|length|d",
+                "label": "+$5.00 / m",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "hiddenKey": "hide:machine|length",
+            "shownKey": "show:machine|length",
+            "missingKey": "miss:machine|length",
+            "invalidKey": "inv:machine|length",
+            "rejectedKey": "rej:machine|length",
+            "failedKey": "fail:machine|length",
+            "uploadedKey": "up:machine|length",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": []
+          },
+          {
+            "id": "machine|accessories",
+            "key": "accessories",
+            "label": "Accessories",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "true",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "checkbox",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:machine|accessories",
+            "shownKey": "show:machine|accessories",
+            "missingKey": "miss:machine|accessories",
+            "invalidKey": "inv:machine|accessories",
+            "rejectedKey": "rej:machine|accessories",
+            "failedKey": "fail:machine|accessories",
+            "uploadedKey": "up:machine|accessories",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": [
+              {
+                "id": "machine|accessories|clamp",
+                "key": "clamp",
+                "label": "Clamp",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|accessories|clamp",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|accessories|clamp|d",
+                    "label": "+$12.50",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              },
+              {
+                "id": "machine|accessories|stand",
+                "key": "stand",
+                "label": "Stand",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|accessories|stand",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|accessories|stand|d",
+                    "label": "+$40.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              },
+              {
+                "id": "machine|accessories|cover",
+                "key": "cover",
+                "label": "Cover",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|accessories|cover",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|accessories|cover|d",
+                    "label": "+$9.99",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "machine|coat",
+            "key": "coat",
+            "label": "Protective coat",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "true",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "switch",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:machine|coat|0",
+                "label": "",
+                "isInitial": "false",
+                "freshKey": "fresh:machine"
+              },
+              {
+                "activeKey": "pv:machine|coat|d",
+                "label": "+$6.00",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:machine|coat",
+            "shownKey": "show:machine|coat",
+            "missingKey": "miss:machine|coat",
+            "invalidKey": "inv:machine|coat",
+            "rejectedKey": "rej:machine|coat",
+            "failedKey": "fail:machine|coat",
+            "uploadedKey": "up:machine|coat",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": [
+              {
+                "id": "machine|coat|on",
+                "key": "on",
+                "label": "Protective coat",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|coat|on",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|coat|0",
+                    "label": "",
+                    "isInitial": "false",
+                    "freshKey": "fresh:machine"
+                  },
+                  {
+                    "activeKey": "pv:machine|coat|d",
+                    "label": "+$6.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "machine|coat-colour",
+            "key": "coat-colour",
+            "label": "Coat colour",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "false",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:machine|coat-colour",
+            "shownKey": "show:machine|coat-colour",
+            "missingKey": "miss:machine|coat-colour",
+            "invalidKey": "inv:machine|coat-colour",
+            "rejectedKey": "rej:machine|coat-colour",
+            "failedKey": "fail:machine|coat-colour",
+            "uploadedKey": "up:machine|coat-colour",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": [
+              {
+                "id": "machine|coat-colour|black",
+                "key": "black",
+                "label": "Black",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|coat-colour|black",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|coat-colour|black|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              },
+              {
+                "id": "machine|coat-colour|red",
+                "key": "red",
+                "label": "Red",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:machine|coat-colour|red",
+                "freshKey": "fresh:machine",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:machine|coat-colour|red|0",
+                    "label": "+$1.00",
+                    "isInitial": "false",
+                    "freshKey": "fresh:machine"
+                  },
+                  {
+                    "activeKey": "pv:machine|coat-colour|red|d",
+                    "label": "+$2.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:machine"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "machine|drawing",
+            "key": "drawing",
+            "label": "Drawing",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "true",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "pdf",
+            "acceptMime": "application/pdf",
+            "priceVariants": [
+              {
+                "activeKey": "pv:machine|drawing|d",
+                "label": "+$15.00",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:machine|drawing|d",
+                "label": "+$15.00",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "hiddenKey": "hide:machine|drawing",
+            "shownKey": "show:machine|drawing",
+            "missingKey": "miss:machine|drawing",
+            "invalidKey": "inv:machine|drawing",
+            "rejectedKey": "rej:machine|drawing",
+            "failedKey": "fail:machine|drawing",
+            "uploadedKey": "up:machine|drawing",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": []
+          },
+          {
+            "id": "machine|notes",
+            "key": "notes",
+            "label": "Notes",
+            "helpText": "Anything we should know",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "true",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "2000",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:machine|notes|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:machine|notes|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:machine"
+              }
+            ],
+            "hiddenKey": "hide:machine|notes",
+            "shownKey": "show:machine|notes",
+            "missingKey": "miss:machine|notes",
+            "invalidKey": "inv:machine|notes",
+            "rejectedKey": "rej:machine|notes",
+            "failedKey": "fail:machine|notes",
+            "uploadedKey": "up:machine|notes",
+            "uploadingKey": "load:machine",
+            "freshKey": "fresh:machine",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"material\",\"label\":\"Material\",\"type\":\"choice\",\"required\":true,\"display\":\"swatches\",\"values\":[{\"key\":\"steel\",\"label\":\"Steel\",\"color\":\"#888888\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"alu\",\"label\":\"Aluminium\",\"price\":{\"mode\":\"percent\",\"percent\":10}}]},{\"key\":\"length\",\"label\":\"Length\",\"type\":\"number\",\"required\":true,\"min\":1,\"max\":20,\"step\":0.5,\"unit\":\"m\",\"defaultValue\":2,\"price\":{\"mode\":\"per-unit\",\"amount\":5},\"priceWhen\":[{\"groupKey\":\"material\",\"valueKeys\":[\"alu\"],\"price\":{\"mode\":\"per-unit\",\"amount\":3}}]},{\"key\":\"accessories\",\"label\":\"Accessories\",\"type\":\"multi-choice\",\"required\":false,\"display\":\"buttons\",\"values\":[{\"key\":\"clamp\",\"label\":\"Clamp\",\"price\":{\"mode\":\"fixed\",\"amount\":12.5},\"default\":true},{\"key\":\"stand\",\"label\":\"Stand\",\"price\":{\"mode\":\"fixed\",\"amount\":40}},{\"key\":\"cover\",\"label\":\"Cover\",\"price\":{\"mode\":\"fixed\",\"amount\":9.99}}],\"maxSelected\":2},{\"key\":\"coat\",\"label\":\"Protective coat\",\"type\":\"toggle\",\"required\":false,\"price\":{\"mode\":\"fixed\",\"amount\":6},\"priceWhen\":[{\"groupKey\":\"material\",\"valueKeys\":[\"alu\"],\"price\":{\"mode\":\"none\"}}]},{\"key\":\"coat-colour\",\"label\":\"Coat colour\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"black\",\"label\":\"Black\",\"price\":{\"mode\":\"none\"}},{\"key\":\"red\",\"label\":\"Red\",\"price\":{\"mode\":\"fixed\",\"amount\":2},\"priceWhen\":[{\"groupKey\":\"coat\",\"valueKeys\":[\"on\"],\"price\":{\"mode\":\"fixed\",\"amount\":1}}]}],\"visibleWhen\":[{\"groupKey\":\"coat\",\"operator\":\"is-set\"}]},{\"key\":\"drawing\",\"label\":\"Drawing\",\"type\":\"upload\",\"required\":false,\"price\":{\"mode\":\"fixed\",\"amount\":15},\"accept\":\"pdf\",\"maxFiles\":1},{\"key\":\"notes\",\"label\":\"Notes\",\"type\":\"long-text\",\"required\":false,\"helpText\":\"Anything we should know\",\"price\":{\"mode\":\"none\"}}]",
+        "optionsPricingJson": "{\"productId\":\"machine\",\"netBase\":18,\"originalNetBase\":20,\"taxRate\":0,\"symbol\":\"$\",\"position\":\"before\",\"pricesDisabled\":false,\"defaultCombinationId\":\"v-large\",\"variants\":[{\"id\":\"v-small\",\"options\":{\"size\":\"s\"},\"net\":27,\"originalNet\":30},{\"id\":\"v-large\",\"options\":{\"size\":\"l\"},\"net\":18,\"originalNet\":20}]}",
+        "optionsDefaultDisplayPrice": "40.50",
+        "optionsDefaultOriginalDisplayPrice": "42.50",
+        "optionsDefaultSummary": "Material: Steel · Length: 2 m · Accessories: Clamp",
+        "optionsFreshKey": "fresh:machine",
+        "optionsValidKey": "valid:machine",
+        "optionsOriginalKey": "orig:machine",
+        "optionsSummaryKey": "sum:machine",
+        "optionsFilesKey": "files:machine"
+      }
+    },
+    {
+      "name": "default choice with a surcharge cannot be quick-added",
+      "includeDetail": false,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "wrapped",
+        "name": "wrapped",
+        "slug": "wrapped",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{\"key\": \"wrap\", \"label\": \"Wrapping\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"kraft\", \"label\": \"Kraft\", \"price\": {\"mode\": \"fixed\", \"amount\": 2}, \"default\": true}, {\"key\": \"silk\", \"label\": \"Silk\", \"price\": {\"mode\": \"percent\", \"percent\": 25}}]}, {\"key\": \"card\", \"label\": \"Card text\", \"type\": \"text\", \"price\": {\"mode\": \"fixed\", \"amount\": 1}}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "false",
+        "optionGroups": [],
+        "optionGroupsJson": "[]",
+        "optionsPricingJson": "{}",
+        "optionsDefaultDisplayPrice": "",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "",
+        "optionsFreshKey": "",
+        "optionsValidKey": "",
+        "optionsOriginalKey": "",
+        "optionsSummaryKey": "",
+        "optionsFilesKey": ""
+      }
+    },
+    {
+      "name": "gift card options never carry a price",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "gift",
+        "name": "gift",
+        "slug": "gift",
+        "price": 50,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "is_gift_card": true,
+        "option_groups": "[{\"key\": \"wrap\", \"label\": \"Wrapping\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"kraft\", \"label\": \"Kraft\", \"price\": {\"mode\": \"fixed\", \"amount\": 2}, \"default\": true}, {\"key\": \"silk\", \"label\": \"Silk\", \"price\": {\"mode\": \"percent\", \"percent\": 25}}]}, {\"key\": \"card\", \"label\": \"Card text\", \"type\": \"text\", \"price\": {\"mode\": \"fixed\", \"amount\": 1}}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "true",
+        "optionGroups": [
+          {
+            "id": "gift|wrap",
+            "key": "wrap",
+            "label": "Wrapping",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:gift|wrap",
+            "shownKey": "show:gift|wrap",
+            "missingKey": "miss:gift|wrap",
+            "invalidKey": "inv:gift|wrap",
+            "rejectedKey": "rej:gift|wrap",
+            "failedKey": "fail:gift|wrap",
+            "uploadedKey": "up:gift|wrap",
+            "uploadingKey": "load:gift",
+            "freshKey": "fresh:gift",
+            "values": [
+              {
+                "id": "gift|wrap|kraft",
+                "key": "kraft",
+                "label": "Kraft",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:gift|wrap|kraft",
+                "freshKey": "fresh:gift",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:gift|wrap|kraft|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:gift"
+                  }
+                ]
+              },
+              {
+                "id": "gift|wrap|silk",
+                "key": "silk",
+                "label": "Silk",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:gift|wrap|silk",
+                "freshKey": "fresh:gift",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:gift|wrap|silk|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:gift"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "gift|card",
+            "key": "card",
+            "label": "Card text",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "true",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "500",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:gift|card|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:gift"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:gift|card|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:gift"
+              }
+            ],
+            "hiddenKey": "hide:gift|card",
+            "shownKey": "show:gift|card",
+            "missingKey": "miss:gift|card",
+            "invalidKey": "inv:gift|card",
+            "rejectedKey": "rej:gift|card",
+            "failedKey": "fail:gift|card",
+            "uploadedKey": "up:gift|card",
+            "uploadingKey": "load:gift",
+            "freshKey": "fresh:gift",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"wrap\",\"label\":\"Wrapping\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"kraft\",\"label\":\"Kraft\",\"price\":{\"mode\":\"fixed\",\"amount\":2},\"default\":true},{\"key\":\"silk\",\"label\":\"Silk\",\"price\":{\"mode\":\"percent\",\"percent\":25}}]},{\"key\":\"card\",\"label\":\"Card text\",\"type\":\"text\",\"required\":false,\"price\":{\"mode\":\"fixed\",\"amount\":1}}]",
+        "optionsPricingJson": "{\"productId\":\"gift\",\"netBase\":50,\"originalNetBase\":null,\"taxRate\":0,\"symbol\":\"$\",\"position\":\"before\",\"pricesDisabled\":true,\"defaultCombinationId\":\"\",\"variants\":[]}",
+        "optionsDefaultDisplayPrice": "50.00",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "Wrapping: Kraft",
+        "optionsFreshKey": "fresh:gift",
+        "optionsValidKey": "valid:gift",
+        "optionsOriginalKey": "orig:gift",
+        "optionsSummaryKey": "sum:gift",
+        "optionsFilesKey": "files:gift"
+      }
+    },
+    {
+      "name": "subscription options never carry a price",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "plan",
+        "name": "plan",
+        "slug": "plan",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "payment_type": "recurring",
+        "recurring_interval": "month",
+        "option_groups": "[{\"key\": \"wrap\", \"label\": \"Wrapping\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"kraft\", \"label\": \"Kraft\", \"price\": {\"mode\": \"fixed\", \"amount\": 2}, \"default\": true}, {\"key\": \"silk\", \"label\": \"Silk\", \"price\": {\"mode\": \"percent\", \"percent\": 25}}]}, {\"key\": \"card\", \"label\": \"Card text\", \"type\": \"text\", \"price\": {\"mode\": \"fixed\", \"amount\": 1}}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "true",
+        "optionGroups": [
+          {
+            "id": "plan|wrap",
+            "key": "wrap",
+            "label": "Wrapping",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:plan|wrap",
+            "shownKey": "show:plan|wrap",
+            "missingKey": "miss:plan|wrap",
+            "invalidKey": "inv:plan|wrap",
+            "rejectedKey": "rej:plan|wrap",
+            "failedKey": "fail:plan|wrap",
+            "uploadedKey": "up:plan|wrap",
+            "uploadingKey": "load:plan",
+            "freshKey": "fresh:plan",
+            "values": [
+              {
+                "id": "plan|wrap|kraft",
+                "key": "kraft",
+                "label": "Kraft",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:plan|wrap|kraft",
+                "freshKey": "fresh:plan",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:plan|wrap|kraft|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:plan"
+                  }
+                ]
+              },
+              {
+                "id": "plan|wrap|silk",
+                "key": "silk",
+                "label": "Silk",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:plan|wrap|silk",
+                "freshKey": "fresh:plan",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:plan|wrap|silk|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:plan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "plan|card",
+            "key": "card",
+            "label": "Card text",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "true",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "500",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:plan|card|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:plan"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:plan|card|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:plan"
+              }
+            ],
+            "hiddenKey": "hide:plan|card",
+            "shownKey": "show:plan|card",
+            "missingKey": "miss:plan|card",
+            "invalidKey": "inv:plan|card",
+            "rejectedKey": "rej:plan|card",
+            "failedKey": "fail:plan|card",
+            "uploadedKey": "up:plan|card",
+            "uploadingKey": "load:plan",
+            "freshKey": "fresh:plan",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"wrap\",\"label\":\"Wrapping\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"kraft\",\"label\":\"Kraft\",\"price\":{\"mode\":\"fixed\",\"amount\":2},\"default\":true},{\"key\":\"silk\",\"label\":\"Silk\",\"price\":{\"mode\":\"percent\",\"percent\":25}}]},{\"key\":\"card\",\"label\":\"Card text\",\"type\":\"text\",\"required\":false,\"price\":{\"mode\":\"fixed\",\"amount\":1}}]",
+        "optionsPricingJson": "{\"productId\":\"plan\",\"netBase\":10,\"originalNetBase\":null,\"taxRate\":0,\"symbol\":\"$\",\"position\":\"before\",\"pricesDisabled\":true,\"defaultCombinationId\":\"\",\"variants\":[]}",
+        "optionsDefaultDisplayPrice": "10.00",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "Wrapping: Kraft",
+        "optionsFreshKey": "fresh:plan",
+        "optionsValidKey": "valid:plan",
+        "optionsOriginalKey": "orig:plan",
+        "optionsSummaryKey": "sum:plan",
+        "optionsFilesKey": "files:plan"
+      }
+    },
+    {
+      "name": "a translated clone overlays strings and never prices",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": "fr",
+      "mainLanguage": "en",
+      "variants": null,
+      "record": {
+        "id": "print-fr",
+        "name": "print-fr",
+        "slug": "print-fr",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{\"key\": \"size\", \"label\": \"Size\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"a5\", \"label\": \"A5\", \"price\": {\"mode\": \"none\"}, \"default\": true}, {\"key\": \"a4\", \"label\": \"A4\", \"price\": {\"mode\": \"fixed\", \"amount\": 4}}, {\"key\": \"a3\", \"label\": \"A3\", \"price\": {\"mode\": \"fixed\", \"amount\": 9}}]}, {\"key\": \"paper\", \"label\": \"Paper\", \"type\": \"choice\", \"display\": \"cards\", \"required\": true, \"values\": [{\"key\": \"matte\", \"label\": \"Matte\", \"description\": \"Soft, no glare\", \"price\": {\"mode\": \"none\"}, \"default\": true, \"imageUrl\": \"https://cdn.example.com/matte.jpg\"}, {\"key\": \"glossy\", \"label\": \"Glossy\", \"price\": {\"mode\": \"fixed\", \"amount\": 3}, \"imageUrl\": \"TQ_unknown_asset\", \"priceWhen\": [{\"groupKey\": \"size\", \"valueKeys\": [\"a4\"], \"price\": {\"mode\": \"fixed\", \"amount\": 5}}, {\"groupKey\": \"size\", \"valueKeys\": [\"a3\"], \"price\": {\"mode\": \"fixed\", \"amount\": 8}}]}, {\"key\": \"fine-art\", \"label\": \"Fine-art\", \"price\": {\"mode\": \"percent\", \"percent\": 40}}]}, {\"key\": \"photo\", \"label\": \"Your photo\", \"type\": \"upload\", \"required\": true, \"accept\": \"image\", \"helpText\": \"At least 2000 px wide\"}, {\"key\": \"message\", \"label\": \"Message\", \"type\": \"text\", \"required\": false, \"maxLength\": 120, \"placeholder\": \"For Ana\"}]",
+        "fr_option_groups": "[{\"key\": \"size\", \"label\": \"Taille\", \"type\": \"choice\", \"required\": true, \"values\": [{\"key\": \"a5\", \"label\": \"A5 (fr)\", \"price\": {\"mode\": \"fixed\", \"amount\": 99}, \"default\": true}, {\"key\": \"a4\", \"label\": \"A4 (fr)\", \"price\": {\"mode\": \"fixed\", \"amount\": 99}}, {\"key\": \"a3\", \"label\": \"A3 (fr)\", \"price\": {\"mode\": \"fixed\", \"amount\": 99}}]}, {\"key\": \"paper\", \"label\": \"Paper\", \"type\": \"choice\", \"display\": \"cards\", \"required\": true, \"values\": [{\"key\": \"matte\", \"label\": \"Mat\", \"description\": \"Doux, sans reflet\", \"price\": {\"mode\": \"none\"}, \"default\": true, \"imageUrl\": \"https://cdn.example.com/matte.jpg\"}, {\"key\": \"glossy\", \"label\": \"Glossy\", \"price\": {\"mode\": \"fixed\", \"amount\": 3}, \"imageUrl\": \"TQ_unknown_asset\", \"priceWhen\": [{\"groupKey\": \"size\", \"valueKeys\": [\"a4\"], \"price\": {\"mode\": \"fixed\", \"amount\": 5}}, {\"groupKey\": \"size\", \"valueKeys\": [\"a3\"], \"price\": {\"mode\": \"fixed\", \"amount\": 8}}]}, {\"key\": \"fine-art\", \"label\": \"Fine-art\", \"price\": {\"mode\": \"percent\", \"percent\": 40}}]}, {\"key\": \"photo\", \"label\": \"Your photo\", \"type\": \"upload\", \"required\": true, \"accept\": \"image\", \"helpText\": \"Au moins 2000 px\"}, {\"key\": \"message\", \"label\": \"Message\", \"type\": \"text\", \"required\": false, \"maxLength\": 120, \"placeholder\": \"Pour Ana\"}]"
+      },
+      "expected": {
+        "hasProductOptions": "true",
+        "optionsRequireInput": "true",
+        "optionsQuickAdd": "false",
+        "optionGroups": [
+          {
+            "id": "print-fr|size",
+            "key": "size",
+            "label": "Taille",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "true",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print-fr|size",
+            "shownKey": "show:print-fr|size",
+            "missingKey": "miss:print-fr|size",
+            "invalidKey": "inv:print-fr|size",
+            "rejectedKey": "rej:print-fr|size",
+            "failedKey": "fail:print-fr|size",
+            "uploadedKey": "up:print-fr|size",
+            "uploadingKey": "load:print-fr",
+            "freshKey": "fresh:print-fr",
+            "values": [
+              {
+                "id": "print-fr|size|a5",
+                "key": "a5",
+                "label": "A5 (fr)",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-fr|size|a5",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|size|a5|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              },
+              {
+                "id": "print-fr|size|a4",
+                "key": "a4",
+                "label": "A4 (fr)",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-fr|size|a4",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|size|a4|d",
+                    "label": "+$4.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              },
+              {
+                "id": "print-fr|size|a3",
+                "key": "a3",
+                "label": "A3 (fr)",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-fr|size|a3",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|size|a3|d",
+                    "label": "+$9.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print-fr|paper",
+            "key": "paper",
+            "label": "Paper",
+            "helpText": "",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "true",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "true",
+            "isSelectable": "true",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "radio",
+            "rowRole": "radiogroup",
+            "rowRequired": "true",
+            "idleTabIndex": "-1",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [],
+            "headerPriceVariants": [],
+            "hiddenKey": "hide:print-fr|paper",
+            "shownKey": "show:print-fr|paper",
+            "missingKey": "miss:print-fr|paper",
+            "invalidKey": "inv:print-fr|paper",
+            "rejectedKey": "rej:print-fr|paper",
+            "failedKey": "fail:print-fr|paper",
+            "uploadedKey": "up:print-fr|paper",
+            "uploadingKey": "load:print-fr",
+            "freshKey": "fresh:print-fr",
+            "values": [
+              {
+                "id": "print-fr|paper|matte",
+                "key": "matte",
+                "label": "Mat",
+                "description": "Doux, sans reflet",
+                "color": "",
+                "imageUrl": "https://cdn.example.com/matte.jpg",
+                "isDefault": "true",
+                "showSwatch": "false",
+                "showImage": "true",
+                "selectedKey": "sel:print-fr|paper|matte",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|paper|matte|d",
+                    "label": "",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              },
+              {
+                "id": "print-fr|paper|glossy",
+                "key": "glossy",
+                "label": "Glossy",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-fr|paper|glossy",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|paper|glossy|0",
+                    "label": "+$5.00",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print-fr"
+                  },
+                  {
+                    "activeKey": "pv:print-fr|paper|glossy|1",
+                    "label": "+$8.00",
+                    "isInitial": "false",
+                    "freshKey": "fresh:print-fr"
+                  },
+                  {
+                    "activeKey": "pv:print-fr|paper|glossy|d",
+                    "label": "+$3.00",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              },
+              {
+                "id": "print-fr|paper|fine-art",
+                "key": "fine-art",
+                "label": "Fine-art",
+                "description": "",
+                "color": "",
+                "imageUrl": "",
+                "isDefault": "false",
+                "showSwatch": "false",
+                "showImage": "false",
+                "selectedKey": "sel:print-fr|paper|fine-art",
+                "freshKey": "fresh:print-fr",
+                "priceVariants": [
+                  {
+                    "activeKey": "pv:print-fr|paper|fine-art|d",
+                    "label": "+40%",
+                    "isInitial": "true",
+                    "freshKey": "fresh:print-fr"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "print-fr|photo",
+            "key": "photo",
+            "label": "Your photo",
+            "helpText": "Au moins 2000 px",
+            "placeholder": "",
+            "unit": "",
+            "required": "true",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "false",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "true",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "false",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "",
+            "inputMode": "",
+            "maxLengthText": "",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "image",
+            "acceptMime": "image/jpeg,image/png,image/webp,image/gif",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print-fr|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-fr"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print-fr|photo|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-fr"
+              }
+            ],
+            "hiddenKey": "hide:print-fr|photo",
+            "shownKey": "show:print-fr|photo",
+            "missingKey": "miss:print-fr|photo",
+            "invalidKey": "inv:print-fr|photo",
+            "rejectedKey": "rej:print-fr|photo",
+            "failedKey": "fail:print-fr|photo",
+            "uploadedKey": "up:print-fr|photo",
+            "uploadingKey": "load:print-fr",
+            "freshKey": "fresh:print-fr",
+            "values": []
+          },
+          {
+            "id": "print-fr|message",
+            "key": "message",
+            "label": "Message",
+            "helpText": "",
+            "placeholder": "Pour Ana",
+            "unit": "",
+            "required": "false",
+            "isChoice": "false",
+            "isMulti": "false",
+            "isText": "true",
+            "isLongText": "false",
+            "isNumber": "false",
+            "isToggle": "false",
+            "isUpload": "false",
+            "isButtons": "false",
+            "isSwatches": "false",
+            "isCards": "false",
+            "isSelectable": "false",
+            "isInput": "true",
+            "initiallyVisible": "true",
+            "cellRole": "",
+            "rowRole": "group",
+            "rowRequired": null,
+            "idleTabIndex": "0",
+            "inputType": "text",
+            "inputMode": "text",
+            "maxLengthText": "120",
+            "minText": "",
+            "maxText": "",
+            "stepText": "",
+            "defaultValueText": "",
+            "rangeHint": "",
+            "acceptKind": "",
+            "acceptMime": "",
+            "priceVariants": [
+              {
+                "activeKey": "pv:print-fr|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-fr"
+              }
+            ],
+            "headerPriceVariants": [
+              {
+                "activeKey": "pv:print-fr|message|d",
+                "label": "",
+                "isInitial": "true",
+                "freshKey": "fresh:print-fr"
+              }
+            ],
+            "hiddenKey": "hide:print-fr|message",
+            "shownKey": "show:print-fr|message",
+            "missingKey": "miss:print-fr|message",
+            "invalidKey": "inv:print-fr|message",
+            "rejectedKey": "rej:print-fr|message",
+            "failedKey": "fail:print-fr|message",
+            "uploadedKey": "up:print-fr|message",
+            "uploadingKey": "load:print-fr",
+            "freshKey": "fresh:print-fr",
+            "values": []
+          }
+        ],
+        "optionGroupsJson": "[{\"key\":\"size\",\"label\":\"Taille\",\"type\":\"choice\",\"required\":true,\"display\":\"buttons\",\"values\":[{\"key\":\"a5\",\"label\":\"A5 (fr)\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"a4\",\"label\":\"A4 (fr)\",\"price\":{\"mode\":\"fixed\",\"amount\":4}},{\"key\":\"a3\",\"label\":\"A3 (fr)\",\"price\":{\"mode\":\"fixed\",\"amount\":9}}]},{\"key\":\"paper\",\"label\":\"Paper\",\"type\":\"choice\",\"required\":true,\"display\":\"cards\",\"values\":[{\"key\":\"matte\",\"label\":\"Mat\",\"description\":\"Doux, sans reflet\",\"imageUrl\":\"https://cdn.example.com/matte.jpg\",\"price\":{\"mode\":\"none\"},\"default\":true},{\"key\":\"glossy\",\"label\":\"Glossy\",\"price\":{\"mode\":\"fixed\",\"amount\":3},\"priceWhen\":[{\"groupKey\":\"size\",\"valueKeys\":[\"a4\"],\"price\":{\"mode\":\"fixed\",\"amount\":5}},{\"groupKey\":\"size\",\"valueKeys\":[\"a3\"],\"price\":{\"mode\":\"fixed\",\"amount\":8}}]},{\"key\":\"fine-art\",\"label\":\"Fine-art\",\"price\":{\"mode\":\"percent\",\"percent\":40}}]},{\"key\":\"photo\",\"label\":\"Your photo\",\"type\":\"upload\",\"required\":true,\"helpText\":\"Au moins 2000 px\",\"price\":{\"mode\":\"none\"},\"accept\":\"image\",\"maxFiles\":1},{\"key\":\"message\",\"label\":\"Message\",\"type\":\"text\",\"required\":false,\"placeholder\":\"Pour Ana\",\"maxLength\":120,\"price\":{\"mode\":\"none\"}}]",
+        "optionsPricingJson": "{\"productId\":\"print-fr\",\"netBase\":10,\"originalNetBase\":null,\"taxRate\":0,\"symbol\":\"$\",\"position\":\"before\",\"pricesDisabled\":false,\"defaultCombinationId\":\"\",\"variants\":[]}",
+        "optionsDefaultDisplayPrice": "10.00",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "Taille: A5 (fr) · Paper: Mat",
+        "optionsFreshKey": "fresh:print-fr",
+        "optionsValidKey": "valid:print-fr",
+        "optionsOriginalKey": "orig:print-fr",
+        "optionsSummaryKey": "sum:print-fr",
+        "optionsFilesKey": "files:print-fr"
+      }
+    },
+    {
+      "name": "a product without options",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "plain",
+        "name": "plain",
+        "slug": "plain",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "hasProductOptions": "false",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "true",
+        "optionGroups": [],
+        "optionGroupsJson": "[]",
+        "optionsPricingJson": "{}",
+        "optionsDefaultDisplayPrice": "",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "",
+        "optionsFreshKey": "",
+        "optionsValidKey": "",
+        "optionsOriginalKey": "",
+        "optionsSummaryKey": "",
+        "optionsFilesKey": ""
+      }
+    },
+    {
+      "name": "unreadable options read as none",
+      "includeDetail": true,
+      "taxRate": 0,
+      "currentLanguage": null,
+      "mainLanguage": null,
+      "variants": null,
+      "record": {
+        "id": "broken",
+        "name": "broken",
+        "slug": "broken",
+        "price": 10,
+        "currency": "USD",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "option_groups": "[{not json"
+      },
+      "expected": {
+        "hasProductOptions": "false",
+        "optionsRequireInput": "false",
+        "optionsQuickAdd": "true",
+        "optionGroups": [],
+        "optionGroupsJson": "[]",
+        "optionsPricingJson": "{}",
+        "optionsDefaultDisplayPrice": "",
+        "optionsDefaultOriginalDisplayPrice": "",
+        "optionsDefaultSummary": "",
+        "optionsFreshKey": "",
+        "optionsValidKey": "",
+        "optionsOriginalKey": "",
+        "optionsSummaryKey": "",
+        "optionsFilesKey": ""
+      }
+    }
+  ]
+}

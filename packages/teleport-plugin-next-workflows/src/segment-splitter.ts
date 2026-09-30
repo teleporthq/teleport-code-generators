@@ -177,8 +177,13 @@ export const splitIntoSegments = (workflow: UIDLWorkflow): WorkflowSegment[] => 
     const edges = workflow.edges.filter(
       (e: UIDLWorkflowEdge) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target)
     )
+    // Where a branch decided outside this segment can begin inside it.
+    const entryNodeIds = currentNodeIds.filter((nid) => {
+      const incoming = workflow.edges.filter((e: UIDLWorkflowEdge) => e.target === nid)
+      return incoming.length === 0 || incoming.some((e) => !nodeIdSet.has(e.source))
+    })
 
-    segments.push({ id, env: currentEnv, nodeIds: [...currentNodeIds], nodes, edges })
+    segments.push({ id, env: currentEnv, nodeIds: [...currentNodeIds], nodes, edges, entryNodeIds })
     currentNodeIds = []
   }
 

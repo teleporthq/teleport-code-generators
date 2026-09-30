@@ -13,6 +13,8 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
+import { collectSegmentStateKeys } from './segment-context-needs'
+import { ADMIN_CUSTOM_NODES_MODULE, collectAdminModuleCustomNodeIds } from './custom-node-modules'
 import {
   generateServerSegmentAPIRoute,
   generateStreamingServerSegmentAPIRoute,
@@ -25,6 +27,14 @@ import {
   hasStreamingAINode,
 } from './api-route-generator'
 import { generateWorkflowAuthHelperFile } from './workflow-auth-generator'
+import {
+  generateSubscriberAccessHelperModule,
+  generateSubscriberAccessRoute,
+  hasSubscriberOnlyPages,
+  resolveCustomProductPageRoutes,
+  resolveProductDetailsRoute,
+  resolveSubscriptionFallbackRoute,
+} from './subscriber-access-route-generator'
 import { collectSecrets, collectSecretReferenceEnvNames } from './secret-collector'
 import {
   collectUsedNodeTypes,
@@ -33,11 +43,9 @@ import {
 } from './graph-utils'
 import { nodeRegistry } from './nodes'
 import { resolveHandlerEntryName } from './nodes/types'
-import {
-  generateClientRuntimeCode,
-  generateServerRuntimeCode,
-  generateSharedRuntimeUtilsCode,
-} from './executor-generator'
+import { generateClientRuntimeCode, generateSharedRuntimeUtilsCode } from './executor-generator'
+import { generateServerRuntimeCode } from './server-runtime-code'
+import { buildSegmentTrust } from './segment-trust'
 import {
   generateRealtimeServerHelperCode,
   generateRealtimeClientCode,
@@ -63,9 +71,17 @@ import {
 } from './auth-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
+import { ensureWebhookDeliveryLeaseModule } from './webhook-delivery-lease'
 import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
 import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
+import {
+  ensurePaymentDriversModule,
+  isPaymentWebhookConfig,
+  readWebhookPaymentProvider,
+  resolveStorePaymentDriverIds,
+} from './payments'
+import type { PaymentDriverId } from './payments/payment-drivers-scope'
 import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
 import {
   generateAccountDeleteRoute,
@@ -88,15 +104,18 @@ import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
 // so it prefers the table that stores credentials (an email/login column AND a
 // password column), then a conventionally-named users table, then the first
 // non-auxiliary table.
-const resolveAuthUsersTableName = (
+export const resolveAuthUsersTableName = (
   authentication:
     | { enabled?: boolean; tables?: Record<string, Array<{ name?: string }>> }
     | undefined
 ): string | undefined => {
-  if (!authentication?.enabled || !authentication?.tables) {
+  if (!authentication?.enabled) {
     return undefined
   }
-  const tables = authentication.tables
+  // No declared tables still means the auth options' own `users` table, which
+  // is where the session's role is read from — leaving it unguarded would let
+  // a browser write that role.
+  const tables = authentication.tables || {}
   const names = Object.keys(tables)
   if (names.length === 0) {
     return 'users'
@@ -292,6 +311,20 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       }
     }
 
+    // Every app with server routes carries an app secret, with authentication
+    // or without: it keys the signatures on server results relayed between
+    // workflow steps and the internal-call token, and it is the credential
+    // server code presents to its own data, invoice and notification routes.
+    // Keyed from '' those are values anyone can compute, so the runtime
+    // refuses them all without one. The deploy worker replaces this default
+    // with the project's own secret.
+    if (uidl.globals && hasServerRoutes(uidl)) {
+      uidl.globals.env = uidl.globals.env || {}
+      if (!uidl.globals.env.NEXTAUTH_SECRET) {
+        uidl.globals.env.NEXTAUTH_SECRET = randomSecretHex()
+      }
+    }
+
     if (uidl.globals?.env) {
       const oauthCredentialKeys = collectOAuthCredentialEnvKeys(uidl.authentication)
       for (const key of Object.keys(uidl.globals.env)) {
@@ -341,6 +374,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         }
       }
 
+      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(uidl, []))
       generateWebhookFiles(structure, uidl.invoiceSettings)
 
       if (hasAuthentication) {
@@ -358,6 +392,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     if (hasEmailSendingNodeType(usedNodeTypes)) {
       ensureSentEmailLogModule(structure)
     }
+
+    // Routes that run a payment node or verify a payment webhook require the
+    // store's payment drivers (see generatePaymentDriversPreamble).
+    ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(uidl, usedNodeTypes))
 
     files.set('workflow-runtime-utils', {
       path: ['utils', 'workflows'],
@@ -399,7 +437,8 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
     // Set true the moment we emit ANY route that bakes an auth policy, so the
     // shared guard file is emitted iff at least one route actually imports it.
-    const routeHasPolicy = (p: any): boolean => !!p && (p.requiresAuth || p.userScoped)
+    const routeHasPolicy = (p: any): boolean =>
+      !!p && (p.requiresAuth || p.userScoped || p.serverOnly)
     let anyGuardedRouteEmitted = false
 
     // Build server segment info for custom nodes so they can call server-side API routes
@@ -415,14 +454,26 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         const cnServerSegments = cnSegments.filter((s) => s.env === 'server')
         if (cnServerSegments.length > 0) {
           customNodeServerUrls[cnId] = {}
+          // The same list, in the same order, the custom node's runner hands its
+          // inner custom-js nodes as `params`.
+          const cnGraph = { nodes: cn.nodes || [], edges: cn.edges || [], segments: cnSegments }
           for (const seg of cnServerSegments) {
+            const routeOptions = {
+              customNodeIds: (cn.nodes || []).map((n: any) => n.id),
+              trust: buildSegmentTrust(seg, cnGraph),
+            }
             const isStreaming = hasStreamingAINode(seg)
             if (routeHasPolicy(cn.protection)) {
               anyGuardedRouteEmitted = true
             }
             const apiContent = isStreaming
-              ? generateStreamingServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
-              : generateServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection)
+              ? generateStreamingServerSegmentAPIRoute(
+                  seg,
+                  cn.name || cnId,
+                  cn.protection,
+                  routeOptions
+                )
+              : generateServerSegmentAPIRoute(seg, cn.name || cnId, cn.protection, routeOptions)
             const fileName = getAPIRouteFileName(cnId, seg.id, cn.name || cnId)
             customNodeServerUrls[cnId][seg.id] = `/api/workflows/${fileName}`
             files.set(`workflow-api-cn-${cnId}-${seg.id}`, {
@@ -439,7 +490,15 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         }
       }
 
-      const customNodeCode = this.generateCustomNodesFile(customNodes, customNodeServerUrls)
+      // Nodes only the admin pages call get their own module, which only the
+      // pages that call them import (see custom-node-modules.ts).
+      const adminModuleIds = collectAdminModuleCustomNodeIds(customNodes)
+      const customNodeCode =
+        adminModuleIds.size > 0
+          ? this.generateCustomNodesFile(customNodes, customNodeServerUrls, {
+              exclude: adminModuleIds,
+            })
+          : this.generateCustomNodesFile(customNodes, customNodeServerUrls)
       files.set('workflow-custom-nodes', {
         path: ['utils', 'workflows'],
         files: [
@@ -450,6 +509,20 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           },
         ],
       })
+      if (adminModuleIds.size > 0) {
+        files.set('workflow-custom-nodes-admin', {
+          path: ['utils', 'workflows'],
+          files: [
+            {
+              name: ADMIN_CUSTOM_NODES_MODULE,
+              fileType: FileType.JS,
+              content: this.generateCustomNodesFile(customNodes, customNodeServerUrls, {
+                only: adminModuleIds,
+              }),
+            },
+          ],
+        })
+      }
     }
 
     let hasServerSegments = Object.keys(customNodeServerUrls).length > 0
@@ -457,10 +530,22 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     // Track which payment providers are already handled by a workflow-driven
     // webhook (event-webhook-received + webhookConfig) so we can skip the
     // legacy hard-coded webhook emission for those providers below.
-    const webhookProvidersOwnedByWorkflows = new Set<'stripe' | 'paypal'>()
+    const webhookProvidersOwnedByWorkflows = new Set<PaymentDriverId>()
 
     for (const workflow of Object.values(allWorkflows) as any[]) {
       if (workflow.trigger.type === 'event-cron-triggered') {
+        // A cron route runs its whole graph on the server through the same
+        // runtime and handler file a server segment uses, so an app whose only
+        // server work is a cron still needs them.
+        hasServerSegments = true
+        // The route refuses every request not signed with this key; the deploy
+        // fills it in (see cron-request-verification.ts).
+        if (!uidl.globals.env) {
+          uidl.globals.env = {}
+        }
+        if (!uidl.globals.env.TELEPORT_CRON_SECRET) {
+          uidl.globals.env.TELEPORT_CRON_SECRET = ''
+        }
         const cronContent = generateCronAPIRoute(workflow, customNodes)
         const cronFileName = getCronRouteFileName(workflow)
         files.set(`workflow-cron-${workflow.id}`, {
@@ -492,18 +577,15 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           ],
         })
 
-        // Detect which payment provider this webhook is handling so the
-        // legacy hard-coded emission (webhook-generator.ts) can be skipped
-        // for the same provider. Uses both the URL path and the trigger's
-        // signature algorithm as hints — the former is what the GUI emits,
-        // the latter is a defence in case the path convention changes.
-        const urlPath = (workflow.webhookConfig.urlPath || '').toLowerCase()
-        const sigAlgorithm = (workflow.webhookConfig.signatureAlgorithm || '').toLowerCase()
-        if (urlPath.includes('stripe') || sigAlgorithm.includes('stripe')) {
-          webhookProvidersOwnedByWorkflows.add('stripe')
+        // The provider this webhook handles, so the legacy hard-coded emission
+        // (webhook-generator.ts) is skipped for it.
+        const ownedProvider = readWebhookPaymentProvider(workflow.webhookConfig)
+        if (ownedProvider) {
+          webhookProvidersOwnedByWorkflows.add(ownedProvider)
         }
-        if (urlPath.includes('paypal') || sigAlgorithm.includes('paypal')) {
-          webhookProvidersOwnedByWorkflows.add('paypal')
+        // A payment webhook runs one delivery at a time; its route requires the lease.
+        if (isPaymentWebhookConfig(workflow.webhookConfig)) {
+          ensureWebhookDeliveryLeaseModule(structure)
         }
 
         // signatureSecret may arrive as either a bare env-var-name string or a
@@ -543,6 +625,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
       const segments = splitIntoSegments(workflow)
       const serverSegments = segments.filter((s) => s.env === 'server')
+      const workflowGraph = { nodes: workflow.nodes || [], edges: workflow.edges || [], segments }
 
       for (const serverSeg of serverSegments) {
         hasServerSegments = true
@@ -550,9 +633,20 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         if (routeHasPolicy(workflow.protection)) {
           anyGuardedRouteEmitted = true
         }
+        const routeOptions = { trust: buildSegmentTrust(serverSeg, workflowGraph) }
         const apiContent = isStreaming
-          ? generateStreamingServerSegmentAPIRoute(serverSeg, workflow.name, workflow.protection)
-          : generateServerSegmentAPIRoute(serverSeg, workflow.name, workflow.protection)
+          ? generateStreamingServerSegmentAPIRoute(
+              serverSeg,
+              workflow.name,
+              workflow.protection,
+              routeOptions
+            )
+          : generateServerSegmentAPIRoute(
+              serverSeg,
+              workflow.name,
+              workflow.protection,
+              routeOptions
+            )
         const fileName = getAPIRouteFileName(workflow.id, serverSeg.id, workflow.name)
 
         files.set(`workflow-api-${workflow.id}-${serverSeg.id}`, {
@@ -591,7 +685,11 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
             {
               name: 'workflow-auth',
               fileType: FileType.JS,
-              content: generateWorkflowAuthHelperFile(),
+              content: generateWorkflowAuthHelperFile({
+                withSubscriberAccess:
+                  uidl.authentication?.enabled === true &&
+                  hasSubscriberOnlyPages(uidl.authentication),
+              }),
             },
           ],
         })
@@ -832,7 +930,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     )
 
     if (globalWorkflows.length > 0) {
-      const globalWorkflowCode = this.generateGlobalWorkflowsHook(globalWorkflows)
+      const globalWorkflowCode = this.generateGlobalWorkflowsHook(globalWorkflows, customNodes)
       files.set('workflow-global-hook', {
         path: ['utils', 'workflows'],
         files: [
@@ -1261,13 +1359,25 @@ ${entries}
     return map
   }
 
+  /**
+   * `emit.only`: the nodes of `custom-nodes-admin.js`, whose registry starts
+   * from the shared module's so their nested calls still resolve.
+   * `emit.exclude`: the nodes left out of the shared module. Every node is
+   * emitted when `emit` is absent. `customNodes` is always the full set, so
+   * nested lookups (segment state keys) see every node.
+   */
   private generateCustomNodesFile(
     customNodes: Record<string, any>,
-    customNodeServerUrls: Record<string, Record<string, string>>
+    customNodeServerUrls: Record<string, Record<string, string>>,
+    emit?: { only?: Set<string>; exclude?: Set<string> }
   ): string {
     const functions: string[] = []
+    const emitted = Object.keys(customNodes).filter(
+      (id) => (!emit?.only || emit.only.has(id)) && !(emit?.exclude && emit.exclude.has(id))
+    )
 
-    for (const [id, cn] of Object.entries(customNodes)) {
+    for (const id of emitted) {
+      const cn = customNodes[id]
       const safeId = id.replace(/[^a-zA-Z0-9]/g, '_')
       // SECURITY: the custom-nodes file ships to the browser (imported as
       // `utils/workflows/custom-nodes`). Redact each server node's config down
@@ -1319,6 +1429,11 @@ ${entries}
             // Every node in this segment runs fire-and-forget — dispatch it and
             // carry on instead of waiting for the database round trip.
             fireAndForget: isFireAndForgetSegment(s),
+            // The page state an inner server segment may read — the outer
+            // segment carried it this far (see segment-context-needs).
+            ...(s.env === 'server'
+              ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) }
+              : {}),
             nodes: s.nodes.map((n) => ({
               id: n.id,
               type: n.type,
@@ -1420,7 +1535,7 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
           // already moved past this point.
           __utils.registerPendingNodePromise(
             context,
-            __runtime.callServerSegment(segUrl, context).catch(function(__ffErr) {
+            __runtime.callServerSegment(segUrl, context, seg.stateKeys).catch(function(__ffErr) {
               console.error('[workflow] Segment "' + seg.id + '" failed (not awaited):', __ffErr);
             })
           );
@@ -1434,10 +1549,10 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
           continue;
         }
         if (seg.hasStreamingAI) {
-          var streamHandled = await __runtime.callStreamingServerSegment(segUrl, context, streamingInfo, nodes, edges, nodeHandlers, wfConfig, executionId);
+          var streamHandled = await __runtime.callStreamingServerSegment(segUrl, context, streamingInfo, nodes, edges, nodeHandlers, wfConfig, executionId, seg.stateKeys);
           Object.assign(handledNodeIds, streamHandled);
         } else {
-          var serverResults = await __runtime.callServerSegment(segUrl, context);
+          var serverResults = await __runtime.callServerSegment(segUrl, context, seg.stateKeys);
           __runtime.mergeServerResults(context, serverResults);
           // Propagate non-taken if-statement branches from this server
           // segment into subsequent segments. Iterate every if-statement
@@ -1581,18 +1696,25 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
       }
     }
 
-    const hasAnyServerSegments = Object.keys(customNodeServerUrls).length > 0
-    const registryEntries = Object.keys(customNodes)
+    const hasAnyServerSegments = emitted.some(
+      (id) => !!customNodeServerUrls[id] && Object.keys(customNodeServerUrls[id]).length > 0
+    )
+    const registryEntries = emitted
       .map(
         (id) => `__customNodeRegistry['${id}'] = customNode_${id.replace(/[^a-zA-Z0-9]/g, '_')};`
       )
       .join('\n')
+    const registryStart = emit?.only
+      ? `// Loaded only by the pages that call these nodes. The registry starts from
+// the shared module's, so a nested call to a shared node still resolves.
+var __customNodeRegistry = Object.assign({}, require('./custom-nodes'));`
+      : 'var __customNodeRegistry = {};'
 
     return `// Auto-generated custom workflow nodes
 var __utils = require('./runtime-utils');
 ${hasAnyServerSegments ? "var __runtime = require('./runtime');" : ''}
 
-var __customNodeRegistry = {};
+${registryStart}
 ${functions.join('\n')}
 
 ${registryEntries}
@@ -1715,12 +1837,43 @@ module.exports = __customNodeRegistry;
       ],
     })
 
+    // Subscriber-only pages: the entitlement query the middleware asks for
+    // through pages/api/auth/subscriber-access.js, and that the workflow-route
+    // guard requires directly. Emitted only when a page actually needs it.
+    if (hasSubscriberOnlyPages(auth)) {
+      files.set('auth-subscriber-access-helper', {
+        path: ['utils', 'auth'],
+        files: [
+          {
+            name: 'subscriber-access',
+            fileType: FileType.JS,
+            content: generateSubscriberAccessHelperModule({
+              productDetails: resolveProductDetailsRoute(uidl),
+              productPages: resolveCustomProductPageRoutes(uidl),
+            }),
+          },
+        ],
+      })
+      files.set('auth-subscriber-access-route', {
+        path: ['pages', 'api', 'auth'],
+        files: [
+          {
+            name: 'subscriber-access',
+            fileType: FileType.JS,
+            content: generateSubscriberAccessRoute(),
+          },
+        ],
+      })
+    }
+
     const hasProtectedRoutes =
       (auth.pageProtection && Object.keys(auth.pageProtection).length > 0) ||
       (auth.folderProtection && Object.keys(auth.folderProtection).length > 0)
 
     if (hasProtectedRoutes) {
-      const middlewareCode = generateMiddlewareFile(auth)
+      const middlewareCode = generateMiddlewareFile(auth, {
+        subscriptionFallbackRoute: resolveSubscriptionFallbackRoute(uidl),
+      })
       files.set('auth-middleware', {
         path: [],
         files: [
@@ -1853,7 +2006,7 @@ module.exports = __customNodeRegistry;
     appFile.content = content
   }
 
-  private generateGlobalWorkflowsHook(workflows: any[]): string {
+  private generateGlobalWorkflowsHook(workflows: any[], customNodes: Record<string, any>): string {
     const registrations: string[] = []
     const handlerTypes = new Set<string>()
 
@@ -1956,7 +2109,7 @@ module.exports = __customNodeRegistry;
     // handler as a bare sibling statement inside `useGlobalWorkflows()`. Two
     // DIFFERENT node types are minified independently (each in its own
     // source file), so their real declared names can coincidentally collide —
-    // e.g. state-update-local-state and payment-cancel-plan can both
+    // e.g. state-update-local-state and payment-refund can both
     // legitimately mangle down to the same short name. Declared as siblings
     // in one shared function body, the second declaration would silently
     // shadow the first, so BOTH map entries end up pointing at the SAME
@@ -2010,6 +2163,9 @@ ${workflows
           id: s.id,
           env: s.env,
           hasStreamingAI: hasStreamingAINode(s),
+          ...(s.env === 'server'
+            ? { stateKeys: collectSegmentStateKeys(s.nodes, customNodes) }
+            : {}),
           nodes: s.nodes.map((n: any) => ({
             id: n.id,
             type: n.type,
@@ -2047,9 +2203,53 @@ ${registrations.join('\n')}
   }
 }
 
-const AUTH_ENV_DEFAULTS: Record<string, string> = {
-  NEXTAUTH_URL: 'http://localhost:3000',
-  NEXTAUTH_SECRET: 'CHANGE_ME_TO_A_RANDOM_SECRET',
+/**
+ * Whether the app has routes that must tell this deployment's own server code
+ * apart from a browser: workflow steps, data routes, invoices, payment
+ * webhooks, authentication.
+ */
+const hasServerRoutes = (uidl: ProjectUIDL): boolean =>
+  Boolean(
+    uidl.authentication?.enabled ||
+      Object.keys(uidl.workflows?.workflows || {}).length > 0 ||
+      Object.keys(uidl.workflows?.customNodes || {}).length > 0 ||
+      Object.keys(uidl.dataSources || {}).length > 0 ||
+      uidl.invoiceSettings?.enabled ||
+      uidl.ecommerceSettings
+  )
+
+/**
+ * 32 random bytes as hex. NEXTAUTH_SECRET signs every session and is the app
+ * secret server code presents to its own routes, so its default must never be
+ * a value anyone can read in this file: a published constant let anyone mint
+ * an admin session, or pass as the store's own server, on any project that
+ * shipped it. The deploy worker still replaces the line with the project's
+ * persisted secret (it upserts `NEXTAUTH_SECRET=` whatever its value); this
+ * only decides what an exported or locally generated project starts with.
+ * Web Crypto where the generator runs in a browser (the editor), Node's crypto
+ * module otherwise.
+ */
+const randomSecretHex = (): string => {
+  const webCrypto = (globalThis as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } })
+    .crypto
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    const bytes = webCrypto.getRandomValues(new Uint8Array(32))
+    let hex = ''
+    for (let i = 0; i < bytes.length; i++) {
+      hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16)
+    }
+    return hex
+  }
+  // tslint:disable-next-line:no-var-requires
+  return require('crypto').randomBytes(32).toString('hex')
+}
+
+/** The literal default earlier generations wrote; the deploy worker treats it as unset. */
+const LEGACY_NEXTAUTH_SECRET = 'CHANGE_ME_TO_A_RANDOM_SECRET'
+
+const AUTH_ENV_DEFAULTS: Record<string, () => string> = {
+  NEXTAUTH_URL: () => 'http://localhost:3000',
+  NEXTAUTH_SECRET: randomSecretHex,
 }
 
 // The two stable CMS env keys (teleport-gui's CMS_ENV_URL / CMS_ENV_ACCESS_TOKEN).
@@ -2115,11 +2315,14 @@ export function resolveAuthEnvValue(
   // (or still-unresolved placeholder) auth key to its local default keeps the
   // value a valid origin; the deploy worker and the runtime request-derivation
   // (`absolutizeNextAuthUrl`) override it with the real one in production.
+  // The constant earlier generations shipped as the secret, carried over from an
+  // on-disk `.env` by the standalone harness, is no secret at all: replaced too.
+  const isPublishedSecret = key === 'NEXTAUTH_SECRET' && value === LEGACY_NEXTAUTH_SECRET
   if (
     Object.prototype.hasOwnProperty.call(AUTH_ENV_DEFAULTS, key) &&
-    (isSecretPlaceholder || isBlank)
+    (isSecretPlaceholder || isBlank || isPublishedSecret)
   ) {
-    return AUTH_ENV_DEFAULTS[key]
+    return AUTH_ENV_DEFAULTS[key]()
   }
 
   if (isSecretPlaceholder) {

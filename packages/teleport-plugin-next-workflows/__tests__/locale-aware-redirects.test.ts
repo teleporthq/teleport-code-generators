@@ -6,7 +6,6 @@ import {
   generateWebhookWorkflowAPIRoute,
 } from '../src/api-route-generator'
 import { generateClientRuntimeCode } from '../src/executor-generator'
-import { paymentChargeUser } from '../src/nodes/payment/payment-charge-user'
 import {
   WORKFLOW_UTILS_ALIAS,
   workflowUtilsAliasLine,
@@ -28,7 +27,7 @@ import { compileGeneratedMiddleware } from './_helpers/run-generated-middleware'
  */
 
 interface BrowserStub {
-  location: { href: string }
+  location: { href: string; search?: string; origin?: string }
   open: jest.Mock
   localStorage: { setItem: jest.Mock; removeItem: jest.Mock }
   dispatchEvent: jest.Mock
@@ -106,6 +105,33 @@ describe('client handlers keep the language of the run', () => {
     expect(browser.location.href).toBe('/')
   })
 
+  it('account-login and account-signup return to the same-site page sign-in was asked from', async () => {
+    ;(globalThis as any).fetch = okJson({ user: { id: 'u-1' } })
+    const signIn = async (nodeType: string, callbackUrl: string, locale: string) => {
+      browser.location = {
+        href: '',
+        origin: 'https://shop.example',
+        search: '?callbackUrl=' + encodeURIComponent(callbackUrl),
+      }
+      await loadHandler(nodeType)({ email: 'a@b.c', password: 'secret' }, { __locale: locale })
+      return browser.location.href
+    }
+
+    for (const nodeType of ['account-login', 'account-signup']) {
+      // What the middleware sends: already in the visitor's language.
+      expect(await signIn(nodeType, '/es/blog/post?page=2#comments', 'es')).toBe(
+        '/es/blog/post?page=2#comments'
+      )
+      expect(await signIn(nodeType, '/blog/post', 'en')).toBe('/blog/post')
+      expect(await signIn(nodeType, 'https://shop.example/orders', 'es')).toBe('/es/orders')
+      // Never another site: the sign-in page must not be an open redirect.
+      expect(await signIn(nodeType, 'https://evil.example/phish', 'en')).toBe('/')
+      expect(await signIn(nodeType, '//evil.example/phish', 'es')).toBe('/es')
+      expect(await signIn(nodeType, '/\\evil.example/phish', 'en')).toBe('/')
+      expect(await signIn(nodeType, 'javascript:alert(1)', 'en')).toBe('/')
+    }
+  })
+
   it('account-logout lands on the home page of the language signed out from', async () => {
     const handler: HandlerFn = loadHandler('account-logout')
     await handler({}, { __locale: 'es' })
@@ -159,32 +185,23 @@ describe('payment-charge-user returns the buyer to the language of the checkout'
     unbindWorkflowUtils()
   })
 
-  const source = paymentChargeUser.generateHandler()
-  // The entry and the helpers up to the real absolutizer; the provider calls
-  // are stubbed to capture the URLs they were handed.
-  const entrySource = source.slice(
-    source.indexOf('async function payment_charge_user'),
-    source.indexOf('function toStripeMinorUnits')
-  )
-
+  // The provider is a stub driver that captures the URLs it was handed.
   const charge = async (
     config: Record<string, unknown>,
     context: Record<string, unknown>
   ): Promise<Record<string, unknown>> => {
-    const capture = async (
-      _config: unknown,
-      _currency: unknown,
-      _amount: unknown,
-      successUrl: string,
-      cancelUrl: string
-    ) => ({ successUrl, cancelUrl })
-    // eslint-disable-next-line no-new-func
-    const factory = new Function(
-      'chargeWithStripe',
-      'chargeWithPaypal',
-      `${entrySource}\nreturn payment_charge_user;`
-    )
-    return factory(capture, capture)(config, context)
+    let captured: Record<string, unknown> = {}
+    const driver = {
+      createCheckout: async (input: { successUrl: string; cancelUrl: string }) => {
+        captured = { successUrl: input.successUrl, cancelUrl: input.cancelUrl }
+        return { checkoutUrl: 'https://pay.test/session', sessionId: 's' }
+      },
+    }
+    const handler = loadHandler('payment-charge-user', {
+      paymentDrivers: { get: () => driver, ids: ['stripe'], core: {} },
+    })
+    await handler({ providerId: 'stripe', ...config }, context)
+    return captured
   }
 
   it('prefixes site-relative return paths with the run locale before absolutizing', async () => {
@@ -198,7 +215,7 @@ describe('payment-charge-user returns the buyer to the language of the checkout'
     })
   })
 
-  it('keeps the bare paths for the default language and an external override untouched', async () => {
+  it('keeps the bare paths for the default language, and never returns the buyer to another site', async () => {
     expect(
       await charge(
         { successUrl: '/orders/ORD-42', cancelUrl: 'https://pay.example/back', amount: 10 },
@@ -206,8 +223,20 @@ describe('payment-charge-user returns the buyer to the language of the checkout'
       )
     ).toEqual({
       successUrl: 'https://shop.test/orders/ORD-42',
-      cancelUrl: 'https://pay.example/back',
+      cancelUrl: 'https://shop.test/',
     })
+    for (const hostile of [
+      '//evil.test/x',
+      'javascript:alert(1)',
+      'https://shop.test.evil.test/',
+      'https://shop.test@evil.test/',
+    ]) {
+      const { successUrl } = await charge(
+        { successUrl: hostile, cancelUrl: '/checkout', amount: 10 },
+        { __baseUrl: 'https://shop.test' }
+      )
+      expect(new URL(String(successUrl)).origin).toBe('https://shop.test')
+    }
     expect(
       await charge({ successUrl: '/orders/ORD-42', amount: 10 }, { __baseUrl: 'https://shop.test' })
     ).toMatchObject({ successUrl: 'https://shop.test/orders/ORD-42' })

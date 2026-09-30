@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
 import { ChunkType, ComponentPlugin, ComponentPluginFactory } from '@teleporthq/teleport-types'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const SKIP_WALK_KEYS = new Set([
   'loc',
@@ -64,7 +65,9 @@ function stripRevalidateFromReturns(node: unknown): void {
  * pages that read one specific row AND have a same-page workflow that
  * writes to that same table (see `pageHasSameTableMutationWorkflow`'s doc in
  * that package for why this is a data-correctness signal, independent of
- * the project's visual nav layout).
+ * the project's visual nav layout) — and for every page that reads a money
+ * table (`pageReadsProtectedTable`), whose getStaticProps chunk is usually
+ * created by the data-source or pagination plugin, which never tag it.
  *
  * Every OTHER page plugin that fetches data (inline-fetch, data-source,
  * pagination, state-data-source, locale-fetcher) finds / merges additional
@@ -83,9 +86,12 @@ export const createEntityMutationSsrFinalizerPlugin: ComponentPluginFactory<
   Record<string, never>
 > = () => {
   const entityMutationSsrFinalizerPlugin: ComponentPlugin = async (structure) => {
-    const { chunks } = structure
+    const { chunks, uidl } = structure
+    const rendersPerRequest = RouteUtils.pageReadsProtectedTable(uidl)
     const getStaticPropsChunk = chunks.find(
-      (chunk) => chunk.name === 'getStaticProps' && chunk.meta?.useServerSideProps === true
+      (chunk) =>
+        chunk.name === 'getStaticProps' &&
+        (chunk.meta?.useServerSideProps === true || rendersPerRequest)
     )
     if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
       return structure

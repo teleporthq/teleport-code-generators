@@ -10,6 +10,7 @@ async function data_create_item(config: any, context: any) {
   // Vercel Deployment Protection 401s its own request and this node silently
   // returns nothing.
   const __internalHeaders = (context && context.__internalHeaders) || {}
+  const __env = (globalThis as any).process && (globalThis as any).process.env
 
   // An unresolved route-param sentinel (see resolveTemplateTokenString in
   // runtime-utils) in a columnMapping degrades to null so the INSERT itself
@@ -123,7 +124,14 @@ async function data_create_item(config: any, context: any) {
     }
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        // Trusted internal server-side call — lets the /api/data guard tell this
+        // apart from a direct browser request, which may neither read the
+        // gift-card tables nor write the voucher and discount tables.
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
+      },
       body: JSON.stringify(reqBody),
     })
 
@@ -214,6 +222,10 @@ async function data_create_item(config: any, context: any) {
       //
       // The product + variant ids ride along so the endpoint can price each
       // line at the rate the order's tax breakdown recorded for it.
+      //
+      // So does the short label of the product options the line was bought
+      // with ('' without options): the endpoint shows a caller's lines with
+      // that label, and without it the merchant never learns what to make.
       const orderCurrency = item.currency || ''
       const normalisedItems = cartItems.map(function (it: any) {
         const unitPrice = Number(it.unitPrice != null ? it.unitPrice : it.price) || 0
@@ -236,6 +248,8 @@ async function data_create_item(config: any, context: any) {
           image_url: imageUrl,
           product_id: it.productId || it.product_id || '',
           variant_id: it.variantId || it.variant_id || '',
+          configurationLabel:
+            typeof it.configurationLabel === 'string' ? it.configurationLabel.slice(0, 500) : '',
         }
       })
 

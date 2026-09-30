@@ -158,23 +158,73 @@ describe('handleRawQuery — wires the auto-fire correctly', () => {
     expect(fireFn).toContain('.catch(function(err)')
   })
 
-  it('prefers the live request host, then falls back to NEXTAUTH_URL / VERCEL_URL', () => {
-    // Request host wins because NEXTAUTH_URL is a common source of
-    // dev foot-guns (stuck at :3000 while the actual dev server
-    // is on :3001 — the symptom is a silent "fetch failed" from
-    // the fire-and-forget call). Env vars cover the rare
-    // serverless background-work case where the request context
-    // isn't visible.
-    const resolveFn = extractFn(code, 'function resolveSelfBaseUrl')
-    expect(resolveFn).toContain('req && req.headers && req.headers.host')
-    expect(resolveFn).toContain('process.env.NEXTAUTH_URL')
-    expect(resolveFn).toContain('process.env.VERCEL_URL')
-    // Order matters: req.headers.host check must appear BEFORE
-    // the env var checks.
-    const hostIdx = resolveFn.indexOf('req.headers.host')
-    const envIdx = resolveFn.indexOf('process.env.NEXTAUTH_URL')
-    expect(hostIdx).toBeGreaterThan(0)
-    expect(envIdx).toBeGreaterThan(hostIdx)
+  it("posts to the store's own origin, never to a host the request named", () => {
+    // Outside Vercel the Host header is whatever the caller sent, and the POST
+    // carries the store's stock levels: it goes to NEXTAUTH_URL's origin, the
+    // rule of the server runtime's trustedBaseUrl. A local dev server on another
+    // port than a local NEXTAUTH_URL (stuck at :3000 while `next dev` runs on
+    // :3001) keeps its own address; on Vercel the routed host is the store's.
+    const resolveFn =
+      extractFn(code, 'function isLoopbackHost') +
+      '\n' +
+      extractFn(code, 'function resolveSelfBaseUrl')
+    const resolveWith = (env: Record<string, string>, headers: Record<string, string> | null) =>
+      // tslint:disable-next-line:function-constructor
+      new Function('process', 'req', `${resolveFn}\nreturn resolveSelfBaseUrl(req);`)(
+        { env },
+        headers ? { headers } : null
+      )
+
+    const shop = { NEXTAUTH_URL: 'https://shop.example/some/path' }
+    expect(resolveWith(shop, { host: 'evil.test' })).toBe('https://shop.example')
+    expect(resolveWith(shop, { host: 'evil.test', 'x-forwarded-proto': 'http' })).toBe(
+      'https://shop.example'
+    )
+    expect(resolveWith({ ...shop, VERCEL: '1' }, { host: 'shop.vercel.app' })).toBe(
+      'https://shop.vercel.app'
+    )
+    expect(resolveWith({ NEXTAUTH_URL: 'http://localhost:3000' }, { host: 'localhost:3001' })).toBe(
+      'http://localhost:3001'
+    )
+    expect(resolveWith({}, { host: 'localhost:3001' })).toBe('http://localhost:3001')
+    // No request context: the configured origins, as before.
+    expect(resolveWith(shop, null)).toBe('https://shop.example/some/path')
+    expect(resolveWith({ VERCEL_URL: 'shop.vercel.app' }, null)).toBe('https://shop.vercel.app')
+  })
+
+  it('presents the app secret to the alert route, on the store origin', () => {
+    // The alert route emails the merchant only for the store's own server code.
+    const fireFn = [
+      'function isLoopbackHost',
+      'function resolveSelfBaseUrl',
+      'function fireAndForgetLowStockAlert',
+    ]
+      .map((decl) => extractFn(code, decl))
+      .join('\n')
+    const calls: Array<{ url: string; headers: Record<string, string> }> = []
+    const fetchImpl = (url: string, init: { headers: Record<string, string> }) => {
+      calls.push({ url, headers: init.headers })
+      return Promise.resolve({ ok: true })
+    }
+    // tslint:disable-next-line:function-constructor
+    new Function(
+      'process',
+      'fetch',
+      'console',
+      'LOW_STOCK_ALERTS_ENABLED',
+      `${fireFn}\nfireAndForgetLowStockAlert({ headers: { host: 'evil.test' } }, [{ id: 'p1', name: 'Mug', quantity: 1 }], 5);`
+    )(
+      { env: { NEXTAUTH_SECRET: 'app-secret', NEXTAUTH_URL: 'https://shop.example' } },
+      fetchImpl,
+      { log: () => undefined, warn: () => undefined, error: () => undefined },
+      true
+    )
+    expect(calls).toEqual([
+      {
+        url: 'https://shop.example/api/ecommerce/low-stock-alert',
+        headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': 'app-secret' },
+      },
+    ])
   })
 
   it('skips the auto-fire when LOW_STOCK_ALERTS_ENABLED is false (no flag, no detection cost)', () => {

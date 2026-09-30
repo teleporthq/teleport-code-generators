@@ -1,5 +1,6 @@
 import {
   UIDLWorkflow,
+  UIDLWorkflows,
   UIDLWorkflowNode,
   UIDLWorkflowEdge,
   UIDLWebhookConfig,
@@ -7,12 +8,14 @@ import {
   UIDLWorkflowProtection,
 } from '@teleporthq/teleport-types'
 import { WorkflowSegment } from './types'
+import { SegmentTrust } from './segment-trust'
 import { nodeRegistry } from './nodes'
 import { resolveHandlerEntryName } from './nodes/types'
 import { AI_NODE_TYPES } from './graph-utils'
 import {
-  generateGetRawBodyCode,
+  generateWebhookBodyCode,
   generateAllSignatureVerificationCode,
+  generatePaymentWebhookVerificationCode,
 } from './webhook-signature-verification'
 import { buildWorkflowAuthInjection } from './workflow-auth-generator'
 import {
@@ -20,6 +23,20 @@ import {
   isEmailSendingNodeType,
 } from './sent-email-log/sent-email-log-scope'
 import { workflowUtilsAliasLine } from './workflow-utils-alias'
+import { adminCustomNodesRequireLine } from './custom-node-modules'
+import {
+  generatePaymentDriversPreamble,
+  isPaymentWebhookConfig,
+  readWebhookPaymentProvider,
+} from './payments'
+import { usesPaymentDriverNode } from './payments/payment-drivers-scope'
+import { generateCartPricingPreamble } from './cart-pricing-preamble'
+import {
+  WEBHOOK_DELIVERY_LEASE_FILE_NAME,
+  WEBHOOK_DELIVERY_LEASE_PATH,
+  WEBHOOK_DELIVERY_RETRY_AFTER_SECONDS,
+} from './webhook-delivery-lease/webhook-delivery-lease-scope'
+import { generateCronRequestVerificationCode } from './cron-request-verification'
 
 // Workflow/segment names, cron schedules, and webhook paths are free-form
 // UIDL data — never guaranteed not to contain `*/`. Every generated route
@@ -32,18 +49,35 @@ import { workflowUtilsAliasLine } from './workflow-utils-alias'
 // intact; this is purely cosmetic (header text only, never evaluated).
 const sanitizeForBlockComment = (value: string): string => value.replace(/\*\//g, '* /')
 
-export const generateServerSegmentAPIRoute = (
-  segment: WorkflowSegment,
-  workflowName?: string,
-  protection?: UIDLWorkflowProtection
-): string => {
-  const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
-  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
-  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
-  const auth = buildWorkflowAuthInjection(protection)
+/**
+ * Where a server segment's branches can begin: a node with a predecessor
+ * outside the segment, or with none at all. The splitter computes it over the
+ * whole workflow; a segment built without it falls back to the nodes nothing
+ * inside the segment leads to.
+ */
+const resolveSegmentEntryNodeIds = (segment: WorkflowSegment): string[] => {
+  if (segment.entryNodeIds) {
+    return segment.entryNodeIds
+  }
+  const targets = new Set(segment.edges.map((e) => e.target))
+  return segment.nodes.filter((n) => !targets.has(n.id)).map((n) => n.id)
+}
 
-  const segmentConfig = JSON.stringify(
+export interface ServerSegmentRouteOptions {
+  /** A custom node's inner node ids, in the order its runner lists them. */
+  customNodeIds?: string[]
+  /**
+   * What the route may believe about results earlier segments of the same
+   * graph hand it (see segment-trust.ts). Every route the project plugin
+   * emits carries it.
+   */
+  trust?: SegmentTrust
+}
+
+const buildSegmentConfig = (segment: WorkflowSegment, options: ServerSegmentRouteOptions): string =>
+  JSON.stringify(
     {
+      ...(options.trust || {}),
       nodes: segment.nodes.map((n) => ({
         id: n.id,
         type: n.type,
@@ -59,10 +93,25 @@ export const generateServerSegmentAPIRoute = (
         targetHandle: e.targetHandle,
         data: e.data,
       })),
+      entryNodeIds: resolveSegmentEntryNodeIds(segment),
+      ...(options.customNodeIds ? { customNodeIds: options.customNodeIds } : {}),
     },
     null,
     2
   )
+
+export const generateServerSegmentAPIRoute = (
+  segment: WorkflowSegment,
+  workflowName?: string,
+  protection?: UIDLWorkflowProtection,
+  options: ServerSegmentRouteOptions = {}
+): string => {
+  const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
+  const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
+  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
+  const auth = buildWorkflowAuthInjection(protection)
+
+  const segmentConfig = buildSegmentConfig(segment, options)
 
   const header = workflowName
     ? `/**
@@ -85,7 +134,10 @@ export const generateServerSegmentAPIRoute = (
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
 ${workflowUtilsAliasLine('utils')}
-${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
+${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogPreamble(
+    usedNodeTypes,
+    '../../..'
+  )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -103,15 +155,20 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const incomingContext = body.context || {};
+    // What the caller already holds, so the reply below carries only what this
+    // run produced or changed (see segmentReply in runtime-utils).
+    const __incomingSnapshot = utils.snapshotIncomingContext(incomingContext);
 
     const context = Object.assign({}, incomingContext);
+    utils.claimSegmentContext(SEGMENT_CONFIG, context);
     __wfContext = context;
     // Created eagerly so a custom node invoked from here shares the SAME
     // fire-and-forget queue (it shallow-copies this context) and its queries
     // are drained by the settle below rather than being lost when we reply.
     context.__pendingNodePromises = [];${requestInjection}
-    var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Where this deployment calls its own routes — never a host the request
+    // named (see trustedBaseUrl in the server runtime).
+    context.__baseUrl = utils.trustedBaseUrl(req);
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
@@ -216,7 +273,7 @@ module.exports = async function handler(req, res) {
         context.__loopNodeIds[node.id] = true;
 
         for (var li = 0; li < collection.length; li++) {
-          context[node.id] = { currentItem: collection[li], currentIndex: li, iterations: li + 1 };
+          context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
@@ -407,7 +464,7 @@ module.exports = async function handler(req, res) {
     // response body would hand the session token to any script on the page,
     // undoing the httpOnly flag it was set with.
     delete context.__internalHeaders;
-    res.status(200).json({ success: true, results: context });
+    res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });
   } catch (error) {
     console.error('Workflow segment error:', error);
     if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
@@ -424,34 +481,15 @@ export const hasStreamingAINode = (segment: WorkflowSegment): boolean => {
 export const generateStreamingServerSegmentAPIRoute = (
   segment: WorkflowSegment,
   workflowName?: string,
-  protection?: UIDLWorkflowProtection
+  protection?: UIDLWorkflowProtection,
+  options: ServerSegmentRouteOptions = {}
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
   const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
   const auth = buildWorkflowAuthInjection(protection)
 
-  const segmentConfig = JSON.stringify(
-    {
-      nodes: segment.nodes.map((n) => ({
-        id: n.id,
-        type: n.type,
-        config: n.config,
-        stepNumber: n.stepNumber,
-        label: n.label,
-      })),
-      edges: segment.edges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle,
-        data: e.data,
-      })),
-    },
-    null,
-    2
-  )
+  const segmentConfig = buildSegmentConfig(segment, options)
 
   const aiNodeTypes = JSON.stringify(Array.from(AI_NODE_TYPES))
 
@@ -471,7 +509,10 @@ export const generateStreamingServerSegmentAPIRoute = (
 const utils = require('../../../utils/workflows/server-runtime');
 ${auth.requireLine}const resolveConfig = utils.resolveConfig;
 ${workflowUtilsAliasLine('utils')}
-${generateSentEmailLogPreamble(usedNodeTypes, '../../..')}
+${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogPreamble(
+    usedNodeTypes,
+    '../../..'
+  )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -525,11 +566,15 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const context = Object.assign({}, body.context || {});
+    // See the non-streaming segment route: the reply carries only what changed.
+    const __incomingSnapshot = utils.snapshotIncomingContext(body.context || {});
+    utils.claimSegmentContext(SEGMENT_CONFIG, context);
     __wfContext = context;
     // See the non-streaming segment route — shared queue for nested custom nodes.
     context.__pendingNodePromises = [];${requestInjection}
-    var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Where this deployment calls its own routes — never a host the request
+    // named (see trustedBaseUrl in the server runtime).
+    context.__baseUrl = utils.trustedBaseUrl(req);
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
@@ -594,7 +639,7 @@ module.exports = async function handler(req, res) {
         if (!context.__loopNodeIds) context.__loopNodeIds = {};
         context.__loopNodeIds[node.id] = true;
         for (var ssli = 0; ssli < ssLoopCollection.length; ssli++) {
-          context[node.id] = { currentItem: ssLoopCollection[ssli], currentIndex: ssli, iterations: ssli + 1 };
+          context[node.id] = utils.loopIterationContext(ssLoopCollection, ssli);
           for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
             var ssbNode = ssBodyNodes[ssbi];
             var ssbRes = resolveConfig(ssbNode.config, context);
@@ -855,11 +900,12 @@ module.exports = async function handler(req, res) {
     // response body would hand the session token to any script on the page,
     // undoing the httpOnly flag it was set with.
     delete context.__internalHeaders;
+    const __reply = utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot);
     if (streamStarted) {
-      res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: context }) + '\\n\\n');
+      res.write('data: ' + JSON.stringify({ type: 'done', success: true, results: __reply }) + '\\n\\n');
       res.end();
     } else {
-      res.status(200).json({ success: true, results: context });
+      res.status(200).json({ success: true, results: __reply });
     }
   } catch (error) {
     console.error('Streaming workflow segment error:', error);
@@ -905,7 +951,7 @@ const generateClientOnlyServerStub = (nodeType: string): string => {
 //      ACTUALLY declares instead.
 //   2. Two DIFFERENT node types are minified independently (each in its own
 //      source file), so their real declared names can coincidentally
-//      collide — e.g. state-update-local-state and payment-cancel-plan can
+//      collide — e.g. state-update-local-state and payment-refund can
 //      both legitimately mangle down to the same short name. Declared as
 //      bare siblings in one shared scope, the second declaration would
 //      silently shadow the first, so BOTH map entries end up pointing at the
@@ -1010,6 +1056,8 @@ const CLIENT_ONLY_NODES = new Set([
   'browser-write-clipboard',
   'browser-show-notification',
   'browser-subscribe-to-push',
+  'browser-unsubscribe-from-push',
+  'browser-get-push-subscription',
   'browser-share',
   'browser-get-device-info',
   'browser-get-network-status',
@@ -1068,7 +1116,11 @@ export const generateCronAPIRoute = (
 
   // Cron routes live at pages/api/workflows/<file>.js → three levels up to root.
   const customNodesImport = useCustomNodes
-    ? `var __customNodes;\ntry { __customNodes = require('../../../utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n`
+    ? `var __customNodes;\ntry { __customNodes = require('../../../utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n${adminCustomNodesRequireLine(
+        serverNodes,
+        customNodes,
+        '../../..'
+      )}`
     : ''
 
   // Reuse the shared execution loop (the same one webhook routes use) so cron
@@ -1088,7 +1140,15 @@ export const generateCronAPIRoute = (
 const utils = require('../../../utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 ${workflowUtilsAliasLine('utils')}
-${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, '../../..')}
+${customNodesImport}${generateCartPricingPreamble(
+    allNodeTypes,
+    '../../..'
+  )}${generateSentEmailLogPreamble(allNodeTypes, '../../..')}${generatePaymentDriversPreamble(
+    usesPaymentDriverNode(allNodeTypes),
+    '../../..'
+  )}
+${generateCronRequestVerificationCode()}
+
 const WORKFLOW_CONFIG = ${workflowConfig};
 
 const nodeHandlers = {
@@ -1098,6 +1158,10 @@ ${nodeHandlersEntries}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!verifyCronRequest(req)) {
+    res.status(401).json({ error: 'Unauthorized' });
     return;
   }
   // Kept outside the try so the catch below can still drain any fire-and-forget
@@ -1112,6 +1176,15 @@ module.exports = async function handler(req, res) {
     // Shared fire-and-forget queue (see the segment routes) — drained by the
     // execution loop before this route responds.
     context.__pendingNodePromises = [];
+    // The store's origin, as crons-worker requested it — custom scripts read
+    // it as \`runtime.baseUrl\` instead of touching the environment themselves.
+    // Where this deployment calls its own routes — never a host the request
+    // named (see trustedBaseUrl in the server runtime).
+    context.__baseUrl = utils.trustedBaseUrl(req);
+    // Credentials for this deployment's calls to its own /api/data routes —
+    // without them a protected deployment 401s itself and every data node
+    // returns no rows. See internalRequestHeaders in runtime-utils.
+    context.__internalHeaders = utils.internalRequestHeaders(req);
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;${requestInjection}
 
 ${executionLoop}
@@ -1150,7 +1223,12 @@ export const getAPIRouteFileName = (
     // producing an empty detail panel because the merged context never
     // contains the expected node id.
     const idSuffix = sanitizeFileName(workflowId).toLowerCase().slice(0, 8)
-    return `${safeName}-${idSuffix}-seg-${sanitizeFileName(segmentId).slice(0, 8)}`
+    // The segment id is short (`server-N`) and must stay whole: an 8-char cap
+    // spelled `server-10`, `server-11` and `server-12` as `server-1`, so a
+    // workflow with ten or more server segments wrote its last segment over
+    // its first and the client's URL map sent the first call to the wrong
+    // route — a checkout that charged the buyer before validating the cart.
+    return `${safeName}-${idSuffix}-seg-${sanitizeFileName(segmentId)}`
   }
   return `wf-${sanitizeFileName(workflowId)}-${sanitizeFileName(segmentId)}`
 }
@@ -1188,6 +1266,16 @@ const generateNodeExecutionLoop = (
         }
         continue;
       }`
+    : ''
+  // A custom node inside a loop body runs once per item, exactly as a
+  // top-level one does: its handler only hands back the marker.
+  const loopBodyCustomNodeBlock = options?.hasCustomNodes
+    ? `
+            if (bResult && bResult.__customNode) {
+              var bcnFn = typeof __customNodes !== 'undefined' ? __customNodes[bResult.customNodeId] : null;
+              context[bNode.id] = bcnFn ? await bcnFn(context, bResult.parameters, nodeHandlers) : null;
+              continue;
+            }`
     : ''
 
   return `    var sortedNodes = ${configVar}.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
@@ -1265,7 +1353,7 @@ const generateNodeExecutionLoop = (
         context.__loopNodeIds[node.id] = true;
 
         for (var li = 0; li < collection.length; li++) {
-          context[node.id] = { currentItem: collection[li], currentIndex: li, iterations: li + 1 };
+          context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveConfig(bNode.config, context);
@@ -1281,7 +1369,7 @@ const generateNodeExecutionLoop = (
               context[bNode.id] = null;
               continue;
             }
-            var bResult = await bHandler(bResolved, context);
+            var bResult = await bHandler(bResolved, context);${loopBodyCustomNodeBlock}
             if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
               throw new Error(bResult.error || 'Loop body node execution failed');
             }
@@ -1517,12 +1605,27 @@ export const generateWebhookWorkflowAPIRoute = (
     ),
   }
 
+  // A payment webhook ALWAYS verifies, through the store's driver for its
+  // provider, whatever an older stored trigger said (see
+  // readWebhookPaymentProvider): unverified, it would mark orders paid on
+  // any request.
+  // A trigger set to verify through a payment driver is a payment webhook
+  // even when no known provider can be read from it: it still verifies, and
+  // with no driver to verify through it refuses every request.
+  const paymentProvider = readWebhookPaymentProvider(webhookConfig)
+  const isPaymentWebhook = isPaymentWebhookConfig(webhookConfig)
+  if (isPaymentWebhook) {
+    normalisedWebhookConfig.verifySignature = true
+    normalisedWebhookConfig.signatureAlgorithm = 'payment-driver'
+    normalisedWebhookConfig.paymentProvider = paymentProvider || ''
+  }
   const webhookConfigJson = JSON.stringify(normalisedWebhookConfig, null, 2)
-  const needsSignatureVerification = webhookConfig.verifySignature
-  const signatureVerificationCode = needsSignatureVerification
+  const signatureVerificationCode = isPaymentWebhook
+    ? generatePaymentWebhookVerificationCode()
+    : normalisedWebhookConfig.verifySignature
     ? generateAllSignatureVerificationCode()
     : ''
-  const getRawBodyCode = generateGetRawBodyCode()
+  const webhookBodyCode = generateWebhookBodyCode()
 
   const errorHandlerNodes = workflow.errorHandler ? getErrorHandlerNodes(workflow) : null
   const errorHandlerNodesJson = errorHandlerNodes
@@ -1531,10 +1634,15 @@ export const generateWebhookWorkflowAPIRoute = (
 
   const routePath = getWebhookRoutePath(workflow)
   const relativePrefix = routePath.map(() => '..').join('/')
+  const deliveryLease = generateWebhookDeliveryLeaseBlocks(isPaymentWebhook, relativePrefix)
 
   const customNodesImport =
     hasCustomNodeUsage && hasCustomNodeDefs
-      ? `var __customNodes;\ntry { __customNodes = require('${relativePrefix}/utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n`
+      ? `var __customNodes;\ntry { __customNodes = require('${relativePrefix}/utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n${adminCustomNodesRequireLine(
+          serverNodes,
+          customNodes,
+          relativePrefix
+        )}`
       : ''
 
   const requestInjection = hasRateLimiter
@@ -1558,8 +1666,14 @@ if (typeof globalThis.fetch === 'undefined') {
 const utils = require('${relativePrefix}/utils/workflows/server-runtime');
 const resolveConfig = utils.resolveConfig;
 ${workflowUtilsAliasLine('utils')}
-${customNodesImport}${generateSentEmailLogPreamble(allNodeTypes, relativePrefix)}
-${getRawBodyCode}
+${customNodesImport}${generateCartPricingPreamble(
+    allNodeTypes,
+    relativePrefix
+  )}${generateSentEmailLogPreamble(allNodeTypes, relativePrefix)}${generatePaymentDriversPreamble(
+    usesPaymentDriverNode(allNodeTypes) || isPaymentWebhook,
+    relativePrefix
+  )}${deliveryLease.preamble}
+${webhookBodyCode}
 
 ${signatureVerificationCode}
 
@@ -1580,14 +1694,13 @@ module.exports = async function handler(req, res) {
   }
 
 ${generateExpectedHeadersCheck(webhookConfig)}
-
+${deliveryLease.declare}
   try {
     var rawBody = await getRawBody(req);
-    var body;
-    try { body = JSON.parse(rawBody.toString('utf-8')); } catch (_e) { body = {}; }
+    var body = parseWebhookBody(req, rawBody);
 
     var isSignatureValid = true;
-${generateSignatureVerificationBlock(webhookConfig)}
+${generateSignatureVerificationBlock(normalisedWebhookConfig)}${deliveryLease.claim}
 
     var triggerContext = {
       headers: req.headers,
@@ -1603,15 +1716,16 @@ ${generateSignatureVerificationBlock(webhookConfig)}
     // execution loop before this route responds.
     context.__pendingNodePromises = [];
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;
-    var __proto = req.headers['x-forwarded-proto'] || (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-    context.__baseUrl = __proto + '://' + req.headers.host;
+    // Where this deployment calls its own routes — never a host the request
+    // named (see trustedBaseUrl in the server runtime).
+    context.__baseUrl = utils.trustedBaseUrl(req);
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
     context.__internalHeaders = utils.internalRequestHeaders(req);${requestInjection}
 
 ${executionLoop}
-
+${deliveryLease.release}
     res.status(200).json({ received: true });
   } catch (error) {
     console.error('Webhook workflow error:', error);
@@ -1646,7 +1760,9 @@ ${executionLoop}
     }
     // Land whatever the main run started (an email's ledger row, a
     // fire-and-forget write) before replying — see the segment routes.
-    if (typeof context !== 'undefined' && context) { await utils.settlePendingNodePromises(context); }
+    if (typeof context !== 'undefined' && context) { await utils.settlePendingNodePromises(context); }${
+      deliveryLease.release
+    }
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 };
@@ -1672,6 +1788,27 @@ export const getWebhookRouteFileName = (workflow: UIDLWorkflow): string => {
     return `webhook-${safeName}`
   }
   return `webhook-${sanitizeFileName(workflow.id)}`
+}
+
+/**
+ * The address the store serves a provider's payment webhook at
+ * (`/api/webhooks/paypal-payment`), or null when no workflow receives it.
+ */
+export const findPaymentWebhookRouteUrl = (
+  workflows: UIDLWorkflows | undefined,
+  providerId: string
+): string | null => {
+  for (const workflow of Object.values(workflows?.workflows || {})) {
+    if (
+      workflow?.trigger?.type === 'event-webhook-received' &&
+      workflow.webhookConfig &&
+      readWebhookPaymentProvider(workflow.webhookConfig) === providerId
+    ) {
+      const directory = getWebhookRoutePath(workflow).slice(1)
+      return `/${[...directory, getWebhookRouteFileName(workflow)].join('/')}`
+    }
+  }
+  return null
 }
 
 export const getWebhookRoutePath = (workflow: UIDLWorkflow): string[] => {
@@ -1757,9 +1894,59 @@ function generateExpectedHeadersCheck(webhookConfig: UIDLWebhookConfig): string 
   return checks.join('\n')
 }
 
+/**
+ * The payment webhook route's delivery lease (see webhook-delivery-lease):
+ * the verified delivery claims its body, a twin that arrives while it runs is
+ * told to come back (503 + Retry-After), and the claim is released before the
+ * route replies. Every block is empty on any other webhook, which keeps those
+ * routes byte-identical.
+ */
+function generateWebhookDeliveryLeaseBlocks(
+  isPaymentWebhook: boolean,
+  relativePrefix: string
+): { preamble: string; declare: string; claim: string; release: string } {
+  if (!isPaymentWebhook) {
+    return { preamble: '', declare: '', claim: '', release: '' }
+  }
+  return {
+    preamble: `
+var __webhookDeliveryLease = null;
+try { __webhookDeliveryLease = require('${relativePrefix}/${WEBHOOK_DELIVERY_LEASE_PATH.join(
+      '/'
+    )}/${WEBHOOK_DELIVERY_LEASE_FILE_NAME}'); } catch (_e) { __webhookDeliveryLease = null; }`,
+    declare: `  // Released before every reply below, so a twin delivery is never turned away for long.
+  var __delivery = null;
+`,
+    claim: `
+    // One run per delivery at a time: a provider re-delivers what it did not
+    // see answered in time, and two runs side by side can both pass a check.
+    __delivery = __webhookDeliveryLease
+      ? await __webhookDeliveryLease.claimWebhookDelivery(WEBHOOK_CONFIG.urlPath, rawBody, body)
+      : null;
+    if (__delivery && !__delivery.claimed) {
+      __delivery = null;
+      res.setHeader('Retry-After', '${WEBHOOK_DELIVERY_RETRY_AFTER_SECONDS}');
+      res.status(503).json({ error: 'This delivery is already being processed' });
+      return;
+    }`,
+    release: `
+    if (__delivery) { await __delivery.release(); __delivery = null; }`,
+  }
+}
+
 function generateSignatureVerificationBlock(webhookConfig: UIDLWebhookConfig): string {
   if (!webhookConfig.verifySignature) {
     return ''
+  }
+  if (webhookConfig.signatureAlgorithm === 'payment-driver') {
+    // A provider outage asks the provider to deliver again (503); anything
+    // else is a refusal it should not retry.
+    return `    var paymentVerification = await verifyPaymentWebhook(req, rawBody, body, WEBHOOK_CONFIG);
+    if (!paymentVerification.ok) {
+      res.status(paymentVerification.retry ? 503 : 401).json({ error: paymentVerification.retry ? 'The payment could not be verified yet' : 'Invalid signature' });
+      return;
+    }
+    body = paymentVerification.body;`
   }
   return `    isSignatureValid = await verifyWebhookSignature(req, rawBody, WEBHOOK_CONFIG);
     if (!isSignatureValid) {

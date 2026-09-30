@@ -21,6 +21,7 @@ async function data_select(config: any, context: any) {
   // Vercel Deployment Protection 401s its own request and this node silently
   // returns nothing.
   const __internalHeaders = (context && context.__internalHeaders) || {}
+  const __env = (globalThis as any).process && (globalThis as any).process.env
 
   function isEmptyFilterValue(value: any) {
     if (value === undefined || value === null) return true
@@ -102,7 +103,14 @@ async function data_select(config: any, context: any) {
 
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/select', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        // Trusted internal server-side call — lets the /api/data guard tell this
+        // apart from a direct browser request, which may neither read the
+        // gift-card tables nor write the voucher and discount tables.
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
+      },
       body: JSON.stringify(payload),
     })
 

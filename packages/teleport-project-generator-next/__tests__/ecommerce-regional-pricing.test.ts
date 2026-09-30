@@ -71,7 +71,8 @@ describe('EcommerceProvider — regional pricing is opt-in', () => {
     const legacy = generateEcommerceContextFileContent(baseSettings(), INVOICE, 'ds-1')
     expect(legacy).not.toContain('__rpQuote')
     expect(legacy).not.toContain('teleport_shipping_zones')
-    expect(legacy).not.toContain('weightUnit')
+    // Lines are priced without the weight only the regional rates read.
+    expect(legacy).toContain('__clPriceLine(item, product, variant, Date.now(), false)')
     // The checkout's regional surfaces still resolve, to "nothing to show".
     expect(legacy).toContain("shippingOptionsVisible: 'false'")
     expect(legacy).toContain("shippingStatus: 'ok'")
@@ -122,14 +123,17 @@ describe('EcommerceProvider — regional pricing emitted module', () => {
     )
   })
 
-  it('stamps weight and categories onto hydrated cart lines', () => {
-    expect(source).toContain('weightUnit: product.weight_unit || null')
+  it('stamps weight onto hydrated cart lines, beside the categories every store stamps', () => {
+    expect(source).toContain('__clPriceLine(item, product, variant, Date.now(), true)')
+    expect(source).toContain('priced.weightUnit = product.weight_unit || null;')
+    // Categories are the discount engine's too, so they are stamped through
+    // its parser on every store — the regional block no longer owns them.
     expect(source).toContain(
-      'categoryIds: __rpStringArray(product.category_filter_ids || product.category_ids).map(String)'
+      'categoryIds: __deStringArray(product.category_filter_ids || product.category_ids)'
     )
   })
 
-  it('prices the voucher against lines already grossed in the destination tax', () => {
+  it('prices the discounts against lines already grossed in the destination tax', () => {
     expect(source).toContain('regionalVoucherItems(regionalQuote, cartItems)')
     expect(source).not.toContain('        STOREFRONT_TAX_RATE,\n        shippingMeta,')
   })

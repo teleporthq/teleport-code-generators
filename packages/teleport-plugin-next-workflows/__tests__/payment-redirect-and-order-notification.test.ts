@@ -1,4 +1,6 @@
-import { paymentChargeUser } from '../src/nodes/payment/payment-charge-user'
+import { loadHandler } from './_helpers/load-handler'
+import { loadPaymentDrivers } from './_helpers/load-payment-drivers'
+import { createFakeStripe } from './_helpers/fake-stripe'
 import { dataCreateItem } from '../src/nodes/data/data-create-item'
 
 // Two regressions pinned in this file, both surfaced in a single
@@ -24,50 +26,107 @@ import { dataCreateItem } from '../src/nodes/data/data-create-item'
 //      workflow node.
 
 describe('payment-charge-user emits __redirectUrl alongside __terminal', () => {
-  const handlerSource = paymentChargeUser.generateHandler()
-
-  it('Stripe path returns __redirectUrl set to the session URL', () => {
-    // The exact JSON shape the workflow runtime consumes — we
-    // assert on the source string because exercising the live
-    // handler would require a real Stripe API key. ts-jest may
-    // downlevel `const` to `var` in some configs, so match on the
-    // assignment substring rather than the declaration keyword.
-    expect(handlerSource).toContain('__redirectUrl: checkoutUrl')
-    expect(handlerSource).toMatch(/checkoutUrl = session\.url/)
+  const localizeHref = { localizeHref: (href: string) => href }
+  beforeAll(() => {
+    ;(globalThis as { __workflowUtils?: unknown }).__workflowUtils = localizeHref
+  })
+  afterAll(() => {
+    delete (globalThis as { __workflowUtils?: unknown }).__workflowUtils
   })
 
-  it('PayPal path returns __redirectUrl set to the PayPal approval link', () => {
-    // Mirrors the Stripe wiring so both gateways drive the same
-    // client-runtime redirect step. Without the PayPal half the
-    // PayPal-only stores would hit the same stuck-Processing bug.
-    expect(handlerSource).toContain('__redirectUrl: approveUrl')
-    expect(handlerSource).toContain('approveUrl = approveLink ? approveLink.href')
+  const withEnv = async <T>(env: Record<string, string>, run: () => Promise<T>): Promise<T> => {
+    const saved = Object.keys(env).map((key) => [key, process.env[key]] as const)
+    Object.assign(process.env, env)
+    try {
+      return await run()
+    } finally {
+      saved.forEach(([key, value]) => {
+        if (value === undefined) {
+          delete process.env[key]
+        } else {
+          process.env[key] = value
+        }
+      })
+    }
+  }
+
+  it('Stripe path returns __redirectUrl set to the session URL, with __terminal', async () => {
+    const { FakeStripe } = createFakeStripe({
+      'checkout.sessions.create': () => ({ id: 'cs_1', url: 'https://checkout.stripe.com/c/cs_1' }),
+    })
+    const handler = loadHandler('payment-charge-user', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    const result = await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+      handler({ providerId: 'stripe', amount: 10, currency: 'usd' }, {})
+    )
+    // The runtime stops on __terminal and navigates on __redirectUrl: both
+    // must be present, or the buyer is stuck on "Processing…" or the cart
+    // clears before they pay.
+    expect(result).toEqual({
+      checkoutUrl: 'https://checkout.stripe.com/c/cs_1',
+      sessionId: 'cs_1',
+      attemptRef: 'cs_1',
+      attemptOutcome: 'created',
+      redirectUrl: 'https://checkout.stripe.com/c/cs_1',
+      __terminal: true,
+      __redirectUrl: 'https://checkout.stripe.com/c/cs_1',
+    })
   })
 
-  it('still sets __terminal: true so the workflow stops at the redirect', () => {
-    // The runtime stops on __terminal regardless of __redirectUrl;
-    // both flags must be present so the redirect happens AND
-    // downstream nodes (cart-clear, navigate-to-order-details,
-    // reset-isPlacingOrder) are NOT executed before the buyer
-    // leaves for Stripe — the cart should only clear on the
-    // payment-success return URL.
-    // The source uses object shorthand (`{ checkoutUrl, ... }`), so anchor on
-    // the explicit __redirectUrl entry and assert __terminal sits in the same
-    // return object.
-    const anchor = handlerSource.indexOf('__redirectUrl: checkoutUrl')
-    expect(anchor).toBeGreaterThan(-1)
-    const stripeBlock = handlerSource.slice(Math.max(0, anchor - 300), anchor + 300)
-    expect(stripeBlock).toContain('__terminal: true')
-    expect(stripeBlock).toContain('__redirectUrl: checkoutUrl')
+  it('PayPal path returns __redirectUrl set to the PayPal approval link', async () => {
+    const previous = (globalThis as { fetch?: unknown }).fetch
+    ;(globalThis as { fetch?: unknown }).fetch = async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        url.endsWith('/v1/oauth2/token')
+          ? { access_token: 'token' }
+          : { id: 'ORDER-1', links: [{ rel: 'approve', href: 'https://paypal.test/approve' }] },
+    })
+    try {
+      const result = await withEnv(
+        { PAYPAL_CLIENT_ID: 'Aclient', PAYPAL_CLIENT_SECRET: 'Esecret' },
+        () =>
+          loadHandler('payment-charge-user')(
+            { providerId: 'paypal', amount: 10, currency: 'usd' },
+            {}
+          )
+      )
+      expect(result).toEqual({
+        checkoutUrl: 'https://paypal.test/approve',
+        sessionId: 'ORDER-1',
+        attemptRef: 'ORDER-1',
+        attemptOutcome: 'created',
+        redirectUrl: 'https://paypal.test/approve',
+        __terminal: true,
+        __redirectUrl: 'https://paypal.test/approve',
+      })
+    } finally {
+      ;(globalThis as { fetch?: unknown }).fetch = previous
+      ;(globalThis as { __paypalBaseUrlCache?: string }).__paypalBaseUrlCache = undefined
+    }
   })
 
-  it('returns an error object (not __redirectUrl) when Stripe API call fails', () => {
-    // The catch block must NOT add __redirectUrl — the client
-    // runtime should render the toast/error path instead of
-    // navigating to an empty URL on a failed charge. ts-jest may
-    // rename `err` to `err_1` etc. during downleveling — match
-    // the substring that proves the error message is surfaced.
-    expect(handlerSource).toMatch(/error:\s*\w+\.message/)
+  it('answers a failed provider call with an early 400, never a redirect to an empty URL', async () => {
+    const { FakeStripe } = createFakeStripe({
+      'checkout.sessions.create': () => {
+        throw new Error('Invalid API Key provided')
+      },
+    })
+    const handler = loadHandler('payment-charge-user', {
+      paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
+    })
+    const result = await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, () =>
+      handler({ providerId: 'stripe', amount: 10, currency: 'usd' }, {})
+    )
+    expect(result).toEqual({
+      __earlyResponse: {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: { success: false, error: 'Invalid API Key provided', provider: 'stripe' },
+      },
+    })
   })
 })
 

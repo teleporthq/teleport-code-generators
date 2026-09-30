@@ -80,7 +80,12 @@ export default Welcome`,
     const pagesFolder = subFolders.find((file) => file.name === 'pages')
     const customFolder = pagesFolder.subFolders.find((file) => file.name === 'custom-folder')
 
-    expect(files.length).toBe(3)
+    // package.json (template) + next.config.js (security headers) + the two
+    // custom root files the plugin injects (config.json, package.json).
+    expect(files.map((file) => `${file.name}.${file.fileType || ''}`)).toEqual(
+      expect.arrayContaining(['package.json', 'next.config.js', 'config.json'])
+    )
+    expect(files.length).toBe(4)
     expect(pagesFolder).toBeDefined()
     expect(customFolder).toBeDefined()
     expect(customFolder.files.length).toBe(1)

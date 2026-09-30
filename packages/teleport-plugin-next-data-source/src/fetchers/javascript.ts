@@ -56,11 +56,15 @@ ${generateCollectionPathHelperCode()}
 
 export default async function handler(req, res) {
   try {
-    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts, collectionPath } = req.query
+    const { limit, offset, page, perPage, query, queryColumns, sortBy, sortOrder, filters, sorts, collectionPath, itemsPath } = req.query
     
     const code = ${JSON.stringify(jsConfig.code)}
     const executeCode = new Function('return ' + code)
     let data = resolveCollectionPath(executeCode(), collectionPath)
+    const itemsEnvelope = openItemsEnvelope(data, itemsPath)
+    if (itemsEnvelope) {
+      data = itemsEnvelope.items
+    }
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
@@ -190,6 +194,10 @@ export default async function handler(req, res) {
       } else if (offsetValue > 0) {
         data = data.slice(offsetValue)
       }
+    }
+    
+    if (itemsEnvelope) {
+      data = itemsEnvelope.close(data)
     }
     
     const safeData = JSON.parse(JSON.stringify(data, dateReplacer))

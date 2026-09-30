@@ -130,7 +130,9 @@ describe('the generated Postgres route', () => {
     const ordersRoute = generatePostgreSQLFetcher(PG_CONFIG, 'teleport_orders')
     expect(ordersRoute).toContain('sortFieldSql(sort.field)')
     expect(ordersRoute).not.toContain('if (field ===')
-    expect(ordersRoute).not.toContain('jsonb_array_elements')
+    // The discount sub-select's expansion — not `jsonb_array_elements_text`,
+    // which the list-column filter (array-overlap-sql.ts) uses on every table.
+    expect(ordersRoute).not.toContain('jsonb_array_elements(')
   })
 
   it('still parses for a non-products table', () => {
@@ -263,7 +265,7 @@ describe('the fetcher a generated storefront actually gets', () => {
       'teleport_orders'
     )
     expect(orders).not.toContain('if (field ===')
-    expect(orders).not.toContain('jsonb_array_elements')
+    expect(orders).not.toContain('jsonb_array_elements(')
     expect(() => parse(orders, { sourceType: 'module', plugins: ['jsx'] })).not.toThrow()
   })
 

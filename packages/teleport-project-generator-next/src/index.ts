@@ -57,6 +57,9 @@ import { NextCountdownProjectPlugin } from './countdown/project-plugin'
 import { NextModelViewerProjectPlugin } from './model-viewer/project-plugin'
 import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
 import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
+import { NextPwaProjectPlugin } from './pwa/project-plugin'
+import { NextWebPushProjectPlugin } from './web-push/project-plugin'
+import { NextSecurityHeadersProjectPlugin } from './security-headers'
 import { createNextWidgetProjectPlugins } from './widgets'
 import {
   createLocalComponentPathPlugin,
@@ -110,6 +113,11 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextModelViewerProjectPlugin(),
   new NextPlaySoundProjectPlugin(),
   new NextPaginationScrollProjectPlugin(),
+  // Before the service worker's: the rule for every path comes first, so a
+  // path's own rule, later in the same headers(), has the last word.
+  new NextSecurityHeadersProjectPlugin(),
+  new NextPwaProjectPlugin(),
+  new NextWebPushProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
 ]
 

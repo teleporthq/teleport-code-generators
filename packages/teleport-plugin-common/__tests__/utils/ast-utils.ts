@@ -127,6 +127,24 @@ describe('addAttributeToJSXTag', () => {
   })
 })
 
+describe('addAttributeToJSXTag with text a JSX attribute string cannot hold', () => {
+  it('keeps backslashes and line breaks exactly as written', () => {
+    const tag = createJSXTag('input')
+    const pattern = '[+0-9 \\(\\)\\-]{7,20}'
+
+    addAttributeToJSXTag(tag, 'pattern', pattern)
+    addAttributeToJSXTag(tag, 'title', 'first line\nsecond line')
+
+    const [patternAttr, titleAttr] = tag.openingElement.attributes as types.JSXAttribute[]
+    const patternValue = (patternAttr.value as types.JSXExpressionContainer)
+      .expression as types.StringLiteral
+    const titleValue = (titleAttr.value as types.JSXExpressionContainer)
+      .expression as types.StringLiteral
+    expect(patternValue.value).toBe(pattern)
+    expect(titleValue.value).toBe('first line\nsecond line')
+  })
+})
+
 describe('addRawAttributeToJSXTag', () => {
   it('adds an attribute with string without encoding', () => {
     const tag = createJSXTag('iframe')

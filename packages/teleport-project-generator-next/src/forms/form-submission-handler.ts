@@ -12,10 +12,73 @@ import {
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { UIDLUtils, GenericUtils } from '@teleporthq/teleport-shared'
+import {
+  buildFieldErrorMessagesEffect,
+  formHasFieldErrorMessages,
+  isCaptchaEnabled,
+} from './field-error-messages'
+import {
+  buildTranslationLookup,
+  ensureRouterHook,
+  ensureTranslateHook,
+} from '../internationalization/locale-mapper-component'
 
 const sanitizeFormId = (formId: string): string => {
   return formId.replace(/-/g, '_')
 }
+
+type FormAlertKind = 'success' | 'error' | 'limit'
+
+/**
+ * The text an alert shows: on an internationalized project the copy of the
+ * visitor's language, read from `locales/<lang>.json` by its key; otherwise
+ * the main-language text.
+ */
+const alertMessage = (
+  formDefinition: UIDLFormDefinition,
+  kind: FormAlertKind,
+  fallback: string
+): types.Expression => {
+  const translationKey = formDefinition.messages?.translationKeys?.[kind]
+  if (translationKey) {
+    return buildTranslationLookup(translationKey)
+  }
+  return types.stringLiteral(String(formDefinition.messages?.[kind]?.content || fallback))
+}
+
+const formHasTranslatedMessages = (formDefinition: UIDLFormDefinition): boolean =>
+  Object.values(formDefinition.messages?.translationKeys ?? {}).some(Boolean)
+
+const formRedirectsToPage = (formDefinition: UIDLFormDefinition): boolean => {
+  const { onSuccess, onError, onLimit } = formDefinition.behaviors ?? {}
+  return [onSuccess, onError, onLimit].some(
+    (behavior) => behavior?.action === 'redirect-page' && !!behavior.details?.url?.content
+  )
+}
+
+/**
+ * Opens a page of the site after a submission. On a multi-language site Next's
+ * router keeps the visitor's language (`/es/thanks`); assigning
+ * `window.location.href` would land on the main language's page.
+ */
+const buildPageRedirect = (path: string, localized: boolean): types.ExpressionStatement =>
+  localized
+    ? types.expressionStatement(
+        types.callExpression(
+          types.memberExpression(types.identifier('router'), types.identifier('push')),
+          [types.stringLiteral(path)]
+        )
+      )
+    : types.expressionStatement(
+        types.assignmentExpression(
+          '=',
+          types.memberExpression(
+            types.memberExpression(types.identifier('window'), types.identifier('location')),
+            types.identifier('href')
+          ),
+          types.stringLiteral(path)
+        )
+      )
 
 /**
  * This plugin handles form submissions for Next.js projects.
@@ -31,6 +94,9 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
 
     // Get forms from options
     const forms = options.forms
+    // More than one language: pages are served under a locale prefix.
+    const localizedRedirects =
+      !options.skipI18n && Object.keys(options.internationalization?.languages ?? {}).length > 1
 
     // Skip if no forms are defined in the project
     if (!forms || !forms.items) {
@@ -92,7 +158,7 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
     }
 
     // Process each form found in the component
-    for (const { formId } of formsInComponent) {
+    for (const { formId, formElement } of formsInComponent) {
       const formDefinition = forms.items[formId]
 
       if (!formDefinition) {
@@ -295,7 +361,8 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
         formId,
         sanitizedFormId,
         formDefinition,
-        forms
+        forms,
+        localizedRedirects
       )
 
       // Add useEffect to track form interaction start time
@@ -409,7 +476,12 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
         }
       }
 
-      componentBody.body.unshift(...stateDeclarations, useEffectForFormStart, handleSubmitFunction)
+      componentBody.body.unshift(
+        ...stateDeclarations,
+        useEffectForFormStart,
+        ...(formHasFieldErrorMessages(formElement) ? [buildFieldErrorMessagesEffect(formId)] : []),
+        handleSubmitFunction
+      )
 
       // Find the form JSX element in the AST and add onSubmit attribute
       // Also find and disable the submit button while form is submitting
@@ -774,6 +846,24 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
     // including pages with no forms).
     injectCaptchaScript(chunks, formsInComponent, forms, structure.dependencies)
 
+    // The alerts read their text in the visitor's language at submit time.
+    const alertsAreTranslated = formsInComponent.some(({ formId }) => {
+      const formDefinition = forms.items[formId]
+      return !!formDefinition && formHasTranslatedMessages(formDefinition)
+    })
+    if (alertsAreTranslated) {
+      ensureTranslateHook(componentBody, structure.dependencies)
+    }
+    const redirectsInLanguage =
+      localizedRedirects &&
+      formsInComponent.some(({ formId }) => {
+        const formDefinition = forms.items[formId]
+        return !!formDefinition && formRedirectsToPage(formDefinition)
+      })
+    if (redirectsInLanguage) {
+      ensureRouterHook(componentBody, structure.dependencies)
+    }
+
     return structure
   }
 
@@ -798,10 +888,17 @@ function injectCaptchaScript(
   dependencies: Record<string, UIDLDependency>
 ): void {
   // Resolve the captcha key from the forms present on THIS page/component
+  // that keep their captcha on; a page whose forms all turned it off loads none.
+  const captchaForms = formsInComponent.filter(({ formId }) =>
+    isCaptchaEnabled(forms.items[formId])
+  )
+  if (captchaForms.length === 0) {
+    return
+  }
   let captchaKey: UIDLStaticValue | UIDLENVValue | null = null
   let hasFormSpecificCaptcha = false
 
-  for (const { formId } of formsInComponent) {
+  for (const { formId } of captchaForms) {
     const formDefinition = forms.items[formId]
     if (formDefinition?.security?.captchaPublicKey) {
       captchaKey = formDefinition.security.captchaPublicKey
@@ -983,7 +1080,8 @@ function createFormSubmitHandler(
   formId: string,
   sanitizedFormId: string,
   formDefinition: UIDLFormDefinition,
-  forms: UIDLForms
+  forms: UIDLForms,
+  localizedRedirects: boolean
 ): types.VariableDeclaration {
   const t = types
 
@@ -1026,7 +1124,12 @@ function createFormSubmitHandler(
             ])
           ),
           // Handle expiration as a limit reached scenario
-          ...createLimitHandler(sanitizedFormId, formDefinition.behaviors?.onLimit, formDefinition),
+          ...createLimitHandler(
+            sanitizedFormId,
+            formDefinition.behaviors?.onLimit,
+            formDefinition,
+            localizedRedirects
+          ),
           t.returnStatement(),
         ])
       )
@@ -1107,9 +1210,10 @@ function createFormSubmitHandler(
     )
   })
 
-  // Get captcha configuration (form-specific or global)
-  const captchaKey =
-    formDefinition.security?.captchaPublicKey || forms.globalConfig?.defaultCaptchaPublicKey
+  // Get captcha configuration (form-specific or global); none when the form turned it off
+  const captchaKey = isCaptchaEnabled(formDefinition)
+    ? formDefinition.security?.captchaPublicKey || forms.globalConfig?.defaultCaptchaPublicKey
+    : undefined
   const captchaProvider = forms.globalConfig?.captchaProvider || 'recaptcha'
 
   // Determine if using default (enterprise) or form-specific captcha
@@ -1405,7 +1509,12 @@ function createFormSubmitHandler(
         ),
         t.blockStatement([
           // Handle onLimit behavior
-          ...createLimitHandler(sanitizedFormId, formDefinition.behaviors?.onLimit, formDefinition),
+          ...createLimitHandler(
+            sanitizedFormId,
+            formDefinition.behaviors?.onLimit,
+            formDefinition,
+            localizedRedirects
+          ),
           t.returnStatement(),
         ])
       ),
@@ -1418,12 +1527,22 @@ function createFormSubmitHandler(
         ),
         t.blockStatement([
           // Handle onError behavior
-          ...createErrorHandler(sanitizedFormId, formDefinition.behaviors.onError, formDefinition),
+          ...createErrorHandler(
+            sanitizedFormId,
+            formDefinition.behaviors.onError,
+            formDefinition,
+            localizedRedirects
+          ),
           t.returnStatement(),
         ])
       ),
       // Handle success behavior
-      ...createSuccessHandler(sanitizedFormId, formDefinition.behaviors.onSuccess, formDefinition),
+      ...createSuccessHandler(
+        sanitizedFormId,
+        formDefinition.behaviors.onSuccess,
+        formDefinition,
+        localizedRedirects
+      ),
     ]),
     // catch block
     t.catchClause(
@@ -1459,7 +1578,8 @@ function createFormSubmitHandler(
             ...createLimitHandler(
               sanitizedFormId,
               formDefinition.behaviors?.onLimit,
-              formDefinition
+              formDefinition,
+              localizedRedirects
             ),
           ]),
           t.blockStatement([
@@ -1467,7 +1587,8 @@ function createFormSubmitHandler(
             ...createErrorHandler(
               sanitizedFormId,
               formDefinition.behaviors.onError,
-              formDefinition
+              formDefinition,
+              localizedRedirects
             ),
           ])
         ),
@@ -1508,7 +1629,8 @@ function createFormSubmitHandler(
 function createSuccessHandler(
   sanitizedFormId: string,
   behavior: UIDLFormBehavior,
-  formDefinition: UIDLFormDefinition
+  formDefinition: UIDLFormDefinition,
+  localizedRedirects: boolean
 ): types.Statement[] {
   const t = types
   const statements: types.Statement[] = []
@@ -1550,9 +1672,7 @@ function createSuccessHandler(
         )
       } else {
         // Show static message with alert from formDefinition.messages.success
-        const msgContent = String(
-          formDefinition.messages?.success?.content || 'Form submitted successfully!'
-        )
+        const msgContent = alertMessage(formDefinition, 'success', 'Form submitted successfully!')
         statements.push(
           t.expressionStatement(
             t.callExpression(
@@ -1565,7 +1685,7 @@ function createSuccessHandler(
           ),
           t.expressionStatement(
             t.callExpression(t.memberExpression(t.identifier('window'), t.identifier('alert')), [
-              t.stringLiteral(msgContent),
+              msgContent,
             ])
           )
         )
@@ -1625,19 +1745,7 @@ function createSuccessHandler(
 
       const pageId = behavior.details?.url?.content
       if (pageId) {
-        // window.location.href = '/page'
-        statements.push(
-          t.expressionStatement(
-            t.assignmentExpression(
-              '=',
-              t.memberExpression(
-                t.memberExpression(t.identifier('window'), t.identifier('location')),
-                t.identifier('href')
-              ),
-              t.stringLiteral(String(pageId))
-            )
-          )
-        )
+        statements.push(buildPageRedirect(String(pageId), localizedRedirects))
       }
       break
 
@@ -1689,7 +1797,8 @@ function createSuccessHandler(
 function createErrorHandler(
   sanitizedFormId: string,
   behavior: UIDLFormBehavior,
-  formDefinition: UIDLFormDefinition
+  formDefinition: UIDLFormDefinition,
+  localizedRedirects: boolean
 ): types.Statement[] {
   const t = types
   const statements: types.Statement[] = []
@@ -1731,8 +1840,10 @@ function createErrorHandler(
         )
       } else {
         // Show static message from formDefinition.messages.error
-        const msgContent = String(
-          formDefinition.messages?.error?.content || 'An error occurred. Please try again.'
+        const msgContent = alertMessage(
+          formDefinition,
+          'error',
+          'An error occurred. Please try again.'
         )
         statements.push(
           t.expressionStatement(
@@ -1746,7 +1857,7 @@ function createErrorHandler(
           ),
           t.expressionStatement(
             t.callExpression(t.memberExpression(t.identifier('window'), t.identifier('alert')), [
-              t.stringLiteral(msgContent),
+              msgContent,
             ])
           )
         )
@@ -1780,19 +1891,7 @@ function createErrorHandler(
     case 'redirect-page':
       const pageId = behavior.details?.url?.content
       if (pageId) {
-        // window.location.href = '/page'
-        statements.push(
-          t.expressionStatement(
-            t.assignmentExpression(
-              '=',
-              t.memberExpression(
-                t.memberExpression(t.identifier('window'), t.identifier('location')),
-                t.identifier('href')
-              ),
-              t.stringLiteral(String(pageId))
-            )
-          )
-        )
+        statements.push(buildPageRedirect(String(pageId), localizedRedirects))
       }
       break
 
@@ -1831,7 +1930,8 @@ function createErrorHandler(
 function createLimitHandler(
   sanitizedFormId: string,
   behavior: UIDLFormBehavior | undefined,
-  formDefinition: UIDLFormDefinition
+  formDefinition: UIDLFormDefinition,
+  localizedRedirects: boolean
 ): types.Statement[] {
   const t = types
   const statements: types.Statement[] = []
@@ -1884,8 +1984,10 @@ function createLimitHandler(
         )
       } else {
         // Show static message from formDefinition.messages.limit
-        const msgContent = String(
-          formDefinition.messages?.limit?.content || 'This form has reached its submission limit.'
+        const msgContent = alertMessage(
+          formDefinition,
+          'limit',
+          'This form has reached its submission limit.'
         )
         statements.push(
           t.expressionStatement(
@@ -1899,7 +2001,7 @@ function createLimitHandler(
           ),
           t.expressionStatement(
             t.callExpression(t.memberExpression(t.identifier('window'), t.identifier('alert')), [
-              t.stringLiteral(msgContent),
+              msgContent,
             ])
           )
         )
@@ -1935,19 +2037,7 @@ function createLimitHandler(
     case 'redirect-page':
       const pageId = behavior.details?.url?.content
       if (pageId) {
-        // window.location.href = '/page'
-        statements.push(
-          t.expressionStatement(
-            t.assignmentExpression(
-              '=',
-              t.memberExpression(
-                t.memberExpression(t.identifier('window'), t.identifier('location')),
-                t.identifier('href')
-              ),
-              t.stringLiteral(String(pageId))
-            )
-          )
-        )
+        statements.push(buildPageRedirect(String(pageId), localizedRedirects))
       }
       break
 

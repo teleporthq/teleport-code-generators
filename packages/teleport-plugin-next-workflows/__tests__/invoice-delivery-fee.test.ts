@@ -1,4 +1,4 @@
-import { generateInvoiceGenerateRouteCode } from '../src/invoice/api-routes-code'
+import { generateInvoiceAssemblyCode } from '../src/invoice/invoice-assembly-code'
 import { generatePdfGeneratorCode } from '../src/invoice/pdf-generator-code'
 import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 
@@ -63,7 +63,8 @@ function loadPdfGenerator(): PdfGeneratorModule {
 }
 
 describe('/api/invoices/generate — delivery fee', () => {
-  const route = generateInvoiceGenerateRouteCode(FAKE_SETTINGS)
+  // The route hands every invoice to the shared assembly, where the totals live.
+  const route = generateInvoiceAssemblyCode(FAKE_SETTINGS)
 
   it('reads the fee off the hydrated order, with a caller override', () => {
     expect(route).toContain(

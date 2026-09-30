@@ -325,7 +325,12 @@ describe('every loop emit site routes through unwrapWorkflowCollection', () => {
     const src = generateSharedRuntimeUtilsCode()
     // The helper is defined and called inside executeLoop.
     expect(src).toContain('function unwrapWorkflowCollection')
-    expect(src).toContain('unwrapWorkflowCollection(resolveValue(config.collection, context))')
+    // The collection arrives RESOLVED: an array is taken as it is (resolving
+    // it again would join it into one string), a leftover reference is resolved.
+    expect(src).toContain(
+      'Array.isArray(boundCollection) ? boundCollection : resolveValue(boundCollection, context)'
+    )
+    expect(src).toContain('const collection = unwrapWorkflowCollection(')
     // And it's exported so the api routes can reach it via `utils.X`.
     expect(src).toMatch(/module\.exports\s*=\s*\{[^}]*unwrapWorkflowCollection/s)
   })

@@ -266,6 +266,16 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
     // them, and inside a loop the still-distinct `innerParams*` win below.
     inputs: params,
     workflowContext: params,
+    // The request origin of the server segment this node runs in, so a script
+    // that builds an absolute link (an email button, a webhook payload) never
+    // reads `process.env` for it — the publish scanner flags every env read,
+    // and nothing a node returns may be sensitive. Declared by NAME:
+    // `customHandler(previousContext, params, runtime)` inside a custom node,
+    // `customHandler(params, inputs, workflowContext, runtime)` at top level.
+    // Empty on the client and in a segment with no request behind it.
+    runtime: {
+      baseUrl: typeof (context as any).__baseUrl === 'string' ? (context as any).__baseUrl : '',
+    },
   }
   for (let i = 0; i < innerParamsList.length; i++) {
     const name = i === 0 ? 'innerParams' : 'innerParams' + (i + 1)
@@ -345,8 +355,14 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       '"REALTIME_SERVER_API_KEY":1,' +
       '"REALTIME_SERVER_URL":1,' +
       '"PDF_SERVICE_URL":1,' +
-      '"PDF_SERVICE_API_KEY":1' +
+      '"PDF_SERVICE_API_KEY":1,' +
+      '"TELEPORT_CRON_SECRET":1,' +
+      '"TELEPORT_CRON_SECRET_PREVIOUS":1' +
       '};\n' +
+      // The merchant's payment credentials (see PROTECTED_ENV_NAME_PATTERN in
+      // security-scanner.ts), whatever number a second save gave them.
+      'var __TQ_PROTECTED_RE = /^(?:CONFIGURATION_)?(?:STRIPE|PAYPAL|MOLLIE|RAZORPAY|SQUARE|PADDLE|COINGATE)_[A-Z0-9_]+$/;\n' +
+      'function __TQ_isProtected(k){ return !!__TQ_PROTECTED[k] || (typeof k === "string" && __TQ_PROTECTED_RE.test(k)); }\n' +
       'var __TQ_origProcess = (typeof globalThis !== "undefined" && globalThis.process) ? globalThis.process : ((typeof ' +
       PROC +
       ' !== "undefined") ? ' +
@@ -355,10 +371,10 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       'var __TQ_origGlobalThis = (typeof globalThis !== "undefined") ? globalThis : ((typeof self !== "undefined") ? self : ((typeof window !== "undefined") ? window : undefined));\n' +
       'var __TQ_safeEnv = (__TQ_origProcess && __TQ_origProcess.env && typeof Proxy !== "undefined")' +
       ' ? new Proxy(__TQ_origProcess.env, {' +
-      '  get: function(t,k){ return __TQ_PROTECTED[k] ? undefined : t[k]; },' +
-      '  has: function(t,k){ return !__TQ_PROTECTED[k] && (k in t); },' +
-      '  ownKeys: function(t){ return Object.keys(t).filter(function(k){ return !__TQ_PROTECTED[k]; }); },' +
-      '  getOwnPropertyDescriptor: function(t,k){ return __TQ_PROTECTED[k] ? undefined : Object.getOwnPropertyDescriptor(t,k); }' +
+      '  get: function(t,k){ return __TQ_isProtected(k) ? undefined : t[k]; },' +
+      '  has: function(t,k){ return !__TQ_isProtected(k) && (k in t); },' +
+      '  ownKeys: function(t){ return Object.keys(t).filter(function(k){ return !__TQ_isProtected(k); }); },' +
+      '  getOwnPropertyDescriptor: function(t,k){ return __TQ_isProtected(k) ? undefined : Object.getOwnPropertyDescriptor(t,k); }' +
       '}) : (__TQ_origProcess ? __TQ_origProcess.env : undefined);\n' +
       'var __TQ_safeProcess = __TQ_origProcess && typeof Proxy !== "undefined"' +
       ' ? new Proxy(__TQ_origProcess, { get: function(t,k){ return k === "env" ? __TQ_safeEnv : t[k]; } })' +

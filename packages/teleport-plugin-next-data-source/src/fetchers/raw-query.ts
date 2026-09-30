@@ -1,3 +1,4 @@
+import { SessionCookieResolver } from '@teleporthq/teleport-shared'
 import { replaceSecretReference } from '../utils'
 
 interface PostgreSQLConfig {
@@ -13,9 +14,28 @@ interface PostgreSQLConfig {
 
 const FORBIDDEN_KEYWORDS = ['CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'RENAME', 'GRANT', 'REVOKE']
 
+/** The param a `{{Current User.<field>}}` token becomes: `currentUser` + the field, capitalised. */
+const CURRENT_USER_PARAM_PREFIX = 'currentUser'
+
+const isCurrentUserParam = (param: string): boolean =>
+  param.length > CURRENT_USER_PARAM_PREFIX.length && param.indexOf(CURRENT_USER_PARAM_PREFIX) === 0
+
+/** The user field a `currentUser<Field>` param stands for (`currentUserId` → `id`). */
+const currentUserField = (param: string): string => {
+  const rest = param.slice(CURRENT_USER_PARAM_PREFIX.length)
+  return rest.charAt(0).toLowerCase() + rest.slice(1)
+}
+
 /**
  * Generates an API route handler that executes a parameterized raw SQL query.
- * Supports {{Current User.*}} substitution via query params.
+ * Supports {{Current User.*}} substitution — bound to the SESSION's user.
+ *
+ * ⛔ A `{{Current User.<field>}}` value is read from the signed-in session on
+ * the server, never from the request: the query string is whatever the caller
+ * wrote, so a route that bound `?currentUserId=` served any user's rows (their
+ * favourites, their orders) to anyone who named that user's id. A caller with
+ * no session gets no rows, exactly as when the value is missing. Other params
+ * (`currentPageEntityId`, the details page's route param) stay request values.
  *
  * @param config - PostgreSQL connection config
  * @param query - Raw SQL query string with {{Current User.*}} patterns already replaced to $N placeholders
@@ -27,9 +47,43 @@ export const generateRawQueryFetcher = (
   paramFields: string[]
 ): string => {
   const pgConfig = config as PostgreSQLConfig
+  const userParams = paramFields.filter(isCurrentUserParam)
+  const requestParams = paramFields.filter((param) => !isCurrentUserParam(param))
 
-  const paramDestructure =
-    paramFields.length > 0 ? `const { ${paramFields.join(', ')} } = req.query` : ''
+  const paramDestructure = [
+    requestParams.length > 0 ? `const { ${requestParams.join(', ')} } = req.query` : '',
+    userParams.length > 0 ? 'const __sessionUser = await sessionUser(req)' : '',
+    ...userParams.map(
+      (param) =>
+        `const ${param} = sessionUserField(__sessionUser, ${JSON.stringify(
+          currentUserField(param)
+        )})`
+    ),
+  ]
+    .filter(Boolean)
+    .join('\n    ')
+
+  const sessionHelpers =
+    userParams.length > 0
+      ? `${SessionCookieResolver.generateCommonJsSessionTokenResolverCode()}
+// The signed-in user this request's session names, or null.
+async function sessionUser(req) {
+  try {
+    return await __tqSessionToken(req)
+  } catch (e) {
+    return null
+  }
+}
+
+// One field of that user, as the session carries it (the token is seeded from
+// the users row), or undefined. The id is the token's subject when not copied.
+function sessionUserField(user, field) {
+  if (!user) return undefined
+  var value = field === 'id' && user.id == null ? user.sub : user[field]
+  return value == null || value === '' ? undefined : value
+}
+`
+      : ''
 
   const paramValidation =
     paramFields.length > 0
@@ -58,7 +112,7 @@ export const generateRawQueryFetcher = (
   return `import { Client } from 'pg'
 
 const FORBIDDEN_KEYWORDS = ${JSON.stringify(FORBIDDEN_KEYWORDS)}
-
+${sessionHelpers}
 const getClient = () => {
   const connStr = process.env.TELEPORT_DB_CONNECTION_STRING
   if (connStr) {
@@ -122,10 +176,11 @@ export default async function handler(req, res) {
       await client.end()
     }
   } catch (error) {
+    // A database error names tables, columns and values: server log only.
     console.error('Raw query fetch error:', error)
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch data',
+      error: 'Failed to fetch data',
       timestamp: Date.now()
     })
   }

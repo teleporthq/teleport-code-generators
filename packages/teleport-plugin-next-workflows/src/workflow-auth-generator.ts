@@ -2,6 +2,27 @@ import { UIDLWorkflowProtection } from '@teleporthq/teleport-types'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 
 /**
+ * `roleOf(token)` — the role a decoded session token carries (`role`,
+ * `roleName`, or the first of `roles`), or null. Shared by every generated
+ * guard that authorises by role, so they can never read the claim differently.
+ */
+export const ROLE_OF_TOKEN_CODE = `function roleOf(token) {
+  if (!token || typeof token !== 'object') {
+    return null;
+  }
+  if (typeof token.role === 'string') {
+    return token.role;
+  }
+  if (typeof token.roleName === 'string') {
+    return token.roleName;
+  }
+  if (Array.isArray(token.roles) && token.roles.length > 0 && typeof token.roles[0] === 'string') {
+    return token.roles[0];
+  }
+  return null;
+}`
+
+/**
  * The shared, stateless auth guard for generated workflow API routes, emitted
  * once at `utils/workflows/workflow-auth.js`.
  *
@@ -19,7 +40,9 @@ import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resol
  * serverless instance that had not yet served an auth request was reported
  * anonymous, and the page-load workflow answered 401.
  */
-export const generateWorkflowAuthHelperFile = (): string => {
+export const generateWorkflowAuthHelperFile = (
+  options: { withSubscriberAccess?: boolean } = {}
+): string => {
   return `'use strict';
 
 // GENERATED — see generateWorkflowAuthHelperFile in
@@ -42,20 +65,22 @@ function sessionUserId(token) {
   return token.id != null ? token.id : (token.sub != null ? token.sub : null);
 }
 
-function roleOf(token) {
-  if (!token || typeof token !== 'object') {
-    return null;
+${ROLE_OF_TOKEN_CODE}
+
+${generateSubscriberAccessLoader(options.withSubscriberAccess === true)}
+
+// true only when the session user holds an entitled subscription to one of the
+// products (any product for an empty list). Every failure fails closed.
+async function isEntitledSubscriber(token, productIds) {
+  var userId = sessionUserId(token);
+  if (userId == null || String(userId) === '') {
+    return false;
   }
-  if (typeof token.role === 'string') {
-    return token.role;
+  try {
+    return (await subscriberAccessModule().isSubscriberEntitled(String(userId), productIds || [])) === true;
+  } catch (e) {
+    return false;
   }
-  if (typeof token.roleName === 'string') {
-    return token.roleName;
-  }
-  if (Array.isArray(token.roles) && token.roles.length > 0 && typeof token.roles[0] === 'string') {
-    return token.roles[0];
-  }
-  return null;
 }
 
 // Overwrites context[nodeId] drilled down \`path\` with the session user id.
@@ -76,8 +101,27 @@ function bindPath(root, path, value) {
 
 // Returns null when the request may proceed, or { status, message } to reject.
 // Mutates \`context\` in place to bind user-owned columns to the session user.
+function sameSecret(given, expected) {
+  if (typeof given !== 'string' || typeof expected !== 'string' || given.length !== expected.length) {
+    return false;
+  }
+  return require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+}
+
 async function guardWorkflowRequest(req, context, policy) {
   if (!policy) {
+    return null;
+  }
+
+  // This deployment's own server code (a webhook or cron route running a
+  // custom node) carries the internal-call token and passes every gate. A route
+  // only such code may call (serverOnly) answers nothing to anyone else — not a
+  // browser, not a signed-in admin.
+  var internalCall = require('./server-runtime').isInternalCall(req);
+  if (policy.serverOnly) {
+    return internalCall ? null : { status: 401, message: 'Unauthenticated' };
+  }
+  if (internalCall) {
     return null;
   }
 
@@ -85,7 +129,7 @@ async function guardWorkflowRequest(req, context, policy) {
   // present the app secret in a header; only server code can read
   // NEXTAUTH_SECRET, so a browser cannot forge it. These bypass the check.
   var internal = req && req.headers && req.headers['x-internal-data-secret'];
-  if (internal && process.env.NEXTAUTH_SECRET && internal === process.env.NEXTAUTH_SECRET) {
+  if (internal && process.env.NEXTAUTH_SECRET && sameSecret(internal, process.env.NEXTAUTH_SECRET)) {
     return null;
   }
 
@@ -103,23 +147,53 @@ async function guardWorkflowRequest(req, context, policy) {
     }
   }
 
+  // Subscriber-only page: the route runs the same entitlement check the
+  // middleware asks the subscriber-access route for, after the session and the
+  // role are settled.
+  if (policy.requiresSubscription) {
+    if (!token) {
+      return { status: 401, message: 'Unauthenticated' };
+    }
+    if (!(await isEntitledSubscriber(token, policy.subscriptionProductIds || []))) {
+      return { status: 403, message: 'Subscription required' };
+    }
+  }
+
   // Identity binding: force every user-owned column to the AUTHENTICATED session
-  // id so a caller can never act on another user's rows. Only when a session is
-  // present — a guest keeps their (anonymous) client identity, which is why a
-  // guest-capable public write is not blocked here.
+  // id so a caller can never act on another user's rows.
+  //  - A plain user-id binding only applies when a session is present — a guest
+  //    keeps their (anonymous) client identity, which is why a guest-capable
+  //    public write is not blocked here.
+  //  - A \`claim: 'role'\` binding (a raw query's admin check) ALWAYS gets the
+  //    session's role, '' for a guest or a session without one, so a browser
+  //    can never claim a role it does not hold. Skipping it for a guest would
+  //    let a signed-out request post \`role: 'admin'\` and read every row.
+  //  - A \`claim: 'signedInUserId'\` binding always gets the session user id,
+  //    '' for a guest: a statement that must only ever touch the signed-in
+  //    caller's own row matches nothing for anybody else.
   if (policy.userScoped && context) {
     var sid = sessionUserId(token);
-    if (sid != null) {
-      var bindings = (policy.userScoped && policy.userScoped.bindings) || [];
-      for (var i = 0; i < bindings.length; i++) {
-        var b = bindings[i];
-        if (b && b.nodeId) {
-          if (context[b.nodeId] == null || typeof context[b.nodeId] !== 'object') {
-            context[b.nodeId] = {};
-          }
-          bindPath(context[b.nodeId], b.path || [], sid);
-        }
+    var sessionRole = roleOf(token) || '';
+    var bindings = (policy.userScoped && policy.userScoped.bindings) || [];
+    for (var i = 0; i < bindings.length; i++) {
+      var b = bindings[i];
+      if (!b || !b.nodeId) {
+        continue;
       }
+      var value;
+      if (b.claim === 'role') {
+        value = sessionRole;
+      } else if (b.claim === 'signedInUserId') {
+        value = sid != null ? sid : '';
+      } else if (sid != null) {
+        value = sid;
+      } else {
+        continue;
+      }
+      if (context[b.nodeId] == null || typeof context[b.nodeId] !== 'object') {
+        context[b.nodeId] = {};
+      }
+      bindPath(context[b.nodeId], b.path || [], value);
     }
   }
 
@@ -135,6 +209,26 @@ module.exports = { guardWorkflowRequest: guardWorkflowRequest };
  * generated API-route handler. Empty strings when the workflow has no policy,
  * so an unprotected route is byte-identical to before.
  */
+/**
+ * The entitlement query lives in `utils/auth/subscriber-access.js`, which the
+ * auth plugin emits only when a page is subscriber-only. A `require` of it is a
+ * static import to the bundler even inside a function, so it may only appear
+ * when that file exists — otherwise every project without such a page fails
+ * its build with "Module not found". Without the file the loader throws, and
+ * `isEntitledSubscriber` reads that as "not entitled" (fail closed).
+ */
+const generateSubscriberAccessLoader = (withSubscriberAccess: boolean): string =>
+  withSubscriberAccess
+    ? `// Entitlement query emitted with the subscriber-access route.
+function subscriberAccessModule() {
+  return require('../auth/subscriber-access');
+}`
+    : `// No page is subscriber-only, so no entitlement query was emitted: a policy
+// that still asks for a subscription fails closed.
+function subscriberAccessModule() {
+  throw new Error('No subscriber-only pages in this project');
+}`
+
 export interface WorkflowAuthInjection {
   // `require(...)` of the shared helper (placed with the other requires).
   requireLine: string
@@ -150,7 +244,10 @@ const EMPTY_INJECTION: WorkflowAuthInjection = { requireLine: '', policyConst: '
 export const buildWorkflowAuthInjection = (
   protection: UIDLWorkflowProtection | undefined
 ): WorkflowAuthInjection => {
-  if (!protection || (!protection.requiresAuth && !protection.userScoped)) {
+  if (
+    !protection ||
+    (!protection.requiresAuth && !protection.userScoped && !protection.serverOnly)
+  ) {
     return EMPTY_INJECTION
   }
 
@@ -158,13 +255,25 @@ export const buildWorkflowAuthInjection = (
   const policy: {
     requiresAuth: boolean
     allowedRoles: string[]
+    serverOnly?: boolean
     userScoped?: UIDLWorkflowProtection['userScoped']
+    requiresSubscription?: boolean
+    subscriptionProductIds?: string[]
   } = {
     requiresAuth: !!protection.requiresAuth,
     allowedRoles: protection.allowedRoles || [],
   }
+  if (protection.serverOnly) {
+    policy.serverOnly = true
+  }
   if (protection.userScoped) {
     policy.userScoped = protection.userScoped
+  }
+  if (protection.requiresSubscription) {
+    policy.requiresSubscription = true
+    policy.subscriptionProductIds = (protection.subscriptionProductIds || [])
+      .map((id) => String(id).trim())
+      .filter((id) => id.length > 0)
   }
 
   return {
