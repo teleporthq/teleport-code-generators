@@ -1,4 +1,5 @@
 import { UIDLWorkflow } from '@teleporthq/teleport-types'
+import { elementVisibleObserverCode } from './element-visible-trigger'
 
 /**
  * For DOM events whose `target` is a form control (select, input, textarea,
@@ -171,27 +172,17 @@ const generateElementVisibleTrigger = (
   workflowId: string
 ): string => {
   const elementId = (config.elementHtmlId || config.nodeId) as string
-  const threshold = (config.threshold as number) || 0
-  const once = config.once as boolean
-
   const safeId = workflowId.replace(/[^a-zA-Z0-9]/g, '_')
+  const observer = elementVisibleObserverCode(
+    `obs_${safeId}`,
+    config,
+    `const triggerContext = { elementId: '${elementId}', timestamp: Date.now(), intersectionRatio: entry.intersectionRatio };\n      ${executionCall};`
+  )
   return `
     // Workflow trigger: element visible (${workflowId})
     const el_${safeId} = document.getElementById('${elementId}');
     if (el_${safeId}) {
-      const obs_${safeId} = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            const triggerContext = {
-              elementId: '${elementId}',
-              timestamp: Date.now(),
-              intersectionRatio: entry.intersectionRatio
-            };
-            ${executionCall};
-            ${once ? `obs_${safeId}.disconnect();` : ''}
-          }
-        });
-      }, { threshold: ${threshold} });
+${observer.trimEnd().replace(/^/gm, '      ')}
       obs_${safeId}.observe(el_${safeId});
       return function() { obs_${safeId}.disconnect(); };
     }`

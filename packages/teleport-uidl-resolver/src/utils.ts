@@ -15,6 +15,7 @@ import {
   UIDLDynamicReference,
   UIDLConditionalNode,
   ElementsLookup,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -157,6 +158,23 @@ export const resolveConditional = (condNode: UIDLConditionalNode, options: Gener
   }
 }
 
+/* Editor bookkeeping the runtimes never read: a chapter's relative lanes, its
+   window and template key only exist so the editor can re-split a scene when
+   chapters are added or removed. Shipping them costs the visitor bytes on every
+   animated element and nothing else. */
+export const EDITOR_ONLY_ATTRIBUTES = [
+  'data-scroll-bind-rel',
+  'data-chapter-window',
+  'data-chapter-template',
+]
+
+const stripEditorOnlyAttributes = (element: UIDLElement) => {
+  if (!element.attrs) {
+    return
+  }
+  EDITOR_ONLY_ATTRIBUTES.forEach((key) => delete element.attrs[key])
+}
+
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
   const { mapping, localDependenciesPrefix } = options
   const {
@@ -175,6 +193,8 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Setting up the name of the node based on the type, if it is not supplied
   originalElement.name = originalElement.name || originalElement.elementType
+
+  stripEditorOnlyAttributes(originalElement)
 
   // Mapping the type from the semantic type of the mapping
   // Semantic type has precedence as it is dictated by the user
@@ -419,6 +439,26 @@ export const generateUniqueKeys = (uidl: ComponentUIDL, lookup: ElementsLookup) 
       UIDLUtils.traverseElements(prop.defaultValue as UIDLElementNode, (element) =>
         generateKeysForElement(uidl.name, element, lookup)
       )
+    }
+  }
+}
+
+/**
+ * A generated element class must never equal a class of the project style
+ * sheet, which is global. A page named "Manifesto" names its root element
+ * `manifesto-container`; another page had authored a `.manifesto-container`
+ * two-column grid, and the whole Manifesto page became that grid. Reserving the
+ * project's class names up front makes a colliding element take a numbered key
+ * instead, through the same counter that already separates repeated names.
+ */
+export const reserveProjectStyleNames = (
+  styleSetDefinitions: Record<string, UIDLStyleSetDefinition> | undefined,
+  lookup: ElementsLookup
+) => {
+  for (const [styleId, style] of Object.entries(styleSetDefinitions ?? {})) {
+    const className = StringUtils.camelCaseToDashCase(style.className || styleId)
+    if (!lookup[className]) {
+      lookup[className] = { count: 1, nextKey: '1' }
     }
   }
 }

@@ -61,6 +61,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       templateStyle: 'html',
       staticPropReferences: true,
       standaloneHtmlComponents,
+      // An element's own styles weigh what they weigh in the Next export and the editor.
+      doubleElementClass: true,
     })
   )
 
