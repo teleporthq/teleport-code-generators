@@ -1,5 +1,9 @@
 import { parse } from '@babel/parser'
+import { writeFileSync } from 'fs'
+import { join } from 'path'
+import { format, resolveConfig } from 'prettier'
 import { RichTextEmbeds, RichTextEmbedsCodegen } from '../../src'
+import { emitEmbedRuntimeModuleSourceFromFunctions } from '../_helpers/embed-runtime-emitter'
 
 /**
  * The generated project gets `components/embed-runtime.js`, emitted from the
@@ -9,6 +13,25 @@ import { RichTextEmbeds, RichTextEmbedsCodegen } from '../../src'
  * exactly what the source module answers.
  */
 const SOURCE = RichTextEmbedsCodegen.generateEmbedRuntimeModuleSource()
+
+const COMMITTED_SOURCE_PATH = join(__dirname, '../../src/utils/rich-text-embeds-runtime-source.ts')
+
+/** Rewrites the committed string the generator ships, one source line per array entry. */
+const writeCommittedSource = (source: string): void => {
+  const lines = source.split('\n').map((line) => `  ${JSON.stringify(line)},`)
+  const text = [
+    '// GENERATED from src/utils/rich-text-embeds.ts — do not edit by hand. Regenerate with',
+    '// UPDATE_EMBED_RUNTIME=1 npx jest packages/teleport-shared/__tests__/utils/rich-text-embeds-runtime-module.ts',
+    '// (see generateEmbedRuntimeModuleSource for why this is a string).',
+    '/* tslint:disable:no-invalid-template-strings -- the lines are JavaScript source */',
+    'export const EMBED_RUNTIME_MODULE_SOURCE = [',
+    ...lines,
+    "].join('\\n')",
+    '',
+  ].join('\n')
+  const options = resolveConfig.sync(COMMITTED_SOURCE_PATH) || {}
+  writeFileSync(COMMITTED_SOURCE_PATH, format(text, { ...options, parser: 'typescript' }))
+}
 
 /** Evaluates the ES module source in-process and returns its exports. */
 const loadRuntime = (): Record<string, (...args: never[]) => unknown> => {
@@ -21,6 +44,17 @@ const loadRuntime = (): Record<string, (...args: never[]) => unknown> => {
 }
 
 describe('the emitted embed runtime module', () => {
+  it('is the module printed from the source functions', () => {
+    const fresh = emitEmbedRuntimeModuleSourceFromFunctions()
+    if (process.env.UPDATE_EMBED_RUNTIME) {
+      writeCommittedSource(fresh)
+      return
+    }
+    // Fails after a change to rich-text-embeds.ts: regenerate the committed
+    // string with UPDATE_EMBED_RUNTIME=1 (command at the top of that file).
+    expect(SOURCE).toBe(fresh)
+  })
+
   it('parses as an ES module', () => {
     expect(() => parse(SOURCE, { sourceType: 'module' })).not.toThrow()
   })

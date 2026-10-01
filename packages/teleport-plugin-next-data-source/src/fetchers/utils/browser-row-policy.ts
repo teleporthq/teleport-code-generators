@@ -11,8 +11,11 @@
  * without them. So a caller that is not the store itself (its server code, or a
  * signed-in administrator — the generated admin edits drafts through these
  * routes) is served only the rows the storefront publishes, never a hidden
- * column, and may neither filter, sort nor search by a hidden column: a filter
- * is an oracle for a column it never returns.
+ * column, and may neither filter nor sort by a hidden column: a filter is an
+ * oracle for a column it never returns. A hidden SEARCH column is dropped from
+ * the search instead (`__brpVisibleColumns`), because the storefront's own list
+ * bindings name every text column of the table — the blog list asks to search
+ * `author_email` — and refusing them emptied the blog for every visitor.
  */
 
 export interface BrowserRowPolicy {
@@ -128,12 +131,13 @@ function __brpParse(value) {
   }
 }
 
+// Search columns are not checked here: the read drops the hidden ones from the
+// search (\`__brpVisibleColumns\`), and the storefront's own list bindings name them.
 function __brpAssertVisibleFields(policy, query) {
   var q = query || {};
   var fields = [];
   __brpRequestFields(__brpParse(q.filters), fields);
   __brpRequestFields(__brpParse(q.sorts), fields);
-  __brpRequestFields(__brpParse(q.queryColumns), fields);
   if (typeof q.sortBy === 'string') fields.push(q.sortBy);
   for (var i = 0; i < fields.length; i++) {
     if (__brpIsHidden(policy, fields[i])) {

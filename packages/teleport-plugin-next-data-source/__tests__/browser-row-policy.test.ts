@@ -261,7 +261,6 @@ describe('blog posts: a visitor reads the published posts, never an author email
       { filters },
       { sorts: JSON.stringify([{ field: 'author_email', order: 'asc' }]) },
       { sortBy: 'author_email' },
-      { query: 'ana', queryColumns: JSON.stringify(['author_email']) },
     ]) {
       const refused = await posts.run({ query })
       expect(refused.status).toBe(403)
@@ -271,6 +270,27 @@ describe('blog posts: a visitor reads the published posts, never an author email
     }
     // The admin may.
     expect((await posts.run({ query: { filters }, session: { role: 'admin' } })).status).toBe(200)
+  })
+
+  it('drops the hidden column from the search columns the blog list sends', async () => {
+    // The generated blog list names every text column of the table, the
+    // author's email among them, on every read — with or without a search term.
+    const queryColumns = JSON.stringify(['title', 'author_email'])
+    for (const query of [{ queryColumns }, { query: 'ana', queryColumns }]) {
+      const guest = await posts.run({ query })
+      expect(guest.status).toBe(200)
+      expect(mainQuery(guest)).not.toContain('"author_email"')
+      expect(JSON.stringify(guest.body.data)).not.toContain('ana@example.com')
+      expect((await posts.run({ handler: 'getCount', query })).status).toBe(200)
+    }
+    const searched = await posts.run({ query: { query: 'ana', queryColumns } })
+    expect(mainQuery(searched)).toContain('"title"::text ILIKE')
+
+    const admin = await posts.run({
+      query: { query: 'ana', queryColumns },
+      session: { role: 'admin' },
+    })
+    expect(mainQuery(admin)).toContain('"author_email"::text ILIKE')
   })
 
   it('searches a visitor only through the columns it is served', async () => {
