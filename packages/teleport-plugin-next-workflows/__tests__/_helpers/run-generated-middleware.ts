@@ -1,5 +1,5 @@
 import { UIDLAuthentication } from '@teleporthq/teleport-types'
-import { generateMiddlewareFile } from '../../src/auth-generator'
+import { generateMiddlewareFile, MiddlewareOptions } from '../../src/auth-generator'
 
 /**
  * Loads the middleware `generateMiddlewareFile` emits and runs it against a
@@ -25,6 +25,20 @@ export interface MiddlewareSessionUser {
   role?: string
 }
 
+/**
+ * What the stubbed `/api/auth/subscriber-access` answers: a body, a non-2xx
+ * status, or a thrown network error. Omitted, the route answers "not entitled".
+ */
+export type SubscriberAccessStub =
+  | { entitled: boolean; redirectTo?: string }
+  | { status: number }
+  | { throws: true }
+
+export interface MiddlewareFetchCall {
+  url: string
+  cookie: string
+}
+
 export interface MiddlewareRequestOptions {
   /** Session user the stubbed `/api/auth/session` returns; omit for a guest. */
   sessionUser?: MiddlewareSessionUser | null
@@ -36,6 +50,10 @@ export interface MiddlewareRequestOptions {
    */
   locale?: string
   defaultLocale?: string
+  /** The subscriber-access route's answer for this request. */
+  subscriberAccess?: SubscriberAccessStub
+  /** Receives every `fetch` the middleware makes, in order. */
+  fetchCalls?: MiddlewareFetchCall[]
 }
 
 interface RawMiddlewareResult {
@@ -65,7 +83,15 @@ const stripModuleSyntax = (code: string): string =>
  */
 export const extractProtectedRoutes = (
   code: string
-): Record<string, { requiresAuth: boolean; allowedRoles: string[] }> => {
+): Record<
+  string,
+  {
+    requiresAuth: boolean
+    allowedRoles: string[]
+    requiresSubscription?: boolean
+    subscriptionProductIds?: string[]
+  }
+> => {
   // Non-greedy up to the first `};`. `JSON.stringify(…, null, 2)` never emits
   // that sequence inside the object, so the first hit is the real terminator —
   // and the empty-map case (`= {};`) is covered by the same pattern.
@@ -97,12 +123,15 @@ const NEXT_RESPONSE_STUB = {
  * Compiles the middleware once for an auth config. Reuse the returned function
  * across requests in a test to avoid re-generating the file per assertion.
  */
-export const compileGeneratedMiddleware = (auth: UIDLAuthentication) => {
+export const compileGeneratedMiddleware = (
+  auth: UIDLAuthentication,
+  middlewareOptions: MiddlewareOptions = {}
+) => {
   const factory = new Function(
     'NextResponse',
     'getToken',
     'fetch',
-    `${stripModuleSyntax(generateMiddlewareFile(auth))}; return middleware;`
+    `${stripModuleSyntax(generateMiddlewareFile(auth, middlewareOptions))}; return middleware;`
   ) as unknown as MiddlewareFactory
 
   return async (
@@ -112,11 +141,23 @@ export const compileGeneratedMiddleware = (auth: UIDLAuthentication) => {
     const origin = options.origin || 'https://shop.test'
     const sessionUser = options.sessionUser ?? null
     const cookieHeader = sessionUser ? 'next-auth.session-token=stub' : ''
+    const subscriberAccess: SubscriberAccessStub = options.subscriberAccess ?? { entitled: false }
 
-    const fetchImpl = async () => ({
-      ok: true,
-      json: async () => ({ user: sessionUser }),
-    })
+    const fetchImpl = async (url: string, init?: { headers?: { cookie?: string } }) => {
+      if (options.fetchCalls) {
+        options.fetchCalls.push({ url: String(url), cookie: init?.headers?.cookie ?? '' })
+      }
+      if (String(url).indexOf('/api/auth/subscriber-access') === -1) {
+        return { ok: true, json: async () => ({ user: sessionUser }) }
+      }
+      if ('throws' in subscriberAccess) {
+        throw new Error('network down')
+      }
+      if ('status' in subscriberAccess) {
+        return { ok: false, status: subscriberAccess.status, json: async () => ({}) }
+      }
+      return { ok: true, json: async () => subscriberAccess }
+    }
 
     const getTokenStub = async (): Promise<null> => null
     const middleware = factory(NEXT_RESPONSE_STUB, getTokenStub, fetchImpl)

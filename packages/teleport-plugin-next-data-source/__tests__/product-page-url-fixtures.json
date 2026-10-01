@@ -1,0 +1,25 @@
+{
+  "config": {
+    "standard": { "route": "/products", "attribute": "slug" },
+    "pages": {
+      "personalise": { "route": "/personalise", "attribute": "slug", "name": "Personalise" },
+      "root-page": { "route": "/", "attribute": "slug", "name": "Root" },
+      "by-id": { "route": "/studio/items", "attribute": "id", "name": "By id" },
+      "by-sku": { "route": "/engrave", "attribute": "sku", "name": "By SKU" }
+    }
+  },
+  "cases": [
+    { "name": "no page", "raw": null, "values": { "slug": "mug", "id": "7" }, "key": "", "url": "/products/mug" },
+    { "name": "blank page", "raw": "", "values": { "slug": "mug", "id": "7" }, "key": "", "url": "/products/mug" },
+    { "name": "spaces around the key", "raw": "  personalise ", "values": { "slug": "postcard", "id": "1" }, "key": "personalise", "url": "/personalise/postcard" },
+    { "name": "custom page", "raw": "personalise", "values": { "slug": "postcard", "id": "1" }, "key": "personalise", "url": "/personalise/postcard" },
+    { "name": "key no page carries", "raw": "deleted-page", "values": { "slug": "mug", "id": "7" }, "key": "", "url": "/products/mug" },
+    { "name": "case matters", "raw": "Personalise", "values": { "slug": "mug", "id": "7" }, "key": "", "url": "/products/mug" },
+    { "name": "page at the site root", "raw": "root-page", "values": { "slug": "tee", "id": "3" }, "key": "root-page", "url": "/tee" },
+    { "name": "page keyed by id", "raw": "by-id", "values": { "slug": "tee", "id": "3" }, "key": "by-id", "url": "/studio/items/3" },
+    { "name": "value is encoded", "raw": "personalise", "values": { "slug": "café crème", "id": "4" }, "key": "personalise", "url": "/personalise/caf%C3%A9%20cr%C3%A8me" },
+    { "name": "no value, no address", "raw": "personalise", "values": { "slug": "", "id": "4" }, "key": "personalise", "url": "" },
+    { "name": "a number is not a key", "raw": 5, "values": { "slug": "mug", "id": "7" }, "key": "", "url": "/products/mug" },
+    { "name": "page keyed by another column", "raw": "by-sku", "values": { "slug": "ring", "id": "9", "sku": "RING-01" }, "key": "by-sku", "url": "/engrave/RING-01" }
+  ]
+}

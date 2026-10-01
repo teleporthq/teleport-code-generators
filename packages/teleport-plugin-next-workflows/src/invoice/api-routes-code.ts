@@ -1,26 +1,83 @@
 import { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
-import { REGIONAL_INVOICE_TAX_CODE } from './regional-invoice-tax-code'
+import { generateCommonJsSessionTokenResolverCode } from '../session-cookie-resolver'
+import { ROLE_OF_TOKEN_CODE } from '../workflow-auth-generator'
+
+/**
+ * The roles that act on invoices from a browser: the ones every generated
+ * admin-panel page is protected with, since the admin panel is the only
+ * browser that issues, rebuilds or lists every invoice.
+ */
+const INVOICE_ADMIN_ROLES = ['admin']
+
+/**
+ * Who is calling an invoice route, as ES5 source shared by the routes:
+ * `invoiceCaller(req)` resolves to `{ server, signedIn, admin, userId }`.
+ *
+ * `server` is this deployment's own server code — the invoice node of a
+ * payment webhook or a checkout segment, the payment webhooks — which presents
+ * the app secret in `x-internal-data-secret`. Only server code can read
+ * NEXTAUTH_SECRET, so a browser cannot forge it; it is compared in constant
+ * time. Everyone else is who their session says they are.
+ */
+const INVOICE_CALLER_CODE = `${generateCommonJsSessionTokenResolverCode()}
+${ROLE_OF_TOKEN_CODE}
+
+var INVOICE_ADMIN_ROLES = ${JSON.stringify(INVOICE_ADMIN_ROLES)};
+
+function presentsAppSecret(req) {
+  var given = req && req.headers ? req.headers['x-internal-data-secret'] : '';
+  var expected = process.env.NEXTAUTH_SECRET;
+  if (typeof given !== 'string' || !given || !expected) return false;
+  var a = Buffer.from(given);
+  var b = Buffer.from(String(expected));
+  return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+}
+
+async function invoiceCaller(req) {
+  if (presentsAppSecret(req)) {
+    return { server: true, signedIn: false, admin: false, userId: null };
+  }
+  var token = null;
+  try {
+    token = await __tqSessionToken(req);
+  } catch (err) {
+    console.warn('[invoice] Could not read the session — ' + (err && err.message));
+    token = null;
+  }
+  if (!token) {
+    return { server: false, signedIn: false, admin: false, userId: null };
+  }
+  var role = roleOf(token);
+  var userId = token.id != null ? token.id : token.sub;
+  return {
+    server: false,
+    signedIn: true,
+    admin: !!role && INVOICE_ADMIN_ROLES.indexOf(role) !== -1,
+    userId: userId != null ? String(userId) : null,
+  };
+}`
 
 export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
   const prefix = settings.invoicePrefix || 'INV-'
-  const defaultTaxRate = settings.defaultTaxRate || 0
-  const showDiscount = settings.showDiscount === true
-  const taxIncludedInPrice = settings.taxIncludedInPrice === true
   const autoGenerate = settings.autoGenerateOnPayment !== false
   const emailEnabled = settings.emailDelivery?.enabled === true
-  const templateDocumentJson = settings.template?.document
-    ? JSON.stringify(settings.template.document)
-    : 'null'
 
   return `/**
  * POST /api/invoices/generate
  * Generates an invoice PDF, stores it in the database, optionally uploads it
  * to the runtime storage worker (when configured), and optionally sends it
  * via email.
+ *
+ * Only the store itself issues invoices: its server code (the invoice node,
+ * the payment webhooks — they present the app secret) or a signed-in admin.
+ * An open route let anyone print invoices on the merchant's letterhead, burn
+ * invoice numbers, claim an order's invoice for good, and read another
+ * buyer's personal data back from a hydrated order.
  */
 
 var dataAccess = require('../../../utils/invoices/data-access');
 var pdfGenerator = require('../../../utils/invoices/pdf-generator');
+var invoiceAssembly = require('../../../utils/invoices/invoice-assembly');
 ${
   emailEnabled
     ? `var emailSender = require('../../../utils/invoices/email-sender');
@@ -30,107 +87,38 @@ var emailLocale = require('../../../utils/email/email-locale');`
 }
 
 var INVOICE_PREFIX = ${JSON.stringify(prefix)};
-var DEFAULT_TAX_RATE = ${defaultTaxRate};
-var DEFAULT_CURRENCY = "USD";
-var SHOW_DISCOUNT = ${showDiscount};
-var TAX_INCLUDED_IN_PRICE = ${taxIncludedInPrice};
-var TEMPLATE_DOCUMENT = ${templateDocumentJson};
-${REGIONAL_INVOICE_TAX_CODE}
+// How long a reserved invoice may wait for its PDF before another request for
+// the same order finishes it: longer than any one request lives.
+var UNFINISHED_INVOICE_STALE_SECONDS = 900;
 
-// Runtime storage configuration. When all three are set, the generated PDF
-// is also POSTed to the storage worker so consumers (e.g. the payment
-// webhook) can store a persistent URL on the order record. Missing/invalid
-// config silently skips the upload — the in-DB PDF (served via
-// /api/invoices/[id]/pdf) is always available as a fallback.
-// Uploads the rendered invoice PDF through THIS project's own
-// \`/api/runtime-storage/upload\` route — the exact same path that the
-// admin-panel asset uploader uses (client-side \`file-storage-upload\`
-// workflow node → the same proxy). Centralising on that one route means:
-//
-//   1. The storage service URL + api key + project id live in one place
-//      (the proxy), so invoice and admin uploads can never drift.
-//   2. When runtime storage is not configured, the proxy returns
-//      HTTP 500 with \`{ error: 'Runtime storage is not configured' }\`.
-//      We surface that as the upload failure reason so the
-//      \`invoice_pdf_url\` column stays empty instead of silently
-//      holding a stale/fake URL.
-//
-// \`baseUrl\` is the live request origin (http://host:port) stamped at
-// the top of \`handler\` from \`req.headers.host\`. The self-fetch pattern
-// is necessary because this endpoint runs server-side, where Node's
-// undici fetch rejects relative URLs.
-async function uploadInvoicePdfToRuntimeStorage(pdfBuffer, fileName, baseUrl) {
-  if (!baseUrl) {
-    console.error('[invoice] Runtime storage: cannot compute proxy URL (baseUrl missing). Skipping upload.');
-    return { storageUrl: '', error: 'baseUrl missing' };
-  }
-  if (typeof Blob === 'undefined' || typeof FormData === 'undefined' || typeof fetch === 'undefined') {
-    console.error('[invoice] Runtime storage: Node runtime missing Blob/FormData/fetch (requires Node >= 18). Skipping upload.');
-    return { storageUrl: '', error: 'node runtime too old' };
-  }
-  try {
-    var proxyUrl = String(baseUrl).replace(/\\/+$/, '') + '/api/runtime-storage/upload';
-    console.info('[invoice] Runtime storage: POST ' + proxyUrl + ' (' + pdfBuffer.length + ' bytes, fileName=' + fileName + ', folder=invoices)');
-    var blob = new Blob([pdfBuffer], { type: 'application/pdf' });
-    var form = new FormData();
-    form.append('file', blob, fileName);
-    form.append('folder', 'invoices');
-    var res = await fetch(proxyUrl, { method: 'POST', body: form });
-    var data = {};
-    try { data = await res.json(); } catch (_parseErr) { data = {}; }
-    if (!res.ok) {
-      var reason = (data && (data.error || data.message)) || ('HTTP ' + res.status);
-      console.error('[invoice] Runtime storage: upload FAILED via proxy — ' + reason +
-        ' (this is expected in dev when RUNTIME_STORAGE_URL / RUNTIME_STORAGE_API_KEY / RUNTIME_STORAGE_PROJECT_ID are unset in .env)');
-      return { storageUrl: '', error: reason };
-    }
-    var files = Array.isArray(data.files) ? data.files : [];
-    var first = files.length > 0 ? files[0] : null;
-    var resolvedUrl = first && first.url ? String(first.url) : (data.url ? String(data.url) : '');
-    var resolvedId = first && first.id ? String(first.id) : (data.id ? String(data.id) : '');
-    if (resolvedUrl) {
-      console.info('[invoice] Runtime storage: upload OK — fileId=' + (resolvedId || '(missing)') + ', storageUrl=' + resolvedUrl);
-    } else {
-      console.error('[invoice] Runtime storage: proxy returned 2xx but no url in payload — ' + JSON.stringify(data).slice(0, 500));
-    }
-    return { storageUrl: resolvedUrl, fileId: resolvedId };
-  } catch (err) {
-    console.error('[invoice] Runtime storage: upload threw — ' + (err && err.message));
-    return { storageUrl: '', error: (err && err.message) || 'upload threw' };
-  }
-}
+${INVOICE_CALLER_CODE}
 
 // ---------------------------------------------------------------------------
 // Waiting for the order's line items to be fully written.
 //
-// This endpoint is reached BEFORE checkout has finished writing the order.
-// \`/api/ecommerce/order-notification\` is fire-and-forget'd by the runtime
-// \`data-create-item\` handler the moment the \`teleport_orders\` row lands —
-// which is upstream of the checkout workflow's "Loop Over Each Cart Item",
-// the loop that inserts \`teleport_order_items\` one HTTP round-trip at a
-// time. Hydrating on arrival therefore snapshots a HALF-WRITTEN order: a
-// real 3-line order was invoiced with a single line and a total 225.45
-// short of what the buyer was charged, because the other two rows were
-// still in flight when the hydration query ran.
+// The checkout workflow writes the \`teleport_orders\` row first and then
+// inserts \`teleport_order_items\` one HTTP round-trip at a time, so a caller
+// that reaches this endpoint early can hydrate a HALF-WRITTEN order: a real
+// 3-line order was once invoiced with a single line and a total 225.45 short
+// of what the buyer was charged, because the other two rows were still in
+// flight when the hydration query ran.
 //
-// So don't race it — wait for the order to settle, then hydrate. Three exit
+// So don't race it — wait for the order to settle, then hydrate. Two exit
 // conditions, cheapest first:
 //
-//   1. \`expectedItemCount\` — the caller's own cart-line count — is reached.
-//      The order-notification route passes it, so the racing path is exact.
-//   2. \`teleport_orders.order_number\` is populated. Checkout backfills the
-//      order number only AFTER the item loop has run to completion (the COD
-//      branch does it in "Mark Order As Cash On Delivery Confirmed", the
-//      online-payment branch in "Set Order Number Before Payment Redirect"),
-//      so a non-empty order number proves every line has been written.
-//   3. The row count is identical across \`SETTLE_STABLE_READS\` consecutive
+//   1. \`teleport_orders.order_number\` is populated. Checkout backfills the
+//      order number only AFTER the item loop has run to completion (the
+//      settled branch does it in "Mark Order As Settled", the online-payment
+//      branch in "Set Order Number Before Payment Redirect"), so a non-empty
+//      order number proves every line has been written.
+//   2. The row count is identical across \`SETTLE_STABLE_READS\` consecutive
 //      reads — the fallback for orders written by a flow that never sets an
 //      order number.
 //
-// An order that is already complete — every webhook-driven call, and any
-// hand-built admin call — satisfies (1) or (2) on the FIRST read, so the
-// only request that ever pays for a poll is the one that would otherwise
-// have shipped a wrong invoice.
+// An order that is already complete — every webhook-driven call, the
+// checkout's own settled-branch call, and any hand-built admin call —
+// satisfies (1) on the FIRST read, so the only request that ever pays for a
+// poll is the one that would otherwise have shipped a wrong invoice.
 var SETTLE_TIMEOUT_MS = 6000;
 var SETTLE_POLL_MS = 400;
 var SETTLE_STABLE_READS = 3;
@@ -139,7 +127,7 @@ function sleepMs(ms) {
   return new Promise(function (resolve) { setTimeout(resolve, ms); });
 }
 
-async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
+async function hydrateOrderWhenSettled(orderId) {
   var deadline = Date.now() + SETTLE_TIMEOUT_MS;
   var lastCount = -1;
   var repeats = 0;
@@ -156,13 +144,6 @@ async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
 
     var rows = Array.isArray(hydrated.items) ? hydrated.items : [];
     var count = rows.length;
-
-    if (expectedItemCount > 0 && count >= expectedItemCount) {
-      if (attempts > 1) {
-        console.info('[invoice] Order ' + orderId + ' settled at ' + count + ' line(s) after ' + attempts + ' read(s) (expected ' + expectedItemCount + ')');
-      }
-      return hydrated;
-    }
 
     var orderNumber = hydrated.order.order_number;
     if (count > 0 && orderNumber != null && String(orderNumber).length > 0) {
@@ -185,8 +166,7 @@ async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
 
     if (Date.now() >= deadline) {
       console.warn('[invoice] Order ' + orderId + ' did not settle within ' + SETTLE_TIMEOUT_MS +
-        'ms — invoicing the ' + count + ' line(s) visible now' +
-        (expectedItemCount > 0 ? ' (expected ' + expectedItemCount + ')' : ''));
+        'ms — invoicing the ' + count + ' line(s) visible now');
       return hydrated;
     }
 
@@ -194,33 +174,24 @@ async function hydrateOrderWhenSettled(orderId, expectedItemCount) {
   }
 }
 
-var CURRENCY_SYMBOLS = {
-  'USD': '$', 'EUR': '\\u20AC', 'GBP': '\\u00A3', 'JPY': '\\u00A5',
-  'CAD': 'C$', 'AUD': 'A$', 'CHF': 'CHF ', 'CNY': '\\u00A5',
-  'INR': '\\u20B9', 'BRL': 'R$', 'KRW': '\\u20A9', 'MXN': 'MX$',
-  'SEK': 'kr', 'NOK': 'kr', 'DKK': 'kr', 'PLN': 'z\\u0142',
-  'CZK': 'K\\u010D', 'HUF': 'Ft', 'RON': 'lei', 'BGN': 'лв',
-  'HRK': 'kn', 'TRY': '\\u20BA', 'ZAR': 'R', 'SGD': 'S$',
-  'HKD': 'HK$', 'NZD': 'NZ$', 'THB': '\\u0E3F', 'MYR': 'RM',
-  'PHP': '\\u20B1', 'IDR': 'Rp', 'TWD': 'NT$', 'AED': 'AED',
-  'SAR': 'SAR', 'ILS': '\\u20AA', 'EGP': 'E\\u00A3', 'NGN': '\\u20A6',
-  'KES': 'KSh', 'GHS': 'GH\\u20B5', 'COP': 'COL$', 'ARS': 'AR$',
-  'CLP': 'CLP$', 'PEN': 'S/.', 'VND': '\\u20AB', 'UAH': '\\u20B4',
-};
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
-  // Compute the live request origin once so \`uploadInvoicePdfToRuntimeStorage\`
-  // can self-fetch the same \`/api/runtime-storage/upload\` route the admin-
-  // panel uploader hits. Same header-parsing pattern as every other
-  // generated api-route (see the workflow segment handlers).
-  var __proto = req.headers['x-forwarded-proto'] ||
-    (req.headers.host && (req.headers.host.startsWith('localhost') || req.headers.host.startsWith('127.0.0.1')) ? 'http' : 'https');
-  var __baseUrl = __proto + '://' + req.headers.host;
+  var caller = await invoiceCaller(req);
+  if (!caller.server && !caller.admin) {
+    res.status(caller.signedIn ? 403 : 401).json({
+      success: false,
+      error: caller.signedIn ? 'Only the store can issue invoices.' : 'Unauthenticated',
+    });
+    return;
+  }
+
+  // The live request origin, so the runtime-storage upload can self-fetch the
+  // same \`/api/runtime-storage/upload\` route the admin-panel uploader hits.
+  var __baseUrl = invoiceAssembly.requestBaseUrl(req);
 
   try {
     var body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
@@ -232,21 +203,11 @@ module.exports = async function handler(req, res) {
 
     var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;
 
-    // How many line items the caller believes this order has. Used only to
-    // stop \`hydrateOrderWhenSettled\` polling the moment the order is whole —
-    // never to reject or pad the invoice, so a wrong count can at worst make
-    // us wait a little longer and fall through to the other exit conditions.
-    var expectedItemCount = Number(body.expectedItemCount);
-    if (!isFinite(expectedItemCount) || expectedItemCount < 0) {
-      expectedItemCount = 0;
-    }
-
     console.info('[invoice] === /api/invoices/generate === baseUrl=' + __baseUrl);
     console.info('[invoice] Request received:', {
       orderId: body.orderId || null,
       hasBodyItems: callerSuppliedItems,
       bodyItemCount: Array.isArray(body.items) ? body.items.length : 0,
-      expectedItemCount: expectedItemCount,
       hasCustomerEmail: !!body.customerEmail,
       requestedCurrency: body.currency || null,
     });
@@ -273,7 +234,7 @@ module.exports = async function handler(req, res) {
       try {
         var hydrated = callerSuppliedItems
           ? await dataAccess.getOrderWithItems(body.orderId)
-          : await hydrateOrderWhenSettled(body.orderId, expectedItemCount);
+          : await hydrateOrderWhenSettled(body.orderId);
         if (hydrated && hydrated.order) {
           hydratedOrder = hydrated.order;
           hydratedItems = Array.isArray(hydrated.items) ? hydrated.items : [];
@@ -288,197 +249,50 @@ module.exports = async function handler(req, res) {
       console.info('[invoice] No orderId in request — skipping DB hydration, using body.* fields verbatim');
     }
 
-    var items = callerSuppliedItems
-      ? body.items
-      : hydratedItems.map(function (row) {
-          return {
-            productId: row.product_id || row.productId || null,
-            // Paired with \`productId\` to find the rate a line was charged at
-            // on an order priced by region (see resolveRegionalInvoiceTax).
-            variantId: row.variant_id || row.variantId || null,
-            name: row.product_name || row.name || 'Item',
-            variantLabel: row.variant_label || row.variantLabel || null,
-            variantSwatches: row.variant_swatches || row.variantSwatches || null,
-            quantity: Number(row.quantity) || 1,
-            unitPrice: Number(row.unit_price || row.unitPrice || row.price) || 0,
-            totalPrice: Number(row.total_price || row.totalPrice) || 0,
-            currency: row.currency || null,
-          };
-        });
-    if (items.length === 0) {
+    // Lines, prices, discounts, tax, delivery and the gift-card tender — the
+    // same assembly the admin panel's regenerate route rebuilds an invoice with.
+    var invoiceData = invoiceAssembly.assembleInvoiceData(body, hydratedOrder, hydratedItems);
+    if (!invoiceData) {
       res.status(400).json({ error: 'At least one item is required' });
       return;
     }
+    var items = invoiceData.items;
+    var currency = invoiceData.currency;
 
-    var currency = String(
-      body.currency || (hydratedOrder && hydratedOrder.currency) || DEFAULT_CURRENCY
-    ).toUpperCase();
-    var currencySymbol = body.currencySymbol || CURRENCY_SYMBOLS[currency] || currency + ' ';
-
-    var grossLineSum = 0;
-    for (var i = 0; i < items.length; i++) {
-      var qty = Number(items[i].quantity) || 1;
-      var price = Number(items[i].unitPrice || items[i].unit_price || items[i].price) || 0;
-      var itemTotal = Number(items[i].totalPrice || items[i].total_price) || (qty * price);
-      items[i].totalPrice = itemTotal;
-      items[i].unitPrice = price;
-      items[i].quantity = qty;
-      grossLineSum += itemTotal;
-    }
-
-    // Hydrated order row (or \`{}\` for a fully body-driven call), read before the
-    // totals below need it. \`orderRow\` further down is the same object under a
-    // name the customer/payment fallbacks use.
-    var orderShippingSource = hydratedOrder || {};
-
-    // Voucher discount.
-    //
-    // A discount STORED ON THE ORDER is money the buyer was not charged, so it
-    // is subtracted whatever \`SHOW_DISCOUNT\` says — that flag governs whether
-    // the template renders a discount ROW, and honouring it here would print a
-    // total larger than the card was debited. \`SHOW_DISCOUNT\` still gates a
-    // BODY-supplied amount, which is the manual/ad-hoc path a merchant opts
-    // into.
-    //
-    // The payment webhook calls this route with just an \`orderId\`, so the
-    // order row — not the body — is the usual source.
-    var discountAmount = 0;
-    if (SHOW_DISCOUNT && body.discountAmount != null && body.discountAmount !== '') {
-      discountAmount = Number(body.discountAmount) || 0;
-    } else if (orderShippingSource.discount_amount != null) {
-      discountAmount = Number(orderShippingSource.discount_amount) || 0;
-    }
-    if (!(discountAmount > 0)) { discountAmount = 0; }
-
-    var taxRate = body.taxRate != null ? Number(body.taxRate) : DEFAULT_TAX_RATE;
-    var subtotal;
-    var taxAmount = 0;
-    var taxableAmount;
-    if (taxRate > 0 && TAX_INCLUDED_IN_PRICE) {
-      // Prices already include VAT — extract net subtotal and tax out of the gross sum.
-      taxableAmount = grossLineSum - discountAmount;
-      var netAmount = taxableAmount / (1 + taxRate / 100);
-      taxAmount = taxableAmount - netAmount;
-      subtotal = netAmount;
-    } else {
-      subtotal = grossLineSum;
-      taxableAmount = subtotal - discountAmount;
-      if (taxRate > 0) {
-        taxAmount = taxableAmount * (taxRate / 100);
+    // The number and the row are taken before the PDF is rendered, under one
+    // lock (see reserveInvoice): an order gets one invoice however many times
+    // its payment is reported, and no two invoices share a number.
+    var reservation = await dataAccess.reserveInvoice(invoiceData, items, INVOICE_PREFIX);
+    var held = reservation.invoice;
+    if (!reservation.created) {
+      if (Number(held.pdf_size_bytes) > 0) {
+        console.info('[invoice] Order ' + body.orderId + ' already has invoice ' + held.invoice_number + ' — returning it');
+        var heldPdfUrl = held.pdf_url || ('/api/invoices/' + held.id + '/pdf');
+        res.status(200).json({
+          success: true,
+          alreadyIssued: true,
+          invoiceId: held.id,
+          invoiceNumber: held.invoice_number,
+          storageUrl: heldPdfUrl.indexOf('/api/invoices/') === 0 ? '' : heldPdfUrl,
+          pdfUrl: heldPdfUrl,
+          total: Number(held.total) || 0,
+          currency: held.currency || currency,
+        });
+        return;
       }
-    }
-    var goodsTotal = TAX_INCLUDED_IN_PRICE
-      ? (grossLineSum - discountAmount)
-      : (taxableAmount + taxAmount);
-
-    // Delivery fee the buyer was charged. Read from the order (or handed in by
-    // a caller that assembled the invoice itself) rather than re-derived from
-    // the merchant's CURRENT delivery settings — the order is a historical
-    // record and its settings may have changed since.
-    //
-    // It is added to the total but NOT into \`subtotal\` / \`taxAmount\`: those two
-    // describe the GOODS, which is what \`teleport_invoice_items\` holds and what
-    // the VAT breakdown is computed from. The storefront charges the configured
-    // delivery price verbatim (\`computeShippingMeta\` never taxes it), so the
-    // invoice must not tax it either — otherwise the invoice total stops
-    // matching \`teleport_orders.total_amount\`, i.e. the amount actually taken.
-    // 0 for pickup orders, free-delivery orders, and orders placed before the
-    // column existed.
-    var shippingAmount = Number(
-      body.shippingAmount != null ? body.shippingAmount : (orderShippingSource.shipping_amount || 0)
-    );
-    if (!isFinite(shippingAmount) || shippingAmount < 0) {
-      shippingAmount = 0;
-    }
-    var total = goodsTotal + shippingAmount;
-
-    // An order priced by region records the rate each line was charged at, so
-    // its invoice is computed from that record instead of the store default.
-    // A caller that states its own \`taxRate\` keeps the single-rate path.
-    var taxIncludedInPrice = TAX_INCLUDED_IN_PRICE;
-    var regionalTaxBreakdown = body.taxRate == null
-      ? parseOrderTaxBreakdown(orderShippingSource.tax_breakdown)
-      : null;
-    if (regionalTaxBreakdown) {
-      var regionalTax = resolveRegionalInvoiceTax(regionalTaxBreakdown, items, discountAmount, shippingAmount);
-      taxRate = regionalTax.taxRate;
-      taxIncludedInPrice = regionalTax.taxIncluded;
-      subtotal = regionalTax.subtotal;
-      taxAmount = regionalTax.taxAmount;
-      shippingAmount = regionalTax.shippingNet;
-      total = regionalTax.total;
-      for (var ti = 0; ti < items.length; ti++) {
-        items[ti].taxRate = regionalTax.itemTax[ti].rate;
-        items[ti].taxIncluded = regionalTax.itemTax[ti].included;
-        items[ti].taxAmount = regionalTax.itemTax[ti].amount;
+      // Reserved, never finished: another request is rendering it now, or the
+      // one that reserved it died — then the first request to find it stale
+      // finishes it under the same number.
+      if (!(await dataAccess.claimStaleInvoice(held.id, UNFINISHED_INVOICE_STALE_SECONDS))) {
+        console.info('[invoice] Order ' + body.orderId + ' invoice ' + held.invoice_number + ' is being issued by another request');
+        res.status(409).json({ success: false, inProgress: true, error: "This order's invoice is being issued by another request." });
+        return;
       }
+      console.warn('[invoice] Finishing invoice ' + held.invoice_number + ' for order ' + body.orderId + ' — the request that reserved it never did');
+      invoiceData.id = held.id;
+      invoiceData.invoiceNumber = held.invoice_number;
     }
-
-    // Cross-check against the amount the order was actually placed for. The
-    // invoice is built from line items, the order carries the charged total,
-    // and the two must agree — when they don't, the invoice is being written
-    // from an incomplete set of lines (exactly what a lost race against
-    // checkout's item loop looks like). Log-only: a mismatch must never stop
-    // the merchant getting an invoice, but it has to be visible in the
-    // function logs instead of silently shipping a short bill.
-    var orderTotalAmount = Number(orderShippingSource.total_amount);
-    if (isFinite(orderTotalAmount) && orderTotalAmount > 0 && Math.abs(orderTotalAmount - total) > 0.02) {
-      console.warn('[invoice] Total mismatch for order ' + (body.orderId || '(none)') +
-        ' — invoice total ' + (Math.round(total * 100) / 100) +
-        ' vs teleport_orders.total_amount ' + orderTotalAmount +
-        ' across ' + items.length + ' line item(s). The invoice may be missing lines.');
-    }
-
-    var nextNumber = await dataAccess.getNextInvoiceNumber(INVOICE_PREFIX);
-    var invoiceNumber = INVOICE_PREFIX + String(nextNumber).padStart(4, '0');
-
-    var issueDate = body.issueDate || new Date().toISOString().split('T')[0];
-    var parsedIssueDate = new Date(issueDate);
-    if (isNaN(parsedIssueDate.getTime())) {
-      issueDate = new Date().toISOString().split('T')[0];
-      parsedIssueDate = new Date(issueDate);
-    }
-    // \`dueDate\` defaults to issueDate + 30 days (industry-standard
-    // Net 30 terms) when the caller doesn't pass one. Without this
-    // default, every invoice generated from the order-notification /
-    // payment-webhook paths shipped with an empty \`{{dueDate}}\` slot
-    // in the buyer email + PDF — the merchant template literally
-    // rendered "Due Date: " with no date — because none of those
-    // callers know what payment terms the merchant uses.
-    //
-    // We compute it from \`parsedIssueDate\` (already validated above)
-    // so a bad caller-provided \`issueDate\` doesn't propagate into a
-    // bad \`dueDate\`. ISO yyyy-mm-dd is the same format the issueDate
-    // path produces, so downstream date formatters get a single shape.
-    var DEFAULT_DUE_DATE_OFFSET_DAYS = 30;
-    var dueDate = body.dueDate || '';
-    if (dueDate) {
-      var parsedDue = new Date(dueDate);
-      if (isNaN(parsedDue.getTime())) dueDate = '';
-    }
-    if (!dueDate) {
-      var __defaultDue = new Date(parsedIssueDate.getTime());
-      __defaultDue.setUTCDate(__defaultDue.getUTCDate() + DEFAULT_DUE_DATE_OFFSET_DAYS);
-      dueDate = __defaultDue.toISOString().split('T')[0];
-    }
-
-    // Order-derived fallbacks. When the caller didn't pass a customer
-    // field but the order has one, use it. Kept permissive on field
-    // names (billing_* wins, falls back to shipping_*) because a buyer
-    // who checked "bill to a different address" has both on the order.
-    var orderRow = orderShippingSource;
-    var fallbackCustomerName =
-      orderRow.billing_name || orderRow.shipping_name || orderRow.customer_name || '';
-    var fallbackCustomerEmail = orderRow.billing_email || orderRow.customer_email || '';
-    var fallbackCustomerAddress = orderRow.billing_address || orderRow.shipping_address || '';
-    var fallbackCustomerCity = orderRow.shipping_city || '';
-    var fallbackCustomerState = orderRow.shipping_state || '';
-    var fallbackCustomerZip = orderRow.shipping_zip || '';
-    var fallbackCustomerCountry = orderRow.shipping_country || '';
-    var fallbackPaymentMethod = orderRow.payment_method || '';
-    var fallbackPaymentProvider = orderRow.payment_provider || '';
-    var fallbackPaymentIntentId = orderRow.payment_intent_id || '';
-    var fallbackNotes = orderRow.notes || '';
+    var invoiceNumber = invoiceData.invoiceNumber;
 ${
   emailEnabled
     ? `
@@ -486,80 +300,24 @@ ${
     // order at checkout (the buyer's storefront), else the one the caller
     // named, else the language of the request itself. A cron or a webhook
     // has neither of the last two and lands on the store's main language.
+    var orderRow = hydratedOrder || {};
     var invoiceLocale = emailLocale.normalizeEmailLocale(orderRow.locale)
       || emailLocale.normalizeEmailLocale(body.locale)
       || emailLocale.resolveRequestLocale(req);
+    invoiceData.locale = invoiceLocale;
 `
     : ''
 }
-    var invoiceData = {
-      id: body.id || require('crypto').randomUUID(),
-      invoiceNumber: invoiceNumber,
-      status: body.status || 'issued',
-      issueDate: issueDate,
-      dueDate: dueDate,
-      paidAt: body.paidAt || null,
-      customerName: body.customerName || fallbackCustomerName || '',
-      customerEmail: body.customerEmail || fallbackCustomerEmail || '',${
-        emailEnabled ? '\n      locale: invoiceLocale,' : ''
-      }
-      customerAddress: body.customerAddress || fallbackCustomerAddress || '',
-      customerCity: body.customerCity || fallbackCustomerCity || '',
-      customerState: body.customerState || fallbackCustomerState || '',
-      customerZip: body.customerZip || fallbackCustomerZip || '',
-      customerCountry: body.customerCountry || fallbackCustomerCountry || '',
-      customerVat: body.customerVat || '',
-      companyName: pdfGenerator.COMPANY_DETAILS.companyName || '',
-      companyAddress: pdfGenerator.COMPANY_DETAILS.companyAddress || '',
-      companyCity: pdfGenerator.COMPANY_DETAILS.companyCity || '',
-      companyState: pdfGenerator.COMPANY_DETAILS.companyState || '',
-      companyZip: pdfGenerator.COMPANY_DETAILS.companyZip || '',
-      companyCountry: pdfGenerator.COMPANY_DETAILS.companyCountry || '',
-      companyVat: pdfGenerator.COMPANY_DETAILS.companyVat || '',
-      companyRegNumber: pdfGenerator.COMPANY_DETAILS.companyRegNumber || '',
-      companyEmail: pdfGenerator.COMPANY_DETAILS.companyEmail || '',
-      companyPhone: pdfGenerator.COMPANY_DETAILS.companyPhone || '',
-      companyLogoUrl: body.companyLogoUrl || '',
-      companyWebsite: pdfGenerator.COMPANY_DETAILS.companyWebsite || '',
-      subtotal: Math.round(subtotal * 100) / 100,
-      taxRate: taxRate,
-      taxAmount: Math.round(taxAmount * 100) / 100,
-      // Surfacing the inclusion mode so the PDF builder can apply the SAME
-      // formulas the GUI uses (invoice-vat-formulas.ts) when it derives
-      // per-line unitPriceNet / lineVatAmount / lineTotalGross. Without
-      // this flag the builder can't tell whether the stored unitPrice is
-      // a net (added on top) or a gross (included in price) value, and
-      // the line-item table renders blank cells.
-      taxIncludedInPrice: taxIncludedInPrice,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      // Delivery fee, surfaced so the PDF/HTML renderer can print its own line
-      // and the merchant's template can bind \`invoice.shippingAmount\`.
-      shippingAmount: Math.round(shippingAmount * 100) / 100,
-      total: Math.round(total * 100) / 100,
-      currency: currency,
-      currencySymbol: currencySymbol,
-      paymentMethod: body.paymentMethod || fallbackPaymentMethod || '',
-      paymentProvider: body.paymentProvider || fallbackPaymentProvider || '',
-      paymentIntentId: body.paymentIntentId || fallbackPaymentIntentId || '',
-      orderId: body.orderId || '',
-      notes: body.notes || fallbackNotes || '',
-      items: items,
-      templateSnapshot: TEMPLATE_DOCUMENT ? JSON.stringify(TEMPLATE_DOCUMENT) : null,
-    };
 
     var pdfBuffer = await pdfGenerator.generateInvoicePdf(invoiceData);
     console.info('[invoice] PDF generated: ' + pdfBuffer.length + ' bytes for ' + invoiceData.invoiceNumber);
 
-    invoiceData.pdfData = pdfBuffer;
-    invoiceData.pdfSizeBytes = pdfBuffer.length;
     invoiceData.pdfUrl = '/api/invoices/' + invoiceData.id + '/pdf';
-
-    var insertedInvoice = await dataAccess.insertInvoice(invoiceData);
-    await dataAccess.insertInvoiceItems(invoiceData.id, items);
-    console.info('[invoice] DB insert OK — teleport_invoices.id=' + invoiceData.id + ', number=' + invoiceData.invoiceNumber + ', pdf_size_bytes=' + pdfBuffer.length + ', items=' + items.length + ' (accessible at ' + invoiceData.pdfUrl + ')');
+    await dataAccess.storeInvoicePdf(invoiceData.id, pdfBuffer, invoiceData.pdfUrl);
+    console.info('[invoice] PDF stored — teleport_invoices.id=' + invoiceData.id + ', number=' + invoiceData.invoiceNumber + ', pdf_size_bytes=' + pdfBuffer.length + ', items=' + items.length + ' (accessible at ' + invoiceData.pdfUrl + ')');
 
     var safeFileName = String(invoiceNumber || invoiceData.id).replace(/[^a-zA-Z0-9._-]/g, '_') + '.pdf';
-    var uploadResult = await uploadInvoicePdfToRuntimeStorage(pdfBuffer, safeFileName, __baseUrl);
+    var uploadResult = await invoiceAssembly.uploadInvoicePdfToRuntimeStorage(pdfBuffer, safeFileName, __baseUrl);
     var storageUrl = (uploadResult && uploadResult.storageUrl) || '';
 
     // Persist the runtime-storage URL onto \`teleport_invoices.pdf_url\` once
@@ -579,6 +337,7 @@ ${
       } catch (updateErr) {
         console.error('[invoice] DB update FAILED for pdf_url=' + storageUrl + ' (id=' + invoiceData.id + '): ' + (updateErr && updateErr.message));
       }
+      await invoiceAssembly.recordStoredInvoicePdfKey(invoiceData.id, uploadResult.fileId);
     } else {
       console.info('[invoice] Skipping pdf_url update — storage upload did not yield a URL; keeping DB fallback ' + invoiceData.pdfUrl);
     }
@@ -683,19 +442,284 @@ ${
     ? `    await sentEmailLog.settleSentEmailLog();
 `
     : ''
-}    res.status(500).json({ success: false, error: error.message || 'Failed to generate invoice' });
+}    // The error names the store's tables and data: server log only (above).
+    res.status(500).json({ success: false, error: 'Failed to generate invoice' });
   }
 };
 `
 }
 
-export const generateInvoicePdfRouteCode = (): string => {
+/** The roles allowed to rebuild an invoice (the admin panel is the only caller). */
+const REGENERATE_INVOICE_ROLES = INVOICE_ADMIN_ROLES
+
+/**
+ * POST /api/invoices/[id]/regenerate — the admin panel's "Regenerate" action.
+ *
+ * Rebuilds ONE invoice from its order with the very assembly that issued it at
+ * payment (`utils/invoices/invoice-assembly.js`), IN PLACE: the same id, number,
+ * dates and status, so the order, the sent-email ledger and any refund recorded
+ * against it keep pointing at a valid invoice. What a merchant corrected on the
+ * invoice itself (customer details, notes, payment method) wins over the order;
+ * the lines and every figure are recomputed from the order. The old PDF is
+ * replaced — and its runtime-storage copy deleted — and the customer is never
+ * emailed.
+ *
+ * Unlike `/generate`, which the payment webhook calls server-to-server, this
+ * route is reached from the merchant's browser only, so it checks the session
+ * itself: signed in, with an admin role.
+ */
+export const generateInvoiceRegenerateRouteCode = (): string => {
   return `/**
- * GET /api/invoices/[id]/pdf
- * Returns the invoice PDF binary for download.
+ * POST /api/invoices/[id]/regenerate
+ * Rebuilds one invoice from its order, in place, for the admin panel. Same
+ * number, id and dates; a freshly rendered PDF replaces the old one; no email.
  */
 
 var dataAccess = require('../../../../utils/invoices/data-access');
+var pdfGenerator = require('../../../../utils/invoices/pdf-generator');
+var invoiceAssembly = require('../../../../utils/invoices/invoice-assembly');
+
+${generateCommonJsSessionTokenResolverCode()}
+${ROLE_OF_TOKEN_CODE}
+
+var REGENERATE_ALLOWED_ROLES = ${JSON.stringify(REGENERATE_INVOICE_ROLES)};
+
+var MESSAGES = {
+  unauthenticated: 'Your session has ended. Sign in again to regenerate invoices.',
+  forbidden: 'Only an admin can regenerate invoices.',
+  missingId: 'Invoice id is required.',
+  notFound: 'This invoice no longer exists.',
+  notLinked: 'This invoice is not linked to an order, so there is nothing to rebuild it from.',
+  orderGone: 'The order this invoice was issued for no longer exists.',
+  noLines: 'The order has no products left to invoice.',
+  failed: 'The invoice could not be regenerated.',
+  orderNotUpdated: 'The invoice was rebuilt, but its order could not be updated, so the customer still sees the previous PDF. Regenerate it again.',
+};
+
+// 'YYYY-MM-DD' of a stored date, the shape the assembly and the PDF expect.
+// pg hands a DATE/TIMESTAMP over as a Date built from the naive column value
+// in LOCAL time, so its local calendar day is the stored one; a string is cut
+// to its date part. Empty when unreadable — the assembly then falls back
+// exactly as it does at payment.
+function calendarDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return '';
+    return value.getFullYear() + '-' + String(value.getMonth() + 1).padStart(2, '0') + '-' + String(value.getDate()).padStart(2, '0');
+  }
+  var match = /^(\\d{4}-\\d{2}-\\d{2})/.exec(String(value));
+  return match ? match[1] : '';
+}
+
+// What the invoice itself says, stated over the order: the identity of the
+// document (id, dates, status) and what a merchant can correct with Edit —
+// the customer details, the notes and the payment method. Everything left out
+// (the lines, prices, discounts, tax, delivery, gift card, currency) is read
+// from the order, exactly as at payment. An empty field falls back to the
+// order too.
+function regenerationBody(invoice) {
+  return {
+    orderId: String(invoice.order_id),
+    id: String(invoice.id),
+    status: invoice.status || 'issued',
+    issueDate: calendarDate(invoice.issue_date),
+    dueDate: calendarDate(invoice.due_date),
+    paidAt: invoice.paid_at || null,
+    customerName: invoice.customer_name || '',
+    customerEmail: invoice.customer_email || '',
+    customerAddress: invoice.customer_address || '',
+    customerCity: invoice.customer_city || '',
+    customerState: invoice.customer_state || '',
+    customerZip: invoice.customer_zip || '',
+    customerCountry: invoice.customer_country || '',
+    customerVat: invoice.customer_vat || '',
+    paymentMethod: invoice.payment_method || '',
+    paymentProvider: invoice.payment_provider || '',
+    paymentIntentId: invoice.payment_intent_id || '',
+    notes: invoice.notes || '',
+  };
+}
+
+async function sessionRole(req) {
+  try {
+    var token = await __tqSessionToken(req);
+    return token ? { signedIn: true, role: roleOf(token) } : { signedIn: false, role: null };
+  } catch (err) {
+    console.warn('[invoice] Regenerate: could not read the session — ' + (err && err.message));
+    return { signedIn: false, role: null };
+  }
+}
+
+// Postgres refuses an id that is not a UUID ("invalid_text_representation").
+var MALFORMED_ID_ERROR_CODE = '22P02';
+
+// A malformed id is a missing invoice; any other failure (an outage, a full
+// pool) is a server error, never "this invoice no longer exists".
+async function findInvoice(invoiceId) {
+  try {
+    return await dataAccess.getInvoiceById(invoiceId);
+  } catch (err) {
+    if (err && err.code === MALFORMED_ID_ERROR_CODE) return null;
+    throw err;
+  }
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    res.status(405).json({ success: false, error: 'Method not allowed' });
+    return;
+  }
+
+  var session = await sessionRole(req);
+  if (!session.signedIn) {
+    res.status(401).json({ success: false, error: MESSAGES.unauthenticated });
+    return;
+  }
+  if (!session.role || REGENERATE_ALLOWED_ROLES.indexOf(session.role) < 0) {
+    res.status(403).json({ success: false, error: MESSAGES.forbidden });
+    return;
+  }
+
+  var invoiceId = String((req.query && req.query.id) || '').trim();
+  if (!invoiceId) {
+    res.status(400).json({ success: false, error: MESSAGES.missingId });
+    return;
+  }
+
+  try {
+    var invoice = await findInvoice(invoiceId);
+    if (!invoice) {
+      res.status(404).json({ success: false, error: MESSAGES.notFound });
+      return;
+    }
+    if (!invoice.order_id) {
+      res.status(409).json({ success: false, error: MESSAGES.notLinked });
+      return;
+    }
+
+    var hydrated = await dataAccess.getOrderWithItems(String(invoice.order_id));
+    if (!hydrated || !hydrated.order) {
+      res.status(409).json({ success: false, error: MESSAGES.orderGone });
+      return;
+    }
+
+    var invoiceData = invoiceAssembly.assembleInvoiceData(
+      regenerationBody(invoice),
+      hydrated.order,
+      Array.isArray(hydrated.items) ? hydrated.items : []
+    );
+    if (!invoiceData) {
+      res.status(409).json({ success: false, error: MESSAGES.noLines });
+      return;
+    }
+    invoiceData.invoiceNumber = String(invoice.invoice_number || '');
+
+    // Rendered BEFORE anything is written: a PDF service that is down leaves
+    // the invoice exactly as it was.
+    var pdfBuffer = await pdfGenerator.generateInvoicePdf(invoiceData);
+    invoiceData.pdfData = pdfBuffer;
+    invoiceData.pdfSizeBytes = pdfBuffer.length;
+    invoiceData.pdfUrl = '/api/invoices/' + invoiceData.id + '/pdf';
+
+    await dataAccess.replaceInvoice(invoiceData.id, invoiceData, invoiceData.items);
+    console.info('[invoice] Regenerated ' + invoiceData.invoiceNumber + ' (id=' + invoiceData.id + ', items=' + invoiceData.items.length + ', pdf_size_bytes=' + pdfBuffer.length + ')');
+
+    // The new PDF's public copy. The row already serves the new bytes through
+    // /api/invoices/<id>/pdf, so a failed upload costs nothing but the public URL.
+    var previousStorageKey = invoice.pdf_storage_key ? String(invoice.pdf_storage_key) : '';
+    var safeFileName = String(invoiceData.invoiceNumber || invoiceData.id).replace(/[^a-zA-Z0-9._-]/g, '_') + '.pdf';
+    var upload = await invoiceAssembly.uploadInvoicePdfToRuntimeStorage(pdfBuffer, safeFileName, invoiceAssembly.requestBaseUrl(req));
+    var storedUrl = upload && upload.storageUrl ? String(upload.storageUrl) : '';
+    var storageKey = storedUrl ? String(upload.fileId || '') : '';
+    var pdfUrl = storedUrl || invoiceData.pdfUrl;
+
+    // The order BEFORE the old copy goes: the customer's "View invoice" (their
+    // profile, the order page) opens the order's link, so until it names the
+    // new PDF the old copy must stay. On failure the new copy is dropped
+    // instead and nothing else changes, so regenerating again starts clean.
+    try {
+      await dataAccess.linkOrderToInvoice(invoiceData.orderId, invoiceData.id, invoiceData.invoiceNumber, pdfUrl);
+    } catch (linkErr) {
+      console.error('[invoice] Regenerate: could not update order ' + invoiceData.orderId + ' — ' + (linkErr && linkErr.message));
+      if (storageKey) {
+        await invoiceAssembly.deleteStoredInvoicePdf(storageKey);
+      }
+      res.status(500).json({ success: false, error: MESSAGES.orderNotUpdated });
+      return;
+    }
+
+    if (storedUrl) {
+      try {
+        await dataAccess.updateInvoice(invoiceData.id, { pdf_url: storedUrl });
+      } catch (updateErr) {
+        console.error('[invoice] Regenerate: could not save pdf_url=' + storedUrl + ' (id=' + invoiceData.id + '): ' + (updateErr && updateErr.message));
+      }
+    }
+    invoiceData.pdfUrl = pdfUrl;
+    if (storageKey !== previousStorageKey) {
+      await invoiceAssembly.recordStoredInvoicePdfKey(invoiceData.id, storageKey);
+    }
+    if (previousStorageKey && previousStorageKey !== storageKey) {
+      await invoiceAssembly.deleteStoredInvoicePdf(previousStorageKey);
+    }
+
+    res.status(200).json({
+      success: true,
+      invoiceId: invoiceData.id,
+      invoiceNumber: invoiceData.invoiceNumber,
+      pdfUrl: invoiceData.pdfUrl,
+      total: invoiceData.total,
+      currency: invoiceData.currency,
+    });
+  } catch (error) {
+    console.error('[invoice] Regeneration threw:', error && error.stack ? error.stack : error);
+    // The error names the store's tables and data: server log only (above).
+    res.status(500).json({ success: false, error: MESSAGES.failed });
+  }
+};
+`
+}
+
+/**
+ * GET /api/invoices/[id]/pdf — the invoice PDF kept in the database, the link
+ * an order shows when runtime storage is not configured.
+ *
+ * An invoice carries its buyer's name, address and what they bought, so it is
+ * served to the order's own buyer (their session), a signed-in admin, or the
+ * store's server code — and to nobody else, whoever knows the id. An invoice
+ * someone may not read answers exactly like one that does not exist.
+ */
+export const generateInvoicePdfRouteCode = (): string => {
+  return `/**
+ * GET /api/invoices/[id]/pdf
+ * Returns the invoice PDF binary for download, to its buyer or the store.
+ */
+
+var dataAccess = require('../../../../utils/invoices/data-access');
+
+${INVOICE_CALLER_CODE}
+
+// Postgres refuses an id that is not a UUID ("invalid_text_representation").
+var MALFORMED_ID_ERROR_CODE = '22P02';
+
+async function findInvoice(invoiceId) {
+  try {
+    return await dataAccess.getInvoiceById(invoiceId);
+  } catch (err) {
+    if (err && err.code === MALFORMED_ID_ERROR_CODE) return null;
+    throw err;
+  }
+}
+
+// The buyer of the invoice's order: the order row's owner, read from the order
+// itself — an invoice's own customer fields are editable text.
+async function isOrderOwner(invoice, userId) {
+  if (!userId || !invoice || !invoice.order_id) return false;
+  var hydrated = await dataAccess.getOrderWithItems(String(invoice.order_id));
+  var owner = hydrated && hydrated.order ? hydrated.order.user_id : null;
+  return owner != null && String(owner) === String(userId);
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -704,14 +728,20 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    var caller = await invoiceCaller(req);
+    if (!caller.server && !caller.signedIn) {
+      res.status(401).json({ error: 'Unauthenticated' });
+      return;
+    }
+
     var invoiceId = req.query.id;
     if (!invoiceId) {
       res.status(400).json({ error: 'Invoice ID is required' });
       return;
     }
 
-    var invoice = await dataAccess.getInvoiceById(invoiceId);
-    if (!invoice) {
+    var invoice = await findInvoice(String(invoiceId));
+    if (!invoice || (!caller.server && !caller.admin && !(await isOrderOwner(invoice, caller.userId)))) {
       res.status(404).json({ error: 'Invoice not found' });
       return;
     }
@@ -736,10 +766,13 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="' + safeFilename + '"; filename*=UTF-8' + "'" + "'" + encodeURIComponent(rawFilename));
     res.setHeader('Content-Length', pdfBuffer.length);
+    // Personal data: never kept by a shared cache.
+    res.setHeader('Cache-Control', 'private, no-store');
     res.status(200).end(pdfBuffer);
   } catch (error) {
+    // The error names the store's tables and data: server log only.
     console.error('Invoice PDF download error:', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to retrieve invoice PDF' });
+    res.status(500).json({ success: false, error: 'Failed to retrieve invoice PDF' });
   }
 };
 `

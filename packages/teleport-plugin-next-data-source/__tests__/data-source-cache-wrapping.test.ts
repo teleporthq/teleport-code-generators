@@ -41,11 +41,27 @@ describe('generateDataSourceFetcherWithCore — server cache wrapping', () => {
     )
 
     expect(code).toContain("import { tqWithCache } from '../tq-cache/server'")
-    expect(code).toContain('const cachedHandler = tqWithCache(handler, __tqDataCache)')
-    expect(code).toContain('const cachedGetCount = tqWithCache(getCount, __tqCountCache)')
+    // A Postgres-family route answers the store and a visitor differently (see
+    // browser-row-policy.ts), so its cache is split by view.
+    expect(code).toContain('const cachedHandler = __tqCacheByView(handler, __tqDataCache)')
+    expect(code).toContain('const cachedGetCount = __tqCacheByView(getCount, __tqCountCache)')
     expect(code).toContain(
       'export { fetchData, fetchCount, cachedHandler as handler, cachedGetCount as getCount }'
     )
+  })
+
+  it('wraps a route without the row policy in one shared cache, as before', () => {
+    const mysql: UIDLDataSource = {
+      id: 'ds_2',
+      name: 'Shop',
+      type: 'mysql',
+      config: { host: 'h', port: 3306, user: 'u', password: 'p', database: 'd' },
+    }
+    const code = generateDataSourceFetcherWithCore(mysql, 'products', false, {}, CACHE)
+
+    expect(code).toContain('const cachedHandler = tqWithCache(handler, __tqDataCache)')
+    expect(code).toContain('const cachedGetCount = tqWithCache(getCount, __tqCountCache)')
+    expect(code).not.toContain('__tqCacheByView')
   })
 
   /**

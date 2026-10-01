@@ -503,6 +503,22 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             content: content.section,
           }
         }
+
+        // A link bound to a `link` prop is itself a dynamic reference. The prop
+        // keys were camel-cased above (`Redirect` -> `redirect`), so its id has
+        // to be too, or the resolver misses the prop and the HTML export throws
+        // "Definition for Redirect is missing".
+        const linkRef = (elementContent.abilities as { link: unknown }).link as UIDLDynamicReference
+        if (
+          linkRef.type === 'dynamic' &&
+          ['state', 'prop'].includes(linkRef.content?.referenceType) &&
+          linkRef.content.id
+        ) {
+          linkRef.content.id = UIDLUtils.generateIdWithRefPath(
+            linkRef.content.id,
+            linkRef.content.refPath
+          )
+        }
       }
 
       if (Array.isArray(elementContent.children)) {

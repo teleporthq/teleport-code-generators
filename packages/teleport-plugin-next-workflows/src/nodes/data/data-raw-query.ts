@@ -17,11 +17,19 @@ async function data_raw_query(config: any, context: any) {
   // `{ rows: [] }` — the page renders, but nothing reads or writes. See
   // internalRequestHeaders in runtime-utils for what these carry.
   const __internalHeaders = (context && context.__internalHeaders) || {}
+  const __env = (globalThis as any).process && (globalThis as any).process.env
 
   try {
     const response = await fetch(baseUrl + '/api/data/' + dataSourceId + '/raw-query', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...__internalHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        // Trusted internal server-side call — lets the /api/data guard tell this
+        // apart from a direct browser request, which may neither read the
+        // gift-card tables nor write the voucher and discount tables.
+        'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
+        ...__internalHeaders,
+      },
       body: JSON.stringify({ query, params }),
     })
 

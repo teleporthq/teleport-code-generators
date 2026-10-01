@@ -628,8 +628,8 @@ export const generateSafeJSONParseCode = (): string => {
  * collapsing to an empty result the caller cannot explain.
  */
 export const generateCollectionPathHelperCode = (): string => {
-  return `const resolveCollectionPath = (payload, rawPath) => {
-  if (!rawPath) return payload
+  return `const parsePayloadPath = (rawPath) => {
+  if (!rawPath) return null
   let path = rawPath
   if (typeof path === 'string') {
     try {
@@ -638,17 +638,39 @@ export const generateCollectionPathHelperCode = (): string => {
       path = path.split('.').filter(Boolean)
     }
   }
-  if (!Array.isArray(path) || path.length === 0) return payload
+  return Array.isArray(path) && path.length > 0 ? path : null
+}
 
+const readPayloadPath = (payload, path) => {
   let current = payload
   for (const segment of path) {
     if (!current || typeof current !== 'object' || Array.isArray(current) || !(segment in current)) {
-      return payload
+      return undefined
     }
     current = current[segment]
   }
+  return current
+}
 
+const resolveCollectionPath = (payload, rawPath) => {
+  const path = parsePayloadPath(rawPath)
+  if (!path) return payload
+  const current = readPayloadPath(payload, path)
   return Array.isArray(current) ? current : payload
+}
+
+// A list bound to an array INSIDE the payload (\`data?.results\`) still has to be
+// searched, filtered, sorted and paged, but the page reads it back through the
+// same path, so the wrapper must survive. Returns the inner array plus a way to
+// put the processed array back, or null when the path does not lead to one.
+const openItemsEnvelope = (payload, rawPath) => {
+  const path = parsePayloadPath(rawPath)
+  if (!path) return null
+  const items = readPayloadPath(payload, path)
+  if (!Array.isArray(items)) return null
+  const rebuild = (node, depth, next) =>
+    depth === path.length ? next : { ...node, [path[depth]]: rebuild(node[path[depth]], depth + 1, next) }
+  return { items, close: (next) => rebuild(payload, 0, next) }
 }`
 }
 

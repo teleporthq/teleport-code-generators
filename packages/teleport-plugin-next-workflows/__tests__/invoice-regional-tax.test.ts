@@ -1,5 +1,5 @@
 /* tslint:disable:function-constructor */
-import { generateInvoiceGenerateRouteCode } from '../src/invoice/api-routes-code'
+import { generateInvoiceAssemblyCode } from '../src/invoice/invoice-assembly-code'
 import { REGIONAL_INVOICE_TAX_CODE } from '../src/invoice/regional-invoice-tax-code'
 import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 
@@ -105,7 +105,8 @@ describe('invoice — regional tax breakdown', () => {
 })
 
 describe('/api/invoices/generate — regional tax wiring', () => {
-  const route = generateInvoiceGenerateRouteCode({
+  // The route hands every invoice to the shared assembly, where the totals live.
+  const route = generateInvoiceAssemblyCode({
     invoicePrefix: 'INV-',
     defaultTaxRate: 20,
     showDiscount: false,

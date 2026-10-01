@@ -16,11 +16,18 @@ import { createStaticPropsPlugin } from '../src/index'
 const RESOURCE_ID = 'fetch-blog-post'
 
 const makeStructure = (params: {
-  redirect?: { destinationField: string; typeField?: string }
+  redirect?: {
+    destinationField: string
+    typeField?: string
+    unlessFieldEquals?: { field: string; value: string }
+    ownRowsFilter?: Array<Record<string, unknown>>
+    statusCode?: 301 | 302 | 307 | 308
+  }
   skipI18n?: boolean
   revalidate?: number
+  resourceParams?: Record<string, unknown>
 }): ComponentStructure => {
-  const { redirect, skipI18n, revalidate } = params
+  const { redirect, skipI18n, revalidate, resourceParams } = params
   return {
     uidl: {
       name: 'BlogPostDetails',
@@ -31,7 +38,7 @@ const makeStructure = (params: {
         fileName: '[slug]',
         initialPropsData: {
           exposeAs: { name: 'blogPost', valuePath: ['data', '0'] },
-          resource: { id: RESOURCE_ID, params: {} },
+          resource: { id: RESOURCE_ID, params: resourceParams || {} },
           ...(revalidate ? { cache: { revalidate } } : {}),
           ...(redirect ? { redirect } : {}),
         },
@@ -59,7 +66,115 @@ const generateCode = async (structure: ComponentStructure): Promise<string> => {
   return generator(chunk?.content as types.Node).code
 }
 
+describe('teleport-plugin-next-static-props: two rows at one address', () => {
+  const OWN_ROWS = [
+    { type: 'condition', source: 'product_page', destination: 'personalise', operand: '=' },
+  ]
+  const productPage = (ownRowsFilter?: Array<Record<string, unknown>>) =>
+    makeStructure({
+      redirect: {
+        destinationField: 'productPageUrl',
+        unlessFieldEquals: { field: 'productPageKey', value: 'personalise' },
+        ...(ownRowsFilter ? { ownRowsFilter } : {}),
+        statusCode: 302,
+      },
+      revalidate: 60,
+      resourceParams: {
+        filters: {
+          type: 'expr',
+          content:
+            'JSON.stringify([{ type: "condition", source: "slug", destination: params.slug, operand: "=" }])',
+        },
+        limit: { type: 'static', content: 1 },
+      },
+    })
+
+  // Two products may share a slug on different product pages: the page shows
+  // its own one, and redirects only when it has none at that address.
+  it('looks for an own row at the address before sending the visitor on', async () => {
+    const code = await generateCode(productPage(OWN_ROWS))
+    expect(code).toContain(
+      'if (String(response?.data?.[0]?.productPageKey ?? "") !== "personalise") {'
+    )
+    expect(code).toContain('const ownRowsResponse = await')
+    expect(code).toContain('"filters": JSON.stringify(JSON.parse(JSON.stringify([{')
+    expect(code).toContain('.concat([{')
+    expect(code).toContain('destination: "personalise"')
+    expect(code).toContain('response.data = ownRowsResponse.data')
+    expect(code.indexOf('ownRowsResponse')).toBeLessThan(code.indexOf('entityRedirectUrl'))
+    expect(code.indexOf('notFound')).toBeLessThan(code.indexOf('ownRowsResponse'))
+  })
+
+  it('never redirects while pre-rendering: the path answers 404 until it revalidates', async () => {
+    const code = await generateCode(productPage(OWN_ROWS))
+    const redirectCheck = code.indexOf('if (entityRedirectUrl)')
+    const buildCheck = code.indexOf('process.env.NEXT_PHASE === "phase-production-build"')
+    expect(buildCheck).toBeGreaterThan(redirectCheck)
+    expect(buildCheck).toBeLessThan(code.indexOf('redirect: {'))
+  })
+
+  it('leaves a page without the own-rows filter, and the blog redirects, as they were', async () => {
+    const withoutFilter = await generateCode(productPage())
+    expect(withoutFilter).not.toContain('ownRowsResponse')
+    const blog = await generateCode(
+      makeStructure({ redirect: { destinationField: 'redirectUrl', typeField: 'redirectType' } })
+    )
+    expect(blog).not.toContain('ownRowsResponse')
+    expect(blog).not.toContain('NEXT_PHASE')
+  })
+
+  it('keeps the props return the only top-level return', async () => {
+    const plugin = createStaticPropsPlugin()
+    const result = await plugin(productPage(OWN_ROWS))
+    const chunk = result.chunks.find((c) => c.name === 'getStaticProps')
+    const fn = (chunk?.content as types.ExportNamedDeclaration)
+      .declaration as types.FunctionDeclaration
+    const tryStmt = fn.body.body.find(
+      (statement): statement is types.TryStatement => statement.type === 'TryStatement'
+    )
+    expect(
+      tryStmt!.block.body.filter((statement) => statement.type === 'ReturnStatement')
+    ).toHaveLength(1)
+  })
+})
+
 describe('teleport-plugin-next-static-props: entity redirect', () => {
+  // A page that shows a SUBSET of a table's rows (a custom product page shows
+  // the products assigned to it): every other row is sent to its own page,
+  // with a temporary status because a row can move back.
+  it('redirects only while the row belongs to another page, with the status asked for', async () => {
+    const code = await generateCode(
+      makeStructure({
+        redirect: {
+          destinationField: 'productPageUrl',
+          unlessFieldEquals: { field: 'productPageKey', value: 'personalise' },
+          statusCode: 302,
+        },
+        revalidate: 60,
+      })
+    )
+
+    expect(code).toContain(
+      'const entityRedirectUrl = String(response?.data?.[0]?.productPageKey ?? "") !== "personalise" ? response?.data?.[0]?.productPageUrl : undefined'
+    )
+    expect(code).toContain('statusCode: 302')
+    expect(code).toContain('revalidate: 60')
+    expect(code.indexOf('notFound')).toBeLessThan(code.indexOf('entityRedirectUrl'))
+  })
+
+  it('keeps the standard product page own products: its key is empty', async () => {
+    const code = await generateCode(
+      makeStructure({
+        redirect: {
+          destinationField: 'productPageUrl',
+          unlessFieldEquals: { field: 'productPageKey', value: '' },
+          statusCode: 302,
+        },
+      })
+    )
+    expect(code).toContain('String(response?.data?.[0]?.productPageKey ?? "") !== ""')
+  })
+
   it('emits a statusCode redirect between the notFound check and the props return', async () => {
     const code = await generateCode(
       makeStructure({ redirect: { destinationField: 'redirectUrl', typeField: 'redirectType' } })

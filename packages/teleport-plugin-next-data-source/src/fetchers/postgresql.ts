@@ -11,6 +11,9 @@ import {
   generateSortTiebreakSql,
 } from '../product-price-sort'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
+import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
+import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
+import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -27,7 +30,8 @@ interface PostgreSQLConfig {
 
 export const generatePostgreSQLFetcher = (
   config: Record<string, unknown>,
-  tableName: string
+  tableName: string,
+  trustedReaderRoles: ReadonlyArray<string> = []
 ): string => {
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
@@ -58,6 +62,8 @@ export const generatePostgreSQLFetcher = (
 
   return `import { Client } from 'pg'
 
+${generateTableAccessPreamble(trustedReaderRoles)}
+
 const getClient = () => {
   return new Client(${clientConfig})
 }
@@ -67,9 +73,11 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateArrayOverlapSqlCode()}
 
 // Builds one SQL clause for the whole filter tree, so an OR group nested in
 // the root AND keeps its meaning instead of being flattened into ANDs.
+${generateRequestSqlGuardsCode()}
 const processFilters = (filters, conditions, queryParams, paramIndex) => {
   if (!filters) return paramIndex
   
@@ -91,11 +99,13 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       return '$' + paramIndex++
     })
     if (productClause !== null) return productClause
+    assertRequestColumn(field, 'filter field')
     
     if (Array.isArray(value)) {
       if (value.length === 0) return null
       if (operand === 'array_overlap') {
-        const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+        // The row's list (see array-overlap-sql.ts) shares any value with the set.
+        const clause = arrayOverlapSql([field], '$' + paramIndex)
         queryParams.push(value.map((entry) => String(entry)))
         paramIndex++
         return clause
@@ -113,7 +123,7 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       // ?categoryFilter=a,b,c) expands to multiple ids; one id stays one.
       const overlapValues = String(value).split(',').map((entry) => entry.trim()).filter(Boolean)
       if (overlapValues.length === 0) return null
-      const clause = \`jsonb_exists_any(NULLIF(\${field}, '')::jsonb, $\${paramIndex}::text[])\`
+      const clause = arrayOverlapSql([field], '$' + paramIndex)
       queryParams.push(overlapValues)
       paramIndex++
       return clause
@@ -148,6 +158,7 @@ ${generateSortFallbackFieldHelper(tableName)}
 ${generateProductFilterClauseHelper(tableName)}
 
 export default async function handler(req, res) {
+${generateReadGuardCall(tableName, null)}
   const client = getClient()
   
   try {
@@ -155,6 +166,8 @@ export default async function handler(req, res) {
     ${schema ? `await client.query('SET search_path TO ${schema}')` : ''}
     
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset } = req.query
+    // A visitor never filters, sorts or searches by a column it is not served.
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     
     const conditions = []
     const queryParams = []
@@ -189,6 +202,7 @@ export default async function handler(req, res) {
           // Continue without search if we can't get columns
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -204,6 +218,7 @@ export default async function handler(req, res) {
 
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
     let sql = \`SELECT * FROM "${tableName}"\`
     
@@ -219,6 +234,7 @@ export default async function handler(req, res) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
         const valid = parsedSorts.filter((sort) => sort && sort.field)
+        valid.forEach((sort) => assertRequestColumn(sort.field, 'sort field'))
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
         const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
@@ -236,16 +252,17 @@ export default async function handler(req, res) {
         }
       }
     } else if (sortBy) {
+      assertRequestColumn(sortBy, 'sort field')
       orderBySql = \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
       plainOrderBySql = orderBySql
     }
     const usedDiscountAwareSort = orderBySql !== plainOrderBySql
 
-    const limitValue = limit || perPage
+    const limitValue = requestRowCount(limit || perPage)
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
 
     let sqlTail = ''
-    if (limitValue) {
+    if (limitValue !== undefined) {
       sqlTail += \` LIMIT \${limitValue}\`
     }
     
@@ -279,14 +296,20 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: safeData,
+      data: __taWithoutCredentials(
+        __rowPolicy ? __brpStripHidden(__rowPolicy, safeData) : safeData,
+        ${JSON.stringify(tableName)}
+      ),
       timestamp: Date.now()
     })
   } catch (error) {
     console.error('PostgreSQL fetch error:', error)
-    return res.status(500).json({
+    // A database error names tables, columns and values: it stays in the server
+    // log. Only an error this route raised for the caller (it carries a status)
+    // is repeated to it.
+    return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to fetch data',
+      error: error.status ? error.message : 'Failed to fetch data',
       timestamp: Date.now()
     })
   } finally {
@@ -311,11 +334,13 @@ export const generatePostgreSQLCountFetcher = (
 
   return `
 async function getCount(req, res) {
+${generateReadGuardCall(tableName, null)}
   const client = getClient()
 
   try {
     await client.connect()
     const { query, queryColumns, filters } = req.query
+    if (__rowPolicy) __brpAssertVisibleFields(__rowPolicy, req.query)
     const conditions = []
     const queryParams = []
     let paramIndex = 1
@@ -350,6 +375,7 @@ async function getCount(req, res) {
           // Continue without search if we can't get columns
         }
       }
+      if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
       if (columns.length > 0) {
         const pattern = '%' + escapeLikePattern(query) + '%'
@@ -367,6 +393,7 @@ async function getCount(req, res) {
 
     // Apply filters using helper function
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
+    if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
     let countSql = \`SELECT COUNT(*) FROM "${tableName}"\`
     if (conditions.length > 0) {
@@ -383,9 +410,9 @@ async function getCount(req, res) {
     })
   } catch (error) {
     console.error('Error getting count:', error)
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to get count',
+      error: error.status ? error.message : 'Failed to get count',
       timestamp: Date.now()
     })
   } finally {

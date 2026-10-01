@@ -6,6 +6,10 @@ import {
 import { nodeRegistry } from '../src/nodes'
 import type { WorkflowSegment } from '../src/types'
 
+// The one expression that turns the context into the reply body (see
+// segmentReply in runtime-utils): whatever is deleted before it is gone.
+const REPLY_MARKER = 'utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot)'
+
 /**
  * A generated app's data nodes reach the database by having the server call its
  * OWN `/api/data/<id>/<op>` route over HTTP. On a deployment behind Vercel
@@ -137,7 +141,7 @@ describe('the segment routes supply the headers but never echo them back', () =>
     // would undo the httpOnly flag it was set with.
     const deleteAt = route.indexOf('delete context.__internalHeaders')
     expect(deleteAt).toBeGreaterThan(-1)
-    const firstEcho = route.indexOf('results: context')
+    const firstEcho = route.indexOf(REPLY_MARKER)
     expect(firstEcho).toBeGreaterThan(-1)
     expect(deleteAt).toBeLessThan(firstEcho)
   })
@@ -146,10 +150,10 @@ describe('the segment routes supply the headers but never echo them back', () =>
     // Guards the assertion above: a second `results: context` added later would
     // sit outside the delete's reach unless it is also after it.
     const positions: number[] = []
-    let idx = route.indexOf('results: context')
+    let idx = route.indexOf(REPLY_MARKER)
     while (idx !== -1) {
       positions.push(idx)
-      idx = route.indexOf('results: context', idx + 1)
+      idx = route.indexOf(REPLY_MARKER, idx + 1)
     }
     const deleteAt = route.indexOf('delete context.__internalHeaders')
     for (const position of positions) {

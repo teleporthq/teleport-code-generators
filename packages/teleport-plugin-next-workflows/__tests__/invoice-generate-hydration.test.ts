@@ -1,4 +1,5 @@
 import { generateInvoiceGenerateRouteCode } from '../src/invoice/api-routes-code'
+import { generateInvoiceAssemblyCode } from '../src/invoice/invoice-assembly-code'
 import { generateDataAccessCode } from '../src/invoice/data-access-code'
 import type { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 
@@ -68,6 +69,8 @@ describe('invoice data-access — getOrderWithItems', () => {
 
 describe('/api/invoices/generate — orderId hydration', () => {
   const route = generateInvoiceGenerateRouteCode(FAKE_SETTINGS)
+  // What the route does with the hydrated rows lives in the shared assembly.
+  const assembly = generateInvoiceAssemblyCode(FAKE_SETTINGS)
 
   it('calls getOrderWithItems when body.orderId is provided', () => {
     // This is the ONLY thing that lets the webhook-driven invoice call
@@ -82,9 +85,11 @@ describe('/api/invoices/generate — orderId hydration', () => {
     // `teleport_order_items` rows carry `product_name`, `unit_price`,
     // `total_price`. The invoice payload expects `name`, `unitPrice`,
     // `totalPrice`. Locking in the mapping prevents silent drift.
-    expect(route).toContain("name: row.product_name || row.name || 'Item'")
-    expect(route).toContain('unitPrice: Number(row.unit_price || row.unitPrice || row.price) || 0')
-    expect(route).toContain('totalPrice: Number(row.total_price || row.totalPrice) || 0')
+    expect(assembly).toContain("name: row.product_name || row.name || 'Item'")
+    expect(assembly).toContain(
+      'unitPrice: Number(row.unit_price || row.unitPrice || row.price) || 0'
+    )
+    expect(assembly).toContain('totalPrice: Number(row.total_price || row.totalPrice) || 0')
   })
 
   it('prefers body.items over hydrated items when both exist', () => {
@@ -96,7 +101,10 @@ describe('/api/invoices/generate — orderId hydration', () => {
     expect(route).toContain(
       'var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;'
     )
-    expect(route).toContain('var items = callerSuppliedItems')
+    expect(assembly).toContain(
+      'var callerSuppliedItems = Array.isArray(body.items) && body.items.length > 0;'
+    )
+    expect(assembly).toContain('var items = callerSuppliedItems')
   })
 
   it('falls back to order.billing_* / shipping_* fields for customer data', () => {
@@ -105,21 +113,21 @@ describe('/api/invoices/generate — orderId hydration', () => {
     // invoice fields mirror this — we use billing fields primarily and
     // fall back to shipping when billing is unset (matches "bill to
     // different address" checkout path where only shipping is filled).
-    expect(route).toContain(
+    expect(assembly).toContain(
       'orderRow.billing_name || orderRow.shipping_name || orderRow.customer_name'
     )
-    expect(route).toContain('orderRow.billing_email || orderRow.customer_email')
-    expect(route).toContain('orderRow.billing_address || orderRow.shipping_address')
-    expect(route).toContain('orderRow.shipping_city')
-    expect(route).toContain('orderRow.payment_method')
-    expect(route).toContain('orderRow.payment_provider')
-    expect(route).toContain('orderRow.payment_intent_id')
+    expect(assembly).toContain('orderRow.billing_email || orderRow.customer_email')
+    expect(assembly).toContain('orderRow.billing_address || orderRow.shipping_address')
+    expect(assembly).toContain('orderRow.shipping_city')
+    expect(assembly).toContain('orderRow.payment_method')
+    expect(assembly).toContain('orderRow.payment_provider')
+    expect(assembly).toContain('orderRow.payment_intent_id')
   })
 
   it('uses the hydrated order.currency when body.currency is absent', () => {
     // Same currency the buyer checked out with — otherwise an invoice
     // generated from an EUR order would render as USD (the default).
-    expect(route).toContain(
+    expect(assembly).toContain(
       'body.currency || (hydratedOrder && hydratedOrder.currency) || DEFAULT_CURRENCY'
     )
   })

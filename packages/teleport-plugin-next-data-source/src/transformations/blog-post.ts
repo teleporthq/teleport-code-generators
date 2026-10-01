@@ -1,10 +1,15 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
 import { generateCategoryTaxonomyCode } from './category-taxonomy'
+import { generateAdjacentPostsCode } from './blog-adjacent-posts'
+import { generateBlogCommentsCode } from './blog-comments'
+import { generateHeadingAnchorsCode } from './heading-anchors'
 
 /** What the blog-post transform bakes in at export time beyond the row itself. */
 export interface BlogPostTransformOptions {
   /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
   categories?: UIDLEcommerceCategory[]
+  /** Content headings get ids and `#` links — see `heading-anchors.ts`. */
+  headingAnchors?: boolean
 }
 
 /**
@@ -20,6 +25,10 @@ export const generateBlogPostTransformationCode = (
 // Blog Post Transformation
 // ============================================================
 ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
+${generateBlogCommentsCode()}
+${generateAdjacentPostsCode()}
+${generateHeadingAnchorsCode()}
+var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -34,6 +43,7 @@ function buildBlogPost(record, options) {
   var title = resolveI18nField(record, 'title', 'title', currentLang, mainLang) || ''
   var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''
   var content = resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
+  if (BLOG_HEADING_ANCHORS) content = addHeadingAnchors(content)
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
 
@@ -53,6 +63,7 @@ function buildBlogPost(record, options) {
   var metaTitle = resolveI18nField(record, 'meta_title', 'metaTitle', currentLang, mainLang) || null
   var metaDescription = resolveI18nField(record, 'meta_description', 'metaDescription', currentLang, mainLang) || null
   var featuredImageAlt = resolveI18nField(record, 'featured_image_alt', 'featuredImageAlt', currentLang, mainLang) || null
+  var authorBio = resolveI18nField(record, 'author_bio', 'authorBio', currentLang, mainLang) || null
 
   // Status
   var status = record.status || 'draft'
@@ -78,6 +89,7 @@ function buildBlogPost(record, options) {
 
   // Simple pass-through fields
   var authorName = pickFirst(record.author_name, record.authorName)
+  var authorInitials = blogAuthorInitials(authorName)
   var authorEmail = pickFirst(record.author_email, record.authorEmail)
   var readingTimeMinutes = safeNumber(pickFirst(record.reading_time_minutes, record.readingTimeMinutes), null)
 
@@ -132,12 +144,14 @@ function buildBlogPost(record, options) {
   var relatedPostIds = parseRelatedIds(record.related_post_ids)
   var relatedPostsById = options.relatedPostsById
   var relatedPosts = []
+  // The nested builds of the related and adjacent posts get NO maps: each is a
+  // card, not a page, and two posts that point at each other would recurse.
+  var relatedNestedOptions = {
+    assetMap: assetMap,
+    currentLanguage: currentLang,
+    mainLanguage: mainLang,
+  }
   if (relatedPostsById && relatedPostIds.length > 0) {
-    var relatedNestedOptions = {
-      assetMap: assetMap,
-      currentLanguage: currentLang,
-      mainLanguage: mainLang,
-    }
     for (var rp = 0; rp < relatedPostIds.length; rp++) {
       var relatedId = relatedPostIds[rp]
       if (id != null && relatedId === String(id)) continue
@@ -149,6 +163,19 @@ function buildBlogPost(record, options) {
       relatedPosts.push(buildBlogPost(relatedRecord, relatedNestedOptions))
     }
   }
+
+  // The previous (older) and next (newer) published post, as 0-or-1-item
+  // lists: the post navigation maps over them like the related rail does, so an
+  // end of the blog simply renders no card on that side.
+  var adjacent = options.adjacentPostsById && id != null ? options.adjacentPostsById[String(id)] : null
+  var previousPosts = adjacent && adjacent.previous ? [buildBlogPost(adjacent.previous, relatedNestedOptions)] : []
+  var nextPosts = adjacent && adjacent.next ? [buildBlogPost(adjacent.next, relatedNestedOptions)] : []
+
+  // The approved comments — the newest top-level ones, each with its replies —
+  // present only on a details fetch; see blog-comments.ts.
+  var commentsEntry = options.commentsByPostId && id != null ? options.commentsByPostId[String(id)] : null
+  var comments = commentsEntry ? buildBlogComments(commentsEntry.rows) : []
+  var commentsCount = commentsEntry ? commentsEntry.count : 0
 
   // Timestamps
   var rawPublishedAt = pickFirst(record.published_at, record.publishedAt)
@@ -184,11 +211,17 @@ function buildBlogPost(record, options) {
     author_name: authorName,
     author_email: authorEmail,
     authorAvatarUrl: authorAvatarUrl,
+    authorBio: authorBio,
+    authorInitials: authorInitials,
     metaTitle: metaTitle,
     metaDescription: metaDescription,
     readingTimeMinutes: readingTimeMinutes,
     isFeatured: isFeatured,
     allowComments: allowComments,
+    comments: comments,
+    commentsCount: commentsCount,
+    previousPosts: previousPosts,
+    nextPosts: nextPosts,
     noIndex: noIndex,
     canonicalUrl: canonicalUrl,
     redirectUrl: redirectUrl,

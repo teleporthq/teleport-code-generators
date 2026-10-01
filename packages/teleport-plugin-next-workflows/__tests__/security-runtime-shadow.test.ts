@@ -3,6 +3,7 @@ import {
   assertWorkflowsAreSecure,
   CodegenSecurityError,
   PROTECTED_ENV_NAMES,
+  PROTECTED_ENV_NAME_PATTERN,
 } from '../src/security-scanner'
 
 // Verifies the two security layers added on top of the general-custom-js
@@ -100,7 +101,51 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
     expect(() => assertWorkflowsAreSecure(uidlWorkflows)).not.toThrow()
   })
 
-  it('PROTECTED_ENV_NAMES contains exactly the 8 documented secrets', () => {
+  it('refuses custom JS that names a payment credential, deployed or stored', () => {
+    for (const name of [
+      'STRIPE_SECRET_KEY',
+      'CONFIGURATION_MOLLIE_API_KEY2',
+      'PADDLE_WEBHOOK_SECRET',
+    ]) {
+      const uidlWorkflows = {
+        workflows: {
+          w: {
+            nodes: [
+              {
+                id: 'a',
+                type: 'general-custom-js',
+                config: { code: `return process.env['${name}']` },
+              },
+            ],
+          },
+        },
+      }
+      expect(() => assertWorkflowsAreSecure(uidlWorkflows)).toThrowError(CodegenSecurityError)
+    }
+  })
+
+  it('the payment credential pattern covers every provider and nothing else', () => {
+    for (const name of [
+      'STRIPE_WEBHOOK_SECRET',
+      'PAYPAL_CLIENT_SECRET',
+      'CONFIGURATION_RAZORPAY_KEY_SECRET',
+      'SQUARE_ACCESS_TOKEN',
+      'COINGATE_API_TOKEN',
+    ]) {
+      expect(PROTECTED_ENV_NAME_PATTERN.test(name)).toBe(true)
+    }
+    for (const name of [
+      'STRIPE',
+      'MY_STRIPE_KEY',
+      'SQUARESPACE_TOKEN',
+      'PUBLIC_FEATURE_FLAG',
+      'stripe_secret_key',
+    ]) {
+      expect(PROTECTED_ENV_NAME_PATTERN.test(name)).toBe(false)
+    }
+  })
+
+  it('PROTECTED_ENV_NAMES contains exactly the 10 documented secrets', () => {
     expect([...PROTECTED_ENV_NAMES].sort()).toEqual(
       [
         'PDF_SERVICE_API_KEY',
@@ -109,10 +154,31 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
         'REALTIME_SERVER_URL',
         'RUNTIME_STORAGE_API_KEY',
         'RUNTIME_STORAGE_PROJECT_ID',
+        'TELEPORT_CRON_SECRET',
+        'TELEPORT_CRON_SECRET_PREVIOUS',
         'TELEPORT_DB_CONNECTION_STRING',
         'TELEPORT_PROJECT_TOKEN',
       ].sort()
     )
+  })
+
+  it('refuses custom JS that reads a cron signing key', () => {
+    for (const name of ['TELEPORT_CRON_SECRET', 'TELEPORT_CRON_SECRET_PREVIOUS']) {
+      const uidlWorkflows = {
+        workflows: {
+          w: {
+            nodes: [
+              {
+                id: 'a',
+                type: 'general-custom-js',
+                config: { code: `function customHandler(){ return process.env.${name}; }` },
+              },
+            ],
+          },
+        },
+      }
+      expect(() => assertWorkflowsAreSecure(uidlWorkflows)).toThrowError(CodegenSecurityError)
+    }
   })
 })
 
@@ -126,6 +192,10 @@ describe('general-custom-js handler — runtime process shadow', () => {
     process.env.RUNTIME_STORAGE_API_KEY = 'secret-storage'
     process.env.TELEPORT_PROJECT_TOKEN = 'secret-token'
     process.env.PUBLIC_FEATURE_FLAG = 'allowed'
+    process.env.STRIPE_SECRET_KEY = 'sk_live_secret'
+    process.env.CONFIGURATION_PAYPAL_CLIENT_SECRET2 = 'paypal-secret'
+    process.env.TELEPORT_CRON_SECRET = 'cron-key'
+    process.env.TELEPORT_CRON_SECRET_PREVIOUS = 'old-cron-key'
   })
   afterAll(() => {
     // Restore exactly what was there.
@@ -183,6 +253,38 @@ describe('general-custom-js handler — runtime process shadow', () => {
     }`
     const out = await handler({ code, __nodeId: 'a' }, {})
     expect(out).toBe(false)
+  })
+
+  it('hides the cron signing keys from user code', async () => {
+    const code = `function customHandler(){
+      return {
+        current: process.env.TELEPORT_CRON_SECRET,
+        previous: process.env['TELEPORT_CRON_SECRET_PREVIOUS'],
+        listed: Object.keys(process.env).filter(function (k) { return /CRON/.test(k) }),
+      }
+    }`
+    const out = (await handler({ code, __nodeId: 'a' }, {})) as Record<string, unknown>
+    expect(out).toEqual({ current: undefined, previous: undefined, listed: [] })
+  })
+
+  it('hides the merchant payment credentials from user code', async () => {
+    const code = `function customHandler(){
+      return {
+        stripe: process.env.STRIPE_SECRET_KEY,
+        paypal: process.env.CONFIGURATION_PAYPAL_CLIENT_SECRET2,
+        listed: Object.keys(process.env).filter(function (k) { return /STRIPE|PAYPAL/.test(k) }),
+        has: 'STRIPE_SECRET_KEY' in process.env,
+        described: Object.getOwnPropertyDescriptor(process.env, 'STRIPE_SECRET_KEY'),
+      }
+    }`
+    const out = (await handler({ code, __nodeId: 'a' }, {})) as Record<string, unknown>
+    expect(out).toEqual({
+      stripe: undefined,
+      paypal: undefined,
+      listed: [],
+      has: false,
+      described: undefined,
+    })
   })
 
   it('does not break access to non-process bindings', async () => {

@@ -1,5 +1,5 @@
 import { UIDLWorkflows } from '@teleporthq/teleport-types'
-import { RoutePaths } from '@teleporthq/teleport-shared'
+import { RoutePaths, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
  * True when this UIDL component's output route contains a Next.js dynamic
@@ -90,4 +90,45 @@ export const pageHasSameTableMutationWorkflow = (
       (node) => MUTATION_NODE_TYPES.has(node.type) && node.config?.tableName === tableName
     )
   })
+}
+
+const collectResourceTables = (value: unknown, tables: Set<string>, seen: Set<unknown>): void => {
+  if (!value || typeof value !== 'object' || seen.has(value)) {
+    return
+  }
+  seen.add(value)
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectResourceTables(item, tables, seen))
+    return
+  }
+  const record = value as Record<string, unknown>
+  const definition = record.resourceDefinition as { tableName?: unknown } | undefined
+  if (definition && typeof definition.tableName === 'string') {
+    tables.add(definition.tableName.trim().toLowerCase())
+  }
+  Object.keys(record).forEach((key) => collectResourceTables(record[key], tables, seen))
+}
+
+/**
+ * True when anything on this page reads a table that holds money, the keys
+ * to it, or the customers' own records (`TableAccess.PROTECTED_TABLES`: gift
+ * cards, vouchers, their ledgers, orders, accounts). Such a page renders per
+ * request. A statically generated one bakes codes, balances and addresses
+ * into the build output and keeps serving a balance the checkout has already
+ * spent until the next revalidation.
+ *
+ * Shared by the static-props and static-paths plugins and the page pipeline's
+ * getServerSideProps finalizer, which must all reach the same verdict.
+ */
+export const pageReadsProtectedTable = (uidl: {
+  node?: unknown
+  outputOptions?: { detailsPageInfo?: { tableName?: string } }
+}): boolean => {
+  const tables = new Set<string>()
+  const detailsTable = uidl.outputOptions?.detailsPageInfo?.tableName
+  if (typeof detailsTable === 'string') {
+    tables.add(detailsTable.trim().toLowerCase())
+  }
+  collectResourceTables(uidl.node, tables, new Set())
+  return TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))
 }

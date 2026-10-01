@@ -88,7 +88,8 @@ describe('project-referenced style with a condition', () => {
     const outputFolder: GeneratedFolder = await generator.generateProject(buildUidl(true), template)
 
     expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
+    // package.json sits at the root beside next.config.js (its security headers).
+    expect(outputFolder.files.map((file) => file.name)).toContain('package')
 
     const pagesFolder = outputFolder.subFolders.find((folder) => folder.name === 'pages')
     expect(pagesFolder).toBeDefined()

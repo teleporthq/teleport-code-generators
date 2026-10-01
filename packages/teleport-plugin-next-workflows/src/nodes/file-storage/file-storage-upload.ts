@@ -115,6 +115,14 @@ async function file_storage_upload(config: any, _context: any) {
       formData.append('folder', String(config.folder))
     }
 
+    // A private file is stored with no served URL: it is left out of the
+    // plain listing and only ever read through the storage worker's content
+    // route — what a digital product's deliverables need. The proxy streams
+    // the body unchanged, so the flag reaches the worker as a form field.
+    if (config.private === true || config.private === 'true') {
+      formData.append('private', 'true')
+    }
+
     // A `fetch` with no deadline is how an upload becomes a HANG rather than a
     // failure: the proxy route awaits an upstream that never answers, this
     // promise never settles, and the workflow stops mid-chain — the submit

@@ -31,6 +31,7 @@ import {
   dataSourcesDecoder,
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
+import { progressiveWebAppDecoder, webPushDecoder } from './web-app-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
   short_name: optional(string()),
@@ -150,4 +151,8 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be
   // declared here or the decoder strips it and the tracker is never injected.
   analytics: optional(anyJson()),
+  // The installable app (manifest, icons, service worker) and Web Push —
+  // consumed by NextPwaProjectPlugin and NextWebPushProjectPlugin.
+  pwa: optional(progressiveWebAppDecoder),
+  webPush: optional(webPushDecoder),
 }) as Decoder<VProjectUIDL>

@@ -68,3 +68,33 @@ const getClient = () => {
     )
   );
 };`
+
+const PG_REQUIRE_LINE = "const { Client } = require('pg');"
+
+/**
+ * `generatePgClientCode()` with the driver loaded on first use instead of at
+ * module load, plus the `__loadPg()` loader it calls (null when `pg` is not
+ * installed). A module that some projects require without a Postgres driver —
+ * the sent-email ledger, the push subscription store — would otherwise fail
+ * the build of every route that imports it ("Collecting page data").
+ * `new Client(opts)` keeps working: a constructor that returns an object
+ * yields that object.
+ */
+export const generateLazyPgClientCode = (): string => {
+  const code = generatePgClientCode()
+  if (!code.startsWith(PG_REQUIRE_LINE)) {
+    throw new Error('generatePgClientCode() no longer starts with the pg require line')
+  }
+  return `var __pg = null;
+var __pgLoadFailed = false;
+function __loadPg() {
+  if (__pg || __pgLoadFailed) return __pg;
+  try { __pg = require('pg'); } catch (_e) { __pgLoadFailed = true; __pg = null; }
+  return __pg;
+}
+
+${code.replace(
+  PG_REQUIRE_LINE,
+  'function Client(opts) { var pg = __loadPg(); return new pg.Client(opts); }'
+)}`
+}

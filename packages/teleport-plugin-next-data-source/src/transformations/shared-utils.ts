@@ -74,6 +74,12 @@ function getCurrencySymbol(currencyCode) {
 
 function normalizeTimestamp(value) {
   if (value == null) return Date.now()
+  // A row read straight off the driver (the related / adjacent lookups) carries
+  // its timestamps as Date objects.
+  if (value instanceof Date) {
+    var time = value.getTime()
+    return isNaN(time) ? Date.now() : time
+  }
   if (typeof value === 'number') {
     if (isNaN(value)) return Date.now()
     return value < 100000000000 ? value * 1000 : value

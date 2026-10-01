@@ -44,10 +44,16 @@ const makeStructure = (params: {
   taggedForSSR: boolean
   withRevalidate?: boolean
   nestedReturn?: boolean
+  node?: unknown
 }): ComponentStructure => {
-  const { taggedForSSR, withRevalidate = false, nestedReturn = false } = params
+  const {
+    taggedForSSR,
+    withRevalidate = false,
+    nestedReturn = false,
+    node = { type: 'element', content: {} },
+  } = params
   return {
-    uidl: { name: 'EditPressItem', node: { type: 'element', content: {} } },
+    uidl: { name: 'EditPressItem', node },
     chunks: [
       {
         name: 'getStaticProps',
@@ -112,6 +118,48 @@ describe('entity-mutation-ssr-finalize-plugin', () => {
     const code = generator(chunk?.content as types.Node).code
     expect(code).toContain('export async function getStaticProps(context)')
     expect(code).toContain('revalidate')
+  })
+
+  it('renders a page that reads a money table per request, though nothing tagged its chunk', async () => {
+    // An admin list the data-source/pagination plugins built: a static copy
+    // would bake gift-card codes and balances into the build output and keep
+    // serving a balance the checkout has already spent.
+    const listOf = (tableName: string) => ({
+      type: 'element',
+      content: {
+        children: [
+          {
+            type: 'data-source-list',
+            content: { resourceDefinition: { dataSourceId: 'ds-1', tableName } },
+          },
+        ],
+      },
+    })
+    // The customers' records render per request for the same reason: an admin
+    // orders list baked at build time is every buyer's address in the output.
+    for (const tableName of [
+      'teleport_gift_cards',
+      'teleport_vouchers',
+      'teleport_gift_card_transactions',
+      'teleport_orders',
+      'users',
+    ]) {
+      const result = await plugin(
+        makeStructure({ taggedForSSR: false, withRevalidate: true, node: listOf(tableName) })
+      )
+      const chunk = result.chunks.find((c) => c.name === 'getServerSideProps')
+      expect(chunk).toBeDefined()
+      expect(generator(chunk?.content as types.Node).code).not.toContain('revalidate')
+    }
+    // A catalogue list stays static.
+    const catalogue = await plugin(
+      makeStructure({
+        taggedForSSR: false,
+        withRevalidate: true,
+        node: listOf('teleport_products'),
+      })
+    )
+    expect(catalogue.chunks.find((c) => c.name === 'getStaticProps')).toBeDefined()
   })
 
   it('is a no-op when there is no getStaticProps chunk at all', async () => {

@@ -1,22 +1,23 @@
-/* tslint:disable:no-eval */
+/* tslint:disable:no-eval function-constructor */
 import { generateEcommerceContextFileContent } from '../src/ecommerce/ecommerce-context-generator'
 import { buildWorkflowEcommerceSettingsPayload } from '../src/ecommerce/ecommerce-api-routes-generator'
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
+import { DiscountEngine } from '@teleporthq/teleport-shared'
 
 /**
  * The published storefront's half of the voucher rule.
  *
- * The same arithmetic exists in three places — this generated provider, the
- * editor's `resolveVoucherDiscount` (teleport-gui
- * `features/e-commerce/utils/voucher-discount.ts`) and the
- * `VOUCHER_DISCOUNT_HELPERS` baked into the checkout workflows. The teleport-gui
- * spec `voucher-discount-parity.spec.ts` pins the last two together; this pins
- * the copy that actually prices what the shopper sees, by running the emitted
- * function rather than matching substrings of it.
+ * Vouchers are priced by the shared discount engine — the same `__de` helpers
+ * the checkout workflows bake in and the editor mirrors, pinned to the cent by
+ * teleport-shared's parity table. What this pins is the provider's PROJECTION
+ * of the engine's result (`computeDiscountMeta`): a store built before the
+ * engine prices in legacy mode, and the numbers it shows must be exactly what
+ * the flat voucher rule always showed — by running the emitted function rather
+ * than matching substrings of it.
  *
- * The invariant across all three: a discount is taken on the GROSS eligible
- * subtotal, clamped so an order can reach zero but never go below it, and a
- * free-shipping voucher touches only the delivery fee.
+ * The invariant: a discount is taken on the GROSS eligible subtotal, clamped so
+ * an order can reach zero but never go below it, and a free-shipping voucher
+ * touches only the delivery fee.
  */
 
 const baseSettings = (overrides: Partial<UIDLEcommerceSettings>): UIDLEcommerceSettings =>
@@ -42,6 +43,10 @@ const baseSettings = (overrides: Partial<UIDLEcommerceSettings>): UIDLEcommerceS
 
 interface VoucherMeta {
   rawDiscount: number
+  goodsDiscount: number
+  shippingDiscount: number
+  automaticDiscount: number
+  automaticDiscountVisible: string
   voucherApplied: string
   voucherCode: string
   voucherFreeShipping: string
@@ -54,7 +59,10 @@ interface CartLine {
   quantity: number
 }
 
-/** Lifts the emitted voucher helpers out of the provider and makes them callable. */
+/**
+ * Lifts the emitted projection out of the provider and makes it callable the
+ * way the legacy-mode memo calls it: no automatic rules, no shopper context.
+ */
 function evalVoucherMath(
   source: string
 ): (
@@ -72,16 +80,32 @@ function evalVoucherMath(
     const end = source.indexOf('\n}', start)
     return source.slice(start, end + 2)
   }
-  // tslint:disable-next-line:function-constructor
-  return new Function(
+  const constant = (name: string): string => {
+    const start = source.indexOf(`const ${name} = `)
+    if (start === -1) {
+      throw new Error(`emitted provider is missing const ${name}`)
+    }
+    return source.slice(start, source.indexOf('\n', start))
+  }
+  const computeDiscountMeta = new Function(
     [
-      grab('roundMoney'),
-      grab('voucherLineGross'),
-      grab('isVoucherLineEligible'),
-      grab('computeVoucherMeta'),
-      'return computeVoucherMeta',
+      DiscountEngine.generateDiscountEngineHelperCode(),
+      constant('NO_DISCOUNT_CUSTOMER'),
+      grab('computeDiscountMeta'),
+      'return computeDiscountMeta',
     ].join('\n')
   )()
+  return (cartItems, voucher, taxRatePercent, shippingMeta, vouchersEnabled) =>
+    computeDiscountMeta(
+      cartItems,
+      voucher,
+      taxRatePercent,
+      shippingMeta,
+      vouchersEnabled,
+      [],
+      { isFirstOrder: null },
+      true
+    )
 }
 
 const CART: CartLine[] = [
@@ -210,6 +234,22 @@ describe('EcommerceProvider — voucher discount', () => {
     )
     expect(meta.rawDiscount).toBe(2)
   })
+
+  it('reports no automatic discount in legacy mode, whatever the voucher did', () => {
+    // A checkout built before the engine has no automatic-discount row and no
+    // rule feed; the projection must say so rather than leave the key absent.
+    const meta = computeVoucherMeta(CART, PERCENTAGE, 0, shipping, true)
+    expect(meta.automaticDiscount).toBe(0)
+    expect(meta.automaticDiscountVisible).toBe('false')
+    expect(meta.goodsDiscount).toBe(25)
+    expect(meta.shippingDiscount).toBe(0)
+  })
+
+  it('folds a free-shipping voucher into shippingDiscount, the figure the totals net off', () => {
+    const meta = computeVoucherMeta(CART, FREE_SHIPPING, 0, shipping, true)
+    expect(meta.shippingDiscount).toBe(10)
+    expect(meta.goodsDiscount).toBe(0)
+  })
 })
 
 describe('EcommerceProvider — voucher plumbing', () => {
@@ -281,12 +321,12 @@ describe('EcommerceProvider — voucher plumbing', () => {
     // `computeVoucherMeta` a rate of 0 — discounting a NET subtotal while the
     // place-order workflow discounted the GROSS one.
     const source = generateEcommerceContextFileContent(baseSettings({}), undefined, 'ds-1')
-    expect(source).toContain('STOREFRONT_TAX_RATE,\n        shippingMeta')
+    expect(source).toContain('        STOREFRONT_TAX_RATE,\n        shippingMeta,')
     expect(source).not.toContain('settings.storefrontTaxRate')
   })
 
   it('re-renders consumers when the voucher changes', () => {
-    // The context `value` memo is what every page reads. `voucherMeta` is the
+    // The context `value` memo is what every page reads. `discountMeta` is the
     // only thing that moves when a code is applied or removed — leaving it out
     // of the dep array returned the previous object, so the order summary only
     // caught up on a full page reload.
@@ -294,7 +334,7 @@ describe('EcommerceProvider — voucher plumbing', () => {
     const depsAt = source.lastIndexOf('}), [displayCartItems')
     expect(depsAt).toBeGreaterThan(-1)
     const deps = source.slice(depsAt, source.indexOf('])', depsAt))
-    expect(deps).toContain('voucherMeta')
+    expect(deps).toContain('discountMeta')
     expect(deps).toContain('effectiveShippingPrice')
     expect(deps).toContain('effectiveTotal')
   })

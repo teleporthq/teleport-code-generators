@@ -74,6 +74,74 @@ const componentCode = (structure: { chunks: any[] }): string => {
   return generator(chunk.content as types.Node).code
 }
 
+/**
+ * Runs an emitted page-state route against a fake `pg` and a fake next-auth
+ * session, returning the params the query was bound with (null when the route
+ * answered without querying).
+ */
+const runPageStateRoute = async (
+  routeSource: string,
+  request: { query: Record<string, string>; sessionUserId: string | null }
+): Promise<{ status: number; params: unknown[] | null }> => {
+  let boundParams: unknown[] | null = null
+  // tslint:disable-next-line:max-classes-per-file
+  class FakeClient {
+    public async connect(): Promise<void> {
+      return
+    }
+    public async end(): Promise<void> {
+      return
+    }
+    public async query(_sql: string, params: unknown[]): Promise<{ rows: unknown[] }> {
+      boundParams = params
+      return { rows: [] }
+    }
+  }
+  const fakeRequire = (name: string): unknown => {
+    if (name === 'pg') {
+      return { Client: FakeClient }
+    }
+    if (name === 'next-auth/jwt') {
+      return {
+        getToken: async () => (request.sessionUserId ? { sub: request.sessionUserId } : null),
+      }
+    }
+    throw new Error('unexpected require: ' + name)
+  }
+  const code = routeSource
+    .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+    .replace(/^export default async function handler/m, 'async function handler')
+    .concat('\nmodule.exports = handler')
+  const moduleObj: { exports: any } = { exports: {} }
+  // tslint:disable-next-line:function-constructor
+  new Function('require', 'module', 'exports', 'process', 'console', code)(
+    fakeRequire,
+    moduleObj,
+    moduleObj.exports,
+    { env: { NEXTAUTH_SECRET: 'secret', TELEPORT_DB_CONNECTION_STRING: 'postgresql://x' } },
+    { error: () => undefined }
+  )
+  let status = 0
+  const res = {
+    status(statusCode: number) {
+      status = statusCode
+      return res
+    },
+    json() {
+      return res
+    },
+  }
+  await moduleObj.exports(
+    {
+      method: 'GET',
+      query: request.query,
+      headers: { cookie: request.sessionUserId ? 'next-auth.session-token=signed' : '' },
+    },
+    res
+  )
+  return { status, params: boundParams }
+}
+
 describe('state-data-source-plugin runtime {{Current User.*}} fetch', () => {
   const plugin = createStateDataSourcePlugin()
 
@@ -92,8 +160,22 @@ describe('state-data-source-plugin runtime {{Current User.*}} fetch', () => {
     const route = resources[routeKeys[0]]
     expect(route.path).toEqual(['pages', 'api', 'page-state'])
     expect(route.content).toContain('user_id = $1')
-    expect(route.content).toContain('const { currentUserId } = req.query')
     expect(route.content).not.toContain('{{Current User.id}}')
+    // The user is the SESSION's: a `?currentUserId=` the caller wrote is never
+    // bound, and a caller with no session gets no rows.
+    expect(route.content).not.toMatch(/const \{[^}]*currentUserId[^}]*\} = req\.query/)
+    expect(
+      await runPageStateRoute(route.content, {
+        query: { currentUserId: 'someone-else' },
+        sessionUserId: 'me',
+      })
+    ).toEqual({ status: 200, params: ['me'] })
+    expect(
+      await runPageStateRoute(route.content, {
+        query: { currentUserId: 'someone-else' },
+        sessionUserId: null,
+      })
+    ).toEqual({ status: 200, params: null })
 
     // Client-side effect wired to the signed-in user
     const code = componentCode(result as any)
@@ -239,6 +321,13 @@ describe('state-data-source-plugin runtime {{Current User.*}} fetch', () => {
     expect(resources[routeKey].content).toContain('guild_id = $1')
     expect(resources[routeKey].content).toContain('user_id = $2')
     expect(resources[routeKey].content).toContain('currentPageEntityId, currentUserId')
+    // The route param stays a request value; the user is the session's.
+    expect(
+      await runPageStateRoute(resources[routeKey].content, {
+        query: { currentPageEntityId: 'guild-1', currentUserId: 'someone-else' },
+        sessionUserId: 'me',
+      })
+    ).toEqual({ status: 200, params: ['guild-1', 'me'] })
 
     const code = componentCode(result as any)
     expect(code).toContain('const __pageStateCtx = useGlobalContext()')

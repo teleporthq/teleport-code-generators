@@ -10,7 +10,11 @@ import componentWithReferencedStylesJSON from './componennt-with-referenced-styl
 import componentWithStateReferences from './compoenent-with-state-reference.json'
 
 import { parseComponentJSON, parseProjectJSON } from '../../src/parser'
-import { ComponentUIDL, UIDLConditionalNode } from '@teleporthq/teleport-types'
+import {
+  ComponentUIDL,
+  UIDLConditionalNode,
+  UIDLDynamicReference,
+} from '@teleporthq/teleport-types'
 
 describe('parseComponentJSON', () => {
   it('transforms primitive component values', () => {
@@ -124,5 +128,30 @@ describe('RefernecedStyles for ComponentUIDL', () => {
 
     expect(result.stateDefinitions?.isVisible).toBeDefined()
     expect((conditionalNode as UIDLConditionalNode)?.content.reference.content.id).toBe('isVisible')
+  })
+})
+
+describe('Link ability bound to a prop', () => {
+  it('camel-cases the link reference together with the prop key', () => {
+    const result = parseComponentJSON({
+      name: 'Card',
+      propDefinitions: {
+        Redirect: { type: 'link', defaultValue: { url: 'https://medium.com', newTab: false } },
+      },
+      node: {
+        type: 'element',
+        content: {
+          elementType: 'container',
+          abilities: {
+            link: { type: 'dynamic', content: { referenceType: 'prop', id: 'Redirect' } },
+          },
+        },
+      },
+    })
+
+    const link = result.node.content.abilities?.link as UIDLDynamicReference
+
+    expect(result.propDefinitions?.redirect).toBeDefined()
+    expect(link.content.id).toBe('redirect')
   })
 })

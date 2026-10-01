@@ -13,7 +13,7 @@ interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
-const { isDynamicRoute, pageHasSameTableMutationWorkflow } = RouteUtils
+const { isDynamicRoute, pageHasSameTableMutationWorkflow, pageReadsProtectedTable } = RouteUtils
 
 export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -36,9 +36,11 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // `generateInitialPropsAST`'s `useServerSideProps` doc for the rationale.
     // Pages with no such mutation (a read-only details page) or no dynamic
     // route (a static "Add Item" create form) keep getStaticProps: they
-    // carry no per-row staleness risk.
+    // carry no per-row staleness risk. A page that reads a money table
+    // renders per request whatever its route (see `pageReadsProtectedTable`).
     const useServerSideProps =
-      isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)
+      (isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)) ||
+      pageReadsProtectedTable(uidl)
 
     const { resource } = uidl?.outputOptions?.initialPropsData
 

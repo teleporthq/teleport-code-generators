@@ -15,7 +15,7 @@ interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
-const { isDynamicRoute, pageHasSameTableMutationWorkflow } = RouteUtils
+const { isDynamicRoute, pageHasSameTableMutationWorkflow, pageReadsProtectedTable } = RouteUtils
 
 export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -32,7 +32,10 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // `teleport-plugin-common/src/utils/route-utils.ts`), which resolves
     // params per-request — Next.js does not allow (and does not need) a
     // getStaticPaths alongside getServerSideProps on the same page.
-    if (isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)) {
+    if (
+      isDynamicRoute(uidl) &&
+      (pageHasSameTableMutationWorkflow(uidl, options.workflows) || pageReadsProtectedTable(uidl))
+    ) {
       return structure
     }
 

@@ -576,6 +576,114 @@ describe('buildAddToCartLimitCheck — runtime semantics', () => {
 })
 
 // ====================================================================
+// PATTERN C with product options: the configuration is part of the
+// line's identity, and every configuration of a product draws on its
+// one stock row and counts against its one per-product cap.
+// ====================================================================
+describe('buildAddToCartLimitCheck — configured lines', () => {
+  const fn = (() => {
+    const code = buildAddToCartLimitCheck()
+    return new Function(code + '\nreturn customHandler;')() as (prev: any, params: any[]) => any
+  })()
+
+  const A3 = {
+    configuration: '[{"key":"size","value":"a3"}]',
+    configurationKey: 'aaaaaaaaaaaaaaaa',
+  }
+  const A5 = {
+    configuration: '[{"key":"size","value":"a5"}]',
+    configurationKey: 'bbbbbbbbbbbbbbbb',
+  }
+
+  // params laid out like the add-to-cart custom node: [0] the extracted
+  // params, [2] the settings, [7] the priced product, [13] the cart.
+  const run = (
+    quantity: number,
+    options: { configuration: string; configurationKey: string } | null,
+    cart: any[],
+    settings: Record<string, unknown> = {},
+    stock: number | null = 5
+  ) => {
+    const params: any[] = new Array(14).fill(null)
+    params[0] = { productId: 'print', quantity }
+    params[2] = {
+      stockManagement: true,
+      allowBackorders: false,
+      maxQuantityPerProduct: 100,
+      ...settings,
+    }
+    params[7] = {
+      found: true,
+      product: { name: 'Photo print', quantity: stock },
+      productConfiguration: options ? options.configuration : '',
+      productConfigurationKey: options ? options.configurationKey : '',
+    }
+    params[13] = cart
+    return fn({}, params)
+  }
+
+  it('increments the line with the same configuration', () => {
+    const result = run(1, A3, [
+      { id: 'l-a5', productId: 'print', quantity: 1, ...A5 },
+      { id: 'l-a3', productId: 'print', quantity: 1, ...A3 },
+    ])
+    expect(result).toEqual({
+      canAdd: true,
+      message: '',
+      existingItemId: 'l-a3',
+      shouldIncrement: true,
+    })
+  })
+
+  it('adds a new line for another configuration, a plain add, or a key whose configuration differs', () => {
+    const cart = [{ id: 'l-a3', productId: 'print', quantity: 1, ...A3 }]
+    expect(run(1, A5, cart)).toMatchObject({ existingItemId: null, shouldIncrement: false })
+    expect(run(1, null, cart)).toMatchObject({ existingItemId: null, shouldIncrement: false })
+    expect(
+      run(1, { configuration: A5.configuration, configurationKey: A3.configurationKey }, cart)
+    ).toMatchObject({ existingItemId: null, shouldIncrement: false })
+  })
+
+  it('matches the plain line for a plain add beside configured lines', () => {
+    const result = run(1, null, [
+      { id: 'l-a3', productId: 'print', quantity: 1, ...A3 },
+      { id: 'l-plain', productId: 'print', quantity: 1 },
+    ])
+    expect(result).toMatchObject({ existingItemId: 'l-plain', shouldIncrement: true })
+  })
+
+  it('checks stock against every configuration of the product together', () => {
+    const cart = [
+      { id: 'l-a3', productId: 'print', quantity: 3, ...A3 },
+      { id: 'l-a5', productId: 'print', quantity: 2, ...A5 },
+    ]
+    expect(run(1, A3, cart)).toMatchObject({
+      canAdd: false,
+      message: '"Photo print" is out of stock.',
+    })
+    const partly = run(3, A5, [{ id: 'l-a3', productId: 'print', quantity: 3, ...A3 }])
+    expect(partly).toMatchObject({
+      canAdd: false,
+      message: 'Only 2 more of "Photo print" can be added (you have 3 in cart, 5 in stock).',
+    })
+    // Another variant is another stock row.
+    expect(
+      run(1, A3, [{ id: 'l-v', productId: 'print', variantId: 'v-big', quantity: 5, ...A3 }])
+    ).toMatchObject({ canAdd: true, shouldIncrement: false })
+  })
+
+  it('caps the quantity per product across its configurations', () => {
+    const result = run(1, A5, [{ id: 'l-a3', productId: 'print', quantity: 3, ...A3 }], {
+      maxQuantityPerProduct: 3,
+    })
+    expect(result).toMatchObject({
+      canAdd: false,
+      message: 'You can only have 3 of "Photo print" in your cart.',
+    })
+  })
+})
+
+// ====================================================================
 // Rewriter integration — both patterns
 // ====================================================================
 describe('rewriter integration — add-to-cart patterns', () => {

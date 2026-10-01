@@ -91,6 +91,30 @@ const useRouterAlreadyInBody = (body: types.Statement[]): boolean => {
   })
 }
 
+/** `const router = useRouter()` */
+const buildRouterHook = (): types.VariableDeclaration =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('router'),
+      types.callExpression(types.identifier('useRouter'), [])
+    ),
+  ])
+
+/**
+ * Declares `const router = useRouter()` at the top of a component that does
+ * not have it yet, for a plugin running after this one that navigates in the
+ * visitor's language (a form's redirect to a page).
+ */
+export const ensureRouterHook = (
+  componentBody: types.BlockStatement,
+  dependencies: Record<string, UIDLDependency>
+) => {
+  dependencies.useRouter = { ...USE_ROUTER_HOOK }
+  if (!useRouterAlreadyInBody(componentBody.body)) {
+    componentBody.body.unshift(buildRouterHook())
+  }
+}
+
 /**
  * Recursively traverses a JSX AST node to find <a href={X?.short}> elements
  * and transforms them to <Link href={router.asPath} locale={X?.short}><a>children</a></Link>
@@ -276,11 +300,46 @@ const readLocaleReferenceKey = (localeRef: types.JSXElement): string | null => {
 }
 
 /** `translate.raw('<key>')`, with the key sanitized exactly like the messages file. */
-const buildTranslationLookup = (key: string): types.CallExpression =>
+export const buildTranslationLookup = (key: string): types.CallExpression =>
   types.callExpression(
     types.memberExpression(types.identifier('translate'), types.identifier('raw')),
     [types.stringLiteral(StringUtils.sanitizeTranslationKey(key))]
   )
+
+/** `const translate = useTranslations()` */
+const buildTranslateHook = (): types.VariableDeclaration =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('translate'),
+      types.callExpression(types.identifier('useTranslations'), [])
+    ),
+  ])
+
+const useTranslationsAlreadyInBody = (componentBody: types.Statement[]) => {
+  return componentBody.some((statement) => {
+    return (
+      statement.type === 'VariableDeclaration' &&
+      statement.declarations.some((declaration) => {
+        return declaration.id.type === 'Identifier' && declaration.id.name === 'translate'
+      })
+    )
+  })
+}
+
+/**
+ * Declares `const translate = useTranslations()` at the top of a component
+ * that does not have it yet, for a plugin running after this one that reads
+ * translations at run time (a form's alert texts).
+ */
+export const ensureTranslateHook = (
+  componentBody: types.BlockStatement,
+  dependencies: Record<string, UIDLDependency>
+) => {
+  dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+  if (!useTranslationsAlreadyInBody(componentBody.body)) {
+    componentBody.body.unshift(buildTranslateHook())
+  }
+}
 
 /**
  * Elements whose content model is TEXT ONLY. A translated child of one of these
@@ -444,13 +503,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     }
 
     if (needsTranslations && !useTranslationsInBody) {
-      const translationsAST = types.variableDeclaration('const', [
-        types.variableDeclarator(
-          types.identifier('translate'),
-          types.callExpression(types.identifier('useTranslations'), [])
-        ),
-      ])
-      reactHooks.push(translationsAST)
+      reactHooks.push(buildTranslateHook())
       useTranslationsInBody = true
     }
 
@@ -548,14 +601,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
           structure.dependencies.useRouter = { ...USE_ROUTER_HOOK }
 
           if (!useRouterAlreadyInBody(componentBody.body)) {
-            reactHooks.push(
-              types.variableDeclaration('const', [
-                types.variableDeclarator(
-                  types.identifier('router'),
-                  types.callExpression(types.identifier('useRouter'), [])
-                ),
-              ])
-            )
+            reactHooks.push(buildRouterHook())
           }
         }
       }
@@ -565,15 +611,5 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     return structure
   }
 
-  const useTranslationsAlreadyInBody = (componentBody: types.Statement[]) => {
-    return componentBody.some((statement) => {
-      return (
-        statement.type === 'VariableDeclaration' &&
-        statement.declarations.some((declaration) => {
-          return declaration.id.type === 'Identifier' && declaration.id.name === 'translate'
-        })
-      )
-    })
-  }
   return nextInternationalization
 }

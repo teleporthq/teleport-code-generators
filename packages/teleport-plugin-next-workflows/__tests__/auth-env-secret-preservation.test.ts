@@ -1,5 +1,8 @@
 import { resolveAuthEnvValue, collectOAuthCredentialEnvKeys } from '../src/workflow-project-plugin'
 
+/** What a generated NEXTAUTH_SECRET default looks like: 32 random bytes, hex. */
+const RANDOM_SECRET = /^[0-9a-f]{64}$/
+
 // Regression: OAuth provider credentials never reached the deployed env →
 // NextAuth `error=OAuthSignin` ("Continue with Google" does nothing). The auth
 // plugin's `resolveAuthEnvValue` EMPTIED every `teleporthq.secrets.X` env value
@@ -105,7 +108,7 @@ describe('resolveAuthEnvValue', () => {
   it('keeps NEXTAUTH defaults and leaves non-auth behavior unchanged', () => {
     expect(
       resolveAuthEnvValue('NEXTAUTH_SECRET', 'teleporthq.secrets.NEXTAUTH_SECRET', oauthKeys)
-    ).toBe('CHANGE_ME_TO_A_RANDOM_SECRET')
+    ).toMatch(RANDOM_SECRET)
     expect(resolveAuthEnvValue('NEXTAUTH_URL', 'teleporthq.secrets.NEXTAUTH_URL', oauthKeys)).toBe(
       'http://localhost:3000'
     )
@@ -133,8 +136,24 @@ describe('resolveAuthEnvValue', () => {
       }
     )
 
-    it('a blank NEXTAUTH_SECRET heals to the placeholder default', () => {
-      expect(resolveAuthEnvValue('NEXTAUTH_SECRET', '', oauthKeys)).toBe(
+    // NEXTAUTH_SECRET signs every session and is the secret server code shows
+    // its own routes: a default anyone can read in the generator is no secret.
+    // Each generation draws its own; the deploy worker still replaces the line.
+    it('a blank NEXTAUTH_SECRET heals to a fresh random secret, never a known constant', () => {
+      const first = resolveAuthEnvValue('NEXTAUTH_SECRET', '', oauthKeys)
+      const second = resolveAuthEnvValue('NEXTAUTH_SECRET', '', oauthKeys)
+      expect(first).toMatch(RANDOM_SECRET)
+      expect(second).toMatch(RANDOM_SECRET)
+      expect(first).not.toBe(second)
+      expect(first).not.toBe('CHANGE_ME_TO_A_RANDOM_SECRET')
+    })
+
+    it('the constant earlier generations shipped is replaced, not carried over from a .env', () => {
+      expect(
+        resolveAuthEnvValue('NEXTAUTH_SECRET', 'CHANGE_ME_TO_A_RANDOM_SECRET', oauthKeys)
+      ).toMatch(RANDOM_SECRET)
+      // Only for the secret: another key holding that text is left alone.
+      expect(resolveAuthEnvValue('SOME_OTHER_KEY', 'CHANGE_ME_TO_A_RANDOM_SECRET', oauthKeys)).toBe(
         'CHANGE_ME_TO_A_RANDOM_SECRET'
       )
     })

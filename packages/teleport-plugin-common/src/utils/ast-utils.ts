@@ -614,13 +614,21 @@ export const addRawAttributeToJSXTag = (
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 
+// A JSX attribute string is raw text: nothing in it is unescaped, yet Babel
+// prints a backslash or a line break in it escaped, so `pattern="\d"` would reach
+// the page as `\\d`. Such a value goes in an expression container instead, where
+// the escapes are JavaScript's and are read back.
+const RAW_JSX_ATTRIBUTE_UNSAFE = /[\\\n\r\u2028\u2029]/
+
 /**
  * node must be a AST node element of type JSXElement (babel-types) or
  * equivalent
  */
 const getProperAttributeValueAssignment = (value: string | unknown, t = types) => {
   if (typeof value === 'string') {
-    return t.stringLiteral(StringUtils.encode(value))
+    return RAW_JSX_ATTRIBUTE_UNSAFE.test(value)
+      ? t.jsxExpressionContainer(t.stringLiteral(value))
+      : t.stringLiteral(StringUtils.encode(value))
   }
 
   if (!value && value !== 0 && value !== false) {

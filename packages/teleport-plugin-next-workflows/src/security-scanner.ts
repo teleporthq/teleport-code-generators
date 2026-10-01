@@ -27,7 +27,20 @@ export const PROTECTED_ENV_NAMES = [
   'REALTIME_SERVER_URL',
   'PDF_SERVICE_URL',
   'PDF_SERVICE_API_KEY',
+  'TELEPORT_CRON_SECRET',
+  'TELEPORT_CRON_SECRET_PREVIOUS',
 ] as const
+
+/**
+ * The merchant's payment-provider credentials, under the name a deploy writes
+ * (`STRIPE_SECRET_KEY`) or the one the editor stores (`CONFIGURATION_STRIPE_…`,
+ * numbered on a second save). Only the store's payment drivers read them: a
+ * server script that could would hand the merchant's API key to any visitor.
+ * Mirror of the GUI's `PROTECTED_ENV_NAME_PATTERN`; the runtime guard in
+ * `general-custom-js.ts` denies the same names.
+ */
+export const PROTECTED_ENV_NAME_PATTERN =
+  /^(?:CONFIGURATION_)?(?:STRIPE|PAYPAL|MOLLIE|RAZORPAY|SQUARE|PADDLE|COINGATE)_[A-Z0-9_]+$/
 
 export interface CodegenSecurityViolation {
   workflowId: string
@@ -125,6 +138,15 @@ function scanForObviousViolations(rawCode: string): ScannerFinding[] {
         message: `references protected platform secret "${name}"`,
       })
     }
+  }
+  const credentialNames = (code.match(/\b[A-Z][A-Z0-9_]+\b/g) || []).filter((word) =>
+    PROTECTED_ENV_NAME_PATTERN.test(word)
+  )
+  for (const name of Array.from(new Set(credentialNames))) {
+    out.push({
+      rule: 'protected-env-access',
+      message: `references payment credential "${name}"`,
+    })
   }
   if (/\beval\s*\(/.test(code)) {
     out.push({ rule: 'sandbox-escape-eval', message: 'calls eval(...)' })

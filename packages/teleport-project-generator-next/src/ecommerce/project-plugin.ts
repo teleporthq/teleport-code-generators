@@ -7,7 +7,6 @@ import {
 } from '@teleporthq/teleport-types'
 import { generateEcommerceContextFileContent } from './ecommerce-context-generator'
 import {
-  generateCheckoutApiRoute,
   generateStockCheckApiRoute,
   generateStoreLocationsApiRoute,
   generateProductVariantsApiRoute,
@@ -16,14 +15,25 @@ import {
   generateLowStockAlertApiRoute,
   generateEcommerceSettingsApiRoute,
   generatePaypalCaptureApiRoute,
+  generatePaymentConfirmApiRoute,
 } from './ecommerce-api-routes-generator'
+import { generateDownloadApiRoute } from './ecommerce-download-route-generator'
 import { generateEmailSenderModule } from './email-sender-generator'
 import {
+  declarePaymentCredentialEnv,
   ensureEmailLocaleModule,
+  ensurePaymentDriversModule,
   ensureSentEmailLogModule,
+  findPaymentWebhookRouteUrl,
+  resolveStorePaymentDriverIds,
 } from '@teleporthq/teleport-plugin-next-workflows'
 import { generateCartApiRoute } from './cart-api-routes-generator'
+import { generatePaddlePayPage, generateRazorpayPayPage } from './payment-pages-generator'
 import { generateAssetsApiRoute, generateAssetUrlsModule } from './asset-urls-generator'
+import {
+  buildCartPricingSettings,
+  generateCartPricingSettingsModule,
+} from './cart-pricing-settings'
 
 export class NextEcommerceProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
@@ -50,7 +60,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           null,
           false,
           false,
-          false
+          false,
+          null
         )
         this.injectProviderIntoApp(files)
       }
@@ -82,7 +93,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       // Publish the workflow settings global — this branch also emits the
       // /api/ecommerce/settings route with the identical payload.
       true,
-      assetLookupEnabled
+      assetLookupEnabled,
+      dataSourceType
     )
     this.generateApiRoutes(
       ecommerceSettings,
@@ -155,7 +167,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     dataSourceId: string | null,
     cartDbEnabled: boolean,
     emitWorkflowSettingsGlobal: boolean,
-    assetLookupEnabled: boolean
+    assetLookupEnabled: boolean,
+    dataSourceType: string | null
   ): void {
     const content = generateEcommerceContextFileContent(
       ecommerceSettings,
@@ -163,7 +176,8 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       dataSourceId,
       cartDbEnabled,
       emitWorkflowSettingsGlobal,
-      assetLookupEnabled
+      assetLookupEnabled,
+      dataSourceType
     )
     files.set('ecommerce-context', {
       path: [],
@@ -175,6 +189,28 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
         },
       ],
     })
+    // The same pricing snapshot for the checkout's server step. Only with the
+    // merchant's real settings: the settings-less fallback context prices
+    // nothing, and a server step must refuse rather than price from defaults.
+    if (emitWorkflowSettingsGlobal) {
+      files.set('ecommerce-cart-pricing-settings', {
+        path: ['utils', 'ecommerce'],
+        files: [
+          {
+            name: 'cart-pricing-settings',
+            fileType: FileType.JS,
+            content: generateCartPricingSettingsModule(
+              buildCartPricingSettings(
+                ecommerceSettings,
+                invoiceSettings,
+                dataSourceId,
+                dataSourceType
+              )
+            ),
+          },
+        ],
+      })
+    }
   }
 
   /**
@@ -233,17 +269,6 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       ],
     })
 
-    files.set('ecommerce-api-checkout', {
-      path: ['pages', 'api', 'ecommerce'],
-      files: [
-        {
-          name: 'checkout',
-          fileType: FileType.JS,
-          content: generateCheckoutApiRoute(settings, dataSourceType, dataSourceConfig),
-        },
-      ],
-    })
-
     if (settings.stockManagement) {
       files.set('ecommerce-api-stock-check', {
         path: ['pages', 'api', 'ecommerce'],
@@ -252,6 +277,21 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
             name: 'stock-check',
             fileType: FileType.JS,
             content: generateStockCheckApiRoute(settings, dataSourceType, dataSourceConfig),
+          },
+        ],
+      })
+    }
+
+    // The door to a store's private digital files — only when the checkout
+    // and the order page were built to sell and deliver them.
+    if (settings.digitalProducts?.enabled) {
+      files.set('ecommerce-api-downloads', {
+        path: ['pages', 'api', 'downloads'],
+        files: [
+          {
+            name: '[fileId]',
+            fileType: FileType.JS,
+            content: generateDownloadApiRoute(settings, dataSourceType, dataSourceConfig),
           },
         ],
       })
@@ -293,16 +333,57 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       (p) => p && (p.type === 'paypal' || p.name === 'PayPal')
     )
     if (hasPaypal) {
+      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
       files.set('ecommerce-api-paypal-capture', {
         path: ['pages', 'api', 'ecommerce', 'paypal'],
         files: [
           {
             name: 'capture',
             fileType: FileType.JS,
-            content: generatePaypalCaptureApiRoute(),
+            content: generatePaypalCaptureApiRoute(
+              findPaymentWebhookRouteUrl(structure.uidl.workflows, 'paypal')
+            ),
           },
         ],
       })
+    }
+
+    // The confirmation the order page asks while a buyer back from any
+    // provider waits: emitted when some provider's webhook route can settle.
+    const settleUrls: Record<string, string> = {}
+    for (const providerId of resolveStorePaymentDriverIds(structure.uidl, [])) {
+      const settleUrl = findPaymentWebhookRouteUrl(structure.uidl.workflows, providerId)
+      if (settleUrl) {
+        settleUrls[providerId] = settleUrl
+      }
+    }
+    if (Object.keys(settleUrls).length > 0) {
+      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
+      files.set('ecommerce-api-payment-confirm', {
+        path: ['pages', 'api', 'ecommerce', 'payments'],
+        files: [
+          {
+            name: 'confirm',
+            fileType: FileType.JS,
+            content: generatePaymentConfirmApiRoute(settleUrls),
+          },
+        ],
+      })
+    }
+
+    // The store's own pages that open a provider's checkout in the browser.
+    const browserCheckoutPages: Array<[string, () => string]> = [
+      ['paddle', generatePaddlePayPage],
+      ['razorpay', generateRazorpayPayPage],
+    ]
+    for (const [providerId, generatePage] of browserCheckoutPages) {
+      if ((settings.paymentProviders || []).some((p) => p && p.type === providerId)) {
+        ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
+        files.set(`payment-page-${providerId}`, {
+          path: ['pages', 'pay'],
+          files: [{ name: providerId, fileType: FileType.JS, content: generatePage() }],
+        })
+      }
     }
 
     if (settings.deliveryEnabled && settings.deliveryConfig) {
@@ -389,13 +470,6 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     settings: UIDLEcommerceSettings,
     dependencies: Record<string, string>
   ): void {
-    const paymentProviders = settings.paymentProviders || []
-    const providerTypes = paymentProviders.map((p) => p.type)
-
-    if (providerTypes.includes('stripe')) {
-      dependencies.stripe = '^14.0.0'
-    }
-
     // Walk EVERY consumer of the shared email-sender — order
     // notifications today, low-stock alerts today, anything else
     // tomorrow. The first non-empty provider wins (the sender
@@ -444,21 +518,22 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     const paymentProviders = settings.paymentProviders || []
     const providerTypes = paymentProviders.map((p) => p.type)
 
-    if (providerTypes.includes('stripe')) {
-      if (!uidl.globals.env.STRIPE_SECRET_KEY) {
-        uidl.globals.env.STRIPE_SECRET_KEY = ''
-      }
-      if (!uidl.globals.env.STRIPE_WEBHOOK_SECRET) {
-        uidl.globals.env.STRIPE_WEBHOOK_SECRET = ''
-      }
+    // Every saved provider credential as a placeholder the deploy resolves to
+    // its stored secret. A store exported before the UIDL carried the secret
+    // names gets the canonical Stripe / PayPal lines empty, as before: the
+    // deploy fills those from the project's secrets by name.
+    declarePaymentCredentialEnv(uidl)
+    const emptyCanonical: Record<string, string[]> = {
+      stripe: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
+      paypal: ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'],
     }
-
-    if (providerTypes.includes('paypal')) {
-      if (!uidl.globals.env.PAYPAL_CLIENT_ID) {
-        uidl.globals.env.PAYPAL_CLIENT_ID = ''
-      }
-      if (!uidl.globals.env.PAYPAL_CLIENT_SECRET) {
-        uidl.globals.env.PAYPAL_CLIENT_SECRET = ''
+    for (const [provider, names] of Object.entries(emptyCanonical)) {
+      if (providerTypes.includes(provider)) {
+        for (const name of names) {
+          if (!uidl.globals.env[name]) {
+            uidl.globals.env[name] = ''
+          }
+        }
       }
     }
 

@@ -29,10 +29,8 @@ export class NextDataSourceUtilityPlugin implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { uidl, files } = structure
-    const resourceItems = uidl.resources?.items
-    const dataSources = uidl.dataSources
-    if (!resourceItems || !dataSources) {
+    const resourceItems = structure.uidl.resources?.items
+    if (!resourceItems || !structure.uidl.dataSources) {
       return structure
     }
 
@@ -41,52 +39,69 @@ export class NextDataSourceUtilityPlugin implements ProjectPlugin {
         continue
       }
 
-      const dataSourceId = String(resource.params.dataSourceId.content)
-      const dataSourceType = String(resource.params.dataSourceType.content)
-      const tableName = String(resource.params.tableName.content)
-
-      const dataSource = dataSources[dataSourceId]
-      if (!dataSource) {
-        continue
-      }
-
-      const fileName = generateSafeFileName(dataSourceType, tableName, dataSourceId)
-      if (!fileName || fileName === 'unknown') {
-        continue
-      }
-
-      const mapKey = `resource-utils/data-sources/${fileName}`
-      if (hasUtilityFile(files, fileName)) {
-        continue
-      }
-
-      let fetcherCode: string
-      try {
-        fetcherCode = generateDataSourceFetcherWithCore(
-          dataSource,
-          tableName,
-          false,
-          buildProductTransformOptions(uidl)
-        )
-      } catch {
-        continue
-      }
-
-      const record: InMemoryFileRecord = {
-        path: ['utils', 'data-sources'],
-        files: [
-          {
-            name: fileName,
-            fileType: FileType.JS,
-            content: fetcherCode,
-          },
-        ],
-      }
-      files.set(mapKey, record)
+      ensureDataSourceUtilityModule(structure, {
+        dataSourceId: String(resource.params.dataSourceId.content),
+        dataSourceType: String(resource.params.dataSourceType.content),
+        tableName: String(resource.params.tableName.content),
+      })
     }
 
     return structure
   }
+}
+
+/**
+ * The `utils/data-sources/<file>` module a server-side caller imports to read
+ * a table, emitted when no page emitted it already.
+ *
+ * @returns the module's file name, or `null` when the data source is unknown
+ *   or cannot produce a fetcher.
+ */
+export const ensureDataSourceUtilityModule = (
+  structure: ProjectPluginStructure,
+  params: { dataSourceId: string; dataSourceType: string; tableName: string }
+): string | null => {
+  const { uidl, files } = structure
+  const { dataSourceId, dataSourceType, tableName } = params
+
+  const dataSource = uidl.dataSources?.[dataSourceId]
+  if (!dataSource) {
+    return null
+  }
+
+  const fileName = generateSafeFileName(dataSourceType, tableName, dataSourceId)
+  if (!fileName || fileName === 'unknown') {
+    return null
+  }
+
+  if (hasUtilityFile(files, fileName)) {
+    return fileName
+  }
+
+  let fetcherCode: string
+  try {
+    fetcherCode = generateDataSourceFetcherWithCore(
+      dataSource,
+      tableName,
+      false,
+      buildProductTransformOptions(uidl)
+    )
+  } catch {
+    return null
+  }
+
+  const record: InMemoryFileRecord = {
+    path: ['utils', 'data-sources'],
+    files: [
+      {
+        name: fileName,
+        fileType: FileType.JS,
+        content: fetcherCode,
+      },
+    ],
+  }
+  files.set(`resource-utils/data-sources/${fileName}`, record)
+  return fileName
 }
 
 const isDataSourceResource = (resource: UIDLResourceItem): boolean => {

@@ -52,15 +52,13 @@ export const createNextGlobalStateComponentPlugin: ComponentPluginFactory<{}> = 
       return structure
     }
 
-    const uniqueNames = new Map<string, string>()
-    for (const ref of globalStateRefs) {
-      if (!uniqueNames.has(ref.id)) {
-        uniqueNames.set(ref.id, ref.name)
-      }
-    }
+    // Deduplicated by NAME, the key the pattern binds: one state can be referenced
+    // by its id in one place and by its name in another (a condition's operand is
+    // written by name), and two entries for one name do not compile.
+    const uniqueNames = new Set(globalStateRefs.map((ref) => ref.name))
 
     const destructuredProps: types.ObjectProperty[] = []
-    for (const [, name] of Array.from(uniqueNames)) {
+    for (const name of Array.from(uniqueNames)) {
       destructuredProps.push(destructuredEntry(name))
       destructuredProps.push(destructuredEntry(StringUtils.createGlobalStateSetterName(name)))
     }

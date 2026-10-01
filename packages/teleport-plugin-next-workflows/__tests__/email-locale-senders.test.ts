@@ -207,7 +207,7 @@ describe('invoice email', () => {
     expect(route).toContain('var invoiceLocale = emailLocale.normalizeEmailLocale(orderRow.locale)')
     expect(route).toContain('|| emailLocale.normalizeEmailLocale(body.locale)')
     expect(route).toContain('|| emailLocale.resolveRequestLocale(req);')
-    expect(route).toContain('locale: invoiceLocale,')
+    expect(route).toContain('invoiceData.locale = invoiceLocale;')
   })
 
   it('a project without email delivery needs no locale module', () => {

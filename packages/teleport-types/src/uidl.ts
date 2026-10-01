@@ -191,6 +191,15 @@ export interface UIDLAuthPageProtection {
   rowOwnerTable?: string
   rowOwnerDataSourceId?: string
   rowOwnerDifferentiator?: string
+  // Subscriber-only page: besides a session (implied — the mapper sets
+  // `requiresAuth` whenever this is set), the visitor needs an entitled
+  // subscription row (`teleport_subscriptions`, a status in
+  // SUBSCRIPTION_ENTITLED_STATUSES) — to one of `subscriptionProductIds`, or to
+  // ANY product when the list is empty or absent. The generated middleware asks
+  // `/api/auth/subscriber-access`; workflow routes derived from the page run the
+  // same check server-side.
+  requiresSubscription?: boolean
+  subscriptionProductIds?: string[]
 }
 
 export interface UIDLAuthFolderProtection {
@@ -289,10 +298,82 @@ export interface ProjectUIDL {
   blogSettings?: UIDLBlogSettings
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
+  pwa?: UIDLProgressiveWebApp
+  webPush?: UIDLWebPush
 }
 
 export interface UIDLAnalytics {
   enabled: boolean
+}
+
+/**
+ * The project as an installable app, as the editor stored it at publish time.
+ * `installable: false` does not describe an app: it asks for the service worker
+ * an earlier publish shipped to be retired, so visitors who installed the app
+ * stop being served by it.
+ */
+export type UIDLProgressiveWebApp = UIDLInstallableWebApp | UIDLRetiredWebApp
+
+export interface UIDLInstallableWebApp {
+  installable: true
+  /** Manifest `name`, also shown by the install banner. */
+  name: string
+  /** Manifest `short_name`: the label under the home-screen icon. */
+  shortName: string
+  description?: string
+  /** Hex colours, resolved from the design tokens by the editor. */
+  themeColor: string
+  backgroundColor: string
+  /** Whether visitors are offered an install banner. */
+  installBanner: boolean
+  /**
+   * False when the live site is password protected: nothing of its content may
+   * outlive the visitor's session, so no page, image or script is cached.
+   */
+  cacheContent: boolean
+  /**
+   * Route patterns (`/checkout`, `/orders/*`) that are never answered from the
+   * cache, on top of the API routes and the pages the authentication settings
+   * protect.
+   */
+  networkOnlyPaths: string[]
+  icons?: UIDLWebAppIcons
+  /** Pictures of the app for the browser's larger install dialog. */
+  screenshots?: UIDLWebAppScreenshot[]
+}
+
+/**
+ * One screenshot for the manifest, hosted with the project's assets. `narrow`
+ * is shown on phones, `wide` on computers; the editor crops each form factor
+ * to one size, since a browser drops screenshots whose shapes differ.
+ */
+export interface UIDLWebAppScreenshot {
+  src: string
+  width: number
+  height: number
+  type: string
+  formFactor: 'narrow' | 'wide'
+}
+
+export interface UIDLRetiredWebApp {
+  installable: false
+}
+
+/** Base64 PNGs the editor renders from the favicon, or from a monogram when there is none. */
+export interface UIDLWebAppIcons {
+  any192: string
+  any512: string
+  maskable512: string
+  appleTouch180: string
+}
+
+/**
+ * Web Push for the published app. The private key never travels in the UIDL:
+ * it is a project secret that reaches the app's environment at deploy time.
+ */
+export interface UIDLWebPush {
+  /** Uncompressed P-256 public key, base64url — the browser's `applicationServerKey`. */
+  vapidPublicKey: string
 }
 
 export interface UIDLAIAssistantChatAuthProtection {
@@ -440,12 +521,22 @@ export interface UIDLWorkflowProtection {
   requiresAuth: boolean
   allowedRoles: string[]
   userScoped?: UIDLWorkflowUserScope
+  // Every page that can trigger the route is subscriber-only: the guard also
+  // requires an entitled subscription to one of `subscriptionProductIds` (any
+  // product when the list is empty). Mirrors UIDLAuthPageProtection.
+  requiresSubscription?: boolean
+  subscriptionProductIds?: string[]
+  // Only this deployment's own server code calls the route (a custom node every
+  // caller of which is a webhook, a cron or another such node): the guard
+  // answers 401 to any request without the internal-call token.
+  serverOnly?: boolean
   // Provenance, for debuggability and codegen decisions (never a security input):
   //  - 'page'           — exactly one triggering page supplied the requirement
   //  - 'multiple-pages' — union across several triggering pages
   //  - 'graph'          — no page requirement applied; userScoped came from the graph
   //  - 'default'        — fail-closed default for an unresolved data-mutating workflow
-  derivedFrom: 'page' | 'multiple-pages' | 'graph' | 'default'
+  //  - 'server-callers' — every caller runs on the server (see serverOnly)
+  derivedFrom: 'page' | 'multiple-pages' | 'graph' | 'default' | 'server-callers'
 }
 
 export interface UIDLWorkflowUserScope {
@@ -462,6 +553,14 @@ export interface UIDLWorkflowUserScope {
 export interface UIDLWorkflowUserScopeBinding {
   nodeId: string
   path: string[]
+  // What the route writes there:
+  //  - absent: the session user id; a guest keeps the id their browser sent
+  //    (their anonymous identity), so only a signed-in caller is bound.
+  //  - 'role': the session role, '' for a guest or a session without one (a
+  //    raw query's admin check).
+  //  - 'signedInUserId': the session user id, '' for a guest (a raw query that
+  //    must only ever touch a signed-in caller's own row).
+  claim?: 'role' | 'signedInUserId'
 }
 
 export interface UIDLWebhookConfig {
@@ -470,7 +569,17 @@ export interface UIDLWebhookConfig {
   verifySignature: boolean
   signatureHeader?: string
   signatureSecret?: string
-  signatureAlgorithm?: 'hmac-sha256' | 'hmac-sha1' | 'stripe-v1' | 'paypal-v1' | 'custom'
+  // `payment-driver`: a store's payment webhook, verified by the payment
+  // driver of `paymentProvider` (a signature, or the event read back from the
+  // provider) — always, whatever `verifySignature` says.
+  signatureAlgorithm?:
+    | 'hmac-sha256'
+    | 'hmac-sha1'
+    | 'stripe-v1'
+    | 'paypal-v1'
+    | 'custom'
+    | 'payment-driver'
+  paymentProvider?: string
   expectedHeaders?: Array<{ key: string; value?: string }>
 }
 
@@ -519,6 +628,11 @@ export interface UIDLCustomWorkflowNode {
   // the protection of those workflows, plus identity binding from the custom
   // node's own graph. Same shape/enforcement as UIDLWorkflow.protection.
   protection?: UIDLWorkflowProtection
+  // 'admin': a node only the admin pages call. It is emitted into
+  // `utils/workflows/custom-nodes-admin.js`, which only the pages and
+  // components that call it import, instead of the shared `custom-nodes.js`
+  // (see teleport-plugin-next-workflows/src/custom-node-modules.ts).
+  clientModule?: 'admin'
 }
 
 export interface WorkflowContextValue {
@@ -721,6 +835,30 @@ export interface UIDLInitialPropsData {
   redirect?: {
     destinationField: string
     typeField?: string
+    /**
+     * Redirect only while the row's `field` differs from `value` — how a page
+     * that shows a SUBSET of a table's rows (a custom product page shows the
+     * products assigned to it) sends every other row to its own page while
+     * rendering its own. The destination is still `destinationField`.
+     */
+    unlessFieldEquals?: {
+      field: string
+      value: string
+    }
+    /**
+     * With `unlessFieldEquals`: the data-source filter conditions that select
+     * the page's OWN rows (the ones its paths list). Two rows can share an
+     * address (two products with one slug on different product pages); when
+     * the row found belongs to another page, the page fetches an own row at
+     * the same address first, and redirects only when it has none.
+     */
+    ownRowsFilter?: unknown[]
+    /**
+     * The status to answer with when there is no `typeField`. Default 301; a
+     * page whose rows can move between pages uses 302, because browsers keep a
+     * permanent redirect forever.
+     */
+    statusCode?: 301 | 302 | 307 | 308
   }
 }
 
@@ -1456,6 +1594,14 @@ export interface UIDLNavLinkNode {
       | UIDLComponentStyleReference
       | UIDLRawValue
     differentiatorValue?: UIDLDynamicReference | UIDLStaticValue | UIDLExpressionValue
+    /**
+     * The record's own canonical address, when it has one — e.g. a product's
+     * `productPageUrl`, which names the product page it opens on (the standard
+     * one or a custom product page). Used instead of `routeName` +
+     * `differentiatorValue` whenever it resolves to a non-empty value; those two
+     * remain the fallback for rows that carry no canonical address.
+     */
+    canonicalValue?: UIDLDynamicReference | UIDLExpressionValue
   }
 }
 
@@ -1791,6 +1937,8 @@ export interface UIDLFormDefinition {
   security?: {
     captchaPublicKey?: UIDLStaticValue | UIDLENVValue
     honeypotField?: UIDLStaticValue
+    /** `false` turns the captcha off for this form; absent means on. */
+    captchaEnabled?: UIDLStaticValue
   }
 
   // Limits & constraints
@@ -1804,6 +1952,13 @@ export interface UIDLFormDefinition {
     success?: UIDLStaticValue
     error?: UIDLStaticValue
     limit?: UIDLStaticValue
+    // On an internationalized project, the key of each message in
+    // `locales/<lang>.json`; the text above is the main-language fallback.
+    translationKeys?: {
+      success?: string
+      error?: string
+      limit?: string
+    }
   }
 
   // Metadata
@@ -1919,6 +2074,27 @@ export interface UIDLEcommerceOrderNotificationConfig {
 export interface UIDLEcommercePaymentProvider {
   type: string
   name: string
+  // Whether this provider can bill a recurring product. A recurring cart is
+  // offered only the providers that can; absent reads as "cannot".
+  supportsSubscriptions?: boolean
+  // The NAMES (never the values) of the secrets the merchant saved for this
+  // provider, by the provider form's field key. Each is declared in `.env` as
+  // `<PROVIDER>_<FIELD>=teleporthq.secrets.<name>` for the deploy to resolve.
+  credentials?: Record<string, string>
+  // Which one-time carts this provider may be paid with; absent (an older
+  // export) reads as every kind.
+  sells?: UIDLEcommercePaymentProviderSells
+  // Which recurring carts it can bill; absent reads as `supportsSubscriptions`
+  // for both kinds.
+  recurring?: { physical: boolean; digital: boolean }
+  // The currencies it charges in; absent reads as any.
+  currencies?: string[]
+}
+
+export interface UIDLEcommercePaymentProviderSells {
+  physical: boolean
+  digital: boolean
+  giftCard: boolean
 }
 
 // A node in the nested category tree baked into the generated store. The GUI
@@ -1970,6 +2146,92 @@ export interface UIDLEcommerceSettings {
   // regional pricing on AND the checkout page can charge it; absent, the
   // storefront prices with the single flat fee and default rate as before.
   regionalPricing?: UIDLEcommerceRegionalPricing
+  // The discount engine (vouchers with conditions, stacking, automatic
+  // code-less rules). Present only when the checkout page was built with it;
+  // absent, the storefront prices vouchers with the flat rule its baked
+  // place-order workflow charges.
+  discountEngine?: UIDLEcommerceDiscountEngine
+  // Gift cards redeemed at checkout as a tender. Present only when the merchant
+  // turned them on AND the checkout page carries the gift-card block.
+  giftCards?: UIDLEcommerceGiftCards
+  // Recurring products billed by the provider. Present only when the checkout
+  // page was built with subscriptions; absent, a recurring product is sold as
+  // a one-time purchase by an older checkout, so the storefront hides it.
+  subscriptions?: UIDLEcommerceSubscriptions
+  // Digital products delivered from the order page. Present only when the
+  // checkout and order pages were built with digital delivery.
+  digitalProducts?: UIDLEcommerceDigitalProducts
+  // Where each product page lives, so a product's canonical address can be
+  // built. Present only when the store has a custom product page; absent, no
+  // product carries a page of its own and nothing about product links changes.
+  productPages?: UIDLEcommerceProductPages
+}
+
+/** A product page's static base (`/products`) and the column its address ends with (`slug`). */
+export interface UIDLEcommerceProductPageRoute {
+  route: string
+  attribute: string
+}
+
+/**
+ * The standard product page and every custom product page by key. A product
+ * opens on the custom page its `product_page` column names when that key is
+ * listed here, on the standard page otherwise.
+ */
+export interface UIDLEcommerceProductPages {
+  standard: UIDLEcommerceProductPageRoute | null
+  pages: Record<string, UIDLEcommerceProductPageRoute & { name: string }>
+}
+
+/**
+ * What the storefront needs baked in to sell subscriptions. The subscriptions
+ * themselves are rows in the store's own database, written by the place-order
+ * workflow and the provider's webhooks.
+ */
+export interface UIDLEcommerceSubscriptions {
+  enabled: boolean
+  // The enabled providers that can bill a recurring product (`stripe`,
+  // `paypal`); a recurring cart offers exactly these.
+  providers: string[]
+  currency: string
+}
+
+/**
+ * What the storefront needs baked in to deliver digital products: the download
+ * route's contract and the merchant's two policies.
+ */
+export interface UIDLEcommerceDigitalProducts {
+  enabled: boolean
+  // The EU withdrawal page leaves digital lines out of a request.
+  withdrawalExemption: boolean
+  // A refunded order's links stop working.
+  revokeOnRefund: boolean
+}
+
+/**
+ * What the storefront needs baked in to run the discount engine. The rules
+ * themselves are rows in the store's own database (`teleport_discounts`,
+ * `teleport_vouchers`), read at runtime.
+ */
+export interface UIDLEcommerceDiscountEngine {
+  enabled: boolean
+  // Whether automatic (code-less) rules are loaded and applied; vouchers price
+  // through the engine either way.
+  automaticDiscounts: boolean
+  currency: string
+}
+
+/**
+ * What the storefront needs baked in to take gift cards. Balances are rows in
+ * the store's own database and are only ever read by server-side workflow
+ * nodes — the provider displays what the Apply Gift Card workflow returned.
+ */
+export interface UIDLEcommerceGiftCards {
+  enabled: boolean
+  currency: string
+  // Whether a card may pay part of a subscription's FIRST charge: only a
+  // checkout whose place-order workflow hands the provider the reduced charge.
+  recurringTender?: boolean
 }
 
 /**
@@ -2002,6 +2264,24 @@ export interface UIDLEcommerceRegionalPricing {
  */
 export interface UIDLBlogSettings {
   categories?: UIDLEcommerceCategory[]
+  /** Post content headings carry ids and `#` links to themselves. */
+  headingAnchors?: boolean
+  /** A post page carries the post's approved comments. */
+  comments?: boolean
+  /** The blog's RSS feed. Absent: the site serves none. */
+  rssFeed?: UIDLBlogRssFeed
+}
+
+/** Where the generated `/rss.xml` route reads the posts from, and where it links them. */
+export interface UIDLBlogRssFeed {
+  /** The data source holding `teleport_blog_posts`. */
+  dataSourceId: string
+  /** The post page's address before the post's own segment: `/blog` for `/blog/[slug]`. */
+  postPath: string
+  /** The post field that segment is — the post page's URL differentiator, e.g. `slug`. */
+  postUrlField: string
+  /** The blog listing's address, the feed's own link. `/` when the blog has none. */
+  listingPath: string
 }
 
 export interface UIDLInvoiceSettings {
