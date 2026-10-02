@@ -18,6 +18,8 @@ import {
   extractCurrentUserFields,
   generateRawQueryApiRoute,
   GlobalStateFetchConfig,
+  getCsvColumnLabels,
+  buildCsvRelabelCode,
 } from './data-source-utils'
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -324,12 +326,19 @@ const generateFetchFunctionForState = (config: GlobalStateFetchConfig): string =
   lines.push(`      const __result = await __res.json()`)
   lines.push(`      if (__result.success) {`)
 
-  const extractedVar = buildRefPathAccessCode('__result.data', refPath)
+  // A raw query returns database rows; only a CSV source's own rows need
+  // re-keying to the column labels the editor showed.
+  const csvColumns = config.hasQuery ? null : getCsvColumnLabels(config.dataSource)
+  const dataVar = csvColumns ? '__rows' : '__result.data'
+  if (csvColumns) {
+    lines.push(`        const __rows = ${buildCsvRelabelCode('__result.data', csvColumns)}`)
+  }
+
+  const extractedVar = buildRefPathAccessCode(dataVar, refPath)
   const fallbackForFetch = serializeDefaultValue(
     normalizeDefaultValueForType(definition.defaultValue, definition.type)
   )
-  const valueExpr =
-    extractedVar === '__result.data' ? '__result.data' : `(${extractedVar} ?? ${fallbackForFetch})`
+  const valueExpr = extractedVar === dataVar ? dataVar : `(${extractedVar} ?? ${fallbackForFetch})`
   lines.push(`        let __extracted = ${valueExpr}`)
 
   if (definition.mappingFunction && definition.mappingFunction.trim()) {

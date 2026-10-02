@@ -51,6 +51,48 @@ export const isSelectOnlyQuery = (query: string): boolean => {
   return true
 }
 
+export interface CsvColumnLabel {
+  id: string
+  label: string
+}
+
+/**
+ * The columns that turn a CSV source's rows into the shape the editor reads.
+ * The generated CSV fetcher keys every row by column id (`col_0`), while the
+ * editor keys the same rows by column label — so every field of a state bound
+ * to the file was designed against the label. Null for any other source, or a
+ * file without column metadata (whose rows the editor reads as parsed).
+ */
+export const getCsvColumnLabels = (dataSource: UIDLDataSource): CsvColumnLabel[] | null => {
+  if (dataSource.type !== 'csv-file') {
+    return null
+  }
+  const columns = (dataSource.config as { columns?: unknown } | undefined)?.columns
+  if (!Array.isArray(columns)) {
+    return null
+  }
+  const labels = columns.filter(
+    (column): column is CsvColumnLabel =>
+      !!column &&
+      typeof column.id === 'string' &&
+      column.id.length > 0 &&
+      typeof column.label === 'string' &&
+      column.label.length > 0
+  )
+  return labels.length > 0 ? labels : null
+}
+
+/**
+ * Code that re-keys `rowsVar`'s rows from column id to column label, leaving
+ * anything that is not a list untouched.
+ */
+export const buildCsvRelabelCode = (rowsVar: string, columns: CsvColumnLabel[]): string => {
+  const fields = columns
+    .map(({ id, label }) => `${JSON.stringify(label)}: __row?.[${JSON.stringify(id)}]`)
+    .join(', ')
+  return `Array.isArray(${rowsVar}) ? ${rowsVar}.map((__row) => ({ ${fields} })) : ${rowsVar}`
+}
+
 /**
  * Separates static and dynamic filters from a filterConfig array.
  */

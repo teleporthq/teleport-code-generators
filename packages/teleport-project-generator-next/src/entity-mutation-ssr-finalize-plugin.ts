@@ -66,7 +66,7 @@ function stripRevalidateFromReturns(node: unknown): void {
  * writes to that same table (see `pageHasSameTableMutationWorkflow`'s doc in
  * that package for why this is a data-correctness signal, independent of
  * the project's visual nav layout) — and for every page that reads a money
- * table (`pageReadsProtectedTable`), whose getStaticProps chunk is usually
+ * table or a staff-only one (`pageReadsProtectedTable`), whose getStaticProps chunk is usually
  * created by the data-source or pagination plugin, which never tag it.
  *
  * Every OTHER page plugin that fetches data (inline-fetch, data-source,
@@ -86,8 +86,8 @@ export const createEntityMutationSsrFinalizerPlugin: ComponentPluginFactory<
   Record<string, never>
 > = () => {
   const entityMutationSsrFinalizerPlugin: ComponentPlugin = async (structure) => {
-    const { chunks, uidl } = structure
-    const rendersPerRequest = RouteUtils.pageReadsProtectedTable(uidl)
+    const { chunks, uidl, options } = structure
+    const rendersPerRequest = RouteUtils.pageReadsProtectedTable(uidl, options?.auth)
     const getStaticPropsChunk = chunks.find(
       (chunk) =>
         chunk.name === 'getStaticProps' &&

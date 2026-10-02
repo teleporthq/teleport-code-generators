@@ -50,6 +50,12 @@ export interface EntityTransformOptions extends EcommerceProductTransformOptions
    * `TableAccess.resolveTrustedReaderRoles`.
    */
   trustedReaderRoles?: string[]
+  /**
+   * Tables a browser reads only as a member of the roles listed for each — an
+   * internal tool's. Absent unless the project declares some, so every other
+   * project's modules stay as they were. See `TableAccess.resolveRestrictedTables`.
+   */
+  restrictedTables?: Record<string, string[]>
 }
 
 /**
@@ -104,7 +110,16 @@ export const buildProductTransformOptions = (
   productPages: options.ecommerceSettings?.productPages,
   localization: resolveContentLocalization(options),
   trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth || options.authentication),
+  ...restrictedTablesOption(options.auth || options.authentication),
 })
+
+/** `{ restrictedTables }` when the project declares any, else nothing. */
+const restrictedTablesOption = (
+  auth?: UIDLAuthentication
+): Pick<EntityTransformOptions, 'restrictedTables'> => {
+  const restrictedTables = TableAccess.resolveRestrictedTables(auth)
+  return Object.keys(restrictedTables).length > 0 ? { restrictedTables } : {}
+}
 
 export type TransformationType = 'blog-post' | 'ecommerce-product' | 'custom-page' | null
 

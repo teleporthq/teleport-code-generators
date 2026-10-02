@@ -262,7 +262,61 @@ const computePropsAST = (
     notFoundAST,
     ...computeOwnRowPreferenceAST(initialPropsData, funcParams, fetchCallAST),
     ...computeEntityRedirectAST(initialPropsData, skipI18n, revalidateProperty),
+    ...computeOmitFieldsAST(initialPropsData),
     returnAST,
+  ]
+}
+
+/**
+ * `initialPropsData.omitFields` taken off the fetched row before the props are
+ * returned — after the redirect, which may read them. A statement that is
+ * never a ReturnStatement, so the plugins that look for the props return still
+ * find the one.
+ *
+ *   const rowWithOmittedFields = response?.data?.[0]
+ *   if (rowWithOmittedFields && typeof rowWithOmittedFields === 'object') {
+ *     delete rowWithOmittedFields['online_url']
+ *   }
+ */
+const computeOmitFieldsAST = (initialPropsData: UIDLInitialPropsData): types.Statement[] => {
+  const fields = (initialPropsData.omitFields || []).filter(
+    (field) => typeof field === 'string' && field.length > 0
+  )
+  if (fields.length === 0) {
+    return []
+  }
+  const rowName = 'rowWithOmittedFields'
+  return [
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier(rowName),
+        ASTUtils.generateMemberExpressionASTFromPath([
+          'response',
+          ...ASTUtils.parseValuePath(initialPropsData.exposeAs.valuePath || []),
+        ])
+      ),
+    ]),
+    types.ifStatement(
+      types.logicalExpression(
+        '&&',
+        types.identifier(rowName),
+        types.binaryExpression(
+          '===',
+          types.unaryExpression('typeof', types.identifier(rowName)),
+          types.stringLiteral('object')
+        )
+      ),
+      types.blockStatement(
+        fields.map((field) =>
+          types.expressionStatement(
+            types.unaryExpression(
+              'delete',
+              types.memberExpression(types.identifier(rowName), types.stringLiteral(field), true)
+            )
+          )
+        )
+      )
+    ),
   ]
 }
 

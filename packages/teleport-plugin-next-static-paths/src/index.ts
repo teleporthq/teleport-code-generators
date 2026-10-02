@@ -34,7 +34,8 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // getStaticPaths alongside getServerSideProps on the same page.
     if (
       isDynamicRoute(uidl) &&
-      (pageHasSameTableMutationWorkflow(uidl, options.workflows) || pageReadsProtectedTable(uidl))
+      (pageHasSameTableMutationWorkflow(uidl, options.workflows) ||
+        pageReadsProtectedTable(uidl, options.auth))
     ) {
       return structure
     }

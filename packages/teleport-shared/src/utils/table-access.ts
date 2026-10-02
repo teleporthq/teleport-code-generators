@@ -89,6 +89,26 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   'teleport_ai_chat_documents',
   'teleport_ai_chat_conversations',
   'teleport_ai_chat_messages',
+  // A booking carries the customer's name, email and phone and the key of
+  // their "manage your booking" link; the capacity counters decide who gets
+  // the last place; a team member's row carries their private email, and a
+  // closure its reason. The booking pages read them only in server segments
+  // (public columns only), the admin with its session.
+  'teleport_bookings',
+  'teleport_booking_units',
+  'teleport_booking_staff',
+  'teleport_booking_time_off',
+  // An event registration carries the attendee's name, email and phone and the
+  // key of their tickets link; a ticket's code IS the way in at the door. The
+  // event pages read them only in server segments, the admin with its session.
+  'teleport_event_registrations',
+  'teleport_event_registration_items',
+  'teleport_event_tickets',
+  // A member's profile is shown only once the member chose to be listed; the
+  // rows of members who did not are private. The member pages read the listed
+  // ones (public columns only) and the member's own in server segments, the
+  // admin with its session.
+  'teleport_member_profiles',
 ]
 
 export const PROTECTED_TABLES: ReadonlyArray<string> = [...MONEY_TABLES, ...CUSTOMER_RECORD_TABLES]
@@ -181,29 +201,158 @@ const ADMIN_FOLDER_NAME = 'admin-panel'
 const ADMIN_ROUTE_PREFIX = '/admin'
 
 /**
- * The roles allowed to read a protected table from a browser: whoever may open
- * the generated admin panel, read off the protection the UIDL records for its
- * folder and pages. A project without an admin panel has no page that binds a
- * money table, so the empty list (server-side callers only) is the right answer.
+ * The roles that may open the generated admin panel as a whole: the roles its
+ * FOLDER admits, which the middleware and the workflow-route guard union into
+ * every page under it. A page's own roles never count — an internal tool admits
+ * its staff to the tool's pages (its dashboard, each table's list and views),
+ * and that must not hand them the rest of the panel.
+ *
+ * A folder that records no roles (an older project, or one an owner edited)
+ * falls back to the roles EVERY protected admin page admits. Sorted; empty
+ * without an admin panel.
  */
-export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): string[] => {
-  const roles = new Set<string>()
+export const resolveAdminPanelRoles = (auth?: UIDLAuthentication | null): string[] => {
   if (!auth) {
     return []
   }
+  const folderRoles = new Set<string>()
   Object.values(auth.folderProtection || {}).forEach((folder) => {
     if (folder && folder.folderName === ADMIN_FOLDER_NAME) {
-      ;(folder.allowedRoles || []).forEach((role) => roles.add(role))
+      ;(folder.allowedRoles || []).forEach((role) => folderRoles.add(role))
     }
   })
-  Object.values(auth.pageProtection || {}).forEach((page) => {
+  if (folderRoles.size > 0) {
+    return Array.from(folderRoles).sort()
+  }
+
+  let everyPageAdmits: string[] | null = null
+  for (const page of Object.values(auth.pageProtection || {})) {
     const route = page && typeof page.route === 'string' ? page.route : ''
-    if (route === ADMIN_ROUTE_PREFIX || route.startsWith(`${ADMIN_ROUTE_PREFIX}/`)) {
-      ;(page.allowedRoles || []).forEach((role) => roles.add(role))
+    if (route !== ADMIN_ROUTE_PREFIX && !route.startsWith(`${ADMIN_ROUTE_PREFIX}/`)) {
+      continue
     }
-  })
-  return Array.from(roles).sort()
+    const pageRoles = page.allowedRoles || []
+    everyPageAdmits =
+      everyPageAdmits === null
+        ? Array.from(new Set(pageRoles))
+        : everyPageAdmits.filter((role) => pageRoles.indexOf(role) !== -1)
+  }
+  return (everyPageAdmits || []).sort()
 }
+
+/**
+ * The roles allowed to read a protected table from a browser: the admin
+ * panel's (`resolveAdminPanelRoles`) — so a staff member an internal tool lets
+ * onto its own pages reads no account, email or order. A project without an
+ * admin panel has no page that binds a money table, so the empty list
+ * (server-side callers only) is the right answer.
+ */
+export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): string[] =>
+  resolveAdminPanelRoles(auth)
+
+/** A restricted table's name as the guard compares it: bare, unquoted, lower case. */
+const RESTRICTED_TABLE_NAME_RE = /^[a-z_][a-z0-9_$]*$/
+
+const normalizeRestrictedTables = (declared: unknown): Record<string, string[]> => {
+  if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+    return {}
+  }
+  const entries = declared as Record<string, unknown>
+  const restricted: Record<string, string[]> = {}
+  Object.keys(entries)
+    .sort()
+    .forEach((key) => {
+      const parts = key.trim().toLowerCase().split('.')
+      const name = parts[parts.length - 1].replace(/"/g, '')
+      if (!RESTRICTED_TABLE_NAME_RE.test(name)) {
+        return
+      }
+      const listed = Array.isArray(entries[key]) ? (entries[key] as unknown[]) : []
+      const roles = listed.filter(
+        (role): role is string => typeof role === 'string' && role.length > 0
+      )
+      // Two spellings of one table: a role reads it only when both admit it.
+      const admitted = restricted[name]
+        ? roles.filter((role) => restricted[name].indexOf(role) !== -1)
+        : roles
+      restricted[name] = Array.from(new Set(admitted)).sort()
+    })
+  return restricted
+}
+
+/**
+ * The tables a browser reads only as a signed-in member of the roles listed
+ * for each — an internal tool's (`UIDLAuthentication.restrictedTables`), which
+ * its staff and administrators read from the generated admin and nobody else.
+ * Server-side callers (the app secret, the module's own `fetchData`) read them
+ * as before.
+ *
+ * Names are compared the way the guard compares a request's (bare, unquoted,
+ * lower case); a name that is not a plain identifier is no table the generated
+ * routes can read, and is dropped. A table listed with no usable role is kept
+ * with none — readable by server-side callers only, never opened up. The empty
+ * record (every project without the field) changes no generated byte.
+ */
+export const resolveRestrictedTables = (
+  auth?: UIDLAuthentication | null
+): Record<string, string[]> => normalizeRestrictedTables(auth ? auth.restrictedTables : undefined)
+
+const generateRestrictedTableDeclarations = (restricted: Record<string, string[]>): string =>
+  `// Tables a browser reads only as a member of the roles listed for each — an
+// internal tool's (see resolveRestrictedTables). Server-side callers read them
+// like any other table.
+var __TA_RESTRICTED_TABLES = ${JSON.stringify(restricted)};
+var __TA_RESTRICTED_TABLE_NAMES = Object.keys(__TA_RESTRICTED_TABLES);
+`
+
+const RESTRICTED_SQL_TEXT_CHECK = `  // A browser reads a restricted table through the per-table routes, with the
+  // session that admits it; a statement the caller wrote is not that.
+  for (var ri = 0; ri < __TA_RESTRICTED_TABLE_NAMES.length; ri++) {
+    if (__taMentionsRestrictedTable(text, __TA_RESTRICTED_TABLE_NAMES[ri])) __taForbid(__TA_RESTRICTED_TABLE_NAMES[ri]);
+  }
+`
+
+const RESTRICTED_TABLE_FUNCTIONS = `// \`$\` is legal in an identifier and an anchor in a regular expression.
+function __taMentionsRestrictedTable(sql, table) {
+  return __taSqlMentionsTable(sql, table.replace(/\\$/g, '\\\\$'));
+}
+
+// The restricted tables a read of \`tableName\` (or the raw statement) touches.
+function __taRestrictedTablesRead(tableName, rawQuery) {
+  var touched = [];
+  var bare = __taNormalizeTable(tableName);
+  if (Object.prototype.hasOwnProperty.call(__TA_RESTRICTED_TABLES, bare)) touched.push(bare);
+  if (typeof rawQuery === 'string' && rawQuery.length > 0) {
+    for (var i = 0; i < __TA_RESTRICTED_TABLE_NAMES.length; i++) {
+      var name = __TA_RESTRICTED_TABLE_NAMES[i];
+      if (touched.indexOf(name) === -1 && __taMentionsRestrictedTable(rawQuery, name)) touched.push(name);
+    }
+  }
+  return touched;
+}
+
+// The first of \`tables\` the role may not read, or null when it reads them all.
+function __taRestrictedTableRefused(role, tables) {
+  for (var i = 0; i < tables.length; i++) {
+    if (!role || __TA_RESTRICTED_TABLES[tables[i]].indexOf(role) === -1) return tables[i];
+  }
+  return null;
+}
+
+// Whether the caller reads every one of \`tables\`: the store's server code, or
+// a session whose role each of them admits.
+async function __taMayReadRestricted(req, tables) {
+  if (tables.length === 0 || __taIsInternalRequest(req)) return true;
+  var token = null;
+  try {
+    token = await __tqSessionToken(req);
+  } catch (e) {
+    token = null;
+  }
+  return !!token && __taRestrictedTableRefused(__taRoleOf(token), tables) === null;
+}
+
+`
 
 /**
  * ES5 source of the guard, inlined into a generated route. Declares:
@@ -237,10 +386,21 @@ export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): str
  *    A protected table is readable by an internal caller or by a session whose
  *    role is in `trustedReaderRoles`; the session is decoded by the
  *    `__tqSessionToken` resolver, which the host route must inline as well.
+ *
+ * With `restrictedTables` (see `resolveRestrictedTables`) — and only then, so
+ * every other project's routes stay byte-identical — it also declares
+ * `__taRestrictedTablesRead(tableName, rawQuery)` and
+ * `__taMayReadRestricted(req, tables)`; `__taGuardRead` then admits a read of a
+ * restricted table only for an internal caller or a session whose role the
+ * table lists (401 without a session, 403 for any other role), and
+ * `__taAssertSqlTextAllowed` refuses a statement that names one.
  */
 export const generateTableAccessHelperCode = (params: {
   trustedReaderRoles: ReadonlyArray<string>
+  restrictedTables?: Readonly<Record<string, ReadonlyArray<string>>>
 }): string => {
+  const restricted = normalizeRestrictedTables(params.restrictedTables)
+  const hasRestricted = Object.keys(restricted).length > 0
   return `// GENERATED — see generateTableAccessHelperCode in
 // @teleporthq/teleport-shared/src/utils/table-access.ts.
 //
@@ -257,7 +417,9 @@ var __TA_WRITE_PROTECTED_TABLES = ${JSON.stringify(WRITE_PROTECTED_TABLES)};
 var __TA_PUBLIC_FEED_TABLES = ${JSON.stringify(PUBLIC_FEED_TABLES)};
 var __TA_FEED_TABLES = Object.keys(__TA_PUBLIC_FEED_TABLES);
 var __TA_TRUSTED_READER_ROLES = ${JSON.stringify(params.trustedReaderRoles)};
-var __TA_CREDENTIAL_COLUMNS = ${JSON.stringify(AUTH_CREDENTIAL_COLUMNS)};
+${
+  hasRestricted ? generateRestrictedTableDeclarations(restricted) : ''
+}var __TA_CREDENTIAL_COLUMNS = ${JSON.stringify(AUTH_CREDENTIAL_COLUMNS)};
 var __TA_UNAMBIGUOUS_CREDENTIAL_COLUMNS = ${JSON.stringify(UNAMBIGUOUS_CREDENTIAL_COLUMNS)};
 var __TA_CREDENTIAL_TABLES = ${JSON.stringify(AUTH_CREDENTIAL_TABLES)};
 var __TA_SQL_WRITE_RE = /\\b(?:insert|update|delete|merge|truncate)\\b/i;
@@ -438,7 +600,7 @@ function __taAssertSqlTextAllowed(sql) {
   for (var fi = 0; fi < __TA_FEED_TABLES.length; fi++) {
     if (__taSqlMentionsTable(text, __TA_FEED_TABLES[fi])) __taForbid(__TA_FEED_TABLES[fi]);
   }
-  var cleaned = __taCleanSql(text);
+${hasRestricted ? RESTRICTED_SQL_TEXT_CHECK : ''}  var cleaned = __taCleanSql(text);
   // Unreadable, or a write: either way the write-protected tables are refused.
   if (cleaned.ok && !__TA_SQL_WRITE_RE.test(cleaned.text)) return;
   for (var wi = 0; wi < __TA_WRITE_PROTECTED_TABLES.length; wi++) {
@@ -491,13 +653,20 @@ function __taAssertFeedFields(tableName, feed, fields) {
   }
 }
 
-// null when the read may proceed, else { status, message }.
+${
+  hasRestricted ? RESTRICTED_TABLE_FUNCTIONS : ''
+}// null when the read may proceed, else { status, message }.
 async function __taGuardRead(req, tableName, rawQuery) {
   if (typeof rawQuery === 'string' && rawQuery.length > 0 && __taBrowserIsReadOnly(req)) {
     return { status: 403, message: 'Forbidden: raw queries are only available to server-side calls' };
   }
   var touched = __taProtectedTablesRead(tableName, rawQuery);
-  if (touched.length === 0) return null;
+${
+  hasRestricted
+    ? `  var restricted = __taRestrictedTablesRead(tableName, rawQuery);
+  if (touched.length === 0 && restricted.length === 0) return null;`
+    : '  if (touched.length === 0) return null;'
+}
   if (__taIsInternalRequest(req)) return null;
   var token = null;
   try {
@@ -507,10 +676,20 @@ async function __taGuardRead(req, tableName, rawQuery) {
   }
   if (!token) return { status: 401, message: 'Unauthenticated' };
   var role = __taRoleOf(token);
-  if (!role || __TA_TRUSTED_READER_ROLES.indexOf(role) === -1) {
+${
+  hasRestricted
+    ? '  if (touched.length > 0 && (!role || __TA_TRUSTED_READER_ROLES.indexOf(role) === -1)) {'
+    : '  if (!role || __TA_TRUSTED_READER_ROLES.indexOf(role) === -1) {'
+}
     return { status: 403, message: 'Forbidden: ' + touched[0] + ' is only readable by the store administrators' };
   }
-  return null;
+${
+  hasRestricted
+    ? `  var refused = __taRestrictedTableRefused(role, restricted);
+  if (refused) return { status: 403, message: 'Forbidden: ' + refused + ' is only readable by its staff' };
+`
+    : ''
+}  return null;
 }
 `
 }

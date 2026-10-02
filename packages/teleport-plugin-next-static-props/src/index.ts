@@ -40,7 +40,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // renders per request whatever its route (see `pageReadsProtectedTable`).
     const useServerSideProps =
       (isDynamicRoute(uidl) && pageHasSameTableMutationWorkflow(uidl, options.workflows)) ||
-      pageReadsProtectedTable(uidl)
+      pageReadsProtectedTable(uidl, options.auth)
 
     const { resource } = uidl?.outputOptions?.initialPropsData
 

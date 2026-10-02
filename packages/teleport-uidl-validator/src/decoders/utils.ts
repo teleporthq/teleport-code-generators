@@ -251,6 +251,7 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     })
   ),
   cache: optional(object({ revalidate: number() })),
+  omitFields: optional(array(string())),
   redirect: optional(
     object({
       destinationField: string(),

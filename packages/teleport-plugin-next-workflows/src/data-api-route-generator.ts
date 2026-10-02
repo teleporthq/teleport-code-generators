@@ -54,6 +54,11 @@ export interface DataAPIRouteOptions {
   // SELECT itself didn't carry a `<= N` filter that the auto-fire could
   // extract. Defaulting to 5 mirrors the GUI's default.
   lowStockThreshold?: number
+  // Tables a browser reads only through the per-table routes, as a member of
+  // the roles listed for each (an internal tool's — see
+  // `TableAccess.resolveRestrictedTables`). Like the protected tables, no caller
+  // but the app's own server code reaches them through this route.
+  restrictedTables?: Record<string, string[]>
 }
 
 /**
@@ -100,6 +105,10 @@ export const BROWSER_ROW_POLICIES: Readonly<
     predicate: "LOWER(TRIM(status)) = 'active'",
     hiddenColumns: [],
   },
+  teleport_calendar_events: {
+    predicate: "status = 'published'",
+    hiddenColumns: ['online_url', 'onlineUrl'],
+  },
 }
 
 export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string => {
@@ -110,6 +119,16 @@ export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string 
     typeof options.lowStockThreshold === 'number' && options.lowStockThreshold >= 0
       ? options.lowStockThreshold
       : 5
+  // The money-table lists and the guards over them, shared with the per-table
+  // read routes so both families refuse the same tables. No browser reads a
+  // protected or restricted table through THIS route (workflow data nodes run
+  // server-side), so the roles that may read one from a browser are irrelevant
+  // here: every caller but the app's own server code is refused them.
+  const tableAccessCode = TableAccess.generateTableAccessHelperCode({
+    trustedReaderRoles: [],
+    restrictedTables: options.restrictedTables,
+  })
+  const restrictsTables = tableAccessCode.indexOf('var __TA_RESTRICTED_TABLES =') !== -1
 
   return `const { Client } = require('pg');
 ${
@@ -122,13 +141,7 @@ ${
 const LOW_STOCK_ALERTS_ENABLED = ${JSON.stringify(lowStockAlertsEnabled)};
 const LOW_STOCK_THRESHOLD = ${JSON.stringify(lowStockThreshold)};
 ${validatorCode}
-${
-  // The money-table lists and the guards over them, shared with the per-table
-  // read routes so both families refuse the same tables. No browser reads a
-  // protected table through THIS route (workflow data nodes run server-side),
-  // so the roles that may read from a browser are irrelevant here.
-  TableAccess.generateTableAccessHelperCode({ trustedReaderRoles: [] })
-}
+${tableAccessCode}
 function getPgSslFromEnv() {
   if (process.env.TELEPORT_DB_SSL === 'false') return false;
   if (process.env.TELEPORT_DB_SSL === 'true') return { rejectUnauthorized: false };
@@ -1102,7 +1115,11 @@ function assertTableAccess(req, operation, body) {
   }
   var table = __taNormalizeTable(body.tableName);
   if (__TA_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
-  if (WRITE_OPERATIONS[operation] && __TA_WRITE_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
+${
+  restrictsTables
+    ? '  if (Object.prototype.hasOwnProperty.call(__TA_RESTRICTED_TABLES, table)) __taForbid(table);\n'
+    : ''
+}  if (WRITE_OPERATIONS[operation] && __TA_WRITE_PROTECTED_TABLES.indexOf(table) !== -1) __taForbid(table);
   // A select's raw override replaces the assembled SELECT wholesale, so its
   // text is checked like a raw query rather than trusting \`tableName\`.
   if (operation === 'select' && typeof body.rawQueryUserPart === 'string') {

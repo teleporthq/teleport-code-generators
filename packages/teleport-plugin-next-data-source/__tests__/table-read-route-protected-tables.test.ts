@@ -436,7 +436,7 @@ describe('buildProductTransformOptions — the roles reach the emitted module', 
 })
 
 describe('resolveTrustedReaderRoles', () => {
-  it('reads the roles off the admin folder and the admin pages, and nothing else', () => {
+  it("reads the roles off the admin folder, never off one admin page's own roles", () => {
     const roles = TableAccess.resolveTrustedReaderRoles({
       enabled: true,
       dataSourceId: 'ds-1',
@@ -487,7 +487,34 @@ describe('resolveTrustedReaderRoles', () => {
       envKeys: {},
       customUserProperties: [],
     })
-    expect(roles).toEqual(['admin', 'staff'])
+    // `staff` opens `/admin/orders` only: a page's role is no reader of every
+    // protected table (an internal tool admits its staff to its own pages).
+    expect(roles).toEqual(['admin'])
     expect(TableAccess.resolveTrustedReaderRoles(undefined)).toEqual([])
+  })
+
+  it("refuses an internal tool's staff the accounts table on its read route", async () => {
+    const toolAuth: UIDLAuthentication = {
+      ...ADMIN_PANEL_AUTH,
+      roles: ['admin', 'staff', 'user'],
+      pageProtection: {
+        dashboard: {
+          requiresAuth: true,
+          allowedRoles: ['admin', 'staff'],
+          pageName: 'dashboard',
+          route: '/admin/dashboard',
+        },
+        tasks: {
+          requiresAuth: true,
+          allowedRoles: ['admin', 'staff'],
+          pageName: 'tasks',
+          route: '/admin/tasks',
+        },
+      },
+    }
+    const options = buildProductTransformOptions({ authentication: toolAuth })
+    const users = bootTableRoute('users', options.trustedReaderRoles || [])
+    expect((await users({ handler: 'handler', session: { role: 'staff' } })).status).toBe(403)
+    expect((await users({ handler: 'handler', session: { role: 'admin' } })).status).toBe(200)
   })
 })

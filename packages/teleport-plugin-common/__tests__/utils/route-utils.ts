@@ -1,7 +1,9 @@
+import type { UIDLAuthentication } from '@teleporthq/teleport-types'
 import {
   parseDynamicPathSegments,
   pathHasDynamicSegment,
   isDynamicRoute,
+  pageReadsProtectedTable,
 } from '../../src/utils/route-utils'
 
 describe('parseDynamicPathSegments', () => {
@@ -114,5 +116,33 @@ describe('isDynamicRoute', () => {
     ).toBe(true)
     expect(isDynamicRoute({ outputOptions: { folderPath: [], fileName: 'add-guild' } })).toBe(false)
     expect(isDynamicRoute({})).toBe(false)
+  })
+})
+
+describe('pageReadsProtectedTable — staff-only tables', () => {
+  const auth = { restrictedTables: { tasks: ['admin', 'staff'] } } as unknown as UIDLAuthentication
+  const listPage = (tableName: string) => ({
+    node: {
+      type: 'element',
+      content: {
+        children: [{ type: 'cms-list-repeater', content: { resourceDefinition: { tableName } } }],
+      },
+    },
+  })
+  const detailsPage = (tableName: string) => ({ outputOptions: { detailsPageInfo: { tableName } } })
+
+  it("renders a list or details page over an internal tool's table per request", () => {
+    expect(pageReadsProtectedTable(listPage('tasks'), auth)).toBe(true)
+    expect(pageReadsProtectedTable(listPage('public."Tasks"'), auth)).toBe(true)
+    expect(pageReadsProtectedTable(detailsPage('tasks'), auth)).toBe(true)
+  })
+
+  it('keeps every other page, and every page of a project without the field, as it was', () => {
+    expect(pageReadsProtectedTable(listPage('team_members'), auth)).toBe(false)
+    expect(pageReadsProtectedTable(listPage('tasks'))).toBe(false)
+    expect(pageReadsProtectedTable(listPage('tasks'), { ...auth, restrictedTables: {} })).toBe(
+      false
+    )
+    expect(pageReadsProtectedTable(detailsPage('teleport_orders'))).toBe(true)
   })
 })

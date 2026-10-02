@@ -16,10 +16,17 @@ import { generateBrowserRowAccessCall, generateBrowserRowPolicyCode } from './br
  * private columns of the public tables, and the admin-only tables.
  */
 
-/** Declares the session resolver and the `__ta*` guard once per module. */
-export const generateTableAccessPreamble = (trustedReaderRoles: ReadonlyArray<string>): string => {
+/**
+ * Declares the session resolver and the `__ta*` guard once per module.
+ * `restrictedTables` (an internal tool's) also puts those tables behind the
+ * roles listed for each — see `TableAccess.resolveRestrictedTables`.
+ */
+export const generateTableAccessPreamble = (
+  trustedReaderRoles: ReadonlyArray<string>,
+  restrictedTables?: Readonly<Record<string, ReadonlyArray<string>>>
+): string => {
   return `${SessionCookieResolver.generateCommonJsSessionTokenResolverCode()}
-${TableAccess.generateTableAccessHelperCode({ trustedReaderRoles })}
+${TableAccess.generateTableAccessHelperCode({ trustedReaderRoles, restrictedTables })}
 ${generateBrowserRowPolicyCode()}`
 }
 

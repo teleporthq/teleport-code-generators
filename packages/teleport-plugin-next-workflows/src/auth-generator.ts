@@ -13,6 +13,7 @@ import {
   generateLocalizedEmailCopyFn,
   WELCOME_EMAIL_CONFIG_KEYS,
 } from './transactional-email-code'
+import { TableAccess } from '@teleporthq/teleport-shared'
 import { generateSessionTokenResolverCode } from './session-cookie-resolver'
 
 // GUI provider id → the actual next-auth v4 provider MODULE name, for the few
@@ -1126,6 +1127,15 @@ export interface WelcomeEmailOptions {
   siteName?: string
 }
 
+/**
+ * No visitor signs up: an internal tool that owns its project has an admin add
+ * every account from the admin panel's Users screen (`closedSignUp`), so the
+ * app has no public route that creates one. A sign-up page the UIDL still
+ * lists as a guest auth route wins over the flag.
+ */
+export const isSignUpClosed = (auth: UIDLAuthentication): boolean =>
+  auth.closedSignUp === true && !(auth.authPages && auth.authPages.signUp)
+
 export const generateSignupRouteFile = (
   auth: UIDLAuthentication,
   welcome: WelcomeEmailOptions = {}
@@ -1413,6 +1423,70 @@ const selfGuardedRoutePatternOf = (protection: {
   return base === '/' ? `/[${differentiator}]` : `${base}/[${differentiator}]`
 }
 
+/** The same-site path the project redirects `/` to, or null (absent, `/` itself, or off-site). */
+const resolveHomeRedirect = (auth: UIDLAuthentication): string | null => {
+  const value = typeof auth.homeRedirect === 'string' ? auth.homeRedirect : ''
+  const path = value.split('?')[0].split('#')[0]
+  if (!path.startsWith('/') || path.startsWith('//') || path.indexOf('\\') !== -1) {
+    return null
+  }
+  const normalized = path.length > 1 ? path.replace(/\/+$/, '') : path
+  return normalized === '/' ? null : normalized
+}
+
+/**
+ * Where a signed-in visitor without the role a page asks for lands. A project
+ * whose home page is not redirected keeps the code it always had. One that
+ * redirects `/` (an internal tool sends it to its dashboard) only sends a
+ * visitor home when that page admits them; otherwise to sign-in, saying why.
+ */
+const generateRoleDeniedRedirectCode = (
+  signInRoute: string,
+  homeRedirect: string | null
+): string => {
+  if (!homeRedirect) {
+    return `// Where to send an authenticated user who lacks the required role. Normally the
+// home page ("you don't have access, here's the public site"). But when "/" is
+// itself a protected page (e.g. an admin dashboard published at the root), a
+// redirect to "/" re-enters this middleware and loops forever — so fall back to
+// the sign-in page (with a callbackUrl) in that case.
+function roleDeniedRedirect(request, pathname) {
+  if (pathname !== '/' && !protectedRoutes['/']) {
+    return redirectWithinLocale(request, '/');
+  }
+  return redirectWithinLocale(request, '${signInRoute}', pathname);
+}`
+  }
+  return `// The project redirects "/" here before this middleware ever runs.
+var homeRedirect = ${JSON.stringify(homeRedirect)};
+
+// Whether "/" is a way out for this visitor: the page it redirects to is not
+// the one being left, and admits their role. Otherwise sending them home would
+// land them right back on a page that refuses them — a redirect loop.
+function homeAdmitsRole(pathname, userRole) {
+  var landing = normalizeMatchPath(homeRedirect);
+  if (landing === normalizeMatchPath(pathname)) return false;
+  var protection = resolveProtection(landing).matched;
+  if (!protection) return true;
+  if (protection.requiresSubscription) return false;
+  var roles = protection.allowedRoles || [];
+  return roles.length === 0 || roles.indexOf(userRole) >= 0;
+}
+
+// Where to send an authenticated user who lacks the required role: home when
+// home admits them, else the sign-in page, which is told why (error=forbidden)
+// and keeps a callbackUrl for an account that may open the page.
+function roleDeniedRedirect(request, pathname, userRole) {
+  if (pathname !== '/' && !protectedRoutes['/'] && homeAdmitsRole(pathname, userRole)) {
+    return redirectWithinLocale(request, '/');
+  }
+  var target = new URL(localizePathname(request, '${signInRoute}'), request.url);
+  target.searchParams.set('callbackUrl', localizePathname(request, pathname));
+  target.searchParams.set('error', 'forbidden');
+  return NextResponse.redirect(target);
+}`
+}
+
 export const generateMiddlewareFile = (
   auth: UIDLAuthentication,
   options: MiddlewareOptions = {}
@@ -1506,20 +1580,19 @@ export const generateMiddlewareFile = (
     delete protectedRoutes[route]
   }
 
-  let sawAdminRoute = false
-  let adminRoles: string[] = ['admin']
-  for (const k of Object.keys(protectedRoutes)) {
-    if (k === '/admin' || k.indexOf('/admin/') === 0) {
-      sawAdminRoute = true
-      const ar = protectedRoutes[k]?.allowedRoles
-      if (ar && ar.length > 0) {
-        adminRoles = ar
-        break
-      }
-    }
-  }
+  // `/admin` itself, and every admin page the map has no entry for (one an
+  // owner added without protection), admit the admin panel's own roles — its
+  // folder's — never the first admin route's: an internal tool's dashboard also
+  // admits the tool's staff.
+  const sawAdminRoute = Object.keys(protectedRoutes).some(
+    (k) => k === '/admin' || k.indexOf('/admin/') === 0
+  )
   if (sawAdminRoute && !protectedRoutes['/admin']) {
-    protectedRoutes['/admin'] = { requiresAuth: true, allowedRoles: adminRoles }
+    const panelRoles = TableAccess.resolveAdminPanelRoles(auth)
+    protectedRoutes['/admin'] = {
+      requiresAuth: true,
+      allowedRoles: panelRoles.length > 0 ? panelRoles : ['admin'],
+    }
   }
 
   const protectedRoutesJson = JSON.stringify(protectedRoutes, null, 2)
@@ -1530,6 +1603,7 @@ export const generateMiddlewareFile = (
     options.subscriptionFallbackRoute && options.subscriptionFallbackRoute.startsWith('/')
       ? options.subscriptionFallbackRoute
       : '/'
+  const homeRedirect = resolveHomeRedirect(auth)
 
   return `import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
@@ -1642,17 +1716,7 @@ function redirectWithinLocale(request, pathname, callbackPath) {
   return NextResponse.redirect(target);
 }
 
-// Where to send an authenticated user who lacks the required role. Normally the
-// home page ("you don't have access, here's the public site"). But when "/" is
-// itself a protected page (e.g. an admin dashboard published at the root), a
-// redirect to "/" re-enters this middleware and loops forever — so fall back to
-// the sign-in page (with a callbackUrl) in that case.
-function roleDeniedRedirect(request, pathname) {
-  if (pathname !== '/' && !protectedRoutes['/']) {
-    return redirectWithinLocale(request, '/');
-  }
-  return redirectWithinLocale(request, '${signInRoute}', pathname);
-}
+${generateRoleDeniedRedirectCode(signInRoute, homeRedirect)}
 
 // Route keys carry no trailing slash, so neither may the path we match with.
 // Next.js serves "/orders/ORD-42/" and "/orders/ORD-42" as the same route;
@@ -1839,7 +1903,7 @@ async function middleware(request) {
     }
     var userRole = getUserRoleFromToken(sessionUser);
     if (userRole == null || allowedRoles.indexOf(userRole) < 0) {
-      return roleDeniedRedirect(request, pathname);
+      return roleDeniedRedirect(request, pathname${homeRedirect ? ', userRole' : ''});
     }
   }
 

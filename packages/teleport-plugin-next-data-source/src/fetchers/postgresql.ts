@@ -31,7 +31,8 @@ interface PostgreSQLConfig {
 export const generatePostgreSQLFetcher = (
   config: Record<string, unknown>,
   tableName: string,
-  trustedReaderRoles: ReadonlyArray<string> = []
+  trustedReaderRoles: ReadonlyArray<string> = [],
+  restrictedTables?: Readonly<Record<string, ReadonlyArray<string>>>
 ): string => {
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
@@ -62,7 +63,7 @@ export const generatePostgreSQLFetcher = (
 
   return `import { Client } from 'pg'
 
-${generateTableAccessPreamble(trustedReaderRoles)}
+${generateTableAccessPreamble(trustedReaderRoles, restrictedTables)}
 
 const getClient = () => {
   return new Client(${clientConfig})

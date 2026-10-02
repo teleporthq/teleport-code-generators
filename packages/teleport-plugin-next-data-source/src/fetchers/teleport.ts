@@ -107,7 +107,10 @@ export const generateTeleportFetcher = (
 
   return `import { Client } from 'pg'
 
-${generateTableAccessPreamble(transformOptions.trustedReaderRoles || [])}
+${generateTableAccessPreamble(
+  transformOptions.trustedReaderRoles || [],
+  transformOptions.restrictedTables
+)}
 function normalizePostgresConnectionString(connectionString) {
   if (!connectionString || typeof connectionString !== 'string') return connectionString;
   if (/^postgresql:\\/(?!\\/)/i.test(connectionString)) {

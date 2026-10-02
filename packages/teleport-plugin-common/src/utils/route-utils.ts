@@ -1,4 +1,4 @@
-import { UIDLWorkflows } from '@teleporthq/teleport-types'
+import { UIDLAuthentication, UIDLWorkflows } from '@teleporthq/teleport-types'
 import { RoutePaths, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
@@ -109,6 +109,11 @@ const collectResourceTables = (value: unknown, tables: Set<string>, seen: Set<un
   Object.keys(record).forEach((key) => collectResourceTables(record[key], tables, seen))
 }
 
+const bareTableName = (table: string): string => {
+  const parts = table.split('.')
+  return parts[parts.length - 1].replace(/"/g, '')
+}
+
 /**
  * True when anything on this page reads a table that holds money, the keys
  * to it, or the customers' own records (`TableAccess.PROTECTED_TABLES`: gift
@@ -117,18 +122,31 @@ const collectResourceTables = (value: unknown, tables: Set<string>, seen: Set<un
  * into the build output and keeps serving a balance the checkout has already
  * spent until the next revalidation.
  *
+ * With the project's `auth`, a table only its staff may read (an internal
+ * tool's — `TableAccess.resolveRestrictedTables`) counts too: the staff's
+ * screens show the rows as they are now, never a build's copy of them.
+ *
  * Shared by the static-props and static-paths plugins and the page pipeline's
  * getServerSideProps finalizer, which must all reach the same verdict.
  */
-export const pageReadsProtectedTable = (uidl: {
-  node?: unknown
-  outputOptions?: { detailsPageInfo?: { tableName?: string } }
-}): boolean => {
+export const pageReadsProtectedTable = (
+  uidl: {
+    node?: unknown
+    outputOptions?: { detailsPageInfo?: { tableName?: string } }
+  },
+  auth?: UIDLAuthentication | null
+): boolean => {
   const tables = new Set<string>()
   const detailsTable = uidl.outputOptions?.detailsPageInfo?.tableName
   if (typeof detailsTable === 'string') {
     tables.add(detailsTable.trim().toLowerCase())
   }
   collectResourceTables(uidl.node, tables, new Set())
-  return TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))
+  if (TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))) {
+    return true
+  }
+  const restricted = TableAccess.resolveRestrictedTables(auth)
+  return Array.from(tables).some((table) =>
+    Object.prototype.hasOwnProperty.call(restricted, bareTableName(table))
+  )
 }

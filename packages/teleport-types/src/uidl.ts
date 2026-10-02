@@ -240,6 +240,21 @@ export interface UIDLAuthentication {
   callbackBaseUrl: string
   envKeys: Record<string, string>
   customUserProperties: UIDLCustomUserProperty[]
+  // Tables a browser reads only as a signed-in member of the listed roles — an
+  // internal tool's tables, which its staff and administrators alone may see.
+  // Keyed by table name. Server-side callers (the app secret, the module's own
+  // fetchData) read them as before. Absent for every other project, whose
+  // generated code does not change. See `TableAccess.resolveRestrictedTables`.
+  restrictedTables?: Record<string, string[]>
+  // Where the project's own redirects send a visitor of `/` (a same-site path)
+  // — applied before the generated middleware runs, so a role denial must not
+  // send a visitor home when home leads back into a page that refuses them.
+  // Absent when `/` is not redirected. See `generateMiddlewareFile`.
+  homeRedirect?: string
+  // No visitor signs up: an internal tool that owns its project has an admin
+  // add every account from the admin panel. The app then has no public
+  // `/api/auth/signup` route. Absent for every other project.
+  closedSignUp?: boolean
 }
 
 export interface UIDLSortConfigEntry {
@@ -803,6 +818,13 @@ export interface UIDLInitialPropsData {
   cache?: {
     revalidate: number
   }
+  /*
+    Fields of the fetched row that never reach the page's props. Everything in
+    props ships in the page's HTML (__NEXT_DATA__), so a column the page must
+    not reveal — a private link only paying attendees are given — is removed
+    from the row once it is read, before the props are returned.
+  */
+  omitFields?: string[]
   /*
     Entity-level redirect support for details pages. When set, the generated
     getStaticProps/getServerSideProps returns a redirect whenever the fetched

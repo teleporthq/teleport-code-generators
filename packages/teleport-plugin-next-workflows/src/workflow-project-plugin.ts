@@ -6,7 +6,7 @@ import {
   FileType,
   UIDLAuthentication,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { TableAccess, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
@@ -64,6 +64,7 @@ import {
   generateHashPasswordFile,
   generateNextAuthRouteFile,
   generateSignupRouteFile,
+  isSignUpClosed,
   generateMiddlewareFile,
   generateSessionProviderWrapper,
   generateNextAuthUrlGuardModule,
@@ -745,6 +746,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               authUsersTableName,
               lowStockAlertsEnabled,
               lowStockThreshold,
+              restrictedTables: TableAccess.resolveRestrictedTables(uidl.authentication),
             }),
           },
         ],
@@ -1776,7 +1778,11 @@ module.exports = __customNodeRegistry;
           },
         ],
       })
+    }
 
+    // A closed sign-up (an internal tool's: an admin adds every account from
+    // the admin panel's Users screen) has no public route that creates one.
+    if (auth.passwordAuthEnabled && !isSignUpClosed(auth)) {
       // Bake the WELCOME email (if configured on the account-signup node) into
       // the signup route so it sends after the user is created. The credential
       // is read from env at runtime; its placeholder is registered by the

@@ -38,6 +38,12 @@ export const BROWSER_ROW_POLICIES: Readonly<Record<string, BrowserRowPolicy>> = 
     predicate: "LOWER(TRIM(status)) = 'active'",
     hiddenColumns: [],
   },
+  // An event is public once `published` (a draft is the business's), and its
+  // link to join is for confirmed attendees only — read in a server segment.
+  teleport_calendar_events: {
+    predicate: "status = 'published'",
+    hiddenColumns: ['online_url', 'onlineUrl'],
+  },
 }
 
 /**

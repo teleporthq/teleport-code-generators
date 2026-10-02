@@ -45,12 +45,14 @@ const makeStructure = (params: {
   withRevalidate?: boolean
   nestedReturn?: boolean
   node?: unknown
+  options?: Record<string, unknown>
 }): ComponentStructure => {
   const {
     taggedForSSR,
     withRevalidate = false,
     nestedReturn = false,
     node = { type: 'element', content: {} },
+    options = {},
   } = params
   return {
     uidl: { name: 'EditPressItem', node },
@@ -65,7 +67,7 @@ const makeStructure = (params: {
       },
     ],
     dependencies: {},
-    options: {},
+    options,
   } as unknown as ComponentStructure
 }
 
@@ -160,6 +162,34 @@ describe('entity-mutation-ssr-finalize-plugin', () => {
       })
     )
     expect(catalogue.chunks.find((c) => c.name === 'getStaticProps')).toBeDefined()
+  })
+
+  it("renders a list of an internal tool's staff-only table per request, from the project's auth", async () => {
+    const node = {
+      type: 'element',
+      content: {
+        children: [
+          {
+            type: 'cms-list-repeater',
+            content: { resourceDefinition: { dataSourceId: 'ds-1', tableName: 'tasks' } },
+          },
+        ],
+      },
+    }
+    const auth = { restrictedTables: { tasks: ['admin', 'staff'] } }
+    const staffOnly = await plugin(
+      makeStructure({ taggedForSSR: false, withRevalidate: true, node, options: { auth } })
+    )
+    const chunk = staffOnly.chunks.find((c) => c.name === 'getServerSideProps')
+    expect(chunk).toBeDefined()
+    expect(generator(chunk?.content as types.Node).code).not.toContain('revalidate')
+    // The same page of a project that lists no such table stays static.
+    for (const options of [{}, { auth: { restrictedTables: {} } }]) {
+      const result = await plugin(
+        makeStructure({ taggedForSSR: false, withRevalidate: true, node, options })
+      )
+      expect(result.chunks.find((c) => c.name === 'getStaticProps')).toBeDefined()
+    }
   })
 
   it('is a no-op when there is no getStaticProps chunk at all', async () => {

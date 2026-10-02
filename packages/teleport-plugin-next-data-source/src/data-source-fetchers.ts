@@ -109,7 +109,12 @@ export function generateDataSourceFetcher(
         if (!validation.isValid) {
           throw new Error(`PostgreSQL/CockroachDB config validation failed: ${validation.error}`)
         }
-        return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
+        return generatePostgreSQLFetcher(
+          config,
+          tableName,
+          transformOptions.trustedReaderRoles,
+          transformOptions.restrictedTables
+        )
       }
 
       case 'mysql':
@@ -186,7 +191,12 @@ export function generateDataSourceFetcher(
               `Supabase (PostgreSQL fallback) config validation failed: ${pgValidation.error}`
             )
           }
-          return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
+          return generatePostgreSQLFetcher(
+            config,
+            tableName,
+            transformOptions.trustedReaderRoles,
+            transformOptions.restrictedTables
+          )
         }
 
         const validation = validateSupabaseConfig(config)
@@ -305,6 +315,10 @@ export function generateDataSourceFetcherWithCore(
   // A module carrying the browser row policy (the Postgres-family routes) keys
   // its cache by who is reading; see `__tqCacheByView` below.
   const splitsCacheByView = handlerCode.indexOf('function __brpSharesPublicView(') !== -1
+  // In a project with restricted tables (an internal tool's) such a module also
+  // carries their guard, and keeps their rows out of the public view; see below.
+  const keepsRestrictedOutOfCache =
+    splitsCacheByView && handlerCode.indexOf('function __taRestrictedTablesRead(') !== -1
 
   const cacheWiring = cacheOptions
     ? `
@@ -346,7 +360,20 @@ function __tqCacheByView(fn, opts) {
     swr: 0,
   }))
   return async function (req, res) {
-    return (await __brpSharesPublicView(req, __tqViewDependent)) ? publicView(req, res) : trustedView(req, res)
+${
+  keepsRestrictedOutOfCache
+    ? `    // A read that touches a restricted table has no public view. It is cached
+    // (privately) only for a reader its tables and the row policy both trust;
+    // anyone else is answered uncached, by the table-access guard.
+    const restricted = __taRestrictedTablesRead(${JSON.stringify(
+      tableName
+    )}, req && req.query ? req.query.rawQuery : null)
+    if (restricted.length > 0) {
+      return (await __taMayReadRestricted(req, restricted)) && (await __brpReader(req)).trusted ? trustedView(req, res) : fn(req, res)
+    }
+`
+    : ''
+}    return (await __brpSharesPublicView(req, __tqViewDependent)) ? publicView(req, res) : trustedView(req, res)
   }
 }
 

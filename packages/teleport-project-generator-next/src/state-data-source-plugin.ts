@@ -21,7 +21,11 @@ import {
   buildServerLocaleParam,
   isLocalizedProject,
 } from '@teleporthq/teleport-plugin-next-data-source'
-import { isSelectOnlyQuery } from './global-state/data-source-utils'
+import {
+  CsvColumnLabel,
+  getCsvColumnLabels,
+  isSelectOnlyQuery,
+} from './global-state/data-source-utils'
 
 interface ParallelFetchMeta {
   names: string[]
@@ -56,6 +60,42 @@ const createSafeFetchExpressionWithFallback = (
   return types.callExpression(
     types.memberExpression(fetchCallExpression, types.identifier('catch')),
     [catchHandler]
+  )
+}
+
+/**
+ * `<fetch>.then((__rows) => Array.isArray(__rows) ? __rows.map((__row) => ({ <label>: __row?.[<id>] })) : __rows)`
+ * — a CSV source's rows re-keyed by column label, the keys the editor showed
+ * while the state was bound (see `getCsvColumnLabels`).
+ */
+const relabelCsvRows = (
+  fetchCallExpression: types.CallExpression,
+  columns: CsvColumnLabel[]
+): types.CallExpression => {
+  const rows = types.identifier('__rows')
+  const row = types.identifier('__row')
+  const relabelledRow = types.objectExpression(
+    columns.map(({ id, label }) =>
+      types.objectProperty(
+        types.stringLiteral(label),
+        types.optionalMemberExpression(row, types.stringLiteral(id), true, true)
+      )
+    )
+  )
+  const relabelledRows = types.conditionalExpression(
+    types.callExpression(
+      types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+      [rows]
+    ),
+    types.callExpression(types.memberExpression(rows, types.identifier('map')), [
+      types.arrowFunctionExpression([row], relabelledRow),
+    ]),
+    rows
+  )
+
+  return types.callExpression(
+    types.memberExpression(fetchCallExpression, types.identifier('then')),
+    [types.arrowFunctionExpression([rows], relabelledRows)]
   )
 }
 
@@ -113,6 +153,9 @@ const getTableNameFromRefPath = (refPath: Array<string | number>): string | null
   const firstElement = refPath[0]
   return typeof firstElement === 'string' ? firstElement : null
 }
+
+/** State types that hold one value — anything but a list. */
+const SINGLE_VALUE_STATE_TYPES = new Set(['object', 'string', 'number', 'boolean'])
 
 /**
  * Determines the appropriate fallback default value AST for a state type.
@@ -1169,8 +1212,9 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
         )
 
         // Wrap with .catch() fallback
+        const csvColumns = getCsvColumnLabels(dataSource)
         const safeFetchExpression = createSafeFetchExpressionWithFallback(
-          fetchCallExpression,
+          csvColumns ? relabelCsvRows(fetchCallExpression, csvColumns) : fetchCallExpression,
           rawDataPropKey,
           types.arrayExpression([])
         )
@@ -1194,6 +1238,18 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
             '??',
             extractedValue,
             getTypeFallbackExpression(definition)
+          )
+        } else if (SINGLE_VALUE_STATE_TYPES.has(definition.type)) {
+          // A whole REST / JavaScript payload can be an object or a single
+          // value. The shared fetch falls back to a list when it fails, which
+          // such a state must never receive — it gets its own empty value.
+          propValue = types.conditionalExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+              [extractedValue]
+            ),
+            getTypeFallbackExpression(definition),
+            extractedValue
           )
         } else {
           propValue = extractedValue
