@@ -644,7 +644,15 @@ export const generateCollectionPathHelperCode = (): string => {
 const readPayloadPath = (payload, path) => {
   let current = payload
   for (const segment of path) {
-    if (!current || typeof current !== 'object' || Array.isArray(current) || !(segment in current)) {
+    if (Array.isArray(current)) {
+      const index = Number(segment)
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) {
+        return undefined
+      }
+      current = current[index]
+      continue
+    }
+    if (!current || typeof current !== 'object' || !(segment in current)) {
       return undefined
     }
     current = current[segment]
@@ -668,8 +676,16 @@ const openItemsEnvelope = (payload, rawPath) => {
   if (!path) return null
   const items = readPayloadPath(payload, path)
   if (!Array.isArray(items)) return null
-  const rebuild = (node, depth, next) =>
-    depth === path.length ? next : { ...node, [path[depth]]: rebuild(node[path[depth]], depth + 1, next) }
+  const rebuild = (node, depth, next) => {
+    if (depth === path.length) return next
+    const child = rebuild(node[path[depth]], depth + 1, next)
+    if (Array.isArray(node)) {
+      const copy = node.slice()
+      copy[Number(path[depth])] = child
+      return copy
+    }
+    return { ...node, [path[depth]]: child }
+  }
   return { items, close: (next) => rebuild(payload, 0, next) }
 }`
 }
@@ -1217,17 +1233,20 @@ export const extractDataSourceIntoGetStaticProps = (
     )
     const baseKey = `${sanitizedDsName}_${sanitizedTableName}_data`
 
-    let propKey: string
+    let resourcePropKey: string
     if (renderPropIdentifier && resourceId) {
       // Include resource ID to differentiate between same renderProp but different params
       const sanitizedResourceId = StringUtils.dashCaseToCamelCase(
         sanitizeFileName(resourceId).replace(/^TQ_/, '')
       )
-      propKey = `${renderPropIdentifier}_${sanitizedResourceId}`
+      resourcePropKey = `${renderPropIdentifier}_${sanitizedResourceId}`
     } else {
       // Use base key for uniqueness (even if renderPropIdentifier exists, base key ensures uniqueness across different data sources)
-      propKey = baseKey
+      resourcePropKey = baseKey
     }
+    // tslint:disable-next-line:no-any
+    const nodeResource = (node.content as any).resource
+    const propKey = claimParamsPropKey(componentChunk, resourcePropKey, nodeResource)
 
     // Find matching JSX nodes for this data source
     // Strategy depends on whether we have a unique resource ID:
@@ -1819,6 +1838,35 @@ interface ParallelFetchMeta {
   names: string[]
   expressions: types.Expression[]
   declaration?: types.VariableDeclaration
+}
+
+/**
+ * The getStaticProps prop a provider's prefetch lands in: `resourcePropKey`,
+ * suffixed when a provider with DIFFERENT params already holds it on this page.
+ *
+ * Every provider bound to the same table carries the same resource id
+ * (`TQ_<source><table>`) and its own params, so the resource-derived key alone
+ * gave a list limited to 10 rows and a text bound to the same source ONE
+ * prefetch — whichever ran first. The other rendered its rows (`initialData`
+ * skips the provider's own first fetch): every row in the limited list, or ten
+ * where the text read the fifteenth. Providers with equal params still share
+ * one key, and one fetch.
+ */
+const claimParamsPropKey = (
+  componentChunk: ChunkDefinition,
+  resourcePropKey: string,
+  resource: { params?: Record<string, unknown> } | undefined
+): string => {
+  const meta = componentChunk.meta as { dataSourcePropKeyParams?: Record<string, string> }
+  const claimed = meta.dataSourcePropKeyParams ?? (meta.dataSourcePropKeyParams = {})
+  const signature = JSON.stringify(resource?.params ?? {})
+
+  let propKey = resourcePropKey
+  for (let suffix = 2; claimed[propKey] !== undefined && claimed[propKey] !== signature; suffix++) {
+    propKey = `${resourcePropKey}_${suffix}`
+  }
+  claimed[propKey] = signature
+  return propKey
 }
 
 const createSafeFetchExpression = (

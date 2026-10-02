@@ -15,6 +15,7 @@ import {
   hasUnresolvableDynamicParams,
 } from './utils'
 import { createNextArrayMapperPaginationPlugin } from './pagination-plugin'
+import { resolveRepeaterPerPage } from './repeater-page-size'
 import { buildProductTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 import { ensureRouterDeclaration } from './request-locale'
@@ -416,8 +417,8 @@ function extractPaginationConfigEarly(uidlNode: any, resources: any): Pagination
       const searchEnabled = node.content?.searchEnabled
       const searchDebounce = node.content?.searchDebounce
 
-      if (paginated && perPage && renderProp) {
-        perPageMap.set(renderProp, perPage)
+      if (paginated && renderProp) {
+        perPageMap.set(renderProp, resolveRepeaterPerPage(perPage))
       }
 
       if (searchEnabled && renderProp) {

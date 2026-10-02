@@ -196,7 +196,8 @@ describe('teleport-plugin-next-static-props: entity redirect', () => {
     redirected once would redirect for ever — clearing `redirect_url` in the
     admin would change the row and change nothing a visitor sees — and a row
     that 404'd would stay 404 after being published. Every branch carries the
-    window, not just the one that renders.
+    window, not just the one that renders: the missing row, the redirect, the
+    props and the failed fetch.
   */
   it('gives the redirect and the notFound the same revalidate window as the props', async () => {
     const code = await generateCode(
@@ -206,7 +207,7 @@ describe('teleport-plugin-next-static-props: entity redirect', () => {
       })
     )
 
-    expect(code.match(/revalidate: 60/g)).toHaveLength(3)
+    expect(code.match(/revalidate: 60/g)).toHaveLength(4)
     const redirectAt = code.indexOf('if (entityRedirectUrl)')
     const propsAt = code.indexOf('props:')
     // The one between the redirect check and the props return is the redirect's.

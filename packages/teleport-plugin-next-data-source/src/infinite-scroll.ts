@@ -109,20 +109,124 @@ export const buildInfiniteScrollDeclarations = (
   return declarations
 }
 
+const isIndexSegment = (segment: string): boolean => /^\d+$/.test(segment)
+
+const readSegment = (object: types.Expression, segment: string): types.OptionalMemberExpression =>
+  isIndexSegment(segment)
+    ? types.optionalMemberExpression(object, types.numericLiteral(Number(segment)), true, true)
+    : types.isValidIdentifier(segment)
+    ? types.optionalMemberExpression(object, types.identifier(segment), false, true)
+    : types.optionalMemberExpression(object, types.stringLiteral(segment), true, true)
+
+/** `payload?.data?.items` for `['data', 'items']`. */
+const readAtPath = (payload: types.Expression, path: string[]): types.Expression =>
+  path.reduce<types.Expression>((object, segment) => readSegment(object, segment), payload)
+
+/**
+ * A copy of `node` with `value` at `path`, every level around it kept:
+ * `{ ...payload, data: { ...payload?.data, items: value } }`. An index segment
+ * copies the list it indexes instead of spreading it into an object.
+ */
+const writeAtPath = (
+  node: types.Expression,
+  path: string[],
+  value: types.Expression
+): types.Expression => {
+  if (path.length === 0) {
+    return value
+  }
+  const [segment, ...rest] = path
+  const child = writeAtPath(readSegment(types.cloneNode(node, true), segment), rest, value)
+  if (isIndexSegment(segment)) {
+    return types.callExpression(
+      types.memberExpression(types.identifier('Object'), types.identifier('assign')),
+      [
+        types.arrayExpression([
+          types.spreadElement(
+            types.logicalExpression('||', types.cloneNode(node, true), types.arrayExpression([]))
+          ),
+        ]),
+        types.objectExpression([
+          types.objectProperty(types.numericLiteral(Number(segment)), child),
+        ]),
+      ]
+    )
+  }
+  return types.objectExpression([
+    types.spreadElement(types.cloneNode(node, true)),
+    types.objectProperty(
+      types.isValidIdentifier(segment) ? types.identifier(segment) : types.stringLiteral(segment),
+      child
+    ),
+  ])
+}
+
 /**
  * The `.then(...)` tail that accumulates a page and reports whether more exist.
  *
  * Returned as the resolved value of `fetchData`, so `DataProvider` stores the
  * whole accumulated list as its data.
+ *
+ * `itemsPath` is where the rows sit inside a payload that wraps them
+ * (`{ items: [...], total }`): the rows are read there and the accumulated list
+ * is put back there, so the page keeps reading it through the same path. The
+ * wrapper itself counted as one "row" before, which ended the list after its
+ * first page and rendered nothing.
  */
 export const buildAccumulatingResponseHandler = (
   vars: InfiniteScrollVars,
-  perPage: number
+  perPage: number,
+  itemsPath?: string[]
 ): types.ArrowFunctionExpression => {
   const accumCurrent = (): types.MemberExpression =>
     types.memberExpression(types.identifier(vars.accumRefVar), types.identifier('current'))
   const accumPages = (): types.MemberExpression =>
     types.memberExpression(accumCurrent(), types.identifier('pages'))
+  const payload = (): types.OptionalMemberExpression =>
+    types.optionalMemberExpression(
+      types.identifier('response'),
+      types.identifier('data'),
+      false,
+      true
+    )
+  const rowsPath = itemsPath?.length ? itemsPath : undefined
+
+  const accumulatedRows = types.callExpression(
+    types.memberExpression(
+      types.callExpression(
+        types.memberExpression(
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(
+                types.memberExpression(types.identifier('Object'), types.identifier('keys')),
+                [accumPages()]
+              ),
+              types.identifier('map')
+            ),
+            [types.identifier('Number')]
+          ),
+          types.identifier('sort')
+        ),
+        [
+          types.arrowFunctionExpression(
+            [types.identifier('a'), types.identifier('b')],
+            types.binaryExpression('-', types.identifier('a'), types.identifier('b'))
+          ),
+        ]
+      ),
+      types.identifier('reduce')
+    ),
+    [
+      types.arrowFunctionExpression(
+        [types.identifier('acc'), types.identifier('p')],
+        types.callExpression(
+          types.memberExpression(types.identifier('acc'), types.identifier('concat')),
+          [types.memberExpression(accumPages(), types.identifier('p'), true)]
+        )
+      ),
+      types.arrayExpression([]),
+    ]
+  )
 
   return types.arrowFunctionExpression(
     [types.identifier('response')],
@@ -132,12 +236,7 @@ export const buildAccumulatingResponseHandler = (
           types.identifier('rows'),
           types.logicalExpression(
             '||',
-            types.optionalMemberExpression(
-              types.identifier('response'),
-              types.identifier('data'),
-              false,
-              true
-            ),
+            rowsPath ? readAtPath(payload(), rowsPath) : payload(),
             types.arrayExpression([])
           )
         ),
@@ -211,42 +310,7 @@ export const buildAccumulatingResponseHandler = (
       // page 10 does not land between 1 and 2. This is what DataProvider stores
       // as its data, and so what the list renders.
       types.returnStatement(
-        types.callExpression(
-          types.memberExpression(
-            types.callExpression(
-              types.memberExpression(
-                types.callExpression(
-                  types.memberExpression(
-                    types.callExpression(
-                      types.memberExpression(types.identifier('Object'), types.identifier('keys')),
-                      [accumPages()]
-                    ),
-                    types.identifier('map')
-                  ),
-                  [types.identifier('Number')]
-                ),
-                types.identifier('sort')
-              ),
-              [
-                types.arrowFunctionExpression(
-                  [types.identifier('a'), types.identifier('b')],
-                  types.binaryExpression('-', types.identifier('a'), types.identifier('b'))
-                ),
-              ]
-            ),
-            types.identifier('reduce')
-          ),
-          [
-            types.arrowFunctionExpression(
-              [types.identifier('acc'), types.identifier('p')],
-              types.callExpression(
-                types.memberExpression(types.identifier('acc'), types.identifier('concat')),
-                [types.memberExpression(accumPages(), types.identifier('p'), true)]
-              )
-            ),
-            types.arrayExpression([]),
-          ]
-        )
+        rowsPath ? writeAtPath(payload(), rowsPath, accumulatedRows) : accumulatedRows
       ),
     ])
   )

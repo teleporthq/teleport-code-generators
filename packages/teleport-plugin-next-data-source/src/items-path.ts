@@ -16,7 +16,7 @@ import * as types from '@babel/types'
  * render prop — an expression this cannot read is left exactly as before.
  */
 const SEGMENT_RE =
-  /^(?:\?\.([A-Za-z_$][\w$]*)|\.([A-Za-z_$][\w$]*)|(?:\?\.)?\[\s*(?:"([^"]*)"|'([^']*)')\s*\])/
+  /^(?:\?\.([A-Za-z_$][\w$]*)|\.([A-Za-z_$][\w$]*)|(?:\?\.)?\[\s*(?:"([^"]*)"|'([^']*)'|(\d+))\s*\])/
 
 const PATH_AWARE_SOURCE_TYPES = new Set(['rest-api', 'javascript'])
 
@@ -47,7 +47,8 @@ export const extractItemsPath = (
     if (!match) {
       return undefined
     }
-    path.push(match[1] ?? match[2] ?? match[3] ?? match[4])
+    // An index (`?.[0]`) is kept as its digits; the handler reads it off a list.
+    path.push(match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5])
     rest = rest.slice(match[0].length)
   }
 

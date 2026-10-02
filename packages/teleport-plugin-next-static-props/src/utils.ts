@@ -36,6 +36,12 @@ export const generateInitialPropsAST = (
     ),
   ])
 
+  const revalidateSeconds = resolveRevalidateSeconds(
+    initialPropsData,
+    globalCache,
+    useServerSideProps
+  )
+
   const functionContentAST = types.blockStatement([
     paramsDestructureAST,
     types.tryStatement(
@@ -43,7 +49,7 @@ export const generateInitialPropsAST = (
         ...computePropsAST(
           initialPropsData,
           resourceImportName,
-          globalCache,
+          revalidateSeconds,
           skipI18n,
           useServerSideProps
         ),
@@ -57,10 +63,17 @@ export const generateInitialPropsAST = (
               [types.identifier('error')]
             )
           ),
+          // A fetch that FAILED is not a row that does not exist: without
+          // `revalidate` the 404 is cached for good, so one timeout or rate
+          // limit — every details page calls its source while the site builds —
+          // left that record unreachable until the next deploy.
           types.returnStatement(
-            types.objectExpression([
-              types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
-            ])
+            types.objectExpression(
+              [
+                types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+                buildRevalidateProperty(revalidateSeconds),
+              ].filter(Boolean)
+            )
           ),
         ])
       )
@@ -83,10 +96,47 @@ export const generateInitialPropsAST = (
   )
 }
 
+/*
+  Per-page cache can override the global cache.
+  Gobally the project don't need to have a cache.
+  But for a specific page, it can have a cache.
+  Eg:
+    Handling paths
+    - /blog-posts
+    - /blog-pots/${id}
+
+    using webhook. And then letting page cache handler to do pages like
+    - /blog-posts/page/${id}
+*/
+const resolveRevalidateSeconds = (
+  initialPropsData: UIDLInitialPropsData,
+  globalCache: UIDLResources['cache'],
+  useServerSideProps?: boolean
+): number | null => {
+  // getServerSideProps re-runs on every request — there is no revalidate
+  // window to configure, and Next.js errors if the prop is present.
+  if (useServerSideProps) {
+    return null
+  }
+
+  const perPageCache = initialPropsData.cache
+  if (perPageCache?.revalidate) {
+    return perPageCache.revalidate
+  }
+
+  return globalCache?.revalidate || null
+}
+
+/** A FRESH `revalidate` node for one return, or null when there is no window. */
+const buildRevalidateProperty = (revalidateSeconds: number | null): types.ObjectProperty | null =>
+  revalidateSeconds === null
+    ? null
+    : types.objectProperty(types.identifier('revalidate'), types.numericLiteral(revalidateSeconds))
+
 const computePropsAST = (
   initialPropsData: UIDLInitialPropsData,
   resourceImportName: string,
-  globalCache: UIDLResources['cache'],
+  revalidateSeconds: number | null,
   skipI18n?: boolean,
   useServerSideProps?: boolean
 ) => {
@@ -98,33 +148,6 @@ const computePropsAST = (
 
     return acc
   }, [])
-
-  /*
-    Per-page cache can override the global cache.
-    Gobally the project don't need to have a cache.
-    But for a specific page, it can have a cache.
-    Eg:
-      Handling paths
-      - /blog-posts
-      - /blog-pots/${id}
-
-      using webhook. And then letting page cache handler to do pages like
-      - /blog-posts/page/${id}
-  */
-  const perPageCache = initialPropsData.cache
-  let revalidateSeconds: number | null = null
-
-  // getServerSideProps re-runs on every request — there is no revalidate
-  // window to configure, and Next.js errors if the prop is present.
-  if (!useServerSideProps) {
-    if (globalCache?.revalidate && !perPageCache?.revalidate) {
-      revalidateSeconds = globalCache.revalidate
-    }
-
-    if (perPageCache?.revalidate) {
-      revalidateSeconds = perPageCache.revalidate
-    }
-  }
 
   /*
     A FRESH node per return: `revalidate` belongs on every branch of
@@ -144,12 +167,7 @@ const computePropsAST = (
     is never permanent by accident.
   */
   const revalidateProperty = (): types.ObjectProperty | null =>
-    revalidateSeconds === null
-      ? null
-      : types.objectProperty(
-          types.identifier('revalidate'),
-          types.numericLiteral(revalidateSeconds)
-        )
+    buildRevalidateProperty(revalidateSeconds)
 
   // The locale tells a localized data source which language to resolve the
   // row into (`es_name` for `es`). A page that WRITES the row it fetched — the

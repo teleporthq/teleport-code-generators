@@ -73,7 +73,15 @@ describe('pagination scroll runtime source', () => {
     )
     // An empty result renders no rows at all; the list block is still a target.
     expect(PAGINATION_SCROLL_RUNTIME_JS).toContain(
-      'return findFirstListItem(pagination) || pagination.parentElement'
+      'return findFirstListItem(pagination) || findListBlock(pagination)'
+    )
+  })
+
+  it('aims at a list block with a box, never at a display: contents wrapper', () => {
+    // A wrapper without a box measures at the top of the viewport wherever the
+    // page is, so each correction scrolled one header height further up.
+    expect(PAGINATION_SCROLL_RUNTIME_JS).toContain(
+      'var block = pagination.parentElement\n  while (block && !hasBox(block)) {\n    block = block.parentElement\n  }'
     )
   })
 

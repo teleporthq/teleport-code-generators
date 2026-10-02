@@ -78,10 +78,36 @@ interface RESTAPIConfig {
   url?: string
   method?: string
   headers?: Record<string, string>
+  queryParams?: Record<string, string>
   authorization?: Authorization
   bodyType?: string
   body?: string
   cache?: RESTAPICacheConfig
+}
+
+/**
+ * The URL with the data source's query params appended, built the way the
+ * editor's own fetch builds it (`RestApiService.constructUrl` in the
+ * data-fetcher worker: `searchParams.append` per param).
+ *
+ * The params used to be dropped here, so the published site asked the API a
+ * different question than the editor did — `?per_page=10` or `?category=x`
+ * configured on the source, and every row of the unfiltered response came back.
+ */
+const buildRequestURL = (
+  url: string | undefined,
+  queryParams?: Record<string, string>
+): string | undefined => {
+  const params = Object.entries(queryParams || {}).filter(
+    ([key, value]) => key.trim() !== '' && typeof value === 'string'
+  )
+  if (!url || params.length === 0) {
+    return url
+  }
+
+  const requestURL = new URL(url)
+  params.forEach(([key, value]) => requestURL.searchParams.append(key, value))
+  return requestURL.toString()
 }
 
 export const generateRESTAPIFetcher = (config: Record<string, unknown>): string => {
@@ -110,7 +136,7 @@ export default async function handler(req, res) {
   try {
     const { query, queryColumns, limit, page, perPage, sortBy, sortOrder, filters, sorts, offset, collectionPath, itemsPath } = req.query
     
-    const url = ${JSON.stringify(restConfig.url)}
+    const url = ${JSON.stringify(buildRequestURL(restConfig.url, restConfig.queryParams))}
     const method = ${JSON.stringify(restConfig.method || 'GET')}
     
     const headers = ${JSON.stringify(restConfig.headers || {})}
