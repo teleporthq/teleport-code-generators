@@ -59,10 +59,16 @@ import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, us
 
 ${MotionRuntime.motionEngineSource()}
 
-const buildAnimProps = (trigger, fromVars, toVars, transition, revealed) => {
+const buildAnimProps = (trigger, fromVars, toVars, transition, revealed, played) => {
   switch (trigger) {
     case 'load':
-      return { initial: fromVars, animate: toVars, transition }
+      // Driven by "played" (true from the first frame after mount) rather than
+      // framer's initial -> animate pair. A page transition wraps the page in an
+      // AnimatePresence with initial={false}, which hands every motion component
+      // under it its animate state at once and skips the mount animation: an
+      // entrance never played on the first page a visitor opened, and a loop
+      // (repeat -1) never started at all. A change of animate always plays.
+      return { initial: fromVars, animate: played ? toVars : fromVars, transition }
     case 'in-view':
       // Driven by "revealed" (useInView OR the timed in-viewport failsafe) rather
       // than a passive viewport-gated prop, so an already-in-view element (e.g. a
@@ -204,10 +210,11 @@ const TqMotion = ({
     revealedRef.current = revealed
   }, [revealed])
 
-  // The in-place cascade needs its own "the transition may start now" flag for the
-  // load trigger: framer's initial/animate pair does that itself, but a CSS
-  // transition only runs when the value CHANGES, so the resting state has to be
-  // what the first paint (and the SSR html) carries. Flipped on the next frame.
+  // "The load animation may start now": the resting state is what the first
+  // paint (and the SSR html) carries, and the animation starts on the next
+  // frame. The in-place cascade needs it because a CSS transition only runs
+  // when the value CHANGES; the framer path needs it because a mount animation
+  // is skipped under a page transition (see buildAnimProps).
   const [played, setPlayed] = React.useState(false)
   React.useEffect(() => {
     if (trigger !== 'load') {
@@ -388,7 +395,7 @@ const TqMotion = ({
     }
   }
 
-  const animProps = buildAnimProps(trigger, fromVars, toVars, transition, revealed)
+  const animProps = buildAnimProps(trigger, fromVars, toVars, transition, revealed, played)
 
   return (
     <motion.div ref={ref} style={wrapperStyle} {...animProps} {...rest}>

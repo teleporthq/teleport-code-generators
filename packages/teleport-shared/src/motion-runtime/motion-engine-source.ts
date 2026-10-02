@@ -83,11 +83,30 @@ const interpolateFilter = (from, to, p) => {
   return parts.join(' ')
 }
 
+// A value with a unit (-50%, 2rem) glides in that unit when both ends use the
+// same one, as it does on the canvas. A played entrance gets this from
+// framer-motion or the Web Animations API; the scroll-linked path gets it here.
+const UNIT_VALUE_RE = /^(-?\\d*\\.?\\d+)(px|%|deg|rem|em|vw|vh)$/
+
+const interpolateUnitValue = (from, to, p) => {
+  const start = UNIT_VALUE_RE.exec(from.trim())
+  const end = UNIT_VALUE_RE.exec(to.trim())
+  if (!start || !end || start[2] !== end[2]) {
+    return null
+  }
+  const startAmount = parseFloat(start[1])
+  return startAmount + (parseFloat(end[1]) - startAmount) * p + start[2]
+}
+
 const interpolateValue = (from, to, p) => {
   if (typeof from === 'number' && typeof to === 'number') {
     return from + (to - from) * p
   }
   if (typeof from === 'string' && typeof to === 'string') {
+    const united = interpolateUnitValue(from, to, p)
+    if (united !== null) {
+      return united
+    }
     const filter = interpolateFilter(from, to, p)
     if (filter !== null) {
       return filter

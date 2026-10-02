@@ -102,4 +102,22 @@ describe('Next generator with a Motion element', () => {
     // Blur interpolation mirrors the canvas runtime's BLUR_RE handling.
     expect(code).toContain('blur(')
   })
+
+  // A site with a page transition wraps every page in an AnimatePresence with
+  // initial={false}, which skips the mount animation of every motion component
+  // under it. A row that loops by itself (trigger load, repeat -1) never started
+  // on the generated site, and stood parked at its end state (2026-10-03).
+  it('starts a load animation from a flag set after mount, so a page transition cannot skip it', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const component = findFile(outputFolder, 'components', 'tq-motion')
+    const code = component?.content || ''
+
+    expect(code).toContain('animate: played ? toVars : fromVars')
+    expect(code).toContain(
+      'buildAnimProps(trigger, fromVars, toVars, transition, revealed, played)'
+    )
+    expect(code).not.toContain(
+      "case 'load':\n      return { initial: fromVars, animate: toVars, transition }"
+    )
+  })
 })
