@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { InlineScriptErrorGuard, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -33,6 +33,15 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
 
   ASTUtils.addChildJSXTag(htmlNode, headNode)
   ASTUtils.addChildJSXTag(htmlNode, bodyNode)
+
+  // First in <head>, ahead of every script it guards.
+  if (InlineScriptErrorGuard.documentRunsProjectScripts(uidl.globals)) {
+    const guardTag = ASTBuilders.createJSXTag('script')
+    ASTUtils.addAttributeToJSXTag(guardTag, 'dangerouslySetInnerHTML', {
+      __html: InlineScriptErrorGuard.INLINE_SCRIPT_ERROR_GUARD,
+    })
+    ASTUtils.addChildJSXTag(headNode, guardTag)
+  }
 
   // NOTE: Title is added in per page, not in the layout file
   if (manifest) {

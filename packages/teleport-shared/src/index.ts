@@ -29,6 +29,7 @@ import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
 import * as WebPush from './utils/web-push'
+import * as InlineScriptErrorGuard from './utils/inline-script-error-guard'
 
 export {
   Constants,
@@ -62,4 +63,5 @@ export {
   DataCache,
   PageRevalidate,
   WebPush,
+  InlineScriptErrorGuard,
 }

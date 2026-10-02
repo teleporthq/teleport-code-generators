@@ -30,6 +30,40 @@ describe('createHtmlIndexFile', () => {
     expect(entryFile.content).toContain('<html')
     expect(entryFile.content).toContain('{{root-placeholder}}')
   })
+
+  it('puts the inline script error guard first in <head> when the project runs scripts of its own', async () => {
+    const uidl = {
+      ...uidlSample,
+      globals: {
+        ...uidlSample.globals,
+        assets: [],
+        customCode: { body: '<script>null.addEventListener("click", () => {})</script>' },
+      },
+    } as unknown as ProjectUIDL
+
+    const [entryFile] = await createEntryFile(uidl, createStrategyWithCommonGenerator(), {})
+    const { content } = entryFile
+    const firstScript = content.slice(content.indexOf('<script'))
+
+    expect(content.indexOf('<script')).toBeGreaterThan(content.indexOf('<head>'))
+    expect(firstScript.indexOf('stopImmediatePropagation')).toBeLessThan(
+      firstScript.indexOf('</script>')
+    )
+    expect(content.indexOf('stopImmediatePropagation')).toBeLessThan(
+      content.indexOf('null.addEventListener')
+    )
+  })
+
+  it('emits no guard for a project without scripts of its own', async () => {
+    const uidl = {
+      ...uidlSample,
+      globals: { ...uidlSample.globals, assets: [], customCode: { head: '<style></style>' } },
+    } as unknown as ProjectUIDL
+
+    const [entryFile] = await createEntryFile(uidl, createStrategyWithCommonGenerator(), {})
+
+    expect(entryFile.content).not.toContain('stopImmediatePropagation')
+  })
 })
 
 describe('createManifestJSONFile', () => {

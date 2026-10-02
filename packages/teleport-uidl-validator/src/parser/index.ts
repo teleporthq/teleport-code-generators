@@ -29,6 +29,7 @@ import {
   UIDLCMSMixedTypeNode,
   UIDLRawValue,
 } from '@teleporthq/teleport-types'
+import { ensureUniqueResourceNames } from './resource-names'
 
 interface ParseComponentJSONParams {
   noClone?: boolean
@@ -201,6 +202,13 @@ export const parseProjectJSON = (
       },
       {}
     )
+  }
+
+  if (result.resources?.items) {
+    result.resources = {
+      ...result.resources,
+      items: ensureUniqueResourceNames(result.resources.items),
+    }
   }
 
   return result

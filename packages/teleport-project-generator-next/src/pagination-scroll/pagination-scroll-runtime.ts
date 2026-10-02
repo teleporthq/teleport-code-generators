@@ -145,10 +145,22 @@ function findFirstListItem(pagination) {
   return null
 }
 
-// Falls back to the block holding the pagination: an empty result may render
-// no rows at all, and its top is still the top of the list.
+// The block holding the pagination, or the nearest ancestor that has a box of
+// its own. A block laid out with display: contents has none: its rect reads 0,
+// so every correction would aim one header height above wherever the page is
+// now and walk it up in steps until the rows come back.
+function findListBlock(pagination) {
+  var block = pagination.parentElement
+  while (block && !hasBox(block)) {
+    block = block.parentElement
+  }
+  return block
+}
+
+// Falls back to the list block: while a page is loading, or for an empty
+// result, there may be no rows at all, and its top is still the top of the list.
 function findScrollTarget(pagination) {
-  return findFirstListItem(pagination) || pagination.parentElement
+  return findFirstListItem(pagination) || findListBlock(pagination)
 }
 
 function isScrollable(element) {

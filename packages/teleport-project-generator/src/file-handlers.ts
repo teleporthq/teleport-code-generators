@@ -1,4 +1,10 @@
-import { UIDLUtils, StringUtils, GenericUtils, FontPreconnect } from '@teleporthq/teleport-shared'
+import {
+  UIDLUtils,
+  StringUtils,
+  GenericUtils,
+  FontPreconnect,
+  InlineScriptErrorGuard,
+} from '@teleporthq/teleport-shared'
 import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   GeneratedFile,
@@ -164,6 +170,13 @@ const createHTMLEntryFileChunks = (
 
   HASTUtils.addChildNode(htmlNode, headNode)
   HASTUtils.addChildNode(htmlNode, bodyNode)
+
+  // First in <head>, ahead of every script it guards.
+  if (InlineScriptErrorGuard.documentRunsProjectScripts(uidl.globals)) {
+    const guardTag = HASTBuilders.createHTMLNode('script')
+    HASTUtils.addTextNode(guardTag, InlineScriptErrorGuard.INLINE_SCRIPT_ERROR_GUARD)
+    HASTUtils.addChildNode(headNode, guardTag)
+  }
 
   // Vue and React use a standard <div id="app"/> in the body tag.
   // Nuxt has an internal templating so requires an override
