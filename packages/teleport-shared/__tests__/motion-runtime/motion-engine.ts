@@ -2,10 +2,35 @@ import { motionEngineSource } from '../../src/motion-runtime/motion-engine-sourc
 
 type Style = Record<string, string>
 
+interface FakeElement {
+  style: Style
+  attributes: Record<string, string>
+  parentElement: FakeElement | null
+  children: FakeElement[]
+  hasAttribute: (name: string) => boolean
+}
+
+const fake = (
+  attributes: Record<string, string> = {},
+  children: FakeElement[] = []
+): FakeElement => {
+  const node: FakeElement = {
+    style: {},
+    attributes,
+    parentElement: null,
+    children,
+    hasAttribute: (name) => name in attributes,
+  }
+  children.forEach((child) => {
+    child.parentElement = node
+  })
+  return node
+}
+
 // The engine is shipped as text; these run that very text.
 const engine = new Function(
   `${motionEngineSource()}
-return { applyScrollState }`
+return { applyScrollState, letMarqueeSwipe }`
 )() as {
   applyScrollState: (
     element: { style: Style },
@@ -13,6 +38,7 @@ return { applyScrollState }`
     to: Record<string, unknown>,
     progress: number
   ) => void
+  letMarqueeSwipe: (track: FakeElement | null) => void
 }
 
 const styleAt = (from: Record<string, unknown>, to: Record<string, unknown>, progress: number) => {
@@ -45,5 +71,32 @@ describe('the scroll-linked state both exports write', () => {
       translate: '0px 20px',
     })
     expect(styleAt({ filter: 'blur(8px)' }, { filter: 'blur(0px)' }, 0.5).filter).toBe('blur(4px)')
+  })
+})
+
+describe('a row that slides by itself, for a visitor who asks for less motion', () => {
+  it('stands still and can be swiped: the frame scrolls sideways, the copy goes', () => {
+    const row = fake()
+    const copy = fake({ 'data-marquee-copy': 'true' })
+    const track = fake({}, [row, copy])
+    const frame = fake({ 'data-marquee': 'true' }, [track])
+
+    engine.letMarqueeSwipe(track)
+
+    expect(frame.style.overflowX).toBe('auto')
+    expect(track.style.minWidth).toBe('100%')
+    expect(copy.style.display).toBe('none')
+    expect(row.style.display).toBeUndefined()
+  })
+
+  it('leaves a Motion element that is not the loop of a row alone', () => {
+    const motion = fake({}, [fake({ 'data-marquee-copy': 'true' })])
+    const parent = fake({}, [motion])
+
+    engine.letMarqueeSwipe(motion)
+    engine.letMarqueeSwipe(null)
+
+    expect(parent.style.overflowX).toBeUndefined()
+    expect(motion.style.minWidth).toBeUndefined()
   })
 })

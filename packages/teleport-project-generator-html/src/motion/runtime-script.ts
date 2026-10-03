@@ -102,6 +102,9 @@ const initScene = (track) => {
   const layout =
     stageElement && stageElement.getAttribute('data-scene-layout') === 'chapters' ? 'chapters' : 'flow'
   const shouldReduceMotion = prefersReducedMotion()
+  // A visitor who asks for less motion still scrolls through a 'story' scene,
+  // with every movement dropped (storyLanes).
+  const story = shouldReduceMotion && reducedMotion === 'story'
 
   // The names the shared controller blocks expect (refs and props in React).
   const trackRef = { current: track }
@@ -136,7 +139,7 @@ ${ScrollSceneRuntime.restackBodySource()}
     progressRef.current = p
     for (const child of boundRef.current) {
       try {
-        applyLanesAt(child.element, child.lanes, p)
+        applyLanesAt(child.element, story ? storyLanes(child.lanes) : child.lanes, p)
       } catch (e) {
         // a broken binding must never break the page
       }
@@ -153,6 +156,9 @@ ${ScrollSceneRuntime.restackBodySource()}
     unclipStickyAncestors(track, (element) => window.getComputedStyle(element))
   }
   boundRef.current = collectBound(track)
+  if (story) {
+    letRowsSwipe(boundRef.current, stageElement)
+  }
   restack()
 
   const measure = () =>
@@ -161,9 +167,11 @@ ${ScrollSceneRuntime.restackBodySource()}
       window.innerHeight || 1,
       pin ? 'contained' : 'pass'
     )
-  // Reduced-motion visitors get the story's settled state and no scroll work;
-  // chapters are still announced for them, from the one progress it settles on.
-  if (shouldReduceMotion) {
+  // A 'story' scene follows the scroll for reduced-motion visitors too, with
+  // the movement dropped. The other settings give them the story's settled
+  // state and no scroll work; chapters are still announced for them, from the
+  // one progress it settles on.
+  if (shouldReduceMotion && !story) {
     applyAll(reducedMotion === 'static' ? 0 : 1)
   } else {
     applyAll(measure())
@@ -174,6 +182,9 @@ ${ScrollSceneRuntime.restackBodySource()}
   // place; the attributeFilter keeps the runtime's own style writes out.
   const observer = new MutationObserver(() => {
     boundRef.current = collectBound(track)
+    if (story) {
+      letRowsSwipe(boundRef.current, stageElement)
+    }
     restack()
     chapterStateRef.current.records = null
     applyAll(progressRef.current)
@@ -300,6 +311,8 @@ const initMotion = (element) => {
   const markReady = () => element.setAttribute(READY_ATTR, '')
 
   if (prefersReducedMotion()) {
+    // A row that slides by itself stands still and can be swiped instead.
+    letMarqueeSwipe(element)
     markReady()
     return
   }

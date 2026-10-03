@@ -1,6 +1,11 @@
 import { FileType, GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
 import uidlSample from '../../../../examples/uidl-samples/tests.json'
-import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
+import {
+  createHTMLProjectGenerator,
+  pluginCloneGlobals,
+  pluginHomeReplace,
+  ProjectPluginCloneGlobals,
+} from '../../src'
 import { pluginPageTransition } from '../../src/plugin-page-transition'
 import { PageTransition } from '@teleporthq/teleport-shared'
 import HTMLTemplate from '../../src/project-template'
@@ -298,6 +303,27 @@ describe('The page transition of a static HTML export: what the pages get', () =
       expect(page.content).toContain("root.setAttribute('data-tq-nav', 'back')")
       expect(page.content).not.toContain('tq-page-transition-origin')
       expect(page.content.indexOf('pagereveal')).toBeLessThan(page.content.indexOf('</head>'))
+    })
+  })
+
+  // The editor's "strict white spacing for HTML" setting formats every page with
+  // Prettier's strict whitespace. Behind a head that ends with an inline script
+  // (custom head code), the head's closing tag is written `</head\n  >`.
+  it('puts the direction script in the head of a page whose head closes the strict way', async () => {
+    const uidl = projectWith({ preset: 'slide-left', duration: 0.3, easing: 'ease-out' })
+    uidl.globals.customCode = { head: '<script>\n  window.tqHeadReady = true\n</script>' }
+    const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(new ProjectPluginCloneGlobals({ strictHtmlWhitespaceSensitivity: true }))
+    generator.addPlugin(pluginPageTransition)
+    const folder = await generator.generateProject(uidl, HTMLTemplate, {}, true)
+    const pages = folder.files.filter((file) => file.fileType === FileType.HTML)
+
+    expect(pages.length).toBeGreaterThan(1)
+    pages.forEach((page) => {
+      expect(page.content).toMatch(/<\/head\s+>/)
+      expect(page.content.match(/addEventListener\('pagereveal'/g)).toHaveLength(1)
+      expect(page.content.search(/pagereveal/)).toBeLessThan(page.content.search(/<\/head\s*>/))
     })
   })
 

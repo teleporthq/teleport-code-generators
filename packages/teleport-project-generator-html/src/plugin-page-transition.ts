@@ -5,7 +5,7 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
 } from '@teleporthq/teleport-types'
-import { appendGlobalCss } from './global-css'
+import { appendGlobalCss, insertBeforeClosingTag } from './global-css'
 
 const { BACK_ATTR, ORIGIN_X, ORIGIN_Y, viewTransitionPlan, morphHelpersSource } = PageTransition
 
@@ -146,13 +146,10 @@ const skippedDocuments = (structure: ProjectPluginStructure, skipRoutes: string[
   return documents
 }
 
-const injectIntoHead = (file: GeneratedFile, script: string): GeneratedFile =>
-  file.content.includes('</head>')
-    ? {
-        ...file,
-        content: file.content.replace('</head>', `<script>\n${script}\n</script>\n</head>`),
-      }
-    : file
+const injectIntoHead = (file: GeneratedFile, script: string): GeneratedFile => {
+  const content = insertBeforeClosingTag(file.content, 'head', `<script>\n${script}\n</script>\n`)
+  return content === undefined ? file : { ...file, content }
+}
 
 export class ProjectPluginPageTransition implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {

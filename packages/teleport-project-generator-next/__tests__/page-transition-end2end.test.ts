@@ -73,10 +73,24 @@ describe('Next generator page transition', () => {
       "AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false}"
     )
     expect(wrapper?.content).toContain("router.events.on('routeChangeStart'")
-    expect(wrapper?.content).toContain('useReducedMotion')
     const pkg = output.files.find((file) => file.name === 'package')
     expect(pkg?.content).toContain('"framer-motion"')
     expect(pkg?.content).toContain('"react": "^18.3.1"')
+  })
+
+  // The server cannot know that a visitor asks for less motion. A wrapper that
+  // rendered the bare page for them made React throw the server's page away on
+  // every load (error 418) and draw it again in the browser.
+  it('renders the same page for every visitor and gives less motion each page at once', async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'slide-up', duration: 0.25, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+
+    expect(wrapper).not.toContain('useReducedMotion')
+    expect(wrapper).toContain('if (!variants) {\n    return children\n  }')
+    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))')
   })
 
   it('ignores a transition it does not know and a preset of none', async () => {
@@ -129,7 +143,7 @@ describe('Next generator per-page skip', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain('const SKIP_ROUTES = ["/checkout","/products/[slug]"]')
-    expect(wrapper).toContain('const skip = isSkippedRoute(routeKeyOf(url))')
+    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))')
     expect(wrapper).not.toContain('isSkippedRoute(routeKeyRef.current)')
   })
 
@@ -233,7 +247,7 @@ describe('Next generator flying picture', () => {
     const output = await generator.generateProject(buildUidl(config), template())
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain(
-      "import { AnimatePresence, motion, usePresence, useReducedMotion } from 'framer-motion'"
+      "import { AnimatePresence, motion, usePresence } from 'framer-motion'"
     )
     // Always rendered: framer-motion never forgets a presence child, so one that came and went would hold its page forever.
     expect(wrapper).toContain(

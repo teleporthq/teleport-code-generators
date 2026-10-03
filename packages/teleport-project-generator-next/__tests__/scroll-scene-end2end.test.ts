@@ -162,6 +162,12 @@ describe('Next generator with a Scroll Scene element', () => {
     }
     // Guardrails: reduced-motion handling and the sticky-killing-overflow warning.
     expect(code).toContain('useReducedMotion')
+    // A 'story' scene still follows the scroll for visitors who ask for less
+    // motion, with every movement dropped and a row too wide to see swipeable.
+    expect(code).toContain("reducedMotion === 'story'")
+    expect(code).toContain('if (!shouldReduceMotion || storyRef.current)')
+    expect(code).toContain('storyRef.current ? storyLanes(child.lanes) : child.lanes')
+    expect(code).toContain('letRowsSwipe(boundRef.current, stage)')
     expect(code).toContain('disables sticky pinning')
     expect(code).toContain('--scene-progress')
   })

@@ -263,4 +263,27 @@ const reachableFraction = (rect, vh, vw) => {
     return 0
   }
   return Math.min(1, vh / height) * Math.min(1, vw / width)
+}
+
+// A row that slides by itself is the editor's loop: a clipping frame
+// (data-marquee) holding this Motion track, which holds the row and the hidden
+// copy that closes the loop (data-marquee-copy). For a visitor who asks for
+// less motion the track does not play, so the row stands still and the frame
+// lets the visitor swipe it instead: every item stays reachable. The copy
+// goes, or every item would show twice, and the track stops reserving room
+// for it. Mirrors letMarqueeSwipe in the editor's marquee contract.
+const MARQUEE_FRAME_ATTR = 'data-marquee'
+const MARQUEE_COPY_ATTR = 'data-marquee-copy'
+const letMarqueeSwipe = (track) => {
+  const frame = track && track.parentElement
+  if (!frame || !frame.hasAttribute(MARQUEE_FRAME_ATTR)) {
+    return
+  }
+  frame.style.overflowX = 'auto'
+  track.style.minWidth = '100%'
+  for (const child of Array.from(track.children)) {
+    if (child.hasAttribute(MARQUEE_COPY_ATTR)) {
+      child.style.display = 'none'
+    }
+  }
 }`

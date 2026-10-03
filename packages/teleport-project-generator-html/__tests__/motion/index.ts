@@ -1,7 +1,12 @@
 import { FileType, GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
 import { ScrollSceneRuntime } from '@teleporthq/teleport-shared'
 import uidlSample from '../../../../examples/uidl-samples/tests.json'
-import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../../src'
+import {
+  createHTMLProjectGenerator,
+  pluginCloneGlobals,
+  pluginHomeReplace,
+  ProjectPluginCloneGlobals,
+} from '../../src'
 import { pluginMotionRuntime } from '../../src/plugin-motion-runtime'
 import HTMLTemplate from '../../src/project-template'
 import {
@@ -99,6 +104,18 @@ const generate = async (uidl: ProjectUIDL): Promise<GeneratedFolder> => {
   generator.addPlugin(pluginCloneGlobals)
   generator.addPlugin(pluginMotionRuntime)
   return generator.generateProject(uidl, HTMLTemplate)
+}
+
+// The editor's "strict white spacing for HTML" setting: every page is formatted
+// with Prettier's strict whitespace. Behind a head that ends with an inline
+// script (custom head code), the head's closing tag is written `</head\n  >`.
+const generateStrict = async (uidl: ProjectUIDL): Promise<GeneratedFolder> => {
+  uidl.globals.customCode = { head: '<script>\n  window.tqHeadReady = true\n</script>' }
+  const generator = createHTMLProjectGenerator()
+  generator.addPlugin(pluginHomeReplace)
+  generator.addPlugin(new ProjectPluginCloneGlobals({ strictHtmlWhitespaceSensitivity: true }))
+  generator.addPlugin(pluginMotionRuntime)
+  return generator.generateProject(uidl, HTMLTemplate, {}, true)
 }
 
 const fileOf = (folder: GeneratedFolder, name: string, fileType: string) =>
@@ -253,6 +270,9 @@ describe('Motion in the static HTML export', () => {
     const full = fileOf(everything, 'tq-motion', FileType.JS)
     expect(full).toContain('const initScene = ')
     expect(full).toContain('const initMotion = ')
+    // a row that slides by itself stands still and can be swiped for a visitor
+    // who asks for less motion
+    expect(full).toContain('letMarqueeSwipe(element)\n    markReady()')
     expect(full).toContain('const initVideo = ')
     // the clip is held in memory by the shared helper the Next export runs too
     expect(full).toContain('const holdClip = ')
@@ -263,6 +283,12 @@ describe('Motion in the static HTML export', () => {
     expect(full).toContain('MediaSourceCtor.isTypeSupported(mime)')
     expect(full).toContain("const backToStart = text('back-to-start', 'false') === 'true'")
     expect(full).toContain('seekTo(clipPositionFor(local, backToStart))')
+    // a 'story' scene still follows the scroll for visitors who ask for less
+    // motion, with every movement dropped and a row too wide to see swipeable
+    expect(full).toContain("const story = shouldReduceMotion && reducedMotion === 'story'")
+    expect(full).toContain('story ? storyLanes(child.lanes) : child.lanes')
+    expect(full).toContain('if (shouldReduceMotion && !story) {')
+    expect(full).toContain('letRowsSwipe(boundRef.current, stageElement)')
     // valid JavaScript: compiling it (never running it) is the check
     expect(() => new Function(full)).not.toThrow()
 
@@ -287,6 +313,21 @@ describe('Motion in the static HTML export', () => {
           expect(file.content).not.toContain('tq-motion.js')
         }
       })
+  })
+
+  it('links the runtime in every page whose head closes the strict way', async () => {
+    const everything = await generateStrict(projectWith(SCENE, MOTION))
+    expect(fileOf(everything, 'tq-motion', FileType.JS)).toContain('const initScene = ')
+
+    const pages = pagesOf(everything)
+    expect(pages.length).toBeGreaterThan(1)
+    pages.forEach((page) => {
+      expect(page.content).toMatch(/<\/head\s+>/)
+      expect(page.content.match(/<script defer src="\.\/tq-motion\.js"><\/script>/g)).toHaveLength(
+        1
+      )
+      expect(page.content.search(/tq-motion\.js/)).toBeLessThan(page.content.search(/<\/head\s*>/))
+    })
   })
 
   it('runs the very engine the Next export runs', () => {

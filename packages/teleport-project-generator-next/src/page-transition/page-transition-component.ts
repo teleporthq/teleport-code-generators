@@ -98,7 +98,7 @@ export const generatePageTransitionComponentCode = (config: PageTransitionConfig
   const flies = !!plan && plan.flies
   return `import React from 'react'
 import { useRouter } from 'next/router'
-import { AnimatePresence, motion, usePresence, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, usePresence } from 'framer-motion'
 
 ${reversePageTransitionPreset.toString()}
 
@@ -200,7 +200,6 @@ const HoldPage = ({ pageKey, changeRef, revealRef }) => {
 
 const TqPageTransition = ({ children }) => {
   const router = useRouter()
-  const reducedMotion = useReducedMotion()
   const routeKey = routeKeyOf(router.asPath)
   const routeKeyRef = React.useRef(routeKey)
   routeKeyRef.current = routeKey
@@ -354,7 +353,10 @@ const TqPageTransition = ({ children }) => {
       const reverse = popRef.current
       popRef.current = false
       // A skipped page appears instantly; leaving it still plays the site's transition.
-      const skip = isSkippedRoute(routeKeyOf(url))
+      // A visitor who asks for less motion gets every page that way. It is read
+      // here, never while rendering: the server cannot know it, and a first render
+      // that differs from the server's makes React throw the page away.
+      const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))
       const pointer = reverse || !ORIGIN_FROM_POINTER ? null : pointerRef.current
       // A reveal is measured on this screen (revealOnScreen); without a press it
       // grows from the screen's centre, not the page's.
@@ -404,7 +406,7 @@ const TqPageTransition = ({ children }) => {
     }
   }, [router])
 
-  if (reducedMotion || !variants) {
+  if (!variants) {
     return children
   }
 

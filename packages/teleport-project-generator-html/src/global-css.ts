@@ -18,19 +18,38 @@ export const appendGlobalCss = (structure: ProjectPluginStructure, css: string):
     return
   }
   const styleTag = `<style>\n${css}</style>\n`
-  mapHtmlPages(structure, (html) =>
-    html.includes('</head>') ? html.replace('</head>', `${styleTag}</head>`) : `${styleTag}${html}`
+  mapHtmlPages(
+    structure,
+    (html) => insertBeforeClosingTag(html, 'head', styleTag) ?? `${styleTag}${html}`
   )
 }
 
 /** Adds an inline script to the end of every page. */
 export const appendPageScript = (structure: ProjectPluginStructure, script: string): void => {
   const scriptTag = `<script>\n${script}\n</script>\n`
-  mapHtmlPages(structure, (html) =>
-    html.includes('</body>')
-      ? html.replace('</body>', `${scriptTag}</body>`)
-      : `${html}\n${scriptTag}`
+  mapHtmlPages(
+    structure,
+    (html) => insertBeforeClosingTag(html, 'body', scriptTag) ?? `${html}\n${scriptTag}`
   )
+}
+
+const CLOSING_TAG = { head: /<\/head\s*>/i, body: /<\/body\s*>/i }
+
+/**
+ * Puts markup right before a document's closing head or body tag; undefined
+ * when there is none (a component fragment). Prettier's strict whitespace (the
+ * editor's "strict white spacing for HTML" setting) can write that tag as
+ * `</head\n  >`, so it is matched, never looked up as `</head>`.
+ */
+export const insertBeforeClosingTag = (
+  html: string,
+  tag: keyof typeof CLOSING_TAG,
+  markup: string
+): string | undefined => {
+  const closing = CLOSING_TAG[tag].exec(html)
+  return closing
+    ? `${html.slice(0, closing.index)}${markup}${html.slice(closing.index)}`
+    : undefined
 }
 
 const mapHtmlPages = (

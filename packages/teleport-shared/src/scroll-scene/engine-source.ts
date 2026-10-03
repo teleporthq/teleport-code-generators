@@ -254,6 +254,61 @@ const applyLanesAt = (element, lanes, p) => {
   }
 }
 
+// A scene set to keep the story for visitors who ask for less motion
+// (scene-reduced-motion "story"): the scroll still drives the scene, chapters
+// still come and go and every text still appears in turn, but nothing moves.
+// Slides, zooms, rotations and wipes are dropped, so each element stays where
+// the layout puts it; fades and filters still follow the scroll; a counting
+// number shows the figure it counts to. Mirrors the editor's lane contract.
+const MOVEMENT_PROPS = ['x', 'y', 'scale', 'rotate', 'rotate-x', 'rotate-y', 'clip', 'clip-y']
+
+const storyLanes = (lanes) =>
+  lanes
+    .filter((lane) => !MOVEMENT_PROPS.includes(lane.prop))
+    .map((lane) => {
+      if (lane.prop !== 'count') {
+        return lane
+      }
+      const figure = lane.values[lane.values.length - 1]
+      return { prop: 'count', at: [0, 1], values: [figure, figure] }
+    })
+
+// What a moving lane painted, taken off again when the scene switches to the
+// story without movement while the page is open.
+const clearMovement = (element, lanes) => {
+  for (const lane of lanes) {
+    if (lane.prop === 'x' || lane.prop === 'y') {
+      element.style.translate = ''
+    } else if (lane.prop === 'scale') {
+      element.style.scale = ''
+    } else if (lane.prop === 'rotate' || lane.prop === 'rotate-x' || lane.prop === 'rotate-y') {
+      element.style.rotate = ''
+    } else if (lane.prop === 'clip' || lane.prop === 'clip-y') {
+      element.style.clipPath = ''
+    }
+  }
+}
+
+// A row wider than the stage that travelled sideways with the scroll (a
+// rail) would show only its first cards once the movement is dropped, so it
+// becomes a row the visitor swipes: every card stays reachable.
+const SWIPE_ATTR = 'data-scene-swipe'
+const letRowsSwipe = (bound, stage) => {
+  if (!stage) {
+    return
+  }
+  const stageWidth = stage.getBoundingClientRect().width
+  for (const child of bound) {
+    const travels = child.lanes.some((lane) => lane.prop === 'x')
+    if (!travels || child.element.getBoundingClientRect().width <= stageWidth + 1) {
+      continue
+    }
+    child.element.style.maxWidth = '100%'
+    child.element.style.overflowX = 'auto'
+    child.element.setAttribute(SWIPE_ATTR, '')
+  }
+}
+
 const collectBound = (track) => {
   const bound = []
   track.querySelectorAll('[' + SCROLL_BIND_ATTR + ']').forEach((element) => {

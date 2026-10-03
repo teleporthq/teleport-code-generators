@@ -6,7 +6,7 @@ import {
   ProjectPluginStructure,
   UIDLElement,
 } from '@teleporthq/teleport-types'
-import { appendGlobalCss } from './global-css'
+import { appendGlobalCss, insertBeforeClosingTag } from './global-css'
 import {
   MOTION_MARKER_ATTR,
   MOTION_RUNTIME_FILE_NAME,
@@ -98,12 +98,14 @@ const linkRuntime = (structure: ProjectPluginStructure, runtimePath: string[]): 
       `<script defer src="${prefix}${MOTION_RUNTIME_FILE_NAME}.js"></script>\n`
     structure.files.set(key, {
       ...entry,
-      files: entry.files.map((file: GeneratedFile) =>
+      files: entry.files.map((file: GeneratedFile) => {
+        if (file.fileType !== FileType.HTML) {
+          return file
+        }
         // A page has a head; a component fragment does not, and is never linked.
-        file.fileType === FileType.HTML && file.content.includes('</head>')
-          ? { ...file, content: file.content.replace('</head>', `${tags}</head>`) }
-          : file
-      ),
+        const linked = insertBeforeClosingTag(file.content, 'head', tags)
+        return linked === undefined ? file : { ...file, content: linked }
+      }),
     })
   })
 }

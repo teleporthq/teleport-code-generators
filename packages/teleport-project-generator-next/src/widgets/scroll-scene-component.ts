@@ -13,7 +13,8 @@ import { ScrollSceneRuntime } from '@teleporthq/teleport-shared'
  * behave identically.
  *
  * Guardrails baked in: compositor-only lane properties, prefers-reduced-motion
- * ('final' settles on the end state, 'static' stays put), progress exposed as
+ * ('story' keeps the scroll story with every movement dropped, 'final' settles
+ * on the end state, 'static' stays put), progress exposed as
  * --scene-progress only when exposeProgress is set, and a dev-only warning
  * when an ancestor's overflow silently disables the sticky pinning.
  */
@@ -39,6 +40,10 @@ const TqScrollScene = ({
   const boundRef = React.useRef([])
   const progressRef = React.useRef(0)
   const shouldReduceMotion = useReducedMotion()
+  // A visitor who asks for less motion still scrolls through a 'story' scene,
+  // with every movement dropped (storyLanes).
+  const storyRef = React.useRef(false)
+  storyRef.current = Boolean(shouldReduceMotion) && reducedMotion === 'story'
   const chapterHelpersRef = React.useRef(null)
   const chapterStateRef = React.useRef({
     records: null,
@@ -58,7 +63,7 @@ ${ScrollSceneRuntime.announcementsSource()}
       progressRef.current = p
       for (const child of boundRef.current) {
         try {
-          applyLanesAt(child.element, child.lanes, p)
+          applyLanesAt(child.element, storyRef.current ? storyLanes(child.lanes) : child.lanes, p)
         } catch (e) {
           // a broken binding must never break the page
         }
@@ -85,7 +90,7 @@ ${ScrollSceneRuntime.announcementsSource()}
   const progress = scrubSeconds > 0 ? smoothed : scrollYProgress
 
   useMotionValueEvent(progress, 'change', (p) => {
-    if (!shouldReduceMotion) {
+    if (!shouldReduceMotion || storyRef.current) {
       applyAll(p)
     }
   })
@@ -136,11 +141,25 @@ ${ScrollSceneRuntime.restackBodySource()}
       unclipStickyAncestors(track, (element) => window.getComputedStyle(element))
     }
     boundRef.current = collectBound(track)
+    const stage = track.querySelector(':scope > [data-scene-stage]')
+    if (storyRef.current) {
+      for (const child of boundRef.current) {
+        clearMovement(child.element, child.lanes)
+      }
+      letRowsSwipe(boundRef.current, stage)
+    }
     restack()
 
     // Chapters are announced for reduced-motion visitors too (their workflows
-    // must still run), from the one progress the scene settles on.
-    applyAll(shouldReduceMotion ? (reducedMotion === 'static' ? 0 : 1) : progress.get())
+    // must still run): a 'story' scene follows the scroll, the others settle
+    // on one progress.
+    applyAll(
+      shouldReduceMotion && !storyRef.current
+        ? reducedMotion === 'static'
+          ? 0
+          : 1
+        : progress.get()
+    )
 
     // Repeater items render after mount, and bindings may be rewritten in
     // place on existing elements (attribute-only mutations) — watch both,
@@ -148,6 +167,9 @@ ${ScrollSceneRuntime.restackBodySource()}
     // writes from feeding back into the observer.
     const observer = new MutationObserver(() => {
       boundRef.current = collectBound(track)
+      if (storyRef.current) {
+        letRowsSwipe(boundRef.current, stage)
+      }
       restack()
       chapterStateRef.current.records = null
       applyAll(progressRef.current)

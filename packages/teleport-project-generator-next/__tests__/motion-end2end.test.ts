@@ -120,4 +120,33 @@ describe('Next generator with a Motion element', () => {
       "case 'load':\n      return { initial: fromVars, animate: toVars, transition }"
     )
   })
+
+  // Vlad, 2026-10-03: for a visitor who asks for less motion a row that slides
+  // by itself stands still and can be swiped, so every item stays reachable.
+  it('lets a row that slides by itself be swiped when the visitor asks for less motion', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const code = findFile(outputFolder, 'components', 'tq-motion')?.content || ''
+
+    expect(code).toContain('const letMarqueeSwipe = (track) => {')
+    expect(code).toContain("frame.style.overflowX = 'auto'")
+    expect(code).toContain(
+      'React.useEffect(() => {\n    if (still) {\n      letMarqueeSwipe(ref.current)'
+    )
+  })
+
+  // The server cannot know that a visitor asks for less motion and renders the
+  // animated element with its starting style. A first render that drew the still
+  // element instead left that style in place: every entrance stayed invisible for
+  // those visitors (2026-10-03, React keeps server markup it disagrees with).
+  it('draws the still element for less motion only once the page is mounted', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const code = findFile(outputFolder, 'components', 'tq-motion')?.content || ''
+
+    expect(code).toContain('React.useEffect(() => setMounted(true), [])')
+    expect(code).toContain('const still = mounted && Boolean(shouldReduceMotion)')
+    expect(code).toContain(
+      'if (still) {\n    return (\n      <div ref={ref} style={wrapperStyle} {...rest}>'
+    )
+    expect(code).not.toContain('if (shouldReduceMotion) {\n    return (')
+  })
 })

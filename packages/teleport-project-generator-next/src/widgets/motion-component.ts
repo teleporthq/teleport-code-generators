@@ -178,6 +178,14 @@ const TqMotion = ({
 }) => {
   const ref = React.useRef(null)
   const shouldReduceMotion = useReducedMotion()
+  // The server cannot know that the visitor asks for less motion, so it renders
+  // the animated element with its starting style. React keeps that markup for an
+  // element the first render here draws differently, and says nothing in
+  // production: every entrance stayed invisible for those visitors. The still
+  // element is drawn once the page is mounted.
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+  const still = mounted && Boolean(shouldReduceMotion)
   // The wrapper is a stacking context at rest, exactly as it is mid-animation
   // and exactly as the canvas draws it (the canvas wrapper animates via
   // transform, which creates one). Framer drops the transform once an entrance
@@ -325,7 +333,15 @@ const TqMotion = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger, shouldReduceMotion])
 
-  if (shouldReduceMotion) {
+  // A row that slides by itself stands still for a visitor who asks for less
+  // motion, and its frame lets them swipe it (letMarqueeSwipe).
+  React.useEffect(() => {
+    if (still) {
+      letMarqueeSwipe(ref.current)
+    }
+  }, [still])
+
+  if (still) {
     return (
       <div ref={ref} style={wrapperStyle} {...rest}>
         {children}
