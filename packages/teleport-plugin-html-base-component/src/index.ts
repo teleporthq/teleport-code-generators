@@ -11,6 +11,7 @@ import {
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 import { generateHtmlSyntax } from './node-handlers'
+import { createStateScope, markStateScope } from './state-bindings'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface HtmlPluginConfig {
@@ -78,11 +79,13 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       plugins,
       standaloneHtmlComponents,
     }
+    const stateScope = createStateScope(uidl.name, stateDefinitions, outputOptions?.pageId)
     const templateOptions = {
       chunks,
       dependencies,
       options,
       outputOptions,
+      stateScope,
     }
 
     /*
@@ -119,6 +122,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
     )
 
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)
+    markStateScope(compBase, stateScope)
 
     chunks.push({
       type: ChunkType.HAST,

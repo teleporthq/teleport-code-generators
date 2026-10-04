@@ -4,11 +4,14 @@ import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } fro
 import HTMLTemplate from '../../src/project-template'
 
 /**
- * A static page has no runtime, so an element shown on a condition appears as
- * the page first loads in the Next.js export: the condition is resolved
- * against the value its reference starts with. Until 2026-09-18 every STATE
- * condition rendered nothing, true or not, so a download lost the burger of a
- * closed menu and the first tab of every tab set.
+ * An element shown on a condition appears as the page first loads in the
+ * Next.js export: the condition is resolved against the value its reference
+ * starts with. Until 2026-09-18 every STATE condition rendered nothing, true
+ * or not, so a download lost the burger of a closed menu and the first tab of
+ * every tab set. Since 2026-10-04 a condition on the page's own state keeps
+ * every branch in the page for the state runtime to switch, and the ones the
+ * page does not start on are `hidden` (state-runtime/ covers the runtime); a
+ * condition on anything else is still resolved once.
  */
 const s = (content: unknown) => ({ type: 'static', content })
 const span = (id: string) => ({
@@ -51,10 +54,15 @@ const homePage = async (
   )
 }
 
-const shows = (page: string, id: string) => page.includes(`id="${id}"`)
+const openingTag = (page: string, id: string) =>
+  new RegExp(`<[a-z][^>]*\\bid="${id}"[^>]*>`).exec(page)?.[0]
+const inPage = (page: string, id: string) => openingTag(page, id) !== undefined
+/** In the markup and not `hidden`: what a visitor sees before any script runs. */
+const shows = (page: string, id: string) =>
+  inPage(page, id) && !/\shidden(=""|\s|>)/.test(openingTag(page, id) ?? '')
 
 describe('Conditions in a static HTML page', () => {
-  it('a state condition shows what the page starts with, and nothing it does not', async () => {
+  it('a state condition shows what the page starts with, and keeps the rest hidden for the runtime', async () => {
     const page = await homePage(
       [
         when(state('menuOpen'), [{ operation: '===', operand: true }], 'menu-panel'),
@@ -72,9 +80,15 @@ describe('Conditions in a static HTML page', () => {
     expect(shows(page, 'tab-a')).toBe(true)
     expect(shows(page, 'menu-panel')).toBe(false)
     expect(shows(page, 'tab-b')).toBe(false)
+    expect(inPage(page, 'menu-panel')).toBe(true)
+    expect(inPage(page, 'tab-b')).toBe(true)
+    expect(openingTag(page, 'menu-panel')).toContain('data-tq-if="menuOpen"')
+    expect(openingTag(page, 'burger')).toContain('data-tq-if="!menuOpen"')
+    expect(openingTag(page, 'tab-b')).toContain(`data-tq-if="tab === 'b'"`)
+    expect(page).toContain(`data-tq-state="menuOpen = false; tab = 'a'"`)
   })
 
-  it('reads into an object state and compares numbers', async () => {
+  it('reads into an object state and compares numbers, once: the runtime keeps no objects', async () => {
     const page = await homePage(
       [
         when(state('cart', ['count']), [{ operation: '>', operand: 0 }], 'cart-badge'),
@@ -84,7 +98,8 @@ describe('Conditions in a static HTML page', () => {
     )
 
     expect(shows(page, 'cart-empty')).toBe(true)
-    expect(shows(page, 'cart-badge')).toBe(false)
+    expect(inPage(page, 'cart-badge')).toBe(false)
+    expect(page).not.toContain('data-tq-')
   })
 
   it('a condition with no operand tests the value itself, as the JSX generators do', async () => {
@@ -97,10 +112,12 @@ describe('Conditions in a static HTML page', () => {
       { isPromo: { type: 'boolean', defaultValue: false } }
     )
 
-    // loading starts true: "not loading" is false
+    // loading starts true: "not loading" is false, and the runtime can turn it on
     expect(shows(page, 'content')).toBe(false)
-    // isPromo starts false: "not promo" is true
+    expect(openingTag(page, 'content')).toContain('data-tq-if="!loading"')
+    // isPromo starts false: "not promo" is true; a prop never changes in a static page
     expect(shows(page, 'regular-price')).toBe(true)
+    expect(openingTag(page, 'regular-price')).not.toContain('data-tq-if')
   })
 
   it('a value holding a quote still compares', async () => {
@@ -119,6 +136,6 @@ describe('Conditions in a static HTML page', () => {
       {}
     )
 
-    expect(shows(page, 'depends')).toBe(false)
+    expect(inPage(page, 'depends')).toBe(false)
   })
 })

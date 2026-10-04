@@ -651,8 +651,9 @@ export enum ProjectType {
  * warning about what now works, with nobody remembering to flip a banner.
  *
  * `conditions`: `runtime` re-evaluates an element's rendering condition as the
- * visitor interacts; `first-load` shows each element as the page first loads
- * (the static HTML export has no runtime to change it afterwards).
+ * visitor interacts (the static HTML export through its `tq-state.js`, for the
+ * conditions, clicks, tab workflows and state classes it compiles);
+ * `first-load` shows each element as the page first loads.
  */
 export interface ExportPlayback {
   motion: boolean
@@ -661,7 +662,7 @@ export interface ExportPlayback {
 
 export const EXPORT_PLAYBACK: Record<ProjectType, ExportPlayback> = {
   [ProjectType.NEXT]: { motion: true, conditions: 'runtime' },
-  [ProjectType.HTML]: { motion: true, conditions: 'first-load' },
+  [ProjectType.HTML]: { motion: true, conditions: 'runtime' },
   [ProjectType.REACT]: { motion: false, conditions: 'runtime' },
   [ProjectType.VUE]: { motion: false, conditions: 'runtime' },
   [ProjectType.NUXT]: { motion: false, conditions: 'runtime' },

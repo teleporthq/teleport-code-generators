@@ -55,6 +55,7 @@ import {
   pluginSnapIntoView,
   pluginScrollRail,
   pluginMotionRuntime,
+  pluginStateRuntime,
   pluginPageTransition,
   htmlErrorPageMapping,
   ProjectPluginCloneGlobals,
@@ -182,6 +183,7 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(pluginSnapIntoView)
     projectGeneratorFactory.addPlugin(pluginScrollRail)
     projectGeneratorFactory.addPlugin(pluginMotionRuntime)
+    projectGeneratorFactory.addPlugin(pluginStateRuntime)
     projectGeneratorFactory.addPlugin(pluginPageTransition)
   }
 

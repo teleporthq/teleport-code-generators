@@ -31,6 +31,7 @@ import * as PageRevalidate from './page-revalidate'
 import * as ScrollSceneRuntime from './scroll-scene'
 import * as MotionRuntime from './motion-runtime'
 import * as PageTransition from './page-transition'
+import * as StateBindings from './state-bindings'
 import * as WebPush from './utils/web-push'
 
 export {
@@ -67,5 +68,6 @@ export {
   ScrollSceneRuntime,
   MotionRuntime,
   PageTransition,
+  StateBindings,
   WebPush,
 }
