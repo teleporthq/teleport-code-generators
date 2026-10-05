@@ -14,6 +14,7 @@ import { buildProductTransformOptions, type EntityTransformOptions } from './tra
 import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
 import { appendItemsPathParam, extractItemsPath } from './items-path'
+import { resolveRepeaterPerPage } from './repeater-page-size'
 import {
   applyLoadingStateToDataProvider,
   buildLoadingStateDeclarations,
@@ -606,7 +607,9 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
 
         // For paginated mappers, use perPage from cms-list-repeater
         // For plain mappers, use limit from data-source-list resource params
-        const effectivePerPage = content.paginated ? content.perPage : limit || content.perPage
+        const effectivePerPage = content.paginated
+          ? resolveRepeaterPerPage(content.perPage)
+          : limit || content.perPage
 
         const searchDefaultValue = parseSearchDefaultValue(content.searchDefaultValue)
 
@@ -2952,7 +2955,8 @@ function createFetchDataAttribute(
   const responseTail = accumulate
     ? buildAccumulatingResponseHandler(
         getInfiniteScrollVars(accumulate.usage.index),
-        accumulate.usage.perPage
+        accumulate.usage.perPage,
+        accumulate.usage.itemsPath
       )
     : cache
     ? buildCacheStoreThen(cache)

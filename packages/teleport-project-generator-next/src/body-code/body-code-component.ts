@@ -33,19 +33,32 @@ export const wrapBodyCustomCode = (body: string): string => {
  * cloned script never executes: external ones keep document order
  * (async=false), inline ones run at insertion — a helper placed before a
  * library still runs first, exactly as it did at parse time.
+ *
+ * An inline script names the document as its source. Chromium reports no file
+ * for an error thrown by a script inserted after the page was parsed (or by a
+ * callback it registered), and the inline script error guard of _document
+ * (teleport-shared, inline-script-error-guard) knows the project's own scripts
+ * by the document's address: unnamed, a custom script that throws would cover
+ * the page with the dev server's error overlay again. Data blocks (JSON-LD,
+ * templates) are not scripts and stay exactly as written.
  */
 export const BODY_CODE_UNPACK_SCRIPT = `(function () {
   var template = document.querySelector('template[${BODY_CODE_TEMPLATE_ATTR}]')
   if (!template || !template.content) { return }
   var fragment = document.importNode(template.content, true)
   var scripts = Array.prototype.slice.call(fragment.querySelectorAll('script'))
+  var namedAfterTheDocument = '\\n//# source' + 'URL=' + String(document.URL).split('#')[0]
+  var runsAsScript = function (type) {
+    return type === '' || type === 'module' || type.indexOf('javascript') !== -1 || type.indexOf('ecmascript') !== -1
+  }
   scripts.forEach(function (old) {
     var script = document.createElement('script')
     Array.prototype.forEach.call(old.attributes, function (attr) {
       script.setAttribute(attr.name, attr.value)
     })
     script.async = false
-    script.textContent = old.textContent
+    var inline = !old.getAttribute('src') && runsAsScript((old.getAttribute('type') || '').trim().toLowerCase())
+    script.textContent = inline ? old.textContent + namedAfterTheDocument : old.textContent
     old.parentNode.replaceChild(script, old)
   })
   template.parentNode.replaceChild(fragment, template)

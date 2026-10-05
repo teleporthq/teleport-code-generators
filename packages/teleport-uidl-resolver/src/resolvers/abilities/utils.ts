@@ -7,6 +7,8 @@ import {
   UIDLAttributeValue,
   UIDLPropDefinition,
   UIDLDynamicReference,
+  UIDLDataSourceItemNode,
+  UIDLDataSourceListNode,
 } from '@teleporthq/teleport-types'
 
 type NavlinkDifferentiatorValue = NonNullable<UIDLNavLinkNode['content']['differentiatorValue']>
@@ -140,6 +142,31 @@ const markBoxless = (linkNode: UIDLElementNode): void => {
   }
 }
 
+/** Resolves the links in the nodes a data provider renders for each of its states. */
+const insertLinksInDataSourceNodes = (
+  dataSourceNode: UIDLDataSourceItemNode | UIDLDataSourceListNode,
+  options: GeneratorOptions,
+  layoutParent: UIDLElementNode | undefined,
+  propDefinitions?: Record<string, UIDLPropDefinition>
+): void => {
+  const { nodes } = dataSourceNode.content
+  if (!nodes) {
+    return
+  }
+
+  if (nodes.success) {
+    nodes.success = insertLinks(nodes.success, options, false, layoutParent, propDefinitions)
+  }
+
+  if (nodes.error) {
+    nodes.error = insertLinks(nodes.error, options, false, layoutParent, propDefinitions)
+  }
+
+  if (nodes.loading) {
+    nodes.loading = insertLinks(nodes.loading, options, false, layoutParent, propDefinitions)
+  }
+}
+
 export const insertLinks = (
   node: UIDLElementNode,
   options: GeneratorOptions,
@@ -159,6 +186,23 @@ export const insertLinks = (
 
   node.content.children = children?.map((child) => {
     if (child.type === 'element') {
+      // The editor wraps an element bound to a data source as an element whose
+      // content IS the provider; every other generator pass reads it that way.
+      // Walked as a plain element it looked empty, so a link inside the
+      // provider — a details-page link reading its record off it — was dropped.
+      const wrappedDataSource = child.content as unknown as { type?: string }
+      if (
+        wrappedDataSource.type === 'data-source-item' ||
+        wrappedDataSource.type === 'data-source-list'
+      ) {
+        insertLinksInDataSourceNodes(
+          child.content as unknown as UIDLDataSourceItemNode | UIDLDataSourceListNode,
+          options,
+          layoutParent,
+          propDefinitions
+        )
+        return child
+      }
       return insertLinks(child, options, linkInNode, layoutParent, propDefinitions)
     }
 
@@ -332,39 +376,7 @@ export const insertLinks = (
     }
 
     if (child.type === 'data-source-list' || child.type === 'data-source-item') {
-      const {
-        nodes: { success, error, loading },
-      } = child.content
-
-      if (success) {
-        child.content.nodes.success = insertLinks(
-          success,
-          options,
-          false,
-          layoutParent,
-          propDefinitions
-        )
-      }
-
-      if (error) {
-        child.content.nodes.error = insertLinks(
-          error,
-          options,
-          false,
-          layoutParent,
-          propDefinitions
-        )
-      }
-
-      if (loading) {
-        child.content.nodes.loading = insertLinks(
-          loading,
-          options,
-          false,
-          layoutParent,
-          propDefinitions
-        )
-      }
+      insertLinksInDataSourceNodes(child, options, layoutParent, propDefinitions)
     }
 
     return child
