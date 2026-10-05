@@ -66,6 +66,8 @@ describe('insertLink', () => {
     // The image is the anchor's own child: no element in between.
     expect((anchor.content.children[0] as UIDLElementNode).content.elementType).toBe('image')
     expect(anchor.content.style?.display).toBeUndefined()
+    // it says it was a box, which is how the reset stylesheet keeps it a block
+    expect(anchor.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
   })
 
   it('still wraps an element that has a box of its own: a style, a class, an event or a runtime attribute', () => {
@@ -593,12 +595,50 @@ describe('link rules that generated sites depend on', () => {
       expect(card.content.elementType).toBe('link')
       expect(card.content.attrs.url).toBeDefined()
       expect(card.content.style?.padding).toEqual({ type: 'static', content: '24px' })
-      // nothing of the link's making on it: no display, no wrapper marker, no element in between
+      // no display, no wrapper marker, no element in between: only the word that it was a box
       expect(card.content.style?.display).toBeUndefined()
       expect(card.content.attrs['data-thq-link-wrapper']).toBeUndefined()
+      expect(card.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
       expect(card.content.children ?? []).toHaveLength(0)
     }
   )
+
+  // Measured on 0.43.71 (release audit, 2026-10-05): a menu whose row turns into
+  // a plain block on phones kept its links side by side there, and three bare
+  // linked boxes in a block parent sat on one line. The canvas draws <div>s.
+  it('a box that becomes the link is marked whatever its parent, so the reset keeps it a block', () => {
+    const bare = linked(elementNode('container', {}, [elementNode('text')]))
+    const menuItem = styledCard()
+
+    const inBlockParent = insertLinks(withDisplay('block', bare), {}, false).content
+      .children[0] as UIDLElementNode
+    const inRow = insertLinks(withDisplay('flex', menuItem), {}, false).content
+      .children[0] as UIDLElementNode
+
+    for (const anchor of [inBlockParent, inRow]) {
+      expect(anchor.content.elementType).toBe('link')
+      expect(anchor.content.attrs['data-thq-link-box']).toEqual({
+        type: 'static',
+        content: 'true',
+      })
+    }
+  })
+
+  it('a wrapper, and an element that is not a box, never say they are one', () => {
+    const wrapped = insertLinks(withDisplay('block', styledCard()), {}, false).content
+      .children[0] as UIDLElementNode
+    const heading = insertLinks(withDisplay('flex', linkedHeading()), {}, false).content
+      .children[0] as UIDLElementNode
+    const button = insertLinks(linked(elementNode('button')), {}, false)
+    const span = elementNode('text')
+    span.content.semanticType = 'span'
+    const textLink = insertLinks(linked(span), {}, false)
+
+    for (const anchor of [wrapped, heading, button, textLink]) {
+      expect(anchor.content.elementType).toBe('link')
+      expect(anchor.content.attrs['data-thq-link-box']).toBeUndefined()
+    }
+  })
 
   it.each(['flex', 'inline-flex', 'grid', 'inline-grid'])(
     'an element that keeps its tag is wrapped inside a %s parent, and that wrapper draws no box so the element stays the item',
