@@ -131,6 +131,30 @@ const parentIsFlexOrGridContainer = (
    ring on the element it wraps while the wrapper holds keyboard focus. */
 export const BOXLESS_LINK_WRAPPER_ATTR = 'data-thq-link-wrapper'
 
+/* A <div> written as its own link stops being a block: a link is laid out in
+   line with text unless a rule says otherwise, while the canvas keeps drawing
+   the <div>. Measured on 0.43.71: three bare linked boxes in a block parent sat
+   on one line, and a menu whose row turns into a plain block on phones kept
+   its items side by side there. The element says what it is, and the reset
+   stylesheet gives it the block layout at zero weight, so any rule of the
+   page's own still decides. */
+export const LINKED_BOX_ATTR = 'data-thq-link-box'
+
+const becomeTheLink = (
+  node: UIDLElementNode,
+  link: UIDLLinkNode,
+  options: GeneratorOptions
+): UIDLElementNode => {
+  node.content.elementType = getLinkElementType(link)
+  node.content.semanticType = ''
+  node.content.attrs = {
+    ...node.content.attrs,
+    ...createLinkAttributes(link, options),
+    [LINKED_BOX_ATTR]: { type: 'static', content: 'true' },
+  }
+  return node
+}
+
 const markBoxless = (linkNode: UIDLElementNode): void => {
   linkNode.content.style = {
     ...linkNode.content.style,
@@ -456,13 +480,7 @@ export const insertLinks = (
        wrapper — showed a page the generated site did not. An element with a box
        of its own keeps the wrapper below, so its sizing stays on it. */
     if (isBareContainer(node)) {
-      node.content.elementType = getLinkElementType(abilities.link)
-      node.content.semanticType = ''
-      node.content.attrs = {
-        ...node.content.attrs,
-        ...createLinkAttributes(abilities.link, options),
-      }
-      return node
+      return becomeTheLink(node, abilities.link, options)
     }
 
     /* A plain <div> that is a flex or grid ITEM becomes the anchor itself.
@@ -470,7 +488,8 @@ export const insertLinks = (
        cannot focus a box-less link: Tab skips it and focus() fails (measured on
        Chrome 151 and 153), so a keyboard visitor could not reach any linked
        card in a row or a grid. A flex or grid item is laid out as a block
-       whatever its tag, so nothing about its box changes; its id, classes and
+       whatever its tag, and at a width where the parent stops being a row or
+       a grid the reset keeps it one (LINKED_BOX_ATTR); its id, classes and
        runtime attributes stay where the stylesheet and the scene runtime look
        for them; and the tree is the one the canvas draws, which adds no link
        element either. Measured on a generated store, 216 links on 8 pages:
@@ -483,13 +502,7 @@ export const insertLinks = (
       parentIsFlexOrGridContainer(parentNode, options) &&
       isPlainContainer(node)
     ) {
-      node.content.elementType = getLinkElementType(abilities.link)
-      node.content.semanticType = ''
-      node.content.attrs = {
-        ...node.content.attrs,
-        ...createLinkAttributes(abilities.link, options),
-      }
-      return node
+      return becomeTheLink(node, abilities.link, options)
     }
 
     const linkNode = createLinkNode(abilities.link, options)
