@@ -266,12 +266,18 @@ export const generateHtmlSyntax: NodeToHTML<
       // the burger of a closed menu, the first tab — and a download lost that
       // content.)
       const renderWhenPassing = async (currentValue: UIDLPropDefinition['defaultValue']) => {
-        const statements = createConditionalStatement(
-          staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : leafConditions,
-          currentValue
-        )
         const joiner = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
         try {
+          // Inside the guard: a value this evaluator cannot write as code (a
+          // list compared with `===`) is a condition it cannot answer, and an
+          // unanswered condition renders nothing. Thrown from here it failed
+          // the export of the whole project.
+          const statements = createConditionalStatement(
+            staticValue !== undefined
+              ? [{ operand: staticValue, operation: '===' }]
+              : leafConditions,
+            currentValue
+          )
           // tslint:disable-next-line function-constructor
           const passing = new Function(`return ${statements.join(` ${joiner} `)}`)()
           if (!passing) {
@@ -450,12 +456,92 @@ export const generateHtmlSyntax: NodeToHTML<
   }
 }
 
+/**
+ * The operations that read a value as a collection, answered on the value
+ * itself with the meaning the generators give them everywhere else
+ * (`stringifyConditionalExpression` in teleport-plugin-common's node-to-html,
+ * `createBinaryExpression` in node-to-jsx): `(value || []).length`,
+ * `.includes(operand)`, `.some((item) => item[field] === operand)`,
+ * `hasOwnProperty`. A list or an object cannot be written into the comparison
+ * `createConditionalStatement` builds, and the unary fallback below read
+ * "is not empty" as "is not".
+ */
+const COLLECTION_OPERATIONS = [
+  'isEmpty',
+  'isNotEmpty',
+  'lengthEquals',
+  'lengthGreaterThan',
+  'lengthLessThan',
+  'contains',
+  'notContains',
+  'hasKey',
+  'notHasKey',
+]
+
+const passesCollectionTest = (
+  operation: string,
+  value: unknown,
+  operand: unknown,
+  containsField?: string
+): boolean => {
+  const collection = (value || []) as {
+    length?: number
+    includes?: (item: unknown) => boolean
+    some?: (test: (item: unknown) => boolean) => boolean
+  }
+  const length = collection.length as number
+  const contains = (): boolean => {
+    if (containsField) {
+      return (
+        typeof collection.some === 'function' &&
+        collection.some(
+          (item) => (item as Record<string, unknown> | null)?.[containsField] === operand
+        )
+      )
+    }
+    return typeof collection.includes === 'function' && collection.includes(operand)
+  }
+  const hasKey = (): boolean =>
+    Object.prototype.hasOwnProperty.call(value || {}, operand as PropertyKey)
+
+  switch (operation) {
+    case 'isEmpty':
+      return length === 0
+    case 'isNotEmpty':
+      return length > 0
+    case 'lengthEquals':
+      return length === operand
+    case 'lengthGreaterThan':
+      return length > (operand as number)
+    case 'lengthLessThan':
+      return length < (operand as number)
+    case 'contains':
+      return contains()
+    case 'notContains':
+      return !contains()
+    case 'hasKey':
+      return hasKey()
+    default:
+      return !hasKey()
+  }
+}
+
+/** Another value of the page, read while the page runs: not known here. */
+const isReference = (operand: unknown): boolean =>
+  typeof operand === 'object' && operand !== null && 'type' in operand
+
 const createConditionalStatement = (
   conditions: UIDLConditionExpressionEntry[],
   leftOperand: UIDLPropDefinition['defaultValue']
 ) => {
   return conditions.map((condition) => {
     const { operation, operand } = condition
+
+    if (operation && COLLECTION_OPERATIONS.includes(operation)) {
+      return isReference(operand)
+        ? 'false'
+        : String(passesCollectionTest(operation, leftOperand, operand, condition.containsField))
+    }
 
     // No operand: the condition tests the value itself ("is open", "not
     // loading"), the way the JSX generators render it. It used to test the

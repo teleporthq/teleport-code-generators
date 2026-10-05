@@ -120,6 +120,73 @@ describe('Conditions in a static HTML page', () => {
     expect(openingTag(page, 'regular-price')).not.toContain('data-tq-if')
   })
 
+  it('a condition on a list or an object is answered on what it starts with', async () => {
+    const page = await homePage(
+      [
+        when(state('lines'), [{ operation: 'isEmpty' }], 'cart-empty'),
+        when(state('lines'), [{ operation: 'isNotEmpty' }], 'cart-lines'),
+        when(state('picked'), [{ operation: 'isNotEmpty' }], 'some-picked'),
+        when(state('picked'), [{ operation: 'contains', operand: 'b' }], 'picked-b'),
+        when(state('picked'), [{ operation: 'notContains', operand: 'z' }], 'not-picked-z'),
+        when(state('picked'), [{ operation: 'contains', operand: 'z' }], 'picked-z'),
+        when(state('picked'), [{ operation: 'lengthGreaterThan', operand: 1 }], 'several'),
+        when(state('picked'), [{ operation: 'lengthEquals', operand: 3 }], 'three'),
+        when(
+          state('rows'),
+          [{ operation: 'contains', operand: 7, containsField: 'id' }],
+          'row-seven'
+        ),
+        when(state('filters'), [{ operation: 'hasKey', operand: 'size' }], 'by-size'),
+        when(state('filters'), [{ operation: 'notHasKey', operand: 'size' }], 'any-size'),
+        when(state('heading'), [{ operation: 'isNotEmpty' }], 'with-heading'),
+      ],
+      {
+        lines: { type: 'array', defaultValue: [] },
+        picked: { type: 'array', defaultValue: ['a', 'b'] },
+        rows: { type: 'array', defaultValue: [{ id: 7 }, { id: 9 }] },
+        filters: { type: 'object', defaultValue: { size: 'm' } },
+        heading: { type: 'string', defaultValue: 'Hello' },
+      }
+    )
+
+    const shown = [
+      'cart-empty',
+      'some-picked',
+      'picked-b',
+      'not-picked-z',
+      'several',
+      'row-seven',
+      'by-size',
+      'with-heading',
+    ]
+    const absent = ['cart-lines', 'picked-z', 'three', 'any-size']
+    expect(shown.filter((id) => !shows(page, id))).toEqual([])
+    expect(absent.filter((id) => inPage(page, id))).toEqual([])
+  })
+
+  it('a condition it cannot answer renders nothing, and the page is still exported', async () => {
+    const page = await homePage(
+      [
+        // a list is not a value `===` can be written against
+        when(state('lines'), [{ operation: '===', operand: 'x' }], 'list-equals'),
+        // the other side is read while the page runs
+        when(state('picked'), [{ operation: 'contains', operand: state('choice') }], 'by-choice'),
+        when(state('filters'), [{ operation: '!' }], 'no-filters'),
+        when(state('open'), [{ operation: '===', operand: true }], 'panel'),
+      ],
+      {
+        lines: { type: 'array', defaultValue: [] },
+        picked: { type: 'array', defaultValue: ['a'] },
+        filters: { type: 'object', defaultValue: {} },
+        choice: { type: 'string', defaultValue: 'a' },
+        open: { type: 'boolean', defaultValue: true },
+      }
+    )
+
+    expect(['list-equals', 'by-choice', 'no-filters'].filter((id) => inPage(page, id))).toEqual([])
+    expect(shows(page, 'panel')).toBe(true)
+  })
+
   it('a value holding a quote still compares', async () => {
     const quote = 'She said "yes"'
     const page = await homePage(
