@@ -7,6 +7,11 @@ import { GeneratorFactoryParams } from '@teleporthq/teleport-types'
 import HTMLTemplate from './project-template'
 import { pluginCloneGlobals, ProjectPluginCloneGlobals } from './plugin-clone-globals'
 import { pluginHomeReplace } from './plugin-home-replace'
+import { pluginSnapIntoView, ProjectPluginSnapIntoView } from './plugin-snap-into-view'
+import { pluginScrollRail, ProjectPluginScrollRail } from './plugin-scroll-rail'
+import { pluginMotionRuntime, ProjectPluginMotionRuntime } from './plugin-motion-runtime'
+import { pluginStateRuntime, ProjectPluginStateRuntime } from './plugin-state-runtime'
+import { pluginPageTransition, ProjectPluginPageTransition } from './plugin-page-transition'
 import { htmlErrorPageMapping } from './error-page-mapping'
 
 interface HTMLProjectGeneratorOptions {
@@ -64,6 +69,16 @@ export {
   HTMLTemplate,
   pluginCloneGlobals,
   pluginHomeReplace,
+  pluginSnapIntoView,
+  pluginScrollRail,
+  pluginMotionRuntime,
+  pluginStateRuntime,
+  pluginPageTransition,
   htmlErrorPageMapping,
   ProjectPluginCloneGlobals,
+  ProjectPluginSnapIntoView,
+  ProjectPluginScrollRail,
+  ProjectPluginMotionRuntime,
+  ProjectPluginStateRuntime,
+  ProjectPluginPageTransition,
 }

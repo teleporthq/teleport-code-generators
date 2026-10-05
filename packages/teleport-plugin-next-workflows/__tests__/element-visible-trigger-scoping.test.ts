@@ -294,3 +294,25 @@ describe('event-element-visible — config/handler integrity when the module is 
     expect(code).toContain('const __wfConfig_wf_cookie_visible =')
   })
 })
+
+// The inspector writes the threshold as a percent and, in projects saved before
+// 2026-09-18, the run choice as `triggerOnce` (see element-visible-trigger.ts).
+describe('event-element-visible — the inspector settings reach the page', () => {
+  it('a 50% threshold becomes the 0.5 the browser accepts, and "every time" keeps observing', async () => {
+    const code =
+      (await getWorkflowModule(
+        elementVisibleWorkflow({
+          nodeId: NODE_ID,
+          elementHtmlId: HTML_ID,
+          threshold: 50,
+          triggerOnce: false,
+        }),
+        HTML_ID
+      )) || ''
+
+    expect(code).toContain('Math.min(0.5, reach * 0.9)')
+    expect(code).not.toContain('threshold: 50 }')
+    // the only disconnect left is the cleanup's
+    expect(code.match(/__obs_wf_cookie_visible\.disconnect\(\)/g)).toHaveLength(1)
+  })
+})

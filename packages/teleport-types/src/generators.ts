@@ -643,6 +643,32 @@ export enum ProjectType {
   HTML = 'HTML',
 }
 
+/**
+ * What a downloaded project plays, per export. The editor reads this to tell
+ * users honestly what a download carries, so a capability is added HERE in the
+ * change that builds it: an editor installing an older generator finds no entry
+ * and keeps its old warnings, and one installing a newer generator stops
+ * warning about what now works, with nobody remembering to flip a banner.
+ *
+ * `conditions`: `runtime` re-evaluates an element's rendering condition as the
+ * visitor interacts (the static HTML export through its `tq-state.js`, for the
+ * conditions, clicks, tab workflows and state classes it compiles);
+ * `first-load` shows each element as the page first loads.
+ */
+export interface ExportPlayback {
+  motion: boolean
+  conditions: 'runtime' | 'first-load'
+}
+
+export const EXPORT_PLAYBACK: Record<ProjectType, ExportPlayback> = {
+  [ProjectType.NEXT]: { motion: true, conditions: 'runtime' },
+  [ProjectType.HTML]: { motion: true, conditions: 'runtime' },
+  [ProjectType.REACT]: { motion: false, conditions: 'runtime' },
+  [ProjectType.VUE]: { motion: false, conditions: 'runtime' },
+  [ProjectType.NUXT]: { motion: false, conditions: 'runtime' },
+  [ProjectType.ANGULAR]: { motion: false, conditions: 'runtime' },
+}
+
 export enum ComponentType {
   REACT = 'React',
   VUE = 'Vue',

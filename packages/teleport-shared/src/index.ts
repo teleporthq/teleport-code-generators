@@ -28,6 +28,10 @@ import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
+import * as ScrollSceneRuntime from './scroll-scene'
+import * as MotionRuntime from './motion-runtime'
+import * as PageTransition from './page-transition'
+import * as StateBindings from './state-bindings'
 import * as WebPush from './utils/web-push'
 import * as InlineScriptErrorGuard from './utils/inline-script-error-guard'
 
@@ -62,6 +66,10 @@ export {
   RichTextEmbedsCodegen,
   DataCache,
   PageRevalidate,
+  ScrollSceneRuntime,
+  MotionRuntime,
+  PageTransition,
+  StateBindings,
   WebPush,
   InlineScriptErrorGuard,
 }

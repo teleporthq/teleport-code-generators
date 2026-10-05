@@ -80,6 +80,7 @@ export default class Resolver {
     // fail the static export / `next build`.
     resolveUnboundExpressions(uidl)
 
+    utils.reserveProjectStyleNames(newOptions.projectStyleSet?.styleSetDefinitions, lookup)
     utils.createNodesLookup(uidl, lookup)
     utils.generateUniqueKeys(uidl, lookup)
 

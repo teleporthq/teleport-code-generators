@@ -35,6 +35,16 @@ import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { generateUniqueKeys, createNodesLookup } from '@teleporthq/teleport-uidl-resolver'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
+import {
+  StateScope,
+  bindConditionalContent,
+  bindElement,
+  compileCondition,
+  createStateScope,
+  lendToInstance,
+  lenderOf,
+  markStateScope,
+} from './state-bindings'
 
 const getTranslation = (
   id: string,
@@ -119,6 +129,7 @@ type NodeToHTML<NodeType, ReturnType> = (
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
     outputOptions: UIDLComponentOutputOptions
+    stateScope?: StateScope
   },
   /**
    * This param is just to be able to handle CMS array mappers/Repeater nodes. A bit hacky, better support should be implemented
@@ -197,6 +208,30 @@ export const generateHtmlSyntax: NodeToHTML<
       return repeatNode
 
     case 'conditional':
+      // A condition on the page's (or the instance's) own state keeps every
+      // branch in the page and lets the state runtime switch between them.
+      const { stateScope } = structure
+      const stateCondition =
+        stateScope &&
+        compileCondition(node.content, {
+          scope: stateScope,
+          props: propDefinitions,
+          repeater: resolvedExpressions,
+        })
+      if (stateCondition) {
+        const branch = await generateHtmlSyntax(
+          node.content.node,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure,
+          resolvedExpressions
+        )
+        return bindConditionalContent(branch, stateCondition, stateScope)
+      }
+
       const conditionalNodeComment = HASTBuilders.createTextNode('')
       const {
         value: staticValue,
@@ -208,11 +243,11 @@ export const generateHtmlSyntax: NodeToHTML<
         return conditionalNodeComment
       }
 
-      // This evaluator resolves ONE reference to its default value and checks
+      // Anything the state runtime cannot run is resolved here, once. This
+      // evaluator resolves ONE reference to its default value and checks
       // a FLAT condition chain against it. Entries carrying their own
       // per-entry `reference` and nested groups cannot be answered that way —
-      // bail out like the `state` branch below does (render nothing) instead
-      // of evaluating them wrong.
+      // bail out (render nothing) instead of evaluating them wrong.
       if (
         conditions.some(
           (conditionEntry) =>
@@ -224,6 +259,38 @@ export const generateHtmlSyntax: NodeToHTML<
 
       // The guard above ensured every remaining entry is a flat leaf.
       const leafConditions = conditions as UIDLConditionExpressionEntry[]
+
+      // Such a condition is resolved against the value its reference STARTS
+      // with: the page shows what a visitor sees on first load of the Next.js
+      // export. (State conditions used to render nothing at all, true or not —
+      // the burger of a closed menu, the first tab — and a download lost that
+      // content.)
+      const renderWhenPassing = async (currentValue: UIDLPropDefinition['defaultValue']) => {
+        const statements = createConditionalStatement(
+          staticValue !== undefined ? [{ operand: staticValue, operation: '===' }] : leafConditions,
+          currentValue
+        )
+        const joiner = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
+        try {
+          // tslint:disable-next-line function-constructor
+          const passing = new Function(`return ${statements.join(` ${joiner} `)}`)()
+          if (!passing) {
+            return conditionalNodeComment
+          }
+        } catch (error) {
+          return conditionalNodeComment
+        }
+        return generateHtmlSyntax(
+          node.content.node,
+          compName,
+          nodesLookup,
+          propDefinitions,
+          stateDefinitions,
+          subComponentOptions,
+          structure,
+          resolvedExpressions
+        )
+      }
 
       const {
         content: { referenceType, id, refPath = [] },
@@ -243,39 +310,7 @@ export const generateHtmlSyntax: NodeToHTML<
           // If defaultValue is undefined or null after path traversal, use original default
           defaultValue = defaultValue ?? usedProp.defaultValue
 
-          // Since we know the operand and the default value from the prop.
-          // We can try building the condition and check if the condition is true or false.
-          // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
-          // UIDL validations need to be improved on this aspect.
-          const dynamicConditions = createConditionalStatement(
-            staticValue !== undefined
-              ? [{ operand: staticValue, operation: '===' }]
-              : leafConditions,
-            defaultValue
-          )
-          const matchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-          const conditionString = dynamicConditions.join(` ${matchCondition} `)
-
-          try {
-            // tslint:disable-next-line function-constructor
-            const isConditionPassing = new Function(`return ${conditionString}`)()
-            if (isConditionPassing) {
-              return generateHtmlSyntax(
-                node.content.node,
-                compName,
-                nodesLookup,
-                propDefinitions,
-                stateDefinitions,
-                subComponentOptions,
-                structure,
-                resolvedExpressions
-              )
-            }
-          } catch (error) {
-            return conditionalNodeComment
-          }
-
-          return conditionalNodeComment
+          return renderWhenPassing(defaultValue)
         }
 
         case 'local': {
@@ -303,38 +338,21 @@ export const generateHtmlSyntax: NodeToHTML<
             return conditionalNodeComment
           }
 
-          const localConditions = createConditionalStatement(
-            staticValue !== undefined
-              ? [{ operand: staticValue, operation: '===' }]
-              : leafConditions,
-            localValue as UIDLPropDefinition['defaultValue']
-          )
-          const localMatchCondition = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-          const localConditionString = localConditions.join(` ${localMatchCondition} `)
-
-          try {
-            // tslint:disable-next-line function-constructor
-            const isLocalConditionPassing = new Function(`return ${localConditionString}`)()
-            if (isLocalConditionPassing) {
-              return generateHtmlSyntax(
-                node.content.node,
-                compName,
-                nodesLookup,
-                propDefinitions,
-                stateDefinitions,
-                subComponentOptions,
-                structure,
-                resolvedExpressions
-              )
-            }
-          } catch (error) {
-            return conditionalNodeComment
-          }
-
-          return conditionalNodeComment
+          return renderWhenPassing(localValue as UIDLPropDefinition['defaultValue'])
         }
 
-        case 'state':
+        case 'state': {
+          const usedState = stateDefinitions?.[id]
+          if (usedState === undefined || usedState.defaultValue === undefined) {
+            return conditionalNodeComment
+          }
+          let startValue = usedState.defaultValue as UIDLPropDefinition['defaultValue']
+          for (const path of refPath) {
+            startValue = (startValue as Record<string, UIDLPropDefinition['defaultValue']>)?.[path]
+          }
+          return renderWhenPassing(startValue)
+        }
+
         default:
           return conditionalNodeComment
       }
@@ -439,8 +457,12 @@ const createConditionalStatement = (
   return conditions.map((condition) => {
     const { operation, operand } = condition
 
+    // No operand: the condition tests the value itself ("is open", "not
+    // loading"), the way the JSX generators render it. It used to test the
+    // missing operand, `!undefined`, which is true whatever the value.
     if (operand === undefined) {
-      return `${ASTUtils.convertToUnaryOperator(operation)}${getValueType(operand)}`
+      const value = `(${getValueType(leftOperand)})`
+      return operation ? `${ASTUtils.convertToUnaryOperator(operation)}${value}` : value
     }
 
     return `${getValueType(leftOperand)} ${ASTUtils.convertToBinaryOperator(
@@ -453,7 +475,7 @@ const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
   const valueType = typeof value
   switch (valueType) {
     case 'string':
-      return `"${value}"`
+      return JSON.stringify(value)
     case 'number':
       return value
     case 'boolean':
@@ -704,6 +726,9 @@ const generateElementNode: NodeToHTML<
     dependency,
   } = node.content
   const { dependencies } = structure
+  // Slot content and element props are written by the parent, so they read the parent's states.
+  const lender = lenderOf(node.content)
+  const elementStructure = lender ? { ...structure, stateScope: lender.owner } : structure
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
     const compTag = await generateComponentContent(
       node,
@@ -711,12 +736,15 @@ const generateElementNode: NodeToHTML<
       propDefinitions,
       stateDefinitions,
       subComponentOptions,
-      structure,
+      elementStructure,
       resolvedExpressions
     )
 
     if ('tagName' in compTag) {
       compTag.children.unshift(HASTBuilders.createComment(`${node.content.semanticType} component`))
+      if (lender) {
+        lender.host.borrowed.push(compTag)
+      }
     }
 
     return compTag
@@ -737,7 +765,7 @@ const generateElementNode: NodeToHTML<
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        structure,
+        elementStructure,
         resolvedExpressions
       )
 
@@ -780,6 +808,16 @@ const generateElementNode: NodeToHTML<
     resolvedExpressions?.currentIndex
   )
 
+  bindElement(
+    node.content,
+    elementNode,
+    { scope: elementStructure.stateScope, props: propDefinitions, repeater: resolvedExpressions },
+    structure.options
+  )
+  if (lender) {
+    lender.host.borrowed.push(elementNode)
+  }
+
   addNodeToLookup(node.content.key, elementNode, nodesLookup)
   return elementNode
 }
@@ -814,6 +852,7 @@ const generateComponentContent = async (
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
     outputOptions: UIDLComponentOutputOptions
+    stateScope?: StateScope
   },
   resolvedExpressions?: {
     expressions: Record<string, UIDLPropDefinition>
@@ -831,29 +870,29 @@ const generateComponentContent = async (
   }
 
   const componentClone = UIDLUtils.cloneObject<ComponentUIDL>(component)
+  const parentContent: UIDLElement[] = []
 
   if (children.length) {
     UIDLUtils.traverseNodes(componentClone.node, (childNode, parentNode) => {
       if (childNode.type === 'slot' && parentNode.type === 'element') {
         const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
-        parentNode.content.children = [
-          ...nonSlotNodes,
-          {
-            type: 'element',
-            content: {
-              key: 'custom-slot',
-              elementType: 'slot',
-              name: componentClone.name + 'slot',
-              style: {
-                display: {
-                  type: 'static',
-                  content: 'contents',
-                },
+        const slotElement: UIDLElementNode = {
+          type: 'element',
+          content: {
+            key: 'custom-slot',
+            elementType: 'slot',
+            name: componentClone.name + 'slot',
+            style: {
+              display: {
+                type: 'static',
+                content: 'contents',
               },
-              children,
             },
+            children,
           },
-        ]
+        }
+        parentContent.push(slotElement.content)
+        parentNode.content.children = [...nonSlotNodes, slotElement]
       }
     })
     /*
@@ -914,6 +953,19 @@ const generateComponentContent = async (
     {}
   )
 
+  // Every instance owns its states: two navigation bars open their menus one at a time.
+  const instanceScope = createStateScope(
+    component.name,
+    Object.keys(componentClone.stateDefinitions || {}).reduce(
+      (acc: Record<string, UIDLStateDefinition>, stateKey) => {
+        acc[stateKey] = statesForInstance[stateKey]
+        return acc
+      },
+      {}
+    )
+  )
+  parentContent.forEach((content) => lendToInstance(content, structure.stateScope, instanceScope))
+
   const propsForInstance: Record<string, UIDLPropDefinition> = {}
   // this is where we check if the component we are conusming is actually passing any props to the instance.
   // We check if we are passing any props and pick the value from the atrrs, if not we pick the value from the propDefinitions of
@@ -926,6 +978,7 @@ const generateComponentContent = async (
         ...combinedProps[propKey],
         defaultValue: attrs[propKey],
       }
+      lendToInstance(attribute.content, structure.stateScope, instanceScope)
     }
 
     if (attribute?.type === 'dynamic') {
@@ -1041,9 +1094,12 @@ const generateComponentContent = async (
     propsForInstance,
     statesForInstance,
     subComponentOptions,
-    structure,
+    { ...structure, stateScope: instanceScope },
     resolvedExpressions
   )
+  if (!Array.isArray(compTag) && compTag.type === 'element') {
+    markStateScope(compTag as HastNode, instanceScope)
+  }
 
   const cssPlugin = createCSSPlugin({
     templateStyle: 'html',
@@ -1401,6 +1457,12 @@ const handleAttributes = (
       case 'expr': {
         const fullPath = content.split('?.')
         const prop = propDefinitions[fullPath?.[0] || '']
+
+        // A repeated element's iteration number, as a repeated tab trigger's `data-tab-index`.
+        if (!prop && content === 'index' && typeof currentIndex === 'number') {
+          HASTUtils.addAttributeToNode(htmlNode, attrKey, String(currentIndex))
+          break
+        }
 
         if (!prop) {
           break

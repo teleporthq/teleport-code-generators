@@ -10,6 +10,7 @@ import {
 import {
   generateUniqueKeys,
   createNodesLookup,
+  reserveProjectStyleNames,
   resolveChildren,
   ensureDataSourceUniqueness,
   mergeMappings,
@@ -28,6 +29,55 @@ import {
   UIDLStyleDefinitions,
 } from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
+
+// A page named "Manifesto" names its root element `manifesto-container`. The
+// project style sheet is global, and another page had authored a
+// `.manifesto-container` two-column grid: the whole Manifesto page became that
+// grid in the generated site (navigation in one column, hero squeezed into the
+// other), while the editor canvas, which does not use generated names, was fine.
+describe('reserveProjectStyleNames', () => {
+  const styleSet = {
+    'manifesto-container': { type: 'reusable-project-style-map', content: {} },
+    heroTitle: { type: 'reusable-project-style-map', className: 'hero-title', content: {} },
+  } as never
+
+  it('keeps a generated element class off a class of the project style sheet', () => {
+    const root = elementNode('container', {}, [elementNode('text')])
+    const uidl = component('Manifesto', root)
+    const lookup = {}
+
+    reserveProjectStyleNames(styleSet, lookup)
+    createNodesLookup(uidl, lookup)
+    generateUniqueKeys(uidl, lookup)
+
+    expect(root.content.key).toBe('manifesto-container1')
+    expect((root.content.children?.[0].content as UIDLElement).key).toBe('manifesto-text')
+  })
+
+  it('reserves the class a style is emitted under, not only its id', () => {
+    const title = elementNode('title')
+    const uidl = component('Hero', title)
+    const lookup = {}
+
+    reserveProjectStyleNames(styleSet, lookup)
+    createNodesLookup(uidl, lookup)
+    generateUniqueKeys(uidl, lookup)
+
+    expect(title.content.key).toBe('hero-title1')
+  })
+
+  it('changes nothing without a project style sheet', () => {
+    const root = elementNode('container')
+    const uidl = component('Manifesto', root)
+    const lookup = {}
+
+    reserveProjectStyleNames(undefined, lookup)
+    createNodesLookup(uidl, lookup)
+    generateUniqueKeys(uidl, lookup)
+
+    expect(root.content.key).toBe('manifesto-container')
+  })
+})
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
