@@ -1,3 +1,4 @@
+import { ScrollSceneRuntime } from '@teleporthq/teleport-shared'
 import { activeChapterIndex } from '../src/widgets/scroll-scene-chapter-index'
 
 describe('activeChapterIndex (generated runtime)', () => {
@@ -27,9 +28,9 @@ describe('activeChapterIndex (generated runtime)', () => {
     expect(activeChapterIndex([0, 0.3], 0.3 - 1e-9)).toBe(1)
   })
 
-  it('its source survives injection into the runtime as plain JS', () => {
-    const source = activeChapterIndex.toString()
-    expect(source).toContain('function activeChapterIndex')
-    expect(source).not.toContain('`')
+  it('ships in the runtime as text derived from this file, under its own name', () => {
+    const source = ScrollSceneRuntime.SCROLL_SCENE_HELPER_SOURCES.activeChapterIndex
+    expect(source.startsWith('function activeChapterIndex(')).toBe(true)
+    expect(ScrollSceneRuntime.engineSource()).toContain(source)
   })
 })

@@ -1,3 +1,5 @@
+import { AI_SQL_SELECT_GUARD_SOURCES } from './ai-sql-select-guard-sources.generated'
+
 /**
  * Emits the SQL guard used by the `ai-select-database-data` node: a
  * SELECT-only validator with a table allowlist, a LIMIT enforcer, and the
@@ -15,18 +17,11 @@
  * logged server-side; it never reaches the workflow result.
  */
 
-// Mirrors ai-provider-utils' wrapWithGuard: emit under the (possibly
-// bundler-renamed) real name AND alias the stable global name to it, guarded
-// so repeated concatenation in one segment file stays idempotent.
-function wrapWithGuard(globalName: string, fn: (...args: unknown[]) => unknown): string {
-  const realName = fn.name || globalName
-  if (realName === globalName) {
-    return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${fn.toString()};`
-  }
-  return (
-    `var ${realName} = typeof ${realName} !== 'undefined' ? ${realName} : ${fn.toString()};\n` +
-    `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${realName};`
-  )
+// Mirrors ai-provider-utils' wrapWithGuard: the definition is text derived from
+// this file at build time (scripts/function-sources.js), guarded so repeated
+// concatenation in one segment file stays idempotent.
+function wrapWithGuard(globalName: string, source: string): string {
+  return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${source};`
 }
 
 /**
@@ -394,9 +389,18 @@ function __aisql_buildSystemPrompt(tableSchemas: any, allowedTables: any, maxRow
 
 export function generateAiSqlSelectGuard(): string {
   return [
-    wrapWithGuard('__aisql_stripLiteralsAndComments', __aisql_stripLiteralsAndComments),
-    wrapWithGuard('__aisql_validateSelectQuery', __aisql_validateSelectQuery),
-    wrapWithGuard('__aisql_enforceLimit', __aisql_enforceLimit),
-    wrapWithGuard('__aisql_buildSystemPrompt', __aisql_buildSystemPrompt),
+    wrapWithGuard(
+      '__aisql_stripLiteralsAndComments',
+      AI_SQL_SELECT_GUARD_SOURCES.__aisql_stripLiteralsAndComments
+    ),
+    wrapWithGuard(
+      '__aisql_validateSelectQuery',
+      AI_SQL_SELECT_GUARD_SOURCES.__aisql_validateSelectQuery
+    ),
+    wrapWithGuard('__aisql_enforceLimit', AI_SQL_SELECT_GUARD_SOURCES.__aisql_enforceLimit),
+    wrapWithGuard(
+      '__aisql_buildSystemPrompt',
+      AI_SQL_SELECT_GUARD_SOURCES.__aisql_buildSystemPrompt
+    ),
   ].join('\n\n')
 }
