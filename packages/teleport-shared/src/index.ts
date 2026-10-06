@@ -26,6 +26,8 @@ import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
+import * as RichTextContent from './utils/rich-text-content'
+import * as RichTextContentCodegen from './utils/rich-text-content-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
 import * as ScrollSceneRuntime from './scroll-scene'
@@ -64,6 +66,8 @@ export {
   EmailDate,
   RichTextEmbeds,
   RichTextEmbedsCodegen,
+  RichTextContent,
+  RichTextContentCodegen,
   DataCache,
   PageRevalidate,
   ScrollSceneRuntime,

@@ -1,0 +1,69 @@
+<p>In TeleportHQ, you add your own CSS animation in two parts. First, paste the animation's <code>@keyframes</code> inside a <code>&lt;style&gt;</code> tag in <strong>Project Settings → Custom Code → Head</strong> and click <strong>Save Changes</strong>. Then select an element and, in the <strong>right panel</strong>'s <strong>Advanced</strong> tab, add an <code>animation</code> property that uses the animation's name. Custom code runs on your published site, not on the editor canvas.</p>
+<h2>Before you start</h2>
+<ul>
+<li>This is for people comfortable with CSS. For animations without code, see <a href="animation-options.md">Which animation options does TeleportHQ have?</a></li>
+<li>You need permission to change project settings.</li>
+<li>Custom code isn't limited by plan.</li>
+<li>The 98 effects in the <strong>Animation</strong> section already come from the animate.css library, so you don't need to add that library to use them. See <a href="add-an-entrance-animation.md">How to animate an element when it scrolls into view</a>.</li>
+</ul>
+<h2>1. Add your keyframes</h2>
+<ol>
+<li>
+<p>In the editor, at the <strong>top left</strong>, click the TeleportHQ logo (tooltip <strong>Project Menu</strong>).</p>
+</li>
+<li>
+<p>Click <strong>Project Settings</strong>.</p>
+</li>
+<li>
+<p>In the settings menu on the left, click <strong>Custom Code</strong>.</p>
+</li>
+<li>
+<p>Under <strong>Custom code</strong>, click <strong>Head</strong>.</p>
+</li>
+<li>
+<p>Paste your animation inside a <code>&lt;style&gt;</code> tag. For example:</p>
+<pre><code class="language-html">&lt;style&gt;
+  @keyframes softPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+&lt;/style&gt;
+</code></pre>
+</li>
+<li>
+<p>Click <strong>Save Changes</strong>.</p>
+</li>
+</ol>
+<p><img src="screenshots/custom-animations-with-code-1.png" alt="The Custom Code settings with the Head tab selected and a style block with keyframes in the code editor"></p>
+<h2>2. Use the animation on an element</h2>
+<ol>
+<li>Go back to the editor and select the element. For example, an <strong>Order now</strong> button.</li>
+<li>In the <strong>right panel</strong>, open the <strong>Advanced</strong> tab.</li>
+<li>In the empty row, type <code>animation</code> in the <strong>property</strong> field.</li>
+<li>Type <code>softPulse 2s infinite</code> in the <strong>value</strong> field.</li>
+<li>Click <strong>+</strong> to add the row.</li>
+</ol>
+<p>To reuse the animation on many elements, add the same <code>animation</code> property to a CSS class instead, in the class's <strong>Properties</strong>. See <a href="../css-classes/edit-a-css-class.md">How to edit a CSS class</a>.</p>
+<h2>Add an animation library</h2>
+<p>To load another library, such as a scroll-animation script, paste its <code>&lt;link&gt;</code> or <code>&lt;script&gt;</code> tag from the library's documentation into <strong>Head</strong> (or <strong>Body</strong> for scripts that should load last), then click <strong>Save Changes</strong>. Follow the library's own instructions for the class names or attributes it needs.</p>
+<h2>Check that it worked</h2>
+<p>Custom code doesn't run on the TeleportHQ canvas, so the element stays still while you edit. Publish your site and open it to see the animation. See <a href="../../publishing/publish/publish-your-site.md">How to publish your site</a>.</p>
+<h2>Troubleshooting</h2>
+<p><strong>The animation doesn't play on my published site</strong>
+Check that the name in the <code>animation</code> value matches the <code>@keyframes</code> name exactly, including capital letters. Then check that you clicked <strong>Save Changes</strong> and published again after adding the code.</p>
+<p><strong>My site looks broken after adding code</strong>
+The settings page warns: &quot;WARNING: Invalid code added here might break your website.&quot; Remove the code you added, click <strong>Save Changes</strong>, and publish again. Then add it back one piece at a time.</p>
+<h2>Good to know</h2>
+<ul>
+<li>Code in <strong>Head</strong> is added to every page of your site.</li>
+<li>For custom fonts, don't use custom code. Use <strong>Project Settings → Fonts</strong>. See <a href="../fonts/upload-custom-fonts.md">How to upload your own fonts</a>.</li>
+</ul>
+<h2>Related articles</h2>
+<ul>
+<li><a href="animation-options.md">Which animation options does TeleportHQ have?</a></li>
+<li><a href="add-an-entrance-animation.md">How to animate an element when it scrolls into view</a></li>
+<li><a href="../styling/write-css-in-the-advanced-tab.md">How to write CSS directly (Advanced tab)</a></li>
+<li><a href="../../code/custom-code/add-custom-code-to-your-site.md">How to add code to every page (head and body)</a></li>
+<li><a href="../css-classes/edit-a-css-class.md">How to edit a CSS class</a></li>
+</ul>

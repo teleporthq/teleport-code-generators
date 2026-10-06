@@ -1,4 +1,5 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { RichTextContentCodegen } from '@teleporthq/teleport-shared'
 import { generateCategoryTaxonomyCode } from './category-taxonomy'
 import { generateAdjacentPostsCode } from './blog-adjacent-posts'
 import { generateBlogCommentsCode } from './blog-comments'
@@ -28,6 +29,7 @@ ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
 ${generateBlogCommentsCode()}
 ${generateAdjacentPostsCode()}
 ${generateHeadingAnchorsCode()}
+${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
 
 function buildBlogPost(record, options) {
@@ -42,7 +44,11 @@ function buildBlogPost(record, options) {
   // i18n-resolved text fields
   var title = resolveI18nField(record, 'title', 'title', currentLang, mainLang) || ''
   var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''
-  var content = resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
+  // A body stored before the rich-text contract (the studio's flat list lines,
+  // the admin panel's no-break spaces) reads as stored HTML from here on.
+  var content = normalizeLegacyRichTextHtml(
+    resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
+  )
   if (BLOG_HEADING_ANCHORS) content = addHeadingAnchors(content)
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
@@ -90,7 +96,9 @@ function buildBlogPost(record, options) {
   // Simple pass-through fields
   var authorName = pickFirst(record.author_name, record.authorName)
   var authorInitials = blogAuthorInitials(authorName)
-  var authorEmail = pickFirst(record.author_email, record.authorEmail)
+  // The author's email never leaves the server: a visitor's API read hides it
+  // (browser-row-policy.ts), and the page data a post or listing page ships
+  // is built here, so it is not part of the post a page sees either.
   var readingTimeMinutes = safeNumber(pickFirst(record.reading_time_minutes, record.readingTimeMinutes), null)
 
   // Tags - i18n-resolved then parsed as JSON array
@@ -207,9 +215,7 @@ function buildBlogPost(record, options) {
     galleryImages: galleryImages,
     allImages: allImages,
     authorName: authorName,
-    authorEmail: authorEmail,
     author_name: authorName,
-    author_email: authorEmail,
     authorAvatarUrl: authorAvatarUrl,
     authorBio: authorBio,
     authorInitials: authorInitials,

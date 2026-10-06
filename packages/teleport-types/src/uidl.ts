@@ -948,6 +948,9 @@ export type UIDLStructuredDataNode =
  * - `reviewList`: `<entity>.<column>` (an array of `{ author, rating, body,
  *   datePublished }`) mapped into schema.org `Review` objects, or `undefined`
  *   when the array is missing or empty.
+ * - `isoDate`: `<entity>.<column>` (milliseconds, an ISO string or a Date; or
+ *   `fallbackColumn` when it is empty) as the ISO 8601 string schema.org dates
+ *   take, or `undefined` when both are empty.
  */
 export interface UIDLStructuredDataComputed {
   type: 'computed'
@@ -958,9 +961,12 @@ export interface UIDLStructuredDataComputed {
     | 'aggregateRating'
     | 'namedEntity'
     | 'reviewList'
+    | 'isoDate'
   refPath: string[]
   column: string
   urlPrefix?: string
+  /** `isoDate` only: the field read when `column` is empty. */
+  fallbackColumn?: string
   /** `aggregateRating` only: the field holding the average score. */
   ratingValueColumn?: string
   /** `namedEntity` only: the schema.org type of the emitted object. */

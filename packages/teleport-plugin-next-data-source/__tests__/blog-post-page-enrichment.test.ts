@@ -29,6 +29,16 @@ const post = (id: string, overrides: Record<string, unknown> = {}) => ({
 })
 
 describe('blog post transform — author box fields', () => {
+  it('keeps the author email out of the post a page is given, under both spellings', () => {
+    const built = buildBlogPost(
+      post('a', { author_name: 'Ana', author_email: 'ana@example.com' })
+    ) as Record<string, unknown>
+    expect(built.authorName).toBe('Ana')
+    expect('authorEmail' in built).toBe(false)
+    expect('author_email' in built).toBe(false)
+    expect(JSON.stringify(built)).not.toContain('ana@example.com')
+  })
+
   it('resolves the bio in the request language, falling back to the main one', () => {
     const record = post('a', {
       author_bio: 'Writes about tea.',

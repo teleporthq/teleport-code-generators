@@ -63,6 +63,28 @@ const buildDynamicExpression = (
 const buildComputedExpression = (node: UIDLStructuredDataComputed): types.Expression => {
   const entityField = buildPropExpression([...node.refPath, node.column])
 
+  if (node.kind === 'isoDate') {
+    // (<entity>.<column> ?? <entity>.<fallback>) ? new Date(…).toISOString() : undefined
+    const value = node.fallbackColumn
+      ? types.logicalExpression(
+          '??',
+          entityField,
+          buildPropExpression([...node.refPath, node.fallbackColumn])
+        )
+      : entityField
+    return types.conditionalExpression(
+      value,
+      types.callExpression(
+        types.memberExpression(
+          types.newExpression(types.identifier('Date'), [value]),
+          types.identifier('toISOString')
+        ),
+        []
+      ),
+      types.identifier('undefined')
+    )
+  }
+
   if (node.kind === 'availability') {
     // <entity>.<column> === 0 ? OutOfStock : InStock
     return types.conditionalExpression(
