@@ -296,6 +296,8 @@ export interface ProjectUIDL {
   invoiceSettings?: UIDLInvoiceSettings
   ecommerceSettings?: UIDLEcommerceSettings
   blogSettings?: UIDLBlogSettings
+  /** The Help Center's — same shape as the Blog's; present for a project that activated it. */
+  helpCenterSettings?: UIDLBlogSettings
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
   pwa?: UIDLProgressiveWebApp
@@ -1137,6 +1139,8 @@ export interface UIDLGlobalReference {
       // The blog's baked category taxonomy, resolved through the generated
       // `@/blog-context` module's `useBlogCategories()` hook.
       | 'blogCategories'
+      // The Help Center's, through the same module's `useHelpCategories()`.
+      | 'helpCategories'
       | 'cart'
     refPath?: string[]
   }

@@ -21,6 +21,17 @@ describe('content tables', () => {
     expect(CONTENT_COMMENTS_TABLES).toContain('teleport_blog_comments')
   })
 
+  it('registers the Help Center with an articles table and no comments', () => {
+    expect(contentTablesByKey('help')).toEqual({
+      key: 'help',
+      posts: 'teleport_help_articles',
+      comments: null,
+    })
+    expect(contentTableRole('teleport_help_articles')).toEqual({ key: 'help', role: 'posts' })
+    expect(CONTENT_COMMENTS_TABLES).not.toContain('teleport_help_comments')
+    expect(VISITOR_ROW_POLICIES.teleport_help_articles).toBe(CONTENT_POSTS_VISITOR_ROW_POLICY)
+  })
+
   it('tells a content table apart from any other table, with its role', () => {
     expect(contentTableRole('teleport_blog_posts')).toEqual({ key: 'blog', role: 'posts' })
     expect(contentTableRole('teleport_blog_comments')).toEqual({ key: 'blog', role: 'comments' })

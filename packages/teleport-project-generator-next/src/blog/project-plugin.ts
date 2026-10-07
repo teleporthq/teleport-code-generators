@@ -26,8 +26,9 @@ export class NextBlogProjectPlugin implements ProjectPlugin {
   async runAfter(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, files } = structure
     const blogSettings = uidl.blogSettings
+    const helpCenterSettings = uidl.helpCenterSettings
 
-    if (!blogSettings && !projectReferencesBlogContext(files)) {
+    if (!blogSettings && !helpCenterSettings && !projectReferencesBlogContext(files)) {
       return structure
     }
 
@@ -37,7 +38,7 @@ export class NextBlogProjectPlugin implements ProjectPlugin {
         {
           name: 'blog-context',
           fileType: FileType.JS,
-          content: generateBlogContextFileContent(blogSettings),
+          content: generateBlogContextFileContent(blogSettings, helpCenterSettings),
         },
       ],
     })

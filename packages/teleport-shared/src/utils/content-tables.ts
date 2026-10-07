@@ -7,7 +7,7 @@
  * editor's wiring test; a table named anywhere else is a copy that drifts.
  */
 
-export type ContentPresetKey = 'blog'
+export type ContentPresetKey = 'blog' | 'help'
 
 export type ContentTableRole = 'posts' | 'comments'
 
@@ -21,6 +21,8 @@ export interface ContentTables {
 
 export const CONTENT_TABLES: ReadonlyArray<ContentTables> = [
   { key: 'blog', posts: 'teleport_blog_posts', comments: 'teleport_blog_comments' },
+  // The Help Center: articles at /help/<slug>, no reader comments.
+  { key: 'help', posts: 'teleport_help_articles', comments: null },
 ]
 
 export const CONTENT_POSTS_TABLES: ReadonlyArray<string> = CONTENT_TABLES.map(

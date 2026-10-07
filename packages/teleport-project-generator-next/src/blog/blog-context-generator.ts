@@ -14,8 +14,12 @@ import type { UIDLBlogSettings } from '@teleporthq/teleport-types'
  * `translations` map every category surface reads, so the whole tree (every
  * language) ships once and a locale switch costs no re-fetch.
  */
-export const generateBlogContextFileContent = (blogSettings?: UIDLBlogSettings): string => {
+export const generateBlogContextFileContent = (
+  blogSettings?: UIDLBlogSettings,
+  helpCenterSettings?: UIDLBlogSettings
+): string => {
   const categoriesJson = JSON.stringify(blogSettings?.categories || [])
+  const helpCategoriesJson = JSON.stringify(helpCenterSettings?.categories || [])
 
   return `import { useMemo } from 'react'
 import { useRouter } from 'next/router'
@@ -26,6 +30,9 @@ import { useRouter } from 'next/router'
 // \`iconUrl\`, the derived \`subtreeIds\` / \`prefixIds\` the post breadcrumbs gate
 // on, and a \`translations\` map keyed by locale.
 const BLOG_CATEGORIES = ${categoriesJson}
+
+// The Help Center's category tree, baked the same way from \`helpCategories\`.
+const HELP_CATEGORIES = ${helpCategoriesJson}
 
 // Resolve each category's name/description to \`locale\` from its
 // \`translations\` map, falling back to the main-language (top-level) fields
@@ -47,6 +54,11 @@ function resolveCategoryTranslations(categories, locale) {
 export const useBlogCategories = () => {
   const router = useRouter()
   return useMemo(() => resolveCategoryTranslations(BLOG_CATEGORIES, router.locale), [router.locale])
+}
+
+export const useHelpCategories = () => {
+  const router = useRouter()
+  return useMemo(() => resolveCategoryTranslations(HELP_CATEGORIES, router.locale), [router.locale])
 }
 `
 }

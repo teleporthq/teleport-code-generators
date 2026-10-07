@@ -1,5 +1,6 @@
 import type {
   GeneratorOptions,
+  UIDLBlogSettings,
   UIDLAuthentication,
   UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
@@ -26,7 +27,20 @@ export type { EcommerceProductTransformOptions }
  * to serve whichever transform that resolves to — the product fields are ignored
  * for a blog table and vice versa.
  */
+/** What a content preset bakes into its post transform — see `UIDLBlogSettings`. */
+export interface ContentPresetTransformSettings {
+  categories?: UIDLEcommerceCategory[]
+  headingAnchors?: boolean
+  comments?: boolean
+}
+
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
+  /**
+   * The settings of every content preset, by preset key — the post transform
+   * of a table reads its own preset's (`contentSettingsFor`). The `blog*`
+   * fields below are the Blog's, kept for the callers that name them.
+   */
+  contentSettings?: Partial<Record<ContentTables.ContentPresetKey, ContentPresetTransformSettings>>
   /** Blog post-category taxonomy — see `blogSettings.categories`. */
   blogCategories?: UIDLEcommerceCategory[]
   /** Post content headings get ids and `#` links — see `blogSettings.headingAnchors`. */
@@ -77,10 +91,48 @@ const resolveAllowBackorders = (
  * tax-inclusive or untaxed stores. `allowBackorders` is the effective
  * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
+const contentPresetTransformSettings = (
+  settings: UIDLBlogSettings | undefined
+): ContentPresetTransformSettings => ({
+  categories: settings?.categories,
+  headingAnchors: settings?.headingAnchors === true,
+  comments: settings?.comments === true,
+})
+
+/**
+ * The settings the transform of `tableName` bakes in: its preset's entry in
+ * `contentSettings`, or — for the Blog, and for a caller that only set the
+ * `blog*` fields — those fields. Empty for a table no preset owns.
+ */
+export const contentSettingsFor = (
+  options: Pick<
+    EntityTransformOptions,
+    'contentSettings' | 'blogCategories' | 'blogHeadingAnchors' | 'blogComments'
+  >,
+  tableName: string
+): ContentPresetTransformSettings => {
+  const role = ContentTables.contentTableRole(stripSchemaQualifier(tableName))
+  if (!role) {
+    return {}
+  }
+  const own = options.contentSettings?.[role.key]
+  if (own) {
+    return own
+  }
+  if (role.key === 'blog') {
+    return {
+      categories: options.blogCategories,
+      headingAnchors: options.blogHeadingAnchors,
+      comments: options.blogComments,
+    }
+  }
+  return {}
+}
+
 export const buildProductTransformOptions = (
   options: Pick<
     GeneratorOptions,
-    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'auth'
+    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'helpCenterSettings' | 'auth'
   > &
     LocalizedProjectOptions & {
       /**
@@ -96,6 +148,10 @@ export const buildProductTransformOptions = (
     }
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
+  contentSettings: {
+    blog: contentPresetTransformSettings(options.blogSettings),
+    help: contentPresetTransformSettings(options.helpCenterSettings),
+  },
   blogCategories: options.blogSettings?.categories,
   blogHeadingAnchors: options.blogSettings?.headingAnchors === true,
   blogComments: options.blogSettings?.comments === true,
@@ -169,12 +225,13 @@ export const getTransformationCode = (
   switch (type) {
     case 'blog-post': {
       const role = ContentTables.contentTableRole(stripSchemaQualifier(tableName))
+      const settings = contentSettingsFor(options, tableName)
       return (
         shared +
         generateBlogPostTransformationCode({
           tables: role ? ContentTables.contentTablesByKey(role.key) : undefined,
-          categories: options.blogCategories,
-          headingAnchors: options.blogHeadingAnchors,
+          categories: settings.categories,
+          headingAnchors: settings.headingAnchors,
         })
       )
     }
@@ -303,7 +360,7 @@ export const REVIEWS_PER_PRODUCT = 5
  */
 export const getTransformWrapperCode = (
   tableName: string,
-  options: Pick<EntityTransformOptions, 'localization' | 'blogComments'> = {}
+  options: Pick<EntityTransformOptions, 'localization' | 'blogComments' | 'contentSettings'> = {}
 ): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
@@ -437,7 +494,7 @@ export const getTransformWrapperCode = (
     } catch (e) {
       // Best-effort; the post navigation stays hidden.
     }${
-      options.blogComments
+      contentSettingsFor(options, tableName).comments === true
         ? `
     try {
       commentsByPostId = await getBlogCommentsMap(getClientFn, records)

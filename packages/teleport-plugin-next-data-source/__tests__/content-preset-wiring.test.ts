@@ -7,7 +7,14 @@ import {
   BROWSER_ROW_POLICIES,
   isViewDependentTable,
 } from '../src/fetchers/utils/browser-row-policy'
-import { detectTransformationType, getTransformationCode } from '../src/transformations'
+import {
+  buildProductTransformOptions,
+  contentSettingsFor,
+  detectTransformationType,
+  getTransformWrapperCode,
+  getTransformationCode,
+} from '../src/transformations'
+import { generateBlogContextFileContent } from '../../teleport-project-generator-next/src/blog/blog-context-generator'
 
 /**
  * Every content preset in the registry is wired through every generator that
@@ -49,5 +56,53 @@ describe('content preset wiring in the generators', () => {
     expect(detectTransformationType('blog_posts')).toBeNull()
     expect(BROWSER_ROW_POLICIES.blog_posts).toBeUndefined()
     expect(BROWSER_READABLE_TABLES).not.toContain('blog_posts')
+  })
+
+  it('bakes each preset\u2019s own settings into its transform, never another\u2019s', () => {
+    const blogTaxonomy = [{ id: 'b1', name: 'Blog cat', slug: 'blog-cat' }]
+    const helpTaxonomy = [{ id: 'h1', name: 'Help cat', slug: 'help-cat' }]
+    const options = buildProductTransformOptions({
+      blogSettings: { categories: blogTaxonomy as never, headingAnchors: false, comments: true },
+      helpCenterSettings: {
+        categories: helpTaxonomy as never,
+        headingAnchors: true,
+        comments: false,
+      },
+    })
+    expect(contentSettingsFor(options, 'teleport_blog_posts')).toEqual({
+      categories: blogTaxonomy,
+      headingAnchors: false,
+      comments: true,
+    })
+    expect(contentSettingsFor(options, 'teleport_help_articles')).toEqual({
+      categories: helpTaxonomy,
+      headingAnchors: true,
+      comments: false,
+    })
+    expect(contentSettingsFor(options, 'teleport_products')).toEqual({})
+    // The Blog's legacy fields still answer for a caller that set only them.
+    expect(contentSettingsFor({ blogComments: true }, 'teleport_blog_posts').comments).toBe(true)
+
+    // The article transform carries the Help Center's taxonomy and anchors, not the Blog's.
+    const helpCode = getTransformationCode('teleport_help_articles', options)
+    expect(helpCode).toContain('Help cat')
+    expect(helpCode).not.toContain('Blog cat')
+    expect(helpCode).toContain('var BLOG_HEADING_ANCHORS = true')
+    // Comments are a Blog feature: the article wrapper never queries a comments table.
+    expect(getTransformWrapperCode('teleport_help_articles', options)).not.toContain(
+      'getBlogCommentsMap('
+    )
+    expect(getTransformWrapperCode('teleport_blog_posts', options)).toContain('getBlogCommentsMap(')
+  })
+
+  it('exposes both taxonomies from the one generated context module', () => {
+    const code = generateBlogContextFileContent(
+      { categories: [{ id: 'b1', name: 'Blog cat', slug: 'blog-cat' }] as never },
+      { categories: [{ id: 'h1', name: 'Help cat', slug: 'help-cat' }] as never }
+    )
+    expect(code).toContain('const BLOG_CATEGORIES = [{"id":"b1"')
+    expect(code).toContain('const HELP_CATEGORIES = [{"id":"h1"')
+    expect(code).toContain('export const useBlogCategories = ()')
+    expect(code).toContain('export const useHelpCategories = ()')
   })
 })
