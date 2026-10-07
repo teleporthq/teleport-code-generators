@@ -1,3 +1,4 @@
+import { ScrollSceneRuntime } from '@teleporthq/teleport-shared'
 import { settledMomentForLanes } from '../src/widgets/scroll-scene-moment'
 
 /**
@@ -38,9 +39,9 @@ describe('settledMomentForLanes (generated runtime)', () => {
     expect(settledMomentForLanes([lane([0.75, 1], [100, -100])])).toBeNull()
   })
 
-  it('its source survives injection into the runtime as plain JS', () => {
-    const source = settledMomentForLanes.toString()
-    expect(source).toContain('function settledMomentForLanes')
-    expect(source).not.toContain('`')
+  it('ships in the runtime as text derived from this file, under its own name', () => {
+    const source = ScrollSceneRuntime.SCROLL_SCENE_HELPER_SOURCES.settledMomentForLanes
+    expect(source.startsWith('function settledMomentForLanes(')).toBe(true)
+    expect(ScrollSceneRuntime.engineSource()).toContain(source)
   })
 })
