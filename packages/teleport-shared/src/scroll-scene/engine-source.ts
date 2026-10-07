@@ -14,10 +14,7 @@
  * canvas, the Next site and the HTML site move identically. (No backticks in
  * the engine's own comments: it is a template literal.)
  */
-import { settledMomentForLanes } from './moment'
-import { activeChapterIndex } from './chapter-index'
-import { passedScenePoints, scenePointList, scenePointRank } from './points'
-import { unclipStickyAncestors } from './unclip'
+import { SCROLL_SCENE_HELPER_SOURCES } from './helper-sources.generated'
 
 export const scrollSceneEngineSource = (): string => `const SCROLL_BIND_ATTR = 'data-scroll-bind'
 // A chapter coming on stage is announced on the chapter element (bubbling), so
@@ -116,17 +113,17 @@ const isValidLane = (lane) => {
   return lane.unit === undefined || lane.unit === 'px' || lane.unit === '%' || lane.unit === 'vw'
 }
 
-${settledMomentForLanes.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.settledMomentForLanes}
 
-${activeChapterIndex.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.activeChapterIndex}
 
-${scenePointList.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.scenePointList}
 
-${passedScenePoints.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.passedScenePoints}
 
-${scenePointRank.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.scenePointRank}
 
-${unclipStickyAncestors.toString()}
+${SCROLL_SCENE_HELPER_SOURCES.unclipStickyAncestors}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()

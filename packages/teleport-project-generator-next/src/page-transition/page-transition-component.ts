@@ -1,15 +1,11 @@
 import { PageTransition } from '@teleporthq/teleport-shared'
 import {
   PAGE_TRANSITION_SLIDE_PX,
-  pageTransitionCover,
   pageTransitionCoverColor,
-  pageTransitionSkipPattern,
-  pageTransitionVariants,
   resolvePageTransitionOptions,
-  reversePageTransitionPreset,
   sanitizePageTransitionCustom,
 } from './page-transition-variants'
-import { revealOnScreen } from './reveal-on-screen'
+import { REVEAL_ON_SCREEN_SOURCES } from './reveal-on-screen-source.generated'
 
 export type PageTransitionConfig = PageTransition.PageTransitionConfig
 
@@ -100,15 +96,15 @@ export const generatePageTransitionComponentCode = (config: PageTransitionConfig
 import { useRouter } from 'next/router'
 import { AnimatePresence, motion, usePresence } from 'framer-motion'
 
-${reversePageTransitionPreset.toString()}
+${PageTransition.PAGE_TRANSITION_HELPER_SOURCES.reversePageTransitionPreset}
 
-${pageTransitionVariants.toString()}
+${PageTransition.PAGE_TRANSITION_HELPER_SOURCES.pageTransitionVariants}
 
-${pageTransitionCover.toString()}
+${PageTransition.PAGE_TRANSITION_HELPER_SOURCES.pageTransitionCover}
 
-${pageTransitionSkipPattern.toString()}
+${PageTransition.PAGE_TRANSITION_HELPER_SOURCES.pageTransitionSkipPattern}
 
-${revealOnScreen.toString()}
+${REVEAL_ON_SCREEN_SOURCES.revealOnScreen}
 
 ${morphHelpersSource()}
 

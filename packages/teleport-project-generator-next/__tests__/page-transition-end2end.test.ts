@@ -12,6 +12,7 @@ import {
   reversePageTransitionPreset,
 } from '../src/page-transition/page-transition-variants'
 import { revealOnScreen } from '../src/page-transition/reveal-on-screen'
+import { REVEAL_ON_SCREEN_SOURCES } from '../src/page-transition/reveal-on-screen-source.generated'
 
 const template = () => JSON.parse(JSON.stringify(NextTemplate)) as GeneratedFolder
 
@@ -274,7 +275,7 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     // the shipped wrapper carries the function tested below, and every reveal goes through it
-    expect(wrapper).toContain(revealOnScreen.toString())
+    expect(wrapper).toContain(REVEAL_ON_SCREEN_SOURCES.revealOnScreen)
     expect(wrapper).toContain(
       'revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen)'
     )
@@ -326,7 +327,9 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     expect(wrapper).toContain(
       'const origin = pointer || { x: screen.width / 2, y: screen.height / 2 }'
     )
-    expect(revealOnScreen.toString()).not.toContain('`')
+    expect(REVEAL_ON_SCREEN_SOURCES.revealOnScreen.startsWith('function revealOnScreen(')).toBe(
+      true
+    )
   })
 
   it('opens a reveal over the leaving page, which holds; every other preset plays in turn', async () => {
@@ -413,10 +416,17 @@ describe('pageTransitionVariants (mirror of the editor contract)', () => {
     expect(reversePageTransitionPreset('fade')).toBe('fade')
   })
 
-  it('injects cleanly: no backticks in any injected function source', () => {
-    expect(pageTransitionVariants.toString()).not.toContain('`')
-    expect(reversePageTransitionPreset.toString()).not.toContain('`')
-    expect(pageTransitionCover.toString()).not.toContain('`')
+  it('ships its helpers as text derived from their sources, each under its own name', async () => {
+    const output = await createNextProjectGenerator().generateProject(
+      buildUidl({ preset: 'fade', duration: 0.3, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    const sources = PageTransition.PAGE_TRANSITION_HELPER_SOURCES
+    for (const name of Object.keys(sources) as Array<keyof typeof sources>) {
+      expect(sources[name].startsWith(`function ${name}(`)).toBe(true)
+      expect(wrapper).toContain(sources[name])
+    }
   })
 
   it('cover presets hold the page while the panels sweep', () => {

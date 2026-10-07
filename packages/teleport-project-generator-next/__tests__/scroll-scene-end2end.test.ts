@@ -1,3 +1,5 @@
+import { parse } from '@babel/parser'
+import type { FunctionDeclaration } from '@babel/types'
 import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
 import uidlSample from '../../../examples/test-samples/project-sample.json'
 import { createNextProjectGenerator } from '../src'
@@ -131,6 +133,30 @@ describe('Next generator with a Scroll Scene element', () => {
     expect(indexPage?.content).toContain('data-scroll-bind')
     expect(indexPage?.content).toContain('depth-2')
     expect(indexPage?.content).toContain('sceneLength')
+  })
+
+  it('is one valid module: every helper declared once, under the name the runtime calls', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithScene(), template)
+    const code = findFile(outputFolder, 'components', 'tq-scroll-scene')?.content || ''
+    // The helpers are spliced in as TEXT derived from their sources. Spliced
+    // from live functions, the editor's minified build renamed every one of
+    // them to `r`, and Vercel refused the component ("the name `r` is defined
+    // multiple times", 2026-10-06).
+    const ast = parse(code, { sourceType: 'module', plugins: ['jsx'] })
+    const declared = ast.program.body
+      .filter((node): node is FunctionDeclaration => node.type === 'FunctionDeclaration')
+      .map((node) => node.id?.name)
+    expect(new Set(declared).size).toBe(declared.length)
+    for (const name of [
+      'settledMomentForLanes',
+      'activeChapterIndex',
+      'scenePointList',
+      'passedScenePoints',
+      'scenePointRank',
+      'unclipStickyAncestors',
+    ]) {
+      expect(declared).toContain(name)
+    }
   })
 
   it('ships the wrapper with the sticky track/stage, lane engine and guardrails', async () => {
