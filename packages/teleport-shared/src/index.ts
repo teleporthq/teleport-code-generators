@@ -20,6 +20,7 @@ import * as ProductOptions from './utils/product-options'
 import * as CartLinePricing from './utils/cart-line-pricing'
 import * as CartCurrency from './utils/cart-currency'
 import * as TableAccess from './utils/table-access'
+import * as ContentTables from './utils/content-tables'
 import * as SessionCookieResolver from './utils/session-cookie-resolver'
 import * as SubscriptionAccess from './utils/subscription-access'
 import * as FontPreconnect from './utils/font-preconnect'
@@ -60,6 +61,7 @@ export {
   CartLinePricing,
   CartCurrency,
   TableAccess,
+  ContentTables,
   SessionCookieResolver,
   SubscriptionAccess,
   FontPreconnect,

@@ -3,7 +3,7 @@ import type {
   UIDLAuthentication,
   UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
-import { StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
+import { ContentTables, StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
@@ -125,9 +125,9 @@ const stripSchemaQualifier = (tableName: string): string => {
  * Detects which transformation type to apply based on the table name.
  * Returns null if no transformation is needed.
  *
- * IMPORTANT: Only the real platform-managed tables (`teleport_products`,
- * `teleport_blog_posts`) are routed through the e-commerce/blog view-model
- * transforms. A previous loose substring match (`lower.includes('products')`)
+ * IMPORTANT: Only the real platform-managed tables (`teleport_products`, the
+ * content presets' posts tables) are routed through the e-commerce/blog
+ * view-model transforms. A previous loose substring match (`lower.includes('products')`)
  * incorrectly routed CUSTOM tables such as `products`, `store_products` or
  * `wholesale_products` through `buildEcommerceProduct`, which emits a fixed set
  * of platform product fields and silently drops all custom columns. Matching the
@@ -138,7 +138,7 @@ export const detectTransformationType = (tableName: string): TransformationType 
     return null
   }
   const bare = stripSchemaQualifier(tableName)
-  if (bare === 'teleport_blog_posts') {
+  if (ContentTables.isContentPostsTable(bare)) {
     return 'blog-post'
   }
   if (bare === 'teleport_products') {
@@ -167,14 +167,17 @@ export const getTransformationCode = (
   const shared = generateSharedTransformationCode()
 
   switch (type) {
-    case 'blog-post':
+    case 'blog-post': {
+      const role = ContentTables.contentTableRole(stripSchemaQualifier(tableName))
       return (
         shared +
         generateBlogPostTransformationCode({
+          tables: role ? ContentTables.contentTablesByKey(role.key) : undefined,
           categories: options.blogCategories,
           headingAnchors: options.blogHeadingAnchors,
         })
       )
+    }
     case 'ecommerce-product':
       return shared + generateEcommerceProductTransformationCode(options)
     case 'custom-page':

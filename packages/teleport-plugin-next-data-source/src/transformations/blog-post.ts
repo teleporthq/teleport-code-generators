@@ -1,5 +1,5 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
-import { RichTextContentCodegen } from '@teleporthq/teleport-shared'
+import { ContentTables, RichTextContentCodegen } from '@teleporthq/teleport-shared'
 import { generateCategoryTaxonomyCode } from './category-taxonomy'
 import { generateAdjacentPostsCode } from './blog-adjacent-posts'
 import { generateBlogCommentsCode } from './blog-comments'
@@ -7,6 +7,11 @@ import { generateHeadingAnchorsCode } from './heading-anchors'
 
 /** What the blog-post transform bakes in at export time beyond the row itself. */
 export interface BlogPostTransformOptions {
+  /**
+   * The preset's tables (the Blog's by default): the posts table the related
+   * and adjacent posts are read from, the comments table a post page counts.
+   */
+  tables?: ContentTables.ContentTables
   /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
   categories?: UIDLEcommerceCategory[]
   /** Content headings get ids and `#` links — see `heading-anchors.ts`. */
@@ -21,13 +26,14 @@ export interface BlogPostTransformOptions {
 export const generateBlogPostTransformationCode = (
   options: BlogPostTransformOptions = {}
 ): string => {
+  const tables = options.tables ?? ContentTables.contentTablesByKey('blog')
   return `
 // ============================================================
 // Blog Post Transformation
 // ============================================================
 ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
-${generateBlogCommentsCode()}
-${generateAdjacentPostsCode()}
+${generateBlogCommentsCode(tables.comments ?? `${tables.posts}_comments`)}
+${generateAdjacentPostsCode(tables.posts)}
 ${generateHeadingAnchorsCode()}
 ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
@@ -267,7 +273,7 @@ async function getRelatedPostsMap(getClientFn, records) {
   try {
     client = getClientFn()
     await client.connect()
-    var result = await client.query('SELECT * FROM teleport_blog_posts WHERE id = ANY($1)', [
+    var result = await client.query('SELECT * FROM ${tables.posts} WHERE id = ANY($1)', [
       wantedIds,
     ])
     if (result && result.rows) {

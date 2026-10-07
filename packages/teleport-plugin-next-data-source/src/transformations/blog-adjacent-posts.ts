@@ -18,13 +18,13 @@ const ADJACENT_POST_CANDIDATES = 5
  * MUST mirror `findAdjacentBlogPosts` in teleport-gui
  * `packages/renderer/src/utils/blog-adjacent-posts.ts` (the canvas).
  */
-export const generateAdjacentPostsCode = (): string => `
+export const generateAdjacentPostsCode = (postsTable: string): string => `
 var BLOG_ADJACENT_CANDIDATES = ${ADJACENT_POST_CANDIDATES}
 
 function blogAdjacentPostsSql(comparison, direction) {
   return (
-    'SELECT p.* FROM teleport_blog_posts p,' +
-    ' (SELECT created_at, id FROM teleport_blog_posts WHERE id = $1) cur' +
+    'SELECT p.* FROM ${postsTable} p,' +
+    ' (SELECT created_at, id FROM ${postsTable} WHERE id = $1) cur' +
     " WHERE p.status = 'published' AND (p.created_at, p.id) " + comparison + ' (cur.created_at, cur.id)' +
     ' ORDER BY p.created_at ' + direction + ', p.id ' + direction +
     ' LIMIT ' + BLOG_ADJACENT_CANDIDATES
