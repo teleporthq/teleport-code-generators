@@ -16,6 +16,7 @@ describe('content tables', () => {
       key: 'blog',
       posts: 'teleport_blog_posts',
       comments: 'teleport_blog_comments',
+      pictureStandIn: true,
     })
     expect(CONTENT_POSTS_TABLES).toContain('teleport_blog_posts')
     expect(CONTENT_COMMENTS_TABLES).toContain('teleport_blog_comments')
@@ -26,6 +27,8 @@ describe('content tables', () => {
       key: 'help',
       posts: 'teleport_help_articles',
       comments: null,
+      // Text articles: one without a picture shows none, not a grey stand-in.
+      pictureStandIn: false,
     })
     expect(contentTableRole('teleport_help_articles')).toEqual({ key: 'help', role: 'posts' })
     expect(CONTENT_COMMENTS_TABLES).not.toContain('teleport_help_comments')

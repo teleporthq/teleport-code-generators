@@ -60,5 +60,11 @@ export const useHelpCategories = () => {
   const router = useRouter()
   return useMemo(() => resolveCategoryTranslations(HELP_CATEGORIES, router.locale), [router.locale])
 }
+
+// The trees as baked, and the resolver, for server-side readers that have no
+// router — the category pages' \`getStaticProps\` (see \`content-category-pages.js\`).
+export const BLOG_CATEGORY_TREE = BLOG_CATEGORIES
+export const HELP_CATEGORY_TREE = HELP_CATEGORIES
+export const localizeCategoryTree = resolveCategoryTranslations
 `
 }

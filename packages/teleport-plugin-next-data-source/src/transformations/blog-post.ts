@@ -37,6 +37,7 @@ ${generateAdjacentPostsCode(tables.posts)}
 ${generateHeadingAnchorsCode()}
 ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
+var BLOG_PICTURE_STAND_IN = ${tables.pictureStandIn !== false}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -89,11 +90,15 @@ function buildBlogPost(record, options) {
     rawFeaturedImage === TELEPORT_DEFAULT_FEATURED_IMG ||
     featuredImageUrl === TELEPORT_DEFAULT_FEATURED_IMG
   ) {
-    featuredImageUrl =
-      'data:image/svg+xml;charset=utf-8,' +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect fill="#e5e7eb" width="400" height="240"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="13">No image</text></svg>'
-      )
+    // No picture of its own: the grey "No image" stand-in, or none at all for a
+    // preset whose posts are text (ContentTables.pictureStandIn) — its card and
+    // post page show the picture only when there is one.
+    featuredImageUrl = BLOG_PICTURE_STAND_IN
+      ? 'data:image/svg+xml;charset=utf-8,' +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect fill="#e5e7eb" width="400" height="240"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="13">No image</text></svg>'
+        )
+      : null
   }
 
   var rawAuthorAvatar = pickFirst(record.author_avatar_url, record.authorAvatarUrl)

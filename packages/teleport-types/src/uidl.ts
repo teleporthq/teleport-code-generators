@@ -811,7 +811,8 @@ export interface UIDLInitialPropsData {
       }
     | {
         name: string
-        dependency: UIDLExternalDependency
+        /** A package's function, or a module the generator emits itself (the category pages' resolver). */
+        dependency: UIDLDependency
         params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
       }
   /*
@@ -877,7 +878,7 @@ export interface UIDLInitialPathsData {
       }
     | {
         name: string
-        dependency: UIDLExternalDependency
+        dependency: UIDLDependency
         params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
       }
 }
@@ -2280,6 +2281,24 @@ export interface UIDLBlogSettings {
   comments?: boolean
   /** The blog's RSS feed. Absent: the site serves none. */
   rssFeed?: UIDLBlogRssFeed
+  /** The preset's category pages (`/help/category/[slug]`). Absent: the site has none. */
+  categoryPages?: UIDLContentCategoryPages
+}
+
+/**
+ * Where a preset's generated category pages read their posts from, and where
+ * they link them. The page itself is an ordinary dynamic page in the UIDL;
+ * this is what its `getStaticProps` helper needs beyond the baked taxonomy.
+ */
+export interface UIDLContentCategoryPages {
+  /** The data source holding the preset's posts table. */
+  dataSourceId: string
+  /** The post page's address before the post's own segment: `/help` for `/help/[slug]`. */
+  postPath: string
+  /** The post field that segment is — the post page's URL differentiator, e.g. `slug`. */
+  postUrlField: string
+  /** The category page's address before the category's own segment: `/help/category`. */
+  categoryPath: string
 }
 
 /** Where the generated `/rss.xml` route reads the posts from, and where it links them. */

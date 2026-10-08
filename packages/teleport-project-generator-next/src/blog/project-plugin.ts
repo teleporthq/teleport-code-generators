@@ -1,6 +1,17 @@
-import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import {
+  FileType,
+  ProjectPlugin,
+  ProjectPluginStructure,
+  UIDLBlogSettings,
+} from '@teleporthq/teleport-types'
+import { ContentTables } from '@teleporthq/teleport-shared'
+import { ensureDataSourceUtilityModule } from '../data-source-utility-plugin'
 import { generateBlogContextFileContent } from './blog-context-generator'
 import { addBlogRssFeed } from './rss-feed'
+import {
+  ContentCategoryPagesPreset,
+  generateContentCategoryPagesSource,
+} from './content-category-pages'
 
 /** The import specifier the generated blog pages resolve `useBlogCategories` from. */
 const BLOG_CONTEXT_MODULE = '@/blog-context'
@@ -47,8 +58,60 @@ export class NextBlogProjectPlugin implements ProjectPlugin {
       addBlogRssFeed(structure, blogSettings.rssFeed)
     }
 
+    addContentCategoryPages(structure, [
+      ['blog', blogSettings],
+      ['help', helpCenterSettings],
+    ])
+
     return structure
   }
+}
+
+/**
+ * The server-side module the category pages read from (see
+ * `content-category-pages.ts`), emitted once for every preset whose settings
+ * carry `categoryPages` and whose posts table has a fetcher. A preset whose
+ * data source the UIDL does not carry gets no functions: its page would have
+ * nothing to read, and the editor emits `categoryPages` only with one.
+ */
+function addContentCategoryPages(
+  structure: ProjectPluginStructure,
+  candidates: Array<[ContentTables.ContentPresetKey, UIDLBlogSettings | undefined]>
+): void {
+  const { uidl, files } = structure
+  const presets: ContentCategoryPagesPreset[] = []
+  for (const [key, settings] of candidates) {
+    const categoryPages = settings?.categoryPages
+    if (!categoryPages) {
+      continue
+    }
+    const dataSource = uidl.dataSources?.[categoryPages.dataSourceId]
+    if (!dataSource) {
+      continue
+    }
+    const fetcherModule = ensureDataSourceUtilityModule(structure, {
+      dataSourceId: categoryPages.dataSourceId,
+      dataSourceType: dataSource.type,
+      tableName: ContentTables.contentTablesByKey(key).posts,
+    })
+    if (!fetcherModule) {
+      continue
+    }
+    presets.push({ key, settings: categoryPages, fetcherModule })
+  }
+  if (presets.length === 0) {
+    return
+  }
+  files.set('content-category-pages', {
+    path: [],
+    files: [
+      {
+        name: 'content-category-pages',
+        fileType: FileType.JS,
+        content: generateContentCategoryPagesSource(presets),
+      },
+    ],
+  })
 }
 
 // tslint:disable-next-line:no-any

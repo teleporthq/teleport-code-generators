@@ -17,12 +17,24 @@ export interface ContentTables {
   posts: string
   /** Reader comments under a post, when the preset takes them. */
   comments: string | null
+  /**
+   * Whether a post without a picture is shown with the grey "No image" stand-in.
+   * Off for a preset whose posts are text: its cards and post page close up
+   * instead of drawing an empty grey box on every article.
+   */
+  pictureStandIn: boolean
 }
 
 export const CONTENT_TABLES: ReadonlyArray<ContentTables> = [
-  { key: 'blog', posts: 'teleport_blog_posts', comments: 'teleport_blog_comments' },
-  // The Help Center: articles at /help/<slug>, no reader comments.
-  { key: 'help', posts: 'teleport_help_articles', comments: null },
+  {
+    key: 'blog',
+    posts: 'teleport_blog_posts',
+    comments: 'teleport_blog_comments',
+    pictureStandIn: true,
+  },
+  // The Help Center: articles at /help/<slug>, no reader comments, and a text
+  // article shows no picture at all rather than a stand-in.
+  { key: 'help', posts: 'teleport_help_articles', comments: null, pictureStandIn: false },
 ]
 
 export const CONTENT_POSTS_TABLES: ReadonlyArray<string> = CONTENT_TABLES.map(
@@ -94,3 +106,28 @@ export const VISITOR_ROW_POLICIES: Readonly<Record<string, VisitorRowPolicy>> = 
     hiddenColumns: [],
   },
 }
+
+/* ------------------------------------------------------------------------ */
+/* Category pages                                                            */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * The generated module a preset's category page reads from — one function
+ * resolves the category at a slug with its published posts for
+ * `getStaticProps`, the other lists every category's slug for
+ * `getStaticPaths`. The editor names them on the page's UIDL (an external
+ * resource with a local dependency), the Next generator emits them; both read
+ * the names from here, so neither can misspell the other.
+ */
+export const CONTENT_CATEGORY_PAGES_MODULE = '@/content-category-pages'
+
+const presetPascalCase = (key: ContentPresetKey): string =>
+  key.charAt(0).toUpperCase() + key.slice(1)
+
+/** `resolveHelpCategoryPage`: `{ data: category | null }` for a slug. */
+export const contentCategoryPageResolverName = (key: ContentPresetKey): string =>
+  `resolve${presetPascalCase(key)}CategoryPage`
+
+/** `listHelpCategoryPaths`: `{ data: [{ slug }] }`, every category of the tree. */
+export const contentCategoryPathsListerName = (key: ContentPresetKey): string =>
+  `list${presetPascalCase(key)}CategoryPaths`

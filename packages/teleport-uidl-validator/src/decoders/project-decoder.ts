@@ -146,6 +146,10 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   invoiceSettings: optional(anyJson()),
   ecommerceSettings: optional(anyJson()),
   blogSettings: optional(anyJson()),
+  // The Help Center's settings slot (the second content preset): its baked
+  // taxonomy and category pages. Undeclared, it was stripped here and the
+  // generated help pages baked an empty category tree.
+  helpCenterSettings: optional(anyJson()),
   aiAssistantChat: optional(anyJson()),
   // Growth visitor analytics flag (`{ enabled: true }`). Consumed by
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be
