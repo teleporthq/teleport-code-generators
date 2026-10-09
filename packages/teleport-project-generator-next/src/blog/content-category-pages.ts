@@ -1,7 +1,8 @@
 import { ContentTables } from '@teleporthq/teleport-shared'
 import type { UIDLContentCategoryPages } from '@teleporthq/teleport-types'
+import { ARRANGED_ORDER_RUNTIME } from './arranged-order-runtime'
 
-/** How many of a category's published posts a category page lists, newest first. */
+/** How many of a category's published posts a category page lists, newest first (then arranged, in Manual Order). */
 export const CATEGORY_PAGE_POST_LIMIT = 500
 
 export interface ContentCategoryPagesPreset {
@@ -9,10 +10,12 @@ export interface ContentCategoryPagesPreset {
   settings: UIDLContentCategoryPages
   /** The `utils/data-sources/` module that reads the preset's posts table. */
   fetcherModule: string
+  /** Manual Order: the pages list the posts the way the author arranged them (`arrangeCategoryPosts`). */
+  arranged?: boolean
 }
 
 /** The baked tree a preset's category pages read, by the name `blog-context.js` exports it under. */
-const TREE_EXPORTS: Record<ContentTables.ContentPresetKey, string> = {
+export const TREE_EXPORTS: Record<ContentTables.ContentPresetKey, string> = {
   blog: 'BLOG_CATEGORY_TREE',
   help: 'HELP_CATEGORY_TREE',
 }
@@ -67,6 +70,7 @@ export const generateContentCategoryPagesSource = (
       postUrlField: preset.settings.postUrlField,
       postUrlKey: toCamelCase(preset.settings.postUrlField),
       categoryPath: toBasePath(preset.settings.categoryPath),
+      arranged: preset.arranged === true,
     }
     return `  ${preset.key}: { tree: ${
       TREE_EXPORTS[preset.key]
@@ -142,6 +146,8 @@ function categorySummary(config, category) {
   }
 }
 
+${ARRANGED_ORDER_RUNTIME}
+
 async function resolveCategoryPage(preset, params) {
   var slug = params && params.slug !== undefined && params.slug !== null ? String(params.slug) : ''
   var locale = params && params.locale ? params.locale : null
@@ -169,6 +175,7 @@ async function resolveCategoryPage(preset, params) {
     var href = postHref(preset.config, post)
     if (href) posts.push(Object.assign({}, post, { href: href }))
   })
+  if (preset.config.arranged) posts = arrangeCategoryPosts(posts, category)
   var summary = categorySummary(preset.config, category)
   return {
     data: Object.assign(summary, {

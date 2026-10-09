@@ -16,6 +16,8 @@ export interface BlogPostTransformOptions {
   categories?: UIDLEcommerceCategory[]
   /** Content headings get ids and `#` links — see `heading-anchors.ts`. */
   headingAnchors?: boolean
+  /** Manual Order: Previous / Next walk the post's category as arranged — see `blog-adjacent-posts.ts`. */
+  arranged?: boolean
 }
 
 /**
@@ -33,11 +35,20 @@ export const generateBlogPostTransformationCode = (
 // ============================================================
 ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
 ${generateBlogCommentsCode(tables.comments ?? `${tables.posts}_comments`)}
-${generateAdjacentPostsCode(tables.posts)}
+${generateAdjacentPostsCode(tables.posts, options.arranged === true)}
 ${generateHeadingAnchorsCode()}
 ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
 var BLOG_PICTURE_STAND_IN = ${tables.pictureStandIn !== false}
+
+// A post's reading time from its body, for one that stores none: its words at
+// about 200 a minute, at least one — what the editor's post form computes. A
+// card or post page otherwise printed "min read" with no number before it.
+// MUST mirror readingTimeOf in teleport-gui packages/renderer/src/utils/blog-posts.ts.
+function blogReadingTimeOf(html) {
+  var text = String(html || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim()
+  return text ? Math.max(1, Math.ceil(text.split(' ').length / 200)) : null
+}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -56,6 +67,8 @@ function buildBlogPost(record, options) {
   var content = normalizeLegacyRichTextHtml(
     resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
   )
+  // Counted before the heading anchors add their marks.
+  var bodyReadingTime = blogReadingTimeOf(content)
   if (BLOG_HEADING_ANCHORS) content = addHeadingAnchors(content)
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
@@ -111,6 +124,7 @@ function buildBlogPost(record, options) {
   // (browser-row-policy.ts), and the page data a post or listing page ships
   // is built here, so it is not part of the post a page sees either.
   var readingTimeMinutes = safeNumber(pickFirst(record.reading_time_minutes, record.readingTimeMinutes), null)
+  if (!(readingTimeMinutes > 0)) readingTimeMinutes = bodyReadingTime
 
   // Tags - i18n-resolved then parsed as JSON array
   var rawTags = resolveI18nField(record, 'tags', 'tags', currentLang, mainLang)
@@ -248,6 +262,9 @@ function buildBlogPost(record, options) {
     createdAt: createdAt,
     updatedAt: updatedAt,
     created: created,
+    // The post's place among its primary category's posts (Manual Order), or
+    // null: what the category pages order by.
+    sortOrder: safeNumber(pickFirst(record.sort_order, record.sortOrder), null),
   }
 }
 

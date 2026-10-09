@@ -298,6 +298,8 @@ export interface ProjectUIDL {
   blogSettings?: UIDLBlogSettings
   /** The Help Center's — same shape as the Blog's; present for a project that activated it. */
   helpCenterSettings?: UIDLBlogSettings
+  /** The live llms files; absent when the site serves none, or only the editor's static llms.txt. */
+  llms?: UIDLLlmsFiles
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
   pwa?: UIDLProgressiveWebApp
@@ -2283,6 +2285,44 @@ export interface UIDLBlogSettings {
   rssFeed?: UIDLBlogRssFeed
   /** The preset's category pages (`/help/category/[slug]`). Absent: the site has none. */
   categoryPages?: UIDLContentCategoryPages
+  /**
+   * `manual`: the author arranged the posts of each category (`sort_order`,
+   * a post's place among its primary category's posts): the category pages
+   * list them so and Previous / Next walk them so. Absent: newest first.
+   */
+  order?: 'manual'
+  /**
+   * The preset's posts in the site's live index: its own sitemap
+   * (`ContentTables.contentSitemapPath`) and, when the project carries `llms`,
+   * its section of `/llms.txt` and its articles in `/llms-full.txt`. Absent:
+   * the site lists none of them live.
+   */
+  siteIndex?: UIDLContentSiteIndex
+}
+
+/** Where a preset's live sitemap and llms sections read the posts from, and where they link them. */
+export interface UIDLContentSiteIndex {
+  /** The data source holding the preset's posts table. */
+  dataSourceId: string
+  /** The post page's address before the post's own segment: `/help` for `/help/[slug]`. */
+  postPath: string
+  /** The post field that segment is — the post page's URL differentiator, e.g. `slug`. */
+  postUrlField: string
+  /** What the site calls the preset: the heading of its llms.txt section. */
+  title: string
+}
+
+/**
+ * The files the site offers language models when content presets list their
+ * posts live: `/llms-full.txt` always, and `/llms.txt` when `index` is set.
+ */
+export interface UIDLLlmsFiles {
+  /**
+   * `/llms.txt` up to the presets' sections — the site's pages as the editor
+   * wrote them at publish; the route appends each preset's posts. Absent: the
+   * owner wrote their own llms.txt, which stays a static file.
+   */
+  index?: string
 }
 
 /**

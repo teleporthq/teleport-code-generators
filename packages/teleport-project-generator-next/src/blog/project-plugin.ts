@@ -8,6 +8,7 @@ import { ContentTables } from '@teleporthq/teleport-shared'
 import { ensureDataSourceUtilityModule } from '../data-source-utility-plugin'
 import { generateBlogContextFileContent } from './blog-context-generator'
 import { addBlogRssFeed } from './rss-feed'
+import { addContentSiteIndex } from './content-site-index'
 import {
   ContentCategoryPagesPreset,
   generateContentCategoryPagesSource,
@@ -19,7 +20,9 @@ const BLOG_CONTEXT_MODULE = '@/blog-context'
 /**
  * Emits the generated `blog-context.js` module — the blog's baked category
  * taxonomy behind `useBlogCategories()` (see `blog-context-generator.ts`) —
- * and, when the blog has one, its RSS feed (see `rss-feed.ts`).
+ * and, when the blog has one, its RSS feed (see `rss-feed.ts`); the content
+ * presets' category pages and their live sitemaps and llms files (see
+ * `content-category-pages.ts`, `content-site-index.ts`).
  *
  * Emitted when the project carries `blogSettings`, and ALSO — with an empty
  * taxonomy — whenever any generated file imports the module without it. That
@@ -63,6 +66,11 @@ export class NextBlogProjectPlugin implements ProjectPlugin {
       ['help', helpCenterSettings],
     ])
 
+    addContentSiteIndex(structure, [
+      ['blog', blogSettings],
+      ['help', helpCenterSettings],
+    ])
+
     return structure
   }
 }
@@ -97,7 +105,12 @@ function addContentCategoryPages(
     if (!fetcherModule) {
       continue
     }
-    presets.push({ key, settings: categoryPages, fetcherModule })
+    presets.push({
+      key,
+      settings: categoryPages,
+      fetcherModule,
+      arranged: settings?.order === 'manual',
+    })
   }
   if (presets.length === 0) {
     return

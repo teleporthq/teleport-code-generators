@@ -277,6 +277,80 @@ describe('the content-category-pages module', () => {
     expect(reads).toEqual([])
   })
 
+  /**
+   * Manual Order. The SAME fixture and expectation as teleport-gui
+   * `features/blog/utils/__tests__/arranged-order.spec.ts` ("the category page
+   * order the published site mirrors"): the two runtimes must agree.
+   */
+  it('lists the posts the way the author arranged them, in Manual Order', async () => {
+    const arrangedPost = (
+      id: string,
+      categoryIds: string[],
+      sortOrder: number | null,
+      createdAt: number
+    ) =>
+      post({
+        id,
+        slug: id,
+        categories: categoryIds.map((categoryId) => ({ id: categoryId, name: categoryId })),
+        sortOrder,
+        createdAt,
+      })
+    // As the fetcher returns them: newest first.
+    const rows = [
+      arrangedPost('x1', ['billing', 'editing'], 1, 4000),
+      arrangedPost('g3', ['guides'], null, 3000),
+      arrangedPost('g4', ['guides'], null, 2000),
+      arrangedPost('g1', ['guides'], 2, 1000),
+      arrangedPost('g2', ['guides'], 1, 900),
+      arrangedPost('p1', ['publishing'], 2, 800),
+      arrangedPost('s1', ['publishing'], 3, 700),
+      arrangedPost('p2', ['publishing'], 1, 600),
+      arrangedPost('e1', ['editing'], 1, 500),
+      arrangedPost('d1', ['domains'], null, 100),
+    ]
+    const source = generateContentCategoryPagesSource([
+      { key: 'help', settings: CATEGORY_PAGES, fetcherModule: HELP_FETCHER, arranged: true },
+    ])
+    expectValidModule(source)
+    const module = loadModule(source, { helpPosts: async () => rows })
+
+    const { data } = await module.resolveHelpCategoryPage({ slug: 'guides' })
+    expect((data as { posts: Array<{ id: string }> }).posts.map((entry) => entry.id)).toEqual([
+      'g2',
+      'g1',
+      'g3',
+      'g4',
+      'p2',
+      'p1',
+      's1',
+      'd1',
+      'e1',
+      'x1',
+    ])
+
+    // Newest first, as fetched, when the pages are not arranged.
+    const newest = loadModule(helpSource(), { helpPosts: async () => rows })
+    const { data: unarranged } = await newest.resolveHelpCategoryPage({ slug: 'guides' })
+    expect((unarranged as { posts: Array<{ id: string }> }).posts.map((entry) => entry.id)).toEqual(
+      rows.map((row) => row.id)
+    )
+  })
+
+  it('arranges the pages only for a preset whose settings say Manual Order', async () => {
+    const structure = makeStructure({ helpCategoryPages: CATEGORY_PAGES })
+    ;(structure.uidl.helpCenterSettings as { order?: string }).order = 'manual'
+    const arranged = moduleSource(await new NextBlogProjectPlugin().runAfter(structure)) as string
+    expect(arranged).toContain('"arranged":true')
+
+    const plain = moduleSource(
+      await new NextBlogProjectPlugin().runAfter(
+        makeStructure({ helpCategoryPages: CATEGORY_PAGES })
+      )
+    ) as string
+    expect(plain).toContain('"arranged":false')
+  })
+
   it('lists every category of the tree, nested ones included, for getStaticPaths', async () => {
     const module = loadModule(helpSource(), {})
 

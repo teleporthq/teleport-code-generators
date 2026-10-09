@@ -150,6 +150,9 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // taxonomy and category pages. Undeclared, it was stripped here and the
   // generated help pages baked an empty category tree.
   helpCenterSettings: optional(anyJson()),
+  // The live llms files (`/llms.txt`, `/llms-full.txt`); the blog project plugin
+  // emits their routes, and nothing would if this were stripped here.
+  llms: optional(anyJson()),
   aiAssistantChat: optional(anyJson()),
   // Growth visitor analytics flag (`{ enabled: true }`). Consumed by
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be

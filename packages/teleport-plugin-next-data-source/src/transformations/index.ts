@@ -32,6 +32,7 @@ export interface ContentPresetTransformSettings {
   categories?: UIDLEcommerceCategory[]
   headingAnchors?: boolean
   comments?: boolean
+  order?: 'manual'
 }
 
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
@@ -97,6 +98,7 @@ const contentPresetTransformSettings = (
   categories: settings?.categories,
   headingAnchors: settings?.headingAnchors === true,
   comments: settings?.comments === true,
+  ...(settings?.order === 'manual' && { order: 'manual' as const }),
 })
 
 /**
@@ -232,6 +234,7 @@ export const getTransformationCode = (
           tables: role ? ContentTables.contentTablesByKey(role.key) : undefined,
           categories: settings.categories,
           headingAnchors: settings.headingAnchors,
+          arranged: settings.order === 'manual',
         })
       )
     }

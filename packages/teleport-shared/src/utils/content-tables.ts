@@ -131,3 +131,21 @@ export const contentCategoryPageResolverName = (key: ContentPresetKey): string =
 /** `listHelpCategoryPaths`: `{ data: [{ slug }] }`, every category of the tree. */
 export const contentCategoryPathsListerName = (key: ContentPresetKey): string =>
   `list${presetPascalCase(key)}CategoryPaths`
+
+/* ------------------------------------------------------------------------ */
+/* The live site index                                                       */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * Where the generated site serves a preset's live sitemap: its published posts,
+ * read from the table on request, so a post published after the last publish
+ * is listed too. The editor's own `sitemap.xml` names it from its sitemap
+ * index; both sides read the address from here.
+ */
+export const contentSitemapPath = (key: ContentPresetKey): string => `/sitemap-${key}.xml`
+
+/** The site's list for language models: its pages, then each preset's posts by category. */
+export const LLMS_TXT_PATH = '/llms.txt'
+
+/** Every published post of the presets, in full, as Markdown. */
+export const LLMS_FULL_TXT_PATH = '/llms-full.txt'

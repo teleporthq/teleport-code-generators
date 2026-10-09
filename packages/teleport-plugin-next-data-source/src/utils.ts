@@ -15,6 +15,7 @@ import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import type { EntityTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 import { buildServerLocaleParam, hasLocaleParam, buildClientLocaleParam } from './request-locale'
+import { readFixedSort } from './sort-utils'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'rest-api',
@@ -1172,6 +1173,40 @@ const buildFilterObjectAST = (
 }
 
 // tslint:disable-next-line:no-any
+const isSortKeyed = (properties: types.ObjectProperty[]): boolean =>
+  properties.some(
+    (property) =>
+      (property.key.type === 'StringLiteral' && property.key.value === 'sorts') ||
+      (property.key.type === 'Identifier' && property.key.name === 'sorts')
+  )
+
+/** The fixed sort of the first list repeater inside a data-source node, if it has one. */
+// tslint:disable-next-line:no-any
+const findRepeaterFixedSort = (node: any): { field: string; order: 'asc' | 'desc' } | undefined => {
+  // tslint:disable-next-line:no-any
+  const visit = (current: any): { field: string; order: 'asc' | 'desc' } | null | undefined => {
+    if (!current || typeof current !== 'object') {
+      return undefined
+    }
+    if (current.type === 'cms-list-repeater') {
+      return readFixedSort(current.content?.sort, current.content?.sortDirection) ?? null
+    }
+    const content = current.content
+    const children = [
+      ...(Array.isArray(content?.children) ? content.children : []),
+      ...(content?.nodes && typeof content.nodes === 'object' ? Object.values(content.nodes) : []),
+    ]
+    for (const child of children) {
+      const found = visit(child)
+      if (found !== undefined) {
+        return found
+      }
+    }
+    return undefined
+  }
+  return visit(node) ?? undefined
+}
+
 export const extractDataSourceIntoGetStaticProps = (
   node: UIDLDataSourceItemNode | UIDLDataSourceListNode,
   dataSources: Record<string, UIDLDataSource>,
@@ -1246,7 +1281,12 @@ export const extractDataSourceIntoGetStaticProps = (
     }
     // tslint:disable-next-line:no-any
     const nodeResource = (node.content as any).resource
-    const propKey = claimParamsPropKey(componentChunk, resourcePropKey, nodeResource)
+    const propKey = claimParamsPropKey(
+      componentChunk,
+      resourcePropKey,
+      nodeResource,
+      findRepeaterFixedSort(node)
+    )
 
     // Find matching JSX nodes for this data source
     // Strategy depends on whether we have a unique resource ID:
@@ -1692,6 +1732,35 @@ export const extractDataSourceIntoGetStaticProps = (
       }
     })
 
+    // The sort the list's repeater fixed, when the resource names none — the
+    // rows the page is pre-rendered with come in the order the list shows them
+    // (the browser keeps them: the provider skips its first fetch).
+    const repeaterSort = isSortKeyed(paramsProperties) ? undefined : findRepeaterFixedSort(node)
+    if (repeaterSort) {
+      paramsProperties.push(
+        types.objectProperty(
+          types.stringLiteral('sorts'),
+          types.callExpression(
+            types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+            [
+              types.arrayExpression([
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('field'),
+                    types.stringLiteral(repeaterSort.field)
+                  ),
+                  types.objectProperty(
+                    types.identifier('order'),
+                    types.stringLiteral(repeaterSort.order)
+                  ),
+                ]),
+              ]),
+            ]
+          )
+        )
+      )
+    }
+
     // getStaticProps runs once per language: the prefetch is for that language.
     if (transformOptions.localization !== undefined) {
       paramsProperties.push(buildServerLocaleParam())
@@ -1855,11 +1924,13 @@ interface ParallelFetchMeta {
 const claimParamsPropKey = (
   componentChunk: ChunkDefinition,
   resourcePropKey: string,
-  resource: { params?: Record<string, unknown> } | undefined
+  resource: { params?: Record<string, unknown> } | undefined,
+  // The list's own fixed sort rides on its prefetch too (see the params below).
+  repeaterSort?: { field: string; order: string }
 ): string => {
   const meta = componentChunk.meta as { dataSourcePropKeyParams?: Record<string, string> }
   const claimed = meta.dataSourcePropKeyParams ?? (meta.dataSourcePropKeyParams = {})
-  const signature = JSON.stringify(resource?.params ?? {})
+  const signature = JSON.stringify([resource?.params ?? {}, repeaterSort ?? null])
 
   let propKey = resourcePropKey
   for (let suffix = 2; claimed[propKey] !== undefined && claimed[propKey] !== signature; suffix++) {
