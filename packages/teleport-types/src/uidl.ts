@@ -2279,6 +2279,11 @@ export interface UIDLBlogSettings {
   categories?: UIDLEcommerceCategory[]
   /** Post content headings carry ids and `#` links to themselves. */
   headingAnchors?: boolean
+  /**
+   * The post pages carry a Contents list: the content's headings carry ids (the
+   * `#` links only with `headingAnchors`) and a post page's post its `sections`.
+   */
+  contents?: boolean
   /** A post page carries the post's approved comments. */
   comments?: boolean
   /** The blog's RSS feed. Absent: the site serves none. */

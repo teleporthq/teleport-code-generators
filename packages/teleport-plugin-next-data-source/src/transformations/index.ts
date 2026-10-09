@@ -31,6 +31,7 @@ export type { EcommerceProductTransformOptions }
 export interface ContentPresetTransformSettings {
   categories?: UIDLEcommerceCategory[]
   headingAnchors?: boolean
+  contents?: boolean
   comments?: boolean
   order?: 'manual'
 }
@@ -97,6 +98,7 @@ const contentPresetTransformSettings = (
 ): ContentPresetTransformSettings => ({
   categories: settings?.categories,
   headingAnchors: settings?.headingAnchors === true,
+  ...(settings?.contents === true && { contents: true }),
   comments: settings?.comments === true,
   ...(settings?.order === 'manual' && { order: 'manual' as const }),
 })
@@ -234,6 +236,7 @@ export const getTransformationCode = (
           tables: role ? ContentTables.contentTablesByKey(role.key) : undefined,
           categories: settings.categories,
           headingAnchors: settings.headingAnchors,
+          contents: settings.contents === true,
           arranged: settings.order === 'manual',
         })
       )
@@ -485,7 +488,8 @@ export const getTransformWrapperCode = (
 
   // A post page's neighbours and comments, on the same single-record heuristic
   // as the related rail. The comments are only asked for when the blog takes
-  // them — see `EntityTransformOptions.blogComments`.
+  // them — see `EntityTransformOptions.blogComments`. `details` tells the
+  // transform the same thing: what only a post page draws (its Contents list).
   const blogPageEnrichment =
     type === 'blog-post'
       ? `
@@ -510,7 +514,7 @@ export const getTransformWrapperCode = (
       : ''
   const blogPageOption =
     type === 'blog-post'
-      ? ', adjacentPostsById: adjacentPostsById, commentsByPostId: commentsByPostId'
+      ? ', adjacentPostsById: adjacentPostsById, commentsByPostId: commentsByPostId, details: Array.isArray(records) && records.length === 1'
       : ''
 
   return `${RAW_ROWS_CODE}

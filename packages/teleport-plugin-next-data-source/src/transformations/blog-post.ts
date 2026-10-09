@@ -16,6 +16,12 @@ export interface BlogPostTransformOptions {
   categories?: UIDLEcommerceCategory[]
   /** Content headings get ids and `#` links — see `heading-anchors.ts`. */
   headingAnchors?: boolean
+  /**
+   * The post pages carry a Contents list: the content's headings get their ids
+   * (the `#` links only with `headingAnchors`) and a post page's post its
+   * `sections` — see `blogContentsSectionsOf`.
+   */
+  contents?: boolean
   /** Manual Order: Previous / Next walk the post's category as arranged — see `blog-adjacent-posts.ts`. */
   arranged?: boolean
 }
@@ -39,6 +45,7 @@ ${generateAdjacentPostsCode(tables.posts, options.arranged === true)}
 ${generateHeadingAnchorsCode()}
 ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
+var BLOG_CONTENTS = ${options.contents === true}
 var BLOG_PICTURE_STAND_IN = ${tables.pictureStandIn !== false}
 
 // A post's reading time from its body, for one that stores none: its words at
@@ -69,7 +76,14 @@ function buildBlogPost(record, options) {
   )
   // Counted before the heading anchors add their marks.
   var bodyReadingTime = blogReadingTimeOf(content)
-  if (BLOG_HEADING_ANCHORS) content = addHeadingAnchors(content)
+  // The Contents list links to the headings, so they get their ids for it too
+  // — the # links only with the heading anchors on. Its sections ride on a
+  // post page's own fetch only (options.details): a listing draws no list, and
+  // every card of it would otherwise carry one.
+  var contentsHeadings = BLOG_CONTENTS && options.details === true ? [] : null
+  if (BLOG_HEADING_ANCHORS || BLOG_CONTENTS) {
+    content = addHeadingAnchors(content, { links: BLOG_HEADING_ANCHORS, sections: contentsHeadings })
+  }
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
 
@@ -247,6 +261,9 @@ function buildBlogPost(record, options) {
     metaTitle: metaTitle,
     metaDescription: metaDescription,
     readingTimeMinutes: readingTimeMinutes,
+    // The post's sections, what its page's Contents list links to — see
+    // blogContentsSectionsOf; empty off a post page or under three sections.
+    sections: contentsHeadings ? blogContentsSectionsOf(contentsHeadings) : [],
     isFeatured: isFeatured,
     allowComments: allowComments,
     comments: comments,
