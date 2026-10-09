@@ -2188,6 +2188,16 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     params.globalReferences.push(
       'blogCategories' as Parameters<typeof params.globalReferences.push>[0]
     )
+  } else if (source === 'helpCategories') {
+    // The Help Center's taxonomy, exposed by the same module as `useHelpCategories()`.
+    repeaterItemsExpr = types.logicalExpression(
+      '||',
+      types.identifier('helpCategories'),
+      types.arrayExpression([])
+    )
+    params.globalReferences.push(
+      'helpCategories' as Parameters<typeof params.globalReferences.push>[0]
+    )
   } else {
     // Resolve any global-state reference encoded in `source` and register it
     // so the `next-global-state` component plugin destructures the matching

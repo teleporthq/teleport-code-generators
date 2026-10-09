@@ -233,7 +233,11 @@ describe('blog posts: a visitor reads the published posts, never an author email
   it('serves the store everything: the admin, a server segment and getStaticProps', async () => {
     const admin = await posts.run({ session: { role: 'admin' } })
     expect(mainQuery(admin)).not.toContain("status = 'published'")
-    expect(JSON.stringify(admin.body.data)).toContain('ana@example.com')
+    // The post view model carries no email for anyone — a page's data must not
+    // ship it (transformations/blog-post.ts); the admin form reads raw rows.
+    expect(JSON.stringify(admin.body.data)).not.toContain('ana@example.com')
+    const adminRaw = await posts.run({ session: { role: 'admin' }, query: { rawRows: 'true' } })
+    expect(JSON.stringify(adminRaw.body.data)).toContain('ana@example.com')
 
     const server = await posts.run({ headers: internal })
     expect(mainQuery(server)).not.toContain("status = 'published'")

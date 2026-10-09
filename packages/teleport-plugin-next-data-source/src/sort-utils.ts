@@ -63,6 +63,31 @@ const toExpressionAndDeps = (
   return { expr: parsed, deps: Array.from(deps) }
 }
 
+/**
+ * The `{ field, order }` of a sort the UIDL FIXES — a static column and a
+ * static direction (or none: ascending) — or undefined for one bound to state.
+ * A fixed sort is a static sort: it rides on the server-side first-page fetch
+ * and the client keeps that page, which a dynamic sort cannot let it do.
+ */
+export const readFixedSort = (
+  sort: UIDLStaticValue | UIDLExpressionValue | undefined,
+  sortDirection: UIDLStaticValue | UIDLExpressionValue | undefined
+): { field: string; order: 'asc' | 'desc' } | undefined => {
+  if (sort?.type !== 'static' || typeof sort.content !== 'string' || !sort.content.trim()) {
+    return undefined
+  }
+  if (
+    sortDirection &&
+    (sortDirection.type !== 'static' || typeof sortDirection.content !== 'string')
+  ) {
+    return undefined
+  }
+  const direction = String(sortDirection?.content ?? '')
+    .trim()
+    .toLowerCase()
+  return { field: sort.content.trim(), order: direction.startsWith('desc') ? 'desc' : 'asc' }
+}
+
 export const extractDynamicSort = (
   sort: UIDLStaticValue | UIDLExpressionValue | undefined,
   sortDirection: UIDLStaticValue | UIDLExpressionValue | undefined

@@ -1,0 +1,61 @@
+<p>To add a script, style or tag to every page of a TeleportHQ site, open <strong>Project Settings → Custom Code</strong>, choose <strong>Head</strong> or <strong>Body</strong>, paste the code and click <strong>Save Changes</strong>. Then publish your site. The code runs on your published (and downloaded) site, not inside the TeleportHQ editor.</p>
+<h2>Before you start</h2>
+<ul>
+<li>You need permission to change project settings (Owner, Admin or Designer role).</li>
+<li>Get the full code snippet from the tool you're adding, including its opening and closing tags, for example <code>&lt;script&gt;</code> and <code>&lt;/script&gt;</code>.</li>
+<li><strong>Head</strong> or <strong>Body?</strong> Follow the tool's instructions. As a rule:
+<ul>
+<li><strong>Head</strong>: <code>&lt;meta&gt;</code>, <code>&lt;link&gt;</code> and <code>&lt;style&gt;</code> tags, and scripts the tool says to put in the head (many analytics tools).</li>
+<li><strong>Body</strong>: scripts the tool says to put in the body, such as chat widgets.</li>
+</ul>
+</li>
+<li>The settings page lists the tags you can add here: <code>link</code>, <code>meta</code>, <code>style</code> and <code>script</code>.</li>
+<li>For fonts, use <strong>Project Settings → Fonts</strong> instead. See <a href="../../design/fonts/upload-custom-fonts.md">How to upload your own fonts</a>.</li>
+</ul>
+<h2>Steps</h2>
+<ol>
+<li>In the editor, at the <strong>top left</strong>, click the TeleportHQ logo (tooltip <strong>Project Menu</strong>).</li>
+<li>Click <strong>Project Settings</strong>.</li>
+<li>In the settings menu on the left, click <strong>Custom Code</strong>.</li>
+<li>Scroll to the <strong>Custom code</strong> section.</li>
+<li>Click <strong>Head</strong> or <strong>Body</strong>.</li>
+<li>Paste your code into the code box. For example, a chat widget:<pre><code class="language-html">&lt;script src=&quot;https://widget.example.com/chat.js&quot; async&gt;&lt;/script&gt;
+</code></pre>
+</li>
+<li>Click <strong>Save Changes</strong>. The message &quot;The changes have been saved&quot; appears.</li>
+<li>Go back to the editor and publish your site. See <a href="../../publishing/publish/publish-your-site.md">How to publish your site</a>.</li>
+</ol>
+<p><img src="screenshots/add-custom-code-to-your-site-1.png" alt="Project Settings with the Custom Code tab open, the Head and Body tabs and a script pasted in the code box"></p>
+<p>You can also reach <strong>Project Settings</strong> from the drop-down next to the project name at the top of the editor, or from the <strong>…</strong> menu on the project card on the dashboard.</p>
+<h2>Check that it worked</h2>
+<p>Open your published site in a new browser tab. The tool should work there, for example the chat bubble appears. To confirm the code is on the page, right-click the page, choose <strong>View page source</strong>, and search for part of your snippet.</p>
+<h2>Troubleshooting</h2>
+<p><strong>The code doesn't work in the editor</strong>
+That's expected. TeleportHQ doesn't run custom code on the editor canvas: &quot;You will not be able to interact with the 3rd party code while editing your project in the playground, this will only work on your published websites.&quot; Publish and test on the live site.
+<strong>The code doesn't work on my live site</strong></p>
+<ul>
+<li>Publish again. Saving settings doesn't update the live site by itself.</li>
+<li>Check you pasted the whole snippet, including opening and closing tags.</li>
+<li>Check the tag type: this box is meant for <code>link</code>, <code>meta</code>, <code>style</code> and <code>script</code> tags. To place visible HTML (a table, a form, an iframe) in one spot, use a Code Embed element instead.</li>
+</ul>
+<p><strong>My site layout broke after adding code</strong>
+The settings page warns: &quot;WARNING: Invalid code added here might break your website.&quot; Remove the code you added, click <strong>Save Changes</strong>, publish again, and check the snippet with the tool's provider.</p>
+<p><strong>The Save Changes button is greyed out</strong>
+You haven't changed anything since the last save. Edit the code, then save.</p>
+<p><strong>&quot;Could not save changes&quot;</strong>
+Try again. If it keeps failing, reload the page, and check your role allows changing project settings.</p>
+<h2>Good to know</h2>
+<ul>
+<li><strong>Custom Code vs Code Embed:</strong> Custom Code applies to every page and adds nothing visible. A <strong>Code Embed</strong> element puts code in one place on one page, like a booking calendar. See <a href="../../editor/elements/add-custom-code-with-code-embed.md">How to add your own HTML or JavaScript with Code Embed</a>.</li>
+<li><strong>Google Analytics and Google Tag Manager</strong> have their own fields in the <strong>Google</strong> section at the top of the same tab. See <a href="../../seo-and-growth/analytics/add-google-analytics.md">How to add Google Analytics or Google Tag Manager</a>.</li>
+<li><strong>Tracking pixels</strong> such as Meta or TikTok go in this Custom Code box. See <a href="../../seo-and-growth/analytics/add-tracking-pixels.md">How to add a tracking pixel (Meta, TikTok, LinkedIn)</a>.</li>
+<li>Custom code is included when you download your site's code.</li>
+</ul>
+<h2>Related articles</h2>
+<ul>
+<li><a href="../../editor/elements/add-custom-code-with-code-embed.md">How to add your own HTML or JavaScript with Code Embed</a></li>
+<li><a href="../../seo-and-growth/analytics/add-google-analytics.md">How to add Google Analytics or Google Tag Manager</a></li>
+<li><a href="../../seo-and-growth/analytics/add-tracking-pixels.md">How to add a tracking pixel (Meta, TikTok, LinkedIn)</a></li>
+<li><a href="../../project-settings/project-settings-explained.md">Where are Project Settings, and what's in them?</a></li>
+<li><a href="../../publishing/publish/publish-your-site.md">How to publish your site</a></li>
+</ul>

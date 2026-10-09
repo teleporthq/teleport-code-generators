@@ -32,6 +32,14 @@ export const USE_BLOG_CATEGORIES_HOOK: UIDLDependency = {
   },
 }
 
+export const USE_HELP_CATEGORIES_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '@/blog-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
   path: 'next-intl',
@@ -511,6 +519,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     let needsEcommerce = false
     let needsCart = false
     let needsBlogCategories = false
+    let needsHelpCategories = false
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
       switch (globalRef) {
         case 'locale':
@@ -532,6 +541,9 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
           break
         case 'blogCategories':
           needsBlogCategories = true
+          break
+        case 'helpCategories':
+          needsHelpCategories = true
           break
         default:
           break
@@ -563,6 +575,17 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       ])
       reactHooks.push(ecommerceHook)
       structure.dependencies.useEcommerce = { ...USE_ECOMMERCE_HOOK }
+    }
+
+    if (needsHelpCategories && !structure.dependencies.useHelpCategories) {
+      const helpCategoriesHook = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('helpCategories'),
+          types.callExpression(types.identifier('useHelpCategories'), [])
+        ),
+      ])
+      reactHooks.push(helpCategoriesHook)
+      structure.dependencies.useHelpCategories = { ...USE_HELP_CATEGORIES_HOOK }
     }
 
     if (needsBlogCategories && !structure.dependencies.useBlogCategories) {

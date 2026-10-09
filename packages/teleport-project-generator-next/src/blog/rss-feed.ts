@@ -4,6 +4,7 @@ import {
   ProjectUIDL,
   UIDLBlogRssFeed,
 } from '@teleporthq/teleport-types'
+import { ContentTables } from '@teleporthq/teleport-shared'
 import { ensureDataSourceUtilityModule } from '../data-source-utility-plugin'
 import { extractBaseUrl } from '../internationalization/project'
 import { injectSiblingIntoApp } from '../app-sibling-injection'
@@ -20,7 +21,7 @@ export const BLOG_RSS_ROUTE = '/rss.xml'
 /** How many posts the feed lists: the newest ones. */
 export const BLOG_RSS_FEED_SIZE = 20
 
-const BLOG_POSTS_TABLE = 'teleport_blog_posts'
+const BLOG_POSTS_TABLE = ContentTables.contentTablesByKey('blog').posts
 const FEED_LINK_COMPONENT = 'BlogFeedLink'
 const FEED_LINK_FILE = 'blog-feed-link'
 

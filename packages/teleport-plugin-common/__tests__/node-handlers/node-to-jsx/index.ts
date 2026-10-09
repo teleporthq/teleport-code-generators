@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
+import generate from '@babel/generator'
 
 import { slotNode, elementNode, staticNode, dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import {
@@ -390,6 +391,50 @@ describe('generateJSXSyntax', () => {
       expect((propMember.object as types.Identifier).name).toBe('props')
       expect((propMember.property as types.Identifier).name).toBe('role')
       expect((propComparison.right as types.StringLiteral).value).toBe('admin')
+    })
+
+    it('reads a URL search-param entry off the page address (router.query.<key>)', () => {
+      // A listing's categories overview: shown while no category is picked AND no
+      // search is typed — the search lives in `?searchKeyword=`, not in a state.
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'selectedCategory' },
+        },
+        condition: {
+          conditions: [
+            { operation: 'isEmpty' },
+            {
+              operation: 'isEmpty',
+              reference: {
+                type: 'dynamic',
+                content: {
+                  referenceType: 'urlSearchParams',
+                  id: 'searchKeyword',
+                  refPath: ['searchKeyword'],
+                },
+              },
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const listingParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { selectedCategory: { type: 'string', defaultValue: '' } },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, listingParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const conditionChain = (expressionChild.expression as types.LogicalExpression).left
+      expect(generate(conditionChain).code).toBe(
+        '(selectedCategory || []).length === 0 && (router.query.searchKeyword || []).length === 0'
+      )
     })
 
     it('tracks a globalState per-entry reference on params for context wiring', () => {

@@ -1,5 +1,6 @@
 import { RichTextEmbeds } from '@teleporthq/teleport-shared'
 import { EMBED_RUNTIME_IMPORT, EMBED_SUPPORT_SOURCE } from './embed-support-source'
+import { CONTENT_RUNTIME_IMPORT, CONTENT_SUPPORT_SOURCE } from './content-support-source'
 
 interface RichTextEditorOptions {
   /**
@@ -31,10 +32,10 @@ export const generateRichTextEditorComponentCode = (
   const imports = withEmbeds
     ? `import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-${EMBED_RUNTIME_IMPORT}`
-    : `import { useMemo } from 'react'
+${CONTENT_RUNTIME_IMPORT}${EMBED_RUNTIME_IMPORT}`
+    : `import { useCallback, useMemo, useRef } from 'react'
 import dynamic from 'next/dynamic'
-`
+${CONTENT_RUNTIME_IMPORT}`
 
   // The blot has to exist before Quill parses any content, so registration
   // rides the same dynamic import that loads the editor.
@@ -43,6 +44,7 @@ import dynamic from 'next/dynamic'
   async () => {
     const mod = await import('react-quill-new')
     const Editor = mod.default || mod
+    registerProtectedBlockBlot(mod.Quill || (mod.default && mod.default.Quill))
     registerEmbedBlot(mod.Quill || (mod.default && mod.default.Quill))
     // \`next/dynamic\` attaches a \`ref\` to its OWN loadable wrapper, so a ref
     // written here never reaches the editor and \`getEditor()\` — the only way to
@@ -59,10 +61,17 @@ import dynamic from 'next/dynamic'
     loading: () => <div />,
   }
 )`
-    : `const ReactQuill = dynamic(() => import('react-quill-new'), {
-  ssr: false,
-  loading: () => <div />,
-})`
+    : `const ReactQuill = dynamic(
+  async () => {
+    const mod = await import('react-quill-new')
+    registerProtectedBlockBlot(mod.Quill || (mod.default && mod.default.Quill))
+    return mod.default || mod
+  },
+  {
+    ssr: false,
+    loading: () => <div />,
+  }
+)`
 
   const embedToolbarEntry = withEmbeds
     ? `  if (formats.includes(${JSON.stringify(embedBlotName)})) mediaGroup.push(${JSON.stringify(
@@ -72,7 +81,9 @@ import dynamic from 'next/dynamic'
 
   const body = withEmbeds ? richTextEditorWithEmbedsBody(embedBlotName) : richTextEditorPlainBody()
 
-  const preamble = withEmbeds ? `${imports}\n${EMBED_SUPPORT_SOURCE}\n` : imports
+  const preamble = withEmbeds
+    ? `${imports}\n${CONTENT_SUPPORT_SOURCE}\n${EMBED_SUPPORT_SOURCE}\n`
+    : `${imports}\n${CONTENT_SUPPORT_SOURCE}\n`
 
   return `${preamble}
 ${quillImport}
@@ -265,6 +276,8 @@ const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) =>
     ...rest
   } = props
 
+  const lastEmittedRef = useRef({ raw: null, stored: null })
+
   // quillFormats: undefined/null → all formats (Quill default)
   // quillFormats: [] → no formats (plain text)
   // quillFormats: [...] → specific formats
@@ -273,6 +286,7 @@ const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) =>
   // literal, so keying on the array itself rebuilds the toolbar every render.
   const formatsKey = Array.isArray(formats) ? formats.join('\\u0000') : String(formats)
   const toolbar = useMemo(() => buildToolbarFromFormats(formats), [formatsKey])
+  const editorFormats = useMemo(() => editorFormatsFor(formats), [formatsKey])
 
   const modules = useMemo(() => {
     if (toolbar === undefined) {
@@ -290,16 +304,42 @@ const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) =>
     }
   }, [toolbar])
 
+  // The editor holds Quill's own shape of the content (flat list lines,
+  // protected blocks); what is STORED is the plain HTML fromEditorHtml makes of
+  // it. react-quill replaces the whole document whenever the value it is given
+  // differs from the html it emitted, so when the form hands back exactly what
+  // this editor last produced, the editor gets its own html back.
+  const handleChange = useCallback(
+    (html, delta, source, editor) => {
+      const stored = fromEditorHtml(html)
+      lastEmittedRef.current = { raw: html, stored: stored }
+      if (!onChange) {
+        return
+      }
+      onChange(stored, delta, source, editor)
+    },
+    [onChange]
+  )
+
+  const incoming = value || ''
+  const lastEmitted = lastEmittedRef.current
+  const editorValue =
+    lastEmitted.stored !== null && incoming === lastEmitted.stored
+      ? lastEmitted.raw
+      : toEditorHtml(incoming)
+
   return (
     <div {...rest}>
       <ReactQuill
         theme={quillTheme}
-        value={value || ''}
-        onChange={onChange}
+        value={editorValue}
+        onChange={handleChange}
         modules={modules}
-        formats={formats}
+        formats={editorFormats}
         readOnly={readOnly}
+        useSemanticHTML={false}
       />
+      <style jsx global>{RICH_TEXT_CONTENT_STYLES}</style>
     </div>
   )
 }
@@ -336,6 +376,7 @@ const richTextEditorWithEmbedsBody = (
   // position with it. The key is the format NAMES, and the handler is made once.
   const formatsKey = Array.isArray(formats) ? formats.join('\\u0000') : String(formats)
   const toolbar = useMemo(() => buildToolbarFromFormats(formats), [formatsKey])
+  const editorFormats = useMemo(() => editorFormatsFor(formats), [formatsKey])
   const openEmbedDialog = useCallback(() => setEmbedDialogOpen(true), [])
 
   const modules = useMemo(() => {
@@ -396,7 +437,7 @@ const richTextEditorWithEmbedsBody = (
 
   const handleChange = useCallback(
     (html, delta, source, editor) => {
-      const stored = embedsEnabled ? normalizeEmbedsInEditorHtml(html) : html
+      const stored = fromEditorHtml(embedsEnabled ? normalizeEmbedsInEditorHtml(html) : html)
       lastEmittedRef.current = { raw: html, stored: stored }
       if (!onChange) {
         return
@@ -406,15 +447,18 @@ const richTextEditorWithEmbedsBody = (
     [onChange, embedsEnabled]
   )
 
-  // What is STORED has the previews and their activation markers stripped, so it
+  // What is STORED is the plain HTML fromEditorHtml makes of the editor's own
+  // shape (flat list lines, protected blocks, embed previews stripped), so it
   // is never byte-identical to the html the editor emitted. react-quill compares
   // the two and replaces the whole document when they differ, which would be
-  // every keystroke once a post holds an embed. When the form is handing back
-  // exactly what this editor last produced, give the editor its own html back.
+  // every keystroke. When the form is handing back exactly what this editor
+  // last produced, give the editor its own html back.
   const incoming = value || ''
   const lastEmitted = lastEmittedRef.current
   const editorValue =
-    lastEmitted.stored !== null && incoming === lastEmitted.stored ? lastEmitted.raw : incoming
+    lastEmitted.stored !== null && incoming === lastEmitted.stored
+      ? lastEmitted.raw
+      : toEditorHtml(incoming)
 
   const insertEmbed = useCallback((embedValue) => {
     setEmbedDialogOpen(false)
@@ -440,12 +484,14 @@ const richTextEditorWithEmbedsBody = (
         value={editorValue}
         onChange={handleChange}
         modules={modules}
-        formats={formats}
+        formats={editorFormats}
         readOnly={readOnly}
+        useSemanticHTML={false}
       />
       {isEmbedDialogOpen ? (
         <EmbedDialog onCancel={() => setEmbedDialogOpen(false)} onInsert={insertEmbed} />
       ) : null}
+      <style jsx global>{RICH_TEXT_CONTENT_STYLES}</style>
     </div>
   )
 }

@@ -11,7 +11,7 @@ import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/telepo
 import { generateSafeFileName } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
-import { appendSortsParam, DynamicSortAST, extractDynamicSort } from './sort-utils'
+import { appendSortsParam, DynamicSortAST, extractDynamicSort, readFixedSort } from './sort-utils'
 import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
 import { appendItemsPathParam, extractItemsPath } from './items-path'
 import { resolveRepeaterPerPage } from './repeater-page-size'
@@ -121,51 +121,20 @@ function searchDefaultValueInitAST(value: SearchDefaultValue | undefined): types
   return types.cloneNode(value.ast, /* deep */ true) as types.Expression
 }
 
-// Builds the `useState(...)` initializer for the search query. When the
-// cms-list-repeater is bound to a URL param (`searchUrlParamKey`), the query is
-// seeded from `window.location.search` on the client so a deep link such as
-// `/products-list?searchKeyword=yoga` arrives pre-filtered on the very first
-// paint; the server render (where `window` is undefined) and any missing param
-// fall back to the `searchDefaultValue` seed (empty string by default). This
-// mirrors the `selectedCategory` / `sortBy` initializer emitted by
-// `createStateHookAST` for state-level `urlSearchParamBinding`, keeping the
-// three products-list controls consistent.
+// Builds the `useState(...)` initializer for the search query: the
+// `searchDefaultValue` seed (empty string by default), never the address. A
+// statically generated page is rendered on the server without the visitor's
+// `?searchKeyword=`, and the browser's first render must match it — a query
+// seeded from `window.location.search` rendered a filled input and skipped the
+// prefetched rows there, and React warned of a hydration mismatch. A URL-bound
+// search adopts the address after mount instead (`pushSearchUrlSyncEffects`),
+// as the page number does (`page-url-sync.ts`).
 //
 // Returns a fresh AST on every call (no shared node references) so the same
 // initializer can seed both the immediate `ds_N_searchQuery` state and the
 // debounced `ds_N_state.debouncedQuery` value.
 function buildSearchQueryInitAST(usage: DataSourceUsage): types.Expression {
-  const fallback = searchDefaultValueInitAST(usage.searchDefaultValue)
-  if (!usage.searchUrlParamKey) {
-    return fallback
-  }
-  // (typeof window !== 'undefined'
-  //   ? new URLSearchParams(window.location.search).get('<key>')
-  //   : null) ?? <fallback>
-  return types.logicalExpression(
-    '??',
-    types.conditionalExpression(
-      types.binaryExpression(
-        '!==',
-        types.unaryExpression('typeof', types.identifier('window')),
-        types.stringLiteral('undefined')
-      ),
-      types.callExpression(
-        types.memberExpression(
-          types.newExpression(types.identifier('URLSearchParams'), [
-            types.memberExpression(
-              types.memberExpression(types.identifier('window'), types.identifier('location')),
-              types.identifier('search')
-            ),
-          ]),
-          types.identifier('get')
-        ),
-        [types.stringLiteral(usage.searchUrlParamKey)]
-      ),
-      types.nullLiteral()
-    ),
-    fallback
-  )
+  return searchDefaultValueInitAST(usage.searchDefaultValue)
 }
 
 // ==================== UIDL-FIRST STATE MANAGEMENT ====================
@@ -550,11 +519,21 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           sorts = parentDataSource.resourceParams.sorts.content
         }
 
-        // If legacy sorts aren't set, fall back to the new dynamic single-column
-        // sort fields on the cms-list-repeater (used by admin-panel listing pages).
+        // If legacy sorts aren't set, fall back to the single-column sort fields
+        // on the cms-list-repeater. A FIXED one (a column chosen in the editor,
+        // e.g. a blog listing's newest first) is a static sort: read as dynamic,
+        // it made the list drop the server-side first page (`initialData` below
+        // is skipped for a dynamic sort) — the pre-rendered HTML carried no
+        // posts, and the browser fetched page 1 a second time. Only a sort
+        // bound to state (the admin panel's sortable columns) is dynamic.
         let dynamicSort: DynamicSortAST | undefined
         if ((!sorts || sorts.length === 0) && content.sort) {
-          dynamicSort = extractDynamicSort(content.sort, content.sortDirection)
+          const fixedSort = readFixedSort(content.sort, content.sortDirection)
+          if (fixedSort) {
+            sorts = [fixedSort]
+          } else {
+            dynamicSort = extractDynamicSort(content.sort, content.sortDirection)
+          }
         }
 
         // Extract filters from parent's resource params. The inspector wraps
@@ -838,19 +817,116 @@ function pushSearchUrlSyncEffects(
         )
       : types.identifier(vars.debouncedSearchQueryVar)
 
+  // The query starts at its default (see `buildSearchQueryInitAST`), so the
+  // pair must agree on who goes first: the read-back adopts the address, THEN
+  // the write-back may write — before that, its first run would delete the very
+  // `?<key>=` the read-back is about to adopt.
+  const adoptedRefVar = `ds_${usage.index}_searchUrlAdopted`
+  const adopterVar = `ds_${usage.index}_adoptUrlSearch`
+  effectStatements.push(
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier(adoptedRefVar),
+        types.callExpression(types.identifier('useRef'), [types.booleanLiteral(false)])
+      ),
+    ]),
+    buildUrlSearchAdopter(adopterVar, usage, vars)
+  )
+
   // write-back: debounced query → `?<searchUrlParamKey>=`
   effectStatements.push(
     URLSearchParamSync.buildUrlWriteBackEffect(
       usage.searchUrlParamKey,
       buildDebouncedValueExpr(),
-      buildDebouncedValueExpr()
+      buildDebouncedValueExpr(),
+      undefined,
+      adoptedRefVar
     )
   )
-  // read-back: `?<searchUrlParamKey>=` → input (`setDs_N_searchQuery`). The
-  // debounce effect propagates the change into the debounced value + fetch.
+  // read-back: `?<searchUrlParamKey>=` → the input AND the applied query at once
+  // (`ds_N_adoptUrlSearch`), so an address is not a typed change: it skips the
+  // debounce and keeps the page — `?searchKeyword=x&page=3` lands on page 3.
   effectStatements.push(
-    URLSearchParamSync.buildUrlReadBackEffect(usage.searchUrlParamKey, vars.setSearchQueryVar)
+    URLSearchParamSync.buildUrlReadBackEffect(
+      usage.searchUrlParamKey,
+      adopterVar,
+      undefined,
+      adoptedRefVar
+    )
   )
+}
+
+// `const ds_N_adoptUrlSearch = (update) => { … }`: the setter the search's URL
+// read-back calls with its `(prev) => next` updater. It moves the input and the
+// applied (debounced) query together; the combined paginated state keeps its
+// page, which a typed change resets to 1 in the debounce effect.
+function buildUrlSearchAdopter(
+  adopterVar: string,
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): types.VariableDeclaration {
+  const update = types.identifier('update')
+  const applyToDebounced =
+    usage.category === 'paginated+search'
+      ? // setDs_N_state((state) => {
+        //   const next = update(state.debouncedQuery)
+        //   return next === state.debouncedQuery ? state : { ...state, debouncedQuery: next }
+        // })
+        types.callExpression(types.identifier(vars.setCombinedStateVar), [
+          types.arrowFunctionExpression(
+            [types.identifier('state')],
+            types.blockStatement([
+              types.variableDeclaration('const', [
+                types.variableDeclarator(
+                  types.identifier('next'),
+                  types.callExpression(types.identifier('update'), [
+                    types.memberExpression(
+                      types.identifier('state'),
+                      types.identifier('debouncedQuery')
+                    ),
+                  ])
+                ),
+              ]),
+              types.returnStatement(
+                types.conditionalExpression(
+                  types.binaryExpression(
+                    '===',
+                    types.identifier('next'),
+                    types.memberExpression(
+                      types.identifier('state'),
+                      types.identifier('debouncedQuery')
+                    )
+                  ),
+                  types.identifier('state'),
+                  types.objectExpression([
+                    types.spreadElement(types.identifier('state')),
+                    types.objectProperty(
+                      types.identifier('debouncedQuery'),
+                      types.identifier('next')
+                    ),
+                  ])
+                )
+              ),
+            ])
+          ),
+        ])
+      : types.callExpression(types.identifier(vars.setDebouncedSearchQueryVar), [update])
+  return types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(adopterVar),
+      types.arrowFunctionExpression(
+        [types.identifier('update')],
+        types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(types.identifier(vars.setSearchQueryVar), [
+              types.identifier('update'),
+            ])
+          ),
+          types.expressionStatement(applyToDebounced),
+        ])
+      )
+    ),
+  ])
 }
 
 // How one usage reads and writes its current page.
@@ -1258,13 +1334,12 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           ])
         )
 
-        // Immediate search query state — seeded with `searchDefaultValue` (or
-        // the `searchUrlParamKey` URL value when bound) so the input is
-        // pre-filled on mount. The debounced value above is seeded identically
-        // so a deep-linked `?searchKeyword=` fetches filtered results on the
-        // first paint: the paginated+search `initialData` is gated on
-        // `!ds_N_state.debouncedQuery`, so a non-empty seed forces the
-        // DataProvider to fetch instead of reusing the unfiltered SSG prefetch.
+        // Immediate search query state — seeded with `searchDefaultValue`, like
+        // the debounced value above. A deep-linked `?searchKeyword=` is adopted
+        // after mount by the URL read-back, which sets both at once; the
+        // paginated+search `initialData` is gated on `!ds_N_state.debouncedQuery`,
+        // so the adopted query makes the DataProvider fetch filtered rows
+        // instead of reusing the unfiltered SSG prefetch the first render shows.
         stateDeclarations.push(
           types.variableDeclaration('const', [
             types.variableDeclarator(
@@ -2736,6 +2811,15 @@ function updateDataProviderForPlain(
   usage: DataSourceUsage,
   localized: boolean
 ): void {
+  // A sort bound to state is the visitor's, which the server cannot know: rows
+  // pre-rendered in the table's order would stand in for it, since a seeded
+  // provider skips its first fetch — the paginated lists drop them the same way.
+  if (usage.dynamicSort) {
+    dp.openingElement.attributes = dp.openingElement.attributes.filter(
+      (attr: any) => !(attr.type === 'JSXAttribute' && attr.name?.name === 'initialData')
+    )
+  }
+
   const attrs = dp.openingElement.attributes
 
   const clientCache = usage.cache?.client ? usage.cache : undefined
@@ -2774,13 +2858,15 @@ function updateDataProviderForPlain(
 
   // Find the params attribute. A plain list may have none at all — but the
   // fetch it was just given sends `params` regardless, and in a localized
-  // project those have to carry the locale, so the attribute is created.
+  // project those have to carry the locale, and a sorted list its sort, so the
+  // attribute is created.
   let paramsAttrIndex = attrs.findIndex(
     (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'params'
   )
+  const isSorted = usage.sorts.length > 0 || !!usage.dynamicSort
 
   if (paramsAttrIndex === -1) {
-    if (!localized) {
+    if (!localized && !isSorted) {
       return
     }
     attrs.push(
@@ -2814,10 +2900,22 @@ function updateDataProviderForPlain(
     return
   }
 
-  // Build useMemo dependencies including filter state IDs
+  // The repeater's sort, which the paginated and searchable lists add to the
+  // params they rebuild: kept as they come, a plain list's params never
+  // carried it, and the rows arrived in the table's own order.
+  if (paramsExpression.type === 'ObjectExpression' && !hasObjectKey(paramsExpression, 'sorts')) {
+    appendSortsParam(
+      paramsExpression.properties as types.ObjectProperty[],
+      usage.sorts,
+      usage.dynamicSort
+    )
+  }
+
+  // Build useMemo dependencies including filter state IDs and a dynamic sort's state
   const memoDeps: types.Expression[] = []
   const memoSeen = new Set<string>()
   pushStateIdsAsDeps(memoDeps, memoSeen, usage.filterStateIds)
+  pushStateIdsAsDeps(memoDeps, memoSeen, usage.dynamicSort?.depStateIds ?? [])
   pushPropIdsAsDeps(memoDeps, memoSeen, usage.filterPropIds)
   pushUrlSearchParamMemoDeps(memoDeps, usage)
   if (localized && paramsExpression.type === 'ObjectExpression') {
@@ -2836,6 +2934,14 @@ function updateDataProviderForPlain(
     types.jsxExpressionContainer(memoizedParams)
   )
 }
+
+const hasObjectKey = (object: types.ObjectExpression, key: string): boolean =>
+  object.properties.some(
+    (property) =>
+      property.type === 'ObjectProperty' &&
+      ((property.key.type === 'Identifier' && property.key.name === key) ||
+        (property.key.type === 'StringLiteral' && property.key.value === key))
+  )
 
 function stabilizeDataProviderWithoutRepeater(dp: any): void {
   const attrs = dp.openingElement.attributes
