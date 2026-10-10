@@ -225,6 +225,13 @@ export const extractPageOptions = (
     }
   }
 
+  // The home page is written as `index` (below), so it is served at `/`; a navLink it
+  // brought along (a Help Center list at `/help` made the home page) would send every
+  // link to it to a route that is never generated.
+  if (isHomePage && !pageOptions.fallback && !pageOptions.dynamicRouteAttribute) {
+    pageOptions.navLink = '/'
+  }
+
   if (pageOptions.dynamicRouteAttribute && !pageOptions.navLink && !isHomePage) {
     const routeSegments = routeName.split('/')
     const staticPath =
