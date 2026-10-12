@@ -1039,7 +1039,8 @@ const generateComponentContent = async (
     {}
   )
 
-  // Every instance owns its states: two navigation bars open their menus one at a time.
+  // Every instance owns its states: two navigation bars open their menus one at a time. It
+  // sits in the scope around it, so a click in a header can open a modal the page owns.
   const instanceScope = createStateScope(
     component.name,
     Object.keys(componentClone.stateDefinitions || {}).reduce(
@@ -1048,7 +1049,9 @@ const generateComponentContent = async (
         return acc
       },
       {}
-    )
+    ),
+    undefined,
+    structure.stateScope
   )
   parentContent.forEach((content) => lendToInstance(content, structure.stateScope, instanceScope))
 

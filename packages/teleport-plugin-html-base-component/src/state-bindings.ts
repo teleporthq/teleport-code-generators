@@ -45,6 +45,8 @@ export interface StateScope {
   pageId?: string
   /** Content a parent placed in this instance (slot children, element props): it reads the parent's store. */
   borrowed: HastNode[]
+  /** The scope this instance sits in. A click inside it may set a state only the page around it owns. */
+  parent?: StateScope
 }
 
 export interface BindingContext {
@@ -61,8 +63,9 @@ type ConditionReference = UIDLDynamicReference | UIDLExpressionValue
 export const createStateScope = (
   name: string,
   states: Record<string, UIDLStateDefinition> = {},
-  pageId?: string
-): StateScope => ({ name, states, used: new Set(), pageId, borrowed: [] })
+  pageId?: string,
+  parent?: StateScope
+): StateScope => ({ name, states, used: new Set(), pageId, borrowed: [], parent })
 
 const SCALAR_STATE_TYPES = ['boolean', 'number', 'string']
 
@@ -79,6 +82,32 @@ const startingValue = (scope: StateScope, name: string): { value: StateValue } |
     : null
 }
 
+/**
+ * The scope that owns a state a click sets: the element's own, or the nearest one around it.
+ * A component's own state shadows the page's, the way the runtime's stores chain (tq-state.js).
+ */
+const owningScope = (scope: StateScope | undefined, name: string): StateScope | null => {
+  for (let current = scope; current; current = current.parent) {
+    if (startingValue(current, name)) {
+      return current
+    }
+  }
+  return null
+}
+
+/** Records a state a binding reads or writes in the scope that owns it, so that scope declares it. */
+const useState = (scope: StateScope, name: string) =>
+  (owningScope(scope, name) || scope).used.add(name)
+
+const pageIdOf = (scope: StateScope): string | undefined => {
+  for (let current: StateScope | undefined = scope; current; current = current.parent) {
+    if (current.pageId) {
+      return current.pageId
+    }
+  }
+  return undefined
+}
+
 const startingValues = (scope: StateScope): Record<string, StateValue> =>
   Object.keys(scope.states).reduce((values: Record<string, StateValue>, name) => {
     const start = startingValue(scope, name)
@@ -89,7 +118,7 @@ const startingValues = (scope: StateScope): Record<string, StateValue> =>
   }, {})
 
 const useStates = (scope: StateScope, expression: StateExpression) =>
-  StateBindings.stateNamesOf(expression).forEach((name) => scope.used.add(name))
+  StateBindings.stateNamesOf(expression).forEach((name) => useState(scope, name))
 
 const valueAtPath = (value: unknown, path: string[]): unknown =>
   path.reduce(
@@ -358,12 +387,12 @@ const compileStateChange = (
   event: UIDLStateModifierEvent,
   context: BindingContext
 ): StateAssignment | null => {
-  const { scope } = context
   const name = event.modifies
-  if (!scope || !startingValue(scope, name)) {
+  const owner = owningScope(context.scope, name)
+  if (!owner) {
     return null
   }
-  const { type } = scope.states[name]
+  const { type } = owner.states[name]
   const current = StateBindings.state(name)
   const { newState } = event
   if (newState === '$toggle') {
@@ -418,11 +447,11 @@ const compileWorkflowUpdate = (
   hast: HastNode,
   context: BindingContext
 ): StateAssignment | null => {
-  const { scope } = context
-  if (typeof property !== 'string' || !scope || !startingValue(scope, property)) {
+  const owner = typeof property === 'string' ? owningScope(context.scope, property) : null
+  if (typeof property !== 'string' || !owner) {
     return null
   }
-  const { type } = scope.states[property]
+  const { type } = owner.states[property]
   if (value === undefined) {
     return { name: property, value: StateBindings.literal(type === 'string' ? '' : null) }
   }
@@ -479,7 +508,8 @@ const isClickedBy = (workflow: UIDLWorkflow, elementId: string, scope: StateScop
   }
   // Like the Next export, an element on a page answers only the workflows bound to that page.
   const pages = config.selectedPages as Array<{ id?: string }> | undefined
-  return !scope.pageId || !pages?.length || pages.some((page) => page?.id === scope.pageId)
+  const pageId = pageIdOf(scope)
+  return !pageId || !pages?.length || pages.some((page) => page?.id === pageId)
 }
 
 /** A click workflow that only sets this scope's states, one step after the other. */
@@ -597,7 +627,7 @@ export const bindElement = (
     )
     makeKeyboardOperable(hast)
     actions.forEach(({ name, value }) => {
-      scope.used.add(name)
+      useState(scope, name)
       useStates(scope, value)
     })
   }
