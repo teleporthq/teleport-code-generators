@@ -11,11 +11,8 @@ import {
   getTransformWrapperCode,
   type EntityTransformOptions,
 } from '../transformations'
-import {
-  generateSortFallbackFieldHelper,
-  generateSortFieldSqlHelper,
-  generateSortTiebreakSql,
-} from '../product-price-sort'
+import { generateSortFallbackFieldHelper, generateSortFieldSqlHelper } from '../product-price-sort'
+import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../row-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../localized-columns'
 import { REQUEST_LOCALE_PARAM } from '../request-locale'
@@ -252,6 +249,8 @@ ${generateSortFieldSqlHelper(tableName)}
 
 ${generateSortFallbackFieldHelper(tableName)}
 
+${generateRowOrderTiebreakHelper(rowIdentityColumn(config, tableName))}
+
 ${generateProductFilterClauseHelper(tableName)}
 
 ${generateLocalizedColumnsHelper(localizedColumns)}
@@ -406,22 +405,19 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
-          // A deterministic tiebreaker keeps pagination stable: "sort by
-          // discount" ties every undiscounted product at zero, and equal rows
-          // with no defined order can repeat across pages or vanish between them.
-          orderBySql = \` ORDER BY \${orderClauses.join(', ')}${generateSortTiebreakSql(
-            tableName
-          )}\`
-          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}${generateSortTiebreakSql(
-            tableName
-          )}\`
+          // The row's own key last, so equal rows can't repeat across pages
+          // or vanish between them.
+          const tiebreak = rowOrderTiebreak(valid.map((sort) => sort.field), orderOf(valid[valid.length - 1]))
+          orderBySql = \` ORDER BY \${orderClauses.join(', ')}\${tiebreak}\`
+          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}\${tiebreak}\`
         }
       }
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}\`
-      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
+      const tiebreak = rowOrderTiebreak([sortBy], sortByDirection)
+      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}\${tiebreak}\`
+      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\${tiebreak}\`
     }
     const usedDiscountAwareSort = orderBySql !== plainOrderBySql
 

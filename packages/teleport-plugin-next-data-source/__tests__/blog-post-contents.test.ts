@@ -139,7 +139,22 @@ describe('a post page’s Contents list', () => {
       DETAILS
     )
     expect(built.content).toContain(
-      '<h2 id="one">One<a class="tq-heading-anchor" href="#one" aria-hidden="true" tabindex="-1">#</a></h2>'
+      '<h2 id="one"><a class="tq-heading-link" href="#one">One</a><a class="tq-heading-anchor" href="#one" aria-hidden="true" tabindex="-1">#</a></h2>'
+    )
+    expect(asPairs(built.sections)).toEqual([
+      ['one', 'One'],
+      ['two', 'Two'],
+      ['three', 'Three'],
+    ])
+  })
+
+  it('reads a heading stored as its own link with the # after it, without the #', () => {
+    const stored =
+      '<h2 id="one"><a class="tq-heading-link" href="#one">One</a><a class="tq-heading-anchor" href="#one" aria-hidden="true" tabindex="-1">#</a></h2>' +
+      '<h2>Two</h2><h2>Three</h2>'
+    const built = buildWith({ contents: true, headingAnchors: true })(
+      { ...POST, content: stored },
+      DETAILS
     )
     expect(asPairs(built.sections)).toEqual([
       ['one', 'One'],

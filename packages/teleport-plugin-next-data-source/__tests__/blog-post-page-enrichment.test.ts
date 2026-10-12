@@ -162,7 +162,7 @@ describe('blog post transform — heading anchors', () => {
     expect(buildBlogPost(post('a', { content })).content).toBe(content)
   })
 
-  it('gives every h2-h6 a unique id and a hidden # link, keeping ids it already has', () => {
+  it('gives every h2-h6 a unique id, makes its text a link to itself with a # after it, keeping ids it already has', () => {
     const built = buildWith({ headingAnchors: true })(
       post('a', {
         content:
@@ -170,13 +170,26 @@ describe('blog post transform — heading anchors', () => {
           '<h2>Getting started</h2><h4><br></h4><h2 id="getting-started-2">Clash</h2>',
       })
     )
+    const anchored = (tag: string, attrs: string, id: string, text: string) =>
+      `<${tag}${attrs}><a class="tq-heading-link" href="#${id}">${text}</a>` +
+      `<a class="tq-heading-anchor" href="#${id}" aria-hidden="true" tabindex="-1">#</a></${tag}>`
     expect(built.content).toBe(
       '<h1>Title</h1>' +
-        '<h2 id="getting-started">Getting Started<a class="tq-heading-anchor" href="#getting-started" aria-hidden="true" tabindex="-1">#</a></h2>' +
-        '<h3 class="x" id="custom">Café &amp; Crème<a class="tq-heading-anchor" href="#custom" aria-hidden="true" tabindex="-1">#</a></h3>' +
-        '<h2 id="getting-started-3">Getting started<a class="tq-heading-anchor" href="#getting-started-3" aria-hidden="true" tabindex="-1">#</a></h2>' +
+        anchored('h2', ' id="getting-started"', 'getting-started', 'Getting Started') +
+        anchored('h3', ' class="x" id="custom"', 'custom', 'Café &amp; Crème') +
+        anchored('h2', ' id="getting-started-3"', 'getting-started-3', 'Getting started') +
         '<h4><br></h4>' +
-        '<h2 id="getting-started-2">Clash<a class="tq-heading-anchor" href="#getting-started-2" aria-hidden="true" tabindex="-1">#</a></h2>'
+        anchored('h2', ' id="getting-started-2"', 'getting-started-2', 'Clash')
+    )
+  })
+
+  it('links a heading that holds a link of its own through the # alone', () => {
+    const built = buildWith({ headingAnchors: true })(
+      post('a', { content: '<h2>See <a href="/pricing">pricing</a></h2>' })
+    )
+    expect(built.content).toBe(
+      '<h2 id="see-pricing">See <a href="/pricing">pricing</a>' +
+        '<a class="tq-heading-anchor" href="#see-pricing" aria-hidden="true" tabindex="-1">#</a></h2>'
     )
   })
 
