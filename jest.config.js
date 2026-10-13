@@ -26,7 +26,9 @@ module.exports = {
     "jsx",
     "node"
   ],
-  "testPathIgnorePatterns": ['mocks.ts', '/__tests__/_helpers/'],
+  // teleport-test/dist holds generated projects (Teleport & Run); a page named
+  // test.js or spec.js there is not a test.
+  "testPathIgnorePatterns": ['mocks.ts', '/__tests__/_helpers/', '/packages/teleport-test/dist/'],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
       '<rootDir>/test-mocks/html-whitespace-sensitive-tag-names.json'
@@ -49,6 +51,10 @@ module.exports = {
     // The rich-text embed helpers are emitted into generated projects via
     // fn.toString(); istanbul's `cov_xxx()` calls would travel with them into a
     // scope that cannot resolve the counter.
-    "/packages/teleport-shared/src/utils/rich-text-embeds.ts"
+    "/packages/teleport-shared/src/utils/rich-text-embeds.ts",
+    // Same for the rich-text content runtime: rich-text-content-runtime-emitter.ts
+    // prints these functions with fn.toString(), and the drift test compares the
+    // print with the committed string, which has no counters.
+    "/packages/teleport-shared/src/utils/rich-text-content.ts"
   ]
 }
