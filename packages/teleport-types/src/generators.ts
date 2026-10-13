@@ -21,6 +21,7 @@ import {
   UIDLWorkflows,
   UIDLAuthentication,
   UIDLBlogSettings,
+  UIDLBookingSettings,
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
   UIDLAIAssistantChat,
@@ -237,6 +238,8 @@ export interface GeneratorOptions {
   // only in the UIDL (there is no DB table for it), so the blog-post transform
   // needs it here to resolve a post's `category_ids` to display names.
   blogSettings?: UIDLBlogSettings
+  // The booking items' taxonomy, for the same reason.
+  bookingSettings?: UIDLBookingSettings
   // Project-level invoice settings, plumbed down for the SAME reason: the
   // `teleport` data source fetcher bakes the storefront tax rate
   // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a

@@ -6,7 +6,7 @@ import {
   FileType,
   UIDLAuthentication,
 } from '@teleporthq/teleport-types'
-import { TableAccess, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
@@ -64,7 +64,6 @@ import {
   generateHashPasswordFile,
   generateNextAuthRouteFile,
   generateSignupRouteFile,
-  isSignUpClosed,
   generateMiddlewareFile,
   generateSessionProviderWrapper,
   generateNextAuthUrlGuardModule,
@@ -99,6 +98,7 @@ import {
 import { rewriteLowStockCustomHandlers } from './ecommerce-customhandler-rewriter'
 import { assertWorkflowsAreSecure } from './security-scanner'
 import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
+import { generateBookingCalendarFeedFiles } from './booking-calendar-feed-route-generator'
 
 // Resolves the auth IDENTITY (users) table from the UIDL auth tables. Getting
 // this wrong is a security hole (the /api/data guard only protects this table),
@@ -351,6 +351,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     if (hasAuthentication) {
       this.generateAuthFiles(uidl.authentication, structure)
     }
+
+    // The bookings' calendar feeds do not depend on any workflow, so they are
+    // emitted before the early return for a project without workflows.
+    generateBookingCalendarFeedFiles(structure)
 
     if (!uidl.workflows || !uidl.workflows.workflows) {
       if (uidl.invoiceSettings?.enabled) {
@@ -746,7 +750,6 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               authUsersTableName,
               lowStockAlertsEnabled,
               lowStockThreshold,
-              restrictedTables: TableAccess.resolveRestrictedTables(uidl.authentication),
             }),
           },
         ],
@@ -1778,11 +1781,7 @@ module.exports = __customNodeRegistry;
           },
         ],
       })
-    }
 
-    // A closed sign-up (an internal tool's: an admin adds every account from
-    // the admin panel's Users screen) has no public route that creates one.
-    if (auth.passwordAuthEnabled && !isSignUpClosed(auth)) {
       // Bake the WELCOME email (if configured on the account-signup node) into
       // the signup route so it sends after the user is created. The credential
       // is read from env at runtime; its placeholder is registered by the

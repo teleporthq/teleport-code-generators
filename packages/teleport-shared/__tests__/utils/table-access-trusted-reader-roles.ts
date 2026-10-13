@@ -8,9 +8,9 @@ import {
 /**
  * Who may read the store's private tables (accounts, sent emails, orders,
  * gift cards …) from a browser: the roles the generated admin panel's FOLDER
- * admits. An internal tool admits its staff to the tool's own pages — the
- * dashboard and each table's list and views — and a role on one of those
- * pages must never become a reader of every protected table.
+ * admits. Some admin pages also admit another role (staff screens: the
+ * dashboard, a table's list and views), and a role on one of those pages must
+ * never become a reader of every protected table.
  */
 
 const authWith = (
@@ -46,10 +46,9 @@ const folder = (
   children: Record<string, 'page' | 'folder'>
 ) => ({ requiresAuth: true, allowedRoles, folderName, parentId, children })
 
-// What `authenticationToUIDL` emits for an internal tool that owns its shell:
-// the admin folder admits admins, the tool's screens (and their entity folder)
-// admit staff too, and the built-in entities stay admin only.
-const INTERNAL_TOOL_AUTH = authWith(
+// An admin panel whose folder admits admins, some of whose screens (and their
+// entity folder) admit staff too, and whose built-in entities stay admin only.
+const STAFF_SCREENS_AUTH = authWith(
   {
     'p-dashboard': page('/admin/dashboard', ['admin', 'staff']),
     'p-tasks': page('/admin/tasks', ['admin', 'staff']),
@@ -76,8 +75,8 @@ const INTERNAL_TOOL_AUTH = authWith(
 )
 
 describe('resolveTrustedReaderRoles', () => {
-  it("trusts the admin folder's roles, never the staff an internal tool admits to its pages", () => {
-    expect(resolveTrustedReaderRoles(INTERNAL_TOOL_AUTH)).toEqual(['admin'])
+  it("trusts the admin folder's roles, never the staff an admin page admits", () => {
+    expect(resolveTrustedReaderRoles(STAFF_SCREENS_AUTH)).toEqual(['admin'])
   })
 
   it('answers what it always did for an admin panel without staff pages', () => {
@@ -92,7 +91,7 @@ describe('resolveTrustedReaderRoles', () => {
   })
 
   it('falls back to the roles EVERY admin page admits when the folder records none', () => {
-    const pages = INTERNAL_TOOL_AUTH.pageProtection
+    const pages = STAFF_SCREENS_AUTH.pageProtection
     expect(resolveTrustedReaderRoles(authWith(pages, {}))).toEqual(['admin'])
     const roleless = authWith(pages, {
       'f-admin': folder('admin-panel', [], 'pages', { 'p-dashboard': 'page' }),
@@ -130,8 +129,8 @@ return __taGuardRead`
     }
   }
 
-  it("refuses an internal tool's staff every account, email and order", async () => {
-    const readAs = bootGuard(resolveTrustedReaderRoles(INTERNAL_TOOL_AUTH))
+  it('refuses staff admitted to some admin pages every account, email and order', async () => {
+    const readAs = bootGuard(resolveTrustedReaderRoles(STAFF_SCREENS_AUTH))
     for (const table of [
       'users',
       'teleport_sent_emails',

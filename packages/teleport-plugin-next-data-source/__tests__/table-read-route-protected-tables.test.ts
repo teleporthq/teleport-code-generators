@@ -488,13 +488,13 @@ describe('resolveTrustedReaderRoles', () => {
       customUserProperties: [],
     })
     // `staff` opens `/admin/orders` only: a page's role is no reader of every
-    // protected table (an internal tool admits its staff to its own pages).
+    // protected table (an admin page may also admit staff).
     expect(roles).toEqual(['admin'])
     expect(TableAccess.resolveTrustedReaderRoles(undefined)).toEqual([])
   })
 
-  it("refuses an internal tool's staff the accounts table on its read route", async () => {
-    const toolAuth: UIDLAuthentication = {
+  it('refuses staff admitted to some admin pages the accounts table on its read route', async () => {
+    const staffPagesAuth: UIDLAuthentication = {
       ...ADMIN_PANEL_AUTH,
       roles: ['admin', 'staff', 'user'],
       pageProtection: {
@@ -512,7 +512,7 @@ describe('resolveTrustedReaderRoles', () => {
         },
       },
     }
-    const options = buildProductTransformOptions({ authentication: toolAuth })
+    const options = buildProductTransformOptions({ authentication: staffPagesAuth })
     const users = bootTableRoute('users', options.trustedReaderRoles || [])
     expect((await users({ handler: 'handler', session: { role: 'staff' } })).status).toBe(403)
     expect((await users({ handler: 'handler', session: { role: 'admin' } })).status).toBe(200)

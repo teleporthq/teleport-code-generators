@@ -9,7 +9,8 @@ import {
   UIDLStateDataSourceBinding,
   UIDLFilterConfigEntry,
 } from '@teleporthq/teleport-types'
-import { GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, PageArrival, StringUtils } from '@teleporthq/teleport-shared'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
   generateDataSourceFetcherWithCore,
@@ -26,6 +27,8 @@ import {
   getCsvColumnLabels,
   isSelectOnlyQuery,
 } from './global-state/data-source-utils'
+
+const { stateQueryHasTemplatePlaceholder } = RouteUtils
 
 interface ParallelFetchMeta {
   names: string[]
@@ -343,17 +346,6 @@ const addPropToGetStaticPropsReturn = (
   }
 }
 
-/**
- * Matches any double-brace template placeholder, e.g. `{{Current User.id}}`,
- * `{{user.email}}`, `{{ foo.bar }}`. These placeholders are only
- * resolvable at runtime (with a NextAuth session, request context, etc.)
- * so any query carrying one CANNOT be executed at build time inside
- * `getStaticProps`. Emitting a fetch for such a state produces a build-
- * time `fetchData({ rawQuery })` call that sends the literal placeholder
- * text to the database, crashing Postgres with
- * `invalid input syntax for type uuid: "{{Current User.id}}"`.
- */
-const UNRESOLVED_TEMPLATE_PLACEHOLDER = /\{\{[^}]+\}\}/
 // A placeholder that is NOT runtime-resolvable: anything other than
 // {{Current User.<field>}} (signed-in user, from the global auth context) or
 // {{Current Page Entity.id}} (the details-page row — its id IS the dynamic
@@ -363,20 +355,13 @@ const UNRESOLVED_TEMPLATE_PLACEHOLDER = /\{\{[^}]+\}\}/
 const NON_RUNTIME_RESOLVABLE_PLACEHOLDER =
   /\{\{(?!Current User\.\w+\}\})(?!Current Page Entity\.id\}\})[^}]+\}\}/
 
-const queryHasUnresolvedPlaceholder = (definition: UIDLStateDefinition): boolean => {
-  if (typeof definition.query !== 'string' || definition.query.length === 0) {
-    return false
-  }
-  return UNRESOLVED_TEMPLATE_PLACEHOLDER.test(definition.query)
-}
-
 /**
  * True when every `{{...}}` placeholder in the query is resolvable on the
  * client at runtime, so the state can be populated through a generated API
  * route + client-side fetch instead of being dropped.
  */
 const queryPlaceholdersAreRuntimeResolvable = (definition: UIDLStateDefinition): boolean => {
-  if (!queryHasUnresolvedPlaceholder(definition)) {
+  if (!stateQueryHasTemplatePlaceholder(definition)) {
     return false
   }
   return !NON_RUNTIME_RESOLVABLE_PLACEHOLDER.test(definition.query)
@@ -444,10 +429,12 @@ interface BoundState {
  * Collects all state definitions that have a dataSourceBinding, split by how
  * their data can be resolved:
  *
- * - `buildTime`: no `{{...}}` placeholder in the query — fetched once inside
- *   `getStaticProps`. Emitting a build-time fetch for a placeholder query
- *   would send the literal placeholder text to the database, crashing
- *   Postgres with `invalid input syntax for type uuid: "{{Current User.id}}"`.
+ * - `buildTime`: no `{{...}}` placeholder in the query — fetched inside the
+ *   page's `getStaticProps` chunk, which the page pipeline turns into
+ *   `getServerSideProps` (see `RouteUtils.pageSeedsStateFromDataSource`).
+ *   Emitting a server fetch for a placeholder query would send the literal
+ *   placeholder text to the database, crashing Postgres with
+ *   `invalid input syntax for type uuid: "{{Current User.id}}"`.
  * - `runtimeUser`: every placeholder is `{{Current User.<field>}}` or
  *   `{{Current Page Entity.id}}` — fetched at runtime through a generated
  *   API route once the signed-in user / dynamic route param is available on
@@ -467,7 +454,7 @@ const collectBoundStates = (
     if (!definition.dataSourceBinding) {
       continue
     }
-    if (queryHasUnresolvedPlaceholder(definition)) {
+    if (stateQueryHasTemplatePlaceholder(definition)) {
       if (queryPlaceholdersAreRuntimeResolvable(definition)) {
         runtimeUser.push({ stateKey, definition, binding: definition.dataSourceBinding })
         continue
@@ -1080,6 +1067,10 @@ const generateRuntimeTokenStateFetches = (
       meta: { namedImport: true },
     }
   }
+
+  // The fetch effects run when the page mounts — on every arrival only if the
+  // page remounts for it.
+  PageArrival.remountPageOnArrival(structure)
 }
 
 export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
@@ -1138,6 +1129,7 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
 
     const extractedResources = options.extractedResources
     const localized = isLocalizedProject(options)
+    let seedsStateFromProps = false
 
     for (const group of fetchGroups) {
       const { dataSource, tableName, fileName, fetcherImportName, states } = group
@@ -1259,7 +1251,14 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
         propValue = wrapWithMappingFunction(propValue, definition)
 
         addPropToGetStaticPropsReturn(tryBlock, stateKey, propValue)
+        seedsStateFromProps = true
       }
+    }
+
+    // `useState` reads these props once, when the page mounts — so the page
+    // has to remount on every arrival to take the values computed for it.
+    if (seedsStateFromProps) {
+      PageArrival.remountPageOnArrival(structure)
     }
 
     return structure

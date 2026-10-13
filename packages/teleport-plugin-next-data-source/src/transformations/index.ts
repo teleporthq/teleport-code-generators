@@ -7,6 +7,7 @@ import { StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
+import { generateBookingItemTransformationCode } from './booking-item'
 import {
   generateEcommerceProductTransformationCode,
   type EcommerceProductTransformOptions,
@@ -29,6 +30,8 @@ export type { EcommerceProductTransformOptions }
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
   /** Blog post-category taxonomy — see `blogSettings.categories`. */
   blogCategories?: UIDLEcommerceCategory[]
+  /** The booking items' category taxonomy — see `bookingSettings.categories`. */
+  bookingCategories?: UIDLEcommerceCategory[]
   /** Post content headings get ids and `#` links — see `blogSettings.headingAnchors`. */
   blogHeadingAnchors?: boolean
   /**
@@ -50,12 +53,6 @@ export interface EntityTransformOptions extends EcommerceProductTransformOptions
    * `TableAccess.resolveTrustedReaderRoles`.
    */
   trustedReaderRoles?: string[]
-  /**
-   * Tables a browser reads only as a member of the roles listed for each — an
-   * internal tool's. Absent unless the project declares some, so every other
-   * project's modules stay as they were. See `TableAccess.resolveRestrictedTables`.
-   */
-  restrictedTables?: Record<string, string[]>
 }
 
 /**
@@ -86,7 +83,7 @@ const resolveAllowBackorders = (
 export const buildProductTransformOptions = (
   options: Pick<
     GeneratorOptions,
-    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'auth'
+    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'bookingSettings' | 'auth'
   > &
     LocalizedProjectOptions & {
       /**
@@ -103,6 +100,7 @@ export const buildProductTransformOptions = (
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
   blogCategories: options.blogSettings?.categories,
+  bookingCategories: options.bookingSettings?.categories,
   blogHeadingAnchors: options.blogSettings?.headingAnchors === true,
   blogComments: options.blogSettings?.comments === true,
   storefrontTaxRate: StorefrontTax.resolveStorefrontTaxRate(options.invoiceSettings),
@@ -110,18 +108,14 @@ export const buildProductTransformOptions = (
   productPages: options.ecommerceSettings?.productPages,
   localization: resolveContentLocalization(options),
   trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth || options.authentication),
-  ...restrictedTablesOption(options.auth || options.authentication),
 })
 
-/** `{ restrictedTables }` when the project declares any, else nothing. */
-const restrictedTablesOption = (
-  auth?: UIDLAuthentication
-): Pick<EntityTransformOptions, 'restrictedTables'> => {
-  const restrictedTables = TableAccess.resolveRestrictedTables(auth)
-  return Object.keys(restrictedTables).length > 0 ? { restrictedTables } : {}
-}
-
-export type TransformationType = 'blog-post' | 'ecommerce-product' | 'custom-page' | null
+export type TransformationType =
+  | 'blog-post'
+  | 'ecommerce-product'
+  | 'custom-page'
+  | 'booking-item'
+  | null
 
 /**
  * Strips a leading `schema.` qualifier from a table name so that only the
@@ -162,6 +156,9 @@ export const detectTransformationType = (tableName: string): TransformationType 
   if (bare === 'teleport_pages') {
     return 'custom-page'
   }
+  if (bare === 'teleport_booking_items') {
+    return 'booking-item'
+  }
   return null
 }
 
@@ -194,6 +191,10 @@ export const getTransformationCode = (
       return shared + generateEcommerceProductTransformationCode(options)
     case 'custom-page':
       return shared + generateCustomPageTransformationCode()
+    case 'booking-item':
+      return (
+        shared + generateBookingItemTransformationCode({ categories: options.bookingCategories })
+      )
     default:
       return ''
   }
@@ -329,6 +330,8 @@ export const getTransformWrapperCode = (
       ? 'transformBlogPosts'
       : type === 'custom-page'
       ? 'transformCustomPages'
+      : type === 'booking-item'
+      ? 'transformBookingItems'
       : 'transformEcommerceProducts'
 
   // Products additionally get their purchasable variant combinations attached in

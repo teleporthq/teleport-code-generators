@@ -240,21 +240,11 @@ export interface UIDLAuthentication {
   callbackBaseUrl: string
   envKeys: Record<string, string>
   customUserProperties: UIDLCustomUserProperty[]
-  // Tables a browser reads only as a signed-in member of the listed roles — an
-  // internal tool's tables, which its staff and administrators alone may see.
-  // Keyed by table name. Server-side callers (the app secret, the module's own
-  // fetchData) read them as before. Absent for every other project, whose
-  // generated code does not change. See `TableAccess.resolveRestrictedTables`.
-  restrictedTables?: Record<string, string[]>
   // Where the project's own redirects send a visitor of `/` (a same-site path)
   // — applied before the generated middleware runs, so a role denial must not
   // send a visitor home when home leads back into a page that refuses them.
   // Absent when `/` is not redirected. See `generateMiddlewareFile`.
   homeRedirect?: string
-  // No visitor signs up: an internal tool that owns its project has an admin
-  // add every account from the admin panel. The app then has no public
-  // `/api/auth/signup` route. Absent for every other project.
-  closedSignUp?: boolean
 }
 
 export interface UIDLSortConfigEntry {
@@ -310,15 +300,39 @@ export interface ProjectUIDL {
   globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>
   invoiceSettings?: UIDLInvoiceSettings
   ecommerceSettings?: UIDLEcommerceSettings
+  // A site that takes online payments without a store (its bookings): the
+  // providers it is paid through. Absent whenever `ecommerceSettings` carries them.
+  paymentSettings?: UIDLPaymentSettings
   blogSettings?: UIDLBlogSettings
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
   pwa?: UIDLProgressiveWebApp
   webPush?: UIDLWebPush
+  // The bookings' calendar links, which Airbnb, Booking.com, Vrbo or Google
+  // Calendar import to block the booked dates. Absent when the site has none.
+  bookingCalendars?: UIDLBookingCalendars
+  // The booking items' category taxonomy. Absent without Bookings.
+  bookingSettings?: UIDLBookingSettings
 }
 
 export interface UIDLAnalytics {
   enabled: boolean
+}
+
+/**
+ * What the generated `/api/bookings/ical/<key>.ics` route serves. The editor
+ * builds the statement; the generated app only runs it, so the feed's tables
+ * and columns stay the editor's business.
+ */
+export interface UIDLBookingCalendars {
+  /**
+   * One parameterised statement (`$1` = the calendar link's key) returning one
+   * `kind = 'calendar'` row (`calendar_name`) and one `kind = 'event'` row per
+   * blocked period (`uid`, `summary`, `all_day`, `start_value`, `end_value`:
+   * 'YYYYMMDD' when all day, else 'YYYYMMDDTHHMMSSZ' in UTC; the end exclusive).
+   * No calendar row means the key names no calendar.
+   */
+  feedStatement: string
 }
 
 /**
@@ -819,13 +833,6 @@ export interface UIDLInitialPropsData {
     revalidate: number
   }
   /*
-    Fields of the fetched row that never reach the page's props. Everything in
-    props ships in the page's HTML (__NEXT_DATA__), so a column the page must
-    not reveal — a private link only paying attendees are given — is removed
-    from the row once it is read, before the props are returned.
-  */
-  omitFields?: string[]
-  /*
     Entity-level redirect support for details pages. When set, the generated
     getStaticProps/getServerSideProps returns a redirect whenever the fetched
     row's `destinationField` (a field on the transformed entity, e.g.
@@ -1131,6 +1138,8 @@ export interface UIDLGlobalReference {
       // The blog's baked category taxonomy, resolved through the generated
       // `@/blog-context` module's `useBlogCategories()` hook.
       | 'blogCategories'
+      // The booking items' taxonomy, through `@/booking-context`'s `useBookingCategories()`.
+      | 'bookingCategories'
       | 'cart'
     refPath?: string[]
   }
@@ -2091,6 +2100,10 @@ export interface UIDLEcommercePaymentProvider {
   currencies?: string[]
 }
 
+export interface UIDLPaymentSettings {
+  paymentProviders: UIDLEcommercePaymentProvider[]
+}
+
 export interface UIDLEcommercePaymentProviderSells {
   physical: boolean
   digital: boolean
@@ -2270,6 +2283,17 @@ export interface UIDLBlogSettings {
   comments?: boolean
   /** The blog's RSS feed. Absent: the site serves none. */
   rssFeed?: UIDLBlogRssFeed
+}
+
+/**
+ * What the BOOKING pages need baked into the generated project that is not a
+ * database row: the booking items' category taxonomy, which lives in the
+ * project document only — the booking page's category filter reads it. The
+ * nodes are `UIDLEcommerceCategory`s (one taxonomy model); the tree is exposed
+ * at runtime as the `Booking Categories` global.
+ */
+export interface UIDLBookingSettings {
+  categories?: UIDLEcommerceCategory[]
 }
 
 /** Where the generated `/rss.xml` route reads the posts from, and where it links them. */

@@ -1,4 +1,4 @@
-import { UIDLAuthentication, UIDLWorkflows } from '@teleporthq/teleport-types'
+import { UIDLStateDefinition, UIDLWorkflows } from '@teleporthq/teleport-types'
 import { RoutePaths, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
@@ -109,11 +109,6 @@ const collectResourceTables = (value: unknown, tables: Set<string>, seen: Set<un
   Object.keys(record).forEach((key) => collectResourceTables(record[key], tables, seen))
 }
 
-const bareTableName = (table: string): string => {
-  const parts = table.split('.')
-  return parts[parts.length - 1].replace(/"/g, '')
-}
-
 /**
  * True when anything on this page reads a table that holds money, the keys
  * to it, or the customers' own records (`TableAccess.PROTECTED_TABLES`: gift
@@ -122,31 +117,52 @@ const bareTableName = (table: string): string => {
  * into the build output and keeps serving a balance the checkout has already
  * spent until the next revalidation.
  *
- * With the project's `auth`, a table only its staff may read (an internal
- * tool's — `TableAccess.resolveRestrictedTables`) counts too: the staff's
- * screens show the rows as they are now, never a build's copy of them.
- *
  * Shared by the static-props and static-paths plugins and the page pipeline's
  * getServerSideProps finalizer, which must all reach the same verdict.
  */
-export const pageReadsProtectedTable = (
-  uidl: {
-    node?: unknown
-    outputOptions?: { detailsPageInfo?: { tableName?: string } }
-  },
-  auth?: UIDLAuthentication | null
-): boolean => {
+export const pageReadsProtectedTable = (uidl: {
+  node?: unknown
+  outputOptions?: { detailsPageInfo?: { tableName?: string } }
+}): boolean => {
   const tables = new Set<string>()
   const detailsTable = uidl.outputOptions?.detailsPageInfo?.tableName
   if (typeof detailsTable === 'string') {
     tables.add(detailsTable.trim().toLowerCase())
   }
   collectResourceTables(uidl.node, tables, new Set())
-  if (TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))) {
-    return true
-  }
-  const restricted = TableAccess.resolveRestrictedTables(auth)
-  return Array.from(tables).some((table) =>
-    Object.prototype.hasOwnProperty.call(restricted, bareTableName(table))
-  )
+  return TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))
 }
+
+/**
+ * Any `{{…}}` template placeholder (`{{Current User.id}}`, `{{urlDifferentiator}}`).
+ * A state query carrying one can only be resolved in the browser, so the page's
+ * server data function never runs it — sending the literal placeholder to the
+ * database fails (`invalid input syntax for type uuid: "{{Current User.id}}"`).
+ */
+const TEMPLATE_PLACEHOLDER = /\{\{[^}]+\}\}/
+
+export const stateQueryHasTemplatePlaceholder = (definition: UIDLStateDefinition): boolean =>
+  typeof definition.query === 'string' && TEMPLATE_PLACEHOLDER.test(definition.query)
+
+/**
+ * True when the page's own data function seeds a state from one of the
+ * project's data sources — a state bound to a table or a raw query that has no
+ * `{{…}}` placeholder. Such a page renders per request: those values have to be
+ * computed every time a visitor arrives, and a statically generated page hands a
+ * client-side navigation the copy Next.js cached in the browser (prefetched
+ * links included) or the one ISR rendered before the last write.
+ *
+ * Shared by the static-paths plugin and the page pipeline's getServerSideProps
+ * finalizer, which must reach the same verdict. The state data-source plugin
+ * splits states with the same `stateQueryHasTemplatePlaceholder` test.
+ */
+export const pageSeedsStateFromDataSource = (
+  uidl: { stateDefinitions?: Record<string, UIDLStateDefinition> },
+  dataSources?: Record<string, unknown>
+): boolean =>
+  Object.values(uidl.stateDefinitions || {}).some(
+    (definition) =>
+      !!definition.dataSourceBinding &&
+      !!dataSources?.[definition.dataSourceBinding.dataSourceId] &&
+      !stateQueryHasTemplatePlaceholder(definition)
+  )

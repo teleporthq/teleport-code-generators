@@ -322,6 +322,16 @@ describe('NextPwaProjectPlugin — installable app', () => {
     expect(clientConfig(structure).networkOnly).toEqual(workerConfig(structure).networkOnly)
   })
 
+  it('keeps the payment pages off the cache on a site paid for its bookings alone', async () => {
+    const paid = await run({
+      pwa: installableApp(),
+      paymentSettings: { paymentProviders: [{ type: 'razorpay' }] },
+    })
+    expect(workerConfig(paid).networkOnly).toContain('/pay')
+    const unpaid = await run({ pwa: installableApp() })
+    expect(workerConfig(unpaid).networkOnly).not.toContain('/pay')
+  })
+
   it('precaches nothing when the home page is private or the site is password protected', async () => {
     const privateHome = await run({ pwa: installableApp({ networkOnlyPaths: ['/'] }) })
     expect(workerConfig(privateHome).precacheUrls).toEqual([])

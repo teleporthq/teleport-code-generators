@@ -194,6 +194,16 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       Object.keys(resolvedNamedParams).length > 0
     ) {
       list.push(resolvedNamedParams)
+      // The named inputs are also readable as `params.<name>`, the way the
+      // custom-node path overlays `__customParams`: generated functions
+      // reach for `params.activeStep` as often as `params.slice(-1)[0]`, and
+      // an undefined there silently saved `{}` to storage.
+      const namedKeys = Object.keys(resolvedNamedParams)
+      for (let nk = 0; nk < namedKeys.length; nk++) {
+        if (!(namedKeys[nk] in list)) {
+          ;(list as any)[namedKeys[nk]] = resolvedNamedParams[namedKeys[nk]]
+        }
+      }
     }
     params = list
   }

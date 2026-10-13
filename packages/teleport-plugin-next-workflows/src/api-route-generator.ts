@@ -525,6 +525,13 @@ function __isStreamingAI(node, config) {
   return config && config.streaming && __streamingAITypes.indexOf(node.type) >= 0;
 }
 
+// One node's result to the browser — never one kept on the server (see segmentReply).
+function __streamNodeResult(res, nodeId, result) {
+  const kept = SEGMENT_CONFIG.nodes.find(function(nd) { return nd.id === nodeId; });
+  if (kept && kept.config && kept.config.keepResultOnServer === true && !utils.isBranchingNodeType(kept.type)) return;
+  res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: result }) + '\\n\\n');
+}
+
 function __collectSegBranchNodes(startId, excludeId) {
   const ids = [];
   const visited = {};
@@ -600,7 +607,7 @@ module.exports = async function handler(req, res) {
         context[node.id] = { result: condResult };
         executed[node.id] = true;
         if (streamStarted) {
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: context[node.id] }) + '\\n\\n');
+          __streamNodeResult(res, node.id, context[node.id]);
         }
         continue;
       }
@@ -667,7 +674,7 @@ module.exports = async function handler(req, res) {
         Object.keys(ssBodyNodeIds).forEach(function(k) { executed[k] = true; });
         executed[node.id] = true;
         if (streamStarted) {
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: context[node.id] }) + '\\n\\n');
+          __streamNodeResult(res, node.id, context[node.id]);
         }
         continue;
       }
@@ -707,7 +714,7 @@ module.exports = async function handler(req, res) {
           }
         });
         if (streamStarted) {
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: context[node.id] }) + '\\n\\n');
+          __streamNodeResult(res, node.id, context[node.id]);
         }
         continue;
       }
@@ -785,7 +792,7 @@ module.exports = async function handler(req, res) {
         executed[node.id] = true;
         if (resolved.stopOnError && ssParallelErrors.length > 0) throw new Error(ssParallelErrors[0]);
         if (streamStarted) {
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: context[node.id] }) + '\\n\\n');
+          __streamNodeResult(res, node.id, context[node.id]);
         }
         continue;
       }
@@ -824,7 +831,7 @@ module.exports = async function handler(req, res) {
             }
             const snResult = await snHandler(snResolved, context);
             context[sn.id] = snResult;
-            res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: sn.id, result: snResult }) + '\\n\\n');
+            __streamNodeResult(res, sn.id, snResult);
           }
         });
         // A provider/auth failure surfaces as { error: true, message, code }.
@@ -834,7 +841,7 @@ module.exports = async function handler(req, res) {
           throw new Error(utils.fatalNodeResultMessage(result));
         }
         context[node.id] = result;
-        res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: result }) + '\\n\\n');
+        __streamNodeResult(res, node.id, result);
 
         for (let oi = 0; oi < onEndNodes.length; oi++) {
           const en = onEndNodes[oi];
@@ -849,7 +856,7 @@ module.exports = async function handler(req, res) {
           }
           const enResult = await enHandler(enResolved, context);
           context[en.id] = enResult;
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: en.id, result: enResult }) + '\\n\\n');
+          __streamNodeResult(res, en.id, enResult);
           executed[en.id] = true;
         }
         for (let si2 = 0; si2 < onStreamNodes.length; si2++) {
@@ -882,7 +889,7 @@ module.exports = async function handler(req, res) {
         }
         context[node.id] = result;
         if (streamStarted) {
-          res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: node.id, result: result }) + '\\n\\n');
+          __streamNodeResult(res, node.id, result);
         }
         if (result && result.__terminal) break;
       }

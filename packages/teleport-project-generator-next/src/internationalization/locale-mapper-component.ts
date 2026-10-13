@@ -32,6 +32,15 @@ export const USE_BLOG_CATEGORIES_HOOK: UIDLDependency = {
   },
 }
 
+/** The booking items' baked category taxonomy — see `bookings/booking-context-generator.ts`. */
+export const USE_BOOKING_CATEGORIES_HOOK: UIDLDependency = {
+  type: 'local',
+  path: '@/booking-context',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const USE_TRANSLATIONS_HOOK: UIDLExternalDependency = {
   type: 'package',
   path: 'next-intl',
@@ -511,6 +520,7 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
     let needsEcommerce = false
     let needsCart = false
     let needsBlogCategories = false
+    let needsBookingCategories = false
     for (const globalRef of jsxComponent.meta.globalReferences || []) {
       switch (globalRef) {
         case 'locale':
@@ -532,6 +542,9 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
           break
         case 'blogCategories':
           needsBlogCategories = true
+          break
+        case 'bookingCategories':
+          needsBookingCategories = true
           break
         default:
           break
@@ -574,6 +587,17 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
       ])
       reactHooks.push(blogCategoriesHook)
       structure.dependencies.useBlogCategories = { ...USE_BLOG_CATEGORIES_HOOK }
+    }
+
+    if (needsBookingCategories && !structure.dependencies.useBookingCategories) {
+      const bookingCategoriesHook = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('bookingCategories'),
+          types.callExpression(types.identifier('useBookingCategories'), [])
+        ),
+      ])
+      reactHooks.push(bookingCategoriesHook)
+      structure.dependencies.useBookingCategories = { ...USE_BOOKING_CATEGORIES_HOOK }
     }
 
     if (needsCart && !needsEcommerce && !structure.dependencies.useCart) {

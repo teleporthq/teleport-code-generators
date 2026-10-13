@@ -1127,15 +1127,6 @@ export interface WelcomeEmailOptions {
   siteName?: string
 }
 
-/**
- * No visitor signs up: an internal tool that owns its project has an admin add
- * every account from the admin panel's Users screen (`closedSignUp`), so the
- * app has no public route that creates one. A sign-up page the UIDL still
- * lists as a guest auth route wins over the flag.
- */
-export const isSignUpClosed = (auth: UIDLAuthentication): boolean =>
-  auth.closedSignUp === true && !(auth.authPages && auth.authPages.signUp)
-
 export const generateSignupRouteFile = (
   auth: UIDLAuthentication,
   welcome: WelcomeEmailOptions = {}
@@ -1437,8 +1428,8 @@ const resolveHomeRedirect = (auth: UIDLAuthentication): string | null => {
 /**
  * Where a signed-in visitor without the role a page asks for lands. A project
  * whose home page is not redirected keeps the code it always had. One that
- * redirects `/` (an internal tool sends it to its dashboard) only sends a
- * visitor home when that page admits them; otherwise to sign-in, saying why.
+ * redirects `/` (e.g. to an admin dashboard) only sends a visitor home when
+ * that page admits them; otherwise to sign-in, saying why.
  */
 const generateRoleDeniedRedirectCode = (
   signInRoute: string,
@@ -1582,8 +1573,8 @@ export const generateMiddlewareFile = (
 
   // `/admin` itself, and every admin page the map has no entry for (one an
   // owner added without protection), admit the admin panel's own roles — its
-  // folder's — never the first admin route's: an internal tool's dashboard also
-  // admits the tool's staff.
+  // folder's — never the first admin route's, which may also admit another
+  // role (a staff dashboard).
   const sawAdminRoute = Object.keys(protectedRoutes).some(
     (k) => k === '/admin' || k.indexOf('/admin/') === 0
   )

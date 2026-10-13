@@ -6,9 +6,9 @@ import {
 } from './_helpers/run-generated-middleware'
 
 /**
- * An internal tool that owns its project admits its staff to the tool's own
- * admin pages (the dashboard first among them), keeps the built-in entities
- * admin only, and redirects the home page into the dashboard
+ * An admin panel whose folder admits admins only, some of whose pages (the
+ * dashboard first among them) also admit staff, whose built-in entities stay
+ * admin only, and whose project redirects the home page into the dashboard
  * (`homeRedirect`). Two things must follow from the ADMIN FOLDER's protection,
  * never from whichever page happens to come first:
  *  - the `/admin` catch-all, which guards `/admin` itself and every admin page
@@ -24,7 +24,7 @@ const page = (route: string, allowedRoles: string[]) => ({
   route,
 })
 
-const toolAuth = (homeRedirect?: string): UIDLAuthentication => ({
+const panelAuth = (homeRedirect?: string): UIDLAuthentication => ({
   enabled: true,
   dataSourceId: 'ds-1',
   dataSourceType: 'teleport',
@@ -70,16 +70,16 @@ const toolAuth = (homeRedirect?: string): UIDLAuthentication => ({
   ...(homeRedirect ? { homeRedirect } : {}),
 })
 
-const ORIGIN = 'https://tool.test'
+const ORIGIN = 'https://panel.test'
 
 describe('the /admin catch-all', () => {
   it("admits the admin folder's roles, not the first admin page's", () => {
-    const routes = extractProtectedRoutes(generateMiddlewareFile(toolAuth('/admin/dashboard')))
+    const routes = extractProtectedRoutes(generateMiddlewareFile(panelAuth('/admin/dashboard')))
     expect(routes['/admin']).toEqual({ requiresAuth: true, allowedRoles: ['admin'] })
   })
 
   it('keeps staff out of an admin page the middleware has no entry for', async () => {
-    const run = compileGeneratedMiddleware(toolAuth('/admin/dashboard'))
+    const run = compileGeneratedMiddleware(panelAuth('/admin/dashboard'))
     const staff = { id: 's1', role: 'staff' }
     expect(await run('/admin/reports', { sessionUser: staff, origin: ORIGIN })).toMatchObject({
       kind: 'redirect',
@@ -94,11 +94,11 @@ describe('the /admin catch-all', () => {
 })
 
 describe('a role denial when the home page redirects into the admin panel', () => {
-  const run = compileGeneratedMiddleware(toolAuth('/admin/dashboard'))
+  const run = compileGeneratedMiddleware(panelAuth('/admin/dashboard'))
   const signInLocation = (callbackUrl: string) =>
     `${ORIGIN}/auth/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}&error=forbidden`
 
-  it('sends a signed-in account the tool does not admit to sign-in, explained — never to "/"', async () => {
+  it('sends a signed-in account the panel does not admit to sign-in, explained — never to "/"', async () => {
     const user = { id: 'u1', role: 'user' }
     // "/" would redirect to the dashboard, which denies the role again: a loop.
     expect(await run('/admin/dashboard', { sessionUser: user, origin: ORIGIN })).toEqual({
@@ -118,7 +118,7 @@ describe('a role denial when the home page redirects into the admin panel', () =
   })
 
   it('leaves a project whose home is not redirected as it was', () => {
-    const code = generateMiddlewareFile(toolAuth())
+    const code = generateMiddlewareFile(panelAuth())
     expect(code).toContain('function roleDeniedRedirect(request, pathname) {')
     expect(code).toContain('return roleDeniedRedirect(request, pathname);')
     expect(code).not.toContain('homeRedirect')
