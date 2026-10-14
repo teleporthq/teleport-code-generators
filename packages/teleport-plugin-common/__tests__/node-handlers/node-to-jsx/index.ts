@@ -718,6 +718,38 @@ describe('generateJSXSyntax', () => {
         .filter((a): a is types.JSXAttribute => a.type === 'JSXAttribute')
         .map((a) => (a.name as types.JSXIdentifier).name)
 
+    const styleAttributeOf = (el: types.JSXElement) =>
+      el.openingElement.attributes.find(
+        (a): a is types.JSXAttribute =>
+          a.type === 'JSXAttribute' && (a.name as types.JSXIdentifier).name === 'style'
+      )
+
+    it('turns a text style attribute into the object React wants (error #62 otherwise)', () => {
+      const node = elementNode('div', {
+        style: { type: 'static', content: 'color: red; margin-top: 4px; --accent: #fff' },
+      } as never)
+      const result = generateJSXSyntax(node, params, options) as types.JSXElement
+      const styleAttr = styleAttributeOf(result)
+      expect(styleAttr?.value?.type).toBe('JSXExpressionContainer')
+      const expression = (styleAttr?.value as types.JSXExpressionContainer).expression
+      expect(expression.type).toBe('ObjectExpression')
+      const keys = (expression as types.ObjectExpression).properties.map((property) => {
+        const key = (property as types.ObjectProperty).key
+        return key.type === 'Identifier' ? key.name : (key as types.StringLiteral).value
+      })
+      expect(keys).toEqual(['color', 'marginTop', '--accent'])
+    })
+
+    it('drops a style attribute that is not CSS text instead of emitting a string', () => {
+      const node = elementNode('div', {
+        style: { type: 'static', content: 'nonsense' },
+        class: { type: 'static', content: 'kept' },
+      } as never)
+      const result = generateJSXSyntax(node, params, options) as types.JSXElement
+      expect(styleAttributeOf(result)).toBeUndefined()
+      expect(attributeNames(result)).toContain('class')
+    })
+
     it('drops junk-name attribute true="true"', () => {
       const node = elementNode('div', {
         true: { type: 'static', content: 'true' },
