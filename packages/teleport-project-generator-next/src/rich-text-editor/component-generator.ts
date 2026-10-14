@@ -326,7 +326,7 @@ const richTextEditorPlainBody = (): string => `const RichTextEditor = (props) =>
   const editorValue =
     lastEmitted.stored !== null && incoming === lastEmitted.stored
       ? lastEmitted.raw
-      : toEditorHtml(incoming)
+      : editorHtmlFor(incoming)
 
   return (
     <div {...rest}>
@@ -458,7 +458,7 @@ const richTextEditorWithEmbedsBody = (
   const editorValue =
     lastEmitted.stored !== null && incoming === lastEmitted.stored
       ? lastEmitted.raw
-      : toEditorHtml(incoming)
+      : editorHtmlFor(incoming)
 
   const insertEmbed = useCallback((embedValue) => {
     setEmbedDialogOpen(false)

@@ -265,3 +265,26 @@ describe('Stripe driver — settling a checkout from Stripe', () => {
     expect(calls).toEqual([])
   })
 })
+
+describe('Stripe driver — checkout lifetime', () => {
+  it("opens every Checkout page for an hour, not Stripe's default day", async () => {
+    const { stripe, calls } = load()
+    const before = Math.floor(Date.now() / 1000)
+    await withEnv(KEY, async () => {
+      await stripe.createCheckout({ amount: 10, currency: 'usd', description: 'Order' })
+      await stripe.createSubscriptionCheckout({
+        amount: 10,
+        currency: 'usd',
+        recurringInterval: 'month',
+        description: 'Club',
+      })
+    })
+    const after = Math.floor(Date.now() / 1000)
+    const sessions = calls.filter((call: any) => call.method === 'checkout.sessions.create')
+    expect(sessions).toHaveLength(2)
+    for (const session of sessions as any[]) {
+      expect(session.params.expires_at).toBeGreaterThanOrEqual(before + 3600)
+      expect(session.params.expires_at).toBeLessThanOrEqual(after + 3600)
+    }
+  })
+})

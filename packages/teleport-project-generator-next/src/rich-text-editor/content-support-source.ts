@@ -71,6 +71,13 @@ function registerProtectedBlockBlot(Quill) {
   Quill.register(TqProtectedBlockBlot, true)
 }
 
+// Next prerenders the admin pages in Node, where there is no DOMParser to read
+// the stored html with. Quill mounts only in the browser (ssr: false), so the
+// server render never shows this value; it only must not throw.
+function editorHtmlFor(storedHtml) {
+  return typeof DOMParser === 'undefined' ? storedHtml : toEditorHtml(storedHtml)
+}
+
 // The field's own format list decides the toolbar; what Quill is ALLOWED to
 // hold also includes inline code and the protected block, or a loaded post
 // would lose them on the way in.
