@@ -59,8 +59,8 @@ interface WidgetCase {
   fileKey: string
   fileName: string
   componentName: string
-  dependency: string
-  version: string
+  dependency?: string
+  version?: string
 }
 
 const WIDGET_CASES: WidgetCase[] = [
@@ -112,6 +112,21 @@ const WIDGET_CASES: WidgetCase[] = [
     dependency: 'framer-motion',
     version: '^11.18.0',
   },
+  {
+    elementType: 'scroll-scene-node',
+    fileKey: 'tq-scroll-scene-component',
+    fileName: 'tq-scroll-scene',
+    componentName: 'TqScrollScene',
+    dependency: 'framer-motion',
+    version: '^11.18.0',
+  },
+  {
+    // Pure-DOM scrub player — deliberately no npm dependency.
+    elementType: 'scroll-video-node',
+    fileKey: 'tq-scroll-video-component',
+    fileName: 'tq-scroll-video',
+    componentName: 'TqScrollVideo',
+  },
 ]
 
 describe('Next widget project plugins', () => {
@@ -122,7 +137,9 @@ describe('Next widget project plugins', () => {
 
     for (const widget of WIDGET_CASES) {
       expect(structure.files.has(widget.fileKey)).toBe(false)
-      expect(structure.dependencies[widget.dependency]).toBeUndefined()
+      if (widget.dependency) {
+        expect(structure.dependencies[widget.dependency]).toBeUndefined()
+      }
     }
     expect(structure.files.has('tq-form-file-input-component')).toBe(false)
     expect(structure.files.get('_app')?.files[0].content).toBe(APP_CONTENT)
@@ -141,7 +158,9 @@ describe('Next widget project plugins', () => {
       expect(record?.files[0].fileType).toBe(FileType.JS)
       expect(record?.files[0].content).toContain(`const ${widget.componentName} =`)
       expect(record?.files[0].content).toContain(`export default ${widget.componentName}`)
-      expect(structure.dependencies[widget.dependency]).toBe(widget.version)
+      if (widget.dependency) {
+        expect(structure.dependencies[widget.dependency]).toBe(widget.version)
+      }
     }
   )
 
@@ -204,7 +223,7 @@ describe('Next widget project plugins', () => {
     await runAll(structure)
     const content = structure.files.get('tq-motion-component')?.files[0].content as string
     expect(content).toContain(
-      "import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'"
+      "import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'"
     )
     expect(content).toContain('<motion.div')
     expect(content).toContain('{children}')

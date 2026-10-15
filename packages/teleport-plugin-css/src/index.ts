@@ -44,6 +44,14 @@ interface CSSPluginConfig {
   dynamicVariantPrefix?: string
   staticPropReferences?: boolean
   standaloneHtmlComponents?: boolean
+  /**
+   * An element's own styles written under its class twice (`.title.title`),
+   * the weight of two classes. The Next export's styled-jsx scopes them with a
+   * second class and the editor weighs them the same, so an element's own
+   * colour beats a two-class combinator like `.hero .title` there; under one
+   * class it lost in the static HTML export, which showed another colour.
+   */
+  doubleElementClass?: boolean
 }
 
 const prefixUrlPathsInCss = (css: string, folderPath: string[]): string => {
@@ -77,6 +85,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
     dynamicVariantPrefix,
     staticPropReferences = false,
     standaloneHtmlComponents = false,
+    doubleElementClass = false,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
@@ -129,9 +138,10 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       : ('' as string)
 
     const cssMap: string[] = []
+    // A doubled element class nests its rule one level down (see `doubleElementClass`).
     const mediaStylesMap: Record<
       string,
-      Array<{ [x: string]: Record<string, string | number> }>
+      Array<{ [x: string]: Record<string, string | number | Record<string, string | number>> }>
     > = {}
     const usedProjectStyleIds: Set<string> = new Set()
 
@@ -183,6 +193,10 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       const className = prefixInlineClasses
         ? `${prefixInlineClasses}${StringUtils.camelCaseToDashCase(key)}`
         : StringUtils.camelCaseToDashCase(key)
+      // `&` is the class; doubled it reads `.name.name`. Nested, because JSS
+      // escapes a dot written into the class name itself. The element still
+      // wears the class once.
+      const own = doubleElementClass ? `&.${className}` : '&'
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)
@@ -193,7 +207,11 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
           ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
         } as Record<string, string | number>
 
-        cssMap.push(StyleBuilders.createCSSClass(className, collectedStyles))
+        cssMap.push(
+          doubleElementClass
+            ? StyleBuilders.createCSSClassWithSelector(className, own, collectedStyles)
+            : StyleBuilders.createCSSClass(className, collectedStyles)
+        )
         classNamesToAppend.add(className)
       }
 
@@ -263,14 +281,16 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               if (!mediaStylesMap[String(maxWidth)]) {
                 mediaStylesMap[String(maxWidth)] = []
               }
-              mediaStylesMap[String(maxWidth)].push({ [className]: collectedStyles })
+              mediaStylesMap[String(maxWidth)].push({
+                [className]: doubleElementClass ? { [own]: collectedStyles } : collectedStyles,
+              })
             }
 
             if (condition.conditionType === 'element-state') {
               cssMap.push(
                 StyleBuilders.createCSSClassWithSelector(
                   className,
-                  `&:${condition.content}`,
+                  `${own}:${condition.content}`,
                   collectedStyles
                 )
               )

@@ -66,6 +66,8 @@ export const INTERACTIVE_PRIMITIVE_COMPONENT_FILES: Record<string, string> = {
   TqColorPicker: 'tq-color-picker',
   TqEmojiPicker: 'tq-emoji-picker',
   TqMotion: 'tq-motion',
+  TqScrollScene: 'tq-scroll-scene',
+  TqScrollVideo: 'tq-scroll-video',
   TqCountdown: 'tq-countdown',
   TqFormFileInput: 'tq-form-file-input',
   TqCategoriesMegamenu: 'tq-categories-megamenu',

@@ -20,7 +20,11 @@ export const resolveLifecycleTriggerElementId = (
   triggerType: string,
   config: Record<string, unknown>
 ): string | null => {
-  if (triggerType !== 'event-element-visible') {
+  if (
+    triggerType !== 'event-element-visible' &&
+    triggerType !== 'event-chapter-reached' &&
+    triggerType !== 'event-scene-scrolled-past'
+  ) {
     return null
   }
   return ((config.elementHtmlId || config.nodeId) as string) || null

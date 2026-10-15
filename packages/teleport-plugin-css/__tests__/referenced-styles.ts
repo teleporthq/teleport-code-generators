@@ -199,3 +199,64 @@ describe('Referenced Styles for inlined and project-referenced with JSX bases No
     expect(cssFile.content).toContain('@media(max-width: 991px)')
   })
 })
+
+describe('An element’s own styles, weighed like the Next export’s (doubleElementClass)', () => {
+  const run = async (doubleElementClass: boolean) => {
+    const plugin = createCSSPlugin({ templateChunkName: 'template', doubleElementClass })
+    const componentChunk: ChunkDefinition = setUpHASTChunk()
+    const referencedStyles: UIDLReferencedStyles = {
+      narrow: {
+        type: 'style-map',
+        content: {
+          mapType: 'inlined',
+          conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
+          styles: { color: staticNode('green') },
+        },
+      },
+      hovered: {
+        type: 'style-map',
+        content: {
+          mapType: 'inlined',
+          conditions: [{ conditionType: 'element-state', content: 'hover' }],
+          styles: { color: staticNode('orange') },
+        },
+      },
+    }
+    const element = elementNode(
+      'container',
+      {},
+      [],
+      null,
+      { color: staticNode('white') },
+      null,
+      referencedStyles
+    )
+    element.content.key = 'container'
+    const result = await plugin({
+      uidl: component('test', element),
+      options: {},
+      chunks: [componentChunk],
+      dependencies: {},
+    })
+    const css = result.chunks.find((chunk) => chunk.fileType === FileType.CSS)?.content ?? ''
+    return { css, classAttr: componentChunk.meta.nodesLookup.container.properties.class }
+  }
+
+  it('writes the class twice in every rule, so it beats a two-class combinator as it does there', async () => {
+    const { css, classAttr } = await run(true)
+    expect(css).toMatch(/\.container\.container\s*\{\s*color: white;/)
+    expect(css).toMatch(/\.container\.container:hover\s*\{\s*color: orange;/)
+    expect(css).toMatch(
+      /@media\(max-width: 991px\)\s*\{\s*\.container\.container\s*\{\s*color: green;/
+    )
+    // the element wears it once, and no escaped dot ever reaches the stylesheet
+    expect(classAttr).toBe('container')
+    expect(css).not.toContain('\\.')
+  })
+
+  it('leaves every other export exactly as it was', async () => {
+    const { css } = await run(false)
+    expect(css).toMatch(/\.container\s*\{\s*color: white;/)
+    expect(css).not.toContain('.container.container')
+  })
+})

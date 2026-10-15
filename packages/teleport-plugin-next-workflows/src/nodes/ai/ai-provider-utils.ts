@@ -1,3 +1,5 @@
+import { AI_PROVIDER_UTIL_SOURCES } from './ai-provider-utils-sources.generated'
+
 export const AI_PROVIDER_DEPENDENCIES: Record<string, string> = {
   openai: '^4.0.0',
   '@anthropic-ai/sdk': '^0.30.0',
@@ -7,39 +9,28 @@ export const AI_PROVIDER_DEPENDENCIES: Record<string, string> = {
 }
 
 // `globalName` is the STABLE name the node handlers reference (e.g.
-// `__ai_resolveTextField`). They reference it through a `declare function`
-// type-only declaration, so when the GUI bundles the generators with webpack
-// that reference stays a free global and keeps the literal name. But `fn.name`
-// here is whatever webpack renamed the real function to (e.g.
-// `ai_provider_utils_ai_resolveTextField` after module concatenation). If we
-// emit the definition only under `fn.name`, the handler's `__ai_resolveTextField`
-// call resolves to nothing → "__ai_resolveTextField is not defined" at runtime.
-// So we emit under the (possibly renamed) real name AND alias the stable global
-// name to it. When not bundled (fn.name === globalName) the alias collapses to a
-// harmless self-reference.
-function wrapWithGuard(globalName: string, fn: (...args: any[]) => any): string {
-  const realName = fn.name || globalName
-  if (realName === globalName) {
-    return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${fn.toString()};`
-  }
-  return (
-    `var ${realName} = typeof ${realName} !== 'undefined' ? ${realName} : ${fn.toString()};\n` +
-    `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${realName};`
-  )
+// `__ai_resolveTextField`) through a `declare function` type-only declaration.
+// The definition is emitted as TEXT derived from this file at build time
+// (scripts/function-sources.js), never from the live function: the editor
+// bundles the generators with webpack + Terser, which renames module-level
+// functions, so `fn.toString()` would carry a renamed, colliding name. The
+// guard keeps repeated concatenation in one segment file idempotent.
+function wrapWithGuard(globalName: string, source: string): string {
+  return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${source};`
 }
 
 export function generateAIProviderUtils(): string {
   return [
-    wrapWithGuard('__ai_resolveTextField', __ai_resolveTextField),
-    wrapWithGuard('__ai_resolveToken', __ai_resolveToken),
-    wrapWithGuard('__ai_detectProvider', __ai_detectProvider),
-    wrapWithGuard('__ai_resolveProvider', __ai_resolveProvider),
-    wrapWithGuard('__ai_modelCapabilities', __ai_modelCapabilities),
-    wrapWithGuard('__ai_providerBaseURL', __ai_providerBaseURL),
-    wrapWithGuard('__ai_openAICompatibleBody', __ai_openAICompatibleBody),
-    wrapWithGuard('__ai_clampTemperature', __ai_clampTemperature),
-    wrapWithGuard('__ai_parseJSON', __ai_parseJSON),
-    wrapWithGuard('__ai_callProvider', __ai_callProvider),
+    wrapWithGuard('__ai_resolveTextField', AI_PROVIDER_UTIL_SOURCES.__ai_resolveTextField),
+    wrapWithGuard('__ai_resolveToken', AI_PROVIDER_UTIL_SOURCES.__ai_resolveToken),
+    wrapWithGuard('__ai_detectProvider', AI_PROVIDER_UTIL_SOURCES.__ai_detectProvider),
+    wrapWithGuard('__ai_resolveProvider', AI_PROVIDER_UTIL_SOURCES.__ai_resolveProvider),
+    wrapWithGuard('__ai_modelCapabilities', AI_PROVIDER_UTIL_SOURCES.__ai_modelCapabilities),
+    wrapWithGuard('__ai_providerBaseURL', AI_PROVIDER_UTIL_SOURCES.__ai_providerBaseURL),
+    wrapWithGuard('__ai_openAICompatibleBody', AI_PROVIDER_UTIL_SOURCES.__ai_openAICompatibleBody),
+    wrapWithGuard('__ai_clampTemperature', AI_PROVIDER_UTIL_SOURCES.__ai_clampTemperature),
+    wrapWithGuard('__ai_parseJSON', AI_PROVIDER_UTIL_SOURCES.__ai_parseJSON),
+    wrapWithGuard('__ai_callProvider', AI_PROVIDER_UTIL_SOURCES.__ai_callProvider),
   ].join('\n\n')
 }
 

@@ -38,6 +38,6 @@ describe('HTML Component Generator - link ability bound to a capitalised prop', 
     const htmlFile = files.find((file) => file.fileType === FileType.HTML)
 
     // Resolved as a link-type prop: the resolver found `redirect` and wrapped the node.
-    expect(htmlFile?.content).toContain('<a class="card-prop-link">')
+    expect(htmlFile?.content).toContain('<a data-thq-link-wrapper="true" class="card-prop-link">')
   })
 })

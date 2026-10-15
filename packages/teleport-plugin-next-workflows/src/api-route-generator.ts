@@ -1032,6 +1032,7 @@ const CLIENT_ONLY_NODES = new Set([
   'element-show',
   'element-hide',
   'element-scroll-to',
+  'element-video-control',
   'element-get-input-value',
   'element-set-text',
   'element-set-attribute',

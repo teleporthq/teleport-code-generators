@@ -79,4 +79,74 @@ describe('Next generator with a Motion element', () => {
     const npmrc = outputFolder.files.find((file) => file.name === '.npmrc')
     expect(npmrc?.content).toContain('legacy-peer-deps=true')
   })
+
+  it('scroll trigger interpolates the FULL from/to state (canvas parity), with scrub + offset support', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const component = findFile(outputFolder, 'components', 'tq-motion')
+    const code = component?.content || ''
+
+    // The scroll path writes the whole interpolated state (transform families,
+    // opacity, filter) to the element — the historical y-only parallax is gone.
+    expect(code).toContain('applyScrollState')
+    expect(code).toContain('useMotionValueEvent')
+    expect(code).not.toContain('parallaxY')
+    expect(code).toMatch(/TRANSFORM_KEYS = \['x', 'y', 'scale', 'rotate'\]/)
+
+    // Scrub smoothing and the scroll-offset windows are wired.
+    expect(code).toContain('useSpring')
+    expect(code).toContain('SCROLL_OFFSET_RANGES')
+    for (const preset of ['pass', 'contained', 'enter', 'exit']) {
+      expect(code).toContain(preset)
+    }
+
+    // Blur interpolation mirrors the canvas runtime's BLUR_RE handling.
+    expect(code).toContain('blur(')
+  })
+
+  // A site with a page transition wraps every page in an AnimatePresence with
+  // initial={false}, which skips the mount animation of every motion component
+  // under it. A row that loops by itself (trigger load, repeat -1) never started
+  // on the generated site, and stood parked at its end state (2026-10-03).
+  it('starts a load animation from a flag set after mount, so a page transition cannot skip it', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const component = findFile(outputFolder, 'components', 'tq-motion')
+    const code = component?.content || ''
+
+    expect(code).toContain('animate: played ? toVars : fromVars')
+    expect(code).toContain(
+      'buildAnimProps(trigger, fromVars, toVars, transition, revealed, played)'
+    )
+    expect(code).not.toContain(
+      "case 'load':\n      return { initial: fromVars, animate: toVars, transition }"
+    )
+  })
+
+  // Vlad, 2026-10-03: for a visitor who asks for less motion a row that slides
+  // by itself stands still and can be swiped, so every item stays reachable.
+  it('lets a row that slides by itself be swiped when the visitor asks for less motion', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const code = findFile(outputFolder, 'components', 'tq-motion')?.content || ''
+
+    expect(code).toContain('const letMarqueeSwipe = (track) => {')
+    expect(code).toContain("frame.style.overflowX = 'auto'")
+    expect(code).toContain(
+      'React.useEffect(() => {\n    if (still) {\n      letMarqueeSwipe(ref.current)'
+    )
+  })
+
+  // The server cannot know that a visitor asks for less motion and renders the
+  // animated element with its starting style. A first render that drew the still
+  // element instead left that style in place: every entrance stayed invisible for
+  // those visitors (2026-10-03, React keeps server markup it disagrees with).
+  it('draws the still element for less motion only once the page is mounted', async () => {
+    const outputFolder = await generator.generateProject(buildUidlWithMotion(), template)
+    const code = findFile(outputFolder, 'components', 'tq-motion')?.content || ''
+
+    expect(code).toContain('React.useEffect(() => setMounted(true), [])')
+    expect(code).toContain('const still = mounted && Boolean(shouldReduceMotion)')
+    expect(code).toContain(
+      'if (still) {\n    return (\n      <div ref={ref} style={wrapperStyle} {...rest}>'
+    )
+    expect(code).not.toContain('if (shouldReduceMotion) {\n    return (')
+  })
 })
