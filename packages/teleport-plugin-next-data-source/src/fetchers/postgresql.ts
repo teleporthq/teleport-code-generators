@@ -5,11 +5,8 @@ import {
   generateSearchEscapeHelpersCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
-import {
-  generateSortFallbackFieldHelper,
-  generateSortFieldSqlHelper,
-  generateSortTiebreakSql,
-} from '../product-price-sort'
+import { generateSortFallbackFieldHelper, generateSortFieldSqlHelper } from '../product-price-sort'
+import { SORT_NULLS_LAST_SQL, generateSortTiebreakSql } from '../list-sort-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
@@ -227,7 +224,8 @@ ${generateReadGuardCall(tableName, null)}
     }
     
     // Handle sorts - new array format. Two ORDER BY clauses are built: the one
-    // actually used, and a plain-column twin kept only as the fallback below.
+    // actually used (the products table's price rewrites, rows without a value
+    // last), and a plain-column twin kept only as the fallback below.
     let orderBySql = ''
     let plainOrderBySql = ''
     if (sorts) {
@@ -236,7 +234,7 @@ ${generateReadGuardCall(tableName, null)}
         const valid = parsedSorts.filter((sort) => sort && sort.field)
         valid.forEach((sort) => assertRequestColumn(sort.field, 'sort field'))
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-        const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}\`)
+        const orderClauses = valid.map((sort) => \`\${sortFieldSql(sort.field)} \${orderOf(sort)}${SORT_NULLS_LAST_SQL}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
@@ -253,10 +251,11 @@ ${generateReadGuardCall(tableName, null)}
       }
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
-      orderBySql = \` ORDER BY \${sortBy} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
-      plainOrderBySql = orderBySql
+      const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
+      orderBySql = \` ORDER BY \${sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\`
+      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
     }
-    const usedDiscountAwareSort = orderBySql !== plainOrderBySql
+    const usedRewrittenSort = orderBySql !== plainOrderBySql
 
     const limitValue = requestRowCount(limit || perPage)
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
@@ -276,14 +275,16 @@ ${generateReadGuardCall(tableName, null)}
     // The discount-aware price ordering is an inline sub-select over a JSON
     // column. It is written to be unraisable, but it runs inside ORDER BY for
     // the whole table — so if a database ever rejects it, fall back to ordering
-    // by the stored list price rather than serving an empty products page.
+    // by the stored list price rather than serving an empty products page. The
+    // empty-values-last ordering takes the same exit, for a Postgres-compatible
+    // database that does not know NULLS LAST.
     let result
     try {
       result = await client.query(sql, queryParams)
     } catch (sortError) {
-      if (!usedDiscountAwareSort) throw sortError
+      if (!usedRewrittenSort) throw sortError
       console.warn(
-        'Discount-aware price sort failed; falling back to the list price:',
+        'Rewritten sort failed; falling back to the plain column:',
         sortError && sortError.message
       )
       result = await client.query(baseSql + plainOrderBySql + sqlTail, queryParams)

@@ -42,7 +42,17 @@ const ANCHOR_SAFE_ARIA_ATTRIBUTES = new Set([
   'aria-disabled', // For disabled links
 ])
 
+/* A listing card's anatomy — `data-tq-card-slot`, `-size`, `-tone` — describes
+   the card's own box: its styles answer it with rules that need the class and
+   the attribute on one element (`.thq-listing-card[data-tq-card-size="wide"]`)
+   and the picture as a child of it (`[data-tq-card-size] > [data-tq-card-slot]`).
+   Moved onto the wrapper of a card that is one link, no such rule matches. */
+const BOX_ATTRIBUTE_PREFIX = 'data-tq-card-'
+
 const isAttributeSafeForAnchor = (attrName: string): boolean => {
+  if (attrName.startsWith(BOX_ATTRIBUTE_PREFIX)) {
+    return false
+  }
   return (
     ANCHOR_SAFE_ATTRIBUTES.has(attrName) ||
     attrName.startsWith('data-') ||

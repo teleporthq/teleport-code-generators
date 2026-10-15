@@ -1,7 +1,13 @@
+/* tslint:disable:function-constructor */
 import * as types from '@babel/types'
 import generator from '@babel/generator'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createNextArrayMapperPaginationPlugin } from '../src/pagination-plugin'
+import {
+  buildAccumulatingRequestMark,
+  buildAccumulatingResponseHandler,
+  getInfiniteScrollVars,
+} from '../src/infinite-scroll'
 import {
   makeMultiMapperUidl,
   makeUidlNode,
@@ -31,7 +37,7 @@ describe('pagination plugin — infinite scroll', () => {
     const code = await runPlugin({ infiniteScroll: true })
     const flat = collapse(code)
 
-    expect(flat).toContain('const ds_0_accumRef = useRef({ sig: "", pages: {} })')
+    expect(flat).toContain('const ds_0_accumRef = useRef({ sig: "", pages: {}, latest: null })')
     expect(flat).toContain('const [ds_0_hasMoreFlag, setDs_0_hasMoreFlag] = useState(true)')
     // Two independent end-of-data signals: a short page, and the counted total.
     expect(flat).toContain(
@@ -42,12 +48,18 @@ describe('pagination plugin — infinite scroll', () => {
     // change must start a fresh list rather than interleave two result sets.
     expect(flat).toContain('const sig = JSON.stringify({ ...params, page: 0 })')
     expect(flat).toContain('if (ds_0_accumRef.current.sig !== sig)')
-    expect(flat).toContain('ds_0_accumRef.current = { sig, pages: {} }')
+    expect(flat).toContain('ds_0_accumRef.current.pages = {}')
     expect(flat).toContain('ds_0_accumRef.current.pages[page] = rows')
+    // fetchData records the request the list stands on before making it.
+    expect(flat).toContain(
+      'ds_0_accumRef.current.latest = { sig: JSON.stringify({ ...params, page: 0 }), page: Number(params.page) || 1 }'
+    )
     // A short page is the only end signal a source that cannot count gives.
     expect(flat).toContain('setDs_0_hasMoreFlag(rows.length >= 20)')
     // Numeric sort, so page 10 does not land between 1 and 2.
-    expect(flat).toContain('.map(Number).sort((a, b) => a - b).reduce(')
+    expect(flat).toMatch(
+      /\.map\(Number\)\.filter\(\(?p\)? => p <= last\)\.sort\(\(a, b\) => a - b\)\.reduce\(/
+    )
   })
 
   it('keeps the page out of the provider key and suppresses initialData', async () => {
@@ -139,5 +151,117 @@ describe('pagination plugin — infinite scroll', () => {
     // The single authored widget belongs to the SECOND (paginated) mapper.
     expect(code).toContain('setDs_1_page')
     expect(code).not.toContain('setDs_0_page(page => Math.max(1, page - 1))')
+  })
+})
+
+/**
+ * The accumulator, executed: `fetchData` as the page emits it, answered in
+ * the orders a browser can produce. A sort (filter, search) change made on
+ * page 2 fires page 2 under the new query first, then page 1 once the page is
+ * reset — and `DataProvider` renders whichever answer lands last.
+ */
+describe('the appending list, run', () => {
+  const PER_PAGE = 2
+
+  interface Deferred {
+    params: { page: number; sorts: string }
+    resolve: (rows: string[]) => void
+    result: Promise<string[]>
+  }
+
+  function bootList() {
+    const vars = getInfiniteScrollVars(0)
+    const mark = generator(types.program([buildAccumulatingRequestMark(vars)])).code
+    const handler = generator(buildAccumulatingResponseHandler(vars, PER_PAGE)).code
+    const accumRef = { current: { sig: '', pages: {}, latest: null } }
+    const hasMore: boolean[] = []
+    const fetchData = new Function(
+      'ds_0_accumRef',
+      'setDs_0_hasMoreFlag',
+      'answer',
+      `return function fetchData(params) { ${mark}; return answer(params).then(${handler}) }`
+    )(
+      accumRef,
+      (value: boolean) => hasMore.push(value),
+      (params: Deferred['params']) => {
+        let resolve: (rows: string[]) => void = () => undefined
+        const answered = new Promise<{ data: string[] }>((done) => {
+          resolve = (rows) => done({ data: rows })
+        })
+        requests.push({ params, resolve, result: undefined as never })
+        return answered
+      }
+    ) as (params: Deferred['params']) => Promise<string[]>
+    const requests: Deferred[] = []
+    const request = (page: number, sorts: string): Deferred => {
+      const result = fetchData({ page, sorts })
+      const made = requests[requests.length - 1]
+      made.result = result
+      return made
+    }
+    return { request, hasMore }
+  }
+
+  const rowsOf = (sorts: string, page: number) => [`${sorts}${page}a`, `${sorts}${page}b`]
+
+  it('restarts at page 1 after a sort change on page 2, and loads page 2 on the next click', async () => {
+    const list = bootList()
+    const first = list.request(1, 'A')
+    first.resolve(rowsOf('A', 1))
+    const second = list.request(2, 'A')
+    second.resolve(rowsOf('A', 2))
+    expect(await second.result).toEqual([...rowsOf('A', 1), ...rowsOf('A', 2)])
+
+    const stray = list.request(2, 'B')
+    const restart = list.request(1, 'B')
+    stray.resolve(rowsOf('B', 2))
+    // The stray page changes nothing: the list on show stays until page 1 answers.
+    expect(await stray.result).toEqual([...rowsOf('A', 1), ...rowsOf('A', 2)])
+    restart.resolve(rowsOf('B', 1))
+    expect(await restart.result).toEqual(rowsOf('B', 1))
+
+    const next = list.request(2, 'B')
+    next.resolve(rowsOf('B', 2))
+    expect(await next.result).toEqual([...rowsOf('B', 1), ...rowsOf('B', 2)])
+  })
+
+  it('keeps the restarted list when the stray page answers last', async () => {
+    const list = bootList()
+    list.request(1, 'A').resolve(rowsOf('A', 1))
+    const second = list.request(2, 'A')
+    second.resolve(rowsOf('A', 2))
+    await second.result
+
+    const stray = list.request(2, 'B')
+    const restart = list.request(1, 'B')
+    restart.resolve(rowsOf('B', 1))
+    expect(await restart.result).toEqual(rowsOf('B', 1))
+    stray.resolve(rowsOf('B', 2))
+    expect(await stray.result).toEqual(rowsOf('B', 1))
+  })
+
+  it('never lets a late answer to an earlier query replace the list', async () => {
+    const list = bootList()
+    const before = list.request(1, 'A')
+    const after = list.request(1, 'B')
+    after.resolve(rowsOf('B', 1))
+    expect(await after.result).toEqual(rowsOf('B', 1))
+    before.resolve(rowsOf('A', 1))
+    expect(await before.result).toEqual(rowsOf('B', 1))
+  })
+
+  it('ends the list on a short page of the request it stands on only', async () => {
+    const list = bootList()
+    const stray = list.request(2, 'A')
+    const page1 = list.request(1, 'A')
+    stray.resolve(['A2a'])
+    await stray.result
+    expect(list.hasMore).toEqual([])
+    page1.resolve(rowsOf('A', 1))
+    await page1.result
+    const page2 = list.request(2, 'A')
+    page2.resolve(['A2a'])
+    expect(await page2.result).toEqual([...rowsOf('A', 1), 'A2a'])
+    expect(list.hasMore).toEqual([true, false])
   })
 })

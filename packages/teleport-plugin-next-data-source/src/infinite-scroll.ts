@@ -15,6 +15,15 @@ import * as types from '@babel/types'
  * and re-enter it. The ref is keyed by a SIGNATURE of every fetch param except
  * the page, so a filter, sort or search change starts a fresh list instead of
  * interleaving rows from two different queries.
+ *
+ * `fetchData` records the query and the page the list stands on BEFORE it
+ * requests them (`latest`), and only the answer to that request changes the
+ * list. A filter, sort or search change made past page 1 fires the old page
+ * under the new query first, then page 1 once the page is reset: kept, the
+ * stray page sat in the list, the page counter said 1, and the next "Load
+ * more" fetched a page already on show. `DataProvider` also renders whichever
+ * answer arrives LAST, so a late answer to an earlier query must not replace
+ * the list either.
  */
 
 // tslint:disable:no-any
@@ -62,6 +71,7 @@ export const buildInfiniteScrollDeclarations = (
           types.objectExpression([
             types.objectProperty(types.identifier('sig'), types.stringLiteral('')),
             types.objectProperty(types.identifier('pages'), types.objectExpression([])),
+            types.objectProperty(types.identifier('latest'), types.nullLiteral()),
           ]),
         ])
       ),
@@ -161,11 +171,56 @@ const writeAtPath = (
   ])
 }
 
+/** `JSON.stringify({ ...params, page: 0 })`: everything that identifies the query but the page. */
+const buildQuerySignature = (): types.CallExpression =>
+  types.callExpression(
+    types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+    [
+      types.objectExpression([
+        types.spreadElement(types.identifier('params')),
+        types.objectProperty(types.identifier('page'), types.numericLiteral(0)),
+      ]),
+    ]
+  )
+
+/** `Number(params.page) || 1` */
+const buildRequestedPage = (): types.LogicalExpression =>
+  types.logicalExpression(
+    '||',
+    types.callExpression(types.identifier('Number'), [
+      types.memberExpression(types.identifier('params'), types.identifier('page')),
+    ]),
+    types.numericLiteral(1)
+  )
+
+const accumCurrentOf = (vars: InfiniteScrollVars): types.MemberExpression =>
+  types.memberExpression(types.identifier(vars.accumRefVar), types.identifier('current'))
+
+/**
+ * What `fetchData` runs before its request: the query and the page the list
+ * now stands on.
+ *
+ *   ds_0_accumRef.current.latest = { sig: JSON.stringify({ ...params, page: 0 }), page: Number(params.page) || 1 }
+ */
+export const buildAccumulatingRequestMark = (vars: InfiniteScrollVars): types.Statement =>
+  types.expressionStatement(
+    types.assignmentExpression(
+      '=',
+      types.memberExpression(accumCurrentOf(vars), types.identifier('latest')),
+      types.objectExpression([
+        types.objectProperty(types.identifier('sig'), buildQuerySignature()),
+        types.objectProperty(types.identifier('page'), buildRequestedPage()),
+      ])
+    )
+  )
+
 /**
  * The `.then(...)` tail that accumulates a page and reports whether more exist.
  *
  * Returned as the resolved value of `fetchData`, so `DataProvider` stores the
- * whole accumulated list as its data.
+ * whole accumulated list as its data: the pages of the query on show, first
+ * to the page it stands on. An answer to anything but the latest request
+ * (`buildAccumulatingRequestMark`) is not kept, and gets the list as it is.
  *
  * `itemsPath` is where the rows sit inside a payload that wraps them
  * (`{ items: [...], total }`): the rows are read there and the accumulated list
@@ -178,10 +233,11 @@ export const buildAccumulatingResponseHandler = (
   perPage: number,
   itemsPath?: string[]
 ): types.ArrowFunctionExpression => {
-  const accumCurrent = (): types.MemberExpression =>
-    types.memberExpression(types.identifier(vars.accumRefVar), types.identifier('current'))
+  const accumCurrent = (): types.MemberExpression => accumCurrentOf(vars)
   const accumPages = (): types.MemberExpression =>
     types.memberExpression(accumCurrent(), types.identifier('pages'))
+  const latestOf = (key: string): types.MemberExpression =>
+    types.memberExpression(types.identifier('latest'), types.identifier(key))
   const payload = (): types.OptionalMemberExpression =>
     types.optionalMemberExpression(
       types.identifier('response'),
@@ -191,6 +247,8 @@ export const buildAccumulatingResponseHandler = (
     )
   const rowsPath = itemsPath?.length ? itemsPath : undefined
 
+  // Every page held up to `last`, flattened in page order — a numeric sort, so
+  // page 10 does not land between 1 and 2.
   const accumulatedRows = types.callExpression(
     types.memberExpression(
       types.callExpression(
@@ -198,12 +256,23 @@ export const buildAccumulatingResponseHandler = (
           types.callExpression(
             types.memberExpression(
               types.callExpression(
-                types.memberExpression(types.identifier('Object'), types.identifier('keys')),
-                [accumPages()]
+                types.memberExpression(
+                  types.callExpression(
+                    types.memberExpression(types.identifier('Object'), types.identifier('keys')),
+                    [accumPages()]
+                  ),
+                  types.identifier('map')
+                ),
+                [types.identifier('Number')]
               ),
-              types.identifier('map')
+              types.identifier('filter')
             ),
-            [types.identifier('Number')]
+            [
+              types.arrowFunctionExpression(
+                [types.identifier('p')],
+                types.binaryExpression('<=', types.identifier('p'), types.identifier('last'))
+              ),
+            ]
           ),
           types.identifier('sort')
         ),
@@ -242,73 +311,97 @@ export const buildAccumulatingResponseHandler = (
         ),
       ]),
       types.variableDeclaration('const', [
-        types.variableDeclarator(
-          types.identifier('page'),
-          types.logicalExpression(
-            '||',
-            types.callExpression(types.identifier('Number'), [
-              types.memberExpression(types.identifier('params'), types.identifier('page')),
-            ]),
-            types.numericLiteral(1)
-          )
-        ),
+        types.variableDeclarator(types.identifier('page'), buildRequestedPage()),
       ]),
       // Everything that identifies the QUERY, with the page zeroed out: two
       // fetches that differ only by page belong to the same accumulated list.
       types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('sig'), buildQuerySignature()),
+      ]),
+      // The request the list stands on now, recorded when it was made.
+      types.variableDeclaration('const', [
         types.variableDeclarator(
-          types.identifier('sig'),
-          types.callExpression(
-            types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-            [
-              types.objectExpression([
-                types.spreadElement(types.identifier('params')),
-                types.objectProperty(types.identifier('page'), types.numericLiteral(0)),
-              ]),
-            ]
+          types.identifier('latest'),
+          types.logicalExpression(
+            '||',
+            types.memberExpression(accumCurrent(), types.identifier('latest')),
+            types.objectExpression([
+              types.objectProperty(types.identifier('sig'), types.identifier('sig'), false, true),
+              types.objectProperty(types.identifier('page'), types.identifier('page'), false, true),
+            ])
           )
         ),
       ]),
+      // Only its answer is kept: an earlier query's, or a page past the one a
+      // filter / sort / search change restarted the list at, changes nothing.
       types.ifStatement(
-        types.binaryExpression(
-          '!==',
-          types.memberExpression(accumCurrent(), types.identifier('sig')),
-          types.identifier('sig')
+        types.logicalExpression(
+          '&&',
+          types.binaryExpression('===', types.identifier('sig'), latestOf('sig')),
+          types.binaryExpression('<=', types.identifier('page'), latestOf('page'))
         ),
         types.blockStatement([
+          types.ifStatement(
+            types.binaryExpression(
+              '!==',
+              types.memberExpression(accumCurrent(), types.identifier('sig')),
+              types.identifier('sig')
+            ),
+            types.blockStatement([
+              types.expressionStatement(
+                types.assignmentExpression(
+                  '=',
+                  types.memberExpression(accumCurrent(), types.identifier('sig')),
+                  types.identifier('sig')
+                )
+              ),
+              types.expressionStatement(
+                types.assignmentExpression('=', accumPages(), types.objectExpression([]))
+              ),
+            ])
+          ),
           types.expressionStatement(
             types.assignmentExpression(
               '=',
-              accumCurrent(),
-              types.objectExpression([
-                types.objectProperty(types.identifier('sig'), types.identifier('sig'), false, true),
-                types.objectProperty(types.identifier('pages'), types.objectExpression([])),
-              ])
+              types.memberExpression(accumPages(), types.identifier('page'), true),
+              types.identifier('rows')
             )
           ),
-        ])
-      ),
-      types.expressionStatement(
-        types.assignmentExpression(
-          '=',
-          types.memberExpression(accumPages(), types.identifier('page'), true),
-          types.identifier('rows')
-        )
-      ),
-      // A page that came back short is the last one. This is the only
-      // end-of-data signal a data source that cannot count ever gives.
-      types.expressionStatement(
-        types.callExpression(types.identifier(vars.setHasMoreFlagVar), [
-          types.binaryExpression(
-            '>=',
-            types.memberExpression(types.identifier('rows'), types.identifier('length')),
-            types.numericLiteral(perPage)
+          // A page that came back short is the last one. This is the only
+          // end-of-data signal a data source that cannot count ever gives.
+          types.ifStatement(
+            types.binaryExpression('===', types.identifier('page'), latestOf('page')),
+            types.blockStatement([
+              types.expressionStatement(
+                types.callExpression(types.identifier(vars.setHasMoreFlagVar), [
+                  types.binaryExpression(
+                    '>=',
+                    types.memberExpression(types.identifier('rows'), types.identifier('length')),
+                    types.numericLiteral(perPage)
+                  ),
+                ])
+              ),
+            ])
           ),
         ])
       ),
-      // Every page held so far, flattened in page order — a numeric sort, so
-      // page 10 does not land between 1 and 2. This is what DataProvider stores
-      // as its data, and so what the list renders.
+      // The pages of the query on show, up to the page the list stands on; all
+      // of them while the latest query has not answered yet.
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('last'),
+          types.conditionalExpression(
+            types.binaryExpression(
+              '===',
+              types.memberExpression(accumCurrent(), types.identifier('sig')),
+              latestOf('sig')
+            ),
+            latestOf('page'),
+            types.identifier('Infinity')
+          )
+        ),
+      ]),
+      // This is what DataProvider stores as its data, and so what the list renders.
       types.returnStatement(
         rowsPath ? writeAtPath(payload(), rowsPath, accumulatedRows) : accumulatedRows
       ),

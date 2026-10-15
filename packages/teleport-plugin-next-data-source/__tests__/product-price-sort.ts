@@ -5,9 +5,9 @@ import {
   buildProductEffectivePriceSql,
   generateSortFallbackFieldHelper,
   generateSortFieldSqlHelper,
-  generateSortTiebreakSql,
   supportsProductPriceSort,
 } from '../src/product-price-sort'
+import { generateSortTiebreakSql } from '../src/list-sort-order'
 import { generatePostgreSQLFetcher } from '../src/fetchers/postgresql'
 import { generateTeleportFetcher } from '../src/fetchers/teleport'
 import { generateDataSourceFetcher } from '../src/data-source-fetchers'
@@ -121,8 +121,8 @@ describe('the generated Postgres route', () => {
   it('keeps a plain-column ORDER BY to fall back to', () => {
     // If a database ever rejects the sub-select, the page must degrade to the
     // previous ordering rather than serve nothing.
-    expect(productsRoute).toContain('const usedDiscountAwareSort = orderBySql !== plainOrderBySql')
-    expect(productsRoute).toContain('if (!usedDiscountAwareSort) throw sortError')
+    expect(productsRoute).toContain('const usedRewrittenSort = orderBySql !== plainOrderBySql')
+    expect(productsRoute).toContain('if (!usedRewrittenSort) throw sortError')
     expect(productsRoute).toContain('baseSql + plainOrderBySql + sqlTail')
   })
 
@@ -207,6 +207,13 @@ describe('stable pagination', () => {
     expect(generateSortTiebreakSql('teleport_products')).toBe(', "id" ASC')
   })
 
+  it('breaks ties on every listing a visitor sorts: the blog listing and the booking page too', () => {
+    // "Sort by reading time" ties every five-minute post, "by price" every
+    // item at the same price.
+    expect(generateSortTiebreakSql('teleport_blog_posts')).toBe(', "id" ASC')
+    expect(generateSortTiebreakSql('teleport_booking_items')).toBe(', "id" ASC')
+  })
+
   it('adds nothing to a table it does not own', () => {
     expect(generateSortTiebreakSql('teleport_orders')).toBe('')
   })
@@ -247,10 +254,8 @@ describe('the fetcher a generated storefront actually gets', () => {
   })
 
   it('keeps the plain-column fallback and the tiebreaker', () => {
-    expect(teleportProducts).toContain(
-      'const usedDiscountAwareSort = orderBySql !== plainOrderBySql'
-    )
-    expect(teleportProducts).toContain('if (!usedDiscountAwareSort) throw sortError')
+    expect(teleportProducts).toContain('const usedRewrittenSort = orderBySql !== plainOrderBySql')
+    expect(teleportProducts).toContain('if (!usedRewrittenSort) throw sortError')
     expect(teleportProducts).toContain('baseSql + plainOrderBySql + sqlTail')
     expect(teleportProducts).toContain('"id" ASC')
   })

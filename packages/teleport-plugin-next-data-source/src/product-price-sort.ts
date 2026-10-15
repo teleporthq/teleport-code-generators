@@ -191,14 +191,3 @@ export const generateSortFallbackFieldHelper = (tableName: string): string => {
 
   return ['function sortFallbackField(field) {', branches + '  return field', '}'].join('\n')
 }
-
-/**
- * A deterministic tiebreaker appended to every products ORDER BY.
- *
- * Without one, a paginated sort with ties — and "sort by discount" ties every
- * undiscounted product at zero — has no defined order between equal rows, so
- * the same product can appear on two pages or on none. `id` is on the products
- * table from its first migration.
- */
-export const generateSortTiebreakSql = (tableName: string): string =>
-  supportsProductPriceSort(tableName) ? ', "id" ASC' : ''

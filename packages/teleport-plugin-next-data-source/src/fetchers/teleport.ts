@@ -11,11 +11,8 @@ import {
   getTransformWrapperCode,
   type EntityTransformOptions,
 } from '../transformations'
-import {
-  generateSortFallbackFieldHelper,
-  generateSortFieldSqlHelper,
-  generateSortTiebreakSql,
-} from '../product-price-sort'
+import { generateSortFallbackFieldHelper, generateSortFieldSqlHelper } from '../product-price-sort'
+import { SORT_NULLS_LAST_SQL, generateSortTiebreakSql } from '../list-sort-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../localized-columns'
 import { REQUEST_LOCALE_PARAM } from '../request-locale'
@@ -392,8 +389,8 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     
     // Handle sorts - new array format. Two ORDER BY clauses are built: the one
     // actually used (a translatable column in the request's language, the
-    // products table's price rewrites), and a plain-column twin kept only as
-    // the fallback below.
+    // products table's price rewrites, rows without a value last), and a
+    // plain-column twin kept only as the fallback below.
     let orderBySql = ''
     let plainOrderBySql = ''
     if (sorts) {
@@ -402,7 +399,7 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
         const valid = parsedSorts.filter((sort) => sort && sort.field)
         valid.forEach((sort) => assertRequestColumn(sort.field, 'sort field'))
         const orderOf = (sort) => (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-        const orderClauses = valid.map((sort) => \`\${localizedSortFieldSql(sort.field, requestLocale) || sortFieldSql(sort.field)} \${orderOf(sort)}\`)
+        const orderClauses = valid.map((sort) => \`\${localizedSortFieldSql(sort.field, requestLocale) || sortFieldSql(sort.field)} \${orderOf(sort)}${SORT_NULLS_LAST_SQL}\`)
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
@@ -420,10 +417,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}\`
+      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\`
       plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
     }
-    const usedDiscountAwareSort = orderBySql !== plainOrderBySql
+    const usedRewrittenSort = orderBySql !== plainOrderBySql
 
     const limitValue = requestRowCount(limit || perPage)
     const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
@@ -445,12 +442,13 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     // the whole table - so if a database ever rejects it, fall back to ordering
     // by the stored list price rather than serving an empty products page. The
     // translatable-column ordering takes the same exit: a per-language column
-    // the schema had at generation time may have been dropped since.
+    // the schema had at generation time may have been dropped since. So does
+    // the empty-values-last ordering.
     let result
     try {
       result = await client.query(sql, queryParams)
     } catch (sortError) {
-      if (!usedDiscountAwareSort) throw sortError
+      if (!usedRewrittenSort) throw sortError
       console.warn(
         'Rewritten sort failed; falling back to the plain column:',
         sortError && sortError.message

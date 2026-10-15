@@ -181,6 +181,11 @@ module.exports = async function handler(req, res) {
 
     for (let i = 0; i < sortedNodes.length; i++) {
       const node = sortedNodes[i];
+      // A node of a non-taken if-statement branch is never resolved nor run —
+      // an if-statement there included: evaluated, its \`{ result }\` would reach
+      // the caller as if that branch had run (a custom node answers the output
+      // of the last node it ran).
+      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
       const resolved = resolveConfig(node.config, context);
       // Every data node lives in a SERVER segment, so this guard — which turns an
       // unresolved {{…}} into a validation error instead of letting the literal
@@ -216,9 +221,6 @@ module.exports = async function handler(req, res) {
         }
         continue;
       }
-
-      // Skip nodes that were marked as belonging to a non-taken if-statement branch
-      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
 
       // Loop nodes must be handled specially: iterate over the collection,
       // execute loop body nodes for each item, then continue after the loop.
@@ -1289,6 +1291,9 @@ const generateNodeExecutionLoop = (
 
     for (var i = 0; i < sortedNodes.length; i++) {
       var node = sortedNodes[i];
+      // Never resolved nor run on a non-taken branch, an if-statement included
+      // (see the segment executor above).
+      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
       var resolved = resolveConfig(node.config, context);
       // See the other segment executors — the unresolved-token guard must run
       // wherever data nodes execute, and they all execute on the server.
@@ -1318,8 +1323,6 @@ const generateNodeExecutionLoop = (
         }
         continue;
       }
-
-      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
 
       if (node.type === 'general-loop') {
         var loopEdges = ${configVar}.edges.filter(function(e) { return e.source === node.id; });
