@@ -355,6 +355,9 @@ function buildInvoiceDataScope(invoiceData) {
   // sample — right for a company address, wrong for a code or a card tail: an
   // order without a voucher must not print the designer's "SAVE20".
   var realInvoiceNeverSampled = { voucherCode: voucherCode, giftCardLast4: giftCardLast4 };
+  // The buyer and their payment are never sampled either: an order with no
+  // city (a booking, a pickup, a download) must not print the designer's
+  // sample customer's, nor a card it was not paid with.
 
   var realCustomer = {
     name: invoiceData.customerName || '',
@@ -366,6 +369,11 @@ function buildInvoiceDataScope(invoiceData) {
     country: invoiceData.customerCountry || '',
     vat: invoiceData.customerVat || '',
   };
+  // The "Bill to" lines a buyer may leave out show only when they did not
+  // (string flags: the template compares strings, as with \`hasShipping\`).
+  realCustomer.hasZip = realCustomer.zip ? 'true' : 'false';
+  realCustomer.hasCountry = realCustomer.country ? 'true' : 'false';
+  realCustomer.hasVat = realCustomer.vat ? 'true' : 'false';
 
   var realPayment = {
     method: invoiceData.paymentMethod || '',
@@ -462,8 +470,8 @@ function buildInvoiceDataScope(invoiceData) {
     invoiceData: {
       Company: mergeWithDefaults(realCompany, defaults.Company),
       Invoice: Object.assign(mergeWithDefaults(realInvoice, defaults.Invoice), realInvoiceNeverSampled),
-      Customer: mergeWithDefaults(realCustomer, defaults.Customer),
-      Payment: mergeWithDefaults(realPayment, defaults.Payment),
+      Customer: realCustomer,
+      Payment: realPayment,
       Products: realProducts.length > 0 ? realProducts : (defaults.Products || []),
     },
   };

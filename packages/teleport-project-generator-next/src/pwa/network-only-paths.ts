@@ -1,4 +1,5 @@
 import { ProjectUIDL, UIDLInstallableWebApp } from '@teleporthq/teleport-types'
+import { readUidlPaymentProviders } from '@teleporthq/teleport-plugin-next-workflows'
 
 /**
  * Never answered from the cache, whatever the project: every API route and
@@ -7,8 +8,8 @@ import { ProjectUIDL, UIDLInstallableWebApp } from '@teleporthq/teleport-types'
  */
 const ALWAYS_NETWORK_ONLY = ['/api', '/admin']
 
-/** The store's payment pages (`/pay/<provider>`) render a live checkout session. */
-const STORE_NETWORK_ONLY = ['/pay']
+/** The payment pages (`/pay/<provider>`) render a live checkout session. */
+const PAYMENT_NETWORK_ONLY = ['/pay']
 
 const isDynamicSegment = (segment: string): boolean =>
   segment.includes('[') || segment === '*' || segment.startsWith(':')
@@ -73,7 +74,10 @@ export const collectNetworkOnlyPatterns = (
 ): string[] => {
   const routes = [
     ...ALWAYS_NETWORK_ONLY,
-    ...(uidl.ecommerceSettings ? STORE_NETWORK_ONLY : []),
+    // A store, or a site that takes its bookings' payments without one.
+    ...(uidl.ecommerceSettings || readUidlPaymentProviders(uidl).length > 0
+      ? PAYMENT_NETWORK_ONLY
+      : []),
     ...authenticationRoutes(uidl),
     ...app.networkOnlyPaths,
   ]

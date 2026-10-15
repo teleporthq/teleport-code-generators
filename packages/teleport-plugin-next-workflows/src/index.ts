@@ -57,6 +57,7 @@ export { generateWebhookFiles } from './webhook-generator'
 export {
   declarePaymentCredentialEnv,
   ensurePaymentDriversModule,
+  readUidlPaymentProviders,
   resolveStorePaymentDriverIds,
 } from './payments'
 export {

@@ -33,6 +33,34 @@ var TEMPLATE_DOCUMENT = ${templateDocumentJson};
 ${REGIONAL_INVOICE_TAX_CODE}
 ${ProductOptions.generateProductOptionsHelperCode()}
 
+// The invoice details an order's metadata (JSON text) carries beside its
+// billing columns — the keys \`ORDER_BILLING_METADATA_KEYS\` (teleport-gui)
+// writes: the address in its parts and the buyer's tax or VAT number. Every
+// part is '' when the order has none or its metadata is no JSON object.
+function readOrderBillingMetadata(raw) {
+  var parsed = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      parsed = null;
+    }
+  }
+  var meta = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  function part(key) {
+    var value = meta[key];
+    return value === null || value === undefined ? '' : String(value).trim();
+  }
+  return {
+    taxId: part('billingTaxId'),
+    street: part('billingStreet'),
+    city: part('billingCity'),
+    postalCode: part('billingPostalCode'),
+    region: part('billingRegion'),
+    country: part('billingCountry'),
+  };
+}
+
 // The product options an order line was bought with: the short one-line label
 // (after the name) and every answer in full, one per line (the description).
 // Same rule as the order emails: a current snapshot names its options, while
@@ -416,15 +444,27 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
   // field but the order has one, use it. Kept permissive on field
   // names (billing_* wins, falls back to shipping_*) because a buyer
   // who checked "bill to a different address" has both on the order.
+  //
+  // An order whose buyer gave invoice details of their own (a booking's
+  // "Add invoice details") carries them in its metadata as well: the address
+  // in its parts and the tax or VAT number. Those parts are the invoice's
+  // address — never mixed with a shipping address — and the number is the
+  // buyer's VAT.
   var orderRow = orderShippingSource;
+  var orderBilling = readOrderBillingMetadata(orderRow.metadata);
+  var billedApart = !!(orderBilling.street || orderBilling.city || orderBilling.country);
   var fallbackCustomerName =
     orderRow.billing_name || orderRow.shipping_name || orderRow.customer_name || '';
   var fallbackCustomerEmail = orderRow.billing_email || orderRow.customer_email || '';
-  var fallbackCustomerAddress = orderRow.billing_address || orderRow.shipping_address || '';
-  var fallbackCustomerCity = orderRow.shipping_city || '';
-  var fallbackCustomerState = orderRow.shipping_state || '';
-  var fallbackCustomerZip = orderRow.shipping_zip || '';
-  var fallbackCustomerCountry = orderRow.shipping_country || '';
+  var fallbackCustomerAddress = billedApart
+    ? orderBilling.street
+    : orderRow.billing_address || orderRow.shipping_address || '';
+  var fallbackCustomerCity = billedApart ? orderBilling.city : orderRow.shipping_city || '';
+  var fallbackCustomerState = billedApart ? orderBilling.region : orderRow.shipping_state || '';
+  var fallbackCustomerZip = billedApart ? orderBilling.postalCode : orderRow.shipping_zip || '';
+  var fallbackCustomerCountry = billedApart
+    ? orderBilling.country
+    : orderRow.shipping_country || '';
   var fallbackPaymentMethod = orderRow.payment_method || '';
   var fallbackPaymentProvider = orderRow.payment_provider || '';
   var fallbackPaymentIntentId = orderRow.payment_intent_id || '';
@@ -446,7 +486,7 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
     customerState: body.customerState || fallbackCustomerState || '',
     customerZip: body.customerZip || fallbackCustomerZip || '',
     customerCountry: body.customerCountry || fallbackCustomerCountry || '',
-    customerVat: body.customerVat || '',
+    customerVat: body.customerVat || orderBilling.taxId || '',
     companyName: pdfGenerator.COMPANY_DETAILS.companyName || '',
     companyAddress: pdfGenerator.COMPANY_DETAILS.companyAddress || '',
     companyCity: pdfGenerator.COMPANY_DETAILS.companyCity || '',

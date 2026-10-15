@@ -45,6 +45,7 @@ import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin
 import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextBlogProjectPlugin } from './blog/project-plugin'
+import { NextBookingProjectPlugin } from './bookings/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 import { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'
@@ -102,6 +103,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
   new NextBlogProjectPlugin(),
+  new NextBookingProjectPlugin(),
   new NextGlobalStateProjectPlugin(),
   new NextAIChatProjectPlugin(),
   new NextAnalyticsProjectPlugin(),
@@ -298,6 +300,7 @@ export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persiste
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
+export { NextBookingProjectPlugin } from './bookings/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 export { NextRichTextEditorProjectPlugin } from './rich-text-editor/project-plugin'

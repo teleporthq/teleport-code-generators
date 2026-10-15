@@ -1,4 +1,6 @@
+import generate from '@babel/generator'
 import {
+  getExpressionFromUIDLExpressionNode,
   stringAsTemplateLiteral,
   addSpreadAttributeToJSXTag,
   renameJSXTag,
@@ -12,7 +14,6 @@ import {
   createStateHookAST,
   sanitizeExprContent,
 } from '../../src/utils/ast-utils'
-import generator from '@babel/generator'
 import ParsedASTNode from '../../src/utils/parsed-ast'
 import { createJSXTag } from '../../src/builders/ast-builders'
 import * as types from '@babel/types'
@@ -345,7 +346,7 @@ describe('collectGlobalReferencesFromObjectStates', () => {
 })
 
 describe('createStateHookAST – urlSearchParamBinding', () => {
-  const codeOf = (node: types.Node) => generator(node).code
+  const codeOf = (node: types.Node) => generate(node).code
 
   it('emits plain useState(defaultValue) when no binding is declared', () => {
     const decl = createStateHookAST('openPanel', {
@@ -449,5 +450,25 @@ describe('sanitizeExprContent', () => {
       '`/unknown/' + '$' + '{' + "'" + "'" + '}' + '/edit`'
     )
     expect((console.warn as jest.Mock).mock.calls.length).toBe(1)
+  })
+})
+
+describe('getExpressionFromUIDLExpressionNode — member reads never throw', () => {
+  const render = (content: string) =>
+    generate(getExpressionFromUIDLExpressionNode({ type: 'expr', content } as any)).code
+
+  it('turns an indexed path into an optional chain', () => {
+    expect(render("strengths[0].pillar || ''")).toBe("strengths?.[0]?.pillar || ''")
+  })
+
+  it("keeps a call's own member plain and guards what it reads from", () => {
+    expect(render('JSON.stringify(results.pillars)')).toBe('JSON.stringify(results?.pillars)')
+    expect(render('items.map(item => item.name)')).toBe('items.map(item => item?.name)')
+  })
+
+  it('leaves identifiers, literals and operators as written', () => {
+    expect(render("activeStep === 2 && industry !== ''")).toBe(
+      "activeStep === 2 && industry !== ''"
+    )
   })
 })

@@ -163,6 +163,25 @@ describe('writing the module', () => {
     )
   })
 
+  it('reads the providers of a site paid without a store, never both blocks at once', () => {
+    const paymentSettings = {
+      paymentProviders: [
+        { type: 'mollie', credentials: { apiKey: 'CONFIGURATION_MOLLIE_API_KEY' } },
+      ],
+    }
+    expect(readDeclaredPaymentCredentials({ paymentSettings } as any)).toEqual({
+      mollie: { apiKey: 'CONFIGURATION_MOLLIE_API_KEY' },
+    })
+    expect(resolveStorePaymentDriverIds({ paymentSettings } as any, [])).toContain('mollie')
+    // A store's own providers win: the editor never exports both.
+    expect(
+      readDeclaredPaymentCredentials({
+        paymentSettings,
+        ecommerceSettings: { paymentProviders: [] },
+      } as any)
+    ).toEqual({})
+  })
+
   it('writes nothing for a store that takes no online payment', () => {
     const target = structure()
     ensurePaymentDriversModule(target as any, [])

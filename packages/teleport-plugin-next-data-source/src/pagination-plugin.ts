@@ -53,6 +53,7 @@ import {
   type NumberedPaginationVars,
 } from './numbered-pagination'
 import {
+  buildAccumulatingRequestMark,
   buildAccumulatingResponseHandler,
   buildInfiniteScrollDeclarations,
   buildSentinelElement,
@@ -3057,10 +3058,20 @@ function createFetchDataAttribute(
     [responseTail]
   )
 
+  // An appending list records the request it now stands on before making it
+  // (see `buildAccumulatingRequestMark`).
   const arrow = cache
     ? types.arrowFunctionExpression(
         [types.identifier('params')],
         buildCachedFetchBody(networkChain, cache)
+      )
+    : accumulate
+    ? types.arrowFunctionExpression(
+        [types.identifier('params')],
+        types.blockStatement([
+          buildAccumulatingRequestMark(getInfiniteScrollVars(accumulate.usage.index)),
+          types.returnStatement(networkChain),
+        ])
       )
     : types.arrowFunctionExpression([types.identifier('params')], networkChain)
 

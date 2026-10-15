@@ -94,7 +94,12 @@ const DASHBOARD_CSS = `
 .teleport-dashboard-content {
   flex: 1;
   min-width: 0;
+  /* clip, not hidden: hidden makes this a scroll container that never
+     scrolls (the window does), so no position: sticky inside the page ever
+     sticks — a booking summary, a product's buy box. hidden is only the
+     fallback of a browser that does not know clip. */
   overflow-x: hidden;
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
 }

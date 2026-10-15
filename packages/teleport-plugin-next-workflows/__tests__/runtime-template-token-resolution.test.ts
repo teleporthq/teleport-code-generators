@@ -132,6 +132,22 @@ describe('workflow runtime template-token resolution', () => {
       expect(cfg.columnMappings[0].value).toBeNull()
     })
 
+    it('never walks into a live element or around a cycle (a trigger target in a custom-js param)', () => {
+      const fiber: Record<string, unknown> = {}
+      const element: Record<string, unknown> = {
+        nodeType: 1,
+        nodeName: 'INPUT',
+        __reactFiber$abc: fiber,
+      }
+      fiber.stateNode = element
+      const loop: Record<string, unknown> = { a: 1 }
+      loop.self = loop
+      const cfg = { code: 'x', params: { event: { target: element, value: SENTINEL }, loop } }
+      expect(utils.finalizeResolvedConfig('general-custom-js', cfg)).toBeNull()
+      expect(cfg.params.event.value).toBeNull()
+      expect(cfg.params.event.target).toBe(element)
+    })
+
     it('leaves configs without sentinels untouched', () => {
       const cfg = { filters: [{ field: 'id', value: null, operator: '=' }] }
       expect(utils.finalizeResolvedConfig('data-select', cfg)).toBeNull()

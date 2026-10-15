@@ -111,6 +111,37 @@ describe('generated server segment — what it replies with', () => {
     expect(results).not.toHaveProperty('__pendingNodePromises')
   })
 
+  it('keeps a result marked keepResultOnServer on the server, for the nodes after it only', async () => {
+    const kept: WorkflowSegment = {
+      ...segment,
+      nodes: [
+        { ...calcNode, config: { ...calcNode.config, keepResultOnServer: true } },
+        gateNode,
+        bigNode,
+      ],
+    }
+    const results = (await bootRoute(kept)(request())).body.results || {}
+    expect(results).not.toHaveProperty('calc')
+    // The gate read it on the server: 42 is not above 100.
+    expect(results.gate).toEqual({ result: false })
+    expect(results.__skippedNodes).toEqual({ big: true })
+    // Nothing is signed for a result that never left.
+    expect((results.__sig as Record<string, string>).calc).toBeUndefined()
+  })
+
+  it('still replies with a branching node marked keepResultOnServer: the client branches on it', async () => {
+    const kept: WorkflowSegment = {
+      ...segment,
+      nodes: [
+        calcNode,
+        { ...gateNode, config: { ...gateNode.config, keepResultOnServer: true } },
+        bigNode,
+      ],
+    }
+    const results = (await bootRoute(kept)(request())).body.results || {}
+    expect(results.gate).toEqual({ result: false })
+  })
+
   it('still replies with what the route itself adds to the run', async () => {
     const results = (await bootRoute(segment)(request())).body.results || {}
     // The route learns the deployment's origin; a custom node called next

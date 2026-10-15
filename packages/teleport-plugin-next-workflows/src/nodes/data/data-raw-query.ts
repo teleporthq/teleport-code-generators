@@ -36,7 +36,17 @@ async function data_raw_query(config: any, context: any) {
     const data = await response.json()
 
     if (!response.ok) {
-      return { rows: [], result: [], error: data.error || 'Raw query failed' }
+      const failure: Record<string, unknown> = {
+        rows: [],
+        result: [],
+        error: data.error || 'Raw query failed',
+      }
+      // The database's SQLSTATE (the route keeps its message in the server log): a
+      // statement that raises on purpose is told apart from a broken one by it.
+      if (data.code) {
+        failure.code = data.code
+      }
+      return failure
     }
     const rows = data.rows || []
     return { rows, result: rows }

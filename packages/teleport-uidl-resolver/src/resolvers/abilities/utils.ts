@@ -42,6 +42,15 @@ const ANCHOR_SAFE_ARIA_ATTRIBUTES = new Set([
   'aria-disabled', // For disabled links
 ])
 
+/* A listing card's anatomy — `data-tq-card-slot`, `-size`, `-tone` — describes
+   the card's own box: its styles answer it with rules that need the class and
+   the attribute on one element (`.thq-listing-card[data-tq-card-size="wide"]`)
+   and the picture as a child of it (`[data-tq-card-size] > [data-tq-card-slot]`).
+   Moved onto the wrapper of a card that is one link, no such rule matches. */
+const BOX_ATTRIBUTE_PREFIX = 'data-tq-card-'
+
+const isBoxAttribute = (attrName: string): boolean => attrName.startsWith(BOX_ATTRIBUTE_PREFIX)
+
 /* Attributes a per-element runtime reads (scroll-scene lanes, snap points,
    scroll rails, chapter bookkeeping) stay on the styled element. The link
    wrapper is display:contents whenever the parent lays out with flex/grid, and
@@ -63,7 +72,7 @@ export const isRuntimeDataAttribute = (attrName: string): boolean =>
   RUNTIME_DATA_ATTRIBUTE_PREFIXES.some((prefix) => attrName.startsWith(prefix))
 
 const isAttributeSafeForAnchor = (attrName: string): boolean => {
-  if (isRuntimeDataAttribute(attrName)) {
+  if (isRuntimeDataAttribute(attrName) || isBoxAttribute(attrName)) {
     return false
   }
   return (
@@ -104,7 +113,10 @@ const isPlainContainer = (node: UIDLElementNode): boolean => {
     (!semanticType || semanticType === 'div') &&
     Object.keys(events).length === 0 &&
     Object.keys(attrs).every(
-      (attrName) => isAttributeSafeForAnchor(attrName) || isRuntimeDataAttribute(attrName)
+      (attrName) =>
+        isAttributeSafeForAnchor(attrName) ||
+        isRuntimeDataAttribute(attrName) ||
+        isBoxAttribute(attrName)
     )
   )
 }

@@ -50,6 +50,16 @@ for package_name in $changed_packages; do
   scope_flags="$scope_flags --scope @teleporthq/$package_name"
 done
 
+# The package builds are incremental (`tsconfig.tsbuildinfo` inside each dist
+# folder). A build info that believes a file is already emitted makes tsc skip
+# it, so a dist can keep an OLD module beside a NEW one that imports from it —
+# the GUI then fails at publish with "X is not a function". Dropping the build
+# info of the packages being synced forces a full emit of exactly what is copied.
+for package_name in $changed_packages; do
+  rm -f "$REPO_ROOT/packages/$package_name/dist/esm/tsconfig.tsbuildinfo" \
+    "$REPO_ROOT/packages/$package_name/dist/cjs/tsconfig.tsbuildinfo"
+done
+
 echo
 echo "Building (with dependencies)..."
 # shellcheck disable=SC2086

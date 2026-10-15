@@ -91,6 +91,19 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   'teleport_ai_chat_documents',
   'teleport_ai_chat_conversations',
   'teleport_ai_chat_messages',
+  // A booking carries the customer's name, email and phone and the key of
+  // their booking link; the capacity counters decide who gets the last place;
+  // the business's settings row carries the address its notices go to. The
+  // booking pages read them only in server segments (public columns only),
+  // the admin with its session.
+  'teleport_bookings',
+  'teleport_booking_units',
+  'teleport_booking_settings',
+  // A calendar link holds the other platform's private calendar address and
+  // the key of this site's own feed; its blocks are that platform's bookings.
+  // Only the sync's server segments and the feed route read them.
+  'teleport_booking_calendars',
+  'teleport_booking_calendar_blocks',
 ]
 
 export const PROTECTED_TABLES: ReadonlyArray<string> = [...MONEY_TABLES, ...CUSTOMER_RECORD_TABLES]
@@ -183,29 +196,54 @@ const ADMIN_FOLDER_NAME = 'admin-panel'
 const ADMIN_ROUTE_PREFIX = '/admin'
 
 /**
- * The roles allowed to read a protected table from a browser: whoever may open
- * the generated admin panel, read off the protection the UIDL records for its
- * folder and pages. A project without an admin panel has no page that binds a
- * money table, so the empty list (server-side callers only) is the right answer.
+ * The roles that may open the generated admin panel as a whole: the roles its
+ * FOLDER admits, which the middleware and the workflow-route guard union into
+ * every page under it. A page's own roles never count — an admin page that also
+ * admits another role (a staff screen) must not hand that role the rest of the
+ * panel.
+ *
+ * A folder that records no roles (an older project, or one an owner edited)
+ * falls back to the roles EVERY protected admin page admits. Sorted; empty
+ * without an admin panel.
  */
-export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): string[] => {
-  const roles = new Set<string>()
+export const resolveAdminPanelRoles = (auth?: UIDLAuthentication | null): string[] => {
   if (!auth) {
     return []
   }
+  const folderRoles = new Set<string>()
   Object.values(auth.folderProtection || {}).forEach((folder) => {
     if (folder && folder.folderName === ADMIN_FOLDER_NAME) {
-      ;(folder.allowedRoles || []).forEach((role) => roles.add(role))
+      ;(folder.allowedRoles || []).forEach((role) => folderRoles.add(role))
     }
   })
-  Object.values(auth.pageProtection || {}).forEach((page) => {
+  if (folderRoles.size > 0) {
+    return Array.from(folderRoles).sort()
+  }
+
+  let everyPageAdmits: string[] | null = null
+  for (const page of Object.values(auth.pageProtection || {})) {
     const route = page && typeof page.route === 'string' ? page.route : ''
-    if (route === ADMIN_ROUTE_PREFIX || route.startsWith(`${ADMIN_ROUTE_PREFIX}/`)) {
-      ;(page.allowedRoles || []).forEach((role) => roles.add(role))
+    if (route !== ADMIN_ROUTE_PREFIX && !route.startsWith(`${ADMIN_ROUTE_PREFIX}/`)) {
+      continue
     }
-  })
-  return Array.from(roles).sort()
+    const pageRoles = page.allowedRoles || []
+    everyPageAdmits =
+      everyPageAdmits === null
+        ? Array.from(new Set(pageRoles))
+        : everyPageAdmits.filter((role) => pageRoles.indexOf(role) !== -1)
+  }
+  return (everyPageAdmits || []).sort()
 }
+
+/**
+ * The roles allowed to read a protected table from a browser: the admin
+ * panel's (`resolveAdminPanelRoles`) — so a role that opens only some admin
+ * pages reads no account, email or order. A project without an admin panel
+ * has no page that binds a money table, so the empty list (server-side
+ * callers only) is the right answer.
+ */
+export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): string[] =>
+  resolveAdminPanelRoles(auth)
 
 /**
  * ES5 source of the guard, inlined into a generated route. Declares:

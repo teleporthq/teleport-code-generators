@@ -581,6 +581,16 @@ export const createNextFormSubmissionPlugin: ComponentPluginFactory<{}> = () => 
           if ('expression' in node && node.expression) {
             traverseJSX(node.expression as types.Node)
           }
+          // A form inside a rendering condition sits in a logical or ternary
+          // expression (`{activeStep === 7 && (<form …/>)}`): without these
+          // branches it was never found, shipped without onSubmit, and a
+          // programmatic requestSubmit() posted natively and reloaded the page.
+          for (const branch of ['left', 'right', 'consequent', 'alternate'] as const) {
+            const branches = node as unknown as Record<string, unknown>
+            if (branch in node && branches[branch]) {
+              traverseJSX(branches[branch] as types.Node)
+            }
+          }
         }
 
         traverseJSX(returnStatement.argument)
