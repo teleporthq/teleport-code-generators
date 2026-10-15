@@ -8,11 +8,16 @@ import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
 import { ASTStatementOrder, GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
-import { generateSafeFileName } from './utils'
+import { collectFilterLeafConditions, generateSafeFileName, pruneFilterTree } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
 import { appendSortsParam, DynamicSortAST, extractDynamicSort, readFixedSort } from './sort-utils'
-import { appendFiltersParam, pushStateIdsAsDeps, pushPropIdsAsDeps } from './filter-utils'
+import {
+  appendFiltersParam,
+  buildStaticFiltersStringifyCall,
+  pushStateIdsAsDeps,
+  pushPropIdsAsDeps,
+} from './filter-utils'
 import { appendItemsPathParam, extractItemsPath } from './items-path'
 import { resolveRepeaterPerPage } from './repeater-page-size'
 import {
@@ -182,10 +187,11 @@ interface DataSourceUsage {
   // Dynamic single-column sort bound to component state (set when legacy sorts empty
   // and cms-list-repeater declares sort/sortDirection fields)
   dynamicSort?: DynamicSortAST
-  // Filters from resource params (FLAT condition array — any `{ type: 'group',
-  // children: [...] }` wrappers from the UIDL inspector have already been
-  // unwrapped via `flattenFilterGroups`). Downstream emit sites rely on
-  // entries having `.source` / `.destination` / `.operand` directly.
+  // Filters from resource params, as the TREE the inspector authored: condition
+  // leaves and `{ type: 'group', operator, children }` entries (see
+  // `readFilterTree`). Anything that needs the leaves walks the tree with
+  // `collectFilterLeafConditions`; the emit sites write the tree out whole, so
+  // an `or` group reaches the data source as an `or`.
   // tslint:disable-next-line:no-any
   filters: any[]
   // State IDs from dynamic filter destinations (for useMemo dependencies).
@@ -241,53 +247,26 @@ interface StateRegistry {
   byArrayMapperRenderProp: Map<string, DataSourceUsage>
 }
 
-// The UIDL's `filters.content` array can wrap one or more conditions inside
-// a `{ type: 'group', operator: 'and' | 'or', children: [...] }` entry — the
-// GUI builds this shape when the inspector adds a logical group. The data
-// source API endpoint (`processFilters` in the generated data-source module)
-// only knows how to consume a FLAT array of `{ source, destination, operand }`
-// conditions, so we walk groups recursively here and collect their leaf
-// conditions in order. Anything that isn't a group AND isn't a condition is
-// dropped — defensive against partially-built filter entries that would
-// otherwise emit `{ source: '', destination: '', operand: '' }` rows the
-// API ignores anyway.
-//
-// `or`-grouped conditions are flattened just like `and`-grouped ones — the
-// downstream SQL builder always joins flat filters with `AND`, so emitting
-// the conditions side-by-side approximates AND semantics. A future API
-// upgrade that respects group operators would key off the original tree
-// directly; until then, AND-flattening is the closest correct behaviour and
-// matches what the inspector preview shows for the common single-group case
-// the GUI emits today.
-function flattenFilterGroups(filters: any[]): any[] {
+// The UIDL's `filters.content` array is the tree the inspector authored:
+// `{ type: 'group', operator: 'and' | 'or', children: [...] }` entries around
+// `{ source, destination, operand }` conditions, nested as deep as the user
+// grouped them. The tree is kept as it is — the generated fetchers read it with
+// `normalizeFilterTree`, so an `or` group stays an `or`. Only junk is dropped:
+// an entry that is neither a group nor a condition (a half-built inspector
+// row) would otherwise reach the API as `{ source: '', destination: '' }`.
+// Entries without an explicit `type` are the legacy flat form and are
+// conditions.
+function readFilterTree(filters: any[]): any[] {
   if (!Array.isArray(filters)) {
     return []
   }
-  const out: any[] = []
-  const walk = (entry: any): void => {
-    if (!entry || typeof entry !== 'object') {
-      return
-    }
-    if (entry.type === 'group' && Array.isArray(entry.children)) {
-      for (const child of entry.children) {
-        walk(child)
-      }
-      return
-    }
-    // Backwards-compatible: entries without an explicit `type` (legacy flat
-    // form) and entries explicitly tagged `condition` are both treated as
-    // condition leaves.
-    if (entry.type === undefined || entry.type === 'condition') {
-      out.push(entry)
-    }
-  }
-  for (const entry of filters) {
-    walk(entry)
-  }
-  return out
+  return pruneFilterTree(
+    filters,
+    (entry: any) => entry.type === undefined || entry.type === 'condition'
+  )
 }
 
-// Walks a flat filter list to extract every `urlSearchParams` reference key
+// Walks the filter tree to extract every `urlSearchParams` reference key
 // (e.g. `'categoryFilter'`). Used to (a) inject `const router = useRouter()`
 // once at the top of the component, (b) wire `router.query.<key>` into the
 // `useMemo` dependency array so the client-side fetch reruns whenever the
@@ -296,7 +275,7 @@ function flattenFilterGroups(filters: any[]): any[] {
 function collectFilterUrlSearchParamKeys(filters: any[]): string[] {
   const seen = new Set<string>()
   const out: string[] = []
-  for (const f of filters) {
+  for (const f of collectFilterLeafConditions(filters) as any[]) {
     const dest = f?.destination
     if (!ASTUtils.isUIDLDynamicReference(dest)) {
       continue
@@ -312,6 +291,16 @@ function collectFilterUrlSearchParamKeys(filters: any[]): string[] {
     out.push(content.id)
   }
   return out
+}
+
+// The filter tree with every dynamic destination pruned — what `getStaticProps`
+// can resolve at build time. Groups keep their operator; a group left empty by
+// the pruning disappears with it (`pruneFilterTree`).
+function staticFiltersOf(usage: DataSourceUsage): any[] {
+  return pruneFilterTree(
+    usage.filters || [],
+    (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
+  )
 }
 
 // Returns true when any filter destination is a `urlSearchParams` dynamic
@@ -536,16 +525,11 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           }
         }
 
-        // Extract filters from parent's resource params. The inspector wraps
-        // every condition in a `{ type: 'group' }` envelope (single-group or
-        // nested), so flatten to leaf conditions before the downstream emit
-        // sites consume `.source` / `.destination` / `.operand` directly —
-        // they expect a flat condition array. See `flattenFilterGroups`'s
-        // header comment for why AND-flattening is the correct fallback for
-        // the API endpoint's flat-condition contract.
+        // Extract filters from parent's resource params, keeping the group tree
+        // the inspector authored (see `readFilterTree`).
         let filters: any[] = []
         if (parentDataSource.resourceParams?.filters?.content) {
-          filters = flattenFilterGroups(parentDataSource.resourceParams.filters.content)
+          filters = readFilterTree(parentDataSource.resourceParams.filters.content)
         }
 
         // Split dynamic destination keys by reference type. `state`/`prop`
@@ -554,7 +538,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
         // `useRouter()` declaration injected separately.
         const filterStateIds: string[] = []
         const filterPropIds: string[] = []
-        for (const f of filters) {
+        for (const f of collectFilterLeafConditions(filters) as any[]) {
           if (!ASTUtils.isUIDLDynamicReference(f.destination)) {
             continue
           }
@@ -3756,38 +3740,12 @@ function updateGetStaticProps(
 
       // Add filters if present
       // Filter out dynamic destinations for getStaticProps (they can't be resolved at build time)
-      const staticFilters = (usage.filters || []).filter(
-        (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
-      )
+      const staticFilters = staticFiltersOf(usage)
       if (staticFilters.length > 0) {
         fetchParams.push(
           types.objectProperty(
             types.identifier('filters'),
-            types.callExpression(
-              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-              [
-                types.arrayExpression(
-                  staticFilters.map((filter: any) =>
-                    types.objectExpression([
-                      types.objectProperty(
-                        types.identifier('source'),
-                        types.stringLiteral(filter.source || '')
-                      ),
-                      types.objectProperty(
-                        types.identifier('destination'),
-                        types.stringLiteral(
-                          typeof filter.destination === 'string' ? filter.destination : ''
-                        )
-                      ),
-                      types.objectProperty(
-                        types.identifier('operand'),
-                        types.stringLiteral(filter.operand || '')
-                      ),
-                    ])
-                  )
-                ),
-              ]
-            )
+            buildStaticFiltersStringifyCall(staticFilters)
           )
         )
       }
@@ -3872,9 +3830,7 @@ function updateGetStaticProps(
         const maxPagesPropName = `${vars.propsPrefix}_maxPages`
         // Use filter-specific count variable if usage has static filters
         // (dynamic filters can't be resolved at build time)
-        const staticFiltersForCount = (usage.filters || []).filter(
-          (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
-        )
+        const staticFiltersForCount = staticFiltersOf(usage)
         // A count scoped to an inner array is a different number from the
         // whole-payload one, so it gets its own variable just like a filtered one.
         const hasScopedCount = staticFiltersForCount.length > 0 || !!usage.itemsPath
@@ -3960,9 +3916,7 @@ function updateGetStaticProps(
     usagesByFilters.forEach((usages, filtersKey) => {
       const firstUsage = usages[0]
       // Filter out dynamic destinations for getStaticProps (they can't be resolved at build time)
-      const staticFiltersForCount = (firstUsage.filters || []).filter(
-        (f: any) => !ASTUtils.isUIDLDynamicReference(f.destination)
-      )
+      const staticFiltersForCount = staticFiltersOf(firstUsage)
       const hasStaticFilters = staticFiltersForCount.length > 0
 
       // Create unique count variable name based on filters (and inner-array
@@ -3993,31 +3947,7 @@ function updateGetStaticProps(
           countParams.push(
             types.objectProperty(
               types.identifier('filters'),
-              types.callExpression(
-                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-                [
-                  types.arrayExpression(
-                    staticFiltersForCount.map((f: any) =>
-                      types.objectExpression([
-                        types.objectProperty(
-                          types.identifier('source'),
-                          types.stringLiteral(f.source || '')
-                        ),
-                        types.objectProperty(
-                          types.identifier('destination'),
-                          types.stringLiteral(
-                            typeof f.destination === 'string' ? f.destination : ''
-                          )
-                        ),
-                        types.objectProperty(
-                          types.identifier('operand'),
-                          types.stringLiteral(f.operand || '')
-                        ),
-                      ])
-                    )
-                  ),
-                ]
-              )
+              buildStaticFiltersStringifyCall(staticFiltersForCount)
             )
           )
         }

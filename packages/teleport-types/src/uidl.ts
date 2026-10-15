@@ -308,6 +308,13 @@ export interface ProjectUIDL {
 
 export interface UIDLAnalytics {
   enabled: boolean
+  /**
+   * Runtime path patterns the published tracker stays silent on: the admin
+   * panel's pages by default, plus any the owner unticked under Tracked pages.
+   * A trailing `*` matches by prefix (`/products/*` for `/products/[id]`);
+   * anything else matches exactly. Absent or empty: every page is tracked.
+   */
+  disabledPaths?: string[]
 }
 
 /**

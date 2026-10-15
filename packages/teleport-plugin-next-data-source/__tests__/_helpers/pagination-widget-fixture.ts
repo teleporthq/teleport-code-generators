@@ -187,6 +187,8 @@ export interface RepeaterOptions {
   infiniteScroll?: boolean
   infiniteScrollLoadMore?: boolean
   perPage?: number
+  /** The list's filters, as the inspector authors them (conditions and groups). */
+  filters?: unknown[]
 }
 
 export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'items'): any => ({
@@ -198,7 +200,12 @@ export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'ite
       tableName: 'products',
       dataSourceType: 'postgresql',
     },
-    resource: { params: { queryColumns: { content: ['name'] } } },
+    resource: {
+      params: {
+        queryColumns: { content: ['name'] },
+        ...(options.filters ? { filters: { type: 'static', content: options.filters } } : {}),
+      },
+    },
     nodes: {
       success: {
         type: 'cms-list-repeater',
