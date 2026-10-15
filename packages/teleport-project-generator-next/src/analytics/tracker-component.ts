@@ -1,7 +1,11 @@
 // Source of the generated `components/analytics/AnalyticsTracker.js` —
 // null-rendering component that boots the tracker and bridges Next.js
-// pages-router navigation events to pageview/page_leave tracking.
-export const TRACKER_COMPONENT_SOURCE = `import { useEffect } from 'react'
+// pages-router navigation events to pageview/page_leave tracking. The pages
+// analytics must skip (`uidl.analytics.disabledPaths`) are baked in at
+// generation time; the site's locales come from the router so a prefixed
+// address (`/fr/admin-panel`) is matched against the same list.
+export const buildTrackerComponentSource = (disabledPaths: string[] = []): string =>
+  `import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   initTeleportAnalytics,
@@ -12,11 +16,13 @@ import {
   trackRouteLeave,
 } from '../../lib/teleport-analytics'
 
+const EXCLUDED_PATHS = ${JSON.stringify(disabledPaths)}
+
 const AnalyticsTracker = () => {
   const router = useRouter()
 
   useEffect(() => {
-    initTeleportAnalytics()
+    initTeleportAnalytics({ excludedPaths: EXCLUDED_PATHS, locales: router.locales || [] })
 
     // The commerce funnel is fired from WORKFLOWS (add-to-cart, checkout), whose
     // handlers are serialized function bodies evaluated at runtime — they have no
@@ -63,3 +69,6 @@ const AnalyticsTracker = () => {
 
 export default AnalyticsTracker
 `
+
+/** The component for a site that tracks every page. */
+export const TRACKER_COMPONENT_SOURCE = buildTrackerComponentSource()

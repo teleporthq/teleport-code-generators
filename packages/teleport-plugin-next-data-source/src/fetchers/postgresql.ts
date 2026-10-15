@@ -6,7 +6,8 @@ import {
   generateFilterTreeHelpersCode,
 } from '../utils'
 import { generateSortFallbackFieldHelper, generateSortFieldSqlHelper } from '../product-price-sort'
-import { SORT_NULLS_LAST_SQL, generateSortTiebreakSql } from '../list-sort-order'
+import { SORT_NULLS_LAST_SQL } from '../list-sort-order'
+import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../row-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
@@ -152,6 +153,8 @@ ${generateSortFieldSqlHelper(tableName)}
 
 ${generateSortFallbackFieldHelper(tableName)}
 
+${generateRowOrderTiebreakHelper(rowIdentityColumn(config, tableName))}
+
 ${generateProductFilterClauseHelper(tableName)}
 
 export default async function handler(req, res) {
@@ -238,22 +241,19 @@ ${generateReadGuardCall(tableName, null)}
         const plainClauses = valid.map((sort) => \`\${sortFallbackField(sort.field)} \${orderOf(sort)}\`)
 
         if (orderClauses.length > 0) {
-          // A deterministic tiebreaker keeps pagination stable: "sort by
-          // discount" ties every undiscounted product at zero, and equal rows
-          // with no defined order can repeat across pages or vanish between them.
-          orderBySql = \` ORDER BY \${orderClauses.join(', ')}${generateSortTiebreakSql(
-            tableName
-          )}\`
-          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}${generateSortTiebreakSql(
-            tableName
-          )}\`
+          // The row's own key last, so equal rows can't repeat across pages
+          // or vanish between them.
+          const tiebreak = rowOrderTiebreak(valid.map((sort) => sort.field), orderOf(valid[valid.length - 1]))
+          orderBySql = \` ORDER BY \${orderClauses.join(', ')}\${tiebreak}\`
+          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}\${tiebreak}\`
         }
       }
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-      orderBySql = \` ORDER BY \${sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\`
-      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\`
+      const tiebreak = rowOrderTiebreak([sortBy], sortByDirection)
+      orderBySql = \` ORDER BY \${sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\${tiebreak}\`
+      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\${tiebreak}\`
     }
     const usedRewrittenSort = orderBySql !== plainOrderBySql
 

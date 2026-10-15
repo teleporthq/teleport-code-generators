@@ -16,6 +16,15 @@ module.exports = function createStripeDriver(core) {
   // An older store's test key, read after the names the editor saves.
   var LEGACY_SECRET_KEY_NAMES = ['STRIPE_TEST_KEY'];
   var MISSING_KEY = 'STRIPE_SECRET_KEY is not configured';
+  // How long a Checkout page takes money. Stripe's default is a day, which is
+  // how long an abandoned checkout would hold its stock on a store without
+  // the scheduled release; the store's own hold is 60 minutes, and Stripe
+  // takes no less than 30.
+  var CHECKOUT_LIFETIME_MINUTES = 60;
+
+  function checkoutExpiresAt() {
+    return Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_MINUTES * 60;
+  }
   var INTERVALS = ['day', 'week', 'month', 'year'];
   // Checkout tolerates a signature this old, as Stripe's own libraries do.
   var SIGNATURE_TOLERANCE_SECONDS = 300;
@@ -62,6 +71,7 @@ module.exports = function createStripeDriver(core) {
         mode: 'payment',
         success_url: input.successUrl || undefined,
         cancel_url: input.cancelUrl || undefined,
+        expires_at: checkoutExpiresAt(),
       };
       var lineItems = input.lineItems;
       if (lineItems && Array.isArray(lineItems) && lineItems.length > 0) {
@@ -151,6 +161,7 @@ module.exports = function createStripeDriver(core) {
         mode: 'subscription',
         success_url: input.successUrl || undefined,
         cancel_url: input.cancelUrl || undefined,
+        expires_at: checkoutExpiresAt(),
         line_items: [
           {
             price_data: {

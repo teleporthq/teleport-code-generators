@@ -67,10 +67,12 @@ const makeUidlNode = (searchUrlParamKey?: string): any => ({
   },
 })
 
-const runPlugin = async (searchUrlParamKey?: string): Promise<string> => {
+const runPlugin = async (searchUrlParamKey?: string, paginated = true): Promise<string> => {
   const chunk = makeComponentChunk()
+  const node = makeUidlNode(searchUrlParamKey)
+  node.content.nodes.success.content.paginated = paginated
   const structure: ComponentStructure = {
-    uidl: { name: 'TestComponent', node: makeUidlNode(searchUrlParamKey) },
+    uidl: { name: 'TestComponent', node },
     chunks: [chunk],
     dependencies: {},
     options: { dataSources: {}, extractedResources: {} },
@@ -81,33 +83,50 @@ const runPlugin = async (searchUrlParamKey?: string): Promise<string> => {
 }
 
 describe('pagination plugin — search input URL two-way sync (searchUrlParamKey)', () => {
-  it('seeds the query from window.location.search and emits paired read-back/write-back effects', async () => {
+  it('starts from the default and adopts the address after mount, with paired read-back/write-back effects', async () => {
     const code = await runPlugin('searchKeyword')
 
-    // Initial value seeded from the URL on the client (both the immediate input
-    // state AND the debounced value, so a deep link fetches filtered on mount).
-    const seedMatches = code.match(
-      /new URLSearchParams\(window\.location\.search\)\.get\("searchKeyword"\)/g
-    )
-    expect(seedMatches).not.toBeNull()
-    expect((seedMatches || []).length).toBe(2)
-    expect(code).toContain('typeof window !== "undefined"')
+    // ⛔ Never seeded from the address: a statically generated page is rendered
+    // on the server without the visitor's query, and the first browser render
+    // must match it — a seeded query filled the input and skipped the
+    // prefetched rows there, and React warned of a hydration mismatch.
+    expect(code).not.toContain('window.location.search')
+    expect(code).toContain('const [ds_0_searchQuery, setDs_0_searchQuery] = useState("")')
+    expect(code).toContain('debouncedQuery: ""')
 
     // useRouter is injected for the effects.
     expect(code).toContain('const router = useRouter()')
 
-    // Write-back (debounced query → URL), keyed on the DEBOUNCED value and
-    // routed through the shared writer so it cannot race the page's own write.
+    // Write-back (debounced query → URL), keyed on the DEBOUNCED value, routed
+    // through the shared writer, and silent until the address was adopted —
+    // its first run would otherwise delete the key the read-back adopts.
+    expect(code).toContain('const ds_0_searchUrlAdopted = useRef(false)')
     expect(code).toContain('const __tqQuerySyncRef = useRef(')
+    expect(code).toContain('if (!ds_0_searchUrlAdopted.current) return;')
     expect(code).toContain(
       '__tqWriteQueryParam("searchKeyword", ds_0_state.debouncedQuery === "" || ds_0_state.debouncedQuery == null ? undefined : ds_0_state.debouncedQuery)'
     )
     expect(code).toContain('}, [ds_0_state.debouncedQuery, router.isReady])')
 
-    // Read-back (URL → input), functional setState bail-out (loop-free).
+    // Read-back (URL → input AND applied query at once, keeping the page),
+    // functional setState bail-out (loop-free), then the handshake flag.
     expect(code).toContain('const __urlValue = router.query.searchKeyword')
-    expect(code).toContain('setDs_0_searchQuery(prev => prev === __nextValue ? prev : __nextValue)')
+    expect(code).toContain('ds_0_adoptUrlSearch(prev => prev === __nextValue ? prev : __nextValue)')
+    expect(code).toContain('ds_0_searchUrlAdopted.current = true')
     expect(code).toContain('}, [router.query.searchKeyword, router.isReady])')
+    expect(code.replace(/\s+/g, ' ')).toContain(
+      'const ds_0_adoptUrlSearch = update => { setDs_0_searchQuery(update); setDs_0_state(state => { const next = update(state.debouncedQuery); return next === state.debouncedQuery ? state : { ...state, debouncedQuery: next }; }); };'
+    )
+  })
+
+  it('adopts the address into both queries of a list without pages too', async () => {
+    const code = await runPlugin('searchKeyword', false)
+    expect(code).not.toContain('window.location.search')
+    expect(code.replace(/\s+/g, ' ')).toContain(
+      'const ds_0_adoptUrlSearch = update => { setDs_0_searchQuery(update); setDs_0_debouncedQuery(update); };'
+    )
+    expect(code).toContain('ds_0_adoptUrlSearch(prev => prev === __nextValue ? prev : __nextValue)')
+    expect(code).toContain('if (!ds_0_searchUrlAdopted.current) return;')
   })
 
   it('does NOT emit any URL sync when the repeater has no searchUrlParamKey (unchanged behaviour)', async () => {

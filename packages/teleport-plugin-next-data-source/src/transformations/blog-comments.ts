@@ -27,17 +27,17 @@ export const BLOG_COMMENTS_RENDER_LIMIT = 200
  * MUST mirror `buildBlogComments` in teleport-gui
  * `packages/renderer/src/utils/blog-comments.ts` (the canvas).
  */
-export const generateBlogCommentsCode = (): string => `
+export const generateBlogCommentsCode = (commentsTable: string): string => `
 var BLOG_COMMENTS_RENDER_LIMIT = ${BLOG_COMMENTS_RENDER_LIMIT}
 
 var BLOG_COMMENTS_SQL =
   'WITH top AS (' +
-  ' SELECT id FROM teleport_blog_comments' +
+  ' SELECT id FROM ${commentsTable}' +
   " WHERE post_id = $1 AND parent_id IS NULL AND status = 'approved'" +
   ' ORDER BY created_at DESC, id DESC LIMIT ' + BLOG_COMMENTS_RENDER_LIMIT +
   ')' +
   ' SELECT c.id, c.parent_id, c.author_name, c.content, c.is_author_reply, c.created_at' +
-  ' FROM teleport_blog_comments c' +
+  ' FROM ${commentsTable} c' +
   " WHERE c.post_id = $1 AND c.status = 'approved'" +
   ' AND (c.id IN (SELECT id FROM top) OR c.parent_id IN (SELECT id FROM top))' +
   ' ORDER BY c.created_at ASC, c.id ASC'
@@ -45,10 +45,10 @@ var BLOG_COMMENTS_SQL =
 // Every approved comment the page could show — a reply counts only while the
 // comment it answers is approved too.
 var BLOG_COMMENTS_COUNT_SQL =
-  'SELECT COUNT(*) AS n FROM teleport_blog_comments c' +
+  'SELECT COUNT(*) AS n FROM ${commentsTable} c' +
   " WHERE c.post_id = $1 AND c.status = 'approved'" +
   ' AND (c.parent_id IS NULL OR EXISTS (' +
-  ' SELECT 1 FROM teleport_blog_comments p' +
+  ' SELECT 1 FROM ${commentsTable} p' +
   " WHERE p.id = c.parent_id AND p.status = 'approved'))"
 
 function blogAuthorInitials(name) {

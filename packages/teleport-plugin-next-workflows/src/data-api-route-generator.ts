@@ -13,7 +13,7 @@
 
 import { generateSqlValidatorCode } from './sql-validator'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
-import { TableAccess } from '@teleporthq/teleport-shared'
+import { ContentTables, TableAccess } from '@teleporthq/teleport-shared'
 
 const DATA_NODE_TYPES = new Set([
   'data-select',
@@ -79,28 +79,18 @@ export const BROWSER_READABLE_TABLES: ReadonlyArray<string> = [
   'teleport_shipping_rates',
   'teleport_tax_rates',
   'teleport_store_locations',
-  'teleport_blog_posts',
+  ...ContentTables.CONTENT_POSTS_TABLES,
 ]
 
 /**
  * What a browser is served of the readable tables whose unpublished rows sit
- * beside the public ones — the same policy the per-table read routes apply
- * (teleport-plugin-next-data-source `browser-row-policy.ts`, which this mirrors;
- * keep the two in step). A browser may not filter or sort by a hidden column:
- * a filter is an oracle for a column it never returns.
+ * beside the public ones — the same map the per-table read routes apply
+ * (teleport-plugin-next-data-source `browser-row-policy.ts`): both read it from
+ * teleport-shared. A browser may not filter or sort by a hidden column: a
+ * filter is an oracle for a column it never returns.
  */
-export const BROWSER_ROW_POLICIES: Readonly<
-  Record<string, { predicate: string; hiddenColumns: ReadonlyArray<string> }>
-> = {
-  teleport_blog_posts: {
-    predicate: "status = 'published'",
-    hiddenColumns: ['author_email', 'authorEmail'],
-  },
-  teleport_products: {
-    predicate: "LOWER(TRIM(status)) = 'active'",
-    hiddenColumns: [],
-  },
-}
+export const BROWSER_ROW_POLICIES: Readonly<Record<string, ContentTables.VisitorRowPolicy>> =
+  ContentTables.VISITOR_ROW_POLICIES
 
 export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string => {
   const validatorCode = generateSqlValidatorCode()

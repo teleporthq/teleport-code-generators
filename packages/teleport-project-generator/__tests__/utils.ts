@@ -203,6 +203,23 @@ describe('extractPageOptions', () => {
     expect(pageOptions.fileName).toBe('about-us')
     expect(pageOptions.componentName).toBe('AboutUs')
   })
+  it('routes the home page to / even when it brings its own address', () => {
+    // A Help Center list made the home page arrives with the address it had (`/help`).
+    // It is written as `index`, so links to it must say `/`, not `/help`.
+    const homeWithAddress: UIDLRouteDefinitions = {
+      type: 'string',
+      defaultValue: 'help-articles-list',
+      values: [{ value: 'help-articles-list', pageOptions: { navLink: '/help' } }],
+    }
+    const { pageOptions, isHomePage } = extractPageOptions(
+      homeWithAddress,
+      'help-articles-list',
+      true
+    )
+    expect(isHomePage).toBe(true)
+    expect(pageOptions.navLink).toBe('/')
+    expect(pageOptions.fileName).toBe('index')
+  })
 })
 
 /**

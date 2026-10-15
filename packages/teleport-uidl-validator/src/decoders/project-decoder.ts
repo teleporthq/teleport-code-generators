@@ -151,6 +151,13 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   blogSettings: optional(anyJson()),
   // The booking items' category taxonomy — consumed by NextBookingProjectPlugin.
   bookingSettings: optional(anyJson()),
+  // The Help Center's settings slot (the second content preset): its baked
+  // taxonomy and category pages. Undeclared, it was stripped here and the
+  // generated help pages baked an empty category tree.
+  helpCenterSettings: optional(anyJson()),
+  // The live llms files (`/llms.txt`, `/llms-full.txt`); the blog project plugin
+  // emits their routes, and nothing would if this were stripped here.
+  llms: optional(anyJson()),
   aiAssistantChat: optional(anyJson()),
   // Growth visitor analytics flag (`{ enabled: true }`). Consumed by
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be

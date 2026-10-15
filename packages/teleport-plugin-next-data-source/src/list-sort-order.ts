@@ -18,15 +18,11 @@ const LISTING_TABLES_WITH_ID: ReadonlySet<string> = new Set([
 ])
 
 /**
- * A deterministic tiebreaker appended to a listing table's ORDER BY.
- *
- * Without one, a paginated sort with ties — "sort by discount" ties every
- * undiscounted product at zero, "by reading time" every five-minute post —
- * has no defined order between equal rows, so the same row can appear on two
- * pages or on none.
+ * Whether a table is one of those listing tables, so its rows are told apart
+ * by `id` even when the project saved no columns for it (see `row-order.ts`).
  */
-export const generateSortTiebreakSql = (tableName: string): string =>
-  LISTING_TABLES_WITH_ID.has(tableName) ? ', "id" ASC' : ''
+export const isListingTableWithId = (tableName: string): boolean =>
+  LISTING_TABLES_WITH_ID.has(tableName)
 
 /**
  * Appended to every sorted column: a row without a value comes after the

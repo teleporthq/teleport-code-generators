@@ -240,6 +240,8 @@ export interface GeneratorOptions {
   blogSettings?: UIDLBlogSettings
   // The booking items' taxonomy, for the same reason.
   bookingSettings?: UIDLBookingSettings
+  /** The Help Center's settings, same shape; present when it is activated. */
+  helpCenterSettings?: UIDLBlogSettings
   // Project-level invoice settings, plumbed down for the SAME reason: the
   // `teleport` data source fetcher bakes the storefront tax rate
   // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a

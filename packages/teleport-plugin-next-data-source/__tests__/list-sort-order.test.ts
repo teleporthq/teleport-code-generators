@@ -34,7 +34,7 @@ describe.each(ROUTES)('the %s route of the blog listing', (type, config) => {
 
   it('puts the rows without a value last, in both directions', () => {
     expect(route).toMatch(/\$\{orderOf\(sort\)\} NULLS LAST`/)
-    expect(route).toMatch(/\$\{sortByDirection\} NULLS LAST`/)
+    expect(route).toMatch(/\$\{sortByDirection\} NULLS LAST\$\{tiebreak\}`/)
   })
 
   it('falls back to a plain ORDER BY when the database rejects it', () => {
@@ -45,9 +45,10 @@ describe.each(ROUTES)('the %s route of the blog listing', (type, config) => {
   })
 
   it('breaks ties by id, in the ORDER BY and in its fallback', () => {
+    expect(route).toContain(`fields.includes("id") ? '' : ", \\"id\\" " + direction`)
     const lines = orderByLines(route)
     expect(lines).toHaveLength(2)
-    lines.forEach((line) => expect(line).toContain('"id" ASC'))
+    lines.forEach((line) => expect(line).toMatch(/\$\{tiebreak\}/))
   })
 })
 
@@ -55,6 +56,6 @@ describe('a table no listing sorts for visitors', () => {
   it('gets the empty-values-last order but no tiebreaker', () => {
     const route = routeFor('teleport', { host: 'db', database: 'store' }, 'teleport_orders')
     expect(route).toMatch(/\$\{orderOf\(sort\)\} NULLS LAST`/)
-    orderByLines(route).forEach((line) => expect(line).not.toContain('"id" ASC'))
+    expect(route).toContain("const rowOrderTiebreak = () => ''")
   })
 })

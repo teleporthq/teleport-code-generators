@@ -6,7 +6,10 @@ import { StateBindings } from '@teleporthq/teleport-shared'
  * teleport-shared) and keeps a page in step with what a visitor clicks.
  *
  * Every page root and component instance with bindings is a scope with its own
- * store, built from its `data-tq-state`. One delegated listener runs the
+ * store, built from its `data-tq-state`. A store reads through to the store of
+ * the scope around it, and a click writes a state to the store that declares
+ * it: a button in a header can open a modal its page owns, while a component's
+ * own state still shadows the page's. One delegated listener runs the
  * `data-tq-on-click` actions of the clicked element and of every clickable
  * element around it, the way a click bubbles through React handlers, then
  * re-renders: `hidden` follows `data-tq-if` and classes follow
@@ -201,7 +204,8 @@ export const STATE_RUNTIME_SCRIPT = String.raw`(function () {
   var storeOf = function (scope) {
     var store = stores.get(scope)
     if (!store) {
-      store = Object.create(null)
+      var around = scopeOf(scope)
+      store = Object.create(around ? storeOf(around) : null)
       ;(read(scope, STATE, assignments) || []).forEach(function (declaration) {
         store[declaration.name] = declaration.value(store)
       })
@@ -253,7 +257,9 @@ export const STATE_RUNTIME_SCRIPT = String.raw`(function () {
     }
     var store = storeOf(scope)
     actions.forEach(function (action) {
-      store[action.name] = action.value(store)
+      var owner = store
+      while (owner && !Object.prototype.hasOwnProperty.call(owner, action.name)) owner = Object.getPrototypeOf(owner)
+      ;(owner || store)[action.name] = action.value(store)
     })
     return true
   }

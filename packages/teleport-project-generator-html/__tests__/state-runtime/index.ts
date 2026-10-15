@@ -25,6 +25,7 @@ describe('State bindings in the static HTML export', () => {
         'burger-close',
         'burger-open',
         'burger-open',
+        'contact-modal',
         'menu',
         'menu',
         'panel-0',
@@ -39,6 +40,7 @@ describe('State bindings in the static HTML export', () => {
       [
         'burger-close',
         'burger-close',
+        'contact-modal',
         'menu',
         'menu',
         'panel-1',
@@ -62,7 +64,7 @@ describe('State bindings in the static HTML export', () => {
       )
       .get()
     expect(scopes).toEqual([
-      'Home: activeTabIndex = 0; yearly = false',
+      'Home: activeTabIndex = 0; yearly = false; contactOpen = false',
       'Navigation: menuOpen = false',
       'Navigation: menuOpen = false',
     ])

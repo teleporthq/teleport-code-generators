@@ -30,6 +30,11 @@ let seq = 0
 let currentPath = null
 let initialReferrer = null
 let utm = null
+// Pages the owner keeps out of analytics (admin-panel pages by default), as
+// path patterns baked in at publish time, and the site's locales so a prefixed
+// address matches the same list.
+let excludedPaths = []
+let siteLocales = []
 
 let visibleSince = null
 let visibleAccumMs = 0
@@ -284,6 +289,46 @@ function pathnameOf(url) {
   return url.split('?')[0].split('#')[0] || '/'
 }
 
+// ── Pages kept out of analytics ──────────────────────────────────────────────
+// The address without query, fragment, trailing slash or locale prefix, so
+// "/fr/admin-panel/orders/" is judged as "/admin-panel/orders".
+function normalizeTrackedPath(path) {
+  let clean = pathnameOf(path) || '/'
+  while (clean.length > 1 && clean.charAt(clean.length - 1) === '/') {
+    clean = clean.slice(0, -1)
+  }
+  const firstSegment = clean.split('/')[1]
+  if (firstSegment && siteLocales.indexOf(firstSegment) !== -1) {
+    clean = clean.slice(firstSegment.length + 1) || '/'
+  }
+  return clean
+}
+
+// A pattern ending in "*" matches by prefix (a dynamic page "/products/[id]" is
+// published as "/products/*"); any other pattern matches exactly.
+function pathMatchesPattern(path, pattern) {
+  if (typeof pattern !== 'string' || !pattern) {
+    return false
+  }
+  if (pattern.charAt(pattern.length - 1) === '*') {
+    return path.indexOf(pattern.slice(0, -1)) === 0
+  }
+  return path === normalizeTrackedPath(pattern)
+}
+
+function isPathExcluded(path) {
+  if (excludedPaths.length === 0) {
+    return false
+  }
+  const normalized = normalizeTrackedPath(path)
+  for (let i = 0; i < excludedPaths.length; i++) {
+    if (pathMatchesPattern(normalized, excludedPaths[i])) {
+      return true
+    }
+  }
+  return false
+}
+
 // True when a route event resolves to the page we are already tracking. The
 // pages-router emits routeChangeStart/Complete for the SAME path during initial
 // hydration (and when a link points at the current page), which would otherwise
@@ -302,6 +347,15 @@ function trackPageview(isFirstLoad) {
   // Defensive same-path guard (the route handlers also guard on the router's
   // destination url): never emit a second pageview for the page already shown.
   if (!isFirstLoad && currentPath !== null && newPath === currentPath) {
+    return
+  }
+
+  if (isPathExcluded(newPath)) {
+    // No page identity on a page kept out of analytics: clicks, scroll,
+    // heartbeats, leaves and commerce steps all stay silent (they guard on
+    // pageLoadId) until the visitor reaches a tracked page.
+    currentPath = newPath
+    pageLoadId = null
     return
   }
 
@@ -361,7 +415,9 @@ function onClickCapture(domEvent) {
 
   try {
     const target = domEvent.target && domEvent.target.closest
-      ? domEvent.target.closest('a, button, [role="button"], input[type="submit"], [data-tp-event]')
+      ? domEvent.target.closest(
+          'a, button, [role="button"], input[type="submit"], [data-tp-event], [data-tp-track]'
+        )
       : null
     if (!target) {
       return
@@ -387,6 +443,13 @@ function onClickCapture(domEvent) {
     event.click = {
       tag: target.tagName ? target.tagName.toLowerCase().slice(0, 16) : null,
       id: target.id ? target.id.slice(0, 64) : null,
+      // The clicked element's own classes only, space-separated and capped, so a
+      // funnel step can match ".add-to-cart" or "button.cta" (classList covers
+      // SVG elements too, where className is not a string).
+      cls:
+        target.classList && target.classList.length
+          ? Array.prototype.slice.call(target.classList).join(' ').slice(0, 255)
+          : null,
       text: target.textContent ? target.textContent.trim().slice(0, 64) : null,
       href: href,
       name: namedAttr && /^[a-zA-Z0-9_-]{1,64}$/.test(namedAttr) ? namedAttr : null,
@@ -397,11 +460,18 @@ function onClickCapture(domEvent) {
   }
 }
 
-export function initTeleportAnalytics() {
+export function initTeleportAnalytics(options) {
   if (initialized || typeof window === 'undefined') {
     return
   }
   initialized = true
+
+  if (options && Array.isArray(options.excludedPaths)) {
+    excludedPaths = options.excludedPaths
+  }
+  if (options && Array.isArray(options.locales)) {
+    siteLocales = options.locales
+  }
 
   if (!isTrackingPossible()) {
     return
@@ -573,7 +643,8 @@ export function trackCommerceEvent(name, detail) {
     // enabled.
     pushToDataLayer(name, detail)
 
-    if (!initialized || !isTrackingPossible()) {
+    // No pageLoadId: the shopper is on a page kept out of analytics.
+    if (!initialized || !isTrackingPossible() || !pageLoadId) {
       return
     }
     if (name === 'purchase' && !claimPurchase(detail && detail.orderId)) {

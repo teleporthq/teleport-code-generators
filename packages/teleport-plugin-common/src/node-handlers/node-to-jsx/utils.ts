@@ -863,6 +863,20 @@ export const createConditionIdentifier = (
     }
   }
 
+  // A value of the page address's query string, read the way the value path
+  // above reads it (`router.query.<key>` in Next, the prelude's object in a
+  // static generator) — e.g. a categories overview that steps aside while a
+  // search narrows the list.
+  if (referenceType === 'urlSearchParams') {
+    return {
+      key: refPath?.[0] || id,
+      type: 'string',
+      prefix:
+        (options.dynamicReferencePrefixMap as Record<string, string | undefined>).urlSearchParams ||
+        'router.query',
+    }
+  }
+
   // in case the id is a member expression: eg: fields.name
   const referenceRoot = id.split('.')[0]
   const currentType =

@@ -1,0 +1,61 @@
+<p>TeleportHQ has two data sources for fixed lists that don't come from a database: <strong>CSV File</strong>, where you upload a spreadsheet export once, and <strong>JavaScript</strong>, where you type the list yourself as an array of items. Both are added from <strong>Data Sources → Add Data Source</strong>, and both can fill lists, tables and details pages on your site.</p>
+<h2>Before you start</h2>
+<ul>
+<li><strong>Choose the right option.</strong> Use <strong>CSV File</strong> for a list exported from another tool, like a product catalog. Use <strong>JavaScript</strong> for a short list you type, like 5 team members.</li>
+<li><strong>Neither updates by itself.</strong> To change the data later, upload a new file or edit the code. For data that changes often, use a <a href="connect-google-sheets.md">Google Sheet</a> or the <a href="../teleporthq-database/set-up-the-teleporthq-database.md">TeleportHQ database</a>.</li>
+</ul>
+<h2>Upload a CSV file to TeleportHQ</h2>
+<p>To use a CSV file as a TeleportHQ data source:</p>
+<ol>
+<li>In the <strong>left sidebar</strong>, click <strong>Data Sources Integration</strong> (the database icon).</li>
+<li>In the <strong>Data Sources</strong> panel, click <strong>+</strong> (tooltip <strong>Add Data Source</strong>).</li>
+<li>Click the <strong>CSV File</strong> card.</li>
+<li>In <strong>Data Source Name</strong>, type a name, for example <code>Product catalog</code>.</li>
+<li>Under <strong>Upload CSV File</strong>, click <strong>Click to select a CSV file</strong> and choose your <code>.csv</code> file.</li>
+<li>Click <strong>Extract data from CSV</strong>. The <strong>View Data</strong> section shows the first rows.</li>
+<li>Check that the columns look right.</li>
+<li>Click <strong>Save Data Source</strong>. If this is the project's first data source, a window titled <strong>IMPORTANT</strong> appears; click <strong>I understand</strong>.</li>
+</ol>
+<p><img src="screenshots/use-a-csv-file-or-static-data-1.png" alt="The CSV File setup form in TeleportHQ with the Upload CSV File area and the View Data preview"></p>
+<p>If the first row is read as an item instead of column names, turn off <strong>Automatically detect header row</strong>, turn on <strong>First row is header row</strong>, and click <strong>Extract data from CSV</strong> again.</p>
+<h2>Type static data with the JavaScript data source</h2>
+<p>To type a fixed list as a TeleportHQ data source:</p>
+<ol>
+<li>In the <strong>Data Sources</strong> panel, click <strong>+</strong> (tooltip <strong>Add Data Source</strong>).</li>
+<li>Click the <strong>JavaScript</strong> card.</li>
+<li>In <strong>Data Source Name</strong>, type a name, for example <code>Team members</code>.</li>
+<li>In <strong>JavaScript Code</strong>, replace the example with your list. The code must be a valid JavaScript array: a pair of square brackets holding one <code>{ … }</code> block per item.</li>
+<li>Click <strong>Save Data Source</strong>.</li>
+</ol>
+<p>For example, a team list with three people:</p>
+<pre><code class="language-javascript">[
+  { id: 1, name: &quot;Ana Pop&quot;, role: &quot;Head baker&quot;, photo: &quot;https://example.com/ana.jpg&quot; },
+  { id: 2, name: &quot;Mihai Ionescu&quot;, role: &quot;Pastry chef&quot;, photo: &quot;https://example.com/mihai.jpg&quot; },
+  { id: 3, name: &quot;Ioana Radu&quot;, role: &quot;Front of house&quot;, photo: &quot;https://example.com/ioana.jpg&quot; }
+]
+</code></pre>
+<p>The <strong>Save Data Source</strong> button stays disabled while the code has errors. When you edit an existing JavaScript source, it also stays disabled until you change something.</p>
+<h2>Check that it worked</h2>
+<p>The new data source appears as a card in the <strong>Data Sources</strong> panel. Add an Array Mapper to a page and bind it to the source to see the items. See <a href="../dynamic-content/repeat-items-with-a-list.md">How to show a list of items</a>.</p>
+<h2>Troubleshooting</h2>
+<p><strong>&quot;Failed to parse CSV&quot;</strong>
+The file isn't a valid CSV. Export it again from your spreadsheet app as &quot;CSV (comma-separated values)&quot; and upload the new file.</p>
+<p><strong>&quot;Please load preview data before saving&quot;</strong>
+Click <strong>Extract data from CSV</strong> before <strong>Save Data Source</strong>.</p>
+<p><strong>Save Data Source is greyed out (JavaScript)</strong>
+The code has an error, such as a missing comma, bracket or quote. Fix the highlighted line. The whole code must be one array that starts with <code>[</code> and ends with <code>]</code>.</p>
+<h2>Good to know</h2>
+<ul>
+<li><strong>The CSV contents are saved inside your project.</strong> Changing the original file on your computer doesn't change the site. To update, open the data source, click <strong>Click to select a different file</strong>, extract and save again.</li>
+<li><strong>You can't edit CSV rows in TeleportHQ.</strong> To edit rows, sort them or add new ones in the editor, import the file into the TeleportHQ database instead: see <a href="../teleporthq-database/import-data-into-a-table.md">Import data from a spreadsheet file</a>.</li>
+<li><strong>The JavaScript source has no preview step.</strong> Check the result on the canvas after binding a list to it.</li>
+<li>Both sources can power details pages, one page per item. See <a href="../dynamic-content/create-a-details-page-for-each-item.md">Create a page for each item</a>.</li>
+</ul>
+<h2>Related articles</h2>
+<ul>
+<li><a href="what-are-data-sources.md">What are data sources, and which ones can I connect?</a></li>
+<li><a href="connect-google-sheets.md">How to use a Google Sheet as data</a></li>
+<li><a href="../teleporthq-database/import-data-into-a-table.md">How to import data from a spreadsheet file</a></li>
+<li><a href="../dynamic-content/repeat-items-with-a-list.md">How to show a list of items (List / Array Mapper)</a></li>
+<li><a href="../dynamic-content/create-a-details-page-for-each-item.md">How to create a page for each item (details pages)</a></li>
+</ul>

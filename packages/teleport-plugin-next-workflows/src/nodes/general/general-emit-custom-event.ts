@@ -10,7 +10,9 @@ async function general_emit_custom_event(config: any, context: Record<string, un
   const scope = config.scope || GLOBAL_SCOPE
 
   try {
-    const event = new CustomEvent(eventName, {
+    // The "A Custom Event is Triggered" workflow listens on this channel (see
+    // trigger-generator); a bare name started nothing.
+    const event = new CustomEvent('workflow:custom:' + eventName, {
       detail: eventData,
       bubbles: scope === GLOBAL_SCOPE,
       cancelable: true,

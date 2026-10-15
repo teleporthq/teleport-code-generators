@@ -174,3 +174,37 @@ describe('structured data — reviewList', () => {
     expect(render(REVIEW_DOC, {})).not.toHaveProperty('review')
   })
 })
+
+describe('isoDate', () => {
+  const doc = entry({
+    '@type': 'BlogPosting',
+    datePublished: {
+      type: 'computed',
+      kind: 'isoDate',
+      refPath: ['blogPost'],
+      column: 'publishedAt',
+      fallbackColumn: 'createdAt',
+    },
+    dateModified: { type: 'computed', kind: 'isoDate', refPath: ['blogPost'], column: 'updatedAt' },
+  } as unknown as UIDLStructuredDataObject)
+
+  it('writes the ISO 8601 string schema.org takes, from milliseconds or a string', () => {
+    const rendered = render(doc, {
+      blogPost: { publishedAt: 1767225600000, updatedAt: '2026-01-02T03:04:05.000Z' },
+    })
+    expect(rendered.datePublished).toBe('2026-01-01T00:00:00.000Z')
+    expect(rendered.dateModified).toBe('2026-01-02T03:04:05.000Z')
+  })
+
+  it('falls back to the second field, and drops the property when both are empty', () => {
+    expect(
+      render(doc, { blogPost: { publishedAt: null, createdAt: 1767225600000 } }).datePublished
+    ).toBe('2026-01-01T00:00:00.000Z')
+    const rendered = render(doc, {
+      blogPost: { publishedAt: null, createdAt: null, updatedAt: null },
+    })
+    expect(rendered).not.toHaveProperty('datePublished')
+    expect(rendered).not.toHaveProperty('dateModified')
+    expect(renderSource(doc)).toContain('toISOString()')
+  })
+})

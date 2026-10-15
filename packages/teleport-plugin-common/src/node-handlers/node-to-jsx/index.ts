@@ -1101,6 +1101,28 @@ const addAttributesToJSXTag = (
       }
     }
 
+    // React takes `style` as an object, never as text: a `style="color: red"`
+    // attribute (a custom attribute typed in the editor) throws React error #62
+    // while the page prerenders and fails the whole build. The text becomes the
+    // object it meant; a value that is not plain CSS text is dropped.
+    if (attrKey === 'style') {
+      const inlineStyle =
+        attributeValue.type === 'static'
+          ? parseInlineStyleText((attributeValue as { content?: unknown }).content)
+          : undefined
+      if (inlineStyle && Object.keys(inlineStyle).length > 0) {
+        addAttributeToJSXTag(elementTag, 'style', inlineStyle)
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[codegen safety net] dropping "style" attribute on <${
+            elementName ?? 'element'
+          }> — React takes style as an object, and this value is not CSS text`
+        )
+      }
+      return
+    }
+
     switch (attributeValue.type) {
       case 'dynamic':
         const dynamicRef = attributeValue as UIDLDynamicReference
@@ -2188,6 +2210,16 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     params.globalReferences.push(
       'blogCategories' as Parameters<typeof params.globalReferences.push>[0]
     )
+  } else if (source === 'helpCategories') {
+    // The Help Center's taxonomy, exposed by the same module as `useHelpCategories()`.
+    repeaterItemsExpr = types.logicalExpression(
+      '||',
+      types.identifier('helpCategories'),
+      types.arrayExpression([])
+    )
+    params.globalReferences.push(
+      'helpCategories' as Parameters<typeof params.globalReferences.push>[0]
+    )
   } else if (source === 'bookingCategories') {
     // The `Booking Categories` global, like the blog's: the generated
     // `@/booking-context` module's `useBookingCategories()` hook, destructured
@@ -2586,4 +2618,31 @@ const applyRichTextEditorRawAttribute = (
 
   // Any other raw attribute on rich-text-editor-node: fall through to default handling
   addRawAttributeToJSXTag(elementTag, attrKey, rawValue)
+}
+
+/**
+ * `color: red; margin-top: 4px` → `{ color: 'red', marginTop: '4px' }`, the
+ * shape React wants for `style`. Custom properties keep their `--name`.
+ */
+function parseInlineStyleText(value: unknown): Record<string, string> | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+  const inlineStyle: Record<string, string> = {}
+  value.split(';').forEach((declaration) => {
+    const separator = declaration.indexOf(':')
+    if (separator < 1) {
+      return
+    }
+    const property = declaration.slice(0, separator).trim()
+    const propertyValue = declaration.slice(separator + 1).trim()
+    if (!property || !propertyValue) {
+      return
+    }
+    const key = property.startsWith('--')
+      ? property
+      : StringUtils.cssPropertyToInlineStyleKey(property)
+    inlineStyle[key] = propertyValue
+  })
+  return inlineStyle
 }

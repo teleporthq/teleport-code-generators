@@ -304,6 +304,10 @@ export interface ProjectUIDL {
   // providers it is paid through. Absent whenever `ecommerceSettings` carries them.
   paymentSettings?: UIDLPaymentSettings
   blogSettings?: UIDLBlogSettings
+  /** The Help Center's — same shape as the Blog's; present for a project that activated it. */
+  helpCenterSettings?: UIDLBlogSettings
+  /** The live llms files; absent when the site serves none, or only the editor's static llms.txt. */
+  llms?: UIDLLlmsFiles
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
   pwa?: UIDLProgressiveWebApp
@@ -317,6 +321,13 @@ export interface ProjectUIDL {
 
 export interface UIDLAnalytics {
   enabled: boolean
+  /**
+   * Runtime path patterns the published tracker stays silent on: the admin
+   * panel's pages by default, plus any the owner unticked under Tracked pages.
+   * A trailing `*` matches by prefix (`/products/*` for `/products/[id]`);
+   * anything else matches exactly. Absent or empty: every page is tracked.
+   */
+  disabledPaths?: string[]
 }
 
 /**
@@ -838,7 +849,8 @@ export interface UIDLInitialPropsData {
       }
     | {
         name: string
-        dependency: UIDLExternalDependency
+        /** A package's function, or a module the generator emits itself (the category pages' resolver). */
+        dependency: UIDLDependency
         params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
       }
   /*
@@ -904,7 +916,7 @@ export interface UIDLInitialPathsData {
       }
     | {
         name: string
-        dependency: UIDLExternalDependency
+        dependency: UIDLDependency
         params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
       }
 }
@@ -977,6 +989,9 @@ export type UIDLStructuredDataNode =
  * - `reviewList`: `<entity>.<column>` (an array of `{ author, rating, body,
  *   datePublished }`) mapped into schema.org `Review` objects, or `undefined`
  *   when the array is missing or empty.
+ * - `isoDate`: `<entity>.<column>` (milliseconds, an ISO string or a Date; or
+ *   `fallbackColumn` when it is empty) as the ISO 8601 string schema.org dates
+ *   take, or `undefined` when both are empty.
  */
 export interface UIDLStructuredDataComputed {
   type: 'computed'
@@ -987,9 +1002,12 @@ export interface UIDLStructuredDataComputed {
     | 'aggregateRating'
     | 'namedEntity'
     | 'reviewList'
+    | 'isoDate'
   refPath: string[]
   column: string
   urlPrefix?: string
+  /** `isoDate` only: the field read when `column` is empty. */
+  fallbackColumn?: string
   /** `aggregateRating` only: the field holding the average score. */
   ratingValueColumn?: string
   /** `namedEntity` only: the schema.org type of the emitted object. */
@@ -1160,6 +1178,8 @@ export interface UIDLGlobalReference {
       // The blog's baked category taxonomy, resolved through the generated
       // `@/blog-context` module's `useBlogCategories()` hook.
       | 'blogCategories'
+      // The Help Center's, through the same module's `useHelpCategories()`.
+      | 'helpCategories'
       // The booking items' taxonomy, through `@/booking-context`'s `useBookingCategories()`.
       | 'bookingCategories'
       | 'cart'
@@ -2301,10 +2321,71 @@ export interface UIDLBlogSettings {
   categories?: UIDLEcommerceCategory[]
   /** Post content headings carry ids and `#` links to themselves. */
   headingAnchors?: boolean
+  /**
+   * The post pages carry a Contents list: the content's headings carry ids (the
+   * `#` links only with `headingAnchors`) and a post page's post its `sections`.
+   */
+  contents?: boolean
   /** A post page carries the post's approved comments. */
   comments?: boolean
   /** The blog's RSS feed. Absent: the site serves none. */
   rssFeed?: UIDLBlogRssFeed
+  /** The preset's category pages (`/help/category/[slug]`). Absent: the site has none. */
+  categoryPages?: UIDLContentCategoryPages
+  /**
+   * `manual`: the author arranged the posts of each category (`sort_order`,
+   * a post's place among its primary category's posts): the category pages
+   * list them so and Previous / Next walk them so. Absent: newest first.
+   */
+  order?: 'manual'
+  /**
+   * The preset's posts in the site's live index: its own sitemap
+   * (`ContentTables.contentSitemapPath`) and, when the project carries `llms`,
+   * its section of `/llms.txt` and its articles in `/llms-full.txt`. Absent:
+   * the site lists none of them live.
+   */
+  siteIndex?: UIDLContentSiteIndex
+}
+
+/** Where a preset's live sitemap and llms sections read the posts from, and where they link them. */
+export interface UIDLContentSiteIndex {
+  /** The data source holding the preset's posts table. */
+  dataSourceId: string
+  /** The post page's address before the post's own segment: `/help` for `/help/[slug]`. */
+  postPath: string
+  /** The post field that segment is — the post page's URL differentiator, e.g. `slug`. */
+  postUrlField: string
+  /** What the site calls the preset: the heading of its llms.txt section. */
+  title: string
+}
+
+/**
+ * The files the site offers language models when content presets list their
+ * posts live: `/llms-full.txt` always, and `/llms.txt` when `index` is set.
+ */
+export interface UIDLLlmsFiles {
+  /**
+   * `/llms.txt` up to the presets' sections — the site's pages as the editor
+   * wrote them at publish; the route appends each preset's posts. Absent: the
+   * owner wrote their own llms.txt, which stays a static file.
+   */
+  index?: string
+}
+
+/**
+ * Where a preset's generated category pages read their posts from, and where
+ * they link them. The page itself is an ordinary dynamic page in the UIDL;
+ * this is what its `getStaticProps` helper needs beyond the baked taxonomy.
+ */
+export interface UIDLContentCategoryPages {
+  /** The data source holding the preset's posts table. */
+  dataSourceId: string
+  /** The post page's address before the post's own segment: `/help` for `/help/[slug]`. */
+  postPath: string
+  /** The post field that segment is — the post page's URL differentiator, e.g. `slug`. */
+  postUrlField: string
+  /** The category page's address before the category's own segment: `/help/category`. */
+  categoryPath: string
 }
 
 /**

@@ -7,10 +7,10 @@ import {
   generateSortFieldSqlHelper,
   supportsProductPriceSort,
 } from '../src/product-price-sort'
-import { generateSortTiebreakSql } from '../src/list-sort-order'
 import { generatePostgreSQLFetcher } from '../src/fetchers/postgresql'
 import { generateTeleportFetcher } from '../src/fetchers/teleport'
 import { generateDataSourceFetcher } from '../src/data-source-fetchers'
+import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../src/row-order'
 
 /**
  * Ordering a products list by what customers actually pay.
@@ -201,30 +201,57 @@ describe('degrading safely', () => {
 })
 
 describe('stable pagination', () => {
-  it('breaks ties on the products table so pages cannot repeat or skip rows', () => {
-    // "Sort by discount" ties every undiscounted product at zero. Equal rows
-    // with no defined order can appear on two pages, or on none.
-    expect(generateSortTiebreakSql('teleport_products')).toBe(', "id" ASC')
+  // Rows that share every requested key have no order of their own: "sort by
+  // discount" ties every undiscounted product at zero, an import dates hundreds
+  // of articles alike. Equal rows can appear on two pages, or on none.
+  const tiebreakOf = (identityColumn: string | null) =>
+    // eslint-disable-next-line no-new-func
+    new Function(`${generateRowOrderTiebreakHelper(identityColumn)}\nreturn rowOrderTiebreak`)()
+
+  it("ends every order with the row's own key, in the order's direction", () => {
+    const tiebreak = tiebreakOf('id')
+    expect(tiebreak(['created_at'], 'DESC')).toBe(', "id" DESC')
+    expect(tiebreak(['price'], 'ASC')).toBe(', "id" ASC')
+    expect(tiebreak(['id'], 'ASC')).toBe('')
+    expect(tiebreakOf(null)(['created_at'], 'DESC')).toBe('')
+  })
+
+  it("takes the table's primary key, else its id, and the products table's id", () => {
+    const saved = (columns: unknown[]) => ({ selectedTables: { posts: { columns } } })
+    expect(
+      rowIdentityColumn(saved([{ name: 'sku', isPrimaryKey: true }, { name: 'id' }]), 'posts')
+    ).toBe('sku')
+    expect(rowIdentityColumn(saved([{ name: 'title' }, { name: 'id' }]), 'posts')).toBe('id')
+    expect(rowIdentityColumn(saved([{ name: 'title' }]), 'posts')).toBeNull()
+    expect(rowIdentityColumn({}, 'teleport_products')).toBe('id')
+    expect(rowIdentityColumn({}, 'teleport_orders')).toBeNull()
   })
 
   it('breaks ties on every listing a visitor sorts: the blog listing and the booking page too', () => {
     // "Sort by reading time" ties every five-minute post, "by price" every
     // item at the same price.
-    expect(generateSortTiebreakSql('teleport_blog_posts')).toBe(', "id" ASC')
-    expect(generateSortTiebreakSql('teleport_booking_items')).toBe(', "id" ASC')
+    expect(rowIdentityColumn({}, 'teleport_blog_posts')).toBe('id')
+    expect(rowIdentityColumn({}, 'teleport_booking_items')).toBe('id')
   })
 
-  it('adds nothing to a table it does not own', () => {
-    expect(generateSortTiebreakSql('teleport_orders')).toBe('')
-  })
-
-  it('is applied to both the real and the fallback ORDER BY', () => {
-    const route = generatePostgreSQLFetcher(PG_CONFIG, 'teleport_products')
-    const orderByLines = route
-      .split('\n')
-      .filter((line) => line.includes('ORDER BY') && line.includes('join'))
-    expect(orderByLines).toHaveLength(2)
-    orderByLines.forEach((line) => expect(line).toContain('"id" ASC'))
+  it('is applied to the real and the fallback ORDER BY, and to a single sort column', () => {
+    for (const route of [
+      generatePostgreSQLFetcher(PG_CONFIG, 'teleport_products'),
+      generateTeleportFetcher(
+        {
+          selectedTables: {
+            teleport_help_articles: { columns: [{ name: 'id', isPrimaryKey: true }] },
+          },
+        },
+        'teleport_help_articles'
+      ),
+    ]) {
+      const orderByLines = route.split('\n').filter((line) => line.includes('ORDER BY ${'))
+      expect(orderByLines.length).toBeGreaterThanOrEqual(3)
+      orderByLines.forEach((line) => expect(line).toMatch(/tiebreak|rowOrderTiebreak/))
+      expect(route).toContain('const rowOrderTiebreak = (fields, direction) =>')
+      expect(() => parse(route, { sourceType: 'module', plugins: ['jsx'] })).not.toThrow()
+    }
   })
 })
 
@@ -257,7 +284,8 @@ describe('the fetcher a generated storefront actually gets', () => {
     expect(teleportProducts).toContain('const usedRewrittenSort = orderBySql !== plainOrderBySql')
     expect(teleportProducts).toContain('if (!usedRewrittenSort) throw sortError')
     expect(teleportProducts).toContain('baseSql + plainOrderBySql + sqlTail')
-    expect(teleportProducts).toContain('"id" ASC')
+    expect(teleportProducts).toContain('const rowOrderTiebreak = (fields, direction) =>')
+    expect(teleportProducts).toMatch(/\$\{tiebreak\}/)
   })
 
   it('parses as valid JavaScript', () => {

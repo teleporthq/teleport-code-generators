@@ -1,9 +1,14 @@
 import { parse } from '@babel/parser'
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
-import { RichTextEmbeds, RichTextEmbedsCodegen } from '@teleporthq/teleport-shared'
+import {
+  RichTextContentCodegen,
+  RichTextEmbeds,
+  RichTextEmbedsCodegen,
+} from '@teleporthq/teleport-shared'
 import { NextRichTextEditorProjectPlugin } from '../src/rich-text-editor/project-plugin'
 import { EMBED_RUNTIME_FILE_NAME } from '../src/rich-content-embeds/runtime-module'
 import { generateRichTextEditorComponentCode } from '../src/rich-text-editor/component-generator'
+import { CONTENT_SUPPORT_SOURCE } from '../src/rich-text-editor/content-support-source'
 
 const EMBED_FORMAT = RichTextEmbeds.EMBED_BLOT_NAME
 
@@ -213,7 +218,7 @@ describe('the generated editor survives being driven', () => {
     expect(source).toContain('const lastEmittedRef = useRef({ raw: null, stored: null })')
     expect(source).toContain('lastEmittedRef.current = { raw: html, stored: stored }')
     expect(source).toContain(
-      'lastEmitted.stored !== null && incoming === lastEmitted.stored ? lastEmitted.raw : incoming'
+      'lastEmitted.stored !== null && incoming === lastEmitted.stored\n      ? lastEmitted.raw\n      : editorHtmlFor(incoming)'
     )
     expect(source).toContain('value={editorValue}')
   })
@@ -226,11 +231,78 @@ describe('the generated editor survives being driven', () => {
 
   it('leaves an editor without embeds untouched by any of it', () => {
     expect(plain).not.toContain('forwardedRef')
-    expect(plain).not.toContain('lastEmittedRef')
     expect(plain).not.toContain('isEditorReady')
     expect(plain).not.toContain('registerEmbedBlot')
+    expect(plain).not.toContain('EmbedDialog')
     // `formatsKey` is deliberately NOT in this list: memoising on the format
     // names rather than on the array identity is what keeps the toolbar (and
     // with it the image handler) stable, and both variants need that.
+  })
+})
+
+describe('the stored-form contract on a generated rich-text editor', () => {
+  const plain = generateRichTextEditorComponentCode()
+  const withEmbeds = generateRichTextEditorComponentCode({ withEmbeds: true })
+
+  it('reads and writes content through the shared converter, with or without embeds', () => {
+    ;[plain, withEmbeds].forEach((source) => {
+      expect(source).toContain("from './rich-text-content'")
+      expect(source).toContain(
+        'registerProtectedBlockBlot(mod.Quill || (mod.default && mod.default.Quill))'
+      )
+      expect(source).toContain(': editorHtmlFor(incoming)')
+      expect(source).toContain('useSemanticHTML={false}')
+      expect(source).toContain('formats={editorFormats}')
+      expect(source).toContain('<style jsx global>{RICH_TEXT_CONTENT_STYLES}</style>')
+    })
+    expect(plain).toContain('const stored = fromEditorHtml(html)')
+    expect(withEmbeds).toContain(
+      'const stored = fromEditorHtml(embedsEnabled ? normalizeEmbedsInEditorHtml(html) : html)'
+    )
+  })
+
+  /*
+   * Next prerenders the admin pages (blog-posts/create, …) in Node, where there
+   * is no DOMParser. Converting the value in render broke every store build
+   * with an admin panel: "ReferenceError: DOMParser is not defined".
+   */
+  it('renders on the server without a DOM, and converts in the browser', () => {
+    ;[plain, withEmbeds].forEach((source) => {
+      expect(source.match(/toEditorHtml\(/g)).toHaveLength(1)
+      expect(source).toContain(': toEditorHtml(storedHtml)')
+    })
+    const toEditorHtml = jest.fn((html: string) => `converted:${html}`)
+    const editorHtmlFor = new Function(
+      'toEditorHtml',
+      `${CONTENT_SUPPORT_SOURCE}\nreturn editorHtmlFor`
+    )(toEditorHtml)
+
+    expect(typeof (globalThis as { DOMParser?: unknown }).DOMParser).toBe('undefined')
+    expect(editorHtmlFor('<p>a</p>')).toBe('<p>a</p>')
+    expect(toEditorHtml).not.toHaveBeenCalled()
+    ;(globalThis as { DOMParser?: unknown }).DOMParser = class {}
+    try {
+      expect(editorHtmlFor('<p>a</p>')).toBe('converted:<p>a</p>')
+    } finally {
+      delete (globalThis as { DOMParser?: unknown }).DOMParser
+    }
+  })
+
+  it('never strips inline code or a protected block on the way in, whatever the field allows', () => {
+    expect(plain).toContain("if (!widened.includes('code')) {")
+    expect(plain).toContain('if (!widened.includes(PROTECTED_BLOCK_BLOT_NAME)) {')
+    expect(plain).toContain(
+      'if (!Array.isArray(formats) || formats.length === 0) {\n    return formats\n  }'
+    )
+  })
+
+  it('ships the runtime module beside the editor for every project with a rich-text field', async () => {
+    const structure = await new NextRichTextEditorProjectPlugin().runAfter(
+      makeStructure(editorNode([]))
+    )
+    const runtime = structure.files.get('rich-text-content')?.files[0]?.content
+    expect(runtime).toBe(RichTextContentCodegen.generateRichTextContentRuntimeModuleSource())
+    expect(runtime).toMatch(/^export function toEditorHtml\b/m)
+    expect(runtime).toMatch(/^export function fromEditorHtml\b/m)
   })
 })
