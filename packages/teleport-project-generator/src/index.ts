@@ -323,6 +323,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.blogSettings && {
         blogSettings: uidl.blogSettings,
       }),
+      // Its own condition: a Help Center needs no Blog, and without these the
+      // help articles' transform baked an empty taxonomy (no breadcrumbs).
+      ...(uidl.helpCenterSettings && {
+        helpCenterSettings: uidl.helpCenterSettings,
+      }),
       ...(uidl.invoiceSettings && {
         invoiceSettings: uidl.invoiceSettings,
       }),

@@ -109,3 +109,68 @@ describe('getStaticProps prefetch of providers sharing one resource', () => {
     expect(code.match(/fetchData\(/g)).toHaveLength(1)
   })
 })
+
+/**
+ * A plain list's server prefetch carries the sort its repeater fixed: the page
+ * is pre-rendered with those rows and the browser keeps them (`initialData`
+ * skips the first fetch), so a prefetch without it showed the rows in the
+ * table's own order — "the latest three posts" as the first three ever.
+ */
+describe('getStaticProps prefetch of a sorted plain list', () => {
+  const listNode = (
+    sort?: string,
+    params: Record<string, unknown> = {}
+  ): UIDLDataSourceItemNode => {
+    const node = nodeWithParams(params)
+    ;(node.content as { children: unknown[] }).children = [
+      {
+        type: 'cms-list-repeater',
+        content: {
+          renderPropIdentifier: 'post',
+          nodes: { list: { type: 'element', content: { elementType: 'div' } } },
+          ...(sort
+            ? {
+                sort: { type: 'static', content: sort },
+                sortDirection: { type: 'static', content: 'desc' },
+              }
+            : {}),
+        },
+      },
+    ]
+    return node
+  }
+
+  it('prefetches the rows in the order the list shows them', () => {
+    const code = prefetch([{ node: listNode('created_at') }], [providerWithLimit()])
+    expect(code).toContain(
+      'fetchData({ "sorts": JSON.stringify([{ field: "created_at", order: "desc" }]) })'
+    )
+  })
+
+  it('keeps the sort the resource itself names', () => {
+    const code = prefetch(
+      [
+        {
+          node: listNode('created_at', {
+            sorts: { type: 'static', content: [{ field: 'title', order: 'asc' }] },
+          }),
+        },
+      ],
+      [providerWithLimit()]
+    )
+    expect(code).toContain('"sorts": JSON.stringify([{ "field": "title", "order": "asc" }])')
+    expect(code).not.toContain('created_at')
+  })
+
+  it('gives two lists sorted differently their own prefetch', () => {
+    const newest = providerWithLimit()
+    const oldest = providerWithLimit()
+    const code = prefetch(
+      [{ node: listNode('created_at') }, { node: listNode('title') }],
+      [newest, oldest]
+    )
+    expect(initialDataOf(newest)).toBe('{props.data_dsjsdata}')
+    expect(initialDataOf(oldest)).toBe('{props.data_dsjsdata_2}')
+    expect(code.match(/fetchData\(/g)).toHaveLength(2)
+  })
+})

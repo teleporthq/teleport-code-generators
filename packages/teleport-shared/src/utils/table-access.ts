@@ -1,4 +1,5 @@
 import type { UIDLAuthentication } from '@teleporthq/teleport-types'
+import { CONTENT_COMMENTS_TABLES } from './content-tables'
 
 /**
  * Which store tables a browser may touch through the generated data routes.
@@ -80,8 +81,9 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   'teleport_push_subscriptions',
   // A comment is public once approved, but the row carries the commenter's
   // email and the comments still waiting for approval; the post page reads
-  // the approved ones server-side, public columns only.
-  'teleport_blog_comments',
+  // the approved ones server-side, public columns only. One table per content
+  // preset that takes comments.
+  ...CONTENT_COMMENTS_TABLES,
   // What visitors told the AI assistant, and the merchant's private knowledge
   // base it answers from: the assistant reads them in its own server
   // segments, the admin lists them with its session.

@@ -7,6 +7,7 @@ import {
 import { RichTextEmbeds } from '@teleporthq/teleport-shared'
 import { traverseProjectElements } from '../uidl-element-traversal'
 import { ensureEmbedRuntimeModule } from '../rich-content-embeds/runtime-module'
+import { ensureRichTextContentRuntimeModule } from './content-runtime-module'
 import { generateRichTextEditorComponentCode } from './component-generator'
 
 interface RichTextEditorUsageInfo {
@@ -96,7 +97,9 @@ export class NextRichTextEditorProjectPlugin implements ProjectPlugin {
       return structure
     }
 
-    // 1. Generate the RichTextEditor component file
+    // 1. Generate the RichTextEditor component file, and the contract it reads
+    //    and writes content through
+    ensureRichTextContentRuntimeModule(structure)
     if (usage.hasEmbedFormat) {
       ensureEmbedRuntimeModule(structure)
     }

@@ -1,3 +1,5 @@
+import { ContentTables } from '@teleporthq/teleport-shared'
+
 /**
  * What a per-table read route (`/api/teleport-<table>-<source>` and its count
  * twin) serves a BROWSER of the tables whose unpublished rows sit beside the
@@ -18,27 +20,15 @@
  * `author_email` — and refusing them emptied the blog for every visitor.
  */
 
-export interface BrowserRowPolicy {
-  /** SQL every browser read of the table is narrowed with. */
-  predicate: string
-  /** Keys never served to a browser, wherever they sit in a row (raw and transformed names). */
-  hiddenColumns: ReadonlyArray<string>
-}
+export type BrowserRowPolicy = ContentTables.VisitorRowPolicy
 
-export const BROWSER_ROW_POLICIES: Readonly<Record<string, BrowserRowPolicy>> = {
-  // ONLY `published` is public — the blog's own rule (see the GUI's
-  // `blog-post-status.ts`): drafts, scheduled and archived posts are not.
-  teleport_blog_posts: {
-    predicate: "status = 'published'",
-    hiddenColumns: ['author_email', 'authorEmail'],
-  },
-  // The storefront sells `active` products; a draft or inactive one is the
-  // merchant's, spelled in any case the admin form stored it in.
-  teleport_products: {
-    predicate: "LOWER(TRIM(status)) = 'active'",
-    hiddenColumns: [],
-  },
-}
+/**
+ * One map for both route families: the content presets' posts tables (ONLY
+ * `published` rows, never the author's email — see
+ * `CONTENT_POSTS_VISITOR_ROW_POLICY`) and the catalogue's products.
+ */
+export const BROWSER_ROW_POLICIES: Readonly<Record<string, BrowserRowPolicy>> =
+  ContentTables.VISITOR_ROW_POLICIES
 
 /**
  * ES5 source inlined after the table-access preamble (it uses `__ta*` and

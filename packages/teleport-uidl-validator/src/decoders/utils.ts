@@ -117,7 +117,10 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('attr'),
   constant('children'),
   constant('token'),
-  union(constant('expr'), constant('locale'), constant('ctx'))
+  // `urlSearchParams`: a value of the page address's query string — what a
+  // listing's categories overview reads to step aside while a search narrows
+  // the list (`createConditionIdentifier` reads it as `router.query.<key>`).
+  union(constant('expr'), constant('locale'), constant('ctx'), constant('urlSearchParams'))
 )
 
 export const globalValueDecoder: Decoder<UIDLGlobalReference> = object({
@@ -246,7 +249,9 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     }),
     object({
       name: string(),
-      dependency: lazy(() => externaldependencyDecoder),
+      // A package's function, or a module the generator emits itself (the
+      // category pages' resolver) — the same union `UIDLDependency` is.
+      dependency: lazy(() => dependencyDecoder),
       params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
     })
   ),
@@ -275,7 +280,7 @@ export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
     }),
     object({
       name: string(),
-      dependency: lazy(() => externaldependencyDecoder),
+      dependency: lazy(() => dependencyDecoder),
       params: optional(dict(union(staticValueDecoder, expressionValueDecoder))),
     })
   ),

@@ -20,12 +20,15 @@ import * as ProductOptions from './utils/product-options'
 import * as CartLinePricing from './utils/cart-line-pricing'
 import * as CartCurrency from './utils/cart-currency'
 import * as TableAccess from './utils/table-access'
+import * as ContentTables from './utils/content-tables'
 import * as SessionCookieResolver from './utils/session-cookie-resolver'
 import * as SubscriptionAccess from './utils/subscription-access'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
+import * as RichTextContent from './utils/rich-text-content'
+import * as RichTextContentCodegen from './utils/rich-text-content-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
 import * as ScrollSceneRuntime from './scroll-scene'
@@ -58,12 +61,15 @@ export {
   CartLinePricing,
   CartCurrency,
   TableAccess,
+  ContentTables,
   SessionCookieResolver,
   SubscriptionAccess,
   FontPreconnect,
   EmailDate,
   RichTextEmbeds,
   RichTextEmbedsCodegen,
+  RichTextContent,
+  RichTextContentCodegen,
   DataCache,
   PageRevalidate,
   ScrollSceneRuntime,

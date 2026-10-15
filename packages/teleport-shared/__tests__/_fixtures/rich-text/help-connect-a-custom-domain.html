@@ -1,0 +1,106 @@
+<p>In TeleportHQ, you connect a domain you own (like <code>mybakery.com</code>) from the <strong>Publish</strong> window. Publish your site to Production first, then go to <strong>Domains</strong> → <strong>Custom domain</strong> → <strong>Configure</strong>, type your domain and choose the default address. TeleportHQ then shows the DNS records to add at your domain provider. Once they work, your live site opens on your own domain.</p>
+<h2>Before you start</h2>
+<ul>
+<li><strong>Plan.</strong> Custom domains work on Trial, Pro and Premium. Each of these plans includes 1 custom domain for the workspace. See <a href="custom-domain-limits.md">How many custom domains can I connect?</a>.</li>
+<li><strong>Publish to Production first.</strong> A custom domain always points at your live site, so the project needs at least one Production publish. See <a href="../publish/publish-your-site.md">How to publish your site</a>.</li>
+<li><strong>Own the domain.</strong> Buy it from a domain provider (for example GoDaddy, Namecheap or Cloudflare) and make sure you can sign in there and change its DNS settings. A DNS record is a setting at your domain provider that tells the internet where your domain should go.</li>
+<li><strong>Role.</strong> You need a role that can publish: Owner, Admin or Designer.</li>
+<li><strong>One domain per project.</strong> A project can have one custom domain, plus its <code>www</code> twin.</li>
+</ul>
+<h2>Steps</h2>
+<h3>1. Add the domain in TeleportHQ</h3>
+<ol>
+<li>Open your project in the editor.</li>
+<li>At the <strong>top right</strong>, click <strong>Publish</strong>. The <strong>Publish</strong> window opens on the <strong>Publish</strong> tab.</li>
+<li>In the left menu, make sure <strong>Domains</strong> is selected. At the top, keep <strong>Production</strong> selected.</li>
+<li>Scroll to the <strong>Custom domain</strong> section and click <strong>Configure</strong>.</li>
+<li>Type your domain after <code>https://</code>, for example <code>mybakery.com</code> or <code>shop.mybakery.com</code>. Don't type <code>https://</code> yourself.</li>
+<li>Click <strong>Continue</strong>.</li>
+<li>If you typed a root domain like <code>mybakery.com</code>, the <strong>Choose default domain</strong> step opens. Pick one option (the section &quot;Which default domain should I choose?&quot; below explains them), then click <strong>Continue</strong>. If you typed a subdomain like <code>shop.mybakery.com</code>, this step is skipped.</li>
+</ol>
+<p>TeleportHQ shows &quot;Checking if custom domain can be added to your project...&quot;, then &quot;Verifying configurations for mybakery.com ...&quot;.</p>
+<p><img src="screenshots/connect-a-custom-domain-1.png" alt="The Custom domain section of the TeleportHQ Publish window with the domain field and the Continue button"></p>
+<h3>2. Add the DNS records at your domain provider</h3>
+<p>If your DNS isn't set up yet, TeleportHQ shows &quot;Please verify and fix the following missing configurations for your domain and recheck status&quot;. Each address gets an <strong>Invalid Configuration</strong> label and a <strong>Type / Name / Value</strong> table with copy buttons.</p>
+<ol>
+<li>
+<p>Sign in to your domain provider in a new browser tab.</p>
+</li>
+<li>
+<p>Open the DNS settings for your domain.</p>
+</li>
+<li>
+<p>Add each record exactly as TeleportHQ shows it. For a site on <code>mybakery.com</code> with the recommended <code>www</code> option, you add two records:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Name</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>@</td>
+<td>76.76.21.21</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td>www</td>
+<td>cname.vercel-dns.com</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>If TeleportHQ also shows a <strong>TXT</strong> record with the name <code>_vercel</code>, add it too. Copy its value from TeleportHQ.</p>
+</li>
+<li>
+<p>If TeleportHQ says &quot;Remove the following conflicting DNS record from your DNS provider:&quot;, delete that old record at your provider.</p>
+</li>
+<li>
+<p>Save the changes at your provider.</p>
+</li>
+</ol>
+<p><img src="screenshots/connect-a-custom-domain-2.png" alt="The TeleportHQ verification step showing Invalid Configuration with the A and CNAME records to add"></p>
+<p>For every record type and what it does, see <a href="dns-records-reference.md">Which DNS records do I need for my domain?</a>.</p>
+<h3>3. Check the status</h3>
+<ol>
+<li>Go back to the TeleportHQ <strong>Publish</strong> window.</li>
+<li>Click <strong>Check status</strong>.</li>
+<li>If the table is still there, wait a while and click <strong>Check status</strong> again. DNS changes often take a few minutes, and can take up to 48 hours.</li>
+</ol>
+<h2>Check that it worked</h2>
+<p>The <strong>Custom domain</strong> section now shows <code>https://mybakery.com</code> with a publish status, and a line such as &quot;Redirect option: mybakery.com&quot;. The <strong>TeleportHQ Domain</strong> row above it shows the badge <strong>Redirects to mybakery.com</strong>: your free TeleportHQ address now sends visitors to your own domain, and search engines index only your domain.</p>
+<p>Open your domain in a new browser tab. You should see your live site.</p>
+<p>From now on, the footer of the <strong>Publish</strong> window has a <strong>Publish to custom domain</strong> checkbox, ticked by default. Keep it ticked when you click <strong>Publish to Production</strong> so your domain gets your latest changes.</p>
+<h2>Which default domain should I choose?</h2>
+<p>When you connect a root domain like <code>mybakery.com</code>, TeleportHQ adds both <code>mybakery.com</code> and <code>www.mybakery.com</code> and sends one to the other, so visitors land on one main address.</p>
+<ul>
+<li><strong><code>www.mybakery.com</code></strong> (marked <strong>recommended</strong>, selected by default): <code>www.mybakery.com</code> becomes your main address. Visitors who type <code>mybakery.com</code> are sent to <code>www.mybakery.com</code>. You need both the A record and the CNAME record.</li>
+<li><strong><code>mybakery.com</code> with a redirect</strong>: <code>mybakery.com</code> becomes your main address. Visitors who type <code>www.mybakery.com</code> are sent to <code>mybakery.com</code>. You need both records.</li>
+<li><strong><code>mybakery.com</code> with &quot;no redirect&quot;</strong>: only <code>mybakery.com</code> is connected. <code>www.mybakery.com</code> won't open your site. You need only the A record.</li>
+</ul>
+<h2>Troubleshooting</h2>
+<p><strong>&quot;Publish your project to production first — a custom domain always points at your live site, so there has to be one for it to reach.&quot;</strong>
+Click <strong>Cancel</strong>, click <strong>Publish to Production</strong> and wait until the status says <strong>Published</strong>. Then click <strong>Configure</strong> again.</p>
+<p><strong>The &quot;Purchase Custom Domain Subscription&quot; window opens when you click Configure</strong>
+Your workspace has used all its custom domain slots. Remove a domain from another project, or buy a slot. See <a href="custom-domain-limits.md">How many custom domains can I connect?</a>.</p>
+<p><strong>&quot;Invalid Configuration&quot; doesn't go away</strong>
+Check each record for typing mistakes, wait for DNS to update, then click <strong>Check status</strong>. For more fixes, see <a href="custom-domain-not-working.md">Why is my custom domain not working?</a>.</p>
+<h2>Good to know</h2>
+<ul>
+<li><strong>Staging never uses your domain.</strong> Publishing to Staging doesn't change what your domain shows. See <a href="../publish/test-changes-on-staging.md">How to test changes on a staging site</a>.</li>
+<li><strong>Remove a domain.</strong> In the <strong>Custom domain</strong> section, click <strong>Remove</strong>. TeleportHQ asks &quot;Please confirm that you want to delete the existing domain&quot;. Click <strong>Confirm</strong>. Your TeleportHQ address serves the site again. Remember to delete the DNS records at your provider if you won't use them.</li>
+<li><strong>When a trial or subscription ends,</strong> TeleportHQ removes your deployments and custom domains, so your domain stops showing the site. After you subscribe again, publish again and connect the domain again. See <a href="../../plans-and-billing/plans/when-your-trial-or-subscription-ends.md">What happens when my trial or subscription ends?</a>.</li>
+<li><strong>HTTPS.</strong> TeleportHQ hosts sites on Vercel, which normally sets up a security certificate for your domain automatically once the DNS records work.</li>
+</ul>
+<h2>Related articles</h2>
+<ul>
+<li><a href="dns-records-reference.md">Which DNS records do I need for my domain?</a></li>
+<li><a href="custom-domain-not-working.md">Why is my custom domain not working?</a></li>
+<li><a href="custom-domain-limits.md">How many custom domains can I connect (and how to get more)?</a></li>
+<li><a href="../publish/publish-your-site.md">How to publish your site</a></li>
+<li><a href="../deployments/manage-deployments.md">How to see and manage your deployments</a></li>
+</ul>

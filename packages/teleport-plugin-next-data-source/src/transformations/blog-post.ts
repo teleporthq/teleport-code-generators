@@ -1,4 +1,5 @@
 import type { UIDLEcommerceCategory } from '@teleporthq/teleport-types'
+import { ContentTables, RichTextContentCodegen } from '@teleporthq/teleport-shared'
 import { generateCategoryTaxonomyCode } from './category-taxonomy'
 import { generateAdjacentPostsCode } from './blog-adjacent-posts'
 import { generateBlogCommentsCode } from './blog-comments'
@@ -6,10 +7,23 @@ import { generateHeadingAnchorsCode } from './heading-anchors'
 
 /** What the blog-post transform bakes in at export time beyond the row itself. */
 export interface BlogPostTransformOptions {
+  /**
+   * The preset's tables (the Blog's by default): the posts table the related
+   * and adjacent posts are read from, the comments table a post page counts.
+   */
+  tables?: ContentTables.ContentTables
   /** Category taxonomy — lives only in the UIDL, there is no DB table for it. */
   categories?: UIDLEcommerceCategory[]
   /** Content headings get ids and `#` links — see `heading-anchors.ts`. */
   headingAnchors?: boolean
+  /**
+   * The post pages carry a Contents list: the content's headings get their ids
+   * (the `#` links only with `headingAnchors`) and a post page's post its
+   * `sections` — see `blogContentsSectionsOf`.
+   */
+  contents?: boolean
+  /** Manual Order: Previous / Next walk the post's category as arranged — see `blog-adjacent-posts.ts`. */
+  arranged?: boolean
 }
 
 /**
@@ -20,15 +34,28 @@ export interface BlogPostTransformOptions {
 export const generateBlogPostTransformationCode = (
   options: BlogPostTransformOptions = {}
 ): string => {
+  const tables = options.tables ?? ContentTables.contentTablesByKey('blog')
   return `
 // ============================================================
 // Blog Post Transformation
 // ============================================================
 ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
-${generateBlogCommentsCode()}
-${generateAdjacentPostsCode()}
+${generateBlogCommentsCode(tables.comments ?? `${tables.posts}_comments`)}
+${generateAdjacentPostsCode(tables.posts, options.arranged === true)}
 ${generateHeadingAnchorsCode()}
+${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
+var BLOG_CONTENTS = ${options.contents === true}
+var BLOG_PICTURE_STAND_IN = ${tables.pictureStandIn !== false}
+
+// A post's reading time from its body, for one that stores none: its words at
+// about 200 a minute, at least one — what the editor's post form computes. A
+// card or post page otherwise printed "min read" with no number before it.
+// MUST mirror readingTimeOf in teleport-gui packages/renderer/src/utils/blog-posts.ts.
+function blogReadingTimeOf(html) {
+  var text = String(html || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim()
+  return text ? Math.max(1, Math.ceil(text.split(' ').length / 200)) : null
+}
 
 function buildBlogPost(record, options) {
   if (!record || typeof record !== 'object') return record
@@ -42,8 +69,21 @@ function buildBlogPost(record, options) {
   // i18n-resolved text fields
   var title = resolveI18nField(record, 'title', 'title', currentLang, mainLang) || ''
   var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''
-  var content = resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
-  if (BLOG_HEADING_ANCHORS) content = addHeadingAnchors(content)
+  // A body stored before the rich-text contract (the studio's flat list lines,
+  // the admin panel's no-break spaces) reads as stored HTML from here on.
+  var content = normalizeLegacyRichTextHtml(
+    resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
+  )
+  // Counted before the heading anchors add their marks.
+  var bodyReadingTime = blogReadingTimeOf(content)
+  // The Contents list links to the headings, so they get their ids for it too
+  // — the # links only with the heading anchors on. Its sections ride on a
+  // post page's own fetch only (options.details): a listing draws no list, and
+  // every card of it would otherwise carry one.
+  var contentsHeadings = BLOG_CONTENTS && options.details === true ? [] : null
+  if (BLOG_HEADING_ANCHORS || BLOG_CONTENTS) {
+    content = addHeadingAnchors(content, { links: BLOG_HEADING_ANCHORS, sections: contentsHeadings })
+  }
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
 
@@ -77,11 +117,15 @@ function buildBlogPost(record, options) {
     rawFeaturedImage === TELEPORT_DEFAULT_FEATURED_IMG ||
     featuredImageUrl === TELEPORT_DEFAULT_FEATURED_IMG
   ) {
-    featuredImageUrl =
-      'data:image/svg+xml;charset=utf-8,' +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect fill="#e5e7eb" width="400" height="240"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="13">No image</text></svg>'
-      )
+    // No picture of its own: the grey "No image" stand-in, or none at all for a
+    // preset whose posts are text (ContentTables.pictureStandIn) — its card and
+    // post page show the picture only when there is one.
+    featuredImageUrl = BLOG_PICTURE_STAND_IN
+      ? 'data:image/svg+xml;charset=utf-8,' +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect fill="#e5e7eb" width="400" height="240"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="13">No image</text></svg>'
+        )
+      : null
   }
 
   var rawAuthorAvatar = pickFirst(record.author_avatar_url, record.authorAvatarUrl)
@@ -90,8 +134,11 @@ function buildBlogPost(record, options) {
   // Simple pass-through fields
   var authorName = pickFirst(record.author_name, record.authorName)
   var authorInitials = blogAuthorInitials(authorName)
-  var authorEmail = pickFirst(record.author_email, record.authorEmail)
+  // The author's email never leaves the server: a visitor's API read hides it
+  // (browser-row-policy.ts), and the page data a post or listing page ships
+  // is built here, so it is not part of the post a page sees either.
   var readingTimeMinutes = safeNumber(pickFirst(record.reading_time_minutes, record.readingTimeMinutes), null)
+  if (!(readingTimeMinutes > 0)) readingTimeMinutes = bodyReadingTime
 
   // Tags - i18n-resolved then parsed as JSON array
   var rawTags = resolveI18nField(record, 'tags', 'tags', currentLang, mainLang)
@@ -207,15 +254,16 @@ function buildBlogPost(record, options) {
     galleryImages: galleryImages,
     allImages: allImages,
     authorName: authorName,
-    authorEmail: authorEmail,
     author_name: authorName,
-    author_email: authorEmail,
     authorAvatarUrl: authorAvatarUrl,
     authorBio: authorBio,
     authorInitials: authorInitials,
     metaTitle: metaTitle,
     metaDescription: metaDescription,
     readingTimeMinutes: readingTimeMinutes,
+    // The post's sections, what its page's Contents list links to — see
+    // blogContentsSectionsOf; empty off a post page or under three sections.
+    sections: contentsHeadings ? blogContentsSectionsOf(contentsHeadings) : [],
     isFeatured: isFeatured,
     allowComments: allowComments,
     comments: comments,
@@ -231,6 +279,9 @@ function buildBlogPost(record, options) {
     createdAt: createdAt,
     updatedAt: updatedAt,
     created: created,
+    // The post's place among its primary category's posts (Manual Order), or
+    // null: what the category pages order by.
+    sortOrder: safeNumber(pickFirst(record.sort_order, record.sortOrder), null),
   }
 }
 
@@ -261,7 +312,7 @@ async function getRelatedPostsMap(getClientFn, records) {
   try {
     client = getClientFn()
     await client.connect()
-    var result = await client.query('SELECT * FROM teleport_blog_posts WHERE id = ANY($1)', [
+    var result = await client.query('SELECT * FROM ${tables.posts} WHERE id = ANY($1)', [
       wantedIds,
     ])
     if (result && result.rows) {

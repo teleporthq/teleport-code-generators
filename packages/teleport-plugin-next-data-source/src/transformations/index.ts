@@ -1,9 +1,10 @@
 import type {
   GeneratorOptions,
+  UIDLBlogSettings,
   UIDLAuthentication,
   UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
-import { StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
+import { ContentTables, StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
@@ -26,7 +27,22 @@ export type { EcommerceProductTransformOptions }
  * to serve whichever transform that resolves to — the product fields are ignored
  * for a blog table and vice versa.
  */
+/** What a content preset bakes into its post transform — see `UIDLBlogSettings`. */
+export interface ContentPresetTransformSettings {
+  categories?: UIDLEcommerceCategory[]
+  headingAnchors?: boolean
+  contents?: boolean
+  comments?: boolean
+  order?: 'manual'
+}
+
 export interface EntityTransformOptions extends EcommerceProductTransformOptions {
+  /**
+   * The settings of every content preset, by preset key — the post transform
+   * of a table reads its own preset's (`contentSettingsFor`). The `blog*`
+   * fields below are the Blog's, kept for the callers that name them.
+   */
+  contentSettings?: Partial<Record<ContentTables.ContentPresetKey, ContentPresetTransformSettings>>
   /** Blog post-category taxonomy — see `blogSettings.categories`. */
   blogCategories?: UIDLEcommerceCategory[]
   /** Post content headings get ids and `#` links — see `blogSettings.headingAnchors`. */
@@ -77,10 +93,50 @@ const resolveAllowBackorders = (
  * tax-inclusive or untaxed stores. `allowBackorders` is the effective
  * "stock never blocks a purchase" flag — see `resolveAllowBackorders`.
  */
+const contentPresetTransformSettings = (
+  settings: UIDLBlogSettings | undefined
+): ContentPresetTransformSettings => ({
+  categories: settings?.categories,
+  headingAnchors: settings?.headingAnchors === true,
+  ...(settings?.contents === true && { contents: true }),
+  comments: settings?.comments === true,
+  ...(settings?.order === 'manual' && { order: 'manual' as const }),
+})
+
+/**
+ * The settings the transform of `tableName` bakes in: its preset's entry in
+ * `contentSettings`, or — for the Blog, and for a caller that only set the
+ * `blog*` fields — those fields. Empty for a table no preset owns.
+ */
+export const contentSettingsFor = (
+  options: Pick<
+    EntityTransformOptions,
+    'contentSettings' | 'blogCategories' | 'blogHeadingAnchors' | 'blogComments'
+  >,
+  tableName: string
+): ContentPresetTransformSettings => {
+  const role = ContentTables.contentTableRole(stripSchemaQualifier(tableName))
+  if (!role) {
+    return {}
+  }
+  const own = options.contentSettings?.[role.key]
+  if (own) {
+    return own
+  }
+  if (role.key === 'blog') {
+    return {
+      categories: options.blogCategories,
+      headingAnchors: options.blogHeadingAnchors,
+      comments: options.blogComments,
+    }
+  }
+  return {}
+}
+
 export const buildProductTransformOptions = (
   options: Pick<
     GeneratorOptions,
-    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'auth'
+    'ecommerceSettings' | 'invoiceSettings' | 'blogSettings' | 'helpCenterSettings' | 'auth'
   > &
     LocalizedProjectOptions & {
       /**
@@ -96,6 +152,10 @@ export const buildProductTransformOptions = (
     }
 ): EntityTransformOptions => ({
   categories: options.ecommerceSettings?.categories,
+  contentSettings: {
+    blog: contentPresetTransformSettings(options.blogSettings),
+    help: contentPresetTransformSettings(options.helpCenterSettings),
+  },
   blogCategories: options.blogSettings?.categories,
   blogHeadingAnchors: options.blogSettings?.headingAnchors === true,
   blogComments: options.blogSettings?.comments === true,
@@ -125,9 +185,9 @@ const stripSchemaQualifier = (tableName: string): string => {
  * Detects which transformation type to apply based on the table name.
  * Returns null if no transformation is needed.
  *
- * IMPORTANT: Only the real platform-managed tables (`teleport_products`,
- * `teleport_blog_posts`) are routed through the e-commerce/blog view-model
- * transforms. A previous loose substring match (`lower.includes('products')`)
+ * IMPORTANT: Only the real platform-managed tables (`teleport_products`, the
+ * content presets' posts tables) are routed through the e-commerce/blog
+ * view-model transforms. A previous loose substring match (`lower.includes('products')`)
  * incorrectly routed CUSTOM tables such as `products`, `store_products` or
  * `wholesale_products` through `buildEcommerceProduct`, which emits a fixed set
  * of platform product fields and silently drops all custom columns. Matching the
@@ -138,7 +198,7 @@ export const detectTransformationType = (tableName: string): TransformationType 
     return null
   }
   const bare = stripSchemaQualifier(tableName)
-  if (bare === 'teleport_blog_posts') {
+  if (ContentTables.isContentPostsTable(bare)) {
     return 'blog-post'
   }
   if (bare === 'teleport_products') {
@@ -167,14 +227,20 @@ export const getTransformationCode = (
   const shared = generateSharedTransformationCode()
 
   switch (type) {
-    case 'blog-post':
+    case 'blog-post': {
+      const role = ContentTables.contentTableRole(stripSchemaQualifier(tableName))
+      const settings = contentSettingsFor(options, tableName)
       return (
         shared +
         generateBlogPostTransformationCode({
-          categories: options.blogCategories,
-          headingAnchors: options.blogHeadingAnchors,
+          tables: role ? ContentTables.contentTablesByKey(role.key) : undefined,
+          categories: settings.categories,
+          headingAnchors: settings.headingAnchors,
+          contents: settings.contents === true,
+          arranged: settings.order === 'manual',
         })
       )
+    }
     case 'ecommerce-product':
       return shared + generateEcommerceProductTransformationCode(options)
     case 'custom-page':
@@ -300,7 +366,7 @@ export const REVIEWS_PER_PRODUCT = 5
  */
 export const getTransformWrapperCode = (
   tableName: string,
-  options: Pick<EntityTransformOptions, 'localization' | 'blogComments'> = {}
+  options: Pick<EntityTransformOptions, 'localization' | 'blogComments' | 'contentSettings'> = {}
 ): string => {
   const type = detectTransformationType(tableName)
   if (!type) {
@@ -422,7 +488,8 @@ export const getTransformWrapperCode = (
 
   // A post page's neighbours and comments, on the same single-record heuristic
   // as the related rail. The comments are only asked for when the blog takes
-  // them — see `EntityTransformOptions.blogComments`.
+  // them — see `EntityTransformOptions.blogComments`. `details` tells the
+  // transform the same thing: what only a post page draws (its Contents list).
   const blogPageEnrichment =
     type === 'blog-post'
       ? `
@@ -434,7 +501,7 @@ export const getTransformWrapperCode = (
     } catch (e) {
       // Best-effort; the post navigation stays hidden.
     }${
-      options.blogComments
+      contentSettingsFor(options, tableName).comments === true
         ? `
     try {
       commentsByPostId = await getBlogCommentsMap(getClientFn, records)
@@ -447,7 +514,7 @@ export const getTransformWrapperCode = (
       : ''
   const blogPageOption =
     type === 'blog-post'
-      ? ', adjacentPostsById: adjacentPostsById, commentsByPostId: commentsByPostId'
+      ? ', adjacentPostsById: adjacentPostsById, commentsByPostId: commentsByPostId, details: Array.isArray(records) && records.length === 1'
       : ''
 
   return `${RAW_ROWS_CODE}

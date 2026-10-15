@@ -29,7 +29,11 @@ const GTM_ASSET = {
   options: { target: 'body' },
 }
 
-function makeStructure(analyticsEnabled: boolean, assets: unknown[] = []): ProjectPluginStructure {
+function makeStructure(
+  analyticsEnabled: boolean,
+  assets: unknown[] = [],
+  disabledPaths?: string[]
+): ProjectPluginStructure {
   const files = new Map()
   files.set('_app', {
     path: ['pages'],
@@ -41,7 +45,9 @@ function makeStructure(analyticsEnabled: boolean, assets: unknown[] = []): Proje
       name: 'test-project',
       globals: { settings: { title: 'Test', language: 'en' }, assets },
       root: {} as never,
-      ...(analyticsEnabled ? { analytics: { enabled: true } } : {}),
+      ...(analyticsEnabled
+        ? { analytics: { enabled: true, ...(disabledPaths ? { disabledPaths } : {}) } }
+        : {}),
     },
     files,
     dependencies: {},
@@ -184,6 +190,33 @@ describe('NextAnalyticsProjectPlugin', () => {
         plugins: ['jsx'],
       })
     ).not.toThrow()
+  })
+
+  it('bakes the pages kept out of analytics into the tracker component', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(true, [], ['/admin-panel/*', '/admin-panel', '/secret'])
+
+    await plugin.runAfter(structure)
+
+    const tracker = structure.files.get('teleport-analytics-tracker').files[0].content
+    expect(tracker).toContain('const EXCLUDED_PATHS = ["/admin-panel/*","/admin-panel","/secret"]')
+    expect(tracker).toContain(
+      'initTeleportAnalytics({ excludedPaths: EXCLUDED_PATHS, locales: router.locales || [] })'
+    )
+    expect(structure.files.get('teleport-analytics-lib').files[0].content).toContain(
+      'function isPathExcluded'
+    )
+  })
+
+  it('tracks every page when the editor sent no list', async () => {
+    const plugin = new NextAnalyticsProjectPlugin()
+    const structure = makeStructure(true)
+
+    await plugin.runAfter(structure)
+
+    expect(structure.files.get('teleport-analytics-tracker').files[0].content).toContain(
+      'const EXCLUDED_PATHS = []'
+    )
   })
 
   it('preserves env values already set by the GUI mapper', async () => {

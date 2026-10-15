@@ -435,3 +435,44 @@ test('renderingConditionsDecoder preserves nested condition groups — (a && b) 
     expect(result.result.condition.matchingCriteria).toBe('||')
   }
 })
+
+// The decoder lagged behind `ReferenceType`: an entry reading the page address
+// (`?searchKeyword=`) failed the whole project's validation, so no generator
+// could ever reach the code that reads it as `router.query.<key>`.
+test('renderingConditionsDecoder accepts an entry that reads a URL search param', () => {
+  const renderingConditions = {
+    reference: {
+      type: 'dynamic',
+      content: { referenceType: 'state', id: 'selectedCategory' },
+    },
+    condition: {
+      conditions: [
+        { operation: 'isEmpty' },
+        {
+          operation: 'isEmpty',
+          reference: {
+            type: 'dynamic',
+            content: {
+              referenceType: 'urlSearchParams',
+              id: 'searchKeyword',
+              refPath: ['searchKeyword'],
+            },
+          },
+        },
+      ],
+      matchingCriteria: 'all',
+    },
+  }
+
+  const result = renderingConditionsDecoder.run(renderingConditions)
+  expect(result.ok).toBeTruthy()
+  if (result.ok) {
+    const [, searchEntry] = result.result.condition.conditions as Array<{
+      reference?: { content: { referenceType: string; id: string } }
+    }>
+    expect(searchEntry.reference?.content).toMatchObject({
+      referenceType: 'urlSearchParams',
+      id: 'searchKeyword',
+    })
+  }
+})

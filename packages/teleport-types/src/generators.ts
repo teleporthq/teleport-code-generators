@@ -237,6 +237,8 @@ export interface GeneratorOptions {
   // only in the UIDL (there is no DB table for it), so the blog-post transform
   // needs it here to resolve a post's `category_ids` to display names.
   blogSettings?: UIDLBlogSettings
+  /** The Help Center's settings, same shape; present when it is activated. */
+  helpCenterSettings?: UIDLBlogSettings
   // Project-level invoice settings, plumbed down for the SAME reason: the
   // `teleport` data source fetcher bakes the storefront tax rate
   // (`defaultTaxRate` + `taxIncludedInPrice`) into the product transform so a

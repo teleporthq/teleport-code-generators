@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
+import generate from '@babel/generator'
 
 import { slotNode, elementNode, staticNode, dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import {
@@ -392,6 +393,50 @@ describe('generateJSXSyntax', () => {
       expect((propComparison.right as types.StringLiteral).value).toBe('admin')
     })
 
+    it('reads a URL search-param entry off the page address (router.query.<key>)', () => {
+      // A listing's categories overview: shown while no category is picked AND no
+      // search is typed — the search lives in `?searchKeyword=`, not in a state.
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference: {
+          type: 'dynamic',
+          content: { referenceType: 'state', id: 'selectedCategory' },
+        },
+        condition: {
+          conditions: [
+            { operation: 'isEmpty' },
+            {
+              operation: 'isEmpty',
+              reference: {
+                type: 'dynamic',
+                content: {
+                  referenceType: 'urlSearchParams',
+                  id: 'searchKeyword',
+                  refPath: ['searchKeyword'],
+                },
+              },
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      } as never
+
+      const wrappingParent = elementNode('container', {}, [ownerContainer])
+      const listingParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { selectedCategory: { type: 'string', defaultValue: '' } },
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(wrappingParent, listingParams, options)
+
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      const conditionChain = (expressionChild.expression as types.LogicalExpression).left
+      expect(generate(conditionChain).code).toBe(
+        '(selectedCategory || []).length === 0 && (router.query.searchKeyword || []).length === 0'
+      )
+    })
+
     it('tracks a globalState per-entry reference on params for context wiring', () => {
       const ownerContainer = elementNode('container', {}, [])
       ownerContainer.content.renderingConditions = {
@@ -672,6 +717,38 @@ describe('generateJSXSyntax', () => {
       el.openingElement.attributes
         .filter((a): a is types.JSXAttribute => a.type === 'JSXAttribute')
         .map((a) => (a.name as types.JSXIdentifier).name)
+
+    const styleAttributeOf = (el: types.JSXElement) =>
+      el.openingElement.attributes.find(
+        (a): a is types.JSXAttribute =>
+          a.type === 'JSXAttribute' && (a.name as types.JSXIdentifier).name === 'style'
+      )
+
+    it('turns a text style attribute into the object React wants (error #62 otherwise)', () => {
+      const node = elementNode('div', {
+        style: { type: 'static', content: 'color: red; margin-top: 4px; --accent: #fff' },
+      } as never)
+      const result = generateJSXSyntax(node, params, options) as types.JSXElement
+      const styleAttr = styleAttributeOf(result)
+      expect(styleAttr?.value?.type).toBe('JSXExpressionContainer')
+      const expression = (styleAttr?.value as types.JSXExpressionContainer).expression
+      expect(expression.type).toBe('ObjectExpression')
+      const keys = (expression as types.ObjectExpression).properties.map((property) => {
+        const key = (property as types.ObjectProperty).key
+        return key.type === 'Identifier' ? key.name : (key as types.StringLiteral).value
+      })
+      expect(keys).toEqual(['color', 'marginTop', '--accent'])
+    })
+
+    it('drops a style attribute that is not CSS text instead of emitting a string', () => {
+      const node = elementNode('div', {
+        style: { type: 'static', content: 'nonsense' },
+        class: { type: 'static', content: 'kept' },
+      } as never)
+      const result = generateJSXSyntax(node, params, options) as types.JSXElement
+      expect(styleAttributeOf(result)).toBeUndefined()
+      expect(attributeNames(result)).toContain('class')
+    })
 
     it('drops junk-name attribute true="true"', () => {
       const node = elementNode('div', {

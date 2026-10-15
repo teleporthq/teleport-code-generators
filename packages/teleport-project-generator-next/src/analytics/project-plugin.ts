@@ -1,6 +1,6 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { TRACKER_SOURCE } from './tracker-source'
-import { TRACKER_COMPONENT_SOURCE } from './tracker-component'
+import { buildTrackerComponentSource } from './tracker-component'
 import { injectSiblingIntoApp } from '../app-sibling-injection'
 
 const ENV_URL_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_URL'
@@ -75,7 +75,7 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
         {
           name: 'AnalyticsTracker',
           fileType: FileType.JS,
-          content: TRACKER_COMPONENT_SOURCE,
+          content: buildTrackerComponentSource(uidl.analytics?.disabledPaths),
         },
       ],
     })

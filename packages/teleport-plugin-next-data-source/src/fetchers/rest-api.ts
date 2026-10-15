@@ -61,7 +61,9 @@ const generateAuthCode = (authorization: Authorization): string => {
 
   switch (type) {
     case 'api-key':
-      return `headers['Authorization'] = 'ApiKey ${credentials.apiKey}'`
+      // The same header the editor's data fetcher sends, so a source that works
+      // on the canvas works on the live site.
+      return `headers['X-API-Key'] = '${credentials.apiKey}'`
     case 'bearer-token':
     case 'jwt-bearer':
       return `headers['Authorization'] = 'Bearer ${credentials.token}'`

@@ -13,7 +13,8 @@ import HTMLTemplate from '../../src/project-template'
  * Navigation component whose burger toggles its own menu, used twice (the
  * first instance holds slot content that reads the PAGE's state), a tab set
  * wired by the editor's click workflows with a state class on every trigger,
- * and a monthly / yearly price switch.
+ * a monthly / yearly price switch, and a Contact link in the Navigation whose
+ * click workflow opens a panel the PAGE owns (a header button opening a modal).
  */
 
 const s = (content: unknown) => ({ type: 'static', content })
@@ -59,9 +60,37 @@ const NAVIGATION = {
           children: [text('menu-home', 'Home'), text('menu-about', 'About')],
         })
       ),
+      el('container', {
+        name: 'contact',
+        attrs: { id: s('nav-contact') },
+        children: [s('Contact')],
+      }),
       { type: 'slot', content: {} },
     ],
   }),
+}
+
+const OPEN_CONTACT = {
+  id: 'open-contact',
+  name: 'Open Contact Modal',
+  trigger: {
+    nodeId: 'trigger-contact',
+    type: 'event-element-clicked',
+    scope: 'element',
+    config: { nodeId: 'doc-contact', elementHtmlId: 'nav-contact', preventDefault: false },
+  },
+  nodes: [
+    {
+      id: 'set-contact',
+      type: 'state-update-local-state',
+      label: 'Show Contact Modal',
+      config: { property: 'contactOpen', value: true },
+      executionEnv: 'client',
+      stepNumber: 1,
+    },
+  ],
+  edges: [{ id: 'edge-contact', source: 'trigger-contact', target: 'set-contact' }],
+  usedInNodes: { 'doc-contact': true },
 }
 
 const TAB_ACTIVE = 'tab-active'
@@ -151,6 +180,24 @@ const HOME_CHILDREN = [
   }),
   when('yearly', '===', false, text('price-monthly', '$19 / month')),
   when('yearly', '===', true, text('price-yearly', '$190 / year')),
+  when(
+    'contactOpen',
+    '===',
+    true,
+    el('container', {
+      name: 'contact-modal',
+      attrs: { id: s('contact-modal') },
+      children: [
+        text('contact-text', 'Write to us'),
+        el('button', {
+          name: 'contact-close',
+          attrs: { id: s('contact-close') },
+          events: { click: [{ type: 'stateChange', modifies: 'contactOpen', newState: false }] },
+          children: [s('Close')],
+        }),
+      ],
+    })
+  ),
 ]
 
 const sample = () => JSON.parse(JSON.stringify(uidlSample))
@@ -168,9 +215,10 @@ export const stateSite = (): ProjectUIDL => {
   }
   uidl.components.Navigation = NAVIGATION
   uidl.workflows = {
-    workflows: Object.fromEntries(
-      [0, 1, 2].map((index) => [`switch-tab-${index}`, tabWorkflow(index)])
-    ),
+    workflows: {
+      ...Object.fromEntries([0, 1, 2].map((index) => [`switch-tab-${index}`, tabWorkflow(index)])),
+      'open-contact': OPEN_CONTACT,
+    },
   }
   const homeRoute = uidl.root.stateDefinitions.route.values.find(
     (route: { value: string }) => route.value === uidl.root.stateDefinitions.route.defaultValue
@@ -180,6 +228,7 @@ export const stateSite = (): ProjectUIDL => {
     stateDefinitions: {
       activeTabIndex: { type: 'number', defaultValue: 0 },
       yearly: { type: 'boolean', defaultValue: false },
+      contactOpen: { type: 'boolean', defaultValue: false },
     },
   }
   uidl.root.node.content.children[0].content.node.content.children = HOME_CHILDREN

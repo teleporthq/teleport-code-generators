@@ -1,5 +1,22 @@
 import * as types from '@babel/types'
 
+/**
+ * One entry of the filter TREE the inspector authors: a condition leaf, or a
+ * group of further entries joined with `and` / `or`. The generated fetchers
+ * read this same tree (`normalizeFilterTree` in utils.ts), so the group
+ * operator must reach them intact — flattening an `or` group into its leaves
+ * turns "any of" into "all of" on the published site.
+ */
+export type FilterCondition = { source?: string; operand?: string; destination: unknown }
+export type FilterGroup = { type: 'group'; operator?: string; children: FilterEntry[] }
+export type FilterEntry = FilterCondition | FilterGroup
+
+export const isFilterGroup = (entry: unknown): entry is FilterGroup =>
+  !!entry &&
+  typeof entry === 'object' &&
+  (entry as { type?: string }).type === 'group' &&
+  Array.isArray((entry as { children?: unknown }).children)
+
 // Build a single filter entry: { source: '<src>', destination: <destExpr>, operand: '<op>' }
 const buildFilterEntry = (
   source: string,
@@ -12,10 +29,25 @@ const buildFilterEntry = (
     types.objectProperty(types.identifier('operand'), types.stringLiteral(operand)),
   ])
 
+// { type: 'group', operator: 'and' | 'or', children: <childrenExpr> }
+const buildFilterGroup = (
+  operator: string | undefined,
+  childrenExpr: types.Expression
+): types.ObjectExpression =>
+  types.objectExpression([
+    types.objectProperty(types.identifier('type'), types.stringLiteral('group')),
+    types.objectProperty(
+      types.identifier('operator'),
+      types.stringLiteral(operator === 'or' ? 'or' : 'and')
+    ),
+    types.objectProperty(types.identifier('children'), childrenExpr),
+  ])
+
 // Predicate:
-//   (__f) => __f.destination !== '' && __f.destination !== null &&
-//            __f.destination !== undefined &&
-//            !(Array.isArray(__f.destination) && __f.destination.filter(Boolean).length === 0)
+//   (__f) => __f.type === 'group' ||
+//            (__f.destination !== '' && __f.destination !== null &&
+//             __f.destination !== undefined &&
+//             !(Array.isArray(__f.destination) && __f.destination.filter(Boolean).length === 0))
 // Used at runtime to drop filter conditions whose destination resolves to an
 // empty value. Keeps the page generic: state-bound filters (e.g.
 // `selectedCategory === ''` after picking "All Categories") and url-bound
@@ -25,7 +57,9 @@ const buildFilterEntry = (
 // string and returns zero rows. The array clause covers array-overlap filters
 // (e.g. category `CATEGORY_DESCENDANTS[selectedCategory] || []`) whose "All"
 // reset resolves to `[]` — an empty overlap set must mean "no filter", not
-// "match nothing".
+// "match nothing". A group has no destination of its own and is kept; its
+// children carry the same `.filter(...)`, and a group emptied that way is
+// dropped by the fetcher's `normalizeFilterTree`.
 const buildNonEmptyDestinationPredicate = (): types.ArrowFunctionExpression => {
   const f = types.identifier('__f')
   const dest = types.memberExpression(f, types.identifier('destination'))
@@ -49,25 +83,58 @@ const buildNonEmptyDestinationPredicate = (): types.ArrowFunctionExpression => {
   return types.arrowFunctionExpression(
     [f],
     types.logicalExpression(
-      '&&',
+      '||',
+      types.binaryExpression(
+        '===',
+        types.memberExpression(f, types.identifier('type')),
+        types.stringLiteral('group')
+      ),
       types.logicalExpression(
         '&&',
         types.logicalExpression(
           '&&',
-          types.binaryExpression('!==', dest, types.stringLiteral('')),
-          types.binaryExpression('!==', dest, types.nullLiteral())
+          types.logicalExpression(
+            '&&',
+            types.binaryExpression('!==', dest, types.stringLiteral('')),
+            types.binaryExpression('!==', dest, types.nullLiteral())
+          ),
+          types.binaryExpression('!==', dest, types.identifier('undefined'))
         ),
-        types.binaryExpression('!==', dest, types.identifier('undefined'))
-      ),
-      types.unaryExpression('!', isEmptyArray)
+        types.unaryExpression('!', isEmptyArray)
+      )
     )
+  )
+}
+
+// `[ entry, ... ].filter(<non-empty destination>)`, recursing into groups so
+// every level of the tree drops its empty conditions at runtime.
+const buildFilteredEntriesArray = (
+  filters: FilterEntry[],
+  buildDestinationExpression: (destination: unknown) => types.Expression
+): types.CallExpression => {
+  const entries = filters.map((filter) =>
+    isFilterGroup(filter)
+      ? buildFilterGroup(
+          filter.operator,
+          buildFilteredEntriesArray(filter.children, buildDestinationExpression)
+        )
+      : buildFilterEntry(
+          filter.source || '',
+          buildDestinationExpression(filter.destination),
+          filter.operand || ''
+        )
+  )
+
+  return types.callExpression(
+    types.memberExpression(types.arrayExpression(entries), types.identifier('filter')),
+    [buildNonEmptyDestinationPredicate()]
   )
 }
 
 // Build the AST for:
 //   JSON.stringify(
-//     [ {source, destination, operand}, ... ]
-//       .filter(__f => __f.destination !== '' && __f.destination !== null && __f.destination !== undefined)
+//     [ {source, destination, operand}, { type: 'group', operator, children: [...].filter(...) }, ... ]
+//       .filter(__f => __f.type === 'group' || (__f.destination !== '' && __f.destination !== null && __f.destination !== undefined))
 //   )
 //
 // The `.filter(...)` step is unconditional even when every entry is a static
@@ -76,32 +143,39 @@ const buildNonEmptyDestinationPredicate = (): types.ArrowFunctionExpression => {
 // type is added but its empty-value behavior is forgotten don't silently
 // re-introduce empty-string filters.
 export const buildFiltersStringifyCall = (
-  filters: Array<{ source?: string; operand?: string; destination: unknown }>,
+  filters: FilterEntry[],
   buildDestinationExpression: (destination: unknown) => types.Expression
-): types.CallExpression => {
-  const entries = filters.map((filter) =>
-    buildFilterEntry(
-      filter.source || '',
-      buildDestinationExpression(filter.destination),
-      filter.operand || ''
-    )
-  )
-
-  const filteredArray = types.callExpression(
-    types.memberExpression(types.arrayExpression(entries), types.identifier('filter')),
-    [buildNonEmptyDestinationPredicate()]
-  )
-
-  return types.callExpression(
+): types.CallExpression =>
+  types.callExpression(
     types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-    [filteredArray]
+    [buildFilteredEntriesArray(filters, buildDestinationExpression)]
   )
-}
+
+// The build-time counterpart for `getStaticProps`: every destination is a
+// literal (the dynamic ones were pruned — see `pruneFilterTree`), so the tree
+// is written out as plain string literals with no runtime `.filter(...)`.
+const buildStaticFilterEntryAST = (filter: FilterEntry): types.ObjectExpression =>
+  isFilterGroup(filter)
+    ? buildFilterGroup(
+        filter.operator,
+        types.arrayExpression(filter.children.map(buildStaticFilterEntryAST))
+      )
+    : buildFilterEntry(
+        filter.source || '',
+        types.stringLiteral(typeof filter.destination === 'string' ? filter.destination : ''),
+        filter.operand || ''
+      )
+
+export const buildStaticFiltersStringifyCall = (filters: FilterEntry[]): types.CallExpression =>
+  types.callExpression(
+    types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+    [types.arrayExpression(filters.map(buildStaticFilterEntryAST))]
+  )
 
 // Convenience: push `filters: <call>` onto a paramsProps array.
 export const appendFiltersParam = (
   paramsProps: types.ObjectProperty[],
-  filters: Array<{ source?: string; operand?: string; destination: unknown }> | undefined,
+  filters: FilterEntry[] | undefined,
   buildDestinationExpression: (destination: unknown) => types.Expression
 ): void => {
   if (!filters || filters.length === 0) {

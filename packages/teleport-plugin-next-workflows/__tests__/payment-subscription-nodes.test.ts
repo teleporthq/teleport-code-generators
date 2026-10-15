@@ -135,6 +135,7 @@ describe('payment-charge-user in subscription mode', () => {
       paymentDrivers: loadPaymentDrivers({ stripe: FakeStripe }),
     })
     const metadata = { orderId: 'order-1', subscriptionId: 'sub-row-1' }
+    const before = Math.floor(Date.now() / 1000)
     await withEnv({ STRIPE_SECRET_KEY: 'sk_test_1' }, async () => {
       const result = await stripeHandler(
         {
@@ -163,6 +164,7 @@ describe('payment-charge-user in subscription mode', () => {
         __redirectUrl: 'https://checkout.stripe.com/c/cs_sub',
       })
     })
+    const after = Math.floor(Date.now() / 1000)
     expect(calls).toEqual([
       {
         method: 'checkout.sessions.create',
@@ -170,6 +172,7 @@ describe('payment-charge-user in subscription mode', () => {
           mode: 'subscription',
           success_url: 'https://store.test/ok',
           cancel_url: 'https://store.test/checkout',
+          expires_at: expect.any(Number),
           line_items: [
             {
               price_data: {
@@ -186,6 +189,11 @@ describe('payment-charge-user in subscription mode', () => {
         },
       },
     ])
+    // A subscription checkout holds the order's stock too, so its page closes
+    // after the same 60 minutes as a one-off payment's.
+    const expiresAt = (calls[0].params as { expires_at: number }).expires_at
+    expect(expiresAt).toBeGreaterThanOrEqual(before + 3600)
+    expect(expiresAt).toBeLessThanOrEqual(after + 3600)
     expect(resolveHandlerEntryName(source, 'payment-charge-user')).toBe('payment_charge_user')
   })
 

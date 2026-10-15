@@ -120,6 +120,42 @@ describeInDom('tq-state.js in a page', () => {
     expect(page.shown('menu', first)).toBe(true)
   })
 
+  it("a click in a Navigation opens what the page owns, and leaves the Navigation's own state", async () => {
+    const page = await generatedHome()
+    page.boot()
+    const [first, second] = Array.from(
+      page.document.querySelectorAll('[data-tq-scope="Navigation"]')
+    ) as HTMLElement[]
+    expect(page.shown('contact-modal')).toBe(false)
+
+    page.byId('nav-contact', second).click()
+    expect(page.shown('contact-modal')).toBe(true)
+    expect(page.shown('menu', first)).toBe(false)
+    expect(page.shown('menu', second)).toBe(false)
+
+    page.byId('contact-close').click()
+    expect(page.shown('contact-modal')).toBe(false)
+
+    page.byId('burger', first).click()
+    expect(page.shown('menu', first)).toBe(true)
+    expect(page.shown('contact-modal')).toBe(false)
+  })
+
+  it("a component's own state shadows the page's state of the same name", async () => {
+    const page = await visit(`<body><div data-tq-scope="Page" data-tq-state="open = false">
+      <p id="page-panel" data-tq-if="open" hidden></p>
+      <div data-tq-scope="Navigation" data-tq-state="open = false">
+        <button id="nav-button" data-tq-on-click="open = true"></button>
+        <p id="nav-panel" data-tq-if="open" hidden></p>
+      </div>
+    </div></body>`)
+    page.boot()
+
+    page.byId('nav-button').click()
+    expect(page.shown('nav-panel')).toBe(true)
+    expect(page.shown('page-panel')).toBe(false)
+  })
+
   it('Enter and Space work a clickable div; a real button is left to the browser', async () => {
     const page = await generatedHome()
     page.boot()
