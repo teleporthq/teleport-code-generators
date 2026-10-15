@@ -232,7 +232,7 @@ describe('Next generator — Custom Pages', () => {
     it('server-fetches the published row by the slug route param and 404s when it is missing', () => {
       const { page } = generated
       expect(page).toContain('export async function getStaticProps')
-      expect(page).toMatch(/source:\s*'slug',\s*destination:\s*params\['slug'\]/)
+      expect(page).toMatch(/source:\s*'slug',\s*destination:\s*params\?\.\['slug'\]/)
       expect(page).toMatch(/source:\s*'status',\s*destination:\s*'published'/)
       expect(page).toContain('notFound: true')
     })
