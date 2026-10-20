@@ -17,7 +17,9 @@ export const PAGINATION_CONTROL_ATTR = 'data-tq-pagination-control'
  * `'pages'` is the container the page-number buttons are repeated into and
  * `'page'` the single template button inside it. `'ellipsis'` and `'sentinel'`
  * are reserved for an authored gap marker / scroll sentinel; until a builder
- * emits them both runtimes fall back to generating their own.
+ * emits them both runtimes fall back to generating their own. `'range'` is a
+ * TEXT element ("Showing 1–8 of 12") both runtimes fill with the live row
+ * range — see `range-control.ts`.
  */
 export type PaginationControlKind =
   | 'first'
@@ -29,6 +31,26 @@ export type PaginationControlKind =
   | 'last'
   | 'load-more'
   | 'sentinel'
+  | 'range'
+
+/**
+ * Which mapper a `range` control belongs to, when it does not sit inside that
+ * mapper's pagination container: the array mapper's editor node id, which the
+ * UIDL carries as `nodeId` on the `cms-list-repeater`. A template's footer
+ * ("Showing 1–8 of 12") is laid out by the author, not inside a widget, so the
+ * container-ownership rule the buttons use cannot reach it.
+ *
+ * ⛔ Both attribute names must stay identical to the editor's
+ * (`array-mapper-pagination-settings.ts`) and the canvas renderer's
+ * (`array-mapper-pagination.ts`) copies.
+ */
+export const PAGINATION_FOR_ATTR = 'data-tq-pagination-for'
+
+/** The words of a `range` control, with `{from}`, `{to}` and `{total}` placeholders. */
+export const RANGE_TEMPLATE_ATTR = 'data-tq-range-template'
+
+/** What a `range` control reads when it carries no template. */
+export const DEFAULT_RANGE_TEMPLATE = '{from}–{to} of {total}'
 
 // tslint:disable:no-any
 
@@ -152,13 +174,14 @@ export function removeJSXAttribute(node: any, attrName: string): void {
  *
  * Children carrying NO marker are always kept: they are the author's own
  * additions (a page counter, a spacer) and the generator has no business
- * deciding whether they belong.
+ * deciding whether they belong. A `range` text is kept in every mode too: the
+ * row range is meaningful whether the list pages or appends.
  */
 export function dropInactivePaginationControls(
   paginationNode: any,
   activeKinds: PaginationControlKind[]
 ): void {
-  const active = new Set<string>(activeKinds)
+  const active = new Set<string>([...activeKinds, 'range'])
   const prune = (node: any): void => {
     if (!node || !Array.isArray(node.children)) {
       return

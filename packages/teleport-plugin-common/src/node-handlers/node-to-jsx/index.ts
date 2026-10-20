@@ -1189,6 +1189,21 @@ const addAttributesToJSXTag = (
           break
         }
 
+        // A value read through a mapper (`aria-pressed` from a filter's state, a
+        // formatted date) renders through it, as a text binding does. Emitted as
+        // the bare reference, the attribute carried the raw value.
+        if ((dynamicRef.content as { valueMapper?: string }).valueMapper?.trim()) {
+          elementTag.openingElement.attributes.push(
+            types.jsxAttribute(
+              types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
+              types.jsxExpressionContainer(
+                createDynamicValueExpression(dynamicRef, options) as types.Expression
+              )
+            )
+          )
+          break
+        }
+
         switch (referenceType) {
           default:
             const prefix =

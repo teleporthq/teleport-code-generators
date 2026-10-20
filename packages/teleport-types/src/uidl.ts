@@ -1325,6 +1325,13 @@ export interface UIDLCMSListRepeaterNodeContent {
   elementType: string
   name: string
   key: string // internal usage
+  /**
+   * The array mapper's editor node id. A pagination `range` text placed
+   * outside the mapper's pagination container names its mapper with it
+   * (`data-tq-pagination-for`), so the generator needs it verbatim — unlike
+   * `key`, which the resolver reassigns.
+   */
+  nodeId?: string
   attrs?: Record<string, UIDLAttributeValue>
   dependency?: UIDLDependency
   nodes: {

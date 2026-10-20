@@ -36,7 +36,10 @@ const bootRoute = (type: 'teleport' | 'postgresql') => {
         : { host: 'h', port: 5432, user: 'u', password: 'p', database: 'd' },
   }
   const code = generateDataSourceFetcherWithCore(dataSource as never, 'team_events', false, {})
-    .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+    .replace(
+      "import { Client, types as pgTypes } from 'pg'",
+      "const { Client, types: pgTypes } = require('pg')"
+    )
     .replace(/^export default async function handler/m, 'async function handler')
     .replace(/^export \{[^}]*\}\s*$/m, '')
     .replace(/^export default \{[^}]*\}\s*$/m, '')

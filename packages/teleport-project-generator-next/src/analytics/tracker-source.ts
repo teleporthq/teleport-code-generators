@@ -99,11 +99,7 @@ function setupIdentity() {
   }
 
   try {
-    visitorId = window.localStorage.getItem('tp_aid')
-    if (!visitorId) {
-      visitorId = uuid()
-      window.localStorage.setItem('tp_aid', visitorId)
-    }
+    visitorId = readOrCreateVisitorId()
 
     const now = Date.now()
     const storedSession = window.sessionStorage.getItem('tp_sid')
@@ -114,10 +110,50 @@ function setupIdentity() {
     } else {
       sessionId = uuid()
     }
-    window.sessionStorage.setItem('tp_sid', sessionId)
-    window.sessionStorage.setItem('tp_sid_t', String(now))
+    storeSession(now)
   } catch (e) {
     sessionId = uuid()
+    visitorId = null
+  }
+}
+
+function readOrCreateVisitorId() {
+  let id = window.localStorage.getItem('tp_aid')
+  if (!id) {
+    id = uuid()
+    window.localStorage.setItem('tp_aid', id)
+  }
+  return id
+}
+
+function storeSession(now) {
+  window.sessionStorage.setItem('tp_sid', sessionId)
+  window.sessionStorage.setItem('tp_sid_t', String(now))
+}
+
+// The cookie banner's Accept click writes the consent while the tracker is
+// already running, so identity is re-checked before every send instead of only
+// at boot. The visit that accepted is then the one recognised as the visitor's
+// first, and the running session continues under the persistent id (the server
+// upgrades it instead of opening a second one). A consent that disappears stops
+// the persistent id at once, in a fresh anonymous session so nothing sent
+// afterwards joins the consented one.
+function syncConsentIdentity() {
+  const consented = hasConsent()
+  if (consented === (visitorId !== null)) {
+    return
+  }
+
+  if (!consented) {
+    sessionId = uuid()
+    visitorId = null
+    return
+  }
+
+  try {
+    visitorId = readOrCreateVisitorId()
+    storeSession(Date.now())
+  } catch (e) {
     visitorId = null
   }
 }
@@ -243,6 +279,7 @@ function enqueue(event) {
 }
 
 function baseEvent(type) {
+  syncConsentIdentity()
   seq += 1
   return {
     type: type,
@@ -390,6 +427,7 @@ function sendHeartbeat() {
   if (!isTrackingPossible() || document.visibilityState !== 'visible' || !pageLoadId) {
     return
   }
+  syncConsentIdentity()
 
   // Heartbeats go direct (never queued) — a stale heartbeat is worthless.
   // text/plain keeps this preflight-free too (see sendBatch).

@@ -117,8 +117,15 @@ const hoistLoadingFromRepeaterToDataSource = (uidlNode: UIDLNode) => {
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
   hoistLoadingFromRepeaterToDataSource(uidlNode)
 
+  // The hoisted loading branch is the SAME object under the data source and under its
+  // repeater, so the walk meets its elements twice. Resolving is not idempotent: a
+  // second pass reads the mapped `img` back through the `semanticType` the first pass
+  // recorded (`image`) and every picture of a list's loading state rendered as an
+  // unknown `<image>` tag.
+  const resolved = new WeakSet<UIDLElement>()
   UIDLUtils.traverseNodes(uidlNode, (node, parentNode) => {
-    if (node.type === 'element') {
+    if (node.type === 'element' && !resolved.has(node.content)) {
+      resolved.add(node.content)
       resolveElement(node.content, options)
     }
 

@@ -1063,6 +1063,10 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
   content: object({
     elementType: string(),
     name: withDefault('cms-list-repeater', string()),
+    // The editor node id a `range` pagination text names its mapper by
+    // (`data-tq-pagination-for`). Same stripping hazard as every optional
+    // field below: left out here, every footer range stays as drawn.
+    nodeId: optional(string()),
     attrs: optional(lazy(() => dict(union(attributeValueDecoder, string(), number())))),
     nodes: object({
       list: lazy(() => elementNodeDecoder),

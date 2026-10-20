@@ -205,28 +205,65 @@ const registerParallelFetch = (
   updateParallelFetchStatement(tryBlock, meta)
 }
 
+/**
+ * The fetches another plugin pushed straight into the declaration's
+ * `const [a, b] = await Promise.all([…])` since it was last built — the
+ * pagination plugin adds a paginated list's page and count that way — read
+ * back by name, so rebuilding the declaration never loses them.
+ */
+const fetchesInDeclaration = (
+  declaration: types.VariableDeclaration
+): Array<{ name: string; expression: types.Expression }> => {
+  const declarator = declaration.declarations[0]
+  const pattern = declarator?.id
+  const call =
+    declarator?.init?.type === 'AwaitExpression' &&
+    declarator.init.argument.type === 'CallExpression'
+      ? declarator.init.argument
+      : null
+  const fetches = call?.arguments[0]
+  if (pattern?.type !== 'ArrayPattern' || fetches?.type !== 'ArrayExpression') {
+    return []
+  }
+  return pattern.elements.flatMap((element, index) => {
+    const expression = fetches.elements[index]
+    return element?.type === 'Identifier' && expression && expression.type !== 'SpreadElement'
+      ? [{ name: element.name, expression }]
+      : []
+  })
+}
+
 const updateParallelFetchStatement = (tryBlock: types.TryStatement, meta: ParallelFetchMeta) => {
+  const fetches: Array<{ name: string; expression: types.Expression }> = []
+  let insertAt = 0
   if (meta.declaration) {
     const existingIndex = tryBlock.block.body.indexOf(meta.declaration)
     if (existingIndex !== -1) {
+      fetches.push(...fetchesInDeclaration(meta.declaration))
       tryBlock.block.body.splice(existingIndex, 1)
+      insertAt = existingIndex
     }
   }
+  meta.names.forEach((name, index) => {
+    if (!fetches.some((fetch) => fetch.name === name)) {
+      fetches.push({ name, expression: meta.expressions[index] })
+    }
+  })
 
   const promiseAllCall = types.awaitExpression(
     types.callExpression(
       types.memberExpression(types.identifier('Promise'), types.identifier('all')),
-      [types.arrayExpression(meta.expressions.map((expression) => expression))]
+      [types.arrayExpression(fetches.map((fetch) => fetch.expression))]
     )
   )
 
-  const arrayPattern = types.arrayPattern(meta.names.map((name) => types.identifier(name)))
+  const arrayPattern = types.arrayPattern(fetches.map((fetch) => types.identifier(fetch.name)))
 
   meta.declaration = types.variableDeclaration('const', [
     types.variableDeclarator(arrayPattern, promiseAllCall),
   ])
 
-  tryBlock.block.body.unshift(meta.declaration)
+  tryBlock.block.body.splice(insertAt, 0, meta.declaration)
 }
 
 /**

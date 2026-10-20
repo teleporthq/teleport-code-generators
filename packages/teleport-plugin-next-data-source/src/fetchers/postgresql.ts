@@ -12,6 +12,7 @@ import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
+import { PG_CLIENT_IMPORT } from './pg-client-import'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -58,7 +59,7 @@ export const generatePostgreSQLFetcher = (
     }
   }`
 
-  return `import { Client } from 'pg'
+  return `${PG_CLIENT_IMPORT}
 
 ${generateTableAccessPreamble(trustedReaderRoles)}
 

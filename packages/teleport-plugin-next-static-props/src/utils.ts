@@ -244,12 +244,25 @@ const computePropsAST = (
     ])
   )
 
+  // The route's parameters are props too: a list on the page that shows only
+  // the entries of the one the address names (`{ referenceType: 'prop', id:
+  // 'id' }`) reads `context.params.id` on the server and `props.id` in the
+  // browser — absent from the props, its filter was dropped there and every
+  // entry of every record showed. First, so a fetched prop of the same name wins.
   const returnAST = types.returnStatement(
     types.objectExpression(
       [
         types.objectProperty(
           types.identifier('props'),
           types.objectExpression([
+            types.spreadElement(
+              types.optionalMemberExpression(
+                types.identifier('context'),
+                types.identifier('params'),
+                false,
+                true
+              )
+            ),
             types.objectProperty(
               types.identifier(
                 StringUtils.createStateOrPropStoringValue(initialPropsData.exposeAs.name)

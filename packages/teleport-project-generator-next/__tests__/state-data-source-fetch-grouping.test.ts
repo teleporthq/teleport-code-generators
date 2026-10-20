@@ -118,6 +118,37 @@ describe('state-data-source-plugin fetch grouping', () => {
     expect(listProp![1]).toBe(mirrorProp![1])
   })
 
+  it('keeps a fetch another plugin pushed into the declaration when it rebuilds it', async () => {
+    // The pagination plugin adds a paginated list's page fetch straight into
+    // the `const [...] = await Promise.all([...])` this plugin built; a later
+    // state registration rebuilt that declaration from its own bookkeeping
+    // and the list's fetch was gone — its props then read an undefined name.
+    const structure = makeStructure({
+      productsList: makeState('SELECT * FROM products ORDER BY sku ASC LIMIT 200'),
+    })
+    const first = await plugin(structure as any)
+    const chunk = first.chunks.find((c: any) => c.name === 'getStaticProps') as any
+    const declaration = chunk.meta.parallelFetchData.declaration as types.VariableDeclaration
+    const declarator = declaration.declarations[0]
+    ;(declarator.id as types.ArrayPattern).elements.push(types.identifier('Teleport_products_ds_0'))
+    ;(
+      (declarator.init as types.AwaitExpression).argument as types.CallExpression
+    ).arguments[0].elements.push(
+      types.callExpression(types.identifier('fetchProductsPage'), [types.numericLiteral(1)])
+    )
+
+    structure.uidl.stateDefinitions.lowStockAlerts = makeState()
+    const second = await plugin(structure as any)
+
+    const code = getStaticPropsCode(second as any)
+    expect(code.match(/Promise\.all/g)).toHaveLength(1)
+    expect(code).toContain('Teleport_products_ds_0')
+    expect(code).toContain('fetchProductsPage(1)')
+    const names = (second.chunks.find((c: any) => c.name === 'getStaticProps') as any).meta
+      .parallelFetchData.names
+    expect(new Set(names).size).toBe(names.length)
+  })
+
   it('separates a query-less binding from a queried one on the same table', async () => {
     // Products page shape: productsList has a rawQuery, lowStockAlerts is a
     // bare binding (whole table) — they must not share the LIMIT 200 fetch.

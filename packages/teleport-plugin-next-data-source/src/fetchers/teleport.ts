@@ -20,6 +20,7 @@ import { REQUEST_LOCALE_PARAM } from '../request-locale'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
+import { PG_CLIENT_IMPORT } from './pg-client-import'
 
 interface TeleportDBConfig {
   host?: string
@@ -103,7 +104,7 @@ export const generateTeleportFetcher = (
     }`
       : `(process.env.${DEFAULT_ENV_KEYS.ssl} === 'false' ? false : process.env.${DEFAULT_ENV_KEYS.ssl} === 'true' ? { rejectUnauthorized: false } : undefined)`
 
-  return `import { Client } from 'pg'
+  return `${PG_CLIENT_IMPORT}
 
 ${generateTableAccessPreamble(transformOptions.trustedReaderRoles || [])}
 function normalizePostgresConnectionString(connectionString) {

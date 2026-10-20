@@ -1,5 +1,6 @@
 import { SessionCookieResolver } from '@teleporthq/teleport-shared'
 import { replaceSecretReference } from '../utils'
+import { PG_CLIENT_IMPORT } from './pg-client-import'
 
 interface PostgreSQLConfig {
   host?: string
@@ -109,7 +110,7 @@ function sessionUserField(user, field) {
         : '{ rejectUnauthorized: false }'
       : 'false'
 
-  return `import { Client } from 'pg'
+  return `${PG_CLIENT_IMPORT}
 
 const FORBIDDEN_KEYWORDS = ${JSON.stringify(FORBIDDEN_KEYWORDS)}
 ${sessionHelpers}

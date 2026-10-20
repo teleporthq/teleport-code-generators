@@ -62,7 +62,10 @@ function bootTableRoute(
   })
   // The route is an ES module; run it as a script with the same bindings.
   const code = esm
-    .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+    .replace(
+      "import { Client, types as pgTypes } from 'pg'",
+      "const { Client, types: pgTypes } = require('pg')"
+    )
     .replace(/^export default async function handler/m, 'async function handler')
     .replace(/^export \{[^}]*\}\s*$/m, '')
     .replace(/^export default \{[^}]*\}\s*$/m, '')

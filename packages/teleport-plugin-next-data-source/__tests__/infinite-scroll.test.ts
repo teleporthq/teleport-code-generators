@@ -17,9 +17,10 @@ import {
 
 const runPlugin = async (
   repeater: RepeaterOptions,
-  controls: string[] = ['previous', 'next']
+  controls: string[] = ['previous', 'next'],
+  rootTag?: string
 ): Promise<string> => {
-  const chunk = makeWidgetComponentChunk({ controls })
+  const chunk = makeWidgetComponentChunk({ controls, rootTag })
   const structure: ComponentStructure = {
     uidl: { name: 'TestComponent', node: makeUidlNode(repeater) },
     chunks: [chunk],
@@ -91,6 +92,30 @@ describe('pagination plugin — infinite scroll', () => {
     // intersection and the list would stop growing after one page.
     expect(flat).toContain(
       'setDs_0_page(page => ds_0_maxPages > 0 && page >= ds_0_maxPages ? page : page + 1)'
+    )
+  })
+
+  it('builds the sentinel as an element its parent may hold', async () => {
+    // A <div> among a table's rows is moved out of the table by the parser:
+    // the server's markup and the client's tree then differ and hydration fails.
+    const inBody = collapse(
+      await runPlugin({ infiniteScroll: true }, ['previous', 'next'], 'tbody')
+    )
+    expect(inBody).toContain(
+      '<tr ref={ds_0_sentinelRef} aria-hidden="true" style={{ height: "1px" }}><td style={{ padding: 0, border: 0 }} /></tr>'
+    )
+    expect(inBody).not.toContain('<div ref={ds_0_sentinelRef}')
+
+    const inList = collapse(await runPlugin({ infiniteScroll: true }, ['previous', 'next'], 'ul'))
+    expect(inList).toContain(
+      '<li ref={ds_0_sentinelRef} aria-hidden="true" style={{ height: "1px", listStyle: "none" }} />'
+    )
+
+    const inParagraph = collapse(
+      await runPlugin({ infiniteScroll: true }, ['previous', 'next'], 'p')
+    )
+    expect(inParagraph).toContain(
+      '<span ref={ds_0_sentinelRef} aria-hidden="true" style={{ display: "block", height: "1px" }} />'
     )
   })
 

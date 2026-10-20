@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 import { ChunkType, FileType, ChunkDefinition } from '@teleporthq/teleport-types'
-import { PAGINATION_CONTROL_ATTR } from '../../src/pagination-controls'
+import {
+  PAGINATION_CONTROL_ATTR,
+  PAGINATION_FOR_ATTR,
+  RANGE_TEMPLATE_ATTR,
+} from '../../src/pagination-controls'
+import { SEARCH_FOR_ATTR } from '../../src/search-input'
 
 /**
  * A component shell carrying a `DataProvider` and the pagination controls a
@@ -20,9 +25,36 @@ interface ControlOptions {
   legacyOnly?: boolean
   /** Number of DataProvider + widget pairs to emit (order-based zip coverage). */
   mappers?: number
+  /** The element the providers render in: a table's body, a list. */
+  rootTag?: string
+  /**
+   * The `data-tq-range-template` of a `range` control in the widget. Defaults
+   * to the "Showing" wording; `null` authors the control with no template.
+   */
+  rangeTemplate?: string | null
+  /**
+   * A `range` text OUTSIDE every widget, placed BEFORE the first provider (a
+   * toolbar above the list), naming its mapper with `data-tq-pagination-for`.
+   */
+  standaloneRange?: { forNodeId: string; template?: string }
+  /**
+   * Search inputs OUTSIDE every widget, placed BEFORE the first provider, in
+   * this order: a page's own box naming its mapper with `data-tq-search-for`,
+   * or the platform's (`search-input` class) paired by order.
+   */
+  standaloneSearch?: Array<{ forNodeId?: string; name: string }>
 }
 
-const control = (marker: string, children: types.JSXElement['children'] = []): types.JSXElement =>
+// ASCII hyphen on purpose: the generator prints string literals through jsesc,
+// which would turn an en dash into `–` and make every assertion unreadable.
+export const RANGE_DRAWN_TEXT = 'Showing 1-8 of 12'
+export const RANGE_TEMPLATE = 'Showing {from}–{to} of {total}'
+
+const control = (
+  marker: string,
+  children: types.JSXElement['children'] = [],
+  extraAttrs: Array<[string, string]> = []
+): types.JSXElement =>
   types.jsxElement(
     types.jsxOpeningElement(
       types.jsxIdentifier('div'),
@@ -35,12 +67,49 @@ const control = (marker: string, children: types.JSXElement['children'] = []): t
           types.jsxIdentifier(PAGINATION_CONTROL_ATTR),
           types.stringLiteral(marker)
         ),
+        ...extraAttrs.map(([name, value]) =>
+          types.jsxAttribute(types.jsxIdentifier(name), types.stringLiteral(value))
+        ),
       ],
       false
     ),
     types.jsxClosingElement(types.jsxIdentifier('div')),
     children,
     false
+  )
+
+const rangeControl = (
+  template: string | null | undefined,
+  forNodeId?: string
+): types.JSXElement => {
+  const attrs: Array<[string, string]> = []
+  if (template !== null) {
+    attrs.push([RANGE_TEMPLATE_ATTR, template ?? RANGE_TEMPLATE])
+  }
+  if (forNodeId) {
+    attrs.push([PAGINATION_FOR_ATTR, forNodeId])
+  }
+  return control('range', [types.jsxText(RANGE_DRAWN_TEXT)], attrs)
+}
+
+const searchInput = (name: string, forNodeId?: string): types.JSXElement =>
+  types.jsxElement(
+    types.jsxOpeningElement(
+      types.jsxIdentifier('input'),
+      [
+        types.jsxAttribute(types.jsxIdentifier('name'), types.stringLiteral(name)),
+        forNodeId
+          ? types.jsxAttribute(types.jsxIdentifier(SEARCH_FOR_ATTR), types.stringLiteral(forNodeId))
+          : types.jsxAttribute(
+              types.jsxIdentifier('className'),
+              types.stringLiteral('products-list-search-input')
+            ),
+      ],
+      true
+    ),
+    null,
+    [],
+    true
   )
 
 const legacyControl = (direction: 'previous' | 'next'): types.JSXElement =>
@@ -70,6 +139,10 @@ const buildWidget = (options: ControlOptions): types.JSXElement => {
     }
     if (options.legacyOnly && (marker === 'previous' || marker === 'next')) {
       children.push(legacyControl(marker))
+      continue
+    }
+    if (marker === 'range') {
+      children.push(rangeControl(options.rangeTemplate))
       continue
     }
     children.push(control(marker))
@@ -148,6 +221,12 @@ const buildDataProvider = (name: string, rowIdentifier: string): types.JSXElemen
 
 export const makeWidgetComponentChunk = (options: ControlOptions): ChunkDefinition => {
   const sections: types.JSXElement[] = []
+  if (options.standaloneRange) {
+    sections.push(rangeControl(options.standaloneRange.template, options.standaloneRange.forNodeId))
+  }
+  for (const search of options.standaloneSearch ?? []) {
+    sections.push(searchInput(search.name, search.forNodeId))
+  }
   const mappers = options.mappers ?? 1
   for (let i = 0; i < mappers; i += 1) {
     const identifier = `items${i === 0 ? '' : i}`
@@ -155,9 +234,10 @@ export const makeWidgetComponentChunk = (options: ControlOptions): ChunkDefiniti
     sections.push(buildWidget(options))
   }
 
+  const rootTag = options.rootTag ?? 'div'
   const root = types.jsxElement(
-    types.jsxOpeningElement(types.jsxIdentifier('div'), [], false),
-    types.jsxClosingElement(types.jsxIdentifier('div')),
+    types.jsxOpeningElement(types.jsxIdentifier(rootTag), [], false),
+    types.jsxClosingElement(types.jsxIdentifier(rootTag)),
     sections,
     false
   )
@@ -189,6 +269,8 @@ export interface RepeaterOptions {
   perPage?: number
   /** The list's filters, as the inspector authors them (conditions and groups). */
   filters?: unknown[]
+  /** The mapper's editor node id, as the UIDL carries it on the repeater. */
+  nodeId?: string
 }
 
 export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'items'): any => ({
@@ -218,6 +300,7 @@ export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'ite
           ...(options.paginationMode ? { paginationMode: options.paginationMode } : {}),
           ...(options.infiniteScroll ? { infiniteScroll: true } : {}),
           ...(options.infiniteScrollLoadMore ? { infiniteScrollLoadMore: true } : {}),
+          ...(options.nodeId ? { nodeId: options.nodeId } : {}),
           nodes: { list: { type: 'element', content: { elementType: 'div' } } },
         },
       },

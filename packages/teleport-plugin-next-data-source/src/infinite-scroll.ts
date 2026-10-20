@@ -524,35 +524,103 @@ export const buildSentinelObserverEffect = (
     ])
   )
 
+const styleAttribute = (entries: Record<string, string | number>): types.JSXAttribute =>
+  types.jsxAttribute(
+    types.jsxIdentifier('style'),
+    types.jsxExpressionContainer(
+      types.objectExpression(
+        Object.entries(entries).map(([key, value]) =>
+          types.objectProperty(
+            types.identifier(key),
+            typeof value === 'number' ? types.numericLiteral(value) : types.stringLiteral(value)
+          )
+        )
+      )
+    )
+  )
+
+const sentinelTag = (
+  tag: string,
+  attributes: types.JSXAttribute[],
+  children: types.JSXElement[] = []
+): types.JSXElement =>
+  types.jsxElement(
+    types.jsxOpeningElement(types.jsxIdentifier(tag), attributes, children.length === 0),
+    children.length === 0 ? null : types.jsxClosingElement(types.jsxIdentifier(tag)),
+    children,
+    children.length === 0
+  )
+
+/** Parents whose content is phrasing only: a `<div>` in one closes it in the parser. */
+const PHRASING_PARENTS: ReadonlySet<string> = new Set([
+  'p',
+  'span',
+  'a',
+  'button',
+  'label',
+  'legend',
+  'caption',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'small',
+])
+
 /**
  * `<div ref={ds_N_sentinelRef} aria-hidden="true" style={{ height: '1px' }} />`
  *
  * An invisible one-pixel row after the list. It is generated rather than
  * authored because it is not a control — there is nothing to style or click,
  * only a position in the document for the observer to watch.
+ *
+ * It takes the element its parent may hold: a table section holds rows, a
+ * list holds items, a paragraph holds phrasing. A `<div>` among a table's
+ * rows is moved out of the table by the parser, so the server's markup and
+ * the client's tree differ and React's hydration fails on every such list.
  */
-export const buildSentinelElement = (vars: InfiniteScrollVars): types.JSXElement =>
-  types.jsxElement(
-    types.jsxOpeningElement(
-      types.jsxIdentifier('div'),
-      [
-        types.jsxAttribute(
-          types.jsxIdentifier('ref'),
-          types.jsxExpressionContainer(types.identifier(vars.sentinelRefVar))
-        ),
-        types.jsxAttribute(types.jsxIdentifier('aria-hidden'), types.stringLiteral('true')),
-        types.jsxAttribute(
-          types.jsxIdentifier('style'),
-          types.jsxExpressionContainer(
-            types.objectExpression([
-              types.objectProperty(types.identifier('height'), types.stringLiteral('1px')),
-            ])
-          )
-        ),
-      ],
-      true
+export const buildSentinelElement = (
+  vars: InfiniteScrollVars,
+  parentTag: string | null = null
+): types.JSXElement => {
+  const observed = [
+    types.jsxAttribute(
+      types.jsxIdentifier('ref'),
+      types.jsxExpressionContainer(types.identifier(vars.sentinelRefVar))
     ),
-    null,
-    [],
-    true
-  )
+    types.jsxAttribute(types.jsxIdentifier('aria-hidden'), types.stringLiteral('true')),
+  ]
+  const emptyCell = () => sentinelTag('td', [styleAttribute({ padding: 0, border: 0 })])
+  switch (parentTag) {
+    case 'tbody':
+    case 'thead':
+    case 'tfoot':
+      return sentinelTag('tr', [...observed, styleAttribute({ height: '1px' })], [emptyCell()])
+    case 'table':
+      return sentinelTag(
+        'tbody',
+        [...observed, styleAttribute({ height: '1px' })],
+        [sentinelTag('tr', [], [emptyCell()])]
+      )
+    case 'tr':
+      return sentinelTag('td', [...observed, styleAttribute({ height: '1px', padding: 0 })])
+    case 'ul':
+    case 'ol':
+    case 'menu':
+      return sentinelTag('li', [...observed, styleAttribute({ height: '1px', listStyle: 'none' })])
+    default:
+      if (parentTag && PHRASING_PARENTS.has(parentTag)) {
+        return sentinelTag('span', [
+          ...observed,
+          styleAttribute({ display: 'block', height: '1px' }),
+        ])
+      }
+      return sentinelTag('div', [...observed, styleAttribute({ height: '1px' })])
+  }
+}

@@ -101,7 +101,12 @@ export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string 
       ? options.lowStockThreshold
       : 5
 
-  return `const { Client } = require('pg');
+  return `const { Client, types: pgTypes } = require('pg');
+// A DATE stays the day it names, whatever the server's time zone: node-pg would read it as
+// local midnight, which a server east of UTC sends as the day before.
+if (pgTypes && typeof pgTypes.setTypeParser === 'function') {
+  pgTypes.setTypeParser(1082, (value) => value);
+}
 ${
   // The session cookie is resolved from the REQUEST rather than from
   // process.env.NEXTAUTH_URL — see session-cookie-resolver.ts. Reading it the

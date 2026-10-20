@@ -152,6 +152,7 @@ const REPEATER_CONTENT_FIELDS: Record<
 > = {
   elementType: 'preserved',
   name: 'preserved',
+  nodeId: 'preserved',
   attrs: 'preserved',
   dependency: 'preserved',
   nodes: 'preserved',
@@ -179,6 +180,7 @@ test('cmsListRepeaterNodeDecoder preserves every content field the type declares
   const sample: Record<string, unknown> = {
     elementType: 'container',
     name: 'cms-list-repeater',
+    nodeId: 'node-1',
     attrs: { dataNodeId: { type: 'static', content: 'node-1' } },
     dependency: {
       type: 'package',
