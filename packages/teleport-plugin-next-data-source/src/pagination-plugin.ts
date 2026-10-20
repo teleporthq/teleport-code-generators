@@ -37,10 +37,15 @@ import {
 import {
   convertControlToButton,
   dropInactivePaginationControls,
+  findAllPaginationControls,
   findPaginationControl,
+  PAGINATION_FOR_ATTR,
+  readJSXAttributeString,
   setJSXExpressionAttribute,
   type PaginationControlKind,
 } from './pagination-controls'
+import { findRangeControls, wireRangeControl } from './range-control'
+import { findAllSearchInputsInJSX, pairSearchInputs, wireSearchInput } from './search-input'
 import { buildCountFetchEffect, buildCountSeqDeclaration } from './count-effect'
 import {
   findAllSearchClearButtonsInJSX,
@@ -53,6 +58,7 @@ import {
   type NumberedPaginationVars,
 } from './numbered-pagination'
 import {
+  buildAccumulatingRequestMark,
   buildAccumulatingResponseHandler,
   buildInfiniteScrollDeclarations,
   buildSentinelElement,
@@ -154,6 +160,10 @@ interface DataSourceUsage {
   dataSourceIdentifier: string
   // The cms-list-repeater renderPropIdentifier (e.g., "context_1i871")
   arrayMapperRenderProp: string
+  // The array mapper's editor node id (`nodeId` on the cms-list-repeater), which
+  // a `range` control placed outside the pagination container names in its
+  // `data-tq-pagination-for` attribute. Absent from UIDL exported before it.
+  nodeId?: string
   // Resource definition from UIDL
   resourceDefinition: {
     dataSourceId: string
@@ -603,6 +613,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           index: index++,
           dataSourceIdentifier: parentDataSource.identifier,
           arrayMapperRenderProp,
+          nodeId: typeof content.nodeId === 'string' ? content.nodeId : undefined,
           resourceDefinition: {
             dataSourceId: parentDataSource.resourceDef.dataSourceId || '',
             tableName: parentDataSource.resourceDef.tableName || '',
@@ -704,6 +715,9 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
   setPageStateVar: string
   maxPagesStateVar: string
   setMaxPagesStateVar: string
+  /** The counted row total behind a `range` control; `null` until counted. */
+  totalStateVar: string
+  setTotalStateVar: string
   searchQueryVar: string
   setSearchQueryVar: string
   debouncedSearchQueryVar: string
@@ -722,6 +736,8 @@ function getStateVarsForUsage(usage: DataSourceUsage): {
     setPageStateVar: `setDs_${idx}_page`,
     maxPagesStateVar: `ds_${idx}_maxPages`,
     setMaxPagesStateVar: `setDs_${idx}_maxPages`,
+    totalStateVar: `ds_${idx}_total`,
+    setTotalStateVar: `setDs_${idx}_total`,
     searchQueryVar: `ds_${idx}_searchQuery`,
     setSearchQueryVar: `setDs_${idx}_searchQuery`,
     debouncedSearchQueryVar: `ds_${idx}_debouncedQuery`,
@@ -829,7 +845,8 @@ function pushSearchUrlSyncEffects(
   )
   // read-back: `?<searchUrlParamKey>=` → the input AND the applied query at once
   // (`ds_N_adoptUrlSearch`), so an address is not a typed change: it skips the
-  // debounce and keeps the page — `?searchKeyword=x&page=3` lands on page 3.
+  // debounce and keeps a page the address carries — `?searchKeyword=x&page=3`
+  // lands on page 3.
   effectStatements.push(
     URLSearchParamSync.buildUrlReadBackEffect(
       usage.searchUrlParamKey,
@@ -842,19 +859,26 @@ function pushSearchUrlSyncEffects(
 
 // `const ds_N_adoptUrlSearch = (update) => { … }`: the setter the search's URL
 // read-back calls with its `(prev) => next` updater. It moves the input and the
-// applied (debounced) query together; the combined paginated state keeps its
-// page, which a typed change resets to 1 in the debounce effect.
+// applied (debounced) query together. A list whose page is in the address
+// keeps its page — the page sync sets it from the same address. Any other
+// list starts the new query on page 1, as a typed change does in the debounce
+// effect: an appending list has usually advanced past page 1 by the time the
+// router is ready, and the query's first answer would otherwise be its page 2
+// — empty for a query only a few rows match.
 function buildUrlSearchAdopter(
   adopterVar: string,
   usage: DataSourceUsage,
   vars: ReturnType<typeof getStateVarsForUsage>
 ): types.VariableDeclaration {
   const update = types.identifier('update')
+  const pageReset = usageHasPageUrlSync(usage)
+    ? []
+    : [types.objectProperty(types.identifier('page'), types.numericLiteral(1))]
   const applyToDebounced =
     usage.category === 'paginated+search'
       ? // setDs_N_state((state) => {
         //   const next = update(state.debouncedQuery)
-        //   return next === state.debouncedQuery ? state : { ...state, debouncedQuery: next }
+        //   return next === state.debouncedQuery ? state : { ...state, page: 1, debouncedQuery: next }
         // })
         types.callExpression(types.identifier(vars.setCombinedStateVar), [
           types.arrowFunctionExpression(
@@ -884,6 +908,7 @@ function buildUrlSearchAdopter(
                   types.identifier('state'),
                   types.objectExpression([
                     types.spreadElement(types.identifier('state')),
+                    ...pageReset,
                     types.objectProperty(
                       types.identifier('debouncedQuery'),
                       types.identifier('next')
@@ -1185,6 +1210,14 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       return structure
     }
     const blockStatement = arrowFunction.body as types.BlockStatement
+
+    // The "Showing 1–8 of 12" texts. Known up front because a component that
+    // draws one needs the counted TOTAL in state — `ds_N_maxPages` alone cannot
+    // say how many rows there are — and that state, with the live count that
+    // fills it, is declared per usage below. A component without one emits
+    // exactly what it always did.
+    const rangeControls = findRangeControls(blockStatement)
+    const hasRangeControl = rangeControls.length > 0
 
     // STEP 1: Build state registry from UIDL
     const registry = buildStateRegistry(uidl.node)
@@ -1500,12 +1533,16 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         pushPropIdsAsDeps(countEffectDeps, countEffectSeen, usage.filterPropIds)
         // Same goes for URL-driven filters (already documented above).
         pushUrlSearchParamMemoDeps(countEffectDeps, usage)
+        if (hasRangeControl) {
+          stateDeclarations.push(buildTotalDeclaration(vars))
+        }
         stateDeclarations.push(buildCountSeqDeclaration(vars.countSeqRefVar))
         effectStatements.push(
           buildCountFetchEffect({
             fileName,
             perPage: usage.perPage,
             setMaxPagesVar: vars.setMaxPagesStateVar,
+            setTotalVar: hasRangeControl ? vars.setTotalStateVar : undefined,
             urlParams,
             deps: countEffectDeps,
             countSeqRefVar: vars.countSeqRefVar,
@@ -1572,8 +1609,10 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
         // "Next" button, but not to label a numbered strip or to know when an
         // infinite list has reached its end, so those two modes fetch a live
         // count as well.
+        // A range text needs the live count too: the build-time count only
+        // ever became a page count, never the total it shows.
         const needsLiveCount =
-          !isPage || usage.paginationMode === 'numbered' || usage.infiniteScroll
+          !isPage || usage.paginationMode === 'numbered' || usage.infiniteScroll || hasRangeControl
         if (needsLiveCount) {
           const fileName = generateSafeFileName(
             usage.resourceDefinition.dataSourceType,
@@ -1610,12 +1649,16 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           pushPropIdsAsDeps(countDeps, countDepsSeen, usage.filterPropIds)
           pushUrlSearchParamMemoDeps(countDeps, usage)
 
+          if (hasRangeControl) {
+            stateDeclarations.push(buildTotalDeclaration(vars))
+          }
           stateDeclarations.push(buildCountSeqDeclaration(vars.countSeqRefVar))
           effectStatements.push(
             buildCountFetchEffect({
               fileName,
               perPage: usage.perPage,
               setMaxPagesVar: vars.setMaxPagesStateVar,
+              setTotalVar: hasRangeControl ? vars.setTotalStateVar : undefined,
               urlParams: countUrlParams,
               deps: countDeps,
               countSeqRefVar: vars.countSeqRefVar,
@@ -1868,10 +1911,8 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       // An auto-loading list needs something at the end of the rows for its
       // IntersectionObserver to watch.
       if (usage.infiniteScroll && usage.paginated && !usage.infiniteScrollLoadMore) {
-        insertSentinelAfterProvider(
-          blockStatement,
-          dp,
-          buildSentinelElement(getInfiniteScrollVars(usage.index))
+        insertSentinelAfterProvider(blockStatement, dp, (parentTag) =>
+          buildSentinelElement(getInfiniteScrollVars(usage.index), parentTag)
         )
       }
 
@@ -1940,25 +1981,17 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       stabilizeDataProviderWithoutRepeater(dp)
     })
 
-    // STEP 4: Wire search inputs
-    // Match search inputs to usages by order (within each dataSourceIdentifier that has search enabled)
+    // STEP 4: Wire search inputs — a platform input by its place among the
+    // search-enabled mappers, a page's own marked input by the mapper it names
+    // (`search-input.ts`).
     const searchInputs = findAllSearchInputsInJSX(blockStatement)
-
-    // Get all search-enabled usages in order
-    const searchEnabledUsages = registry.usages.filter((u) => u.searchEnabled)
-
-    // Match by order - search input 0 -> searchEnabledUsages[0], etc.
-    const usageBySearchInput = new Map<any, DataSourceUsage>()
-    searchInputs.forEach((input, idx) => {
-      if (idx >= searchEnabledUsages.length) {
-        return
+    const usageBySearchInput = pairSearchInputs(searchInputs, registry.usages)
+    for (const input of searchInputs) {
+      const usage = usageBySearchInput.get(input.node)
+      if (usage) {
+        wireSearchInput(input, getStateVarsForUsage(usage))
       }
-
-      const usage = searchEnabledUsages[idx]
-      const vars = getStateVarsForUsage(usage)
-      wireSearchInput(input.node, vars)
-      usageBySearchInput.set(input.node, usage)
-    })
+    }
 
     // STEP 4.5: Wire the clear buttons, each to the input it shares a parent with.
     findAllSearchClearButtonsInJSX(blockStatement).forEach((button) => {
@@ -1997,6 +2030,25 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       }
     )
 
+    // STEP 5b: Wire the range texts that name their mapper.
+    //
+    // A `range` control carrying `data-tq-pagination-for` belongs to the mapper
+    // whose editor node id it names, wherever it sits — a template's footer or
+    // toolbar is laid out by the author, not inside a pagination container, so
+    // the container-ownership rule above cannot reach it. One without the
+    // attribute was wired by its container in STEP 5; one naming a mapper this
+    // component does not render stays as drawn.
+    rangeControls.forEach((control) => {
+      const ownerNodeId = readJSXAttributeString(control, PAGINATION_FOR_ATTR)
+      if (!ownerNodeId) {
+        return
+      }
+      const owner = registry.usages.find((usage) => usage.nodeId === ownerNodeId)
+      if (owner) {
+        wireRangeControlFor(control, owner, getStateVarsForUsage(owner))
+      }
+    })
+
     // STEP 6: Update getStaticProps if this is a page
     if (isPage) {
       updateGetStaticProps(
@@ -2023,6 +2075,8 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
  * It has to be a sibling: the provider's own child is a render-prop function,
  * and anything placed inside it would be re-created on every fetch — the
  * observer would then be watching an element that is no longer in the document.
+ * The sentinel is built for the element it lands in (`buildSentinelElement`):
+ * a fragment is transparent, a component's children may go anywhere.
  *
  * Returns false when the provider has no element parent to splice into (a
  * provider returned directly from the component), leaving the list on its
@@ -2031,35 +2085,53 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
 function insertSentinelAfterProvider(
   blockStatement: types.BlockStatement,
   provider: any,
-  sentinel: types.JSXElement
+  buildSentinel: (parentTag: string | null) => types.JSXElement
 ): boolean {
   let inserted = false
 
-  const traverse = (node: any): void => {
+  const elementTagOf = (node: any, enclosing: string | null): string | null => {
+    if (node?.type === 'JSXFragment') {
+      return enclosing
+    }
+    if (node?.type !== 'JSXElement') {
+      return enclosing
+    }
+    const name = node.openingElement?.name
+    if (name?.type !== 'JSXIdentifier') {
+      return null
+    }
+    if (name.name === 'Fragment') {
+      return enclosing
+    }
+    return /^[a-z]/.test(name.name) ? name.name : null
+  }
+
+  const traverse = (node: any, enclosing: string | null): void => {
     if (!node || inserted) {
       return
     }
+    const tag = elementTagOf(node, enclosing)
     if (Array.isArray(node.children)) {
       const at = node.children.indexOf(provider)
       if (at !== -1) {
-        node.children.splice(at + 1, 0, sentinel)
+        node.children.splice(at + 1, 0, buildSentinel(tag))
         inserted = true
         return
       }
-      node.children.forEach(traverse)
+      node.children.forEach((child: any) => traverse(child, tag))
     }
     if (node.body) {
       if (Array.isArray(node.body)) {
-        node.body.forEach(traverse)
+        node.body.forEach((child: any) => traverse(child, tag))
       } else {
-        traverse(node.body)
+        traverse(node.body, tag)
       }
     }
     if (node.consequent) {
-      traverse(node.consequent)
+      traverse(node.consequent, tag)
     }
     if (node.alternate) {
-      traverse(node.alternate)
+      traverse(node.alternate, tag)
     }
     // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
     // panel, a gated section: the provider sits on the RIGHT of a logical
@@ -2067,23 +2139,23 @@ function insertSentinelAfterProvider(
     // an argument. Left unvisited, the products list under the first tab of
     // a shop was never paginated or seeded, and rendered nothing.
     if (node.left) {
-      traverse(node.left)
+      traverse(node.left, tag)
     }
     if (node.right) {
-      traverse(node.right)
+      traverse(node.right, tag)
     }
     if (node.test) {
-      traverse(node.test)
+      traverse(node.test, tag)
     }
     if (node.expression) {
-      traverse(node.expression)
+      traverse(node.expression, tag)
     }
     if (node.argument) {
-      traverse(node.argument)
+      traverse(node.argument, tag)
     }
   }
 
-  traverse(blockStatement)
+  traverse(blockStatement, null)
   return inserted
 }
 
@@ -2197,68 +2269,6 @@ function findArrayMapperRenderPropInDataProvider(dataProvider: any): string | un
   }
 
   return renderItemAttr.value.expression.params[0].name
-}
-
-function findAllSearchInputsInJSX(
-  blockStatement: types.BlockStatement
-): Array<{ node: any; className: string }> {
-  const results: Array<{ node: any; className: string }> = []
-
-  const traverse = (node: any): void => {
-    if (!node) {
-      return
-    }
-
-    if (node.type === 'JSXElement' && node.openingElement?.name?.name === 'input') {
-      const classAttr = node.openingElement.attributes?.find(
-        (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'className'
-      )
-      const className = classAttr?.value?.value || classAttr?.value?.expression?.value || ''
-      if (className.includes('search-input')) {
-        results.push({ node, className })
-      }
-    }
-
-    if (node.children && Array.isArray(node.children)) {
-      node.children.forEach((c: any) => traverse(c))
-    }
-    if (node.body) {
-      if (Array.isArray(node.body)) {
-        node.body.forEach((s: any) => traverse(s))
-      } else {
-        traverse(node.body)
-      }
-    }
-    if (node.consequent) {
-      traverse(node.consequent)
-    }
-    if (node.alternate) {
-      traverse(node.alternate)
-    }
-    // `{activeTabIndex === 0 && (<div>…<DataProvider/>…</div>)}` — a tab
-    // panel, a gated section: the provider sits on the RIGHT of a logical
-    // expression (or in a ternary's `test`), which is not a child, a body or
-    // an argument. Left unvisited, the products list under the first tab of
-    // a shop was never paginated or seeded, and rendered nothing.
-    if (node.left) {
-      traverse(node.left)
-    }
-    if (node.right) {
-      traverse(node.right)
-    }
-    if (node.test) {
-      traverse(node.test)
-    }
-    if (node.expression) {
-      traverse(node.expression)
-    }
-    if (node.argument) {
-      traverse(node.argument)
-    }
-  }
-
-  traverse(blockStatement)
-  return results
 }
 
 /**
@@ -3057,10 +3067,20 @@ function createFetchDataAttribute(
     [responseTail]
   )
 
+  // An appending list records the request it now stands on before making it
+  // (see `buildAccumulatingRequestMark`).
   const arrow = cache
     ? types.arrowFunctionExpression(
         [types.identifier('params')],
         buildCachedFetchBody(networkChain, cache)
+      )
+    : accumulate
+    ? types.arrowFunctionExpression(
+        [types.identifier('params')],
+        types.blockStatement([
+          buildAccumulatingRequestMark(getInfiniteScrollVars(accumulate.usage.index)),
+          types.returnStatement(networkChain),
+        ])
       )
     : types.arrowFunctionExpression([types.identifier('params')], networkChain)
 
@@ -3068,39 +3088,6 @@ function createFetchDataAttribute(
     types.jsxIdentifier('fetchData'),
     types.jsxExpressionContainer(
       types.callExpression(types.identifier('useCallback'), [arrow, types.arrayExpression([])])
-    )
-  )
-}
-
-function wireSearchInput(inputNode: any, vars: ReturnType<typeof getStateVarsForUsage>): void {
-  // Remove existing onChange and value
-  inputNode.openingElement.attributes = inputNode.openingElement.attributes.filter(
-    (attr: any) => !['onChange', 'value'].includes(attr.name?.name)
-  )
-
-  // Add onChange
-  inputNode.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('onChange'),
-      types.jsxExpressionContainer(
-        types.arrowFunctionExpression(
-          [types.identifier('e')],
-          types.callExpression(types.identifier(vars.setSearchQueryVar), [
-            types.memberExpression(
-              types.memberExpression(types.identifier('e'), types.identifier('target')),
-              types.identifier('value')
-            ),
-          ])
-        )
-      )
-    )
-  )
-
-  // Add value
-  inputNode.openingElement.attributes.push(
-    types.jsxAttribute(
-      types.jsxIdentifier('value'),
-      types.jsxExpressionContainer(types.identifier(vars.searchQueryVar))
     )
   )
 }
@@ -3118,6 +3105,41 @@ function buildFetchDataForUsage(fileName: string, usage: DataSourceUsage): types
     return createFetchDataAttribute(fileName, undefined, { usage })
   }
   return createFetchDataAttribute(fileName, usage.cache?.client ? usage.cache : undefined)
+}
+
+/** `const [ds_N_total, setDs_N_total] = useState(null)` — declared only beside a range control. */
+function buildTotalDeclaration(vars: ReturnType<typeof getStateVarsForUsage>): types.Statement {
+  return types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.arrayPattern([
+        types.identifier(vars.totalStateVar),
+        types.identifier(vars.setTotalStateVar),
+      ]),
+      types.callExpression(types.identifier('useState'), [types.nullLiteral()])
+    ),
+  ])
+}
+
+/**
+ * Fills one `range` text with the live row range of `usage` (see
+ * `range-control.ts`). A mapper that does not page has no count to show, so
+ * its range text is left as drawn.
+ */
+function wireRangeControlFor(
+  control: any,
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>
+): void {
+  if (!usage.paginated) {
+    return
+  }
+  const { currentPageExpr } = getPageAccessors(usage, vars)
+  wireRangeControl(control, {
+    totalVar: vars.totalStateVar,
+    currentPageExpr: currentPageExpr(),
+    perPage: usage.perPage,
+    infiniteScroll: usage.infiniteScroll,
+  })
 }
 
 /**
@@ -3185,6 +3207,12 @@ function wirePaginationWidget(
   vars: ReturnType<typeof getStateVarsForUsage>,
   hasLoadingState: boolean
 ): void {
+  // A range text inside the container takes the container's owner, like the
+  // buttons beside it; one naming its own mapper is wired in STEP 5b instead.
+  findAllPaginationControls(paginationNode, 'range')
+    .filter((control) => !readJSXAttributeString(control, PAGINATION_FOR_ATTR))
+    .forEach((control) => wireRangeControlFor(control, usage, vars))
+
   if (usage.infiniteScroll) {
     // Only the Load More button survives; page controls make no sense for a
     // list the visitor never leaves.

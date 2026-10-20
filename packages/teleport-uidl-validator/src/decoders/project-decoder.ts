@@ -145,7 +145,12 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   globalStateDefinitions: optional(anyJson()),
   invoiceSettings: optional(anyJson()),
   ecommerceSettings: optional(anyJson()),
+  // The payment providers of a site that takes online payments without a
+  // store (its bookings): consumed by the payment drivers and routes.
+  paymentSettings: optional(anyJson()),
   blogSettings: optional(anyJson()),
+  // The booking items' category taxonomy — consumed by NextBookingProjectPlugin.
+  bookingSettings: optional(anyJson()),
   // The Help Center's settings slot (the second content preset): its baked
   // taxonomy and category pages. Undeclared, it was stripped here and the
   // generated help pages baked an empty category tree.
@@ -162,4 +167,7 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // consumed by NextPwaProjectPlugin and NextWebPushProjectPlugin.
   pwa: optional(progressiveWebAppDecoder),
   webPush: optional(webPushDecoder),
+  // The statement behind the bookings' calendar feeds — consumed by
+  // NextWorkflowProjectPlugin, which emits /api/bookings/ical/[file].js.
+  bookingCalendars: optional(object({ feedStatement: string() })),
 }) as Decoder<VProjectUIDL>

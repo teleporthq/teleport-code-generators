@@ -67,7 +67,10 @@ function bootTableRoute(tableName: string, options: BootOptions = {}) {
     options.cache
   )
   const code = esm
-    .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+    .replace(
+      "import { Client, types as pgTypes } from 'pg'",
+      "const { Client, types: pgTypes } = require('pg')"
+    )
     .replace(
       "import { tqWithCache } from '../tq-cache/server'",
       "const { tqWithCache } = require('tq-cache')"
@@ -417,7 +420,10 @@ describe('raw-query state routes bind {{Current User.*}} to the session', () => 
       paramFields
     )
     const code = esm
-      .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+      .replace(
+        "import { Client, types as pgTypes } from 'pg'",
+        "const { Client, types: pgTypes } = require('pg')"
+      )
       .replace(/^export default async function handler/m, 'async function handler')
       .concat('\nmodule.exports = { handler: handler }')
     const queries: Array<{ sql: string; params: unknown[] }> = []

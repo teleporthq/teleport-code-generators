@@ -182,7 +182,7 @@ describe('a plain list fetches with its repeater’s sort', () => {
   it('sends a sort bound to state, and refetches when the state changes', async () => {
     const code = squash(await runPlugin('state'))
     expect(code).toContain(
-      'sorts: JSON.stringify([{ field: sortBy.split("-")[0], order: sortBy.split("-")[1] }])'
+      'sorts: JSON.stringify([{ field: sortBy.split("-")?.[0], order: sortBy.split("-")?.[1] }])'
     )
     expect(code).toMatch(/\}\), \[sortBy\]\)\}/)
   })

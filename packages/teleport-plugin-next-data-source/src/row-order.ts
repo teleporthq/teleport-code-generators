@@ -1,4 +1,4 @@
-import { supportsProductPriceSort } from './product-price-sort'
+import { isListingTableWithId } from './list-sort-order'
 
 interface ColumnLike {
   name?: unknown
@@ -7,8 +7,9 @@ interface ColumnLike {
 
 /**
  * The column that tells a table's rows apart, read from the table the project
- * saved: its primary key, else a column named `id`. The products table has `id`
- * from its first migration. Null when neither is known — then nothing is added,
+ * saved: its primary key, else a column named `id`. The platform listing
+ * tables (products, blog posts, booking items) have `id` from their first
+ * migration. Null when neither is known — then nothing is added,
  * rather than a column that may not exist.
  */
 export const rowIdentityColumn = (
@@ -27,7 +28,7 @@ export const rowIdentityColumn = (
   if (typeof key === 'string') {
     return key
   }
-  return supportsProductPriceSort(tableName) ? 'id' : null
+  return isListingTableWithId(tableName) ? 'id' : null
 }
 
 /**

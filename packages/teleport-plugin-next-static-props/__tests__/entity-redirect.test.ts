@@ -288,3 +288,14 @@ describe('teleport-plugin-next-static-props: entity redirect', () => {
     expect(code).not.toContain('redirect')
   })
 })
+
+describe('teleport-plugin-next-static-props: the route reaches the page', () => {
+  it("passes the route's parameters as props, before the fetched row", async () => {
+    // A child list filtered by the entry the address names reads `props.slug`
+    // in the browser; without it the filter was dropped and every row showed.
+    const code = (await generateCode(makeStructure({}))).replace(/\s+/g, ' ')
+    expect(code).toContain(
+      'props: { ...context?.params, blogPost: response?.data?.[0], ...response?.meta }'
+    )
+  })
+})

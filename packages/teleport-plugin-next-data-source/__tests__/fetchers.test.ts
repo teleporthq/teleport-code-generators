@@ -335,7 +335,7 @@ describe('generateDataSourceFetcher', () => {
     const dataSource = createPostgreSQLDataSource('ds-1')
     const code = generateDataSourceFetcher(dataSource, 'users')
 
-    expect(code).toContain('import { Client } from')
+    expect(code).toContain('import { Client, types as pgTypes } from')
     expect(code).toContain('export default async function handler')
     expect(code).toContain('SELECT * FROM "users"')
     expect(code).toContain('localhost')

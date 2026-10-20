@@ -98,6 +98,7 @@ import {
 import { rewriteLowStockCustomHandlers } from './ecommerce-customhandler-rewriter'
 import { assertWorkflowsAreSecure } from './security-scanner'
 import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
+import { generateBookingCalendarFeedFiles } from './booking-calendar-feed-route-generator'
 
 // Resolves the auth IDENTITY (users) table from the UIDL auth tables. Getting
 // this wrong is a security hole (the /api/data guard only protects this table),
@@ -350,6 +351,10 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     if (hasAuthentication) {
       this.generateAuthFiles(uidl.authentication, structure)
     }
+
+    // The bookings' calendar feeds do not depend on any workflow, so they are
+    // emitted before the early return for a project without workflows.
+    generateBookingCalendarFeedFiles(structure)
 
     if (!uidl.workflows || !uidl.workflows.workflows) {
       if (uidl.invoiceSettings?.enabled) {
@@ -1616,11 +1621,14 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
 
   // The custom node returns its last executed node's output. A fire-and-forget
   // node is excluded: it always stores \`null\`, so if it happens to be last it
-  // would turn the whole custom node's result into null for every caller.
+  // would turn the whole custom node's result into null for every caller. So is
+  // a node of a branch not taken: whatever a segment answered for it must never
+  // stand in for the terminal of the branch that ran.
   var __returnableNodes = nodes
     .slice()
     .sort(function(a, b) { return a.stepNumber - b.stepNumber; })
-    .filter(function(n) { return !__utils.isFireAndForgetNode(n); });
+    .filter(function(n) { return !__utils.isFireAndForgetNode(n); })
+    .filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });
   var lastNodeId = null;
   for (var __ri = __returnableNodes.length - 1; __ri >= 0; __ri--) {
     if (context[__returnableNodes[__ri].id] !== undefined) { lastNodeId = __returnableNodes[__ri].id; break; }
@@ -1682,11 +1690,14 @@ async function customNode_${safeId}(outerContext, parameters, nodeHandlers) {
 
   // The custom node returns its last executed node's output. A fire-and-forget
   // node is excluded: it always stores \`null\`, so if it happens to be last it
-  // would turn the whole custom node's result into null for every caller.
+  // would turn the whole custom node's result into null for every caller. So is
+  // a node of a branch not taken: whatever a segment answered for it must never
+  // stand in for the terminal of the branch that ran.
   var __returnableNodes = nodes
     .slice()
     .sort(function(a, b) { return a.stepNumber - b.stepNumber; })
-    .filter(function(n) { return !__utils.isFireAndForgetNode(n); });
+    .filter(function(n) { return !__utils.isFireAndForgetNode(n); })
+    .filter(function(n) { return !(context.__skippedNodes && context.__skippedNodes[n.id]); });
   var lastNodeId = null;
   for (var __ri = __returnableNodes.length - 1; __ri >= 0; __ri--) {
     if (context[__returnableNodes[__ri].id] !== undefined) { lastNodeId = __returnableNodes[__ri].id; break; }

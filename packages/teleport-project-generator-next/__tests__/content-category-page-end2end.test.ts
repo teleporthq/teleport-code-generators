@@ -167,7 +167,9 @@ describe('a content preset category page, generated', () => {
         `import \\{[\\s\\S]*\\b${RESOLVER}\\b[\\s\\S]*\\} from '${MODULE.replace('/', '\\/')}'`
       )
     )
-    expect(page).toMatch(new RegExp(`await ${RESOLVER}\\(\\{[\\s\\S]*slug: params\\['slug'\\]`))
+    expect(page).toMatch(
+      new RegExp(`await ${RESOLVER}\\(\\{[\\s\\S]*slug: params\\?\\.\\['slug'\\]`)
+    )
     expect(page).toMatch(
       /if \(!response\?\.data\) \{\s*return \{\s*notFound: true,\s*revalidate: 60/
     )

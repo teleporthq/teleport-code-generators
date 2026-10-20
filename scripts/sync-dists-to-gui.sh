@@ -9,10 +9,13 @@
 #    poison the build) via lerna.
 # 3. rsyncs each changed package's dist/ over the GUI's installed copy.
 #
-# Copies ONLY packages git says changed — dependencies are built for
-# correctness but the GUI keeps its installed dists for them. Note the copy
-# carries EVERYTHING your repo's branch has over the installed version, not
-# just your working-tree edits; that is usually what "test the pushable
+# Copies the changed packages AND every workspace package they depend on.
+# A changed package built from this branch may import something its
+# dependency gained on the branch too (`PageArrival` in teleport-shared):
+# copying it alone leaves the GUI's installed dependency one release behind
+# and publishing fails with "Cannot read properties of undefined". Note the
+# copy carries EVERYTHING your repo's branch has over the installed version,
+# not just your working-tree edits; that is usually what "test the pushable
 # state" means. Re-run `npm install` in the GUI to restore pristine packages.
 
 set -euo pipefail
@@ -50,13 +53,32 @@ for package_name in $changed_packages; do
   scope_flags="$scope_flags --scope @teleporthq/$package_name"
 done
 
+# The packages to copy: the changed ones plus their workspace dependencies,
+# so the GUI runs one consistent branch build.
+synced_packages="$(
+  # shellcheck disable=SC2086
+  npx lerna list $scope_flags --include-dependencies --json |
+    sed -n 's|.*"name": "@teleporthq/\([^"]*\)".*|\1|p' |
+    sort -u
+)"
+
+# The package builds are incremental (`tsconfig.tsbuildinfo` inside each dist
+# folder). A build info that believes a file is already emitted makes tsc skip
+# it, so a dist can keep an OLD module beside a NEW one that imports from it —
+# the GUI then fails at publish with "X is not a function". Dropping the build
+# info of the packages being synced forces a full emit of exactly what is copied.
+for package_name in $synced_packages; do
+  rm -f "$REPO_ROOT/packages/$package_name/dist/esm/tsconfig.tsbuildinfo" \
+    "$REPO_ROOT/packages/$package_name/dist/cjs/tsconfig.tsbuildinfo"
+done
+
 echo
 echo "Building (with dependencies)..."
 # shellcheck disable=SC2086
 npx lerna run build $scope_flags --include-dependencies
 
 echo
-for package_name in $changed_packages; do
+for package_name in $synced_packages; do
   source_dist="$REPO_ROOT/packages/$package_name/dist"
   target_dist="$GUI_SCOPE_DIR/$package_name/dist"
   if [ ! -d "$GUI_SCOPE_DIR/$package_name" ]; then

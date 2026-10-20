@@ -121,8 +121,8 @@ describe('the generated Postgres route', () => {
   it('keeps a plain-column ORDER BY to fall back to', () => {
     // If a database ever rejects the sub-select, the page must degrade to the
     // previous ordering rather than serve nothing.
-    expect(productsRoute).toContain('const usedDiscountAwareSort = orderBySql !== plainOrderBySql')
-    expect(productsRoute).toContain('if (!usedDiscountAwareSort) throw sortError')
+    expect(productsRoute).toContain('const usedRewrittenSort = orderBySql !== plainOrderBySql')
+    expect(productsRoute).toContain('if (!usedRewrittenSort) throw sortError')
     expect(productsRoute).toContain('baseSql + plainOrderBySql + sqlTail')
   })
 
@@ -227,6 +227,13 @@ describe('stable pagination', () => {
     expect(rowIdentityColumn({}, 'teleport_orders')).toBeNull()
   })
 
+  it('breaks ties on every listing a visitor sorts: the blog listing and the booking page too', () => {
+    // "Sort by reading time" ties every five-minute post, "by price" every
+    // item at the same price.
+    expect(rowIdentityColumn({}, 'teleport_blog_posts')).toBe('id')
+    expect(rowIdentityColumn({}, 'teleport_booking_items')).toBe('id')
+  })
+
   it('is applied to the real and the fallback ORDER BY, and to a single sort column', () => {
     for (const route of [
       generatePostgreSQLFetcher(PG_CONFIG, 'teleport_products'),
@@ -274,10 +281,8 @@ describe('the fetcher a generated storefront actually gets', () => {
   })
 
   it('keeps the plain-column fallback and the tiebreaker', () => {
-    expect(teleportProducts).toContain(
-      'const usedDiscountAwareSort = orderBySql !== plainOrderBySql'
-    )
-    expect(teleportProducts).toContain('if (!usedDiscountAwareSort) throw sortError')
+    expect(teleportProducts).toContain('const usedRewrittenSort = orderBySql !== plainOrderBySql')
+    expect(teleportProducts).toContain('if (!usedRewrittenSort) throw sortError')
     expect(teleportProducts).toContain('baseSql + plainOrderBySql + sqlTail')
     expect(teleportProducts).toContain('const rowOrderTiebreak = (fields, direction) =>')
     expect(teleportProducts).toMatch(/\$\{tiebreak\}/)

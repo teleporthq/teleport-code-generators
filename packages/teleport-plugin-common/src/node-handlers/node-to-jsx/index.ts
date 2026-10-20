@@ -1189,6 +1189,21 @@ const addAttributesToJSXTag = (
           break
         }
 
+        // A value read through a mapper (`aria-pressed` from a filter's state, a
+        // formatted date) renders through it, as a text binding does. Emitted as
+        // the bare reference, the attribute carried the raw value.
+        if ((dynamicRef.content as { valueMapper?: string }).valueMapper?.trim()) {
+          elementTag.openingElement.attributes.push(
+            types.jsxAttribute(
+              types.jsxIdentifier(resolveAttributeNameForTag(elementTag, attrKey)),
+              types.jsxExpressionContainer(
+                createDynamicValueExpression(dynamicRef, options) as types.Expression
+              )
+            )
+          )
+          break
+        }
+
         switch (referenceType) {
           default:
             const prefix =
@@ -2219,6 +2234,18 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, JSXASTRetu
     )
     params.globalReferences.push(
       'helpCategories' as Parameters<typeof params.globalReferences.push>[0]
+    )
+  } else if (source === 'bookingCategories') {
+    // The `Booking Categories` global, like the blog's: the generated
+    // `@/booking-context` module's `useBookingCategories()` hook, destructured
+    // into a plain `bookingCategories` identifier. → `bookingCategories || []`.
+    repeaterItemsExpr = types.logicalExpression(
+      '||',
+      types.identifier('bookingCategories'),
+      types.arrayExpression([])
+    )
+    params.globalReferences.push(
+      'bookingCategories' as Parameters<typeof params.globalReferences.push>[0]
     )
   } else {
     // Resolve any global-state reference encoded in `source` and register it

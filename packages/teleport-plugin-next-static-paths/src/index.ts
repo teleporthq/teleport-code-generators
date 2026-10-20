@@ -15,7 +15,12 @@ interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
-const { isDynamicRoute, pageHasSameTableMutationWorkflow, pageReadsProtectedTable } = RouteUtils
+const {
+  isDynamicRoute,
+  pageHasSameTableMutationWorkflow,
+  pageReadsProtectedTable,
+  pageSeedsStateFromDataSource,
+} = RouteUtils
 
 export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -31,10 +36,14 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // `pageHasSameTableMutationWorkflow`'s doc in
     // `teleport-plugin-common/src/utils/route-utils.ts`), which resolves
     // params per-request — Next.js does not allow (and does not need) a
-    // getStaticPaths alongside getServerSideProps on the same page.
+    // getStaticPaths alongside getServerSideProps on the same page. A page
+    // that seeds a state from a data source renders per request too (see
+    // `pageSeedsStateFromDataSource`).
     if (
       isDynamicRoute(uidl) &&
-      (pageHasSameTableMutationWorkflow(uidl, options.workflows) || pageReadsProtectedTable(uidl))
+      (pageHasSameTableMutationWorkflow(uidl, options.workflows) ||
+        pageReadsProtectedTable(uidl) ||
+        pageSeedsStateFromDataSource(uidl, options.dataSources))
     ) {
       return structure
     }

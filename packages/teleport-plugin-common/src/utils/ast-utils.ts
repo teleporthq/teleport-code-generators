@@ -2008,7 +2008,93 @@ export const getExpressionFromUIDLExpressionNode = (
     throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
   }
 
-  return theStatementOnlyWihtoutTheProgram.expression
+  return makeMemberAccessOptional(theStatementOnlyWihtoutTheProgram.expression)
+}
+
+/**
+ * Every member read in a UIDL expression becomes an optional-chain read:
+ * `strengths[0].pillar` → `strengths?.[0]?.pillar`. A binding into a list
+ * that is empty until a workflow fills it (the first render, a reset) must
+ * read `undefined`, never throw — one such read took a whole page down at
+ * server render ("Cannot read properties of undefined"). A call's callee
+ * keeps its plain member (`JSON.stringify(x)`), and an assignment or update
+ * target is left as written.
+ */
+export const makeMemberAccessOptional = <T extends types.Node>(node: T): T => {
+  const SKIP_KEYS = new Set([
+    'loc',
+    'start',
+    'end',
+    'leadingComments',
+    'trailingComments',
+    'innerComments',
+    'extra',
+  ])
+  const isNode = (value: unknown): value is types.Node =>
+    Boolean(value) &&
+    typeof value === 'object' &&
+    typeof (value as { type?: unknown }).type === 'string'
+
+  const visit = (current: types.Node, asCallee: boolean, asTarget: boolean): types.Node => {
+    if (current.type === 'MemberExpression' && !asCallee && !asTarget) {
+      const member = current as types.MemberExpression
+      const object = visit(member.object, false, false) as types.Expression
+      const property = member.computed
+        ? (visit(member.property, false, false) as types.Expression)
+        : member.property
+      return types.optionalMemberExpression(
+        object,
+        property as types.Expression,
+        member.computed,
+        true
+      )
+    }
+    if (
+      current.type === 'CallExpression' ||
+      current.type === 'OptionalCallExpression' ||
+      current.type === 'NewExpression'
+    ) {
+      const call = current as types.CallExpression
+      // The callee's own member stays plain; what it is read from is guarded.
+      if (call.callee.type === 'MemberExpression') {
+        const callee = call.callee as types.MemberExpression
+        callee.object = visit(callee.object, false, false) as types.Expression
+        if (callee.computed)
+          callee.property = visit(callee.property, false, false) as types.Expression
+      } else {
+        call.callee = visit(call.callee, true, false) as types.Expression
+      }
+      call.arguments = call.arguments.map(
+        (argument) => visit(argument, false, false) as typeof argument
+      )
+      return call
+    }
+    if (current.type === 'AssignmentExpression') {
+      const assignment = current as types.AssignmentExpression
+      assignment.right = visit(assignment.right, false, false) as types.Expression
+      return assignment
+    }
+    if (
+      current.type === 'UpdateExpression' ||
+      (current.type === 'UnaryExpression' &&
+        (current as types.UnaryExpression).operator === 'delete')
+    ) {
+      return current
+    }
+    for (const key of Object.keys(current)) {
+      if (SKIP_KEYS.has(key)) continue
+      const value = (current as unknown as Record<string, unknown>)[key]
+      if (Array.isArray(value)) {
+        ;(current as unknown as Record<string, unknown>)[key] = value.map((item) =>
+          isNode(item) ? visit(item, false, false) : item
+        )
+      } else if (isNode(value)) {
+        ;(current as unknown as Record<string, unknown>)[key] = visit(value, false, false)
+      }
+    }
+    return current
+  }
+  return visit(node, false, false) as T
 }
 
 export const isJSXElement = (value: types.JSXElement | HastNode): value is types.JSXElement =>

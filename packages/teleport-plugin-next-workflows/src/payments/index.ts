@@ -2,6 +2,7 @@ import {
   FileType,
   ProjectPluginStructure,
   ProjectUIDL,
+  UIDLEcommercePaymentProvider,
   UIDLWorkflows,
 } from '@teleporthq/teleport-types'
 import { generatePaymentCoreCode } from './payment-core-code'
@@ -64,6 +65,18 @@ export const isPaymentWebhookConfig = (webhookConfig: unknown): boolean =>
     PAYMENT_DRIVER_SIGNATURE_ALGORITHM
 
 /**
+ * The providers the site is paid through: the store's (`ecommerceSettings`),
+ * or — on a site that takes payments without a store, for its bookings —
+ * `paymentSettings`'.
+ */
+export const readUidlPaymentProviders = (
+  uidl: Pick<ProjectUIDL, 'ecommerceSettings' | 'paymentSettings'> | undefined
+): UIDLEcommercePaymentProvider[] =>
+  (uidl?.ecommerceSettings
+    ? uidl.ecommerceSettings.paymentProviders
+    : uidl?.paymentSettings?.paymentProviders) || []
+
+/**
  * The providers this store needs a driver for: every provider its checkout
  * offers, every provider a payment webhook verifies through, and Stripe +
  * PayPal whenever a payment node runs at all (a workflow that names no
@@ -71,11 +84,11 @@ export const isPaymentWebhookConfig = (webhookConfig: unknown): boolean =>
  * payment, in which case no driver module is written.
  */
 export const resolveStorePaymentDriverIds = (
-  uidl: Pick<ProjectUIDL, 'ecommerceSettings'> & { workflows?: UIDLWorkflows },
+  uidl: Pick<ProjectUIDL, 'ecommerceSettings' | 'paymentSettings'> & { workflows?: UIDLWorkflows },
   usedNodeTypes: Iterable<string>
 ): PaymentDriverId[] => {
   const wanted = new Set<PaymentDriverId>()
-  for (const provider of uidl.ecommerceSettings?.paymentProviders || []) {
+  for (const provider of readUidlPaymentProviders(uidl)) {
     const id = String(provider?.type || '').toLowerCase()
     if (isPaymentDriverId(id)) {
       wanted.add(id)
@@ -98,13 +111,13 @@ const ENV_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
 
 /**
  * The secret the merchant saved each live provider credential under, as the
- * editor exported it (`ecommerceSettings.paymentProviders[].credentials`).
+ * editor exported it (`paymentProviders[].credentials` of either block).
  */
 export const readDeclaredPaymentCredentials = (
-  uidl: Pick<ProjectUIDL, 'ecommerceSettings'> | undefined
+  uidl: Pick<ProjectUIDL, 'ecommerceSettings' | 'paymentSettings'> | undefined
 ): DeclaredPaymentCredentials => {
   const declared: DeclaredPaymentCredentials = {}
-  for (const provider of uidl?.ecommerceSettings?.paymentProviders || []) {
+  for (const provider of readUidlPaymentProviders(uidl)) {
     const id = String(provider?.type || '').toLowerCase()
     if (!isPaymentDriverId(id)) {
       continue

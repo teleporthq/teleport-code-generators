@@ -1,4 +1,4 @@
-import { UIDLWorkflows } from '@teleporthq/teleport-types'
+import { UIDLStateDefinition, UIDLWorkflows } from '@teleporthq/teleport-types'
 import { RoutePaths, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
@@ -132,3 +132,37 @@ export const pageReadsProtectedTable = (uidl: {
   collectResourceTables(uidl.node, tables, new Set())
   return TableAccess.PROTECTED_TABLES.some((table) => tables.has(table))
 }
+
+/**
+ * Any `{{…}}` template placeholder (`{{Current User.id}}`, `{{urlDifferentiator}}`).
+ * A state query carrying one can only be resolved in the browser, so the page's
+ * server data function never runs it — sending the literal placeholder to the
+ * database fails (`invalid input syntax for type uuid: "{{Current User.id}}"`).
+ */
+const TEMPLATE_PLACEHOLDER = /\{\{[^}]+\}\}/
+
+export const stateQueryHasTemplatePlaceholder = (definition: UIDLStateDefinition): boolean =>
+  typeof definition.query === 'string' && TEMPLATE_PLACEHOLDER.test(definition.query)
+
+/**
+ * True when the page's own data function seeds a state from one of the
+ * project's data sources — a state bound to a table or a raw query that has no
+ * `{{…}}` placeholder. Such a page renders per request: those values have to be
+ * computed every time a visitor arrives, and a statically generated page hands a
+ * client-side navigation the copy Next.js cached in the browser (prefetched
+ * links included) or the one ISR rendered before the last write.
+ *
+ * Shared by the static-paths plugin and the page pipeline's getServerSideProps
+ * finalizer, which must reach the same verdict. The state data-source plugin
+ * splits states with the same `stateQueryHasTemplatePlaceholder` test.
+ */
+export const pageSeedsStateFromDataSource = (
+  uidl: { stateDefinitions?: Record<string, UIDLStateDefinition> },
+  dataSources?: Record<string, unknown>
+): boolean =>
+  Object.values(uidl.stateDefinitions || {}).some(
+    (definition) =>
+      !!definition.dataSourceBinding &&
+      !!dataSources?.[definition.dataSourceBinding.dataSourceId] &&
+      !stateQueryHasTemplatePlaceholder(definition)
+  )

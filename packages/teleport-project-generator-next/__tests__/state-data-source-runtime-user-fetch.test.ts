@@ -109,7 +109,10 @@ const runPageStateRoute = async (
     throw new Error('unexpected require: ' + name)
   }
   const code = routeSource
-    .replace("import { Client } from 'pg'", "const { Client } = require('pg')")
+    .replace(
+      "import { Client, types as pgTypes } from 'pg'",
+      "const { Client, types: pgTypes } = require('pg')"
+    )
     .replace(/^export default async function handler/m, 'async function handler')
     .concat('\nmodule.exports = handler')
   const moduleObj: { exports: any } = { exports: {} }

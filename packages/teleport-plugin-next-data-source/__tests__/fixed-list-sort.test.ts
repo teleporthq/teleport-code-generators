@@ -157,7 +157,7 @@ describe('a list sort the editor fixed', () => {
     const code = await runPlugin('state', CACHE)
     expect(code).not.toContain('initialData=')
     expect(code).not.toContain('ds_0_cached')
-    expect(code).toContain('field: sortBy.split("-")[0]')
+    expect(code).toContain('field: sortBy.split("-")?.[0]')
   })
 })
 

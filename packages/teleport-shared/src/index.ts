@@ -31,6 +31,7 @@ import * as RichTextContent from './utils/rich-text-content'
 import * as RichTextContentCodegen from './utils/rich-text-content-codegen'
 import * as DataCache from './cache'
 import * as PageRevalidate from './page-revalidate'
+import * as PageArrival from './page-arrival'
 import * as ScrollSceneRuntime from './scroll-scene'
 import * as MotionRuntime from './motion-runtime'
 import * as PageTransition from './page-transition'
@@ -72,6 +73,7 @@ export {
   RichTextContentCodegen,
   DataCache,
   PageRevalidate,
+  PageArrival,
   ScrollSceneRuntime,
   MotionRuntime,
   PageTransition,

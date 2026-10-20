@@ -2,6 +2,7 @@ import {
   FileType,
   ProjectPlugin,
   ProjectPluginStructure,
+  UIDLEcommercePaymentProvider,
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
 } from '@teleporthq/teleport-types'
@@ -25,6 +26,7 @@ import {
   ensurePaymentDriversModule,
   ensureSentEmailLogModule,
   findPaymentWebhookRouteUrl,
+  readUidlPaymentProviders,
   resolveStorePaymentDriverIds,
 } from '@teleporthq/teleport-plugin-next-workflows'
 import { generateCartApiRoute } from './cart-api-routes-generator'
@@ -64,6 +66,13 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           null
         )
         this.injectProviderIntoApp(files)
+      }
+      // A site that takes payments without a store (its bookings) still
+      // needs the provider credentials and the routes a payment returns to.
+      const paymentProviders = readUidlPaymentProviders(uidl)
+      if (paymentProviders.length > 0) {
+        this.generatePaymentRoutes(structure, paymentProviders)
+        this.addPaymentEnvVars(paymentProviders, uidl)
       }
       return structure
     }
@@ -126,6 +135,78 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     this.injectProviderIntoApp(files)
 
     return structure
+  }
+
+  /**
+   * The routes and pages a site needs to take an online payment — the store's
+   * checkout or, on a site without a store, its bookings: PayPal's capture, the
+   * confirmation the paying page asks while the provider confirms, and the
+   * pages that open a provider's checkout in the browser.
+   */
+  private generatePaymentRoutes(
+    structure: ProjectPluginStructure,
+    providers: UIDLEcommercePaymentProvider[]
+  ): void {
+    const { files } = structure
+    // PayPal capture endpoint — only emitted when the project actually
+    // offers PayPal. PayPal Orders v2 with `intent: 'CAPTURE'` requires the
+    // merchant to explicitly capture the order after the buyer approves;
+    // skipping this call leaves orders in `APPROVED` state and PayPal
+    // never fires the corresponding `PAYMENT.CAPTURE.*` webhooks.
+    const hasPaypal = providers.some((p) => p && (p.type === 'paypal' || p.name === 'PayPal'))
+    if (hasPaypal) {
+      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
+      files.set('ecommerce-api-paypal-capture', {
+        path: ['pages', 'api', 'ecommerce', 'paypal'],
+        files: [
+          {
+            name: 'capture',
+            fileType: FileType.JS,
+            content: generatePaypalCaptureApiRoute(
+              findPaymentWebhookRouteUrl(structure.uidl.workflows, 'paypal')
+            ),
+          },
+        ],
+      })
+    }
+
+    // The confirmation the order page asks while a buyer back from any
+    // provider waits: emitted when some provider's webhook route can settle.
+    const settleUrls: Record<string, string> = {}
+    for (const providerId of resolveStorePaymentDriverIds(structure.uidl, [])) {
+      const settleUrl = findPaymentWebhookRouteUrl(structure.uidl.workflows, providerId)
+      if (settleUrl) {
+        settleUrls[providerId] = settleUrl
+      }
+    }
+    if (Object.keys(settleUrls).length > 0) {
+      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
+      files.set('ecommerce-api-payment-confirm', {
+        path: ['pages', 'api', 'ecommerce', 'payments'],
+        files: [
+          {
+            name: 'confirm',
+            fileType: FileType.JS,
+            content: generatePaymentConfirmApiRoute(settleUrls),
+          },
+        ],
+      })
+    }
+
+    // The store's own pages that open a provider's checkout in the browser.
+    const browserCheckoutPages: Array<[string, () => string]> = [
+      ['paddle', generatePaddlePayPage],
+      ['razorpay', generateRazorpayPayPage],
+    ]
+    for (const [providerId, generatePage] of browserCheckoutPages) {
+      if (providers.some((p) => p && p.type === providerId)) {
+        ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
+        files.set(`payment-page-${providerId}`, {
+          path: ['pages', 'pay'],
+          files: [{ name: providerId, fileType: FileType.JS, content: generatePage() }],
+        })
+      }
+    }
   }
 
   private resolveDataSource(structure: ProjectPluginStructure): {
@@ -324,67 +405,7 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
       ],
     })
 
-    // PayPal capture endpoint — only emitted when the project actually
-    // offers PayPal. PayPal Orders v2 with `intent: 'CAPTURE'` requires the
-    // merchant to explicitly capture the order after the buyer approves;
-    // skipping this call leaves orders in `APPROVED` state and PayPal
-    // never fires the corresponding `PAYMENT.CAPTURE.*` webhooks.
-    const hasPaypal = (settings.paymentProviders || []).some(
-      (p) => p && (p.type === 'paypal' || p.name === 'PayPal')
-    )
-    if (hasPaypal) {
-      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
-      files.set('ecommerce-api-paypal-capture', {
-        path: ['pages', 'api', 'ecommerce', 'paypal'],
-        files: [
-          {
-            name: 'capture',
-            fileType: FileType.JS,
-            content: generatePaypalCaptureApiRoute(
-              findPaymentWebhookRouteUrl(structure.uidl.workflows, 'paypal')
-            ),
-          },
-        ],
-      })
-    }
-
-    // The confirmation the order page asks while a buyer back from any
-    // provider waits: emitted when some provider's webhook route can settle.
-    const settleUrls: Record<string, string> = {}
-    for (const providerId of resolveStorePaymentDriverIds(structure.uidl, [])) {
-      const settleUrl = findPaymentWebhookRouteUrl(structure.uidl.workflows, providerId)
-      if (settleUrl) {
-        settleUrls[providerId] = settleUrl
-      }
-    }
-    if (Object.keys(settleUrls).length > 0) {
-      ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
-      files.set('ecommerce-api-payment-confirm', {
-        path: ['pages', 'api', 'ecommerce', 'payments'],
-        files: [
-          {
-            name: 'confirm',
-            fileType: FileType.JS,
-            content: generatePaymentConfirmApiRoute(settleUrls),
-          },
-        ],
-      })
-    }
-
-    // The store's own pages that open a provider's checkout in the browser.
-    const browserCheckoutPages: Array<[string, () => string]> = [
-      ['paddle', generatePaddlePayPage],
-      ['razorpay', generateRazorpayPayPage],
-    ]
-    for (const [providerId, generatePage] of browserCheckoutPages) {
-      if ((settings.paymentProviders || []).some((p) => p && p.type === providerId)) {
-        ensurePaymentDriversModule(structure, resolveStorePaymentDriverIds(structure.uidl, []))
-        files.set(`payment-page-${providerId}`, {
-          path: ['pages', 'pay'],
-          files: [{ name: providerId, fileType: FileType.JS, content: generatePage() }],
-        })
-      }
-    }
+    this.generatePaymentRoutes(structure, settings.paymentProviders || [])
 
     if (settings.deliveryEnabled && settings.deliveryConfig) {
       files.set('ecommerce-api-delivery-price', {
@@ -510,18 +531,20 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
     }
   }
 
-  private addEnvVars(settings: UIDLEcommerceSettings, uidl: ProjectPluginStructure['uidl']): void {
+  /**
+   * Every saved provider credential as a placeholder the deploy resolves to
+   * its stored secret. A store exported before the UIDL carried the secret
+   * names gets the canonical Stripe / PayPal lines empty, as before: the
+   * deploy fills those from the project's secrets by name.
+   */
+  private addPaymentEnvVars(
+    providers: UIDLEcommercePaymentProvider[],
+    uidl: ProjectPluginStructure['uidl']
+  ): void {
     if (!uidl.globals.env) {
       uidl.globals.env = {}
     }
-
-    const paymentProviders = settings.paymentProviders || []
-    const providerTypes = paymentProviders.map((p) => p.type)
-
-    // Every saved provider credential as a placeholder the deploy resolves to
-    // its stored secret. A store exported before the UIDL carried the secret
-    // names gets the canonical Stripe / PayPal lines empty, as before: the
-    // deploy fills those from the project's secrets by name.
+    const providerTypes = providers.map((p) => p.type)
     declarePaymentCredentialEnv(uidl)
     const emptyCanonical: Record<string, string[]> = {
       stripe: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
@@ -536,6 +559,14 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
         }
       }
     }
+  }
+
+  private addEnvVars(settings: UIDLEcommerceSettings, uidl: ProjectPluginStructure['uidl']): void {
+    if (!uidl.globals.env) {
+      uidl.globals.env = {}
+    }
+
+    this.addPaymentEnvVars(settings.paymentProviders || [], uidl)
 
     // Same provider-aggregation as addDependencies — see the
     // comment there. The env var only matters when SOMEONE is

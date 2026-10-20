@@ -749,4 +749,44 @@ describe('what the store generator emits for its providers', () => {
       STRIPE_WEBHOOK_SECRET: '',
     })
   })
+
+  it('gives a site paid without a store (its bookings) the credentials, capture and confirmation', async () => {
+    const structure = build([])
+    delete (structure.uidl as any).ecommerceSettings
+    ;(structure.uidl as any).paymentSettings = {
+      paymentProviders: [
+        { type: 'paypal', credentials: { clientId: 'CONFIGURATION_PAYPAL_CLIENT_ID' } },
+        { type: 'razorpay', credentials: { keyId: 'CONFIGURATION_RAZORPAY_KEY_ID' } },
+      ],
+    }
+    ;(structure.uidl as any).workflows = {
+      workflows: {
+        paypalHook: {
+          name: 'PayPal Payment Webhook',
+          trigger: { type: 'event-webhook-received' },
+          webhookConfig: { urlPath: '/api/webhooks/paypal-payment' },
+        },
+      },
+    }
+    await new NextEcommerceProjectPlugin().runAfter(structure)
+    expect(structure.files.has('ecommerce-api-paypal-capture')).toBe(true)
+    expect(structure.files.has('payment-page-razorpay')).toBe(true)
+    expect(structure.files.has('ecommerce-api-payment-confirm')).toBe(true)
+    expect(structure.uidl.globals.env).toMatchObject({
+      PAYPAL_CLIENT_ID: 'teleporthq.secrets.CONFIGURATION_PAYPAL_CLIENT_ID',
+      RAZORPAY_KEY_ID: 'teleporthq.secrets.CONFIGURATION_RAZORPAY_KEY_ID',
+    })
+    // No store: no store runtime.
+    expect(structure.files.has('ecommerce-api-settings')).toBe(false)
+    expect(structure.files.has('ecommerce-api-cart')).toBe(false)
+  })
+
+  it('emits nothing for a site with neither a store nor payment settings', async () => {
+    const structure = build([])
+    delete (structure.uidl as any).ecommerceSettings
+    await new NextEcommerceProjectPlugin().runAfter(structure)
+    expect(structure.files.has('ecommerce-api-payment-confirm')).toBe(false)
+    expect(structure.files.has('payment-drivers')).toBe(false)
+    expect(structure.uidl.globals.env).toEqual({})
+  })
 })

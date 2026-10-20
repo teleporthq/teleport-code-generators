@@ -67,7 +67,10 @@ function stripRevalidateFromReturns(node: unknown): void {
  * that package for why this is a data-correctness signal, independent of
  * the project's visual nav layout) — and for every page that reads a money
  * table (`pageReadsProtectedTable`), whose getStaticProps chunk is usually
- * created by the data-source or pagination plugin, which never tag it.
+ * created by the data-source or pagination plugin, which never tag it — and
+ * for every page that seeds a state from a data source
+ * (`pageSeedsStateFromDataSource`), whose values must be computed on each
+ * arrival rather than served from a static snapshot.
  *
  * Every OTHER page plugin that fetches data (inline-fetch, data-source,
  * pagination, state-data-source, locale-fetcher) finds / merges additional
@@ -86,8 +89,10 @@ export const createEntityMutationSsrFinalizerPlugin: ComponentPluginFactory<
   Record<string, never>
 > = () => {
   const entityMutationSsrFinalizerPlugin: ComponentPlugin = async (structure) => {
-    const { chunks, uidl } = structure
-    const rendersPerRequest = RouteUtils.pageReadsProtectedTable(uidl)
+    const { chunks, uidl, options } = structure
+    const rendersPerRequest =
+      RouteUtils.pageReadsProtectedTable(uidl) ||
+      RouteUtils.pageSeedsStateFromDataSource(uidl, options?.dataSources)
     const getStaticPropsChunk = chunks.find(
       (chunk) =>
         chunk.name === 'getStaticProps' &&

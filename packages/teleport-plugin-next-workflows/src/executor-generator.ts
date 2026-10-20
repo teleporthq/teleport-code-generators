@@ -387,8 +387,19 @@ function applyTemplateParams(text, params) {
 function finalizeResolvedConfig(nodeType, config) {
   var isDataNode = typeof nodeType === 'string' && nodeType.indexOf('data-') === 0;
   var error = null;
+  // A config value may be a live element (a trigger's target handed to a
+  // custom-js node) or an object that refers back to itself: walking into a
+  // DOM node follows its React fibers forever (a page's every element-bound
+  // behavior died with "Maximum call stack size exceeded"). Elements are
+  // left as they are; an object is walked once.
+  var seen = typeof WeakSet === 'function' ? new WeakSet() : null;
   function walk(obj, insideFilters) {
     if (!obj || typeof obj !== 'object') return;
+    if (typeof obj.nodeType === 'number' && typeof obj.nodeName === 'string') return;
+    if (seen) {
+      if (seen.has(obj)) return;
+      seen.add(obj);
+    }
     if (Array.isArray(obj)) {
       for (var ai = 0; ai < obj.length; ai++) walk(obj[ai], insideFilters);
       return;
@@ -1398,15 +1409,31 @@ var SEGMENT_REPLY_PRIVATE_KEYS = {
 // be echoed back wholesale (every earlier node's result, the trigger, the whole
 // page state), so each round trip carried the page twice over and the network
 // tab showed every node's data on every hop.
+//
+// A node marked \`keepResultOnServer\` is the exception: its result serves the
+// nodes after it in the same segment and never leaves the server (a statement's
+// rows read only to build what the browser may see, a sender's recipients).
+// Nothing in a later segment can read it.
+// The nodes whose result the client branches on: never kept on the server.
+function isBranchingNodeType(type) {
+  return type === 'general-if-statement' || type === 'general-switch';
+}
+
 function segmentReply(segmentConfig, context, snapshot) {
   var reply = {};
   var own = {};
+  var kept = {};
   var nodes = (segmentConfig && segmentConfig.nodes) || [];
-  for (var ni = 0; ni < nodes.length; ni++) own[nodes[ni].id] = true;
+  for (var ni = 0; ni < nodes.length; ni++) {
+    own[nodes[ni].id] = true;
+    if (nodes[ni].config && nodes[ni].config.keepResultOnServer === true && !isBranchingNodeType(nodes[ni].type)) {
+      kept[nodes[ni].id] = true;
+    }
+  }
   var keys = Object.keys(context);
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
-    if (SEGMENT_REPLY_PRIVATE_KEYS[key]) continue;
+    if (SEGMENT_REPLY_PRIVATE_KEYS[key] || kept[key]) continue;
     var value = context[key];
     if (value === undefined) continue;
     if (own[key] || !snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
@@ -1497,6 +1524,7 @@ module.exports = {
   fatalNodeResultMessage,
   continuesOnError,
   isFireAndForgetNode,
+  isBranchingNodeType,
   startFireAndForgetNode,
   registerPendingNodePromise,
   settlePendingNodePromises

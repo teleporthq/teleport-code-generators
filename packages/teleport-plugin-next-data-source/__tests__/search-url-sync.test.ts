@@ -40,7 +40,7 @@ const makeComponentChunk = (): ChunkDefinition => {
 // A `data-source-list > cms-list-repeater` UIDL: a paginated + search-enabled
 // products list, optionally bound to a URL search-param key.
 // tslint:disable-next-line:no-any
-const makeUidlNode = (searchUrlParamKey?: string): any => ({
+const makeUidlNode = (searchUrlParamKey?: string, pageUrlParamKey?: string): any => ({
   type: 'data-source-list',
   content: {
     renderPropIdentifier: 'items',
@@ -60,6 +60,7 @@ const makeUidlNode = (searchUrlParamKey?: string): any => ({
           searchEnabled: true,
           searchDebounce: 300,
           ...(searchUrlParamKey ? { searchUrlParamKey } : {}),
+          ...(pageUrlParamKey ? { pageUrlParamKey } : {}),
           nodes: { list: { type: 'element', content: { elementType: 'div' } } },
         },
       },
@@ -67,10 +68,17 @@ const makeUidlNode = (searchUrlParamKey?: string): any => ({
   },
 })
 
-const runPlugin = async (searchUrlParamKey?: string, paginated = true): Promise<string> => {
+interface RunOptions {
+  paginated?: boolean
+  pageUrlParamKey?: string
+  infiniteScroll?: boolean
+}
+
+const runPlugin = async (searchUrlParamKey?: string, options: RunOptions = {}): Promise<string> => {
   const chunk = makeComponentChunk()
-  const node = makeUidlNode(searchUrlParamKey)
-  node.content.nodes.success.content.paginated = paginated
+  const node = makeUidlNode(searchUrlParamKey, options.pageUrlParamKey)
+  node.content.nodes.success.content.paginated = options.paginated ?? true
+  node.content.nodes.success.content.infiniteScroll = !!options.infiniteScroll
   const structure: ComponentStructure = {
     uidl: { name: 'TestComponent', node },
     chunks: [chunk],
@@ -108,19 +116,37 @@ describe('pagination plugin — search input URL two-way sync (searchUrlParamKey
     )
     expect(code).toContain('}, [ds_0_state.debouncedQuery, router.isReady])')
 
-    // Read-back (URL → input AND applied query at once, keeping the page),
-    // functional setState bail-out (loop-free), then the handshake flag.
+    // Read-back (URL → input AND applied query at once, from page 1: the page
+    // is not in the address), functional setState bail-out (loop-free), then
+    // the handshake flag.
     expect(code).toContain('const __urlValue = router.query.searchKeyword')
     expect(code).toContain('ds_0_adoptUrlSearch(prev => prev === __nextValue ? prev : __nextValue)')
     expect(code).toContain('ds_0_searchUrlAdopted.current = true')
     expect(code).toContain('}, [router.query.searchKeyword, router.isReady])')
     expect(code.replace(/\s+/g, ' ')).toContain(
-      'const ds_0_adoptUrlSearch = update => { setDs_0_searchQuery(update); setDs_0_state(state => { const next = update(state.debouncedQuery); return next === state.debouncedQuery ? state : { ...state, debouncedQuery: next }; }); };'
+      'const ds_0_adoptUrlSearch = update => { setDs_0_searchQuery(update); setDs_0_state(state => { const next = update(state.debouncedQuery); return next === state.debouncedQuery ? state : { ...state, page: 1, debouncedQuery: next }; }); };'
+    )
+  })
+
+  it('starts an appending list on page 1 when the address brings a query', async () => {
+    // The scroll sentinel has usually fetched page 2 before the router is
+    // ready: kept, the query's first answer was its page 2 — empty when only a
+    // few rows match.
+    const code = await runPlugin('q', { infiniteScroll: true })
+    expect(code.replace(/\s+/g, ' ')).toContain(
+      'return next === state.debouncedQuery ? state : { ...state, page: 1, debouncedQuery: next };'
+    )
+  })
+
+  it('keeps the page of a list whose page is in the address too', async () => {
+    const code = await runPlugin('searchKeyword', { pageUrlParamKey: 'page' })
+    expect(code.replace(/\s+/g, ' ')).toContain(
+      'return next === state.debouncedQuery ? state : { ...state, debouncedQuery: next };'
     )
   })
 
   it('adopts the address into both queries of a list without pages too', async () => {
-    const code = await runPlugin('searchKeyword', false)
+    const code = await runPlugin('searchKeyword', { paginated: false })
     expect(code).not.toContain('window.location.search')
     expect(code.replace(/\s+/g, ' ')).toContain(
       'const ds_0_adoptUrlSearch = update => { setDs_0_searchQuery(update); setDs_0_debouncedQuery(update); };'

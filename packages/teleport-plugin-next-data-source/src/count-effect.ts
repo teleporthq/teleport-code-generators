@@ -22,6 +22,12 @@ interface CountEffectOptions {
   /** Name of the `setDs_N_maxPages` setter. */
   setMaxPagesVar: string
   /**
+   * Name of the `setDs_N_total` setter, declared only when the component draws
+   * a `range` control ("Showing 1–8 of 12"): the page count alone cannot say
+   * how many rows there are.
+   */
+  setTotalVar?: string
+  /**
    * Params sent to the count endpoint: the search query (when the list has
    * one), `queryColumns`, and the filter array. Built by the caller because
    * only it knows how this usage's filter destinations resolve to expressions.
@@ -99,10 +105,33 @@ const buildStaleCountGuard = (countSeqRefVar: string): types.Statement =>
     types.returnStatement()
   )
 
+/** `setDs_N_maxPages(...)` and, for a component with a range control, `setDs_N_total(data.count)`. */
+const buildCountSetters = (
+  options: Pick<CountEffectOptions, 'perPage' | 'setMaxPagesVar' | 'setTotalVar'>
+): types.Statement[] => {
+  const setters: types.Statement[] = [
+    types.expressionStatement(
+      types.callExpression(types.identifier(options.setMaxPagesVar), [
+        buildMaxPagesExpression(options.perPage),
+      ])
+    ),
+  ]
+  if (options.setTotalVar) {
+    setters.push(
+      types.expressionStatement(
+        types.callExpression(types.identifier(options.setTotalVar), [
+          types.memberExpression(types.identifier('data'), types.identifier('count')),
+        ])
+      )
+    )
+  }
+  return setters
+}
+
 export const buildCountFetchStatement = (
   options: Pick<
     CountEffectOptions,
-    'fileName' | 'perPage' | 'setMaxPagesVar' | 'urlParams' | 'countSeqRefVar'
+    'fileName' | 'perPage' | 'setMaxPagesVar' | 'setTotalVar' | 'urlParams' | 'countSeqRefVar'
   >
 ): types.Statement =>
   types.expressionStatement(
@@ -151,13 +180,7 @@ export const buildCountFetchStatement = (
                 types.identifier('data'),
                 types.binaryExpression('in', types.stringLiteral('count'), types.identifier('data'))
               ),
-              types.blockStatement([
-                types.expressionStatement(
-                  types.callExpression(types.identifier(options.setMaxPagesVar), [
-                    buildMaxPagesExpression(options.perPage),
-                  ])
-                ),
-              ])
+              types.blockStatement(buildCountSetters(options))
             ),
           ])
         ),
