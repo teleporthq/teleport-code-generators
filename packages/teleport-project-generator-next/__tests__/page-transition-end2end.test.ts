@@ -127,6 +127,86 @@ describe('Next generator page transition', () => {
     // a page that arrived after it takes the turn: a late answer changes nothing
     expect(wrapper).toContain('if (readyKeyRef.current === key) {')
   })
+
+  // Frozen, the leaving page no longer gives the document a height: a scrollbar
+  // that takes room vanished at the click and came back when the arriving page
+  // mounted, and the page jolted sideways by the scrollbar's width both times.
+  it.each(['fade', 'slide-up', 'circle'])(
+    "%s holds the scrollbar's room for exactly as long as the leaving page is frozen",
+    async (preset) => {
+      const output = await generator.generateProject(
+        buildUidl({ preset, duration: 0.35, easing: 'ease-out' }),
+        template()
+      )
+      const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+      const guard = wrapper.indexOf('      if (!gutterRef.current) {\n')
+      const hold = wrapper.indexOf('gutterRef.current = holdScrollbarGutter()')
+      const freeze = wrapper.indexOf(
+        'setFrozen({ key: routeKeyRef.current, top: window.scrollY || 0 })'
+      )
+      // measured and held right before the page is frozen, once per freeze
+      expect(guard).toBeGreaterThan(-1)
+      expect(hold).toBeGreaterThan(guard)
+      expect(freeze).toBeGreaterThan(hold)
+      // given back before the paint of the commit that ends the freeze, and on unmount
+      expect(wrapper).toContain(
+        "const useBeforePaintEffect = typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect"
+      )
+      expect(wrapper).toContain(
+        'useBeforePaintEffect(() => {\n    if (!frozen) {\n      releaseGutter()\n    }\n  }, [frozen])'
+      )
+      expect(wrapper).toContain('React.useEffect(() => releaseGutter, [])')
+      expect(wrapper.indexOf('releaseGutter()')).toBeLessThan(wrapper.indexOf('if (!variants) {'))
+    }
+  )
+
+  it("holds the room only when the scrollbar takes some, and puts <html>'s own overflow back exactly", async () => {
+    const output = await generator.generateProject(
+      buildUidl({ preset: 'fade', duration: 0.35, easing: 'ease-out' }),
+      template()
+    )
+    const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+    const start = wrapper.indexOf('const holdScrollbarGutter = () => {')
+    const source = wrapper.slice(start, wrapper.indexOf('\n}\n', start) + 2)
+    const pageRoot = (clientWidth: number, own?: [string, string]) => {
+      const declarations = new Map<string, [string, string]>(own ? [['overflow-y', own]] : [])
+      const style = {
+        getPropertyValue: (name: string) => (declarations.get(name) || [''])[0],
+        getPropertyPriority: (name: string) => (declarations.get(name) || ['', ''])[1],
+        setProperty: (name: string, value: string, priority = '') => {
+          declarations.set(name, [value, priority])
+        },
+        removeProperty: (name: string) => {
+          declarations.delete(name)
+        },
+      }
+      return { clientWidth, style, declarations }
+    }
+    const holdOn = (root: ReturnType<typeof pageRoot>, innerWidth: number) =>
+      new Function('window', 'document', `${source}\nreturn holdScrollbarGutter()`)(
+        { innerWidth },
+        { documentElement: root }
+      )
+
+    // an overlay scrollbar (or a page that does not scroll) takes no room: nothing is touched
+    const overlay = pageRoot(1280)
+    expect(holdOn(overlay, 1280)).toBeNull()
+    expect(overlay.declarations.size).toBe(0)
+
+    // a scrollbar that takes 15px keeps it while frozen; <html> had no overflow of its own
+    const classic = pageRoot(1265)
+    const release = holdOn(classic, 1280)
+    expect(classic.declarations.get('overflow-y')).toEqual(['scroll', 'important'])
+    release()
+    expect(classic.declarations.has('overflow-y')).toBe(false)
+
+    // a value of the page's own comes back with its priority
+    const styled = pageRoot(1265, ['auto', 'important'])
+    const releaseStyled = holdOn(styled, 1280)
+    expect(styled.declarations.get('overflow-y')).toEqual(['scroll', 'important'])
+    releaseStyled()
+    expect(styled.declarations.get('overflow-y')).toEqual(['auto', 'important'])
+  })
 })
 
 describe('Next generator per-page skip', () => {

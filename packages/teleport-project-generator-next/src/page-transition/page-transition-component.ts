@@ -26,7 +26,10 @@ const { BACK_ATTR, ORIGIN_X, ORIGIN_Y, morphHelpersSource, viewTransitionPlan } 
  * - The leaving page is FROZEN in place (position: fixed at its scroll offset)
  *   for its exit, because Next scrolls the window to the top the moment the new
  *   route resolves — otherwise a long page visibly jumps to its own top while
- *   fading out.
+ *   fading out. Frozen, it no longer gives the document a height, so a
+ *   scrollbar that takes room vanished at the click and came back when the
+ *   arriving page mounted; that room is held while the page is frozen
+ *   (`holdScrollbarGutter`).
  * - Only real page changes transition: query-only and hash navigations keep
  *   the same key, so a filter change or an in-page anchor never re-plays it.
  * - `prefers-reduced-motion` renders the page plainly — no wrapper animation.
@@ -158,6 +161,32 @@ const MORPH_DECODE_MS = 300
 const PICTURE_WAIT_MS = 300
 const prefersLessMotion = () =>
   !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+// A scrollbar that takes room (Windows, a Mac with a mouse) stays while the
+// leaving page is frozen. Frozen, that page no longer gives the document a
+// height, so its scrollbar vanished at the click and came back when the
+// arriving page mounted: the page jolted sideways by the scrollbar's width, and
+// back. Held with overflow-y: scroll, which keeps the scrollbar's track on
+// screen in every browser. Measured before the freeze; returns what puts <html>
+// back exactly as it was, or null when the scrollbar takes no room.
+const holdScrollbarGutter = () => {
+  const root = document.documentElement
+  if (window.innerWidth - root.clientWidth <= 0) {
+    return null
+  }
+  const own = root.style.getPropertyValue('overflow-y')
+  const ownPriority = root.style.getPropertyPriority('overflow-y')
+  root.style.setProperty('overflow-y', 'scroll', 'important')
+  return () => {
+    if (own) {
+      root.style.setProperty('overflow-y', own, ownPriority)
+    } else {
+      root.style.removeProperty('overflow-y')
+    }
+  }
+}
+// Runs before the browser paints; the server, which paints nothing, gets the
+// ordinary effect (React warns about a layout effect there).
+const useBeforePaintEffect = typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect
 // Settles once the pictures on the arriving page's first screen are decoded, or
 // after PICTURE_WAIT_MS: an image the page asks to decode off the main thread
 // paints a few frames after the rest of the page.
@@ -214,6 +243,8 @@ const TqPageTransition = ({ children }) => {
   const clickedRef = React.useRef(null)
   const changeRef = React.useRef(null)
   const revealRef = React.useRef(null)
+  // Puts back the scrollbar room held for the frozen page (holdScrollbarGutter).
+  const gutterRef = React.useRef(null)
   const variants = React.useMemo(
     () =>
       context.skip || context.morph
@@ -386,6 +417,12 @@ const TqPageTransition = ({ children }) => {
         setOverKey(reveal.arrivingKey)
         setTimeout(reveal.finish, DURATION * 1000 + PICTURE_WAIT_MS + 1000)
       }
+      // A change replacing a cancelled one finds the page still frozen and the
+      // room still held: held again, the hold would take the first hold's
+      // overflow-y for the page's own and leave it on <html>.
+      if (!gutterRef.current) {
+        gutterRef.current = holdScrollbarGutter()
+      }
       setFrozen({ key: routeKeyRef.current, top: window.scrollY || 0 })
     }
     const onRouteChangeError = () => {
@@ -401,6 +438,24 @@ const TqPageTransition = ({ children }) => {
       router.beforePopState(() => true)
     }
   }, [router])
+
+  // The room goes back before the paint of the commit that ends the freeze: that
+  // commit mounts the arriving page (for a reveal, lets the leaving page go), so
+  // the scrollbar passes straight to the page left in the document. A cancelled
+  // change leaves its page frozen until the change replacing it has played, so
+  // the room stays with it: Next starts that change a few awaits after the error.
+  const releaseGutter = () => {
+    if (gutterRef.current) {
+      gutterRef.current()
+      gutterRef.current = null
+    }
+  }
+  useBeforePaintEffect(() => {
+    if (!frozen) {
+      releaseGutter()
+    }
+  }, [frozen])
+  React.useEffect(() => releaseGutter, [])
 
   if (!variants) {
     return children
