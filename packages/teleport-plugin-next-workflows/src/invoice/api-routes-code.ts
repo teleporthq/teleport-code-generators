@@ -453,6 +453,58 @@ ${
 const REGENERATE_INVOICE_ROLES = INVOICE_ADMIN_ROLES
 
 /**
+ * The order-history line of an invoice email a regeneration sent: an
+ * `order-email-sent` line of the email's purpose, by the store admin who
+ * regenerated it, keyed on the invoice. The strings are data in the
+ * merchant's database, owned by teleport-gui's `order-event-types.ts` and
+ * `EmailTemplatePurpose.INVOICE_EMAIL`.
+ */
+const REGENERATED_INVOICE_EMAIL_EVENT = {
+  type: 'order-email-sent',
+  purpose: 'invoice-email',
+  actor: 'Store admin',
+  actorType: 'merchant',
+}
+
+/** The regenerate route's `emailFirstInvoice`, as emitted source. */
+const generateFirstInvoiceEmailCode = (): string => `
+var REGENERATE_SOURCE_REF = 'api/invoices/[id]/regenerate';
+var INVOICE_EMAIL_EVENT = ${JSON.stringify(REGENERATED_INVOICE_EMAIL_EVENT)};
+
+// The invoice email the payment would have sent: the same sender, template,
+// attachment and link, in the buyer's language — the one stamped on the order
+// at checkout, else the store's main language, never the language of this
+// request, which is the merchant's. The sender records it in the sent-email
+// ledger; the order's history records it once the provider accepted it. A
+// failure is logged and goes no further: the merchant has the PDF either way.
+async function emailFirstInvoice(invoiceData, pdfBuffer, order) {
+  if (!invoiceData.customerEmail) return;
+  invoiceData.locale = emailLocale.normalizeEmailLocale(order && order.locale) || emailLocale.DEFAULT_EMAIL_LOCALE;
+  try {
+    var sent = await emailSender.sendInvoiceEmail(invoiceData, pdfBuffer, REGENERATE_SOURCE_REF);
+    if (!sent || !sent.success) {
+      throw new Error((sent && sent.error) || 'the email provider did not accept it');
+    }
+  } catch (sendErr) {
+    console.error('[invoice] Regenerate: invoice ' + invoiceData.invoiceNumber + ' could not be emailed to its customer — ' + (sendErr && sendErr.message));
+    return;
+  }
+  try {
+    await dataAccess.recordOrderEvent({
+      type: INVOICE_EMAIL_EVENT.type,
+      dedupeKey: INVOICE_EMAIL_EVENT.type + ':' + invoiceData.id + ':' + INVOICE_EMAIL_EVENT.purpose,
+      orderId: invoiceData.orderId,
+      payload: { purpose: INVOICE_EMAIL_EVENT.purpose, to: invoiceData.customerEmail },
+      actor: INVOICE_EMAIL_EVENT.actor,
+      actorType: INVOICE_EMAIL_EVENT.actorType,
+    });
+  } catch (recordErr) {
+    console.error('[invoice] Regenerate: invoice ' + invoiceData.invoiceNumber + ' was emailed, but the order history could not record it — ' + (recordErr && recordErr.message));
+  }
+}
+`
+
+/**
  * POST /api/invoices/[id]/regenerate — the admin panel's "Regenerate" action.
  *
  * Rebuilds ONE invoice from its order with the very assembly that issued it at
@@ -461,23 +513,46 @@ const REGENERATE_INVOICE_ROLES = INVOICE_ADMIN_ROLES
  * against it keep pointing at a valid invoice. What a merchant corrected on the
  * invoice itself (customer details, notes, payment method) wins over the order;
  * the lines and every figure are recomputed from the order. The old PDF is
- * replaced — and its runtime-storage copy deleted — and the customer is never
- * emailed.
+ * replaced — and its runtime-storage copy deleted.
+ *
+ * The customer is emailed once: by the regeneration that gives an invoice its
+ * FIRST PDF — one whose PDF failed at payment, so the payment's invoice email
+ * never went out — and only when the store emails invoices (Invoice Email
+ * Delivery). It is the payment's email: the same sender, template, attachment,
+ * link and language, recorded in the sent-email ledger and on the order's
+ * history. Which regeneration that is, the database decides (see
+ * `replaceInvoice`), so a second regeneration, a double click or two requests
+ * at once never send it again; a failed send costs the merchant nothing.
  *
  * Unlike `/generate`, which the payment webhook calls server-to-server, this
  * route is reached from the merchant's browser only, so it checks the session
  * itself: signed in, with an admin role.
  */
-export const generateInvoiceRegenerateRouteCode = (): string => {
+export const generateInvoiceRegenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
+  const emailEnabled = settings.emailDelivery?.enabled === true
+
   return `/**
  * POST /api/invoices/[id]/regenerate
  * Rebuilds one invoice from its order, in place, for the admin panel. Same
- * number, id and dates; a freshly rendered PDF replaces the old one; no email.
+ * number, id and dates; a freshly rendered PDF replaces the old one.${
+   emailEnabled
+     ? `
+ * The first PDF an invoice ever gets is emailed to its customer, once.`
+     : `
+ * No email: this store does not email invoices.`
+ }
  */
 
 var dataAccess = require('../../../../utils/invoices/data-access');
 var pdfGenerator = require('../../../../utils/invoices/pdf-generator');
 var invoiceAssembly = require('../../../../utils/invoices/invoice-assembly');
+${
+  emailEnabled
+    ? `var emailSender = require('../../../../utils/invoices/email-sender');
+var sentEmailLog = require('../../../../utils/email/sent-email-log');
+var emailLocale = require('../../../../utils/email/email-locale');`
+    : ''
+}
 
 ${generateCommonJsSessionTokenResolverCode()}
 ${ROLE_OF_TOKEN_CODE}
@@ -563,7 +638,7 @@ async function findInvoice(invoiceId) {
     throw err;
   }
 }
-
+${emailEnabled ? generateFirstInvoiceEmailCode() : ''}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -622,7 +697,14 @@ module.exports = async function handler(req, res) {
     invoiceData.pdfSizeBytes = pdfBuffer.length;
     invoiceData.pdfUrl = '/api/invoices/' + invoiceData.id + '/pdf';
 
-    await dataAccess.replaceInvoice(invoiceData.id, invoiceData, invoiceData.items);
+${
+  emailEnabled
+    ? `    var replaced = await dataAccess.replaceInvoice(invoiceData.id, invoiceData, invoiceData.items);
+    // This regeneration gave the invoice its first PDF, so the payment's
+    // invoice email never went out: this one sends it.
+    var emailsCustomer = !!(replaced && replaced.firstPdf);`
+    : `    await dataAccess.replaceInvoice(invoiceData.id, invoiceData, invoiceData.items);`
+}
     console.info('[invoice] Regenerated ' + invoiceData.invoiceNumber + ' (id=' + invoiceData.id + ', items=' + invoiceData.items.length + ', pdf_size_bytes=' + pdfBuffer.length + ')');
 
     // The new PDF's public copy. The row already serves the new bytes through
@@ -645,7 +727,17 @@ module.exports = async function handler(req, res) {
       if (storageKey) {
         await invoiceAssembly.deleteStoredInvoicePdf(storageKey);
       }
-      res.status(500).json({ success: false, error: MESSAGES.orderNotUpdated });
+${
+  emailEnabled
+    ? `      // The invoice has its first PDF all the same — served from the database,
+      // its public copy just went — and no later regeneration will send it.
+      if (emailsCustomer) {
+        await emailFirstInvoice(invoiceData, pdfBuffer, hydrated.order);
+      }
+      await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}      res.status(500).json({ success: false, error: MESSAGES.orderNotUpdated });
       return;
     }
 
@@ -663,7 +755,18 @@ module.exports = async function handler(req, res) {
     if (previousStorageKey && previousStorageKey !== storageKey) {
       await invoiceAssembly.deleteStoredInvoicePdf(previousStorageKey);
     }
-
+${
+  emailEnabled
+    ? `
+    if (emailsCustomer) {
+      await emailFirstInvoice(invoiceData, pdfBuffer, hydrated.order);
+    }
+    // The email's ledger row is written in the background — land it before
+    // replying, a serverless function may be frozen the instant it responds.
+    await sentEmailLog.settleSentEmailLog();
+`
+    : ''
+}
     res.status(200).json({
       success: true,
       invoiceId: invoiceData.id,

@@ -16,8 +16,10 @@ import {
  *
  * Every test runs the EMITTED route against the REAL emitted assembly, with
  * the database, the PDF service and the session stubbed: a regenerated invoice
- * must be priced by exactly the code that issued it, keep its identity, take
- * the merchant's corrections over the order, and never email anybody.
+ * must be priced by exactly the code that issued it, keep its identity and
+ * take the merchant's corrections over the order. These run a store that does
+ * not email invoices; the one email a regeneration can send is proved in
+ * `invoice-regenerate-email.test.ts`.
  */
 
 const SETTINGS = {
@@ -27,7 +29,7 @@ const SETTINGS = {
   companyDetails: {},
   template: { document: null as unknown },
   tables: { invoicesTable: 'teleport_invoices', invoiceItemsTable: 'teleport_invoice_items' },
-  emailDelivery: { enabled: true, provider: 'postmark' },
+  emailDelivery: { enabled: false },
 } as unknown as UIDLInvoiceSettings
 
 type Row = Record<string, unknown>
@@ -190,7 +192,7 @@ async function run(options: RunOptions = {}): Promise<Harness> {
 
   const token = options.token === undefined ? { role: 'admin', id: 'u1' } : options.token
   const handler = evaluateEmittedModule<(req: unknown, res: unknown) => Promise<void>>(
-    generateInvoiceRegenerateRouteCode(),
+    generateInvoiceRegenerateRouteCode(SETTINGS),
     createInvoiceRouteRequire(SETTINGS, {
       dataAccess,
       pdfGenerator,
@@ -333,9 +335,9 @@ describe('/api/invoices/[id]/regenerate', () => {
     })
   })
 
-  it('never emails the customer', async () => {
+  it('never emails the customer of a store that does not email invoices', async () => {
     // The route does not even load the sender: a require of it would throw here.
-    const code = generateInvoiceRegenerateRouteCode()
+    const code = generateInvoiceRegenerateRouteCode(SETTINGS)
     expect(code).not.toContain('email-sender')
     expect(code).not.toContain('sendInvoiceEmail')
   })

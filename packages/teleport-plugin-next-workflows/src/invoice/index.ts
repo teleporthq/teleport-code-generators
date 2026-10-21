@@ -157,7 +157,7 @@ export const generateInvoiceFiles = (
       {
         name: 'regenerate',
         fileType: FileType.JS,
-        content: generateInvoiceRegenerateRouteCode(),
+        content: generateInvoiceRegenerateRouteCode(invoiceSettings),
       },
     ],
   })

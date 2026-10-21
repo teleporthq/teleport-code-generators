@@ -67,7 +67,9 @@ function attachmentName(invoiceData) {
 
 ${generateProviderSendFunction(emailDelivery.provider)}
 
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+// sourceRef names the route that sent it in the ledger: the payment's
+// generate route unless the caller says otherwise.
+async function sendInvoiceEmail(invoiceData, pdfBuffer, sourceRef) {
   var emailData = buildEmailData(invoiceData);
   if (!emailData.to) return { success: false, error: 'No customer email provided' };
   var result;
@@ -96,7 +98,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
     status: result && result.success ? 'sent' : 'failed',
     error: result && !result.success ? result.error : null,
     source: 'invoice',
-    sourceRef: 'api/invoices/generate',
+    sourceRef: sourceRef || 'api/invoices/generate',
     orderId: invoiceData.orderId,
     referenceType: 'invoice',
     referenceId: invoiceData.id,

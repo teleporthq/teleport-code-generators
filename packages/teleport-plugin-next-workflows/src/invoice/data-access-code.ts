@@ -35,6 +35,8 @@ ${generateReplaceInvoiceCode(dsType, invoicesTable, invoiceItemsTable)}
 
 ${generateLinkOrderToInvoiceCode(dsType)}
 
+${generateRecordOrderEventCode(dsType)}
+
 module.exports = {
   getClient: getClient,
   reserveInvoice: reserveInvoice,
@@ -45,6 +47,7 @@ module.exports = {
   getOrderWithItems: getOrderWithItems,
   replaceInvoice: replaceInvoice,
   linkOrderToInvoice: linkOrderToInvoice,
+  recordOrderEvent: recordOrderEvent,
 };
 `
 }
@@ -565,6 +568,14 @@ async function getOrderWithItems(orderId) {
 // points at it (the order, the sent-email ledger) stays valid. Postgres and
 // MySQL do it in one transaction, and Supabase undoes its steps, so a failure
 // leaves the old invoice whole.
+//
+// Resolves to `{ firstPdf }`: whether this write gave the invoice its first
+// PDF — one whose PDF never came at payment, so its buyer was never emailed
+// it. The database decides: the row is first written only where it has no PDF
+// (the `pdf_size_bytes IS NULL` that `claimStaleInvoice` reads as
+// "unfinished"), and of two regenerations racing for the same invoice the
+// second waits for the first's row lock, then finds the PDF and matches
+// nothing. So exactly one regeneration is ever told `firstPdf: true`.
 function generateReplaceInvoiceCode(dsType: string, table: string, itemsTable: string): string {
   if (dsType === 'supabase') {
     return `
@@ -584,18 +595,23 @@ async function replaceInvoice(invoiceId, invoiceData, items) {
   var insertedIds = (inserted || []).map(function (row) { return row.id; });
   var written = null;
   try {
-    var record = await writeInvoiceRecord(mapInvoiceReplacementToRecord(invoiceData), async function (fields) {
-      var result = await client.from('${table}').update(fields).eq('id', invoiceId).select('id');
-      if (result.error) throw new Error(result.error.message);
-      if (!result.data || result.data.length === 0) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+    var outcome = await writeInvoiceRecord(mapInvoiceReplacementToRecord(invoiceData), async function (fields) {
+      var first = await client.from('${table}').update(fields).eq('id', invoiceId).is('pdf_size_bytes', null).select('id');
+      if (first.error) throw new Error(first.error.message);
+      var firstPdf = !!(first.data && first.data.length > 0);
+      if (!firstPdf) {
+        var result = await client.from('${table}').update(fields).eq('id', invoiceId).select('id');
+        if (result.error) throw new Error(result.error.message);
+        if (!result.data || result.data.length === 0) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      }
       written = fields;
-      return fields;
+      return { firstPdf: firstPdf };
     });
     if (previousIds.length > 0) {
       var removed = await client.from('${itemsTable}').delete().in('id', previousIds);
       if (removed.error) throw new Error(removed.error.message);
     }
-    return record;
+    return outcome;
   } catch (err) {
     if (written) {
       var restored = {};
@@ -624,12 +640,17 @@ async function replaceInvoice(invoiceId, invoiceData, items) {
       var setClauses = columns.map(function(k) { return quoteIdent(k) + ' = ?'; }).join(', ');
       var values = columns.map(function(k) { return fields[k]; });
       values.push(invoiceId);
-      var [updated] = await conn.execute('UPDATE ${table} SET ' + setClauses + ' WHERE id = ?', values);
-      if (!updated || !updated.affectedRows) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      var update = 'UPDATE ${table} SET ' + setClauses + ' WHERE id = ?';
+      var [first] = await conn.execute(update + ' AND pdf_size_bytes IS NULL', values);
+      var firstPdf = !!(first && first.affectedRows > 0);
+      if (!firstPdf) {
+        var [updated] = await conn.execute(update, values);
+        if (!updated || !updated.affectedRows) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      }
       await conn.execute('DELETE FROM ${itemsTable} WHERE invoice_id = ?', [invoiceId]);
       await insertInvoiceItemRows(conn, invoiceId, items);
       await conn.commit();
-      return fields;
+      return { firstPdf: firstPdf };
     } catch (err) {
       try { await conn.rollback(); } catch (_rollbackErr) {}
       throw err;
@@ -653,12 +674,16 @@ async function replaceInvoice(invoiceId, invoiceData, items) {
       values.push(invoiceId);
       // The UPDATE takes the row lock first, so two regenerations of the same
       // invoice run one after the other instead of interleaving their lines.
-      var updated = await client.query('UPDATE ${table} SET ' + setClauses + ' WHERE id = $' + values.length, values);
-      if (!updated.rowCount) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      var update = 'UPDATE ${table} SET ' + setClauses + ' WHERE id = $' + values.length;
+      var firstPdf = (await client.query(update + ' AND pdf_size_bytes IS NULL', values)).rowCount > 0;
+      if (!firstPdf) {
+        var updated = await client.query(update, values);
+        if (!updated.rowCount) throw new Error('Invoice ' + invoiceId + ' no longer exists');
+      }
       await client.query('DELETE FROM ${itemsTable} WHERE invoice_id = $1', [invoiceId]);
       await insertInvoiceItemRows(client, invoiceId, items);
       await client.query('COMMIT');
-      return fields;
+      return { firstPdf: firstPdf };
     } catch (err) {
       try { await client.query('ROLLBACK'); } catch (_rollbackErr) {}
       throw err;
@@ -716,6 +741,69 @@ async function linkOrderToInvoice(orderId, invoiceId, invoiceNumber, pdfUrl) {
     [invoiceId, invoiceNumber, pdfUrl || null, orderId, String(invoiceId)]
   );
   return result.rowCount > 0;
+}`
+}
+
+// One line of an order's history: a row of the activity log the editor
+// provisions (`teleport_events`) and both order timelines read. Written like
+// every line the store's workflows write — teleport-gui's
+// `constants/order-event-types.ts` owns the vocabulary — so a replay collides
+// on the UNIQUE `dedupe_key` and adds nothing. `event` is
+// `{ type, dedupeKey, orderId, payload, actor, actorType }`.
+function generateRecordOrderEventCode(dsType: string): string {
+  const row = `
+var ORDER_EVENTS_TABLE = 'teleport_events';
+var ORDER_EVENT_DEDUPE_KEY_MAX_LENGTH = 255;
+
+function orderEventRow(event) {
+  return {
+    id: require('crypto').randomUUID(),
+    event_type: event.type,
+    dedupe_key: String(event.dedupeKey).slice(0, ORDER_EVENT_DEDUPE_KEY_MAX_LENGTH),
+    order_id: event.orderId || null,
+    payload: JSON.stringify(event.payload || {}),
+    actor: event.actor || '',
+    actor_type: event.actorType,
+    // Logged; a dispatcher claims the rows it delivers itself.
+    status: 'recorded',
+  };
+}`
+
+  if (dsType === 'supabase') {
+    return `${row}
+
+async function recordOrderEvent(event) {
+  var result = await getClient()
+    .from(ORDER_EVENTS_TABLE)
+    .upsert(orderEventRow(event), { onConflict: 'dedupe_key', ignoreDuplicates: true });
+  if (result.error) throw new Error(result.error.message);
+}`
+  }
+
+  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
+    return `${row}
+
+async function recordOrderEvent(event) {
+  var record = orderEventRow(event);
+  var columns = Object.keys(record);
+  var placeholders = columns.map(function() { return '?'; }).join(', ');
+  await getClient().execute(
+    'INSERT INTO ' + ORDER_EVENTS_TABLE + ' (' + columns.join(', ') + ') VALUES (' + placeholders + ') ON DUPLICATE KEY UPDATE dedupe_key = dedupe_key',
+    columns.map(function(k) { return record[k]; })
+  );
+}`
+  }
+
+  return `${row}
+
+async function recordOrderEvent(event) {
+  var record = orderEventRow(event);
+  var columns = Object.keys(record);
+  var placeholders = columns.map(function(_, i) { return '$' + (i + 1); }).join(', ');
+  await getClient().query(
+    'INSERT INTO ' + ORDER_EVENTS_TABLE + ' (' + columns.join(', ') + ') VALUES (' + placeholders + ') ON CONFLICT (dedupe_key) DO NOTHING',
+    columns.map(function(k) { return record[k]; })
+  );
 }`
 }
 
