@@ -3,6 +3,7 @@ import {
   ComponentPluginFactory,
   ChunkType,
   FileType,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
@@ -11,7 +12,16 @@ import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/telepo
 import { collectFilterLeafConditions, generateSafeFileName, pruneFilterTree } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
-import { appendSortsParam, DynamicSortAST, extractDynamicSort, readFixedSort } from './sort-utils'
+import {
+  appendSortsParam,
+  buildSortAtStartGuard,
+  buildStartingSortsValue,
+  DynamicSortAST,
+  extractDynamicSort,
+  readFixedSort,
+  readSortStateDefaults,
+  type SortStateDefault,
+} from './sort-utils'
 import {
   appendFiltersParam,
   buildStaticFiltersStringifyCall,
@@ -201,6 +211,12 @@ interface DataSourceUsage {
   // Dynamic single-column sort bound to component state (set when legacy sorts empty
   // and cms-list-repeater declares sort/sortDirection fields)
   dynamicSort?: DynamicSortAST
+  // With `dynamicSort`: the states it reads, at the values a visitor starts
+  // with (`readSortStateDefaults`). The build fetches the first page by that
+  // sort, and the list takes those rows while the sort is still there. Absent
+  // when the build cannot know the starting sort: the list then fetches its
+  // first page in the browser.
+  startingSort?: SortStateDefault[]
   // Filters from resource params, as the TREE the inspector authored: condition
   // leaves and `{ type: 'group', operator, children }` entries (see
   // `readFilterTree`). Anything that needs the leaves walks the tree with
@@ -460,7 +476,10 @@ function buildFilterDestinationExpression(destination: unknown): types.Expressio
 }
 
 // Scan UIDL to find all data source usages and build a registry
-function buildStateRegistry(uidlNode: any): StateRegistry {
+function buildStateRegistry(
+  uidlNode: any,
+  stateDefinitions?: Record<string, UIDLStateDefinition>
+): StateRegistry {
   const usages: DataSourceUsage[] = []
   const byDataSourceId = new Map<string, DataSourceUsage[]>()
   const byArrayMapperRenderProp = new Map<string, DataSourceUsage>()
@@ -538,6 +557,13 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
             dynamicSort = extractDynamicSort(content.sort, content.sortDirection)
           }
         }
+        // A sort the visitor picks still starts somewhere — the store's sort
+        // dropdown at "Name A-Z". Known at build time, it orders the
+        // server-side first page, which the list then shows while the visitor
+        // leaves the sort alone.
+        const startingSort = dynamicSort
+          ? readSortStateDefaults(dynamicSort, stateDefinitions)
+          : undefined
 
         // Extract filters from parent's resource params, keeping the group tree
         // the inspector authored (see `readFilterTree`).
@@ -632,6 +658,7 @@ function buildStateRegistry(uidlNode: any): StateRegistry {
           queryColumns,
           sorts,
           dynamicSort,
+          startingSort,
           filters,
           filterStateIds,
           filterPropIds,
@@ -1224,7 +1251,7 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     const hasRangeControl = rangeControls.length > 0
 
     // STEP 1: Build state registry from UIDL
-    const registry = buildStateRegistry(uidl.node)
+    const registry = buildStateRegistry(uidl.node, uidl.stateDefinitions)
 
     if (registry.usages.length === 0) {
       return structure
@@ -2396,10 +2423,10 @@ function pushParamsAttribute(
     types.arrayExpression(memoDeps),
   ])
 
-  // A state-bound sort deliberately suppresses `initialData` (see the comment at
-  // the call site): the prefetch ran without sort params, so reusing anything on
-  // mount would mask the current sort. The cache peek is `initialData` by
-  // another name, so it has to be suppressed for exactly the same reason.
+  // A state-bound sort gets no cache peek. The peek is `initialData` by another
+  // name, and such a list takes the server's rows only while its sort is still
+  // where the visitor starts (`buildStartingSortGuard`); the peek was never
+  // extended to it.
   const cache = usage.cache?.client && !usage.dynamicSort ? usage.cache : undefined
 
   if (!cache) {
@@ -2437,11 +2464,34 @@ function pushParamsAttribute(
   return { paramsIdentifier: hoisted.paramsIdentifier, cachedIdentifier: hoisted.cachedIdentifier }
 }
 
+// Whether the rows `getStaticProps` fetched can be this list's first page at
+// all. A sort bound to state can only be served them when the build knows the
+// sort the visitor starts with (`startingSort`) and fetched by it; otherwise
+// the fetch has no sort, and its rows are not the list's first page.
+function prefetchFollowsSort(usage: DataSourceUsage): boolean {
+  return !usage.dynamicSort || !!usage.startingSort
+}
+
+// `sortBy === "name-asc"`: the visitor has not moved the sort from where it
+// starts, so the build-time rows are still its first page. `null` for a list
+// whose sort the visitor cannot pick, or one that reads no state.
+function buildStartingSortGuard(usage: DataSourceUsage): types.Expression | null {
+  return usage.dynamicSort && usage.startingSort ? buildSortAtStartGuard(usage.startingSort) : null
+}
+
+// `<condition> && <starting-sort guard>`, or the condition alone.
+function withStartingSortGuard(
+  condition: types.Expression,
+  usage: DataSourceUsage
+): types.Expression {
+  const sortGuard = buildStartingSortGuard(usage)
+  return sortGuard ? types.logicalExpression('&&', condition, sortGuard) : condition
+}
+
 // An appending list on a page starts from the rows its `getStaticProps`
-// fetched. Not with a sort bound to state: that fetch has no sort, so its rows
-// are not the list's first page.
+// fetched, when they can be its first page (`prefetchFollowsSort`).
 function startsFromServerRows(usage: DataSourceUsage): boolean {
-  return usage.infiniteScroll && usage.paginated && !usage.dynamicSort
+  return usage.infiniteScroll && usage.paginated && prefetchFollowsSort(usage)
 }
 
 /**
@@ -2450,9 +2500,10 @@ function startsFromServerRows(usage: DataSourceUsage): boolean {
  * `infinite-scroll.ts`).
  *
  * The rows stand in for page 1 only while they answer the list's query: no
- * search (`queryGuard`), no filter set (the guard the paged lists use), and at
- * least one row — an empty build-time answer, which a failed fetch also gives,
- * leaves the browser to fetch page 1 as before.
+ * search (`queryGuard`), the sort where the visitor starts, no filter set (the
+ * guards the paged lists use), and at least one row — an empty build-time
+ * answer, which a failed fetch also gives, leaves the browser to fetch page 1
+ * as before.
  */
 function pushInfiniteScrollFirstPage(
   // tslint:disable-next-line:no-any
@@ -2482,7 +2533,12 @@ function pushInfiniteScrollFirstPage(
     ),
     types.numericLiteral(0)
   )
-  const startsFromServer = [queryGuard, buildNoUrlFilterGuard(usage), hasServerRows]
+  const startsFromServer = [
+    queryGuard,
+    buildStartingSortGuard(usage),
+    buildNoUrlFilterGuard(usage),
+    hasServerRows,
+  ]
     .filter((guard): guard is types.Expression => guard !== null)
     .reduce((all, guard) => types.logicalExpression('&&', all, guard))
 
@@ -2574,12 +2630,13 @@ function updateDataProviderForPaginatedSearch(
     seedInto
   )
 
-  // Add initialData. Skip the server-prefetched data entirely when a dynamic
-  // state-bound sort is active — the prefetch ran without sort parameters, so
-  // reusing it would mask the current sort state AND cause DataProvider to skip
-  // the first client fetch (its internal guard only skips when initialData is
-  // defined on mount). Without that skip, toggling sort correctly triggers a
-  // refetch via the useMemo params dependency chain.
+  // Add initialData: the server-prefetched page 1 while it is the page on show
+  // — page 1, no search, no filter set, and a sort the visitor picks still where
+  // they start (the prefetch ran by that sort). A list whose starting sort the
+  // build cannot know never takes it: that prefetch ran without a sort, so
+  // reusing it would mask the current sort AND make DataProvider skip its first
+  // client fetch (its internal guard only skips when initialData is defined on
+  // mount). Any other sort is fetched fresh, through the useMemo params.
   //
   // An appending list takes its own: `initialData` makes DataProvider skip its
   // first fetch, so the prefetched page 1 has to be filed in the accumulator
@@ -2601,23 +2658,29 @@ function updateDataProviderForPaginatedSearch(
       types.unaryExpression('!', appliedQuery(), true),
       [appliedQuery()]
     )
-  } else if (!usage.dynamicSort && !usage.infiniteScroll) {
+  } else if (prefetchFollowsSort(usage) && !usage.infiniteScroll) {
     const initialDataCondition = wrapInitialDataWithUrlFilterGuard(
-      types.logicalExpression(
-        '&&',
-        types.binaryExpression(
-          '===',
-          types.memberExpression(types.identifier(vars.combinedStateVar), types.identifier('page')),
-          types.numericLiteral(1)
-        ),
-        types.unaryExpression(
-          '!',
-          types.memberExpression(
-            types.identifier(vars.combinedStateVar),
-            types.identifier('debouncedQuery')
+      withStartingSortGuard(
+        types.logicalExpression(
+          '&&',
+          types.binaryExpression(
+            '===',
+            types.memberExpression(
+              types.identifier(vars.combinedStateVar),
+              types.identifier('page')
+            ),
+            types.numericLiteral(1)
           ),
-          true
-        )
+          types.unaryExpression(
+            '!',
+            types.memberExpression(
+              types.identifier(vars.combinedStateVar),
+              types.identifier('debouncedQuery')
+            ),
+            true
+          )
+        ),
+        usage
       ),
       usage
     )
@@ -2760,23 +2823,26 @@ function updateDataProviderForPaginationOnly(
     seedInto
   )
 
-  // Add initialData. See paginated+search updater for why we skip prefetch
-  // reuse when a dynamic state-bound sort is active, and how an appending list
-  // takes its own. This provider never remounts (no `key`), so its first page is
-  // frozen for the page's lifetime.
+  // Add initialData. See paginated+search updater for when a sort the visitor
+  // picks may reuse the prefetch, and how an appending list takes its own. This
+  // provider never remounts (no `key`), so its first page is frozen for the
+  // page's lifetime.
   if (seedInto && paramsIdentifier) {
     pushInfiniteScrollFirstPage(dp, usage, vars, paramsIdentifier, seedInto, null, [])
-  } else if (!usage.dynamicSort && !usage.infiniteScroll) {
+  } else if (prefetchFollowsSort(usage) && !usage.infiniteScroll) {
     dp.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
         types.jsxExpressionContainer(
           types.conditionalExpression(
             wrapInitialDataWithUrlFilterGuard(
-              types.binaryExpression(
-                '===',
-                types.identifier(vars.pageStateVar),
-                types.numericLiteral(1)
+              withStartingSortGuard(
+                types.binaryExpression(
+                  '===',
+                  types.identifier(vars.pageStateVar),
+                  types.numericLiteral(1)
+                ),
+                usage
               ),
               usage
             ),
@@ -2889,16 +2955,19 @@ function updateDataProviderForSearchOnly(
     cacheDeclarations
   )
 
-  // Add initialData. See paginated+search updater for why we skip prefetch
-  // reuse when a dynamic state-bound sort is active.
-  if (!usage.dynamicSort) {
+  // Add initialData. See paginated+search updater for when a sort the visitor
+  // picks may reuse the prefetch.
+  if (prefetchFollowsSort(usage)) {
     dp.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
         types.jsxExpressionContainer(
           types.conditionalExpression(
             wrapInitialDataWithUrlFilterGuard(
-              types.unaryExpression('!', types.identifier(vars.debouncedSearchQueryVar), true),
+              withStartingSortGuard(
+                types.unaryExpression('!', types.identifier(vars.debouncedSearchQueryVar), true),
+                usage
+              ),
               usage
             ),
             types.optionalMemberExpression(
@@ -3906,6 +3975,16 @@ function updateGetStaticProps(
                 ),
               ]
             )
+          )
+        )
+      } else if (usage.dynamicSort && usage.startingSort) {
+        // A sort the visitor picks: page 1 by the sort they start with, sent
+        // as the very string the browser sends for it, so page 2 continues
+        // this page exactly (see `buildStartingSortsValue`).
+        fetchParams.push(
+          types.objectProperty(
+            types.identifier('sorts'),
+            buildStartingSortsValue(usage.dynamicSort, usage.startingSort)
           )
         )
       }

@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLExpressionValue, UIDLStaticValue } from '@teleporthq/teleport-types'
+import { JSIdentifiers } from '@teleporthq/teleport-shared'
+import {
+  UIDLExpressionValue,
+  UIDLStateDefinition,
+  UIDLStaticValue,
+} from '@teleporthq/teleport-types'
 
 export interface DynamicSortAST {
   field: types.Expression
@@ -18,22 +23,26 @@ const SKIP_IDENTIFIERS = new Set([
   'console',
 ])
 
-const collectIdentifiers = (node: types.Node | null | undefined, acc: Set<string>): void => {
+const collectIdentifiers = (
+  node: types.Node | null | undefined,
+  acc: Set<string>,
+  skip: ReadonlySet<string> = SKIP_IDENTIFIERS
+): void => {
   if (!node || typeof node !== 'object') {
     return
   }
 
   if (node.type === 'Identifier') {
-    if (!SKIP_IDENTIFIERS.has(node.name)) {
+    if (!skip.has(node.name)) {
       acc.add(node.name)
     }
     return
   }
 
   if (node.type === 'MemberExpression') {
-    collectIdentifiers(node.object, acc)
+    collectIdentifiers(node.object, acc, skip)
     if (node.computed) {
-      collectIdentifiers(node.property, acc)
+      collectIdentifiers(node.property, acc, skip)
     }
     return
   }
@@ -43,9 +52,9 @@ const collectIdentifiers = (node: types.Node | null | undefined, acc: Set<string
     // tslint:disable-next-line:no-any
     const child = (node as any)[key]
     if (Array.isArray(child)) {
-      child.forEach((c) => collectIdentifiers(c, acc))
+      child.forEach((c) => collectIdentifiers(c, acc, skip))
     } else if (child && typeof child === 'object' && typeof child.type === 'string') {
-      collectIdentifiers(child, acc)
+      collectIdentifiers(child, acc, skip)
     }
   }
 }
@@ -111,23 +120,128 @@ export const extractDynamicSort = (
   }
 }
 
-// Build the AST for `sorts: JSON.stringify([{ field: <fieldExpr>, order: <orderExpr> }])`
-const buildDynamicSortsProperty = (dynamicSort: DynamicSortAST): types.ObjectProperty => {
-  return types.objectProperty(
-    types.identifier('sorts'),
-    types.callExpression(
-      types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-      [
-        types.arrayExpression([
-          types.objectExpression([
-            types.objectProperty(types.identifier('field'), types.cloneNode(dynamicSort.field)),
-            types.objectProperty(types.identifier('order'), types.cloneNode(dynamicSort.order)),
-          ]),
+// `JSON.stringify([{ field: <fieldExpr>, order: <orderExpr> }])`
+const buildDynamicSortsValue = (dynamicSort: DynamicSortAST): types.CallExpression =>
+  types.callExpression(
+    types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+    [
+      types.arrayExpression([
+        types.objectExpression([
+          types.objectProperty(types.identifier('field'), types.cloneNode(dynamicSort.field, true)),
+          types.objectProperty(types.identifier('order'), types.cloneNode(dynamicSort.order, true)),
         ]),
-      ]
-    )
+      ]),
+    ]
+  )
+
+// Build the AST for `sorts: JSON.stringify([{ field: <fieldExpr>, order: <orderExpr> }])`
+const buildDynamicSortsProperty = (dynamicSort: DynamicSortAST): types.ObjectProperty =>
+  types.objectProperty(types.identifier('sorts'), buildDynamicSortsValue(dynamicSort))
+
+/**
+ * A page state a state-bound sort reads, at the value the visitor starts with.
+ */
+export interface SortStateDefault {
+  /** The state's binding in the component: the name the sort expressions read. */
+  binding: string
+  value: string | number | boolean
+}
+
+// Names a sort expression may read besides its states: they mean the same on
+// the server and in the browser.
+const CONSTANT_IDENTIFIERS: ReadonlySet<string> = new Set(['undefined', 'NaN', 'Infinity'])
+
+const isStartingValue = (value: unknown): value is SortStateDefault['value'] =>
+  typeof value === 'string' ||
+  typeof value === 'boolean' ||
+  (typeof value === 'number' && Number.isFinite(value))
+
+/**
+ * The states a state-bound sort reads, at their defaults: the sort a visitor
+ * starts with, which the build can fetch the first page by.
+ *
+ * Only when every name the column and the direction read is a state of this
+ * component starting at a fixed value. Anything else they read — a prop, the
+ * router, `window` — or a state the page seeds from its data leaves the build
+ * unable to know the starting sort: `undefined`, and the list fetches its first
+ * page in the browser. An empty list is a sort that reads nothing.
+ */
+export const readSortStateDefaults = (
+  dynamicSort: DynamicSortAST,
+  stateDefinitions: Record<string, UIDLStateDefinition> | undefined
+): SortStateDefault[] | undefined => {
+  const read = new Set<string>()
+  collectIdentifiers(dynamicSort.field, read, CONSTANT_IDENTIFIERS)
+  collectIdentifiers(dynamicSort.order, read, CONSTANT_IDENTIFIERS)
+
+  // A state's binding is its sanitised name, as the component declares it.
+  const stateByBinding = new Map<string, UIDLStateDefinition>()
+  Object.entries(stateDefinitions ?? {}).forEach(([key, definition]) => {
+    stateByBinding.set(JSIdentifiers.createSafeJSIdentifier(key), definition)
+  })
+
+  const defaults: SortStateDefault[] = []
+  for (const binding of Array.from(read)) {
+    const definition = stateByBinding.get(binding)
+    if (
+      !definition ||
+      definition.dataSourceBinding ||
+      definition.query ||
+      !isStartingValue(definition.defaultValue)
+    ) {
+      return undefined
+    }
+    defaults.push({ binding, value: definition.defaultValue })
+  }
+  return defaults
+}
+
+/**
+ * The `sorts` param of the build-time fetch: the browser's own expression,
+ * evaluated with every state it reads at its default —
+ *
+ *   ((sortBy) => JSON.stringify([{ field: sortBy.split("-")?.[0] || '', order: … }]))("name-asc")
+ *
+ * — so it is the very string the browser sends while the sort is untouched, and
+ * the data source orders the first page exactly as it orders every later one
+ * (the same columns, empty values last, the row's id breaking ties).
+ */
+export const buildStartingSortsValue = (
+  dynamicSort: DynamicSortAST,
+  defaults: SortStateDefault[]
+): types.Expression => {
+  const sorts = buildDynamicSortsValue(dynamicSort)
+  if (defaults.length === 0) {
+    return sorts
+  }
+  return types.callExpression(
+    types.arrowFunctionExpression(
+      defaults.map((state) => types.identifier(state.binding)),
+      sorts
+    ),
+    defaults.map((state) => types.valueToNode(state.value) as types.Expression)
   )
 }
+
+/**
+ * `sortBy === "name-asc"`: the sort is still the one the visitor starts with,
+ * so the rows fetched at build time are its first page. `null` for a sort that
+ * reads nothing, which never moves.
+ */
+export const buildSortAtStartGuard = (defaults: SortStateDefault[]): types.Expression | null =>
+  defaults
+    .map(
+      (state): types.Expression =>
+        types.binaryExpression(
+          '===',
+          types.identifier(state.binding),
+          types.valueToNode(state.value) as types.Expression
+        )
+    )
+    .reduce<types.Expression | null>(
+      (all, guard) => (all ? types.logicalExpression('&&', all, guard) : guard),
+      null
+    )
 
 // Build the AST for the legacy static sorts array form.
 // tslint:disable-next-line:no-any
