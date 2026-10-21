@@ -24,6 +24,11 @@ import * as types from '@babel/types'
  * more" fetched a page already on show. `DataProvider` also renders whichever
  * answer arrives LAST, so a late answer to an earlier query must not replace
  * the list either.
+ *
+ * On a page, the list starts from the rows `getStaticProps` already fetched
+ * (`buildFirstPageDeclaration`, `buildFirstPageSeedEffect`): the server HTML
+ * carries them instead of the loading state, the accumulator holds them as
+ * page 1, and the browser's first request is page 2.
  */
 
 // tslint:disable:no-any
@@ -34,6 +39,7 @@ export interface InfiniteScrollVars {
   setHasMoreFlagVar: string
   hasMoreVar: string
   sentinelRefVar: string
+  firstPageVar: string
 }
 
 export const getInfiniteScrollVars = (index: number): InfiniteScrollVars => ({
@@ -42,6 +48,7 @@ export const getInfiniteScrollVars = (index: number): InfiniteScrollVars => ({
   setHasMoreFlagVar: `setDs_${index}_hasMoreFlag`,
   hasMoreVar: `ds_${index}_hasMore`,
   sentinelRefVar: `ds_${index}_sentinelRef`,
+  firstPageVar: `ds_${index}_firstPage`,
 })
 
 /**
@@ -172,12 +179,12 @@ const writeAtPath = (
 }
 
 /** `JSON.stringify({ ...params, page: 0 })`: everything that identifies the query but the page. */
-const buildQuerySignature = (): types.CallExpression =>
+const buildQuerySignature = (paramsVar: string = 'params'): types.CallExpression =>
   types.callExpression(
     types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
     [
       types.objectExpression([
-        types.spreadElement(types.identifier('params')),
+        types.spreadElement(types.identifier(paramsVar)),
         types.objectProperty(types.identifier('page'), types.numericLiteral(0)),
       ]),
     ]
@@ -212,6 +219,148 @@ export const buildAccumulatingRequestMark = (vars: InfiniteScrollVars): types.St
         types.objectProperty(types.identifier('page'), buildRequestedPage()),
       ])
     )
+  )
+
+/**
+ * The rows inside a server payload: the payload itself, or what sits at
+ * `itemsPath` in one that wraps them. `<rows>?.length > 0` is how the caller
+ * asks whether the server found any.
+ */
+export const buildServerRowsExpression = (
+  payload: types.Expression,
+  itemsPath?: string[]
+): types.Expression => (itemsPath?.length ? readAtPath(payload, itemsPath) : payload)
+
+/**
+ * The first page the list starts from, when its page already fetched it:
+ *
+ *   const ds_0_firstPage = useMemo(() => <starts> ? props?.items_ds_0 : undefined, [<instance deps>])
+ *
+ * Handed to `DataProvider` as `initialData`, so the server HTML holds the rows
+ * rather than the loading state, and the provider skips its own fetch of page 1.
+ *
+ * ⛔ Frozen for the provider's lifetime. `DataProvider` copies `initialData`
+ * into what it shows every time the value changes, so a value that moved with
+ * the page — the paged lists' `page === 1 ? … : undefined`, fine for them since
+ * they remount per page — would wipe the appended rows on the first scroll.
+ * `instanceDeps` are what remounts the provider (its `key`): nothing for a list
+ * without search, the applied query for one with search.
+ */
+export const buildFirstPageDeclaration = (
+  vars: InfiniteScrollVars,
+  startsFromServerRows: types.Expression,
+  serverPayload: types.Expression,
+  instanceDeps: types.Expression[]
+): types.Statement =>
+  types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(vars.firstPageVar),
+      types.callExpression(types.identifier('useMemo'), [
+        types.arrowFunctionExpression(
+          [],
+          types.conditionalExpression(
+            startsFromServerRows,
+            serverPayload,
+            types.identifier('undefined')
+          )
+        ),
+        types.arrayExpression(instanceDeps),
+      ])
+    ),
+  ])
+
+/**
+ * Makes the server rows page 1 of the accumulator whenever the provider is
+ * handed them instead of fetching:
+ *
+ *   useEffect(() => {
+ *     if (ds_0_firstPage === undefined) return
+ *     const rows = ds_0_firstPage || []
+ *     const sig = JSON.stringify({ ...ds_0_params, page: 0 })
+ *     ds_0_accumRef.current = { sig, pages: { 1: rows }, latest: { sig, page: 1 } }
+ *     setDs_0_hasMoreFlag(rows.length >= 20)
+ *   }, [ds_0_firstPage])
+ *
+ * Without it the accumulator never sees page 1 (the provider skipped that
+ * fetch), and the answer to page 2 would REPLACE the rows on screen with page 2
+ * alone. The signature is the one `fetchData` computes for the same params, so
+ * the next page appends to these rows while a filter, sort or search change
+ * still starts a fresh list; `latest` keeps an answer still in flight from an
+ * earlier query from changing anything. A short first page is the last one, as
+ * it would be had it been fetched.
+ */
+export const buildFirstPageSeedEffect = (
+  vars: InfiniteScrollVars,
+  paramsVar: string,
+  perPage: number,
+  itemsPath?: string[]
+): types.Statement =>
+  types.expressionStatement(
+    types.callExpression(types.identifier('useEffect'), [
+      types.arrowFunctionExpression(
+        [],
+        types.blockStatement([
+          types.ifStatement(
+            types.binaryExpression(
+              '===',
+              types.identifier(vars.firstPageVar),
+              types.identifier('undefined')
+            ),
+            types.returnStatement()
+          ),
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('rows'),
+              types.logicalExpression(
+                '||',
+                buildServerRowsExpression(types.identifier(vars.firstPageVar), itemsPath),
+                types.arrayExpression([])
+              )
+            ),
+          ]),
+          types.variableDeclaration('const', [
+            types.variableDeclarator(types.identifier('sig'), buildQuerySignature(paramsVar)),
+          ]),
+          types.expressionStatement(
+            types.assignmentExpression(
+              '=',
+              accumCurrentOf(vars),
+              types.objectExpression([
+                types.objectProperty(types.identifier('sig'), types.identifier('sig'), false, true),
+                types.objectProperty(
+                  types.identifier('pages'),
+                  types.objectExpression([
+                    types.objectProperty(types.numericLiteral(1), types.identifier('rows')),
+                  ])
+                ),
+                types.objectProperty(
+                  types.identifier('latest'),
+                  types.objectExpression([
+                    types.objectProperty(
+                      types.identifier('sig'),
+                      types.identifier('sig'),
+                      false,
+                      true
+                    ),
+                    types.objectProperty(types.identifier('page'), types.numericLiteral(1)),
+                  ])
+                ),
+              ])
+            )
+          ),
+          types.expressionStatement(
+            types.callExpression(types.identifier(vars.setHasMoreFlagVar), [
+              types.binaryExpression(
+                '>=',
+                types.memberExpression(types.identifier('rows'), types.identifier('length')),
+                types.numericLiteral(perPage)
+              ),
+            ])
+          ),
+        ])
+      ),
+      types.arrayExpression([types.identifier(vars.firstPageVar)]),
+    ])
   )
 
 /**

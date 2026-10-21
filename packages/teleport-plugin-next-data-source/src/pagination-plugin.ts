@@ -32,6 +32,7 @@ import {
   buildCacheStoreThen,
   buildCachedFetchBody,
   buildCachedParamsDeclarations,
+  paramsVarFor,
   registerCacheClientImports,
 } from './cache/ast'
 import {
@@ -60,9 +61,12 @@ import {
 import {
   buildAccumulatingRequestMark,
   buildAccumulatingResponseHandler,
+  buildFirstPageDeclaration,
+  buildFirstPageSeedEffect,
   buildInfiniteScrollDeclarations,
   buildSentinelElement,
   buildSentinelObserverEffect,
+  buildServerRowsExpression,
   getInfiniteScrollVars,
 } from './infinite-scroll'
 import {
@@ -1847,6 +1851,9 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
     // widgets can be matched to their owner rather than counted off in order.
     const usageByProviderNode = new Map<any, DataSourceUsage>()
     const cacheDeclarations: types.Statement[] = []
+    // Only a page has rows of its own to start an appending list from: its
+    // `getStaticProps` fetched page 1 (`updateGetStaticProps`).
+    const firstPageDeclarations: types.Statement[] | undefined = isPage ? [] : undefined
 
     dataProvidersWithRepeaters.forEach((dp) => {
       const nameAttr = dp.openingElement.attributes.find(
@@ -1885,10 +1892,19 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
           vars,
           fileName,
           cacheDeclarations,
-          localized
+          localized,
+          firstPageDeclarations
         )
       } else if (usage.category === 'paginated-only') {
-        updateDataProviderForPaginationOnly(dp, usage, vars, fileName, cacheDeclarations, localized)
+        updateDataProviderForPaginationOnly(
+          dp,
+          usage,
+          vars,
+          fileName,
+          cacheDeclarations,
+          localized,
+          firstPageDeclarations
+        )
       } else if (usage.category === 'search-only') {
         updateDataProviderForSearchOnly(dp, usage, vars, fileName, cacheDeclarations, localized)
       } else if (usage.category === 'plain') {
@@ -1967,6 +1983,12 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       // exactly the `Cannot access 'ds_0_state' before initialization` crash.
       ASTStatementOrder.insertStatementsAfterDependencies(blockStatement, cacheDeclarations)
       registerCacheClientImports(dependencies, uidl.outputOptions?.folderPath)
+    }
+
+    // After the cache declarations: a cached list's first page reads the
+    // `ds_N_params` they hoisted.
+    if (firstPageDeclarations?.length) {
+      ASTStatementOrder.insertStatementsAfterDependencies(blockStatement, firstPageDeclarations)
     }
 
     // STEP 3.5: Handle DataProviders WITHOUT repeaters (data-source-item type)
@@ -2353,10 +2375,12 @@ function findPaginationNodesWithOwners(
  *
  * An uncached mapper keeps the inline `params={useMemo(...)}` it has always had,
  * byte for byte. A cached one hoists that memo into a component const so the
- * peek can depend on the same object identity instead of rebuilding it.
+ * peek can depend on the same object identity instead of rebuilding it; so does
+ * an appending list that starts from its page's rows (`hoistInto`), whose first
+ * page is filed in the accumulator under those params.
  *
- * Returns the identifier holding the peeked rows, or `undefined` when this
- * mapper does not cache.
+ * Returns the identifier holding the params when they were hoisted, and the one
+ * holding the peeked rows when this mapper caches.
  */
 function pushParamsAttribute(
   // tslint:disable-next-line:no-any
@@ -2364,8 +2388,9 @@ function pushParamsAttribute(
   usage: DataSourceUsage,
   paramsProps: types.ObjectProperty[],
   memoDeps: types.Expression[],
-  cacheDeclarations: types.Statement[]
-): string | undefined {
+  cacheDeclarations: types.Statement[],
+  hoistInto?: types.Statement[]
+): { paramsIdentifier?: string; cachedIdentifier?: string } {
   const paramsMemo = types.callExpression(types.identifier('useMemo'), [
     types.arrowFunctionExpression([], types.objectExpression(paramsProps)),
     types.arrayExpression(memoDeps),
@@ -2378,10 +2403,25 @@ function pushParamsAttribute(
   const cache = usage.cache?.client && !usage.dynamicSort ? usage.cache : undefined
 
   if (!cache) {
-    dp.openingElement.attributes.push(
-      types.jsxAttribute(types.jsxIdentifier('params'), types.jsxExpressionContainer(paramsMemo))
+    if (!hoistInto) {
+      dp.openingElement.attributes.push(
+        types.jsxAttribute(types.jsxIdentifier('params'), types.jsxExpressionContainer(paramsMemo))
+      )
+      return {}
+    }
+    const paramsIdentifier = paramsVarFor(usage.index)
+    hoistInto.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier(paramsIdentifier), paramsMemo),
+      ])
     )
-    return undefined
+    dp.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('params'),
+        types.jsxExpressionContainer(types.identifier(paramsIdentifier))
+      )
+    )
+    return { paramsIdentifier }
   }
 
   const hoisted = buildCachedParamsDeclarations({ index: usage.index, paramsMemo, cache })
@@ -2394,7 +2434,68 @@ function pushParamsAttribute(
     )
   )
 
-  return hoisted.cachedIdentifier
+  return { paramsIdentifier: hoisted.paramsIdentifier, cachedIdentifier: hoisted.cachedIdentifier }
+}
+
+// An appending list on a page starts from the rows its `getStaticProps`
+// fetched. Not with a sort bound to state: that fetch has no sort, so its rows
+// are not the list's first page.
+function startsFromServerRows(usage: DataSourceUsage): boolean {
+  return usage.infiniteScroll && usage.paginated && !usage.dynamicSort
+}
+
+/**
+ * `initialData={ds_N_firstPage}` on an appending list, beside the frozen first
+ * page and the effect that files it as page 1 of the accumulator (see
+ * `infinite-scroll.ts`).
+ *
+ * The rows stand in for page 1 only while they answer the list's query: no
+ * search (`queryGuard`), no filter set (the guard the paged lists use), and at
+ * least one row — an empty build-time answer, which a failed fetch also gives,
+ * leaves the browser to fetch page 1 as before.
+ */
+function pushInfiniteScrollFirstPage(
+  // tslint:disable-next-line:no-any
+  dp: any,
+  usage: DataSourceUsage,
+  vars: ReturnType<typeof getStateVarsForUsage>,
+  paramsIdentifier: string,
+  declarations: types.Statement[],
+  queryGuard: types.Expression | null,
+  instanceDeps: types.Expression[]
+): void {
+  const infiniteVars = getInfiniteScrollVars(usage.index)
+  const serverPayload = (): types.Expression =>
+    types.optionalMemberExpression(
+      types.identifier('props'),
+      types.identifier(vars.propsPrefix),
+      false,
+      true
+    )
+  const hasServerRows = types.binaryExpression(
+    '>',
+    types.optionalMemberExpression(
+      buildServerRowsExpression(serverPayload(), usage.itemsPath),
+      types.identifier('length'),
+      false,
+      true
+    ),
+    types.numericLiteral(0)
+  )
+  const startsFromServer = [queryGuard, buildNoUrlFilterGuard(usage), hasServerRows]
+    .filter((guard): guard is types.Expression => guard !== null)
+    .reduce((all, guard) => types.logicalExpression('&&', all, guard))
+
+  declarations.push(
+    buildFirstPageDeclaration(infiniteVars, startsFromServer, serverPayload(), instanceDeps),
+    buildFirstPageSeedEffect(infiniteVars, paramsIdentifier, usage.perPage, usage.itemsPath)
+  )
+  dp.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('initialData'),
+      types.jsxExpressionContainer(types.identifier(infiniteVars.firstPageVar))
+    )
+  )
 }
 
 function updateDataProviderForPaginatedSearch(
@@ -2403,7 +2504,8 @@ function updateDataProviderForPaginatedSearch(
   vars: ReturnType<typeof getStateVarsForUsage>,
   fileName: string,
   cacheDeclarations: types.Statement[],
-  localized: boolean
+  localized: boolean,
+  firstPageDeclarations?: types.Statement[]
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2462,7 +2564,15 @@ function updateDataProviderForPaginatedSearch(
     appendClientLocaleParam(paramsProps, memoDeps)
   }
 
-  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
+  const seedInto = startsFromServerRows(usage) ? firstPageDeclarations : undefined
+  const { paramsIdentifier, cachedIdentifier: cachedInitialData } = pushParamsAttribute(
+    dp,
+    usage,
+    paramsProps,
+    memoDeps,
+    cacheDeclarations,
+    seedInto
+  )
 
   // Add initialData. Skip the server-prefetched data entirely when a dynamic
   // state-bound sort is active — the prefetch ran without sort parameters, so
@@ -2471,11 +2581,27 @@ function updateDataProviderForPaginatedSearch(
   // defined on mount). Without that skip, toggling sort correctly triggers a
   // refetch via the useMemo params dependency chain.
   //
-  // An appending list skips it for a second reason: `initialData` makes
-  // DataProvider skip its first fetch, so page 1 would render from the prefetch
-  // and never enter the accumulator — appending page 2 would then REPLACE the
-  // visible rows with page 2 alone.
-  if (!usage.dynamicSort && !usage.infiniteScroll) {
+  // An appending list takes its own: `initialData` makes DataProvider skip its
+  // first fetch, so the prefetched page 1 has to be filed in the accumulator
+  // too, or appending page 2 would REPLACE the visible rows with page 2 alone.
+  // The provider remounts per query (its `key`), so the first page is frozen
+  // per query.
+  if (seedInto && paramsIdentifier) {
+    const appliedQuery = (): types.MemberExpression =>
+      types.memberExpression(
+        types.identifier(vars.combinedStateVar),
+        types.identifier('debouncedQuery')
+      )
+    pushInfiniteScrollFirstPage(
+      dp,
+      usage,
+      vars,
+      paramsIdentifier,
+      seedInto,
+      types.unaryExpression('!', appliedQuery(), true),
+      [appliedQuery()]
+    )
+  } else if (!usage.dynamicSort && !usage.infiniteScroll) {
     const initialDataCondition = wrapInitialDataWithUrlFilterGuard(
       types.logicalExpression(
         '&&',
@@ -2585,7 +2711,8 @@ function updateDataProviderForPaginationOnly(
   vars: ReturnType<typeof getStateVarsForUsage>,
   fileName: string,
   cacheDeclarations: types.Statement[],
-  localized: boolean
+  localized: boolean,
+  firstPageDeclarations?: types.Statement[]
 ): void {
   const attrs = dp.openingElement.attributes
 
@@ -2623,12 +2750,23 @@ function updateDataProviderForPaginationOnly(
   }
 
   // Add params
-  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
+  const seedInto = startsFromServerRows(usage) ? firstPageDeclarations : undefined
+  const { paramsIdentifier, cachedIdentifier: cachedInitialData } = pushParamsAttribute(
+    dp,
+    usage,
+    paramsProps,
+    memoDeps,
+    cacheDeclarations,
+    seedInto
+  )
 
   // Add initialData. See paginated+search updater for why we skip prefetch
-  // reuse when a dynamic state-bound sort is active, and why an appending list
-  // skips it too.
-  if (!usage.dynamicSort && !usage.infiniteScroll) {
+  // reuse when a dynamic state-bound sort is active, and how an appending list
+  // takes its own. This provider never remounts (no `key`), so its first page is
+  // frozen for the page's lifetime.
+  if (seedInto && paramsIdentifier) {
+    pushInfiniteScrollFirstPage(dp, usage, vars, paramsIdentifier, seedInto, null, [])
+  } else if (!usage.dynamicSort && !usage.infiniteScroll) {
     dp.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
@@ -2743,7 +2881,13 @@ function updateDataProviderForSearchOnly(
     appendClientLocaleParam(paramsProps, memoDeps)
   }
 
-  const cachedInitialData = pushParamsAttribute(dp, usage, paramsProps, memoDeps, cacheDeclarations)
+  const { cachedIdentifier: cachedInitialData } = pushParamsAttribute(
+    dp,
+    usage,
+    paramsProps,
+    memoDeps,
+    cacheDeclarations
+  )
 
   // Add initialData. See paginated+search updater for why we skip prefetch
   // reuse when a dynamic state-bound sort is active.

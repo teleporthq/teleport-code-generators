@@ -19,6 +19,9 @@ const HIT_VAR = '__tqHit'
 
 export const cachedValueVarFor = (index: number): string => `ds_${index}_cached`
 
+/** The component const a provider's hoisted `params` live in. */
+export const paramsVarFor = (index: number): string => `ds_${index}_params`
+
 /**
  * Registers the client runtime's named imports on the page.
  *
@@ -205,7 +208,7 @@ export const buildCachedParamsDeclarations = (params: {
   paramsIdentifier: string
   cachedIdentifier: string
 } => {
-  const paramsIdentifier = `ds_${params.index}_params`
+  const paramsIdentifier = paramsVarFor(params.index)
   const cachedIdentifier = cachedValueVarFor(params.index)
 
   return {

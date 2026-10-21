@@ -6,9 +6,11 @@ import { createNextArrayMapperPaginationPlugin } from '../src/pagination-plugin'
 import {
   buildAccumulatingRequestMark,
   buildAccumulatingResponseHandler,
+  buildFirstPageSeedEffect,
   getInfiniteScrollVars,
 } from '../src/infinite-scroll'
 import {
+  makeGetStaticPropsChunk,
   makeMultiMapperUidl,
   makeUidlNode,
   makeWidgetComponentChunk,
@@ -63,14 +65,18 @@ describe('pagination plugin — infinite scroll', () => {
     )
   })
 
-  it('keeps the page out of the provider key and suppresses initialData', async () => {
+  it('keeps the page out of the provider key, and a component fetches its own page 1', async () => {
     const code = await runPlugin({ infiniteScroll: true })
 
-    // Remounting per appended page would throw away the accumulated rows...
+    // Remounting per appended page would throw away the accumulated rows.
     expect(code).not.toContain('ds_0_page}`')
-    // ...and initialData would make DataProvider skip the fetch that fills the
-    // accumulator with page 1.
+    // A component has no `getStaticProps` rows to start from, so its provider
+    // fetches page 1 — and that answer fills the accumulator. This used to hold
+    // for every appending list, pages included: the server HTML then carried
+    // the loading state although the page's props held the rows. A page now
+    // starts from them (next describe).
     expect(code).not.toContain('initialData')
+    expect(code).not.toContain('ds_0_firstPage')
   })
 
   it('observes a sentinel after the list when there is no Load More button', async () => {
@@ -180,6 +186,139 @@ describe('pagination plugin — infinite scroll', () => {
 })
 
 /**
+ * On a page, `getStaticProps` has already fetched the list's first page. The
+ * list starts from it — in the server HTML, and as page 1 of the accumulator —
+ * instead of painting its loading state and fetching the same rows again.
+ */
+describe('pagination plugin — infinite scroll on a page', () => {
+  const runPagePlugin = async (
+    repeater: RepeaterOptions
+  ): Promise<{ component: string; staticProps: string }> => {
+    const chunk = makeWidgetComponentChunk({ controls: ['load-more'] })
+    const staticProps = makeGetStaticPropsChunk()
+    const structure: ComponentStructure = {
+      uidl: { name: 'TestComponent', node: makeUidlNode(repeater) },
+      chunks: [chunk, staticProps],
+      dependencies: {},
+      options: { dataSources: {}, extractedResources: {} },
+    } as never
+    await createNextArrayMapperPaginationPlugin()(structure)
+    return {
+      component: collapse(generator(chunk.content as types.Node).code),
+      staticProps: collapse(generator(staticProps.content as types.Node).code),
+    }
+  }
+
+  const stateFilter = {
+    type: 'condition',
+    source: 'category',
+    destination: { type: 'dynamic', content: { referenceType: 'state', id: 'selectedCategory' } },
+    operand: '=',
+  }
+
+  it('starts from the rows its page fetched, frozen for the life of the page', async () => {
+    const { component, staticProps } = await runPagePlugin({ infiniteScroll: true })
+
+    // The rows the page's getStaticProps fetched for this list...
+    expect(staticProps).toContain('items_ds_0: items_ds_0')
+    // ...are what the provider starts from, so the server HTML holds them. The
+    // value never moves with the page: the provider copies a changed
+    // `initialData` over what it shows, which would wipe the appended rows.
+    expect(component).toContain('initialData={ds_0_firstPage}')
+    expect(component).toContain(
+      'const ds_0_firstPage = useMemo(() => props?.items_ds_0?.length > 0 ? props?.items_ds_0 : undefined, [])'
+    )
+    expect(component).not.toMatch(/initialData=\{ds_0_page === 1/)
+  })
+
+  it('files the rows as page 1 of the accumulator, under the signature fetchData computes', async () => {
+    const { component } = await runPagePlugin({ infiniteScroll: true })
+
+    // One params object for the provider and the signature.
+    expect(component).toContain(
+      'const ds_0_params = useMemo(() => ({ page: ds_0_page, perPage: 20 }), [ds_0_page])'
+    )
+    expect(component).toContain('params={ds_0_params}')
+    expect(component).toContain(
+      'useEffect(() => { if (ds_0_firstPage === undefined) return; const rows = ds_0_firstPage || []; const sig = JSON.stringify({ ...ds_0_params, page: 0 }); ds_0_accumRef.current = { sig, pages: { 1: rows }, latest: { sig, page: 1 } }; setDs_0_hasMoreFlag(rows.length >= 20); }, [ds_0_firstPage]);'
+    )
+    // Declared before anything reads them.
+    expect(component.indexOf('const ds_0_params =')).toBeLessThan(
+      component.indexOf('const ds_0_firstPage =')
+    )
+    expect(component.indexOf('const ds_0_firstPage =')).toBeLessThan(
+      component.indexOf('if (ds_0_firstPage === undefined)')
+    )
+    expect(component.indexOf('const ds_0_accumRef =')).toBeLessThan(
+      component.indexOf('if (ds_0_firstPage === undefined)')
+    )
+  })
+
+  it('takes the rows only while no search is applied, frozen per query', async () => {
+    const { component } = await runPagePlugin({ infiniteScroll: true, searchEnabled: true })
+
+    // The provider remounts per query (its key); the first page is decided once
+    // per mount, with the query and filters as they stand then.
+    // tslint:disable-next-line:no-invalid-template-strings
+    expect(component).toContain('key={`items-${ds_0_state.debouncedQuery}`}')
+    expect(component).toContain(
+      'const ds_0_firstPage = useMemo(() => !ds_0_state.debouncedQuery && props?.items_ds_0?.length > 0 ? props?.items_ds_0 : undefined, [ds_0_state.debouncedQuery])'
+    )
+    expect(component).toContain('initialData={ds_0_firstPage}')
+    expect(component).toContain('const sig = JSON.stringify({ ...ds_0_params, page: 0 })')
+  })
+
+  it('does not take them while a filter is set', async () => {
+    const { component } = await runPagePlugin({ infiniteScroll: true, filters: [stateFilter] })
+
+    // The build-time fetch knows no visitor's filter: the same guard as the
+    // paged lists.
+    expect(component).toContain(
+      'const ds_0_firstPage = useMemo(() => !selectedCategory && props?.items_ds_0?.length > 0 ? props?.items_ds_0 : undefined, [])'
+    )
+  })
+
+  it('reads the rows inside a payload that wraps them', async () => {
+    const { component } = await runPagePlugin({
+      infiniteScroll: true,
+      dataSourceType: 'rest-api',
+      source: 'items?.templates || []',
+    })
+
+    expect(component).toContain(
+      'useMemo(() => props?.items_ds_0?.templates?.length > 0 ? props?.items_ds_0 : undefined, [])'
+    )
+    expect(component).toContain('const rows = ds_0_firstPage?.templates || [];')
+  })
+
+  it('reuses the params a cached list already hoisted', async () => {
+    const { component } = await runPagePlugin({
+      infiniteScroll: true,
+      cache: { enabled: true, ttlSeconds: 300, client: true, server: true },
+    })
+
+    expect(component.match(/const ds_0_params = /g)).toHaveLength(1)
+    expect(component).toContain('initialData={ds_0_firstPage}')
+    expect(component).toContain('const sig = JSON.stringify({ ...ds_0_params, page: 0 })')
+    expect(component.indexOf('const ds_0_params =')).toBeLessThan(
+      component.indexOf('if (ds_0_firstPage === undefined)')
+    )
+  })
+
+  it('keeps fetching page 1 in the browser under a sort the visitor picks', async () => {
+    const { component } = await runPagePlugin({
+      infiniteScroll: true,
+      sort: { type: 'expr', content: 'sortBy.split("-")[0]' },
+      sortDirection: { type: 'expr', content: 'sortBy.split("-")[1]' },
+    })
+
+    // The build-time fetch has no sort, so its rows are not this list's page 1.
+    expect(component).not.toContain('initialData')
+    expect(component).not.toContain('ds_0_firstPage')
+  })
+})
+
+/**
  * The accumulator, executed: `fetchData` as the page emits it, answered in
  * the orders a browser can produce. A sort (filter, search) change made on
  * page 2 fires page 2 under the new query first, then page 1 once the page is
@@ -224,7 +363,25 @@ describe('the appending list, run', () => {
       made.result = result
       return made
     }
-    return { request, hasMore }
+    // The page's own first page, handed to the provider instead of fetched: the
+    // effect as the page emits it, run the way React runs it after the mount.
+    const startFromServerRows = (rows: string[], params: Deferred['params']) =>
+      new Function(
+        'useEffect',
+        'ds_0_firstPage',
+        'ds_0_params',
+        'ds_0_accumRef',
+        'setDs_0_hasMoreFlag',
+        generator(types.program([buildFirstPageSeedEffect(vars, 'ds_0_params', PER_PAGE)])).code
+      )(
+        (effect: () => void) => effect(),
+        rows,
+        params,
+        accumRef,
+        (value: boolean) => hasMore.push(value)
+      )
+    const requestedPages = () => requests.map((made) => `${made.params.sorts}${made.params.page}`)
+    return { request, hasMore, startFromServerRows, requestedPages }
   }
 
   const rowsOf = (sorts: string, page: number) => [`${sorts}${page}a`, `${sorts}${page}b`]
@@ -273,6 +430,54 @@ describe('the appending list, run', () => {
     expect(await after.result).toEqual(rowsOf('B', 1))
     before.resolve(rowsOf('A', 1))
     expect(await before.result).toEqual(rowsOf('B', 1))
+  })
+
+  it('appends page 2 to the rows the page painted, without requesting page 1', async () => {
+    const list = bootList()
+    list.startFromServerRows(rowsOf('A', 1), { page: 1, sorts: 'A' })
+    expect(list.hasMore).toEqual([true])
+
+    const next = list.request(2, 'A')
+    next.resolve(rowsOf('A', 2))
+    expect(await next.result).toEqual([...rowsOf('A', 1), ...rowsOf('A', 2)])
+    const third = list.request(3, 'A')
+    third.resolve(['A3a'])
+    expect(await third.result).toEqual([...rowsOf('A', 1), ...rowsOf('A', 2), 'A3a'])
+
+    expect(list.requestedPages()).toEqual(['A2', 'A3'])
+    expect(list.hasMore).toEqual([true, true, false])
+  })
+
+  it('still starts a fresh list on a filter, sort or search change after it', async () => {
+    const list = bootList()
+    list.startFromServerRows(rowsOf('A', 1), { page: 1, sorts: 'A' })
+
+    const restart = list.request(1, 'B')
+    restart.resolve(rowsOf('B', 1))
+    expect(await restart.result).toEqual(rowsOf('B', 1))
+    const next = list.request(2, 'B')
+    next.resolve(rowsOf('B', 2))
+    expect(await next.result).toEqual([...rowsOf('B', 1), ...rowsOf('B', 2)])
+  })
+
+  it('ends the list when the page painted a short first page', () => {
+    const list = bootList()
+    list.startFromServerRows(['A1a'], { page: 1, sorts: 'A' })
+    expect(list.hasMore).toEqual([false])
+  })
+
+  it('keeps the painted rows when an earlier query answers after them', async () => {
+    // A search cleared while its answer is still on the way: the provider
+    // remounts on the page's rows, then the search's page 1 lands.
+    const list = bootList()
+    const stray = list.request(1, 'B')
+    list.startFromServerRows(rowsOf('A', 1), { page: 1, sorts: 'A' })
+    stray.resolve(rowsOf('B', 1))
+    expect(await stray.result).toEqual(rowsOf('A', 1))
+
+    const next = list.request(2, 'A')
+    next.resolve(rowsOf('A', 2))
+    expect(await next.result).toEqual([...rowsOf('A', 1), ...rowsOf('A', 2)])
   })
 
   it('ends the list on a short page of the request it stands on only', async () => {
