@@ -122,6 +122,7 @@ async function runHandler(
 
 interface PdfGeneratorModule {
   buildInvoiceDataScope: (invoiceData: Row) => { invoiceData: Record<string, Row> }
+  buildInvoiceHtml: (invoiceData: Row) => string
 }
 
 function loadPdfGenerator(
@@ -214,6 +215,57 @@ describe('/api/invoices/generate — the buyer’s own invoice details', () => {
     })
   })
 
+  it('bills a store order shipped elsewhere at its billing address, under its company', async () => {
+    // The store checkout's "Billing Details", as its order records them; the
+    // goods go to someone else, in another town.
+    const storeOrder: Row = {
+      id: 'order-store',
+      order_number: 'ORD-7',
+      currency: 'USD',
+      total_amount: 40,
+      shipping_amount: 0,
+      billing_name: 'Ana Billing',
+      billing_email: 'ana@example.test',
+      billing_address: '1 Billing Street, Suite 4',
+      shipping_name: 'Ben Recipient',
+      shipping_address: '12 Delivery Lane',
+      shipping_city: 'Lyon',
+      shipping_state: 'Rhone',
+      shipping_zip: '69001',
+      shipping_country: 'FR',
+      metadata: JSON.stringify({
+        billingStreet: '1 Billing Street, Suite 4',
+        billingCompany: 'Acme Widgets Ltd',
+        billingCity: 'Halifax',
+        billingRegion: 'NS',
+        billingPostalCode: 'B3H 1A1',
+        billingCountry: 'CA',
+      }),
+    }
+    const items = [{ product_id: 'mug', product_name: 'Mug', quantity: 2, unit_price: 20 }]
+    const run = await runHandler(settingsWith({ defaultTaxRate: 0 }), storeOrder, items, {
+      orderId: 'order-store',
+    })
+    expect(run.status).toBe(200)
+    expect(run.invoice).toMatchObject({
+      customerName: 'Ana Billing',
+      customerCompany: 'Acme Widgets Ltd',
+      customerAddress: '1 Billing Street, Suite 4',
+      customerCity: 'Halifax',
+      customerState: 'NS',
+      customerZip: 'B3H 1A1',
+      customerCountry: 'CA',
+    })
+
+    const withoutCompany = await runHandler(
+      settingsWith({ defaultTaxRate: 0 }),
+      { ...storeOrder, metadata: JSON.stringify({ billingStreet: '1 Billing Street' }) },
+      items,
+      { orderId: 'order-store' }
+    )
+    expect(withoutCompany.invoice.customerCompany).toBe('')
+  })
+
   it('reads no metadata that is not a JSON object, and lets the caller’s VAT win', async () => {
     for (const metadata of ['not json', '[1,2]', null]) {
       const run = await runHandler(
@@ -274,5 +326,59 @@ describe('invoice PDF renderer — the buyer, never the template’s sample', ()
       hasCountry: 'false',
     })
     expect(invoiceData.Payment.intentId).toBe('')
+  })
+
+  it('prints the company under the name only for a buyer who gave one', () => {
+    const withCompany = templated.buildInvoiceDataScope({
+      customerName: 'Ana Billing',
+      customerCompany: 'Acme Widgets Ltd',
+      items: [],
+    }).invoiceData.Customer
+    expect(withCompany).toMatchObject({ company: 'Acme Widgets Ltd', hasCompany: 'true' })
+    const withoutCompany = templated.buildInvoiceDataScope({ customerName: 'Ana', items: [] })
+      .invoiceData.Customer
+    expect(withoutCompany).toMatchObject({ company: '', hasCompany: 'false' })
+
+    // The template's company line, gated on its flag like the editor builds it.
+    const text = (children: unknown[]) => ({
+      type: 'element',
+      content: { elementType: 'text', semanticType: 'p', children },
+    })
+    const billTo = loadPdfGenerator(settings, {
+      name: 'invoice-template',
+      node: {
+        type: 'element',
+        content: {
+          elementType: 'container',
+          children: [
+            text([{ type: 'expr', content: 'invoiceData?.Customer?.name' }]),
+            {
+              type: 'conditional',
+              content: {
+                reference: { type: 'expr', content: 'invoiceData?.Customer?.hasCompany' },
+                condition: { conditions: [{ operation: '=', operand: 'true' }] },
+                node: text([{ type: 'expr', content: 'invoiceData?.Customer?.company' }]),
+              },
+            },
+          ],
+        },
+      },
+    })
+    expect(
+      billTo.buildInvoiceHtml({
+        customerName: 'Ana',
+        customerCompany: 'Acme Widgets Ltd',
+        items: [],
+      })
+    ).toContain('Acme Widgets Ltd')
+    expect(billTo.buildInvoiceHtml({ customerName: 'Ana', items: [] })).not.toContain('Acme')
+
+    // And the built-in layout used when a store has no template.
+    const fallback = loadPdfGenerator(settings, null).buildInvoiceHtml({
+      customerName: 'Ana Billing',
+      customerCompany: 'Acme Widgets Ltd',
+      items: [],
+    })
+    expect(fallback).toContain('<strong>Ana Billing</strong><br/>Acme Widgets Ltd<br/>')
   })
 })

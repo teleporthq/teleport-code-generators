@@ -361,6 +361,7 @@ function buildInvoiceDataScope(invoiceData) {
 
   var realCustomer = {
     name: invoiceData.customerName || '',
+    company: invoiceData.customerCompany || '',
     email: invoiceData.customerEmail || '',
     address: invoiceData.customerAddress || '',
     city: invoiceData.customerCity || '',
@@ -371,6 +372,7 @@ function buildInvoiceDataScope(invoiceData) {
   };
   // The "Bill to" lines a buyer may leave out show only when they did not
   // (string flags: the template compares strings, as with \`hasShipping\`).
+  realCustomer.hasCompany = realCustomer.company ? 'true' : 'false';
   realCustomer.hasZip = realCustomer.zip ? 'true' : 'false';
   realCustomer.hasCountry = realCustomer.country ? 'true' : 'false';
   realCustomer.hasVat = realCustomer.vat ? 'true' : 'false';
@@ -980,6 +982,7 @@ function buildFallbackInvoiceHtml(scope) {
     escapeHtml(comp.city || '') + '<br/>' +
     escapeHtml(comp.email || '') + '</div>');
   parts.push('<div style="flex:1;"><strong>' + escapeHtml(cust.name || '') + '</strong><br/>' +
+    (cust.company ? escapeHtml(cust.company) + '<br/>' : '') +
     escapeHtml(cust.email || '') + '<br/>' +
     escapeHtml(cust.address || '') + '<br/>' +
     escapeHtml(cust.city || '') + '</div>');
