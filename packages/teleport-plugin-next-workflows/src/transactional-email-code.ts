@@ -5,6 +5,7 @@
  * every route stays byte-for-byte consistent.
  */
 import { UIDLLocalizedEmailTemplates } from '@teleporthq/teleport-types'
+import { EmailSender } from '@teleporthq/teleport-shared'
 import { getEmailProviderDependencies } from './invoice/email-sender-code'
 import { EMAIL_LOCALE_FILE_NAME, EMAIL_LOCALE_PATH } from './email-locale/email-locale-scope'
 
@@ -39,24 +40,28 @@ export interface TransactionalEmailLedger {
   relativePrefix: string
 }
 
-// Provider-specific `__sendProviderEmail({ from, to, subject, html, apiKey,
-// tokenValues?, userId? })`. No attachment (unlike the invoice sender). When
-// no provider is configured the function is a no-op so the route stays
-// self-contained and never throws. With `ledger`, the provider function is
-// emitted as `__sendProviderEmailRaw` and `__sendProviderEmail` records every
-// attempt (success or throw) before returning / rethrowing.
+// Provider-specific `__sendProviderEmail({ from, fromName?, to, subject, html,
+// apiKey, tokenValues?, userId? })`, preceded by the `__emailSender` helper that
+// names the sender. No attachment (unlike the invoice sender). When no provider
+// is configured the function is a no-op so the route stays self-contained and
+// never throws. With `ledger`, the provider function is emitted as
+// `__sendProviderEmailRaw` and `__sendProviderEmail` records every attempt
+// (success or throw) before returning / rethrowing.
 export const generateProviderSendFunction = (
   provider?: string | null,
   ledger?: TransactionalEmailLedger
 ): string => {
   const raw = generateRawProviderSendFunction(provider)
-  if (!ledger || !provider || !SUPPORTED_EMAIL_PROVIDERS.has(provider)) {
+  if (!provider || !SUPPORTED_EMAIL_PROVIDERS.has(provider)) {
     return raw
   }
-  return `${raw.replace(
-    'async function __sendProviderEmail(',
-    'async function __sendProviderEmailRaw('
-  )}
+  const senderHelper = EmailSender.generateEmailSenderHelperCode()
+  if (!ledger) {
+    return `${senderHelper}
+${raw}`
+  }
+  return `${senderHelper}
+${raw.replace('async function __sendProviderEmail(', 'async function __sendProviderEmailRaw(')}
 
 var __sentEmailLog = require('${ledger.relativePrefix}/utils/email/sent-email-log');
 
@@ -67,12 +72,14 @@ async function __sendProviderEmail(msg) {
   } catch (err) {
     failure = err;
   }
+  var sender = __emailSender({ from: msg.from, name: msg.fromName });
   // Recorded in the background; the route settles the ledger before it replies.
   __sentEmailLog.recordSentEmail({
     emailType: ${JSON.stringify(ledger.emailType)},
     audience: 'customer',
     to: msg.to,
-    from: msg.from,
+    from: sender.email,
+    fromName: sender.name,
     subject: msg.subject,
     html: msg.html,
     payload: msg.tokenValues,
@@ -93,20 +100,26 @@ const generateRawProviderSendFunction = (provider?: string | null): string => {
       return `async function __sendProviderEmail(msg) {
   var Resend = require('resend').Resend;
   var resend = new Resend(msg.apiKey);
-  var result = await resend.emails.send({ from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html });
+  var sender = __emailSender({ from: msg.from, name: msg.fromName });
+  var result = await resend.emails.send({ from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html });
   if (result && result.error) { throw new Error(result.error.message || 'Failed to send email'); }
 }`
     case 'sendgrid':
+      // SendGrid reads a "Name <email>" string's name verbatim, quotes included,
+      // so a named sender goes as its two parts.
       return `async function __sendProviderEmail(msg) {
   var sgMail = require('@sendgrid/mail');
   sgMail.setApiKey(msg.apiKey);
-  await sgMail.send({ to: msg.to, from: msg.from, subject: msg.subject, html: msg.html });
+  var sender = __emailSender({ from: msg.from, name: msg.fromName });
+  var from = sender.name ? { email: sender.email, name: sender.name } : sender.email;
+  await sgMail.send({ to: msg.to, from: from, subject: msg.subject, html: msg.html });
 }`
     case 'postmark':
       return `async function __sendProviderEmail(msg) {
   var postmark = require('postmark');
   var client = new postmark.ServerClient(msg.apiKey);
-  await client.sendEmail({ From: msg.from, To: msg.to, Subject: msg.subject, HtmlBody: msg.html });
+  var sender = __emailSender({ from: msg.from, name: msg.fromName });
+  await client.sendEmail({ From: sender.header, To: msg.to, Subject: msg.subject, HtmlBody: msg.html });
 }`
     case 'mailgun':
       return `async function __sendProviderEmail(msg) {
@@ -116,7 +129,8 @@ const generateRawProviderSendFunction = (provider?: string | null): string => {
   if (!domain) { throw new Error('Mailgun domain not configured'); }
   var mailgun = new Mailgun(formData);
   var mg = mailgun.client({ username: 'api', key: msg.apiKey });
-  await mg.messages.create(domain, { from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html });
+  var sender = __emailSender({ from: msg.from, name: msg.fromName });
+  await mg.messages.create(domain, { from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html });
 }`
     case 'mailersend':
       return `async function __sendProviderEmail(msg) {
@@ -125,11 +139,8 @@ const generateRawProviderSendFunction = (provider?: string | null): string => {
   var Sender = require('mailersend').Sender;
   var Recipient = require('mailersend').Recipient;
   var mailerSend = new MailerSend({ apiKey: msg.apiKey });
-  var fromStr = String(msg.from || '').trim();
-  var m = /^(.*)<([^<>]+)>\\s*$/.exec(fromStr);
-  var fromEmail = m ? m[2].trim() : fromStr;
-  var fromName = m ? m[1].trim() : '';
-  var sender = new Sender(fromEmail, fromName || fromEmail);
+  var from = __emailSender({ from: msg.from, name: msg.fromName });
+  var sender = new Sender(from.email, from.name || from.email);
   var params = new EmailParams().setFrom(sender).setTo([new Recipient(msg.to)]).setSubject(msg.subject).setHtml(msg.html);
   await mailerSend.email.send(params);
 }`

@@ -16,6 +16,7 @@
 // (workflow server segments, webhooks, the data-api itself).
 
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
+import { EmailSender } from '@teleporthq/teleport-shared'
 
 const POSTMARK_PROVIDER = 'postmark'
 const SENDGRID_PROVIDER = 'sendgrid'
@@ -126,12 +127,14 @@ const NORMALIZE_RECIPIENTS_FN = `function normalizeRecipients(recipients) {
 const buildProviderDispatch = (provider: string | null | undefined): string => {
   switch (provider) {
     case SENDGRID_PROVIDER:
+      // SendGrid reads a "Name <email>" string's name verbatim, quotes included,
+      // so a named sender goes as its two parts.
       return `var sgMail = require('@sendgrid/mail')
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
 function dispatchProviderEmail(envelope) {
   var msg = {
     to: envelope.to,
-    from: envelope.fromDisplay,
+    from: envelope.fromName ? { email: envelope.fromEmail, name: envelope.fromName } : envelope.fromDisplay,
     subject: envelope.subject,
     html: envelope.html,
     text: envelope.text,
@@ -279,11 +282,13 @@ function sendNotificationEmail(recipients, subject, html, meta) {
   var fromAddress = ${JSON.stringify(
     fromEmail
   )} || process.env.ORDER_NOTIFICATION_FROM_EMAIL || 'noreply@example.com'
-  var fromName = ${JSON.stringify(fromName)}
-  var fromDisplay = fromName ? (fromName + ' <' + fromAddress + '>') : fromAddress
+  var sender = __emailSender({ from: fromAddress, name: ${JSON.stringify(fromName)} })
+  var fromDisplay = sender.header
   var replyTo = ${JSON.stringify(replyTo)}
   var envelope = {
     fromDisplay: fromDisplay,
+    fromEmail: sender.email,
+    fromName: sender.name,
     subject: subject || '',
     html: html || '',
     text: htmlToText(html),
@@ -300,6 +305,7 @@ function sendNotificationEmail(recipients, subject, html, meta) {
       audience: 'store-owner',
       to: [recipient],
       from: fromDisplay,
+      fromName: sender.name,
       replyTo: replyTo,
       subject: envelope.subject,
       html: envelope.html,
@@ -419,7 +425,7 @@ ${HAS_OWN_ITEM_LIST_FN}
 ${HTML_TO_TEXT_FN}
 
 ${NORMALIZE_RECIPIENTS_FN}
-
+${EmailSender.generateEmailSenderHelperCode()}
 ${senderFn}
 
 module.exports = {

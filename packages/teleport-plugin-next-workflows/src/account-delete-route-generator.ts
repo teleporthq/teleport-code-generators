@@ -36,6 +36,7 @@ export interface AccountDeleteRouteOptions {
   // var the credential lives under (resolved from the node's secret reference).
   emailProvider?: string | null
   fromEmail?: string
+  fromName?: string
   emailSecretEnvName?: string | null
   emailSubject?: string
   emailBodyHtml?: string
@@ -68,6 +69,7 @@ const SITE_NAME = ${JSON.stringify(options.siteName || '')};
 const DELETED_EMAIL_PATTERN = ${JSON.stringify(deletedEmailPattern)};
 const EMAIL_PROVIDER = ${JSON.stringify(provider)};
 const EMAIL_FROM = ${JSON.stringify(options.fromEmail || '')};
+const EMAIL_FROM_NAME = ${JSON.stringify(options.fromName || '')};
 const EMAIL_SECRET_ENV_NAME = ${JSON.stringify(options.emailSecretEnvName || '')};
 const EMAIL_SUBJECT = ${JSON.stringify(options.emailSubject || 'Your account has been deleted')};
 const EMAIL_BODY_HTML = ${JSON.stringify(options.emailBodyHtml || '')};
@@ -194,7 +196,7 @@ async function sendFarewellEmail(toEmail, tokenValues, userId, locale) {
   var copy = resolveFarewellEmailCopy(locale);
   var subject = fillTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
-  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
+  await __sendProviderEmail({ from: from, fromName: EMAIL_FROM_NAME, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 
 module.exports = async function handler(req, res) {

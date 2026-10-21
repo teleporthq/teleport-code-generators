@@ -1,8 +1,15 @@
+import { EmailSender } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
+import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
+
+// Ambient, not imported: a serialized handler has no module scope, so
+// generateHandler appends the helper's source (EmailSender, teleport-shared).
+declare function __emailSender(sender: EmailSender.EmailSenderInput): EmailSender.EmailSenderParts
 
 async function email_resend(config: any, context: Record<string, unknown>) {
   const apiKey = config.apiKey
   const from = config.from
+  const fromName = config.fromName
   const to = config.to
   const subject = config.subject
   const body = config.body
@@ -17,7 +24,7 @@ async function email_resend(config: any, context: Record<string, unknown>) {
     const resend = new Resend(apiKey)
 
     const payload: Record<string, any> = {
-      from,
+      from: __emailSender({ from, name: fromName }).header,
       to: Array.isArray(to) ? to : [to],
       subject,
       html: body,
@@ -53,6 +60,9 @@ export const emailResend: NodeHandlerGenerator = {
     resend: '^4.0.0',
   },
   generateHandler(): string {
-    return handlerToString(email_resend)
+    return assertHandlerHasNoModuleRefs(
+      handlerToString(email_resend) + '\n' + EmailSender.generateEmailSenderHelperCode(),
+      'email-resend'
+    )
   },
 }

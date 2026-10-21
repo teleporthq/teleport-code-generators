@@ -1,4 +1,10 @@
+import { EmailSender } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
+import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
+
+// Ambient, not imported: a serialized handler has no module scope, so
+// generateHandler appends the helper's source (EmailSender, teleport-shared).
+declare function __emailSender(sender: EmailSender.EmailSenderInput): EmailSender.EmailSenderParts
 
 async function email_mailgun(config: any, context: Record<string, unknown>) {
   const apiKey = config.apiKey
@@ -25,7 +31,7 @@ async function email_mailgun(config: any, context: Record<string, unknown>) {
     }
     const mg = mailgun.client(clientOpts)
 
-    const fromField = fromName ? fromName + ' <' + from + '>' : from
+    const fromField = __emailSender({ from, name: fromName }).header
     const toField = Array.isArray(to) ? to : [to]
 
     const msgPayload: Record<string, any> = {
@@ -61,6 +67,9 @@ export const emailMailgun: NodeHandlerGenerator = {
     'form-data': '^4.0.0',
   },
   generateHandler(): string {
-    return handlerToString(email_mailgun)
+    return assertHandlerHasNoModuleRefs(
+      handlerToString(email_mailgun) + '\n' + EmailSender.generateEmailSenderHelperCode(),
+      'email-mailgun'
+    )
   },
 }

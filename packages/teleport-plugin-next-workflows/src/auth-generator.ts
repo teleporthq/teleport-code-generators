@@ -1118,6 +1118,7 @@ module.exports = function nextAuthRoute(req, res) {
 export interface WelcomeEmailOptions {
   emailProvider?: string | null
   fromEmail?: string
+  fromName?: string
   emailSecretEnvName?: string | null
   emailSubject?: string
   emailBodyHtml?: string
@@ -1166,6 +1167,7 @@ const sanitizeUser = authUtils.sanitizeUser;`
     welcomeHelpers = `
 const WELCOME_EMAIL_PROVIDER = ${JSON.stringify(welcomeProvider)};
 const WELCOME_EMAIL_FROM = ${JSON.stringify(welcome.fromEmail || '')};
+const WELCOME_EMAIL_FROM_NAME = ${JSON.stringify(welcome.fromName || '')};
 const WELCOME_EMAIL_SECRET_ENV_NAME = ${JSON.stringify(welcome.emailSecretEnvName || '')};
 const WELCOME_EMAIL_SUBJECT = ${JSON.stringify(welcome.emailSubject || 'Welcome')};
 const WELCOME_EMAIL_BODY_HTML = ${JSON.stringify(welcome.emailBodyHtml || '')};
@@ -1201,7 +1203,7 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
   var copy = resolveWelcomeEmailCopy(locale);
   var subject = fillTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
-  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
+  await __sendProviderEmail({ from: from, fromName: WELCOME_EMAIL_FROM_NAME, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 `
 
