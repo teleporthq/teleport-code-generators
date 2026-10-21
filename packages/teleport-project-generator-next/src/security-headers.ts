@@ -33,6 +33,15 @@ export const SECURITY_HEADER_RULES: NextHeaderRule[] = [
       { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
     ],
   },
+  // A member back from signing in with Google, GitHub or Facebook lands
+  // through this callback's redirect, which would hand on the provider's
+  // origin as the referrer and open a new visit credited to the provider.
+  // After the rule above: Next.js applies every matching rule in order, so
+  // this one has the last word on this route.
+  {
+    source: '/api/auth/callback/:path*',
+    headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+  },
 ]
 
 export class NextSecurityHeadersProjectPlugin implements ProjectPlugin {

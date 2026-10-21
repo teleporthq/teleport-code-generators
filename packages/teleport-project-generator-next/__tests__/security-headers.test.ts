@@ -72,6 +72,21 @@ const headersOf = (rules: Rule[], source: string): Record<string, string> | unde
     : undefined
 }
 
+// The two shapes of source the generator writes: an exact path, and a prefix
+// followed by `/:path*` (the prefix and everything below it).
+const sourcePattern = (source: string): RegExp => {
+  const prefix = source.replace(/\/:path\*$/, '')
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(prefix === source ? `^${escaped}$` : `^${escaped}(?:/.*)?$`)
+}
+
+// What a response carries, the way Next.js applies headers(): every rule whose
+// source matches, in order, each setting its headers over the ones before it.
+const responseHeaders = (rules: Rule[], pathname: string): Record<string, string> =>
+  rules
+    .filter((rule) => sourcePattern(rule.source).test(pathname))
+    .reduce((all, rule) => ({ ...all, ...headersOf(rules, rule.source) }), {})
+
 describe('the security headers of a generated site', () => {
   it('serves them for every path next to the service worker and manifests, keeping i18n and webpack', async () => {
     // The order packProject runs them in: the i18n config writes next.config
@@ -123,6 +138,45 @@ describe('the security headers of a generated site', () => {
     expect(source.match(/async headers\(/g)).toHaveLength(1)
   })
 
+  it('sends no referrer from the sign-in callback, and only from there', async () => {
+    // A member back from Google, GitHub or Facebook lands through the
+    // callback's redirect: under the site-wide policy it handed on the
+    // provider's origin, which opened a new visit in Analytics.
+    const callback = '/api/auth/callback/:path*'
+    for (const plugins of [
+      [
+        new NextProjectPlugini18nConfig(),
+        new NextSecurityHeadersProjectPlugin(),
+        new NextPwaProjectPlugin(),
+      ],
+      [
+        new NextProjectPlugini18nConfig(),
+        new NextPwaProjectPlugin(),
+        new NextSecurityHeadersProjectPlugin(),
+      ],
+    ]) {
+      const structure = await runPlugins(
+        buildStructure(i18nUidl(), { withNextConfig: false }),
+        plugins
+      )
+      const rules = await loadConfig(structure).headers!()
+
+      expect(headersOf(rules, callback)).toEqual({ 'Referrer-Policy': 'no-referrer' })
+      const sources = rules.map((rule) => rule.source)
+      expect(sources.indexOf(callback)).toBeGreaterThan(sources.indexOf('/:path*'))
+
+      for (const path of ['/api/auth/callback/github', '/api/auth/callback/google']) {
+        expect(responseHeaders(rules, path)).toEqual({
+          ...SECURITY,
+          'Referrer-Policy': 'no-referrer',
+        })
+      }
+      for (const path of ['/', '/account', '/api/auth/session', '/api/auth/signin/github']) {
+        expect(responseHeaders(rules, path)).toEqual(SECURITY)
+      }
+    }
+  })
+
   it('writes a next.config of its own for a project that has none', async () => {
     const structure = await runPlugins(buildStructure(baseUidl(), { withNextConfig: false }), [
       new NextSecurityHeadersProjectPlugin(),
@@ -141,7 +195,7 @@ describe('the security headers of a generated site', () => {
     ])
     const config = loadConfig(structure)
     const rules = await config.headers!()
-    expect(rules).toHaveLength(1)
+    expect(rules).toHaveLength(SECURITY_HEADER_RULES.length)
     expect(rules[0].headers).toHaveLength(4)
     expect(headersOf(rules, '/:path*')!['referrer-policy']).toBe('no-referrer')
     expect(config.i18n).toEqual({ locales: ['en', 'es'], defaultLocale: 'en' })
