@@ -161,7 +161,7 @@ describe('The page transition of a static HTML export: what the stylesheet says'
 
 describe('The flying image between pages', () => {
   it('spans both halves of the transition and is cropped, never stretched', () => {
-    const plan = viewTransitionPlan({ preset: 'fade', duration: 0.4, easing: 'ease-out' })
+    const plan = viewTransitionPlan({ preset: 'slide-up', duration: 0.4, easing: 'ease-out' })
     expect(plan?.css).toContain(
       '::view-transition-group(tq-morph) {\n    animation-duration: 0.8s;\n    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);'
     )
@@ -217,6 +217,49 @@ describe('The flying image between pages', () => {
     expect(
       viewTransitionPlan({ preset: 'cover', duration: 0.3, easing: 'ease-out' })?.revealsOver
     ).toBe(false)
+  })
+
+  // Faded out and then in, one after the other, the two pages left the site's
+  // bare background on screen between them. A picture of a page is opaque, so the
+  // leaving picture holding under the arriving one shows the two mixed, never the
+  // background; both fading at once showed it through the two.
+  it('a dissolve (Fade, Crossfade) fades the arriving page in over the leaving one, which holds', () => {
+    const fade = viewTransitionPlan({ preset: 'fade', duration: 0.4, easing: 'ease-out' })
+    expect(fade?.arrivesOver).toBe(true)
+    // not a reveal: the Next export still plays a plain page change in its own wrapper
+    expect(fade?.revealsOver).toBe(false)
+    expect(fade?.css).toContain('::view-transition-old(root) {\n    animation: none;\n  }')
+    // the arriving picture fades in from the start, not after a leaving half
+    expect(fade?.css).toContain(
+      '::view-transition-new(root) {\n    animation: tq-page-arrive 0.4s cubic-bezier(0, 0, 0.58, 1) both;\n  }'
+    )
+    expect(fade?.css).not.toContain('@keyframes tq-page-leave')
+    expect(block(fade?.css ?? '', 'tq-page-arrive')).toContain('from { opacity: 0; }')
+    // the flight spans the one change there is
+    expect(fade?.css).toContain(
+      '::view-transition-group(tq-morph) {\n    animation-duration: 0.4s;'
+    )
+    expect(fade?.css).toContain(
+      '::view-transition-old(tq-morph):only-child {\n    animation: tq-morph-away 0.4s cubic-bezier(0, 0, 0.58, 1) both;'
+    )
+
+    const crossfade = viewTransitionPlan({ preset: 'crossfade', duration: 0.3, easing: 'ease' })
+    expect(crossfade?.arrivesOver).toBe(true)
+    expect(crossfade?.css).toContain('::view-transition-old(root) {\n    animation: none;\n  }')
+    expect(block(crossfade?.css ?? '', 'tq-page-arrive')).toContain(
+      'from { opacity: 0; transform: translate(0px, 0px) scale(1.02); }'
+    )
+    expect(crossfade?.css).not.toContain('@keyframes tq-page-leave')
+
+    // every preset that moves the leaving page still plays it, in turn
+    for (const preset of ['slide-up', 'zoom-in', 'blur', 'stack', 'cover', 'custom']) {
+      const plan = viewTransitionPlan({ preset, duration: 0.3, easing: 'ease-out' })
+      expect(plan?.arrivesOver).toBe(false)
+      expect(plan?.css).toContain('@keyframes tq-page-leave')
+    }
+    expect(
+      viewTransitionPlan({ preset: 'circle', duration: 0.3, easing: 'ease-out' })?.arrivesOver
+    ).toBe(true)
   })
 
   it('a single-page app gets the same rules without opting every page load in', () => {

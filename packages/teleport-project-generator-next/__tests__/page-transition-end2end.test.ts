@@ -71,7 +71,7 @@ describe('Next generator page transition', () => {
     expect(wrapper?.content).toContain('const EASE = [0, 0, 0.58, 1]')
     expect(wrapper?.content).toContain('function pageTransitionVariants(')
     expect(wrapper?.content).toContain(
-      "AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false}"
+      "AnimatePresence mode={context.morph || !OVERLAP ? 'wait' : 'sync'} initial={false}"
     )
     expect(wrapper?.content).toContain("router.events.on('routeChangeStart'")
     const pkg = output.files.find((file) => file.name === 'package')
@@ -332,7 +332,7 @@ describe('Next generator flying picture', () => {
     )
     // Always rendered: framer-motion never forgets a presence child, so one that came and went would hold its page forever.
     expect(wrapper).toContain(
-      '{VT_CSS ? <HoldPage pageKey={routeKey} changeRef={changeRef} revealRef={revealRef} /> : null}'
+      '{VT_CSS || OVERLAP ? <HoldPage pageKey={routeKey} changeRef={changeRef} overlapRef={overlapRef} /> : null}'
     )
     expect(wrapper).toContain('change.captured.then(safeToRemove)')
   })
@@ -412,7 +412,7 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     )
   })
 
-  it('opens a reveal over the leaving page, which holds; every other preset plays in turn', async () => {
+  it('opens a reveal over the leaving page, which holds; a slide plays in turn', async () => {
     const circle = await generator.generateProject(
       buildUidl({ preset: 'circle', duration: 0.3, easing: 'ease-out' }),
       template()
@@ -431,14 +431,17 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     expect(plan?.css).toContain('::view-transition-old(root) {\n    animation: none;\n  }')
     expect(circleWrapper).toContain(`const VT_CSS = ${JSON.stringify(plan?.css)}`)
     // without them the two pages overlap: the arriving page above, the leaving one held until it has opened
+    expect(circleWrapper).toContain('const OVERLAP = REVEAL || DISSOLVE')
     expect(circleWrapper).toContain(
-      "AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false}"
+      "AnimatePresence mode={context.morph || !OVERLAP ? 'wait' : 'sync'} initial={false}"
     )
-    expect(circleWrapper).toContain("const OVER = { position: 'relative', zIndex: 1 }")
-    expect(circleWrapper).toContain('if (REVEAL && !skip) {')
-    expect(circleWrapper).toContain('reveal.opened.then(safeToRemove)')
     expect(circleWrapper).toContain(
-      "if (definition === 'animate' && reveal && reveal.arrivingKey === routeKey) {"
+      "const OVER = { position: 'relative', zIndex: 1, minHeight: '100vh' }"
+    )
+    expect(circleWrapper).toContain('if (OVERLAP && !skip) {')
+    expect(circleWrapper).toContain('overlap.opened.then(safeToRemove)')
+    expect(circleWrapper).toContain(
+      "if (definition === 'animate' && overlap && overlap.arrivingKey === routeKey) {"
     )
     expect(
       PageTransition.viewTransitionPlan(
@@ -454,6 +457,162 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     expect(reveal('wipe-down')).toBe(true)
     expect(reveal('fade')).toBe(false)
     expect(reveal('slide-up')).toBe(false)
+  })
+})
+
+// One top-level declaration of the generated wrapper, as text: from its first
+// line up to the next top-level statement or comment.
+const declarationOf = (wrapper: string, name: string): string => {
+  const start = wrapper.indexOf(`\nconst ${name} = `)
+  if (start < 0) {
+    throw new Error(`the wrapper declares no ${name}`)
+  }
+  const rest = wrapper.slice(start + 1)
+  const end = rest.slice(1).search(/\n(const |\/\/ |function )/)
+  return end < 0 ? rest : rest.slice(0, end + 1)
+}
+
+describe('Next generator dissolve presets (Fade, Crossfade)', () => {
+  const generator = createNextProjectGenerator()
+  const wrapperFor = async (config: { preset: string; flyingPictures?: boolean }) => {
+    const output = await generator.generateProject(
+      buildUidl({ duration: 0.35, easing: 'ease-out', ...config }),
+      template()
+    )
+    return findFile(output, 'components', 'tq-page-transition')?.content || ''
+  }
+  // The states the wrapper plays for a preset, evaluated from the text it ships.
+  const playedBy = (wrapper: string, preset: string) =>
+    new Function(
+      [
+        PageTransition.PAGE_TRANSITION_HELPER_SOURCES.reversePageTransitionPreset,
+        PageTransition.PAGE_TRANSITION_HELPER_SOURCES.pageTransitionVariants,
+        declarationOf(wrapper, 'DISSOLVE'),
+        declarationOf(wrapper, 'dissolveOver'),
+        `return dissolveOver(pageTransitionVariants(${JSON.stringify(preset)}, 24))`,
+      ].join('\n')
+    )()
+
+  // Faded out and then in, one after the other, the two pages left the site's
+  // bare background on screen between them at every change.
+  it.each(['fade', 'crossfade'])(
+    '%s fades the arriving page in over the leaving one, which holds, instead of one after the other',
+    async (preset) => {
+      const wrapper = await wrapperFor({ preset })
+      expect(wrapper).toContain('const DISSOLVE = true')
+      expect(wrapper).toContain('const OVERLAP = REVEAL || DISSOLVE')
+      // the arriving page mounts at once, over the frozen leaving page; a flight still waits
+      expect(wrapper).toContain(
+        "AnimatePresence mode={context.morph || !OVERLAP ? 'wait' : 'sync'} initial={false}"
+      )
+      // the leaving page has no exit of its own; the arriving page plays the preset's arrival
+      const played = playedBy(wrapper, preset)
+      expect(played.exit).toEqual({})
+      expect(played.initial).toEqual(pageTransitionVariants(preset, 24)?.initial)
+      expect(played.animate).toEqual(pageTransitionVariants(preset, 24)?.animate)
+      expect(wrapper).toContain(
+        ': dissolveOver(\n            revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen)\n          )'
+      )
+      // held in the document until the arriving page is in, with the flight turned off too
+      const noFlight = await wrapperFor({ preset, flyingPictures: false })
+      expect(noFlight).toContain('const VT_CSS = ""')
+      expect(noFlight).toContain(
+        '{VT_CSS || OVERLAP ? <HoldPage pageKey={routeKey} changeRef={changeRef} overlapRef={overlapRef} /> : null}'
+      )
+      expect(noFlight).toContain('if (OVERLAP && !skip) {')
+    }
+  )
+
+  it('every preset that moves the leaving page still plays it, one page after the other', async () => {
+    for (const preset of ['slide-up', 'zoom-in', 'blur', 'stack', 'custom', 'cover']) {
+      const wrapper = await wrapperFor({ preset })
+      expect(wrapper).toContain('const DISSOLVE = false')
+      expect(playedBy(wrapper, preset).exit).toEqual(pageTransitionVariants(preset, 24)?.exit)
+    }
+  })
+
+  it("lays the arriving page on the site's ground, a screen tall, out of reach until it plays", async () => {
+    const wrapper = await wrapperFor({ preset: 'fade' })
+    expect(wrapper).toContain(
+      "const OVER = { position: 'relative', zIndex: 1, minHeight: '100vh' }"
+    )
+    expect(wrapper).toContain("const UNSEEN = { pointerEvents: 'none' }")
+    expect(wrapper).toContain('setOver({ key: overlap.arrivingKey, ground: siteGround() })')
+    expect(wrapper).toContain(
+      'Object.assign({ backgroundColor: over.ground }, OVER, readyKey === routeKey ? null : UNSEEN)'
+    )
+    expect(wrapper).toContain('const pageStyle = frozenStyle || overStyle')
+    // the ground is what the browser paints the canvas with: <html>'s colour, else <body>'s
+    const groundOf = (html: string, body: string) =>
+      new Function(
+        'window',
+        'document',
+        `${declarationOf(wrapper, 'siteGround')}\nreturn siteGround()`
+      )(
+        { getComputedStyle: (element: { color: string }) => ({ backgroundColor: element.color }) },
+        { documentElement: { color: html }, body: { color: body } }
+      )
+    expect(groundOf('rgb(252, 250, 246)', 'rgb(20, 20, 20)')).toBe('rgb(252, 250, 246)')
+    expect(groundOf('rgba(0, 0, 0, 0)', 'rgb(252, 250, 246)')).toBe('rgb(252, 250, 246)')
+    expect(groundOf('transparent', 'rgba(0, 0, 0, 0)')).toBe('Canvas')
+  })
+
+  it('keeps the leaving page from input and assistive technology while it lies underneath, and gives a page coming back both again', async () => {
+    const wrapper = await wrapperFor({ preset: 'fade' })
+    // marked when it starts leaving under the arriving page, and held until that is in
+    expect(wrapper).toContain(
+      '    } else if (overlap && overlap.leavingKey === pageKey) {\n      setLeaving(pageIn(pageKey), true)\n      overlap.opened.then(safeToRemove)\n'
+    )
+    const setLeaving = new Function(`${declarationOf(wrapper, 'setLeaving')}\nreturn setLeaving`)()
+    const nodeWith = (inert: boolean) => {
+      const attributes = new Map<string, string>()
+      return {
+        ...(inert ? { inert: false } : {}),
+        attributes,
+        setAttribute: (name: string, value: string) => attributes.set(name, value),
+        removeAttribute: (name: string) => attributes.delete(name),
+      }
+    }
+    const modern = nodeWith(true)
+    setLeaving(modern, true)
+    expect(modern.inert).toBe(true)
+    expect(modern.attributes.size).toBe(0)
+    setLeaving(modern, false)
+    expect(modern.inert).toBe(false)
+    // a browser without inert hides it from assistive technology at least
+    const older = nodeWith(false)
+    setLeaving(older, true)
+    expect(older.attributes.get('aria-hidden')).toBe('true')
+    setLeaving(older, false)
+    expect(older.attributes.has('aria-hidden')).toBe(false)
+    expect(() => setLeaving(null, true)).not.toThrow()
+    // back to a page that has not gone yet: it takes input again and plays at once
+    expect(wrapper).toContain(
+      '      const returning = pageIn(routeKeyOf(url))\n      if (returning) {\n        setLeaving(returning, false)\n        readyKeyRef.current = routeKeyOf(url)\n        setReadyKey(readyKeyRef.current)\n      }'
+    )
+    const pageIn = new Function('document', `${declarationOf(wrapper, 'pageIn')}\nreturn pageIn`)({
+      querySelectorAll: (selector: string) =>
+        selector === '[data-tq-page-transition]'
+          ? ['/', '/products'].map((key) => ({ key, getAttribute: () => key }))
+          : [],
+    })
+    expect(pageIn('/products')?.key).toBe('/products')
+    expect(pageIn('/cart')).toBeNull()
+  })
+
+  it('holds the leaving page from the moment it starts leaving, so a slow page still arrives over it', async () => {
+    const wrapper = await wrapperFor({ preset: 'fade' })
+    // the fallback that lets go of a page whose arrival never completes counts from
+    // the leaving, not from the click: counted from the click, a page that took
+    // longer to load arrived over nothing
+    const timer = 'setTimeout(overlap.finish, DURATION * 1000 + PICTURE_WAIT_MS + 1000)'
+    expect(wrapper.split(timer).length).toBe(2)
+    expect(wrapper.indexOf(timer)).toBeGreaterThan(wrapper.indexOf('const HoldPage = '))
+    expect(wrapper.indexOf(timer)).toBeLessThan(wrapper.indexOf('const TqPageTransition = '))
+    // a change that does not overlap (a flight, a page shown at once) lets a held page go
+    expect(wrapper.split('letHeldPageGo()').length).toBe(3)
+    // the page that goes last hands the ref to the page left in the document
+    expect(wrapper).toContain('pageRef.current = node || pageIn(routeKeyRef.current)')
   })
 })
 
