@@ -6,9 +6,10 @@ import * as types from '@babel/types'
  * The accumulation lives inside the generated `fetchData` closure rather than
  * around the provider. `DataProvider` renders whatever `fetchData` resolves
  * with, so returning "every page fetched so far, in order" is enough to make it
- * append — no change to the runtime component library, and the existing
+ * append — no change to the runtime component library, and
  * `persistDataDuringLoading` keeps the rows already on screen while the next
- * page is in flight.
+ * page is in flight (`buildAppendingRequestCheck`: the loading slot replaces
+ * them only for a list loading afresh).
  *
  * A `useRef` holds the pages rather than a state, because writing accumulated
  * rows into state from inside `fetchData` would re-render the provider mid-fetch
@@ -220,6 +221,34 @@ export const buildAccumulatingRequestMark = (vars: InfiniteScrollVars): types.St
       ])
     )
   )
+
+/**
+ * Whether the request `fetchData` is about to make only adds a page to the rows
+ * on show: a page past the first, of the query the accumulator holds. Read
+ * after `buildAccumulatingRequestMark` has recorded that request.
+ *
+ *   ds_0_accumRef.current.latest.page > 1 && ds_0_accumRef.current.latest.sig === ds_0_accumRef.current.sig
+ *
+ * A filter, sort or search change is no append even past page 1 — the page it
+ * fires before the reset belongs to another query — and neither is a list's
+ * first page: both load the list afresh, behind its loading slot.
+ */
+export const buildAppendingRequestCheck = (vars: InfiniteScrollVars): types.Expression => {
+  const latestOf = (key: string): types.MemberExpression =>
+    types.memberExpression(
+      types.memberExpression(accumCurrentOf(vars), types.identifier('latest')),
+      types.identifier(key)
+    )
+  return types.logicalExpression(
+    '&&',
+    types.binaryExpression('>', latestOf('page'), types.numericLiteral(1)),
+    types.binaryExpression(
+      '===',
+      latestOf('sig'),
+      types.memberExpression(accumCurrentOf(vars), types.identifier('sig'))
+    )
+  )
+}
 
 /**
  * The rows inside a server payload: the payload itself, or what sits at

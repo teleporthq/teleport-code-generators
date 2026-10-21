@@ -71,6 +71,7 @@ import {
 import {
   buildAccumulatingRequestMark,
   buildAccumulatingResponseHandler,
+  buildAppendingRequestCheck,
   buildFirstPageDeclaration,
   buildFirstPageSeedEffect,
   buildInfiniteScrollDeclarations,
@@ -1942,9 +1943,17 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       // change refetches, instead of leaving the previous rows on screen with
       // no feedback. Runs last so it sees the `fetchData` and
       // `persistDataDuringLoading` attributes the updaters above just wrote.
+      // An appending list keeps its rows on screen while its next page loads;
+      // only a list loading afresh falls through to the loading slot.
       const loadingVars = getLoadingStateVars(usage.index)
-      if (applyLoadingStateToDataProvider(dp, loadingVars)) {
-        loadingStateDeclarations.push(...buildLoadingStateDeclarations(loadingVars))
+      const appendingRequest =
+        usage.infiniteScroll && usage.paginated
+          ? buildAppendingRequestCheck(getInfiniteScrollVars(usage.index))
+          : undefined
+      if (applyLoadingStateToDataProvider(dp, loadingVars, appendingRequest)) {
+        loadingStateDeclarations.push(
+          ...buildLoadingStateDeclarations(loadingVars, !!appendingRequest)
+        )
         // Recorded because the loading state is only declared for a provider
         // that HAS a loading slot; a Load More button wired later may only
         // reference `ds_N_isFetching` if it actually exists.

@@ -98,7 +98,8 @@ const makeComponentChunk = (dataProvider: types.JSXElement): ChunkDefinition => 
 // A `data-source-list > cms-list-repeater` UIDL. `category` decides which
 // DataProvider updater runs, so every one of them is covered below.
 const makeUidlNode = (
-  category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
+  category: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain',
+  repeater: Record<string, unknown> = {}
   // tslint:disable-next-line:no-any
 ): any => ({
   type: 'data-source-list',
@@ -120,6 +121,7 @@ const makeUidlNode = (
           searchEnabled: category === 'paginated+search' || category === 'search-only',
           searchDebounce: 300,
           nodes: { list: { type: 'element', content: { elementType: 'div' } } },
+          ...repeater,
         },
       },
     },
@@ -129,11 +131,17 @@ const makeUidlNode = (
 const runPlugin = async (options: {
   category?: 'paginated+search' | 'paginated-only' | 'search-only' | 'plain'
   withLoadingSlot?: boolean
+  repeater?: Record<string, unknown>
+  onChunk?: (chunk: ChunkDefinition) => void
 }): Promise<string> => {
   const dataProvider = makeDataProviderJSX({ withLoadingSlot: options.withLoadingSlot !== false })
   const chunk = makeComponentChunk(dataProvider)
+  options.onChunk?.(chunk)
   const structure: ComponentStructure = {
-    uidl: { name: 'ProductsList', node: makeUidlNode(options.category || 'paginated+search') },
+    uidl: {
+      name: 'ProductsList',
+      node: makeUidlNode(options.category || 'paginated+search', options.repeater),
+    },
     chunks: [chunk],
     dependencies: {},
     options: { dataSources: {}, extractedResources: {} },
@@ -283,5 +291,153 @@ describe('pagination plugin — refetch loading state', () => {
     expect(code).not.toContain('ds_0_isFetching')
     expect(code).not.toContain('ds_0_fetchesInFlight')
     expect(code).toContain('persistDataDuringLoading={true}')
+  })
+})
+
+/**
+ * An appending list (infinite scroll, Load more) loads its next page BELOW the
+ * rows on show. Raising the flag for that request too swapped every row for the
+ * loading slot until the page arrived: the list collapsed under the visitor's
+ * scroll on each append. Only a list loading afresh shows its loading slot.
+ */
+describe('pagination plugin — refetch loading state of an appending list', () => {
+  it.each([
+    ['infinite scroll', { infiniteScroll: true }],
+    ['Load more', { infiniteScroll: true, infiniteScrollLoadMore: true }],
+  ])(
+    'keeps the rows on screen while the next page of a list with %s loads',
+    async (_, repeater) => {
+      const code = (await runPlugin({ category: 'paginated-only', repeater })).replace(/\s+/g, ' ')
+
+      expect(code).toContain('const [ds_0_isAppending, setDs_0_isAppending] = useState(false)')
+      // Recorded with the request, from the request the list now stands on.
+      expect(code).toContain(
+        'setDs_0_isAppending(ds_0_accumRef.current.latest.page > 1 && ds_0_accumRef.current.latest.sig === ds_0_accumRef.current.sig); setDs_0_isFetching(true);'
+      )
+      expect(code.indexOf('ds_0_accumRef.current.latest = {')).toBeLessThan(
+        code.indexOf('setDs_0_isAppending(ds_0_accumRef')
+      )
+      expect(code).toContain('persistDataDuringLoading={!ds_0_isFetching || ds_0_isAppending}')
+    }
+  )
+
+  it('leaves a list that pages unchanged: a page change loads it afresh', async () => {
+    const code = await runPlugin({ category: 'paginated-only' })
+
+    expect(code).toContain('persistDataDuringLoading={!ds_0_isFetching}')
+    expect(code).not.toContain('isAppending')
+  })
+})
+
+/**
+ * Executed: the `fetchData` and `persistDataDuringLoading` the page emits, under
+ * a model of what `DataProvider` (@teleporthq/react-components) paints:
+ *
+ *   on a params change:  status = "loading"; if (!persistDataDuringLoading) data = undefined
+ *   while loading:       persistDataDuringLoading && data ? renderSuccess(data) : renderLoading()
+ *   once answered:       data = <what fetchData resolved with>
+ */
+describe('an appending list, run', () => {
+  const PER_PAGE = 20
+  // tslint:disable:no-any
+
+  const findAttribute = (root: types.Node, name: string): types.Expression => {
+    let found: types.Expression | undefined
+    types.traverseFast(root, (node) => {
+      if (
+        !found &&
+        node.type === 'JSXAttribute' &&
+        node.name.name === name &&
+        node.value?.type === 'JSXExpressionContainer'
+      ) {
+        found = node.value.expression as types.Expression
+      }
+    })
+    return found!
+  }
+
+  const bootList = async () => {
+    let chunk: ChunkDefinition | undefined
+    await runPlugin({
+      category: 'paginated-only',
+      repeater: { infiniteScroll: true, infiniteScrollLoadMore: true },
+      onChunk: (made) => (chunk = made),
+    })
+    const content = chunk!.content as types.Node
+    const memoized = findAttribute(content, 'fetchData') as types.CallExpression
+    const persistCode = generator(findAttribute(content, 'persistDataDuringLoading')).code
+
+    const state = { isFetching: false, isAppending: false }
+    const scope = {
+      ds_0_accumRef: { current: { sig: '', pages: {}, latest: null } },
+      ds_0_fetchSeq: { current: 0 },
+      ds_0_fetchesInFlight: { current: 0 },
+      ds_0_latestData: { current: undefined },
+      setDs_0_hasMoreFlag: () => undefined,
+      setDs_0_isFetching: (value: boolean) => (state.isFetching = value),
+      setDs_0_isAppending: (value: boolean) => (state.isAppending = value),
+    }
+    const answers: Array<() => void> = []
+    const fakeFetch = (url: string) => {
+      const query = new URL(url, 'http://shop.test').searchParams
+      const page = Number(query.get('page'))
+      const rows = Array.from({ length: PER_PAGE }, (_, i) => `${query.get('sorts')}${page}-${i}`)
+      return new Promise((resolve) => answers.push(() => resolve({ json: () => ({ data: rows }) })))
+    }
+    const fetchData = new Function(
+      'fetch',
+      ...Object.keys(scope),
+      `return (${generator(memoized.arguments[0]).code})`
+    )(fakeFetch, ...Object.values(scope))
+    const persistDataDuringLoading = (): boolean =>
+      new Function('ds_0_isFetching', 'ds_0_isAppending', `return (${persistCode})`)(
+        state.isFetching,
+        state.isAppending
+      )
+
+    // The provider: a component's list, so nothing on show until page 1.
+    let data: string[] | undefined
+    let status = 'idle'
+    let persistAtLastPaint = persistDataDuringLoading()
+    const paint = () => {
+      persistAtLastPaint = persistDataDuringLoading()
+      if (status === 'success') {
+        return `${data!.length} rows`
+      }
+      return persistAtLastPaint && data ? `${data.length} rows` : 'loading slot'
+    }
+    const load = async (page: number, sorts: string) => {
+      status = 'loading'
+      if (!persistAtLastPaint) {
+        data = undefined
+      }
+      const answered = fetchData({ page, perPage: PER_PAGE, sorts })
+      const whileLoading = paint()
+      answers.shift()!()
+      data = await answered
+      status = 'success'
+      return { whileLoading, after: paint() }
+    }
+    return { load }
+  }
+
+  it('paints its loading slot for its first page, then keeps the rows through every append', async () => {
+    const list = await bootList()
+
+    expect(await list.load(1, 'A')).toEqual({ whileLoading: 'loading slot', after: '20 rows' })
+    expect(await list.load(2, 'A')).toEqual({ whileLoading: '20 rows', after: '40 rows' })
+    expect(await list.load(3, 'A')).toEqual({ whileLoading: '40 rows', after: '60 rows' })
+  })
+
+  it('paints the loading slot again for a fresh list: a sort, filter or search change', async () => {
+    const list = await bootList()
+    await list.load(1, 'A')
+    await list.load(2, 'A')
+
+    // The page the change fires before the list is reset to page 1 is another
+    // query's, and no append either.
+    expect((await list.load(2, 'B')).whileLoading).toBe('loading slot')
+    expect(await list.load(1, 'B')).toEqual({ whileLoading: 'loading slot', after: '20 rows' })
+    expect(await list.load(2, 'B')).toEqual({ whileLoading: '20 rows', after: '40 rows' })
   })
 })
