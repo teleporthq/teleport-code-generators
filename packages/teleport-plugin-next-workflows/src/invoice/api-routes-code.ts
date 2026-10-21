@@ -164,6 +164,21 @@ function sleepMs(ms) {
   return new Promise(function (resolve) { setTimeout(resolve, ms); });
 }
 
+// The answer for an invoice the order already has: its number and its PDF.
+function issuedInvoiceAnswer(invoice, currency) {
+  var pdfUrl = invoice.pdf_url || ('/api/invoices/' + invoice.id + '/pdf');
+  return {
+    success: true,
+    alreadyIssued: true,
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoice_number,
+    storageUrl: pdfUrl.indexOf('/api/invoices/') === 0 ? '' : pdfUrl,
+    pdfUrl: pdfUrl,
+    total: Number(invoice.total) || 0,
+    currency: invoice.currency || currency,
+  };
+}
+
 async function hydrateOrderWhenSettled(orderId) {
   var deadline = Date.now() + SETTLE_TIMEOUT_MS;
   var lastCount = -1;
@@ -304,17 +319,7 @@ module.exports = async function handler(req, res) {
     if (!reservation.created) {
       if (Number(held.pdf_size_bytes) > 0) {
         console.info('[invoice] Order ' + body.orderId + ' already has invoice ' + held.invoice_number + ' — returning it');
-        var heldPdfUrl = held.pdf_url || ('/api/invoices/' + held.id + '/pdf');
-        res.status(200).json({
-          success: true,
-          alreadyIssued: true,
-          invoiceId: held.id,
-          invoiceNumber: held.invoice_number,
-          storageUrl: heldPdfUrl.indexOf('/api/invoices/') === 0 ? '' : heldPdfUrl,
-          pdfUrl: heldPdfUrl,
-          total: Number(held.total) || 0,
-          currency: held.currency || currency,
-        });
+        res.status(200).json(issuedInvoiceAnswer(held, currency));
         return;
       }
       // Reserved, never finished: another request is rendering it now, or the
@@ -350,7 +355,18 @@ ${
     console.info('[invoice] PDF generated: ' + pdfBuffer.length + ' bytes for ' + invoiceData.invoiceNumber);
 
     invoiceData.pdfUrl = '/api/invoices/' + invoiceData.id + '/pdf';
-    await dataAccess.storeInvoicePdf(invoiceData.id, pdfBuffer, invoiceData.pdfUrl);
+    // The PDF is written only on an invoice that has none, and the invoice's
+    // first PDF is what its email is claimed by (see storeInvoicePdf). A
+    // regeneration that gave a reserved invoice its PDF while this request
+    // rendered it — a retried payment finishing a stale reservation — emailed
+    // the buyer itself, so this request answers with that invoice and sends
+    // nothing.
+    var stored = await dataAccess.storeInvoicePdf(invoiceData.id, pdfBuffer, invoiceData.pdfUrl);
+    if (!stored.firstPdf) {
+      console.info('[invoice] Invoice ' + invoiceNumber + ' was given its PDF by a regeneration meanwhile — returning it');
+      res.status(200).json(issuedInvoiceAnswer((await dataAccess.getInvoiceById(invoiceData.id)) || held, currency));
+      return;
+    }
     console.info('[invoice] PDF stored — teleport_invoices.id=' + invoiceData.id + ', number=' + invoiceData.invoiceNumber + ', pdf_size_bytes=' + pdfBuffer.length + ', items=' + items.length + ' (accessible at ' + invoiceData.pdfUrl + ')');
 
     var safeFileName = String(invoiceNumber || invoiceData.id).replace(/[^a-zA-Z0-9._-]/g, '_') + '.pdf';
@@ -545,9 +561,10 @@ async function emailFirstInvoice(invoiceData, pdfBuffer, order) {
  * never went out — and only when the store emails invoices (Invoice Email
  * Delivery). It is the payment's email: the same sender, template, attachment,
  * link and language, recorded in the sent-email ledger and on the order's
- * history. Which regeneration that is, the database decides (see
- * `replaceInvoice`), so a second regeneration, a double click or two requests
- * at once never send it again; a failed send costs the merchant nothing.
+ * history. Which write gives the first PDF, the database decides (see
+ * `replaceInvoice` and `storeInvoicePdf`), so a second regeneration, a double
+ * click, two requests at once or a retried payment finishing the same invoice
+ * never send it again; a failed send costs the merchant nothing.
  *
  * Unlike `/generate`, which the payment webhook calls server-to-server, this
  * route is reached from the merchant's browser only, so it checks the session

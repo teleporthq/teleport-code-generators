@@ -70,9 +70,29 @@ export class FakeStoreDatabase {
 
   private failures: Array<{ statement: RegExp; message: string }> = []
 
+  private pauses: Array<{ statement: RegExp; arrive: () => void; released: Promise<void> }> = []
+
   /** The next statement matching `statement` fails with `message`, as an outage would. */
   failNext(statement: RegExp, message: string): void {
     this.failures.push({ statement, message })
+  }
+
+  /**
+   * The next statement matching `statement` waits, before it touches any row,
+   * until `release()`; `reached` resolves once it waits. How a spec lets
+   * another request overtake this one at an exact point.
+   */
+  pauseNext(statement: RegExp): { reached: Promise<void>; release: () => void } {
+    let release: () => void = () => undefined
+    let arrive: () => void = () => undefined
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const reached = new Promise<void>((resolve) => {
+      arrive = resolve
+    })
+    this.pauses.push({ statement, arrive, released })
+    return { reached, release }
   }
 
   insert(table: string, row: Row): Row {
@@ -147,6 +167,12 @@ export class FakeStoreDatabase {
     if (failure) {
       this.failures = this.failures.filter((candidate) => candidate !== failure)
       throw new Error(failure.message)
+    }
+    const pause = this.pauses.find((candidate) => candidate.statement.test(sql))
+    if (pause) {
+      this.pauses = this.pauses.filter((candidate) => candidate !== pause)
+      pause.arrive()
+      await pause.released
     }
     const autocommit = !session.inTransaction
     try {
@@ -241,6 +267,19 @@ export class FakeStoreDatabase {
         invoice_number: order.invoice_number ?? values[1],
         invoice_pdf_url: order.invoice_pdf_url || values[2] || null,
       }))
+    }
+
+    // claimStaleInvoice: a reservation still without its PDF, untouched since `$3`.
+    match =
+      /^UPDATE (\w+) SET updated_at = \$1 WHERE id::text = \$2 AND pdf_size_bytes IS NULL AND updated_at < \$3 RETURNING id$/.exec(
+        sql
+      )
+    if (match) {
+      return this.updateRow(session, match[1], values[1], (row) =>
+        row.pdf_size_bytes == null && String(row.updated_at) < String(values[2])
+          ? { updated_at: values[0] }
+          : null
+      )
     }
 
     match = /^UPDATE (\w+) SET (.+) WHERE id = \$(\d+)( AND pdf_size_bytes IS NULL)?$/.exec(sql)

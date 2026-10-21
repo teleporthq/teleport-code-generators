@@ -91,7 +91,7 @@ async function runHandler(
           invoice = invoiceData
           return { invoice: invoiceData, created: true }
         },
-        storeInvoicePdf: async () => ({}),
+        storeInvoicePdf: async () => ({ firstPdf: true }),
         updateInvoice: async () => ({}),
       },
       pdfGenerator: {

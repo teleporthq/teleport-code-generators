@@ -1,10 +1,13 @@
 import {
   BUYER,
   ORDER_ID,
+  Row,
+  Store,
   historyLines,
   invoiceOf,
   ledgerRows,
   openStore,
+  payWhilePdfServiceIsDown,
   runsAsTheStore,
   seedPaidOrder,
 } from './_helpers/invoice-store'
@@ -114,5 +117,75 @@ describe("the payment's invoice email is on its order's history", () => {
 
     expect(store.emails).toEqual([])
     expect(historyLines(store)).toEqual([])
+  })
+})
+
+/**
+ * A retried payment and the merchant's Regenerate finishing the same invoice.
+ *
+ * The PDF service was down at payment, so the invoice is reserved without a
+ * PDF. A quarter of an hour later the provider retries the payment, which
+ * claims the stale reservation and renders it — and the merchant clicks
+ * Regenerate meanwhile. Each route emails the buyer when it gives the invoice
+ * its first PDF, so the database must give that to exactly one of them.
+ */
+describe('a retried payment and a regeneration finishing the same invoice', () => {
+  runsAsTheStore()
+
+  const PAYMENT_PDF = /^UPDATE teleport_invoices SET "?pdf_data"? = \$1/
+  const REGENERATION_PDF = /^UPDATE teleport_invoices SET "invoice_number" = \$1/
+
+  /** The order paid while the PDF service was down, its reservation older than any request lives. */
+  async function staleInvoice(store: Store): Promise<Row> {
+    seedPaidOrder(store.db, ORDER_ID)
+    const invoice = await payWhilePdfServiceIsDown(store, ORDER_ID)
+    invoice.updated_at = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+    return invoice
+  }
+
+  it("the regeneration's PDF lands first: it emails the buyer, and the payment answers with its invoice", async () => {
+    const store = openStore()
+    const invoice = await staleInvoice(store)
+    const paymentsPdf = store.db.pauseNext(PAYMENT_PDF)
+
+    const payment = store.pay(ORDER_ID)
+    await paymentsPdf.reached
+    const regenerated = await store.regenerate(String(invoice.id))
+    paymentsPdf.release()
+    const paid = await payment
+
+    expect(store.emails.map((email) => email.To)).toEqual([BUYER])
+    expect(ledgerRows(store).map((row) => row.source_ref)).toEqual(['api/invoices/[id]/regenerate'])
+    expect(historyLines(store)).toEqual([expect.objectContaining({ actor_type: 'merchant' })])
+    expect(regenerated.status).toBe(200)
+    expect(paid.status).toBe(200)
+    expect(paid.body).toMatchObject({
+      success: true,
+      alreadyIssued: true,
+      invoiceId: invoice.id,
+      invoiceNumber: 'INV-0001',
+      pdfUrl: '/api/invoices/' + String(invoice.id) + '/pdf',
+    })
+    expect(store.db.row('teleport_orders', ORDER_ID)).toMatchObject({ invoice_id: invoice.id })
+  })
+
+  it("the payment's PDF lands first: it emails the buyer, and the regeneration does not", async () => {
+    const store = openStore()
+    const invoice = await staleInvoice(store)
+    const regenerationsPdf = store.db.pauseNext(REGENERATION_PDF)
+
+    const regeneration = store.regenerate(String(invoice.id))
+    await regenerationsPdf.reached
+    const paid = await store.pay(ORDER_ID)
+    regenerationsPdf.release()
+    const regenerated = await regeneration
+
+    expect(store.emails.map((email) => email.To)).toEqual([BUYER])
+    expect(ledgerRows(store).map((row) => row.source_ref)).toEqual(['api/invoices/generate'])
+    expect(historyLines(store)).toEqual([expect.objectContaining({ actor_type: 'system' })])
+    expect(paid.status).toBe(200)
+    expect(paid.body).toMatchObject({ success: true, invoiceId: invoice.id })
+    expect(paid.body).not.toHaveProperty('alreadyIssued')
+    expect(regenerated.status).toBe(200)
   })
 })

@@ -404,7 +404,7 @@ describe('/api/invoices/generate — remembers where its PDF is stored', () => {
         invoiceData.invoiceNumber = 'INV-0009'
         return { invoice: invoiceData, created: true }
       },
-      storeInvoicePdf: async () => ({}),
+      storeInvoicePdf: async () => ({ firstPdf: true }),
       updateInvoice: async (id: string, fields: Row) => {
         updates.push({ id, fields })
         return fields

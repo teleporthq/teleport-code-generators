@@ -27,7 +27,7 @@ ${generateGetInvoiceByIdCode(dsType, invoicesTable)}
 
 ${generateUpdateInvoiceCode(dsType, invoicesTable)}
 
-${generateStoreInvoicePdfCode(dsType)}
+${generateStoreInvoicePdfCode(dsType, invoicesTable)}
 
 ${generateGetOrderWithItemsCode(dsType)}
 
@@ -359,18 +359,47 @@ ${cutoff}
 }`
 }
 
-// Puts the rendered PDF on the reserved row; `pdf_size_bytes` is what marks
-// the invoice finished (see `claimStaleInvoice`).
-function generateStoreInvoicePdfCode(dsType: string): string {
-  const pdfData = dsType === 'supabase' ? `pdfBuffer.toString('base64')` : 'pdfBuffer'
-  return `
+// Puts the rendered PDF on the reserved row — only while the row has none —
+// and resolves to `{ firstPdf }`: whether this write gave the invoice its
+// first PDF. `pdf_size_bytes` marks the invoice finished (see
+// `claimStaleInvoice`), and the invoice's first PDF is what its email is
+// claimed by: `replaceInvoice` writes first under the same condition, so of a
+// retried payment finishing a stale invoice and a regeneration racing it, one
+// writes the PDF and emails the buyer, and the other is told it was not first.
+function generateStoreInvoicePdfCode(dsType: string, table: string): string {
+  if (dsType === 'supabase') {
+    return `
 async function storeInvoicePdf(invoiceId, pdfBuffer, pdfUrl) {
-  return updateInvoice(invoiceId, {
-    pdf_data: ${pdfData},
+  var result = await getClient().from('${table}').update({
+    pdf_data: pdfBuffer.toString('base64'),
     pdf_size_bytes: pdfBuffer.length,
     pdf_content_type: 'application/pdf',
     pdf_url: pdfUrl,
-  });
+    updated_at: new Date().toISOString(),
+  }).eq('id', invoiceId).is('pdf_size_bytes', null).select('id');
+  if (result.error) throw new Error(result.error.message);
+  return { firstPdf: !!(result.data && result.data.length > 0) };
+}`
+  }
+
+  if (dsType === 'mysql' || dsType === 'mariadb' || dsType === 'tidb') {
+    return `
+async function storeInvoicePdf(invoiceId, pdfBuffer, pdfUrl) {
+  var [result] = await getClient().execute(
+    'UPDATE ${table} SET pdf_data = ?, pdf_size_bytes = ?, pdf_content_type = ?, pdf_url = ?, updated_at = ? WHERE id = ? AND pdf_size_bytes IS NULL',
+    [pdfBuffer, pdfBuffer.length, 'application/pdf', pdfUrl, new Date().toISOString(), invoiceId]
+  );
+  return { firstPdf: !!(result && result.affectedRows > 0) };
+}`
+  }
+
+  return `
+async function storeInvoicePdf(invoiceId, pdfBuffer, pdfUrl) {
+  var result = await getClient().query(
+    'UPDATE ${table} SET pdf_data = $1, pdf_size_bytes = $2, pdf_content_type = $3, pdf_url = $4, updated_at = $5 WHERE id = $6 AND pdf_size_bytes IS NULL',
+    [pdfBuffer, pdfBuffer.length, 'application/pdf', pdfUrl, new Date().toISOString(), invoiceId]
+  );
+  return { firstPdf: result.rowCount > 0 };
 }`
 }
 
@@ -575,7 +604,8 @@ async function getOrderWithItems(orderId) {
 // (the `pdf_size_bytes IS NULL` that `claimStaleInvoice` reads as
 // "unfinished"), and of two regenerations racing for the same invoice the
 // second waits for the first's row lock, then finds the PDF and matches
-// nothing. So exactly one regeneration is ever told `firstPdf: true`.
+// nothing. `storeInvoicePdf` writes the payment's PDF under the same
+// condition, so exactly one write is ever told `firstPdf: true`.
 function generateReplaceInvoiceCode(dsType: string, table: string, itemsTable: string): string {
   if (dsType === 'supabase') {
     return `
