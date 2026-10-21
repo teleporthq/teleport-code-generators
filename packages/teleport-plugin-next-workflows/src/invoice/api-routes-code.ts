@@ -57,6 +57,42 @@ async function invoiceCaller(req) {
   };
 }`
 
+/**
+ * The order-history line of an invoice email the provider accepted: an
+ * `order-email-sent` line of the email's purpose, keyed on the invoice, so the
+ * email is on its order's history once, whichever route sent it. The strings
+ * are data in the merchant's database, owned by teleport-gui's
+ * `order-event-types.ts` and `EmailTemplatePurpose.INVOICE_EMAIL`.
+ */
+const INVOICE_EMAIL_EVENT = { type: 'order-email-sent', purpose: 'invoice-email' }
+
+/** Who sent an invoice email, as the order's history names them. */
+const INVOICE_EMAIL_SENDERS = {
+  // The store's own code: the payment webhook's invoice step, the checkout.
+  store: { actor: '', actorType: 'system' },
+  // A signed-in admin: the admin panel's Regenerate, or an invoice issued by hand.
+  admin: { actor: 'Store admin', actorType: 'merchant' },
+}
+
+/** `recordInvoiceEmailSent(invoiceData, sender)`, as emitted source; needs `dataAccess`. */
+const RECORD_INVOICE_EMAIL_CODE = `
+var INVOICE_EMAIL_EVENT = ${JSON.stringify(INVOICE_EMAIL_EVENT)};
+var INVOICE_EMAIL_SENDERS = ${JSON.stringify(INVOICE_EMAIL_SENDERS)};
+
+// Writes the order's history line for an invoice email the provider accepted.
+// The key is the invoice's, so the line is written once per invoice email.
+async function recordInvoiceEmailSent(invoiceData, sender) {
+  if (!invoiceData.orderId) return;
+  await dataAccess.recordOrderEvent({
+    type: INVOICE_EMAIL_EVENT.type,
+    dedupeKey: INVOICE_EMAIL_EVENT.type + ':' + invoiceData.id + ':' + INVOICE_EMAIL_EVENT.purpose,
+    orderId: invoiceData.orderId,
+    payload: { purpose: INVOICE_EMAIL_EVENT.purpose, to: invoiceData.customerEmail },
+    actor: sender.actor,
+    actorType: sender.actorType,
+  });
+}`
+
 export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
   const prefix = settings.invoicePrefix || 'INV-'
   const autoGenerate = settings.autoGenerateOnPayment !== false
@@ -92,6 +128,7 @@ var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 var UNFINISHED_INVOICE_STALE_SECONDS = 900;
 
 ${INVOICE_CALLER_CODE}
+${emailEnabled ? RECORD_INVOICE_EMAIL_CODE : ''}
 
 // ---------------------------------------------------------------------------
 // Waiting for the order's line items to be fully written.
@@ -382,15 +419,24 @@ ${
   emailEnabled
     ? `
     if (invoiceData.customerEmail) {
+      var emailed = false;
       try {
         var emailResult = await emailSender.sendInvoiceEmail(invoiceData, pdfBuffer);
-        if (emailResult && emailResult.success) {
+        emailed = !!(emailResult && emailResult.success);
+        if (emailed) {
           console.info('[invoice] Email delivery OK — to=' + invoiceData.customerEmail + ', messageId=' + (emailResult.messageId || '(empty)'));
         } else {
           console.error('[invoice] Email delivery FAILED — to=' + invoiceData.customerEmail + ', error=' + (emailResult && emailResult.error ? emailResult.error : 'unknown'));
         }
       } catch (emailErr) {
         console.error('[invoice] Email delivery threw — to=' + invoiceData.customerEmail + ', error=' + (emailErr && emailErr.message ? emailErr.message : emailErr));
+      }
+      if (emailed) {
+        try {
+          await recordInvoiceEmailSent(invoiceData, caller.admin ? INVOICE_EMAIL_SENDERS.admin : INVOICE_EMAIL_SENDERS.store);
+        } catch (recordErr) {
+          console.error('[invoice] Invoice ' + invoiceNumber + ' was emailed, but the order history could not record it — ' + (recordErr && recordErr.message));
+        }
       }
     } else {
       console.info('[invoice] Skipping email delivery — invoiceData.customerEmail is empty. (Check teleport_orders.billing_email for order ' + (body.orderId || '(no orderId)') + ')');
@@ -452,24 +498,10 @@ ${
 /** The roles allowed to rebuild an invoice (the admin panel is the only caller). */
 const REGENERATE_INVOICE_ROLES = INVOICE_ADMIN_ROLES
 
-/**
- * The order-history line of an invoice email a regeneration sent: an
- * `order-email-sent` line of the email's purpose, by the store admin who
- * regenerated it, keyed on the invoice. The strings are data in the
- * merchant's database, owned by teleport-gui's `order-event-types.ts` and
- * `EmailTemplatePurpose.INVOICE_EMAIL`.
- */
-const REGENERATED_INVOICE_EMAIL_EVENT = {
-  type: 'order-email-sent',
-  purpose: 'invoice-email',
-  actor: 'Store admin',
-  actorType: 'merchant',
-}
-
 /** The regenerate route's `emailFirstInvoice`, as emitted source. */
-const generateFirstInvoiceEmailCode = (): string => `
+const generateFirstInvoiceEmailCode = (): string => `${RECORD_INVOICE_EMAIL_CODE}
+
 var REGENERATE_SOURCE_REF = 'api/invoices/[id]/regenerate';
-var INVOICE_EMAIL_EVENT = ${JSON.stringify(REGENERATED_INVOICE_EMAIL_EVENT)};
 
 // The invoice email the payment would have sent: the same sender, template,
 // attachment and link, in the buyer's language — the one stamped on the order
@@ -490,14 +522,7 @@ async function emailFirstInvoice(invoiceData, pdfBuffer, order) {
     return;
   }
   try {
-    await dataAccess.recordOrderEvent({
-      type: INVOICE_EMAIL_EVENT.type,
-      dedupeKey: INVOICE_EMAIL_EVENT.type + ':' + invoiceData.id + ':' + INVOICE_EMAIL_EVENT.purpose,
-      orderId: invoiceData.orderId,
-      payload: { purpose: INVOICE_EMAIL_EVENT.purpose, to: invoiceData.customerEmail },
-      actor: INVOICE_EMAIL_EVENT.actor,
-      actorType: INVOICE_EMAIL_EVENT.actorType,
-    });
+    await recordInvoiceEmailSent(invoiceData, INVOICE_EMAIL_SENDERS.admin);
   } catch (recordErr) {
     console.error('[invoice] Regenerate: invoice ' + invoiceData.invoiceNumber + ' was emailed, but the order history could not record it — ' + (recordErr && recordErr.message));
   }
