@@ -10,6 +10,7 @@ import { REVEAL_ON_SCREEN_SOURCES } from './reveal-on-screen-source.generated'
 export type PageTransitionConfig = PageTransition.PageTransitionConfig
 
 const EASING_CURVES = PageTransition.PAGE_TRANSITION_EASING_CURVES
+const LATE_PICTURE_ATTR = 'data-tq-late-picture'
 const {
   BACK_ATTR,
   ORIGIN_X,
@@ -65,9 +66,13 @@ const {
  *   for nearly all of its run and the new page popped in (a flicker); left on
  *   the whole page, the clip broke the fixed header's blur and the pinned
  *   scenes while scrolling.
- * - The arriving page plays once the pictures on its first screen are decoded
- *   (300 ms at most). Played at once, it showed its text on a bare ground and
- *   its photographs popped in a moment later — a flicker at every change.
+ * - The arriving page plays once the pictures on its first screen are decoded:
+ *   1200 ms at most while the leaving page still holds the screen (a dissolve,
+ *   a reveal, a View Transition), 300 ms once it has gone (a slide plays one
+ *   page after the other, and the screen is bare meanwhile). Played at once, it
+ *   showed its text on a bare ground and its photographs popped in a moment
+ *   later — a flicker at every change. A picture still loading when its page
+ *   plays fades in once it has loaded, instead of snapping in (`fadeInWhenLoaded`).
  *
  * The first load never animates in (`initial={false}`): a site should appear,
  * not perform, on arrival.
@@ -114,6 +119,11 @@ export const generatePageTransitionComponentCode = (config: PageTransitionConfig
   const vtCss = plan && (plan.revealsOver || plan.flies) ? plan.css : ''
   const flies = !!plan && plan.flies
   const dissolves = pageTransitionDissolves(preset)
+  // A late picture waits unseen, then fades in the way its page did.
+  const fadeIn = `opacity ${duration}s cubic-bezier(${curve.join(', ')})`
+  const latePictureCss =
+    `[${LATE_PICTURE_ATTR}="loading"] { opacity: 0 !important; }\n` +
+    `[${LATE_PICTURE_ATTR}="in"] { transition: ${fadeIn} !important; }`
   return `import React from 'react'
 import { useRouter } from 'next/router'
 import { AnimatePresence, motion, usePresence } from 'framer-motion'
@@ -185,8 +195,17 @@ const FLIES = ${flies}
 const ARRIVAL_WAIT_MS = 3000
 // An arriving picture still loading is waited for this long, so the flight lands on it.
 const MORPH_DECODE_MS = 300
-// The arriving page waits this long at most for the pictures on its first screen.
-const PICTURE_WAIT_MS = 300
+// The arriving page waits this long at most for the pictures on its first
+// screen while the leaving page still holds the screen (the two overlap, or the
+// browser holds its picture for a View Transition)...
+const PICTURE_WAIT_MS = 1200
+// ...and this long once the leaving page has gone: the screen is bare meanwhile.
+const BARE_PICTURE_WAIT_MS = 300
+// A picture still loading when its page plays fades in once it has loaded
+// (fadeInWhenLoaded); one still loading after this is shown as it is.
+const LATE_PICTURE_WAIT_MS = 5000
+const LATE_PICTURE_ATTR = '${LATE_PICTURE_ATTR}'
+const LATE_PICTURE_CSS = ${JSON.stringify(latePictureCss)}
 const prefersLessMotion = () =>
   !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 // A scrollbar that takes room (Windows, a Mac with a mouse) stays while the
@@ -209,6 +228,20 @@ const holdScrollbarGutter = () => {
       root.style.setProperty('overflow-y', own, ownPriority)
     } else {
       root.style.removeProperty('overflow-y')
+    }
+  }
+}
+// Sets one property of an element's own style; returns what puts it back
+// exactly as it was.
+const holdStyle = (element, name, value) => {
+  const own = element.style.getPropertyValue(name)
+  const ownPriority = element.style.getPropertyPriority(name)
+  element.style.setProperty(name, value, 'important')
+  return () => {
+    if (own) {
+      element.style.setProperty(name, own, ownPriority)
+    } else {
+      element.style.removeProperty(name)
     }
   }
 }
@@ -248,17 +281,38 @@ const setLeaving = (node, leaving) => {
 // ordinary effect (React warns about a layout effect there).
 const useBeforePaintEffect = typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect
 // Settles once the pictures on the arriving page's first screen are decoded, or
-// after PICTURE_WAIT_MS: an image the page asks to decode off the main thread
-// paints a few frames after the rest of the page.
-const picturesReady = (node) => {
+// after waitMs (an image the page asks to decode off the main thread paints a
+// few frames after the rest of the page), with the pictures still loading.
+const picturesReady = (node, waitMs) => {
   const pictures = Array.prototype.filter.call(node.querySelectorAll('img'), (image) => {
     const box = image.getBoundingClientRect()
     return box.bottom > 0 && box.top < window.innerHeight && typeof image.decode === 'function'
   })
   return Promise.race([
     Promise.all(pictures.map((image) => image.decode().catch(() => {}))),
-    new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS)),
-  ])
+    new Promise((resolve) => setTimeout(resolve, waitMs)),
+  ]).then(() => pictures.filter((image) => !image.complete))
+}
+// A picture still loading when its page plays stays unseen until it has
+// loaded, then fades in: shown as it loaded, it snapped in over the page in a
+// single frame. One that fails is shown at once, as it would be anyway, and
+// none stays unseen past LATE_PICTURE_WAIT_MS.
+const fadeInWhenLoaded = (image) => {
+  image.setAttribute(LATE_PICTURE_ATTR, 'loading')
+  const show = (event) => {
+    image.removeEventListener('load', show)
+    image.removeEventListener('error', show)
+    clearTimeout(giveUp)
+    if (event && event.type === 'load') {
+      image.setAttribute(LATE_PICTURE_ATTR, 'in')
+      setTimeout(() => image.removeAttribute(LATE_PICTURE_ATTR), DURATION * 1000 + 100)
+    } else {
+      image.removeAttribute(LATE_PICTURE_ATTR)
+    }
+  }
+  const giveUp = setTimeout(show, LATE_PICTURE_WAIT_MS)
+  image.addEventListener('load', show)
+  image.addEventListener('error', show)
 }
 
 // Keeps the leaving page in the document while it is still needed: until the
@@ -308,6 +362,8 @@ const TqPageTransition = ({ children }) => {
   const overlapRef = React.useRef(null)
   // Puts back the scrollbar room held for the frozen page (holdScrollbarGutter).
   const gutterRef = React.useRef(null)
+  // Puts back <html>'s scroll-behavior, held instant through a View Transition's page change.
+  const scrollRef = React.useRef(null)
   const variants = React.useMemo(
     () =>
       context.skip || context.morph
@@ -348,9 +404,15 @@ const TqPageTransition = ({ children }) => {
             new Promise((resolve) => setTimeout(resolve, MORPH_DECODE_MS)),
           ])
         : Promise.resolve()
-    Promise.all([picturesReady(node), twinReady]).then(() => {
+    const overlap = overlapRef.current
+    const held = !!landing || !!(overlap && overlap.arrivingKey === key)
+    Promise.all([picturesReady(node, held ? PICTURE_WAIT_MS : BARE_PICTURE_WAIT_MS), twinReady]).then(([loading]) => {
       // A later page may have arrived meanwhile; this one's turn has passed.
       if (readyKeyRef.current === key) {
+        // The flight lands on its twin as it is; a page shown at once shows its pictures at once.
+        if (!prefersLessMotion() && !isSkippedRoute(key)) {
+          loading.filter((image) => image !== twin).forEach(fadeInWhenLoaded)
+        }
         setReadyKey(key)
         setPanelPhase((phase) => (phase === 'covered' ? 'uncovering' : phase))
       }
@@ -423,6 +485,13 @@ const TqPageTransition = ({ children }) => {
         root.style.setProperty('${ORIGIN_X}', pointer.x + 'px')
         root.style.setProperty('${ORIGIN_Y}', pointer.y + 'px')
       }
+      // Nothing is frozen here, so Next's scroll to the arriving page's top
+      // follows the site's smooth scrolling (kept for its in-page anchors): the
+      // page arrived at the leaving one's offset and glided up through itself.
+      // A change replacing one still playing finds the scroll already held.
+      if (!scrollRef.current) {
+        scrollRef.current = holdStyle(root, 'scroll-behavior', 'auto')
+      }
       const settle = () => {
         if (changeRef.current === change) {
           changeRef.current = null
@@ -430,6 +499,10 @@ const TqPageTransition = ({ children }) => {
           root.removeAttribute('${BACK_ATTR}')
           root.style.removeProperty('${ORIGIN_X}')
           root.style.removeProperty('${ORIGIN_Y}')
+          if (scrollRef.current) {
+            scrollRef.current()
+            scrollRef.current = null
+          }
         }
       }
       changeRef.current = change
@@ -609,6 +682,7 @@ const TqPageTransition = ({ children }) => {
         ))
       : null}
     {VT_CSS ? <style dangerouslySetInnerHTML={{ __html: VT_CSS }} /> : null}
+    <style dangerouslySetInnerHTML={{ __html: LATE_PICTURE_CSS }} />
     </>
   )
 }
