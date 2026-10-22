@@ -7,14 +7,17 @@ export const generateInitialPathsAST = (
   resourceImportName: string,
   resource: UIDLInitialPathsData['resource'],
   pagination?: PagePaginationOptions,
-  dynamicRouteAttribute?: string
+  dynamicRouteAttribute?: string,
+  /** What the read hands the resource after its params (`{ as: 'visitor' }`). */
+  readArguments: types.Expression[] = []
 ) => {
   const computedResourceAST = computePropsAST(
     initialData,
     resourceImportName,
     resource,
     pagination,
-    dynamicRouteAttribute
+    dynamicRouteAttribute,
+    readArguments
   )
 
   return types.exportNamedDeclaration(
@@ -140,7 +143,8 @@ const computePropsAST = (
   resourceImportName: string,
   resource: UIDLInitialPathsData['resource'],
   pagination?: PagePaginationOptions,
-  dynamicRouteAttribute?: string
+  dynamicRouteAttribute?: string,
+  readArguments: types.Expression[] = []
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
     (acc: types.ObjectProperty[], item) => {
@@ -158,6 +162,7 @@ const computePropsAST = (
       types.awaitExpression(
         types.callExpression(types.identifier(resourceImportName), [
           types.objectExpression(funcParams),
+          ...readArguments,
         ])
       )
     ),

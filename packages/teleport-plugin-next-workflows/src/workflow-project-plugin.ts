@@ -783,6 +783,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               authUsersTableName: resolveAuthUsersTableName(uidl.authentication),
               emailProvider,
               fromEmail: typeof deleteConfig.from === 'string' ? deleteConfig.from : '',
+              fromName: typeof deleteConfig.fromName === 'string' ? deleteConfig.fromName : '',
               emailSecretEnvName,
               emailSubject: typeof deleteConfig.subject === 'string' ? deleteConfig.subject : '',
               emailBodyHtml: typeof deleteConfig.body === 'string' ? deleteConfig.body : '',
@@ -1807,6 +1808,7 @@ module.exports = __customNodeRegistry;
       const signupRouteCode = generateSignupRouteFile(auth, {
         emailProvider: welcomeProvider,
         fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
+        fromName: typeof signupConfig.fromName === 'string' ? signupConfig.fromName : '',
         emailSecretEnvName: welcomeSecretEnvName,
         emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
         emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',

@@ -1,6 +1,6 @@
 import { UIDLWorkflow, UIDLWorkflowNode, UIDLWorkflowEdge } from '@teleporthq/teleport-types'
 import { WorkflowSegment, WorkflowExecutionEnv } from './types'
-import { getLoopBodyNodes, getNodeById, getTopologicalOrder } from './graph-utils'
+import { getDependents, getLoopBodyNodes, getNodeById, getTopologicalOrder } from './graph-utils'
 import { nodeRegistry } from './nodes'
 import { AWAIT_RESULT_CONFIG_KEY } from './await-result'
 import { WELCOME_EMAIL_CONFIG_KEYS } from './transactional-email-code'
@@ -144,24 +144,53 @@ export const splitIntoSegments = (workflow: UIDLWorkflow): WorkflowSegment[] => 
       ? workflow.edges.filter((e) => !errorBranchIds.has(e.source) && !errorBranchIds.has(e.target))
       : workflow.edges
 
-  const order = getTopologicalOrder(mainNodes, mainEdges)
   // Loop bodies must execute as a single unit at runtime. The split-by-env
   // walk below would otherwise drop AI/server steps in one segment and the
   // client-only post-processing into another, leaving the loop's body half-
-  // executed for every iteration. We reorder the topo so all body nodes sit
-  // immediately after their owning loop, and we record a single forced env
-  // (server if any body or the loop itself needs server, else client) so the
-  // forthcoming env walk emits one segment for the loop + body.
-  const { reorderedOrder, forcedEnvByNodeId } = enforceLoopBodyIntegrity(
-    order,
+  // executed for every iteration. Every loop + body gets a single forced env
+  // (server if any body or the loop itself needs server, else client), and the
+  // topo order is rearranged so all body nodes sit immediately after their
+  // owning loop, so the env walk emits one segment for the loop + body.
+  const forcedEnvByNodeId = resolveLoopClusterEnvs(mainNodes, mainEdges)
+  const order = getTopologicalOrder(
     mainNodes,
-    mainEdges
+    mainEdges,
+    (node) => forcedEnvByNodeId.get(node.id) ?? resolveFixedExecutionEnv(node)
   )
+  const reorderedOrder = hoistLoopBodies(order, mainNodes, mainEdges)
   const segments: WorkflowSegment[] = []
   let currentEnv: WorkflowExecutionEnv | null = null
   let currentNodeIds: string[] = []
   let segClientCount = 0
   let segServerCount = 0
+
+  // A server route runs its segment's nodes by stepNumber, never by edge, so a
+  // node must not join a segment holding one of its inputs at a later step (a
+  // join also reached by a shorter path, a value read across branches): the
+  // route would run it first. Loop bodies run inside their loop, at the loop's
+  // step, and never leave its segment.
+  const inputsById = new Map<string, string[]>()
+  Object.entries(getDependents(mainNodes, mainEdges)).forEach(([source, dependents]) =>
+    dependents.forEach((id) => inputsById.set(id, [...(inputsById.get(id) || []), source]))
+  )
+  const loopStepByBodyNodeId = new Map<string, number>()
+  mainNodes
+    .filter((n) => n.type === 'general-loop')
+    .forEach((loop) =>
+      getLoopBodyNodes(loop.id, mainEdges).forEach((id) =>
+        loopStepByBodyNodeId.set(
+          id,
+          Math.min(loopStepByBodyNodeId.get(id) ?? Infinity, loop.stepNumber || 0)
+        )
+      )
+    )
+  const runsAtStep = (nodeId: string): number =>
+    loopStepByBodyNodeId.get(nodeId) ?? (getNodeById(mainNodes, nodeId)?.stepNumber || 0)
+  const readsALaterStepOfThisSegment = (node: UIDLWorkflowNode): boolean =>
+    !loopStepByBodyNodeId.has(node.id) &&
+    (inputsById.get(node.id) || []).some(
+      (inputId) => currentNodeIds.includes(inputId) && runsAtStep(inputId) > (node.stepNumber || 0)
+    )
 
   const flushSegment = () => {
     if (currentNodeIds.length === 0 || currentEnv === null) {
@@ -196,7 +225,10 @@ export const splitIntoSegments = (workflow: UIDLWorkflow): WorkflowSegment[] => 
     const forced = forcedEnvByNodeId.get(nodeId)
     const nodeEnv = forced ?? resolveExecutionEnv(node, currentEnv)
 
-    if (currentEnv !== null && nodeEnv !== currentEnv) {
+    if (
+      currentEnv !== null &&
+      (nodeEnv !== currentEnv || (nodeEnv === 'server' && readsALaterStepOfThisSegment(node)))
+    ) {
       flushSegment()
     }
     currentEnv = nodeEnv
@@ -208,10 +240,7 @@ export const splitIntoSegments = (workflow: UIDLWorkflow): WorkflowSegment[] => 
 }
 
 /**
- * Re-arrange the topological node order so every loop's body nodes sit
- * directly after the loop, and pick a single execution env for the
- * (loop + body) cluster. Nested loops are processed inner-first so the outer
- * loop's body window already contains the inner body in the right order.
+ * The single execution env of every (loop + body) cluster.
  *
  * Why an explicit env override is needed: a body that mixes universal /
  * server / client nodes (e.g. fetch → AI prompt → custom-js with
@@ -224,19 +253,58 @@ export const splitIntoSegments = (workflow: UIDLWorkflow): WorkflowSegment[] => 
  * runs the same string of JS regardless of where it executes); the inverse
  * is not true for AI / HTTP-with-secret nodes. When no member is server, we
  * keep the cluster on the client so DOM- or window-bound bodies still work.
+ * A node of nested loops takes its outermost loop's env, which is server
+ * whenever an inner loop's is.
  */
-const enforceLoopBodyIntegrity = (
+const resolveLoopClusterEnvs = (
+  mainNodes: UIDLWorkflowNode[],
+  mainEdges: UIDLWorkflowEdge[]
+): Map<string, WorkflowExecutionEnv> => {
+  const forcedEnvByNodeId = new Map<string, WorkflowExecutionEnv>()
+  for (const loop of mainNodes.filter((n) => n.type === 'general-loop')) {
+    const bodyIds = getLoopBodyNodes(loop.id, mainEdges)
+    if (bodyIds.length === 0) {
+      continue
+    }
+    const clusterMembers = [loop.id, ...bodyIds]
+      .map((id) => getNodeById(mainNodes, id))
+      .filter((n): n is UIDLWorkflowNode => Boolean(n))
+    const clusterEnv: WorkflowExecutionEnv = clusterMembers.some(
+      (member) => resolveExecutionEnv(member, null) === 'server'
+    )
+      ? 'server'
+      : 'client'
+    for (const member of clusterMembers) {
+      if (forcedEnvByNodeId.get(member.id) !== 'server') {
+        forcedEnvByNodeId.set(member.id, clusterEnv)
+      }
+    }
+  }
+  return forcedEnvByNodeId
+}
+
+/**
+ * Where a node runs whatever ran before it, or `null` for a node that takes the
+ * env of the node before it (an if-statement): it fits either side.
+ */
+const resolveFixedExecutionEnv = (node: UIDLWorkflowNode): WorkflowExecutionEnv | null => {
+  const env = resolveExecutionEnv(node, 'server')
+  return env === resolveExecutionEnv(node, 'client') ? env : null
+}
+
+/**
+ * Re-arrange the topological node order so every loop's body nodes sit
+ * directly after the loop. Nested loops are processed inner-first so the outer
+ * loop's body window already contains the inner body in the right order.
+ */
+const hoistLoopBodies = (
   order: string[],
   mainNodes: UIDLWorkflowNode[],
   mainEdges: UIDLWorkflowEdge[]
-): {
-  reorderedOrder: string[]
-  forcedEnvByNodeId: Map<string, WorkflowExecutionEnv>
-} => {
-  const forcedEnvByNodeId = new Map<string, WorkflowExecutionEnv>()
+): string[] => {
   const loopNodes = mainNodes.filter((n) => n.type === 'general-loop')
   if (loopNodes.length === 0) {
-    return { reorderedOrder: order, forcedEnvByNodeId }
+    return order
   }
 
   // Process inner loops before outer ones: an inner loop's body is a subset
@@ -253,20 +321,6 @@ const enforceLoopBodyIntegrity = (
     }
 
     const clusterIds = new Set<string>([loopId, ...bodyIds])
-    const clusterMembers = Array.from(clusterIds)
-      .map((id) => getNodeById(mainNodes, id))
-      .filter((n): n is UIDLWorkflowNode => Boolean(n))
-
-    let clusterEnv: WorkflowExecutionEnv = 'client'
-    for (const member of clusterMembers) {
-      if (resolveExecutionEnv(member, null) === 'server') {
-        clusterEnv = 'server'
-        break
-      }
-    }
-    for (const member of clusterMembers) {
-      forcedEnvByNodeId.set(member.id, clusterEnv)
-    }
 
     // Hoist body nodes (preserving their existing relative order) immediately
     // after the loop. Other nodes keep their relative position.
@@ -283,7 +337,7 @@ const enforceLoopBodyIntegrity = (
     ]
   }
 
-  return { reorderedOrder: working, forcedEnvByNodeId }
+  return working
 }
 
 /**

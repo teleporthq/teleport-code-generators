@@ -43,59 +43,129 @@ import {
  *
  * The reader half is baked into the place-order workflow by the editor
  * (features/workflows/templates/builders/ecommerce/order-attribution-script.ts).
- * ⚠️ ATTRIBUTION_KEY and the key that module reads MUST match.
+ * ⚠️ ATTRIBUTION_KEY and ATTRIBUTION_GLOBAL are read there by name, and MUST
+ * match what that module reads (`ORDER_ATTRIBUTION_STORAGE_KEY`,
+ * `ORDER_ATTRIBUTION_MEMORY_GLOBAL`). A mismatch silently unattributes orders.
+ *
+ * NOTHING IS STORED BEFORE CONSENT. Until the visitor accepts the cookie banner
+ * (`cookieConsent` exactly 'accepted', the analytics tracker's own test), the
+ * snapshot is only held in memory, on `window[ATTRIBUTION_GLOBAL]`, while the
+ * page is open: client-side navigation keeps it, so a checkout reached that way
+ * still records the campaign, and a full page load starts again from the
+ * address it lands on. Without consent, a stored snapshot (earlier builds
+ * stored one for every visitor) is removed.
+ *
+ * Once the visitor accepts, the held snapshot is stored for the visit, so a
+ * full page load keeps the first touch. Accept is clicked while the page is
+ * open, and the banner's localStorage write fires no event in its own tab, so
+ * `watchOrderAttributionConsent` stores it when the page is hidden or left
+ * (`visibilitychange` to hidden, `pagehide`): every full page load leaves the
+ * page first, and until then the checkout reads the held copy. The same two
+ * events the analytics tracker sends its last beacon on.
+ *
+ * A store with no cookie banner never gets an answer, so it only ever holds the
+ * snapshot in memory.
  *
  * SESSION storage, not local: attribution belongs to a visit. A shopper who
  * arrives from a campaign today and returns directly next week is a direct
  * visit the second time, and localStorage would credit the campaign forever.
  *
- * Writes only when nothing is stored yet — that is what makes it FIRST touch.
- * A shopper who lands on a campaign URL, browses, and checks out three pages
- * later has a clean address bar by then, so reading the URL at checkout would
- * attribute every one of those orders to nothing.
+ * Stored only when nothing is stored yet, and held once per page — that is
+ * what makes it FIRST touch. A shopper who lands on a campaign URL, browses,
+ * and checks out three pages later has a clean address bar by then, so reading
+ * the URL at checkout would attribute every one of those orders to nothing.
  */
 const ORDER_ATTRIBUTION_WRITER = `
 const ATTRIBUTION_KEY = 'tq_attribution'
+const ATTRIBUTION_GLOBAL = '__teleportOrderAttribution'
+
+// The analytics tracker's own test: only an Accept on the cookie banner is
+// consent. A refusal, no answer yet, or unreadable storage is none.
+function hasAttributionConsent() {
+  try {
+    return window.localStorage.getItem('cookieConsent') === 'accepted'
+  } catch (e) {
+    return false
+  }
+}
+
+function readLandingAttribution() {
+  const params = new URLSearchParams(window.location.search || '')
+  // Capped to the column width: a 4KB UTM value is a broken link or an
+  // attack, and a rejected INSERT would fail the whole checkout.
+  const read = function (key) {
+    const value = params.get(key)
+    return value ? String(value).slice(0, 255) : null
+  }
+  let referrerHost = null
+  try {
+    if (document.referrer) {
+      const parsed = new URL(document.referrer)
+      // Same-origin referrers are internal navigation, not a traffic source.
+      if (parsed.host && parsed.host !== window.location.host) {
+        referrerHost = parsed.host.slice(0, 255)
+      }
+    }
+  } catch (e) {
+    referrerHost = null
+  }
+  return {
+    utm_source: read('utm_source'),
+    utm_medium: read('utm_medium'),
+    utm_campaign: read('utm_campaign'),
+    utm_term: read('utm_term'),
+    utm_content: read('utm_content'),
+    // The path only: a query string can carry an email or a token, and this
+    // is written into the merchant's database.
+    landing_path: String(window.location.pathname || '/').slice(0, 512),
+    referrer_host: referrerHost,
+  }
+}
+
+// Stores the held snapshot for the visit, only with consent, and never over
+// one already stored: that one is the first touch.
+function persistOrderAttribution() {
+  if (typeof window === 'undefined' || !hasAttributionConsent()) return
+  try {
+    const held = window[ATTRIBUTION_GLOBAL]
+    if (!held || window.sessionStorage.getItem(ATTRIBUTION_KEY)) return
+    window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(held))
+  } catch (e) {
+    /* private mode, disabled storage: the checkout reads the held copy */
+  }
+}
 
 function captureOrderAttribution() {
   if (typeof window === 'undefined') return
-  try {
-    if (window.sessionStorage.getItem(ATTRIBUTION_KEY)) return
-    const params = new URLSearchParams(window.location.search || '')
-    // Capped to the column width: a 4KB UTM value is a broken link or an
-    // attack, and a rejected INSERT would fail the whole checkout.
-    const read = function (key) {
-      const value = params.get(key)
-      return value ? String(value).slice(0, 255) : null
-    }
-    let referrerHost = null
+  if (!window[ATTRIBUTION_GLOBAL]) {
     try {
-      if (document.referrer) {
-        const parsed = new URL(document.referrer)
-        // Same-origin referrers are internal navigation, not a traffic source.
-        if (parsed.host && parsed.host !== window.location.host) {
-          referrerHost = parsed.host.slice(0, 255)
-        }
-      }
+      window[ATTRIBUTION_GLOBAL] = readLandingAttribution()
     } catch (e) {
-      referrerHost = null
+      /* an unreadable address: the order is simply unattributed */
     }
-    window.sessionStorage.setItem(
-      ATTRIBUTION_KEY,
-      JSON.stringify({
-        utm_source: read('utm_source'),
-        utm_medium: read('utm_medium'),
-        utm_campaign: read('utm_campaign'),
-        utm_term: read('utm_term'),
-        utm_content: read('utm_content'),
-        // The path only: a query string can carry an email or a token, and this
-        // is written into the merchant's database.
-        landing_path: String(window.location.pathname || '/').slice(0, 512),
-        referrer_host: referrerHost,
-      })
-    )
+  }
+  if (hasAttributionConsent()) {
+    persistOrderAttribution()
+    return
+  }
+  try {
+    window.sessionStorage.removeItem(ATTRIBUTION_KEY)
   } catch (e) {
-    /* private mode, disabled storage: the order is simply unattributed */
+    /* no storage access: nothing is stored either */
+  }
+}
+
+// Returns the cleanup for the provider's effect.
+function watchOrderAttributionConsent() {
+  if (typeof window === 'undefined') return undefined
+  const persistWhenHidden = function () {
+    if (document.visibilityState === 'hidden') persistOrderAttribution()
+  }
+  window.addEventListener('pagehide', persistOrderAttribution)
+  document.addEventListener('visibilitychange', persistWhenHidden)
+  return function () {
+    window.removeEventListener('pagehide', persistOrderAttribution)
+    document.removeEventListener('visibilitychange', persistWhenHidden)
   }
 }
 `
@@ -1192,8 +1262,9 @@ export const EcommerceProvider = ({ children }) => {
   const enrichRef = useRef(false)
   useEffect(() => {
     // First-touch attribution, before anything can navigate away from the
-    // landing URL. Idempotent and cheap on a revisit; the checkout reads it back
-    // and stamps it onto the order.
+    // landing URL: held in memory, stored for the visit only once the visitor
+    // has accepted cookies. The checkout reads it back and stamps it onto the
+    // order.
     captureOrderAttribution()
     const items = loadCartFromStorage()
     setCartItems(items)
@@ -1212,6 +1283,10 @@ export const EcommerceProvider = ({ children }) => {
       })
     }
   }, [])
+
+  // A visitor who accepts cookies on this page keeps its first touch through a
+  // full page load: it is stored before the page goes.
+  useEffect(() => watchOrderAttributionConsent(), [])
 
   useEffect(() => {
     const syncFromStorage = () => {

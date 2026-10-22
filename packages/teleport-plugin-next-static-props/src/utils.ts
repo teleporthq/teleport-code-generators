@@ -19,7 +19,11 @@ export const generateInitialPropsAST = (
    * auth-gated per request, so there is no real CDN-caching upside being
    * traded away. See `createStaticPropsPlugin` for the selection logic.
    */
-  useServerSideProps?: boolean
+  useServerSideProps?: boolean,
+  /** What the page's read hands the resource after its params (`{ as: 'visitor' }`). */
+  readArguments: () => types.Expression[] = () => [],
+  /** False when the page's reader is served no row of the table: it renders without one. */
+  entityReadable: boolean = true
 ) => {
   // Destructure params from context so expr-type resource params can reference `params` directly
   const paramsDestructureAST = types.variableDeclaration('const', [
@@ -51,7 +55,9 @@ export const generateInitialPropsAST = (
           resourceImportName,
           revalidateSeconds,
           skipI18n,
-          useServerSideProps
+          useServerSideProps,
+          readArguments,
+          entityReadable
         ),
       ]),
       types.catchClause(
@@ -138,7 +144,9 @@ const computePropsAST = (
   resourceImportName: string,
   revalidateSeconds: number | null,
   skipI18n?: boolean,
-  useServerSideProps?: boolean
+  useServerSideProps?: boolean,
+  readArguments: () => types.Expression[] = () => [],
+  entityReadable: boolean = true
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(
     initialPropsData.resource?.params || {}
@@ -218,6 +226,7 @@ const computePropsAST = (
               : types.cloneNode(param, true)
           ),
         ]),
+        ...readArguments(),
       ])
     )
 
@@ -288,6 +297,10 @@ const computePropsAST = (
     )
   )
 
+  if (!entityReadable) {
+    return [buildUnreadableEntityReturnAST(initialPropsData, revalidateProperty)]
+  }
+
   return [
     declarationAST,
     notFoundAST,
@@ -296,6 +309,46 @@ const computePropsAST = (
     returnAST,
   ]
 }
+
+/**
+ * The page, without its row: `{ props: { ...context?.params, <exposeAs>: null } }`.
+ *
+ * For a page whose reader is served no row of the table it shows (an order, a
+ * gift card — see `TableAccess.pageDataReadsNoRowOf`). Reading it as the
+ * store put another member's row in the page data of whoever opened the
+ * address; reading it as the visitor is always refused, which would 404 the
+ * page whatever else it shows.
+ */
+const buildUnreadableEntityReturnAST = (
+  initialPropsData: UIDLInitialPropsData,
+  revalidateProperty: () => types.ObjectProperty | null
+): types.ReturnStatement =>
+  types.returnStatement(
+    types.objectExpression(
+      [
+        types.objectProperty(
+          types.identifier('props'),
+          types.objectExpression([
+            types.spreadElement(
+              types.optionalMemberExpression(
+                types.identifier('context'),
+                types.identifier('params'),
+                false,
+                true
+              )
+            ),
+            types.objectProperty(
+              types.identifier(
+                StringUtils.createStateOrPropStoringValue(initialPropsData.exposeAs.name)
+              ),
+              types.nullLiteral()
+            ),
+          ])
+        ),
+        revalidateProperty(),
+      ].filter(Boolean)
+    )
+  )
 
 /**
  * A page that shows a SUBSET of a table's rows (`redirect.unlessFieldEquals`)

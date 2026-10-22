@@ -5,7 +5,9 @@
 // - Cookieless by default: no storage at all until the site's own cookie
 //   banner consent (`localStorage.cookieConsent === 'accepted'`) exists; the
 //   anonymous id is then a random UUID, never derived from personal data.
-// - Only pathnames are sent — never query strings or fragments.
+// - Only pathnames are sent — never query strings or fragments. The landing
+//   pageview also names its query parameters, never their values, so a buyer
+//   back from their bank or wallet stays in the visit they shopped in.
 // - The tracker self-disables on localhost, for bots (navigator.webdriver)
 //   and after repeated 403s (analytics turned off server-side).
 export const TRACKER_SOURCE = `/* TeleportHQ first-party analytics tracker. Anonymous, cookieless by default. */
@@ -30,6 +32,7 @@ let seq = 0
 let currentPath = null
 let initialReferrer = null
 let utm = null
+let landingQueryKeys = []
 // Pages the owner keeps out of analytics (admin-panel pages by default), as
 // path patterns baked in at publish time, and the site's locales so a prefixed
 // address matches the same list.
@@ -188,6 +191,32 @@ function parseUtm() {
   } catch (e) {
     return null
   }
+}
+
+// The landing address's query parameter NAMES, never their values: a buyer
+// back from their bank or wallet lands on one whose names say so
+// (payment=success, payment_intent with redirect_status), and the server then
+// keeps them in the visit they shopped in. Shaped and capped the way the server
+// accepts them, so no name can carry an "=", "@", "/" or a space.
+const QUERY_KEY_PATTERN = /^[A-Za-z0-9_.[\\]-]{1,64}$/
+const MAX_QUERY_KEYS = 20
+
+function parseQueryKeys() {
+  const keys = []
+  try {
+    new URLSearchParams(window.location.search).forEach((_value, key) => {
+      if (
+        keys.length < MAX_QUERY_KEYS &&
+        keys.indexOf(key) === -1 &&
+        QUERY_KEY_PATTERN.test(key)
+      ) {
+        keys.push(key)
+      }
+    })
+  } catch (e) {
+    /* an address the browser cannot read names nothing */
+  }
+  return keys
 }
 
 function endpoint(suffix) {
@@ -404,6 +433,9 @@ function trackPageview(isFirstLoad) {
   const event = baseEvent('pageview')
   event.referrer = isFirstLoad ? (document.referrer || null) : null
   event.utm = isFirstLoad ? utm : null
+  if (isFirstLoad && landingQueryKeys.length > 0) {
+    event.queryKeys = landingQueryKeys
+  }
   event.screenW = window.screen && window.screen.width ? window.screen.width : null
   enqueue(event)
 }
@@ -517,6 +549,7 @@ export function initTeleportAnalytics(options) {
 
   setupIdentity()
   utm = parseUtm()
+  landingQueryKeys = parseQueryKeys()
 
   document.addEventListener('click', onClickCapture, true)
 

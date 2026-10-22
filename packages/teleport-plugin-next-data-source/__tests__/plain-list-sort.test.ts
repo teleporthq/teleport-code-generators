@@ -200,7 +200,7 @@ describe('a plain list fetches with its repeater’s sort', () => {
     expect(code).not.toContain('field: "title"')
   })
 
-  it('drops the prefetched rows for a sort bound to state, which the server cannot know', async () => {
+  it('drops the prefetched rows for a sort bound to state whose start the build cannot know', async () => {
     expect(squash(await runPlugin('state', { prefetched: true }))).not.toContain('initialData')
     expect(squash(await runPlugin('fixed', { prefetched: true }))).toContain(
       'initialData={props.items}'

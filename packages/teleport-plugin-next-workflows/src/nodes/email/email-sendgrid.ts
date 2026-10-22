@@ -1,8 +1,15 @@
+import { EmailSender } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
+import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
+
+// Ambient, not imported: a serialized handler has no module scope, so
+// generateHandler appends the helper's source (EmailSender, teleport-shared).
+declare function __emailSender(sender: EmailSender.EmailSenderInput): EmailSender.EmailSenderParts
 
 async function email_sendgrid(config: any, context: Record<string, unknown>) {
   const apiKey = config.apiKey
   const from = config.from
+  const fromName = config.fromName
   const to = config.to
   const subject = config.subject
   const body = config.body
@@ -17,9 +24,12 @@ async function email_sendgrid(config: any, context: Record<string, unknown>) {
     const sgMail = new MailService()
     sgMail.setApiKey(apiKey)
 
+    // SendGrid reads a "Name <email>" string's name verbatim, quotes included,
+    // so a named sender goes as its two parts.
+    const sender = __emailSender({ from, name: fromName })
     const msg: Record<string, any> = {
       to: Array.isArray(to) ? to : [to],
-      from,
+      from: sender.name ? { email: sender.email, name: sender.name } : sender.email,
       subject,
       html: body,
     }
@@ -62,6 +72,9 @@ export const emailSendgrid: NodeHandlerGenerator = {
     '@sendgrid/mail': '^8.0.0',
   },
   generateHandler(): string {
-    return handlerToString(email_sendgrid)
+    return assertHandlerHasNoModuleRefs(
+      handlerToString(email_sendgrid) + '\n' + EmailSender.generateEmailSenderHelperCode(),
+      'email-sendgrid'
+    )
   },
 }

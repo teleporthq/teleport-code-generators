@@ -120,7 +120,7 @@ async function runHandler(options: {
       insertedItems.push(...items)
       return { invoice: invoiceData, created: true }
     },
-    storeInvoicePdf: async () => ({}),
+    storeInvoicePdf: async () => ({ firstPdf: true }),
     updateInvoice: async () => ({}),
   }
 

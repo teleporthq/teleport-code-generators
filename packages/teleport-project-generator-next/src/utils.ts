@@ -1,5 +1,6 @@
 import { InlineScriptErrorGuard, UIDLUtils } from '@teleporthq/teleport-shared'
 import { wrapBodyCustomCode } from './body-code/body-code-component'
+import { GOOGLE_CONSENT_MODE_SOURCE, needsGoogleConsentMode } from './analytics/google-consent-mode'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -68,6 +69,14 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     })
     ASTUtils.addChildJSXTag(headNode, metaTag)
   })
+
+  if (needsGoogleConsentMode(uidl)) {
+    const consentModeTag = ASTBuilders.createJSXTag('script')
+    ASTUtils.addAttributeToJSXTag(consentModeTag, 'dangerouslySetInnerHTML', {
+      __html: GOOGLE_CONSENT_MODE_SOURCE,
+    })
+    ASTUtils.addChildJSXTag(headNode, consentModeTag)
+  }
 
   ASTBuilders.appendAssetsAST(assets, options, headNode, bodyNode)
 

@@ -1,0 +1,6343 @@
+{
+ "//": "The /profile/[id] page as the editor exports it (examples/uidl-samples/project.json): route, page node without the store chrome (Navigation, Footer), its workflows and custom nodes, the users resources, global states, authentication, design tokens, the style sets it uses and the users table.",
+ "route": {
+  "value": "profile/profile",
+  "seo": {
+   "title": "My Profile",
+   "metaTags": [
+    {
+     "name": "description",
+     "content": "View and manage your account profile, personal details, and preferences."
+    },
+    {
+     "property": "og:title",
+     "content": "My Profile"
+    },
+    {
+     "property": "og:description",
+     "content": "View and manage your account profile, personal details, and preferences."
+    },
+    {
+     "property": "og:image",
+     "content": "https://aheioqhobo.cloudimg.io/v7/_playground-assets-qa_/51723948-eabe-4823-9a81-321234a80b4c/f04fbc70-e066-4e56-a8d5-082249e03f5c?org_if_sml=1&force_format=original"
+    },
+    {
+     "property": "og:type",
+     "content": "website"
+    },
+    {
+     "name": "twitter:title",
+     "content": "My Profile"
+    },
+    {
+     "name": "twitter:description",
+     "content": "View and manage your account profile, personal details, and preferences."
+    },
+    {
+     "name": "twitter:image",
+     "content": "https://aheioqhobo.cloudimg.io/v7/_playground-assets-qa_/51723948-eabe-4823-9a81-321234a80b4c/f04fbc70-e066-4e56-a8d5-082249e03f5c?org_if_sml=1&force_format=original"
+    }
+   ],
+   "assets": [
+    {
+     "type": "canonical",
+     "path": "https://rubbery-straight-eel-dtcyxs.teleporthq.dev/profile/[id]"
+    }
+   ],
+   "structuredData": [
+    "{\"@context\":\"https://schema.org\",\"@type\":\"BreadcrumbList\",\"itemListElement\":[{\"@type\":\"ListItem\",\"position\":1,\"name\":\"Home\",\"item\":\"https://rubbery-straight-eel-dtcyxs.teleporthq.dev\"},{\"@type\":\"ListItem\",\"position\":2,\"name\":\"profile\",\"item\":\"https://rubbery-straight-eel-dtcyxs.teleporthq.dev/profile/[id]\"}]}"
+   ]
+  },
+  "pageId": "TQ_GikM4lgEbw",
+  "pageOptions": {
+   "stateDefinitions": {
+    "accountFormButtonState": {
+     "id": "TQ_2f0AZxJCLD",
+     "defaultValue": "idle",
+     "type": "string"
+    },
+    "accountFormHasError": {
+     "id": "TQ_XiIF8Pvr3T",
+     "defaultValue": false,
+     "type": "boolean"
+    },
+    "accountFormError": {
+     "id": "TQ_dqXpzyVphJ",
+     "defaultValue": "",
+     "type": "string"
+    },
+    "accountFormData": {
+     "id": "TQ_BQt22pl0MG",
+     "defaultValue": {
+      "name": "",
+      "image": ""
+     },
+     "type": "object"
+    },
+    "initialAccountFormData": {
+     "id": "TQ_g7bEawfQ-7",
+     "defaultValue": {
+      "name": "",
+      "image": ""
+     },
+     "type": "object"
+    },
+    "selectedProfileImageFile": {
+     "id": "TQ_jwtR0S8Njx",
+     "defaultValue": [],
+     "type": "array"
+    },
+    "accountFormImageDirty": {
+     "id": "TQ_t3H6gAqSoQ",
+     "defaultValue": false,
+     "type": "boolean"
+    },
+    "isDeleteAccountConfirmationOpen": {
+     "id": "TQ_co98yyfidz",
+     "defaultValue": false,
+     "type": "boolean"
+    },
+    "deleteAccountHasError": {
+     "id": "TQ_0xgMps-jr7",
+     "defaultValue": false,
+     "type": "boolean"
+    },
+    "deleteAccountError": {
+     "id": "TQ_5mpZLO9Mj3",
+     "defaultValue": "",
+     "type": "string"
+    },
+    "deleteAccountButtonState": {
+     "id": "TQ_AaVPD1aTye",
+     "defaultValue": "idle",
+     "type": "string"
+    },
+    "cookieConsentVisible": {
+     "id": "TQ_H8nvr62z_D",
+     "defaultValue": false,
+     "type": "boolean"
+    }
+   },
+   "propDefinitions": {},
+   "navLink": "/profile/[id]",
+   "dynamicRouteAttribute": "id",
+   "lastmod": "2026-09-03",
+   "initialPropsData": {
+    "exposeAs": {
+     "name": "user",
+     "valuePath": [
+      "data",
+      "0"
+     ]
+    },
+    "resource": {
+     "id": "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersDetail",
+     "params": {
+      "filters": {
+       "type": "expr",
+       "content": "JSON.stringify([{\"type\":\"condition\",\"source\":\"id\",\"destination\":params['id'],\"operand\":\"=\"}])"
+      },
+      "limit": {
+       "type": "static",
+       "content": 1
+      }
+     }
+    }
+   },
+   "initialPathsData": {
+    "exposeAs": {
+     "name": "userPaths",
+     "valuePath": [
+      "data"
+     ],
+     "itemValuePath": [
+      "id"
+     ]
+    },
+    "resource": {
+     "id": "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersPaths"
+    }
+   },
+   "detailsPageInfo": {
+    "dataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+    "dataSourceName": "TeleportHQ database",
+    "dataSourceType": "teleport",
+    "tableName": "users",
+    "differentiatorColumn": "id",
+    "featureIdentifier": "user"
+   }
+  }
+ },
+ "pageNode": {
+  "type": "conditional",
+  "content": {
+   "node": {
+    "type": "element",
+    "content": {
+     "elementType": "container",
+     "semanticType": "div",
+     "referencedStyles": {},
+     "abilities": {},
+     "attrs": {
+      "id": {
+       "type": "static",
+       "content": "thq_container_Q20J"
+      }
+     },
+     "style": {
+      "width": {
+       "type": "static",
+       "content": "100%"
+      },
+      "display": {
+       "type": "static",
+       "content": "flex"
+      },
+      "flexDirection": {
+       "type": "static",
+       "content": "column"
+      },
+      "alignItems": {
+       "type": "static",
+       "content": "center"
+      },
+      "justifyContent": {
+       "type": "static",
+       "content": "flex-start"
+      },
+      "backgroundColor": {
+       "type": "dynamic",
+       "content": {
+        "referenceType": "token",
+        "id": "--color-surface",
+        "fallback": ""
+       }
+      }
+     },
+     "children": [
+      {
+       "type": "element",
+       "content": {
+        "elementType": "container",
+        "semanticType": "div",
+        "name": "ThqProfile-page-wrapperElm",
+        "referencedStyles": {
+         "4e40c69c-b5ea-4b3f-8fa5-b61ba04e4f43": {
+          "type": "style-map",
+          "content": {
+           "conditions": [
+            {
+             "conditionType": "screen-size",
+             "maxWidth": 767
+            }
+           ],
+           "mapType": "inlined",
+           "styles": {
+            "width": {
+             "type": "static",
+             "content": "100%"
+            },
+            "paddingLeft": {
+             "type": "static",
+             "content": "var(--spacing-md, 16px)"
+            },
+            "paddingRight": {
+             "type": "static",
+             "content": "var(--spacing-md, 16px)"
+            }
+           }
+          }
+         }
+        },
+        "abilities": {},
+        "style": {
+         "minHeight": {
+          "type": "static",
+          "content": "800px"
+         },
+         "display": {
+          "type": "static",
+          "content": "flex"
+         },
+         "flexDirection": {
+          "type": "static",
+          "content": "column"
+         },
+         "alignItems": {
+          "type": "static",
+          "content": "center"
+         },
+         "justifyContent": {
+          "type": "static",
+          "content": "center"
+         }
+        },
+        "children": [
+         {
+          "type": "conditional",
+          "content": {
+           "node": {
+            "type": "element",
+            "content": {
+             "elementType": "container",
+             "semanticType": "div",
+             "name": "ThqProfile-page-owner-containerElm",
+             "referencedStyles": {
+              "cf033379-2a6f-4aa8-bc68-758314bf4f3b": {
+               "type": "style-map",
+               "content": {
+                "conditions": [
+                 {
+                  "conditionType": "screen-size",
+                  "maxWidth": 767
+                 }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                 "minWidth": {
+                  "type": "static",
+                  "content": "100%"
+                 }
+                }
+               }
+              }
+             },
+             "abilities": {},
+             "style": {
+              "display": {
+               "type": "static",
+               "content": "flex"
+              },
+              "flexDirection": {
+               "type": "static",
+               "content": "column"
+              },
+              "alignItems": {
+               "type": "static",
+               "content": "stretch"
+              },
+              "minWidth": {
+               "type": "static",
+               "content": "480px"
+              },
+              "maxWidth": {
+               "type": "static",
+               "content": "480px"
+              },
+              "gap": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--spacing-lg",
+                "fallback": ""
+               }
+              },
+              "padding": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--spacing-2xl",
+                "fallback": ""
+               }
+              },
+              "backgroundColor": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--color-surface-elevated",
+                "fallback": ""
+               }
+              },
+              "borderRadius": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--border-radius-card",
+                "fallback": ""
+               }
+              },
+              "boxShadow": {
+               "type": "static",
+               "content": "0 1px 3px 0 rgba(0, 0, 0, 0.1)"
+              }
+             },
+             "children": [
+              {
+               "type": "element",
+               "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "name": "ThqProfile-page-titleElm",
+                "referencedStyles": {
+                 "TQ_BNpPMmUUb4": {
+                  "id": "TQ_BNpPMmUUb4",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "hero-title"
+                  }
+                 }
+                },
+                "abilities": {},
+                "style": {
+                 "textAlign": {
+                  "type": "static",
+                  "content": "center"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "expr",
+                  "content": "props.user?.name || \"My Profile\""
+                 }
+                ]
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "name": "ThqProfile-page-subtitleElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                 "fontSize": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--font-size-sm",
+                   "fallback": ""
+                  }
+                 },
+                 "color": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--color-on-surface-secondary",
+                   "fallback": ""
+                  }
+                 },
+                 "textAlign": {
+                  "type": "static",
+                  "content": "center"
+                 },
+                 "marginBottom": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--spacing-md",
+                   "fallback": ""
+                  }
+                 }
+                },
+                "children": [
+                 {
+                  "type": "static",
+                  "content": "Update your account details"
+                 }
+                ]
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "form",
+                "semanticType": "form",
+                "name": "ThqAccount-formElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                 "data-form-type": {
+                  "type": "static",
+                  "content": "account"
+                 },
+                 "data-account-workflow-ids": {
+                  "type": "static",
+                  "content": "[\"923e2008-774f-4dd5-af36-619eac0fce72\",\"51f84408-b028-4bfc-bb81-ae82fd29ddca\",\"ea9406e7-1b59-4a02-a053-656f300c6840\",\"29b5e7d3-d8c0-4399-934b-8e6e5f0c6a69\"]"
+                 },
+                 "data-account-custom-node-ids": {
+                  "type": "static",
+                  "content": "[\"57b16073-d4de-4e7f-9971-6bba7526d1c7\",\"27219f4c-d757-474c-996b-491c3b6e7a5a\"]"
+                 },
+                 "data-store-values-state": {
+                  "type": "static",
+                  "content": "accountFormData"
+                 }
+                },
+                "style": {
+                 "width": {
+                  "type": "static",
+                  "content": "100%"
+                 },
+                 "height": {
+                  "type": "static",
+                  "content": "auto"
+                 },
+                 "display": {
+                  "type": "static",
+                  "content": "flex"
+                 },
+                 "flexDirection": {
+                  "type": "static",
+                  "content": "column"
+                 },
+                 "gap": {
+                  "type": "static",
+                  "content": "8px"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "container",
+                   "semanticType": "div",
+                   "name": "ThqAccount-form-image-sectionElm",
+                   "referencedStyles": {},
+                   "abilities": {},
+                   "style": {
+                    "display": {
+                     "type": "static",
+                     "content": "flex"
+                    },
+                    "flexDirection": {
+                     "type": "static",
+                     "content": "row"
+                    },
+                    "alignItems": {
+                     "type": "static",
+                     "content": "center"
+                    },
+                    "gap": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--spacing-lg",
+                      "fallback": ""
+                     }
+                    },
+                    "marginBottom": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--spacing-lg",
+                      "fallback": ""
+                     }
+                    }
+                   },
+                   "children": [
+                    {
+                     "type": "element",
+                     "content": {
+                      "elementType": "image",
+                      "name": "ThqAccount-form-profile-imageElm",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "attrs": {
+                       "src": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "state",
+                         "id": "accountFormData",
+                         "fallback": "",
+                         "refPath": [
+                          "image"
+                         ]
+                        }
+                       },
+                       "alt": {
+                        "type": "static",
+                        "content": "Profile photo"
+                       }
+                      },
+                      "style": {
+                       "width": {
+                        "type": "static",
+                        "content": "96px"
+                       },
+                       "objectFit": {
+                        "type": "static",
+                        "content": "cover"
+                       },
+                       "height": {
+                        "type": "static",
+                        "content": "96px"
+                       },
+                       "borderRadius": {
+                        "type": "static",
+                        "content": "50%"
+                       },
+                       "flexShrink": {
+                        "type": "static",
+                        "content": "0"
+                       },
+                       "border": {
+                        "type": "static",
+                        "content": "1px solid var(--color-outline)"
+                       },
+                       "backgroundColor": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "token",
+                         "id": "--color-surface-elevated",
+                         "fallback": ""
+                        }
+                       }
+                      },
+                      "children": []
+                     }
+                    },
+                    {
+                     "type": "element",
+                     "content": {
+                      "elementType": "container",
+                      "semanticType": "div",
+                      "name": "ThqAccount-form-upload-cardElm",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "attrs": {
+                       "id": {
+                        "type": "static",
+                        "content": "thq_container_AUa0"
+                       }
+                      },
+                      "style": {
+                       "display": {
+                        "type": "static",
+                        "content": "flex"
+                       },
+                       "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                       },
+                       "alignItems": {
+                        "type": "static",
+                        "content": "center"
+                       },
+                       "justifyContent": {
+                        "type": "static",
+                        "content": "center"
+                       },
+                       "gap": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "token",
+                         "id": "--spacing-sm",
+                         "fallback": ""
+                        }
+                       },
+                       "padding": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "token",
+                         "id": "--spacing-lg",
+                         "fallback": ""
+                        }
+                       },
+                       "border": {
+                        "type": "static",
+                        "content": "2px dashed"
+                       },
+                       "borderColor": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "token",
+                         "id": "--color-outline",
+                         "fallback": ""
+                        }
+                       },
+                       "borderRadius": {
+                        "type": "dynamic",
+                        "content": {
+                         "referenceType": "token",
+                         "id": "--border-radius-card",
+                         "fallback": ""
+                        }
+                       },
+                       "cursor": {
+                        "type": "static",
+                        "content": "pointer"
+                       },
+                       "flex": {
+                        "type": "static",
+                        "content": "1"
+                       }
+                      },
+                      "children": [
+                       {
+                        "type": "element",
+                        "content": {
+                         "elementType": "icon",
+                         "name": "ThqAccount-form-upload-iconElm",
+                         "referencedStyles": {},
+                         "abilities": {},
+                         "attrs": {
+                          "viewBox": {
+                           "type": "static",
+                           "content": "0 0 24 24"
+                          },
+                          "fill": {
+                           "type": "static",
+                           "content": "none"
+                          },
+                          "stroke": {
+                           "type": "static",
+                           "content": "currentColor"
+                          },
+                          "stroke-width": {
+                           "type": "static",
+                           "content": "1.5"
+                          }
+                         },
+                         "style": {
+                          "width": {
+                           "type": "static",
+                           "content": "24px"
+                          },
+                          "height": {
+                           "type": "static",
+                           "content": "24px"
+                          },
+                          "color": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--color-on-surface-secondary",
+                            "fallback": ""
+                           }
+                          }
+                         },
+                         "children": [
+                          {
+                           "type": "element",
+                           "content": {
+                            "elementType": "icon",
+                            "semanticType": "path",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "attrs": {
+                             "d": {
+                              "type": "static",
+                              "content": "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                             },
+                             "stroke-linecap": {
+                              "type": "static",
+                              "content": "round"
+                             },
+                             "stroke-linejoin": {
+                              "type": "static",
+                              "content": "round"
+                             }
+                            },
+                            "children": []
+                           }
+                          }
+                         ]
+                        }
+                       },
+                       {
+                        "type": "element",
+                        "content": {
+                         "elementType": "text",
+                         "semanticType": "span",
+                         "name": "ThqAccount-form-upload-textElm",
+                         "referencedStyles": {},
+                         "abilities": {},
+                         "style": {
+                          "fontSize": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--font-size-sm",
+                            "fallback": ""
+                           }
+                          },
+                          "color": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--color-on-surface-secondary",
+                            "fallback": ""
+                           }
+                          },
+                          "fontWeight": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--font-weight-medium",
+                            "fallback": ""
+                           }
+                          }
+                         },
+                         "children": [
+                          {
+                           "type": "static",
+                           "content": "Upload new photo"
+                          }
+                         ]
+                        }
+                       },
+                       {
+                        "type": "element",
+                        "content": {
+                         "elementType": "text",
+                         "semanticType": "span",
+                         "name": "ThqAccount-form-upload-hintElm",
+                         "referencedStyles": {},
+                         "abilities": {},
+                         "style": {
+                          "fontSize": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--font-size-xs",
+                            "fallback": ""
+                           }
+                          },
+                          "color": {
+                           "type": "dynamic",
+                           "content": {
+                            "referenceType": "token",
+                            "id": "--color-on-surface-secondary",
+                            "fallback": ""
+                           }
+                          }
+                         },
+                         "children": [
+                          {
+                           "type": "static",
+                           "content": "PNG or JPG · up to 5 MB"
+                          }
+                         ]
+                        }
+                       }
+                      ]
+                     }
+                    }
+                   ]
+                  }
+                 },
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "textinput",
+                   "name": "ThqAccount-form-name-inputElm",
+                   "referencedStyles": {
+                    "TQ_SjR_QoSuo4": {
+                     "id": "TQ_SjR_QoSuo4",
+                     "type": "style-map",
+                     "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "form-input"
+                     }
+                    },
+                    "TQ_h-rRixj3vq": {
+                     "id": "TQ_h-rRixj3vq",
+                     "type": "style-map",
+                     "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "input"
+                     }
+                    }
+                   },
+                   "abilities": {},
+                   "attrs": {
+                    "type": {
+                     "type": "static",
+                     "content": "text"
+                    },
+                    "placeholder": {
+                     "type": "static",
+                     "content": "Your name"
+                    },
+                    "name": {
+                     "type": "static",
+                     "content": "name"
+                    },
+                    "value": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "state",
+                      "id": "accountFormData",
+                      "fallback": "",
+                      "refPath": [
+                       "name"
+                      ]
+                     }
+                    },
+                    "id": {
+                     "type": "static",
+                     "content": "thq_name_qDXc"
+                    }
+                   },
+                   "style": {
+                    "width": {
+                     "type": "static",
+                     "content": "100%"
+                    },
+                    "marginBottom": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--spacing-md",
+                      "fallback": ""
+                     }
+                    },
+                    "fontSize": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--font-size-base",
+                      "fallback": ""
+                     }
+                    }
+                   },
+                   "children": []
+                  }
+                 },
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "textinput",
+                   "name": "ThqAccount-form-email-inputElm",
+                   "referencedStyles": {
+                    "TQ_SjR_QoSuo4": {
+                     "id": "TQ_SjR_QoSuo4",
+                     "type": "style-map",
+                     "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "form-input"
+                     }
+                    },
+                    "TQ_h-rRixj3vq": {
+                     "id": "TQ_h-rRixj3vq",
+                     "type": "style-map",
+                     "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "input"
+                     }
+                    }
+                   },
+                   "abilities": {},
+                   "attrs": {
+                    "type": {
+                     "type": "static",
+                     "content": "email"
+                    },
+                    "placeholder": {
+                     "type": "static",
+                     "content": "Email"
+                    },
+                    "name": {
+                     "type": "static",
+                     "content": "email"
+                    },
+                    "value": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "global",
+                      "id": "currentUser",
+                      "refPath": [
+                       "email"
+                      ]
+                     }
+                    },
+                    "disabled": {
+                     "type": "static",
+                     "content": "true"
+                    },
+                    "aria-disabled": {
+                     "type": "static",
+                     "content": "true"
+                    },
+                    "readonly": {
+                     "type": "static",
+                     "content": "true"
+                    },
+                    "id": {
+                     "type": "static",
+                     "content": "thq_email_qYHF"
+                    }
+                   },
+                   "style": {
+                    "width": {
+                     "type": "static",
+                     "content": "100%"
+                    },
+                    "marginBottom": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--spacing-md",
+                      "fallback": ""
+                     }
+                    },
+                    "fontSize": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--font-size-base",
+                      "fallback": ""
+                     }
+                    },
+                    "backgroundColor": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--color-surface-elevated",
+                      "fallback": ""
+                     }
+                    },
+                    "color": {
+                     "type": "dynamic",
+                     "content": {
+                      "referenceType": "token",
+                      "id": "--color-on-surface-secondary",
+                      "fallback": ""
+                     }
+                    },
+                    "cursor": {
+                     "type": "static",
+                     "content": "not-allowed"
+                    }
+                   },
+                   "children": []
+                  }
+                 },
+                 {
+                  "type": "conditional",
+                  "content": {
+                   "node": {
+                    "type": "element",
+                    "content": {
+                     "elementType": "button",
+                     "name": "ThqAccount-form-update-button-disabledElm",
+                     "referencedStyles": {
+                      "TQ_8h84x7R-FE": {
+                       "id": "TQ_8h84x7R-FE",
+                       "type": "style-map",
+                       "content": {
+                        "mapType": "project-referenced",
+                        "referenceId": "button"
+                       }
+                      }
+                     },
+                     "abilities": {},
+                     "attrs": {
+                      "type": {
+                       "type": "static",
+                       "content": "button"
+                      },
+                      "id": {
+                       "type": "static",
+                       "content": "thq_button_H3lh"
+                      },
+                      "name": {
+                       "type": "static",
+                       "content": "button"
+                      }
+                     },
+                     "style": {
+                      "width": {
+                       "type": "static",
+                       "content": "100%"
+                      },
+                      "padding": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--spacing-md",
+                        "fallback": ""
+                       }
+                      },
+                      "backgroundColor": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--color-outline",
+                        "fallback": ""
+                       }
+                      },
+                      "color": {
+                       "type": "static",
+                       "content": "#ffffff"
+                      },
+                      "border": {
+                       "type": "static",
+                       "content": "none"
+                      },
+                      "borderRadius": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--border-radius-control",
+                        "fallback": ""
+                       }
+                      },
+                      "cursor": {
+                       "type": "static",
+                       "content": "not-allowed"
+                      },
+                      "opacity": {
+                       "type": "static",
+                       "content": "0.5"
+                      },
+                      "fontWeight": {
+                       "type": "static",
+                       "content": "var(--font-weight-semibold, 600)"
+                      }
+                     },
+                     "children": [
+                      {
+                       "type": "static",
+                       "content": "Update Account"
+                      }
+                     ]
+                    }
+                   },
+                   "reference": {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "state",
+                     "id": "accountFormButtonState"
+                    },
+                    "id": "TQ_2f0AZxJCLD",
+                    "pos": ""
+                   },
+                   "condition": {
+                    "conditions": [
+                     {
+                      "operation": "=",
+                      "operand": "idle"
+                     }
+                    ]
+                   }
+                  }
+                 },
+                 {
+                  "type": "conditional",
+                  "content": {
+                   "node": {
+                    "type": "element",
+                    "content": {
+                     "elementType": "button",
+                     "name": "ThqAccount-form-update-buttonElm",
+                     "referencedStyles": {
+                      "TQ_8h84x7R-FE": {
+                       "id": "TQ_8h84x7R-FE",
+                       "type": "style-map",
+                       "content": {
+                        "mapType": "project-referenced",
+                        "referenceId": "button"
+                       }
+                      }
+                     },
+                     "abilities": {},
+                     "attrs": {
+                      "type": {
+                       "type": "static",
+                       "content": "button"
+                      },
+                      "id": {
+                       "type": "static",
+                       "content": "thq_button_aOAo"
+                      },
+                      "name": {
+                       "type": "static",
+                       "content": "button"
+                      }
+                     },
+                     "style": {
+                      "width": {
+                       "type": "static",
+                       "content": "100%"
+                      },
+                      "padding": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--spacing-md",
+                        "fallback": ""
+                       }
+                      },
+                      "backgroundColor": {
+                       "type": "static",
+                       "content": "var(--color-primary, #3b82f6)"
+                      },
+                      "color": {
+                       "type": "static",
+                       "content": "var(--color-on-primary, #ffffff)"
+                      },
+                      "border": {
+                       "type": "static",
+                       "content": "none"
+                      },
+                      "borderRadius": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--border-radius-control",
+                        "fallback": ""
+                       }
+                      },
+                      "cursor": {
+                       "type": "static",
+                       "content": "pointer"
+                      },
+                      "fontWeight": {
+                       "type": "static",
+                       "content": "var(--font-weight-semibold, 600)"
+                      }
+                     },
+                     "children": [
+                      {
+                       "type": "static",
+                       "content": "Update Account"
+                      }
+                     ]
+                    }
+                   },
+                   "reference": {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "state",
+                     "id": "accountFormButtonState"
+                    },
+                    "id": "TQ_2f0AZxJCLD",
+                    "pos": ""
+                   },
+                   "condition": {
+                    "conditions": [
+                     {
+                      "operation": "=",
+                      "operand": "changed"
+                     }
+                    ]
+                   }
+                  }
+                 },
+                 {
+                  "type": "conditional",
+                  "content": {
+                   "node": {
+                    "type": "element",
+                    "content": {
+                     "elementType": "button",
+                     "name": "ThqAccount-form-update-button-loadingElm",
+                     "referencedStyles": {
+                      "TQ_8h84x7R-FE": {
+                       "id": "TQ_8h84x7R-FE",
+                       "type": "style-map",
+                       "content": {
+                        "mapType": "project-referenced",
+                        "referenceId": "button"
+                       }
+                      }
+                     },
+                     "abilities": {},
+                     "attrs": {
+                      "type": {
+                       "type": "static",
+                       "content": "button"
+                      },
+                      "id": {
+                       "type": "static",
+                       "content": "thq_button_T_In"
+                      },
+                      "name": {
+                       "type": "static",
+                       "content": "button"
+                      }
+                     },
+                     "style": {
+                      "width": {
+                       "type": "static",
+                       "content": "100%"
+                      },
+                      "padding": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--spacing-md",
+                        "fallback": ""
+                       }
+                      },
+                      "backgroundColor": {
+                       "type": "static",
+                       "content": "var(--color-primary, #3b82f6)"
+                      },
+                      "color": {
+                       "type": "static",
+                       "content": "var(--color-on-primary, #ffffff)"
+                      },
+                      "border": {
+                       "type": "static",
+                       "content": "none"
+                      },
+                      "borderRadius": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--border-radius-control",
+                        "fallback": ""
+                       }
+                      },
+                      "cursor": {
+                       "type": "static",
+                       "content": "progress"
+                      },
+                      "opacity": {
+                       "type": "static",
+                       "content": "0.7"
+                      },
+                      "fontWeight": {
+                       "type": "static",
+                       "content": "var(--font-weight-semibold, 600)"
+                      }
+                     },
+                     "children": [
+                      {
+                       "type": "static",
+                       "content": "Updating..."
+                      }
+                     ]
+                    }
+                   },
+                   "reference": {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "state",
+                     "id": "accountFormButtonState"
+                    },
+                    "id": "TQ_2f0AZxJCLD",
+                    "pos": ""
+                   },
+                   "condition": {
+                    "conditions": [
+                     {
+                      "operation": "=",
+                      "operand": "updating"
+                     }
+                    ]
+                   }
+                  }
+                 },
+                 {
+                  "type": "conditional",
+                  "content": {
+                   "node": {
+                    "type": "element",
+                    "content": {
+                     "elementType": "text",
+                     "semanticType": "span",
+                     "name": "ThqAccount-form-error-textElm",
+                     "referencedStyles": {},
+                     "abilities": {},
+                     "style": {
+                      "color": {
+                       "type": "static",
+                       "content": "#dc2626"
+                      },
+                      "fontSize": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--font-size-sm",
+                        "fallback": ""
+                       }
+                      },
+                      "marginTop": {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "token",
+                        "id": "--spacing-sm",
+                        "fallback": ""
+                       }
+                      },
+                      "textAlign": {
+                       "type": "static",
+                       "content": "center"
+                      }
+                     },
+                     "children": [
+                      {
+                       "type": "dynamic",
+                       "content": {
+                        "referenceType": "state",
+                        "id": "accountFormError"
+                       }
+                      }
+                     ]
+                    }
+                   },
+                   "reference": {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "state",
+                     "id": "accountFormHasError"
+                    },
+                    "id": "TQ_XiIF8Pvr3T",
+                    "pos": ""
+                   },
+                   "condition": {
+                    "conditions": [
+                     {
+                      "operation": "=",
+                      "operand": true
+                     }
+                    ]
+                   }
+                  }
+                 }
+                ]
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "name": "ThqProfile-page-delete-separatorElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                 "width": {
+                  "type": "static",
+                  "content": "100%"
+                 },
+                 "height": {
+                  "type": "static",
+                  "content": "1px"
+                 },
+                 "flexShrink": {
+                  "type": "static",
+                  "content": "0"
+                 },
+                 "backgroundColor": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--color-outline",
+                   "fallback": ""
+                  }
+                 }
+                },
+                "children": []
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "button",
+                "name": "ThqTrigger-buttonElm",
+                "referencedStyles": {
+                 "TQ_UsKva1IC-t": {
+                  "id": "TQ_UsKva1IC-t",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "btn"
+                  }
+                 },
+                 "TQ_lyMQNyou06": {
+                  "id": "TQ_lyMQNyou06",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "btn-lg"
+                  }
+                 },
+                 "TQ_8h84x7R-FE": {
+                  "id": "TQ_8h84x7R-FE",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "button"
+                  }
+                 }
+                },
+                "abilities": {},
+                "attrs": {
+                 "type": {
+                  "type": "static",
+                  "content": "button"
+                 },
+                 "id": {
+                  "type": "static",
+                  "content": "thq_button_Cgiq"
+                 }
+                },
+                "style": {
+                 "cursor": {
+                  "type": "static",
+                  "content": "pointer"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "static",
+                  "content": "Delete Account"
+                 }
+                ]
+               }
+              },
+              {
+               "type": "conditional",
+               "content": {
+                "node": {
+                 "type": "element",
+                 "content": {
+                  "elementType": "text",
+                  "semanticType": "span",
+                  "name": "ThqError-textElm",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                   "color": {
+                    "type": "static",
+                    "content": "#dc2626"
+                   },
+                   "fontSize": {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "token",
+                     "id": "--font-size-sm",
+                     "fallback": ""
+                    }
+                   }
+                  },
+                  "children": [
+                   {
+                    "type": "dynamic",
+                    "content": {
+                     "referenceType": "state",
+                     "id": "deleteAccountError"
+                    }
+                   }
+                  ]
+                 }
+                },
+                "reference": {
+                 "type": "dynamic",
+                 "content": {
+                  "referenceType": "state",
+                  "id": "deleteAccountHasError"
+                 },
+                 "id": "TQ_0xgMps-jr7",
+                 "pos": ""
+                },
+                "condition": {
+                 "conditions": [
+                  {
+                   "operation": "=",
+                   "operand": true
+                  }
+                 ]
+                }
+               }
+              },
+              {
+               "type": "conditional",
+               "content": {
+                "node": {
+                 "type": "element",
+                 "content": {
+                  "elementType": "thq-modal",
+                  "semanticType": "div",
+                  "name": "ThqConfirmation-modalElm",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "attrs": {
+                   "data-thq": {
+                    "type": "static",
+                    "content": "thq-modal"
+                   }
+                  },
+                  "style": {
+                   "position": {
+                    "type": "static",
+                    "content": "fixed"
+                   },
+                   "top": {
+                    "type": "static",
+                    "content": "0"
+                   },
+                   "left": {
+                    "type": "static",
+                    "content": "0"
+                   },
+                   "width": {
+                    "type": "static",
+                    "content": "100%"
+                   },
+                   "height": {
+                    "type": "static",
+                    "content": "100%"
+                   },
+                   "display": {
+                    "type": "static",
+                    "content": "flex"
+                   },
+                   "justifyContent": {
+                    "type": "static",
+                    "content": "center"
+                   },
+                   "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                   },
+                   "zIndex": {
+                    "type": "static",
+                    "content": "1000"
+                   }
+                  },
+                  "children": [
+                   {
+                    "type": "element",
+                    "content": {
+                     "elementType": "thq-modal-overlay",
+                     "semanticType": "div",
+                     "name": "ThqModal-overlayElm",
+                     "referencedStyles": {},
+                     "abilities": {},
+                     "attrs": {
+                      "data-thq": {
+                       "type": "static",
+                       "content": "thq-modal-overlay"
+                      },
+                      "id": {
+                       "type": "static",
+                       "content": "thq_thq-modal-overlay_YZfx"
+                      }
+                     },
+                     "style": {
+                      "position": {
+                       "type": "static",
+                       "content": "absolute"
+                      },
+                      "top": {
+                       "type": "static",
+                       "content": "0"
+                      },
+                      "left": {
+                       "type": "static",
+                       "content": "0"
+                      },
+                      "width": {
+                       "type": "static",
+                       "content": "100%"
+                      },
+                      "height": {
+                       "type": "static",
+                       "content": "100%"
+                      },
+                      "backgroundColor": {
+                       "type": "static",
+                       "content": "rgba(0, 0, 0, 0.5)"
+                      }
+                     },
+                     "children": []
+                    }
+                   },
+                   {
+                    "type": "element",
+                    "content": {
+                     "elementType": "thq-modal-container",
+                     "semanticType": "div",
+                     "name": "ThqModal-containerElm",
+                     "referencedStyles": {},
+                     "abilities": {},
+                     "attrs": {
+                      "data-thq": {
+                       "type": "static",
+                       "content": "thq-modal-container"
+                      }
+                     },
+                     "style": {
+                      "position": {
+                       "type": "static",
+                       "content": "relative"
+                      },
+                      "zIndex": {
+                       "type": "static",
+                       "content": "1"
+                      },
+                      "backgroundColor": {
+                       "type": "static",
+                       "content": "#ffffff"
+                      },
+                      "borderRadius": {
+                       "type": "static",
+                       "content": "12px"
+                      },
+                      "maxWidth": {
+                       "type": "static",
+                       "content": "500px"
+                      },
+                      "width": {
+                       "type": "static",
+                       "content": "90%"
+                      },
+                      "display": {
+                       "type": "static",
+                       "content": "flex"
+                      },
+                      "flexDirection": {
+                       "type": "static",
+                       "content": "column"
+                      },
+                      "boxShadow": {
+                       "type": "static",
+                       "content": "0 20px 60px rgba(0, 0, 0, 0.15)"
+                      },
+                      "overflow": {
+                       "type": "static",
+                       "content": "hidden"
+                      }
+                     },
+                     "children": [
+                      {
+                       "type": "element",
+                       "content": {
+                        "elementType": "thq-modal-header",
+                        "semanticType": "div",
+                        "name": "ThqModal-headerElm",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                         "data-thq": {
+                          "type": "static",
+                          "content": "thq-modal-header"
+                         }
+                        },
+                        "style": {
+                         "display": {
+                          "type": "static",
+                          "content": "flex"
+                         },
+                         "alignItems": {
+                          "type": "static",
+                          "content": "center"
+                         },
+                         "justifyContent": {
+                          "type": "static",
+                          "content": "space-between"
+                         },
+                         "padding": {
+                          "type": "static",
+                          "content": "20px 24px"
+                         },
+                         "borderBottom": {
+                          "type": "static",
+                          "content": "1px solid #e5e7eb"
+                         }
+                        },
+                        "children": [
+                         {
+                          "type": "element",
+                          "content": {
+                           "elementType": "text",
+                           "semanticType": "h3",
+                           "name": "ThqModal-titleElm",
+                           "referencedStyles": {
+                            "TQ_U7apYz4CSO": {
+                             "id": "TQ_U7apYz4CSO",
+                             "type": "style-map",
+                             "content": {
+                              "mapType": "project-referenced",
+                              "referenceId": "section-title"
+                             }
+                            }
+                           },
+                           "abilities": {},
+                           "style": {
+                            "margin": {
+                             "type": "static",
+                             "content": "0"
+                            }
+                           },
+                           "children": [
+                            {
+                             "type": "static",
+                             "content": "Delete Account"
+                            }
+                           ]
+                          }
+                         },
+                         {
+                          "type": "element",
+                          "content": {
+                           "elementType": "thq-modal-close-button",
+                           "semanticType": "button",
+                           "name": "ThqModal-closeElm",
+                           "referencedStyles": {},
+                           "abilities": {},
+                           "attrs": {
+                            "data-thq": {
+                             "type": "static",
+                             "content": "thq-modal-close-button"
+                            },
+                            "type": {
+                             "type": "static",
+                             "content": "button"
+                            },
+                            "id": {
+                             "type": "static",
+                             "content": "thq_thq-modal-close-button_DXwE"
+                            }
+                           },
+                           "style": {
+                            "display": {
+                             "type": "static",
+                             "content": "flex"
+                            },
+                            "alignItems": {
+                             "type": "static",
+                             "content": "center"
+                            },
+                            "justifyContent": {
+                             "type": "static",
+                             "content": "center"
+                            },
+                            "width": {
+                             "type": "static",
+                             "content": "32px"
+                            },
+                            "height": {
+                             "type": "static",
+                             "content": "32px"
+                            },
+                            "borderRadius": {
+                             "type": "static",
+                             "content": "6px"
+                            },
+                            "border": {
+                             "type": "static",
+                             "content": "none"
+                            },
+                            "backgroundColor": {
+                             "type": "static",
+                             "content": "transparent"
+                            },
+                            "cursor": {
+                             "type": "static",
+                             "content": "pointer"
+                            },
+                            "fontSize": {
+                             "type": "static",
+                             "content": "18px"
+                            },
+                            "color": {
+                             "type": "static",
+                             "content": "#6b7280"
+                            }
+                           },
+                           "children": [
+                            {
+                             "type": "element",
+                             "content": {
+                              "elementType": "text",
+                              "semanticType": "span",
+                              "name": "ThqClose-iconElm",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": [
+                               {
+                                "type": "static",
+                                "content": "✕"
+                               }
+                              ]
+                             }
+                            }
+                           ]
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      {
+                       "type": "element",
+                       "content": {
+                        "elementType": "thq-modal-body",
+                        "semanticType": "div",
+                        "name": "ThqModal-bodyElm",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                         "data-thq": {
+                          "type": "static",
+                          "content": "thq-modal-body"
+                         }
+                        },
+                        "style": {
+                         "display": {
+                          "type": "static",
+                          "content": "flex"
+                         },
+                         "flexDirection": {
+                          "type": "static",
+                          "content": "column"
+                         },
+                         "gap": {
+                          "type": "static",
+                          "content": "12px"
+                         },
+                         "padding": {
+                          "type": "static",
+                          "content": "24px"
+                         }
+                        },
+                        "children": [
+                         {
+                          "type": "element",
+                          "content": {
+                           "elementType": "text",
+                           "semanticType": "p",
+                           "name": "ThqWarning-textElm",
+                           "referencedStyles": {},
+                           "abilities": {},
+                           "style": {
+                            "color": {
+                             "type": "dynamic",
+                             "content": {
+                              "referenceType": "token",
+                              "id": "--color-on-surface",
+                              "fallback": ""
+                             }
+                            },
+                            "lineHeight": {
+                             "type": "static",
+                             "content": "var(--line-height-normal, 1.5)"
+                            },
+                            "margin": {
+                             "type": "static",
+                             "content": "0"
+                            }
+                           },
+                           "children": [
+                            {
+                             "type": "static",
+                             "content": "Are you sure you want to delete your account? This action is permanent and cannot be undone. You will be logged out and all your account data will be removed."
+                            }
+                           ]
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      {
+                       "type": "element",
+                       "content": {
+                        "elementType": "thq-modal-footer",
+                        "semanticType": "div",
+                        "name": "ThqModal-footerElm",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                         "data-thq": {
+                          "type": "static",
+                          "content": "thq-modal-footer"
+                         }
+                        },
+                        "style": {
+                         "display": {
+                          "type": "static",
+                          "content": "flex"
+                         },
+                         "justifyContent": {
+                          "type": "static",
+                          "content": "flex-end"
+                         },
+                         "gap": {
+                          "type": "static",
+                          "content": "8px"
+                         },
+                         "padding": {
+                          "type": "static",
+                          "content": "16px 24px"
+                         },
+                         "borderTop": {
+                          "type": "static",
+                          "content": "1px solid #e5e7eb"
+                         }
+                        },
+                        "children": [
+                         {
+                          "type": "element",
+                          "content": {
+                           "elementType": "button",
+                           "name": "ThqCancel-buttonElm",
+                           "referencedStyles": {
+                            "TQ_UsKva1IC-t": {
+                             "id": "TQ_UsKva1IC-t",
+                             "type": "style-map",
+                             "content": {
+                              "mapType": "project-referenced",
+                              "referenceId": "btn"
+                             }
+                            },
+                            "TQ_51wB94QGVT": {
+                             "id": "TQ_51wB94QGVT",
+                             "type": "style-map",
+                             "content": {
+                              "mapType": "project-referenced",
+                              "referenceId": "btn-secondary"
+                             }
+                            },
+                            "TQ_lyMQNyou06": {
+                             "id": "TQ_lyMQNyou06",
+                             "type": "style-map",
+                             "content": {
+                              "mapType": "project-referenced",
+                              "referenceId": "btn-lg"
+                             }
+                            },
+                            "TQ_8h84x7R-FE": {
+                             "id": "TQ_8h84x7R-FE",
+                             "type": "style-map",
+                             "content": {
+                              "mapType": "project-referenced",
+                              "referenceId": "button"
+                             }
+                            }
+                           },
+                           "abilities": {},
+                           "attrs": {
+                            "type": {
+                             "type": "static",
+                             "content": "button"
+                            },
+                            "id": {
+                             "type": "static",
+                             "content": "thq_button_A9On"
+                            }
+                           },
+                           "style": {
+                            "cursor": {
+                             "type": "static",
+                             "content": "pointer"
+                            }
+                           },
+                           "children": [
+                            {
+                             "type": "static",
+                             "content": "Cancel"
+                            }
+                           ]
+                          }
+                         },
+                         {
+                          "type": "conditional",
+                          "content": {
+                           "node": {
+                            "type": "element",
+                            "content": {
+                             "elementType": "button",
+                             "name": "ThqConfirm-buttonElm",
+                             "referencedStyles": {
+                              "TQ_UsKva1IC-t": {
+                               "id": "TQ_UsKva1IC-t",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "btn"
+                               }
+                              },
+                              "TQ_lyMQNyou06": {
+                               "id": "TQ_lyMQNyou06",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "btn-lg"
+                               }
+                              },
+                              "TQ_8h84x7R-FE": {
+                               "id": "TQ_8h84x7R-FE",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "button"
+                               }
+                              }
+                             },
+                             "abilities": {},
+                             "attrs": {
+                              "type": {
+                               "type": "static",
+                               "content": "button"
+                              },
+                              "id": {
+                               "type": "static",
+                               "content": "thq_button_aStt"
+                              }
+                             },
+                             "style": {
+                              "cursor": {
+                               "type": "static",
+                               "content": "pointer"
+                              }
+                             },
+                             "children": [
+                              {
+                               "type": "static",
+                               "content": "Delete Account"
+                              }
+                             ]
+                            }
+                           },
+                           "reference": {
+                            "type": "dynamic",
+                            "content": {
+                             "referenceType": "state",
+                             "id": "deleteAccountButtonState"
+                            },
+                            "id": "TQ_AaVPD1aTye",
+                            "pos": ""
+                           },
+                           "condition": {
+                            "conditions": [
+                             {
+                              "operation": "=",
+                              "operand": "idle"
+                             }
+                            ]
+                           }
+                          }
+                         },
+                         {
+                          "type": "conditional",
+                          "content": {
+                           "node": {
+                            "type": "element",
+                            "content": {
+                             "elementType": "button",
+                             "name": "ThqLoading-buttonElm",
+                             "referencedStyles": {
+                              "TQ_UsKva1IC-t": {
+                               "id": "TQ_UsKva1IC-t",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "btn"
+                               }
+                              },
+                              "TQ_lyMQNyou06": {
+                               "id": "TQ_lyMQNyou06",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "btn-lg"
+                               }
+                              },
+                              "TQ_8h84x7R-FE": {
+                               "id": "TQ_8h84x7R-FE",
+                               "type": "style-map",
+                               "content": {
+                                "mapType": "project-referenced",
+                                "referenceId": "button"
+                               }
+                              }
+                             },
+                             "abilities": {},
+                             "attrs": {
+                              "type": {
+                               "type": "static",
+                               "content": "button"
+                              }
+                             },
+                             "style": {
+                              "cursor": {
+                               "type": "static",
+                               "content": "not-allowed"
+                              },
+                              "opacity": {
+                               "type": "static",
+                               "content": "0.7"
+                              }
+                             },
+                             "children": [
+                              {
+                               "type": "static",
+                               "content": "Deleting..."
+                              }
+                             ]
+                            }
+                           },
+                           "reference": {
+                            "type": "dynamic",
+                            "content": {
+                             "referenceType": "state",
+                             "id": "deleteAccountButtonState"
+                            },
+                            "id": "TQ_AaVPD1aTye",
+                            "pos": ""
+                           },
+                           "condition": {
+                            "conditions": [
+                             {
+                              "operation": "=",
+                              "operand": "deleting"
+                             }
+                            ]
+                           }
+                          }
+                         }
+                        ]
+                       }
+                      }
+                     ]
+                    }
+                   }
+                  ]
+                 }
+                },
+                "reference": {
+                 "type": "dynamic",
+                 "content": {
+                  "referenceType": "state",
+                  "id": "isDeleteAccountConfirmationOpen"
+                 },
+                 "id": "TQ_co98yyfidz",
+                 "pos": ""
+                },
+                "condition": {
+                 "conditions": [
+                  {
+                   "operation": "=",
+                   "operand": true
+                  }
+                 ]
+                }
+               }
+              }
+             ]
+            }
+           },
+           "reference": {
+            "type": "expr",
+            "content": "props.user?.id"
+           },
+           "condition": {
+            "conditions": [
+             {
+              "operation": "=",
+              "operand": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "global",
+                "id": "currentUser",
+                "refPath": [
+                 "id"
+                ]
+               }
+              }
+             }
+            ]
+           }
+          }
+         },
+         {
+          "type": "conditional",
+          "content": {
+           "node": {
+            "type": "element",
+            "content": {
+             "elementType": "container",
+             "semanticType": "div",
+             "name": "ThqProfile-page-viewer-containerElm",
+             "referencedStyles": {
+              "0b4700e3-a22e-457d-ae1b-547041366837": {
+               "type": "style-map",
+               "content": {
+                "conditions": [
+                 {
+                  "conditionType": "screen-size",
+                  "maxWidth": 767
+                 }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                 "minWidth": {
+                  "type": "static",
+                  "content": "100%"
+                 }
+                }
+               }
+              }
+             },
+             "abilities": {},
+             "style": {
+              "display": {
+               "type": "static",
+               "content": "flex"
+              },
+              "flexDirection": {
+               "type": "static",
+               "content": "column"
+              },
+              "alignItems": {
+               "type": "static",
+               "content": "center"
+              },
+              "minWidth": {
+               "type": "static",
+               "content": "480px"
+              },
+              "maxWidth": {
+               "type": "static",
+               "content": "480px"
+              },
+              "gap": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--spacing-lg",
+                "fallback": ""
+               }
+              },
+              "padding": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--spacing-2xl",
+                "fallback": ""
+               }
+              },
+              "backgroundColor": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--color-surface-elevated",
+                "fallback": ""
+               }
+              },
+              "borderRadius": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "token",
+                "id": "--border-radius-card",
+                "fallback": ""
+               }
+              },
+              "boxShadow": {
+               "type": "static",
+               "content": "0 1px 3px 0 rgba(0, 0, 0, 0.1)"
+              }
+             },
+             "children": [
+              {
+               "type": "element",
+               "content": {
+                "elementType": "image",
+                "name": "ThqProfile-page-viewer-avatarElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                 "src": {
+                  "type": "expr",
+                  "content": "props.user?.image"
+                 },
+                 "alt": {
+                  "type": "static",
+                  "content": "User avatar"
+                 }
+                },
+                "style": {
+                 "width": {
+                  "type": "static",
+                  "content": "128px"
+                 },
+                 "objectFit": {
+                  "type": "static",
+                  "content": "cover"
+                 },
+                 "height": {
+                  "type": "static",
+                  "content": "128px"
+                 },
+                 "borderRadius": {
+                  "type": "static",
+                  "content": "50%"
+                 },
+                 "flexShrink": {
+                  "type": "static",
+                  "content": "0"
+                 },
+                 "border": {
+                  "type": "static",
+                  "content": "1px solid var(--color-outline)"
+                 },
+                 "backgroundColor": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--color-surface-elevated",
+                   "fallback": ""
+                  }
+                 }
+                },
+                "children": []
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "name": "ThqProfile-page-viewer-nameElm",
+                "referencedStyles": {
+                 "TQ_BNpPMmUUb4": {
+                  "id": "TQ_BNpPMmUUb4",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "hero-title"
+                  }
+                 }
+                },
+                "abilities": {},
+                "style": {
+                 "textAlign": {
+                  "type": "static",
+                  "content": "center"
+                 },
+                 "marginTop": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--spacing-md",
+                   "fallback": ""
+                  }
+                 },
+                 "marginBottom": {
+                  "type": "static",
+                  "content": "0"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "expr",
+                  "content": "props.user?.name"
+                 }
+                ]
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "name": "ThqProfile-page-viewer-emailElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                 "fontSize": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--font-size-base",
+                   "fallback": ""
+                  }
+                 },
+                 "color": {
+                  "type": "dynamic",
+                  "content": {
+                   "referenceType": "token",
+                   "id": "--color-on-surface-secondary",
+                   "fallback": ""
+                  }
+                 },
+                 "textAlign": {
+                  "type": "static",
+                  "content": "center"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "expr",
+                  "content": "props.user?.email"
+                 }
+                ]
+               }
+              }
+             ]
+            }
+           },
+           "reference": {
+            "type": "expr",
+            "content": "props.user?.id"
+           },
+           "condition": {
+            "conditions": [
+             {
+              "operation": "!==",
+              "operand": {
+               "type": "dynamic",
+               "content": {
+                "referenceType": "global",
+                "id": "currentUser",
+                "refPath": [
+                 "id"
+                ]
+               }
+              }
+             }
+            ]
+           }
+          }
+         }
+        ]
+       }
+      },
+      {
+       "type": "conditional",
+       "content": {
+        "node": {
+         "type": "element",
+         "content": {
+          "elementType": "thq-cookie-consent",
+          "semanticType": "div",
+          "name": "ThqCookie-ConsentElm",
+          "referencedStyles": {},
+          "abilities": {},
+          "attrs": {
+           "data-thq": {
+            "type": "static",
+            "content": "thq-cookie-consent"
+           }
+          },
+          "style": {
+           "position": {
+            "type": "static",
+            "content": "fixed"
+           },
+           "bottom": {
+            "type": "static",
+            "content": "0"
+           },
+           "left": {
+            "type": "static",
+            "content": "0"
+           },
+           "width": {
+            "type": "static",
+            "content": "100%"
+           },
+           "zIndex": {
+            "type": "static",
+            "content": "1000"
+           },
+           "display": {
+            "type": "static",
+            "content": "flex"
+           },
+           "justifyContent": {
+            "type": "static",
+            "content": "center"
+           },
+           "alignItems": {
+            "type": "static",
+            "content": "center"
+           }
+          },
+          "children": [
+           {
+            "type": "element",
+            "content": {
+             "elementType": "thq-cookie-consent-banner",
+             "semanticType": "div",
+             "name": "ThqCookie-Consent-BannerElm",
+             "referencedStyles": {},
+             "abilities": {},
+             "attrs": {
+              "data-thq": {
+               "type": "static",
+               "content": "thq-cookie-consent-banner"
+              }
+             },
+             "style": {
+              "display": {
+               "type": "static",
+               "content": "flex"
+              },
+              "alignItems": {
+               "type": "static",
+               "content": "center"
+              },
+              "justifyContent": {
+               "type": "static",
+               "content": "space-between"
+              },
+              "gap": {
+               "type": "static",
+               "content": "16px"
+              },
+              "padding": {
+               "type": "static",
+               "content": "16px 24px"
+              },
+              "width": {
+               "type": "static",
+               "content": "100%"
+              },
+              "backgroundColor": {
+               "type": "static",
+               "content": "#1f2937"
+              },
+              "boxShadow": {
+               "type": "static",
+               "content": "0 -4px 6px rgba(0, 0, 0, 0.1)"
+              }
+             },
+             "children": [
+              {
+               "type": "element",
+               "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "name": "ThqCookie-MessageElm",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                 "display": {
+                  "type": "static",
+                  "content": "flex"
+                 },
+                 "flexWrap": {
+                  "type": "static",
+                  "content": "wrap"
+                 },
+                 "alignItems": {
+                  "type": "static",
+                  "content": "center"
+                 },
+                 "gap": {
+                  "type": "static",
+                  "content": "4px"
+                 },
+                 "flex": {
+                  "type": "static",
+                  "content": "1"
+                 },
+                 "color": {
+                  "type": "static",
+                  "content": "#f9fafb"
+                 },
+                 "fontSize": {
+                  "type": "static",
+                  "content": "14px"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "text",
+                   "semanticType": "span",
+                   "name": "ThqMessage-TextElm",
+                   "referencedStyles": {},
+                   "abilities": {},
+                   "children": [
+                    {
+                     "type": "static",
+                     "content": "By continuing to visit this site you agree to our"
+                    }
+                   ]
+                  }
+                 },
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "text",
+                   "semanticType": "span",
+                   "name": "ThqTerms-LinkElm",
+                   "referencedStyles": {},
+                   "abilities": {
+                    "link": {
+                     "type": "navlink",
+                     "content": {
+                      "routeName": "Terms-Conditions"
+                     }
+                    }
+                   },
+                   "style": {
+                    "color": {
+                     "type": "static",
+                     "content": "#93c5fd"
+                    },
+                    "textDecoration": {
+                     "type": "static",
+                     "content": "underline"
+                    },
+                    "cursor": {
+                     "type": "static",
+                     "content": "pointer"
+                    }
+                   },
+                   "children": [
+                    {
+                     "type": "static",
+                     "content": "terms and conditions"
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              },
+              {
+               "type": "element",
+               "content": {
+                "elementType": "button",
+                "name": "ThqAccept-ButtonElm",
+                "referencedStyles": {
+                 "TQ_8h84x7R-FE": {
+                  "id": "TQ_8h84x7R-FE",
+                  "type": "style-map",
+                  "content": {
+                   "mapType": "project-referenced",
+                   "referenceId": "button"
+                  }
+                 }
+                },
+                "abilities": {},
+                "attrs": {
+                 "type": {
+                  "type": "static",
+                  "content": "button"
+                 },
+                 "id": {
+                  "type": "static",
+                  "content": "thq_button_c9bu"
+                 }
+                },
+                "style": {
+                 "padding": {
+                  "type": "static",
+                  "content": "8px 20px"
+                 },
+                 "borderRadius": {
+                  "type": "static",
+                  "content": "6px"
+                 },
+                 "border": {
+                  "type": "static",
+                  "content": "none"
+                 },
+                 "backgroundColor": {
+                  "type": "static",
+                  "content": "#3b82f6"
+                 },
+                 "color": {
+                  "type": "static",
+                  "content": "#ffffff"
+                 },
+                 "cursor": {
+                  "type": "static",
+                  "content": "pointer"
+                 },
+                 "fontSize": {
+                  "type": "static",
+                  "content": "14px"
+                 },
+                 "fontWeight": {
+                  "type": "static",
+                  "content": "500"
+                 },
+                 "flexShrink": {
+                  "type": "static",
+                  "content": "0"
+                 }
+                },
+                "children": [
+                 {
+                  "type": "element",
+                  "content": {
+                   "elementType": "text",
+                   "semanticType": "span",
+                   "name": "ThqAccept-TextElm",
+                   "referencedStyles": {},
+                   "abilities": {},
+                   "children": [
+                    {
+                     "type": "static",
+                     "content": "Accept"
+                    }
+                   ]
+                  }
+                 }
+                ]
+               }
+              }
+             ]
+            }
+           }
+          ]
+         }
+        },
+        "reference": {
+         "type": "dynamic",
+         "content": {
+          "referenceType": "state",
+          "id": "cookieConsentVisible"
+         },
+         "id": "TQ_H8nvr62z_D",
+         "pos": ""
+        },
+        "condition": {
+         "conditions": [
+          {
+           "operation": "=",
+           "operand": true
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   },
+   "value": "profile/profile",
+   "reference": {
+    "type": "dynamic",
+    "content": {
+     "referenceType": "state",
+     "id": "route"
+    }
+   },
+   "importDefinitions": {}
+  }
+ },
+ "workflows": {
+  "923e2008-774f-4dd5-af36-619eac0fce72": {
+   "id": "923e2008-774f-4dd5-af36-619eac0fce72",
+   "name": "Upload Profile Image",
+   "description": "Pick an image file, show a local preview, and mark the image as dirty so the Update button becomes active. The file is uploaded to runtime storage only when Update is clicked.",
+   "trigger": {
+    "nodeId": "372e0e51-9b83-43dd-b05d-5b3ce3031817",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_7t2N2qR5m1",
+     "preventDefault": true,
+     "elementHtmlId": "thq_container_AUa0",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+     "type": "browser-pick-files",
+     "label": "Pick File(s)",
+     "name": "Open File Picker For Profile Image",
+     "config": {
+      "accept": "image/*",
+      "multiple": false
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "8e2756f3-dc68-432c-bcf4-c0329e729325",
+     "type": "general-if-statement",
+     "label": "If Statement",
+     "name": "Was Profile Image File Selected?",
+     "config": {
+      "conditionType": "simple-comparison",
+      "leftValue": {
+       "type": "workflowContext",
+       "nodeId": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+       "path": [
+        "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+        "fileCount"
+       ],
+       "displayLabel": "Open File Picker For Profile Image.fileCount"
+      },
+      "operator": ">",
+      "rightValue": "0"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 2
+    },
+    {
+     "id": "f106597e-3cd1-43de-93bc-051f43ce5d87",
+     "type": "transform-array",
+     "label": "Array Transform",
+     "name": "Get First Selected Image File",
+     "config": {
+      "operation": "getFirst",
+      "input": {
+       "type": "workflowContext",
+       "nodeId": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+       "path": [
+        "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+        "files"
+       ],
+       "displayLabel": "Open File Picker For Profile Image.files"
+      }
+     },
+     "executionEnv": "universal",
+     "stepNumber": 3
+    },
+    {
+     "id": "23706149-ac4d-4c79-8783-5b2476f17871",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Picked Profile Image File",
+     "config": {
+      "property": "selectedProfileImageFile",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+       "path": [
+        "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+        "files"
+       ],
+       "displayLabel": "Open File Picker For Profile Image.files"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 4
+    },
+    {
+     "id": "7e0394eb-bbcf-4238-9419-68f35c975493",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Preview Picked Image Locally",
+     "config": {
+      "property": "accountFormData",
+      "objectUpdateMode": "property",
+      "objectPropertyPath": "image",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "f106597e-3cd1-43de-93bc-051f43ce5d87",
+       "path": [
+        "f106597e-3cd1-43de-93bc-051f43ce5d87",
+        "result",
+        "dataURL"
+       ],
+       "displayLabel": "Get First Selected Image File.result.dataURL"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 5
+    },
+    {
+     "id": "e3207636-55fb-4ef3-a4b9-155d37af1566",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Mark Profile Image As Dirty",
+     "config": {
+      "property": "accountFormImageDirty",
+      "value": "true"
+     },
+     "executionEnv": "client",
+     "stepNumber": 6
+    },
+    {
+     "id": "b8cd2b8e-2ead-473c-8d1b-1d2882a2bff4",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Clear Account Form Error State",
+     "config": {
+      "property": "accountFormHasError",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 7
+    }
+   ],
+   "edges": [
+    {
+     "id": "726a95fd-8cc8-4b6c-a415-352d5d98fca0",
+     "source": "372e0e51-9b83-43dd-b05d-5b3ce3031817",
+     "target": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79"
+    },
+    {
+     "id": "bb0673e6-d6b0-4dea-b704-fa300c08a4bb",
+     "source": "1bf91418-c6ba-42e1-a9ec-d52a35be6f79",
+     "target": "8e2756f3-dc68-432c-bcf4-c0329e729325"
+    },
+    {
+     "id": "822def56-b5a9-4e43-ad29-b709789fa654",
+     "source": "8e2756f3-dc68-432c-bcf4-c0329e729325",
+     "target": "f106597e-3cd1-43de-93bc-051f43ce5d87",
+     "sourceHandle": "true"
+    },
+    {
+     "id": "c65bcf29-ff14-4dd6-a254-fb4f0c6e623e",
+     "source": "f106597e-3cd1-43de-93bc-051f43ce5d87",
+     "target": "23706149-ac4d-4c79-8783-5b2476f17871"
+    },
+    {
+     "id": "580887cf-ef42-443e-a50d-e0d3f0137c66",
+     "source": "23706149-ac4d-4c79-8783-5b2476f17871",
+     "target": "7e0394eb-bbcf-4238-9419-68f35c975493"
+    },
+    {
+     "id": "426dd3ce-7593-4c52-8494-9ddbb1e608b5",
+     "source": "7e0394eb-bbcf-4238-9419-68f35c975493",
+     "target": "e3207636-55fb-4ef3-a4b9-155d37af1566"
+    },
+    {
+     "id": "0a6eed47-b4ea-4fb1-b177-44ef250c9f90",
+     "source": "e3207636-55fb-4ef3-a4b9-155d37af1566",
+     "target": "b8cd2b8e-2ead-473c-8d1b-1d2882a2bff4"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "f93869dc-898b-4899-b029-e150f3bf6ee1",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_7t2N2qR5m1": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "ea9406e7-1b59-4a02-a053-656f300c6840": {
+   "id": "ea9406e7-1b59-4a02-a053-656f300c6840",
+   "name": "Update Account",
+   "description": "Update the signed-in user account from the form, uploading a newly picked profile image first, and keep the global Current User in sync with what was saved.",
+   "trigger": {
+    "nodeId": "10a2300a-aab9-4736-b082-d63111792bb1",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_XzNAVqspgT",
+     "preventDefault": true,
+     "elementHtmlId": "thq_button_aOAo",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "cf1569fb-d390-48ac-b518-00b9de45dd74",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Set Update Account Loading Flag",
+     "config": {
+      "property": "accountFormButtonState",
+      "value": "updating"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "ae223cc5-0e6d-4b7a-9f8a-06284279113e",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Clear Account Form Error State",
+     "config": {
+      "property": "accountFormHasError",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+     "type": "account-get-current",
+     "label": "Get Current Account",
+     "name": "Fetch Current User Account Record",
+     "config": {},
+     "executionEnv": "client",
+     "stepNumber": 3
+    },
+    {
+     "id": "ec29bacd-4d40-4102-9220-12307a242a4f",
+     "type": "state-get-local-state",
+     "label": "Get Local State",
+     "name": "Get Data From The Account Form",
+     "config": {
+      "property": "accountFormData"
+     },
+     "executionEnv": "client",
+     "stepNumber": 4
+    },
+    {
+     "id": "7b040d54-f008-4156-b9de-9d70834e91cf",
+     "type": "state-get-local-state",
+     "label": "Get Local State",
+     "name": "Get Selected Profile Image File",
+     "config": {
+      "property": "selectedProfileImageFile"
+     },
+     "executionEnv": "client",
+     "stepNumber": 5
+    },
+    {
+     "id": "48c466c5-7dfd-46d8-9086-712a44fdffd6",
+     "type": "transform-array",
+     "label": "Array Transform",
+     "name": "Count Selected Profile Image Files",
+     "config": {
+      "operation": "length",
+      "input": {
+       "type": "workflowContext",
+       "nodeId": "7b040d54-f008-4156-b9de-9d70834e91cf",
+       "path": [
+        "7b040d54-f008-4156-b9de-9d70834e91cf",
+        "value"
+       ],
+       "displayLabel": "Get Selected Profile Image File.value"
+      }
+     },
+     "executionEnv": "universal",
+     "stepNumber": 6
+    },
+    {
+     "id": "94b30960-8d8e-49e2-80bb-d70da4fb381d",
+     "type": "general-if-statement",
+     "label": "If Statement",
+     "name": "Was A New Profile Image Picked?",
+     "config": {
+      "conditionType": "simple-comparison",
+      "leftValue": {
+       "type": "workflowContext",
+       "nodeId": "48c466c5-7dfd-46d8-9086-712a44fdffd6",
+       "path": [
+        "48c466c5-7dfd-46d8-9086-712a44fdffd6",
+        "result"
+       ],
+       "displayLabel": "Count Selected Profile Image Files.result"
+      },
+      "operator": ">",
+      "rightValue": "0"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 7
+    },
+    {
+     "id": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+     "type": "file-storage-upload",
+     "label": "Upload File(s)",
+     "name": "Upload Profile Image To Runtime Storage",
+     "config": {
+      "file": {
+       "type": "workflowContext",
+       "nodeId": "7b040d54-f008-4156-b9de-9d70834e91cf",
+       "path": [
+        "7b040d54-f008-4156-b9de-9d70834e91cf",
+        "value"
+       ],
+       "displayLabel": "Get Selected Profile Image File.value"
+      },
+      "allowedMimeTypes": [
+       "image/png",
+       "image/jpeg",
+       "image/webp",
+       "image/gif"
+      ],
+      "maxFileSize": 5242880
+     },
+     "executionEnv": "client",
+     "stepNumber": 8
+    },
+    {
+     "id": "68de31d2-d052-4fd1-9527-ea7ee6adf4fe",
+     "type": "general-if-statement",
+     "label": "If Statement",
+     "name": "Did The Upload Return An Image URL?",
+     "config": {
+      "conditionType": "simple-comparison",
+      "leftValue": {
+       "type": "workflowContext",
+       "nodeId": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+       "path": [
+        "7e1ec013-8367-4c07-a904-7e3ffc263361",
+        "files",
+        "0",
+        "url"
+       ],
+       "displayLabel": "Upload Profile Image To Runtime Storage.files.0.url"
+      },
+      "operator": "is_not_empty",
+      "rightValue": ""
+     },
+     "executionEnv": "universal",
+     "stepNumber": 9
+    },
+    {
+     "id": "0ef12cfb-697a-4ece-9d41-2356dd97b377",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Uploaded Profile Image URL In Form Data",
+     "config": {
+      "property": "accountFormData",
+      "objectUpdateMode": "property",
+      "objectPropertyPath": "image",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+       "path": [
+        "7e1ec013-8367-4c07-a904-7e3ffc263361",
+        "files",
+        "0",
+        "url"
+       ],
+       "displayLabel": "Upload Profile Image To Runtime Storage.files.0.url"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 10
+    },
+    {
+     "id": "bc56548d-5d89-4cbd-95d2-632711d32bed",
+     "type": "data-update-item",
+     "label": "Update Item",
+     "name": "Update User With All Fields Including Uploaded Image URL",
+     "config": {
+      "dataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+      "tableName": "users",
+      "filters": [
+       {
+        "field": "email",
+        "operator": "=",
+        "value": {
+         "type": "workflowContext",
+         "nodeId": "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+         "path": [
+          "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+          "email"
+         ],
+         "displayLabel": "Fetch Current User Account Record.email"
+        }
+       }
+      ],
+      "columnMappings": [
+       {
+        "column": "name",
+        "value": {
+         "type": "workflowContext",
+         "nodeId": "ec29bacd-4d40-4102-9220-12307a242a4f",
+         "path": [
+          "ec29bacd-4d40-4102-9220-12307a242a4f",
+          "value",
+          "name"
+         ],
+         "displayLabel": "Get Data From The Account Form.value.name"
+        }
+       },
+       {
+        "column": "image",
+        "value": {
+         "type": "workflowContext",
+         "nodeId": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+         "path": [
+          "7e1ec013-8367-4c07-a904-7e3ffc263361",
+          "files",
+          "0",
+          "url"
+         ],
+         "displayLabel": "Upload Profile Image To Runtime Storage.files.0.url"
+        }
+       }
+      ]
+     },
+     "executionEnv": "server",
+     "stepNumber": 11
+    },
+    {
+     "id": "5fab5fe8-4215-4ac3-ac43-bb3200126e12",
+     "type": "general-if-statement",
+     "label": "If Statement",
+     "name": "Did The Account Row Change?",
+     "config": {
+      "conditionType": "simple-comparison",
+      "leftValue": {
+       "type": "workflowContext",
+       "nodeId": "bc56548d-5d89-4cbd-95d2-632711d32bed",
+       "path": [
+        "bc56548d-5d89-4cbd-95d2-632711d32bed",
+        "updatedCount"
+       ],
+       "displayLabel": "Update User With All Fields Including Uploaded Image URL.updatedCount"
+      },
+      "operator": ">",
+      "rightValue": "0"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 12
+    },
+    {
+     "id": "d6097e5a-86c0-4754-aba8-3fbbbd3cbf4c",
+     "type": "state-update-global-state",
+     "label": "Update Global State",
+     "name": "Sync Current User Profile Image",
+     "config": {
+      "property": "currentUser",
+      "objectUpdateMode": "property",
+      "objectPropertyPath": "image",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+       "path": [
+        "7e1ec013-8367-4c07-a904-7e3ffc263361",
+        "files",
+        "0",
+        "url"
+       ],
+       "displayLabel": "Upload Profile Image To Runtime Storage.files.0.url"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 13
+    },
+    {
+     "id": "4e170f8c-4e0e-4ed7-9849-8a2e2d726ffe",
+     "type": "general-custom-node",
+     "label": "Custom Node",
+     "name": "Finish Successful Account Update",
+     "config": {
+      "customNodeId": "57b16073-d4de-4e7f-9971-6bba7526d1c7"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 14
+    },
+    {
+     "id": "10388598-7383-4dc7-a49a-5998606376ad",
+     "type": "general-custom-node",
+     "label": "Custom Node",
+     "name": "Report Failed Profile Image Upload",
+     "config": {
+      "customNodeId": "27219f4c-d757-474c-996b-491c3b6e7a5a"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 10
+    },
+    {
+     "id": "0b0a22e7-9a36-49b1-a4c7-6139e6e2ceae",
+     "type": "general-custom-node",
+     "label": "Custom Node",
+     "name": "Report Account Update That Saved Nothing",
+     "config": {
+      "customNodeId": "27219f4c-d757-474c-996b-491c3b6e7a5a"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 13
+    },
+    {
+     "id": "dab5b2eb-7f50-4aff-95d8-e0525b595f3a",
+     "type": "data-update-item",
+     "label": "Update Item",
+     "name": "Update User Without Changing Image",
+     "config": {
+      "dataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+      "tableName": "users",
+      "filters": [
+       {
+        "field": "email",
+        "operator": "=",
+        "value": {
+         "type": "workflowContext",
+         "nodeId": "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+         "path": [
+          "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+          "email"
+         ],
+         "displayLabel": "Fetch Current User Account Record.email"
+        }
+       }
+      ],
+      "columnMappings": [
+       {
+        "column": "name",
+        "value": {
+         "type": "workflowContext",
+         "nodeId": "ec29bacd-4d40-4102-9220-12307a242a4f",
+         "path": [
+          "ec29bacd-4d40-4102-9220-12307a242a4f",
+          "value",
+          "name"
+         ],
+         "displayLabel": "Get Data From The Account Form.value.name"
+        }
+       }
+      ]
+     },
+     "executionEnv": "server",
+     "stepNumber": 8
+    },
+    {
+     "id": "79f908db-fde8-4aaa-8acf-20a4b547921c",
+     "type": "general-if-statement",
+     "label": "If Statement",
+     "name": "Did The Account Row Change?",
+     "config": {
+      "conditionType": "simple-comparison",
+      "leftValue": {
+       "type": "workflowContext",
+       "nodeId": "dab5b2eb-7f50-4aff-95d8-e0525b595f3a",
+       "path": [
+        "dab5b2eb-7f50-4aff-95d8-e0525b595f3a",
+        "updatedCount"
+       ],
+       "displayLabel": "Update User Without Changing Image.updatedCount"
+      },
+      "operator": ">",
+      "rightValue": "0"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 9
+    },
+    {
+     "id": "e196584a-59a3-4830-ae0e-4d81516da163",
+     "type": "general-custom-node",
+     "label": "Custom Node",
+     "name": "Finish Successful Account Update",
+     "config": {
+      "customNodeId": "57b16073-d4de-4e7f-9971-6bba7526d1c7"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 10
+    },
+    {
+     "id": "ba1a3fb3-c5ee-48ed-ac81-165b41530731",
+     "type": "general-custom-node",
+     "label": "Custom Node",
+     "name": "Report Account Update That Saved Nothing",
+     "config": {
+      "customNodeId": "27219f4c-d757-474c-996b-491c3b6e7a5a"
+     },
+     "executionEnv": "universal",
+     "stepNumber": 10
+    },
+    {
+     "id": "8514b94c-cc67-4f10-9b24-4688cb8046c1",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Re-enable Update Account Button On Error",
+     "config": {
+      "property": "accountFormButtonState",
+      "value": "changed"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "519d18c3-5077-405f-8cc2-9a2cac22a78d",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Show Update Account Error Banner",
+     "config": {
+      "property": "accountFormHasError",
+      "value": "true"
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "9e60c264-eef7-4cd8-9a77-8f2e52db2790",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Update Account Error Message",
+     "config": {
+      "property": "accountFormError",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "3b9a0de2-6a29-46b8-a99f-428e31099c29",
+       "path": [
+        "3b9a0de2-6a29-46b8-a99f-428e31099c29",
+        "message"
+       ],
+       "displayLabel": "Handle Account Form Error.message"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 3
+    }
+   ],
+   "edges": [
+    {
+     "id": "67663f04-d08d-4bdc-bcd4-96c9a2acb0c0",
+     "source": "10a2300a-aab9-4736-b082-d63111792bb1",
+     "target": "cf1569fb-d390-48ac-b518-00b9de45dd74"
+    },
+    {
+     "id": "65f91d58-5cd0-4452-86b8-54ed835e8fa4",
+     "source": "cf1569fb-d390-48ac-b518-00b9de45dd74",
+     "target": "ae223cc5-0e6d-4b7a-9f8a-06284279113e"
+    },
+    {
+     "id": "092c7039-2113-4caa-b1c3-046291960cda",
+     "source": "ae223cc5-0e6d-4b7a-9f8a-06284279113e",
+     "target": "8227c74c-5c12-4a51-b8c0-92264ec3ff66"
+    },
+    {
+     "id": "8141be71-c1d0-4e26-9a39-cd8691e79531",
+     "source": "8227c74c-5c12-4a51-b8c0-92264ec3ff66",
+     "target": "ec29bacd-4d40-4102-9220-12307a242a4f"
+    },
+    {
+     "id": "b8c62e14-e5b8-4e04-a0d3-e26701ef594c",
+     "source": "ec29bacd-4d40-4102-9220-12307a242a4f",
+     "target": "7b040d54-f008-4156-b9de-9d70834e91cf"
+    },
+    {
+     "id": "a0c3ff8a-699e-4864-810e-943d9e6827bc",
+     "source": "7b040d54-f008-4156-b9de-9d70834e91cf",
+     "target": "48c466c5-7dfd-46d8-9086-712a44fdffd6"
+    },
+    {
+     "id": "330ec111-b1a7-4812-b3a8-1a9049c645ca",
+     "source": "48c466c5-7dfd-46d8-9086-712a44fdffd6",
+     "target": "94b30960-8d8e-49e2-80bb-d70da4fb381d"
+    },
+    {
+     "id": "0f9eb026-2472-4cba-b92e-f665d94ef7d6",
+     "source": "94b30960-8d8e-49e2-80bb-d70da4fb381d",
+     "target": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+     "sourceHandle": "true"
+    },
+    {
+     "id": "701bec8a-ea9a-4559-a578-3dd3bc7f35b7",
+     "source": "7e1ec013-8367-4c07-a904-7e3ffc263361",
+     "target": "68de31d2-d052-4fd1-9527-ea7ee6adf4fe"
+    },
+    {
+     "id": "50c8bfac-902a-437d-bed0-b92996d42e93",
+     "source": "68de31d2-d052-4fd1-9527-ea7ee6adf4fe",
+     "target": "0ef12cfb-697a-4ece-9d41-2356dd97b377",
+     "sourceHandle": "true"
+    },
+    {
+     "id": "d3e12dff-4d8b-4da2-a394-525c5cb0dc1c",
+     "source": "68de31d2-d052-4fd1-9527-ea7ee6adf4fe",
+     "target": "10388598-7383-4dc7-a49a-5998606376ad",
+     "sourceHandle": "false"
+    },
+    {
+     "id": "c3e8bcb0-8999-410f-b1b1-a76dbbb54e22",
+     "source": "0ef12cfb-697a-4ece-9d41-2356dd97b377",
+     "target": "bc56548d-5d89-4cbd-95d2-632711d32bed"
+    },
+    {
+     "id": "693ab9b4-8071-4bf7-aaed-7b0027941869",
+     "source": "bc56548d-5d89-4cbd-95d2-632711d32bed",
+     "target": "5fab5fe8-4215-4ac3-ac43-bb3200126e12"
+    },
+    {
+     "id": "1f8ef728-dc89-41d7-9105-50f840d07462",
+     "source": "5fab5fe8-4215-4ac3-ac43-bb3200126e12",
+     "target": "d6097e5a-86c0-4754-aba8-3fbbbd3cbf4c",
+     "sourceHandle": "true"
+    },
+    {
+     "id": "fedca2f2-bb1d-4f37-9400-e40a72ad9212",
+     "source": "5fab5fe8-4215-4ac3-ac43-bb3200126e12",
+     "target": "0b0a22e7-9a36-49b1-a4c7-6139e6e2ceae",
+     "sourceHandle": "false"
+    },
+    {
+     "id": "9be72d2c-4408-4018-acc3-121eff61c878",
+     "source": "d6097e5a-86c0-4754-aba8-3fbbbd3cbf4c",
+     "target": "4e170f8c-4e0e-4ed7-9849-8a2e2d726ffe"
+    },
+    {
+     "id": "326512ab-7875-44eb-9924-b5089f946f66",
+     "source": "94b30960-8d8e-49e2-80bb-d70da4fb381d",
+     "target": "dab5b2eb-7f50-4aff-95d8-e0525b595f3a",
+     "sourceHandle": "false"
+    },
+    {
+     "id": "094b33ee-9a89-4e59-9998-48d977ec948f",
+     "source": "dab5b2eb-7f50-4aff-95d8-e0525b595f3a",
+     "target": "79f908db-fde8-4aaa-8acf-20a4b547921c"
+    },
+    {
+     "id": "5631fffe-51df-41b7-9a98-62e9aff08d3b",
+     "source": "79f908db-fde8-4aaa-8acf-20a4b547921c",
+     "target": "e196584a-59a3-4830-ae0e-4d81516da163",
+     "sourceHandle": "true"
+    },
+    {
+     "id": "fb942dc8-c5c3-4768-9f60-a6b3a31fb4df",
+     "source": "79f908db-fde8-4aaa-8acf-20a4b547921c",
+     "target": "ba1a3fb3-c5ee-48ed-ac81-165b41530731",
+     "sourceHandle": "false"
+    },
+    {
+     "id": "002973f1-c4a5-4501-8ea3-14222f920926",
+     "source": "3b9a0de2-6a29-46b8-a99f-428e31099c29",
+     "target": "8514b94c-cc67-4f10-9b24-4688cb8046c1"
+    },
+    {
+     "id": "a1466369-1569-4d16-a73d-bb119863dd15",
+     "source": "8514b94c-cc67-4f10-9b24-4688cb8046c1",
+     "target": "519d18c3-5077-405f-8cc2-9a2cac22a78d"
+    },
+    {
+     "id": "9c5aeaa8-7cef-4e11-bdc5-2a66b62e8769",
+     "source": "519d18c3-5077-405f-8cc2-9a2cac22a78d",
+     "target": "9e60c264-eef7-4cd8-9a77-8f2e52db2790"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "3b9a0de2-6a29-46b8-a99f-428e31099c29",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_XzNAVqspgT": true,
+    "TQ_-xav-x126K": true,
+    "TQ_icuIh49UHQ": true,
+    "TQ_xIB3rHhmJx": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "dfa5ea31-4f04-4a3c-b9b8-7ff42b0e01f3": {
+   "id": "dfa5ea31-4f04-4a3c-b9b8-7ff42b0e01f3",
+   "name": "Open Delete Confirmation",
+   "description": "Clear any previous error and show the delete account confirmation modal",
+   "trigger": {
+    "nodeId": "483de9b1-f508-4536-b5c3-cce5a2b9adf1",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_sPE3AwWjQK",
+     "preventDefault": true,
+     "elementHtmlId": "thq_button_Cgiq",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "af9a3625-5f2e-4cdf-862e-6706cb9f9003",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Clear Delete Account Error Message",
+     "config": {
+      "property": "deleteAccountHasError",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "ad389eb1-035f-4422-80f2-3cdf81ad1e1b",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Reset Delete Confirm Button State",
+     "config": {
+      "property": "deleteAccountButtonState",
+      "value": "idle"
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "153d5858-65d1-4977-940a-53d375eefdcf",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Open Delete Account Confirmation Modal",
+     "config": {
+      "property": "isDeleteAccountConfirmationOpen",
+      "value": "true"
+     },
+     "executionEnv": "client",
+     "stepNumber": 3
+    }
+   ],
+   "edges": [
+    {
+     "id": "2055786e-8648-4d42-b4fa-eac509b8d7de",
+     "source": "483de9b1-f508-4536-b5c3-cce5a2b9adf1",
+     "target": "af9a3625-5f2e-4cdf-862e-6706cb9f9003"
+    },
+    {
+     "id": "dd586b37-c773-49be-9a78-24c2424e59be",
+     "source": "af9a3625-5f2e-4cdf-862e-6706cb9f9003",
+     "target": "ad389eb1-035f-4422-80f2-3cdf81ad1e1b"
+    },
+    {
+     "id": "e65bb849-672c-439f-b248-2c6c3c12e5dc",
+     "source": "ad389eb1-035f-4422-80f2-3cdf81ad1e1b",
+     "target": "153d5858-65d1-4977-940a-53d375eefdcf"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "a704da39-bc54-418d-93d6-8de2801a4b26",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_sPE3AwWjQK": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "3cbe6739-6f5d-4586-bcc6-771466cfd893": {
+   "id": "3cbe6739-6f5d-4586-bcc6-771466cfd893",
+   "name": "Cancel Delete Account",
+   "description": "Close the delete account confirmation modal (cancel)",
+   "trigger": {
+    "nodeId": "005442b4-9c8c-4e77-93ba-8db924cd9bbe",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_DgK4qg4yNK",
+     "preventDefault": true,
+     "elementHtmlId": "thq_button_A9On",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "4f49e8f6-21e1-4667-8de6-314087f1c1b4",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Close Delete Account Confirmation Modal",
+     "config": {
+      "property": "isDeleteAccountConfirmationOpen",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    }
+   ],
+   "edges": [
+    {
+     "id": "e5ca18b1-f6f1-490b-9072-8351c66b5f33",
+     "source": "005442b4-9c8c-4e77-93ba-8db924cd9bbe",
+     "target": "4f49e8f6-21e1-4667-8de6-314087f1c1b4"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "1ee97bbd-2bc9-4525-915c-3d258badbc49",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_DgK4qg4yNK": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "2adaf424-78f6-4c21-9915-2e1594a09b6c": {
+   "id": "2adaf424-78f6-4c21-9915-2e1594a09b6c",
+   "name": "Close Delete Confirmation",
+   "description": "Close the delete account confirmation modal (close)",
+   "trigger": {
+    "nodeId": "2c93fd9d-5273-4fef-b5eb-a92a2d587735",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_zmTO7ZNY2C",
+     "preventDefault": true,
+     "elementHtmlId": "thq_thq-modal-close-button_DXwE",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "8a48e268-635f-40bd-bfaf-cfb558439526",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Close Delete Account Confirmation Modal",
+     "config": {
+      "property": "isDeleteAccountConfirmationOpen",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    }
+   ],
+   "edges": [
+    {
+     "id": "35cbbc5f-3b22-4fc0-b254-059c25d4baa7",
+     "source": "2c93fd9d-5273-4fef-b5eb-a92a2d587735",
+     "target": "8a48e268-635f-40bd-bfaf-cfb558439526"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "22548226-508d-403f-ab2c-644e694e370e",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_zmTO7ZNY2C": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "d7c9be80-61ce-4357-94ca-b7d32bbe4f77": {
+   "id": "d7c9be80-61ce-4357-94ca-b7d32bbe4f77",
+   "name": "Dismiss Delete Confirmation",
+   "description": "Close the delete account confirmation modal (overlay)",
+   "trigger": {
+    "nodeId": "fc0f6c6a-fc69-40bb-95ca-507e874c8c27",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_9lJoRuWeZu",
+     "preventDefault": true,
+     "elementHtmlId": "thq_thq-modal-overlay_YZfx",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "a71e28bd-87ea-4ee3-8f70-080c836f17fa",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Close Delete Account Confirmation Modal",
+     "config": {
+      "property": "isDeleteAccountConfirmationOpen",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    }
+   ],
+   "edges": [
+    {
+     "id": "2ac8578f-eba5-4873-83c6-93909b35dfab",
+     "source": "fc0f6c6a-fc69-40bb-95ca-507e874c8c27",
+     "target": "a71e28bd-87ea-4ee3-8f70-080c836f17fa"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "35bfed60-eeff-4530-89a9-c09d39d5fa6a",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_9lJoRuWeZu": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "c8cb2c79-d46e-4e9c-be01-0a58f2cdc9a6": {
+   "id": "c8cb2c79-d46e-4e9c-be01-0a58f2cdc9a6",
+   "name": "Delete Account",
+   "description": "Delete the current user account from the database and sign out with automatic redirect to the home page",
+   "trigger": {
+    "nodeId": "d91de89c-bd83-4670-abdb-edde29b3c963",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_ZVHlVGCOxh",
+     "preventDefault": true,
+     "elementHtmlId": "thq_button_aStt",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "e31ed325-fe0e-4302-957a-b4469b8c00ec",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Set Delete Account Loading Flag",
+     "config": {
+      "property": "deleteAccountButtonState",
+      "value": "deleting"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "333d0124-c7b0-4fd5-a4da-01432c01dc66",
+     "type": "account-delete-current",
+     "label": "Delete Current Account",
+     "name": "Delete Current Account",
+     "config": {
+      "emailProvider": "email-resend",
+      "subject": "We're sad to see you go",
+      "body": "<div style=\"max-width: 560px; margin: 0 auto; padding: 8px; font-family: 'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #1f2937\"><div style=\"background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden\"><div style=\"background: #334155; padding: 24px 32px\"><small style=\"margin: 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #cbd5e1; font-weight: 600\">Account</small><p style=\"margin: 6px 0 0; font-size: 22px; font-weight: 700; color: #ffffff\">We're sad to see you go</p></div><div style=\"padding: 28px 32px\"><div style=\"margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #1f2937\"><span>Hi </span><span>{{userName}}</span><span>,</span></div><div style=\"margin: 0 0 18px; font-size: 15px; line-height: 1.6; color: #4b5563\"><span>Your </span><span>{{siteName}}</span><span> account has been permanently deleted and your personal data has been removed. Thank you for having been part of our community — it truly meant a lot to us.</span></div><p style=\"margin: 0 0 18px; font-size: 15px; line-height: 1.6; color: #4b5563\">You're always welcome back. If you ever change your mind, you can create a new account any time and pick up right where you left off.</p><p style=\"margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af\">If you didn't request this, or you think your account was deleted by mistake, please get in touch with us right away.</p></div></div><div style=\"margin: 16px 0 0; text-align: center; font-size: 12px; line-height: 1.5; color: #9ca3af\"><span>This message was sent to </span><span>{{userEmail}}</span><span>. Please do not reply to this automated email.</span></div></div>",
+      "successMessage": "Your account has been deleted. We're sad to see you go.",
+      "redirectTo": "/"
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "84b1a5b2-2fe3-4929-956c-81007d1b3b2e",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Close Delete Modal On Error",
+     "config": {
+      "property": "isDeleteAccountConfirmationOpen",
+      "value": "false"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "27c2856e-06d5-47d6-8415-0ed66aadd339",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Reset Delete Button On Error",
+     "config": {
+      "property": "deleteAccountButtonState",
+      "value": "idle"
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "e2caeddb-3b6e-4a33-bdb7-4a8b3a074121",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Set Delete Account Error Flag",
+     "config": {
+      "property": "deleteAccountHasError",
+      "value": "true"
+     },
+     "executionEnv": "client",
+     "stepNumber": 3
+    },
+    {
+     "id": "9e6c2a1e-81ec-4bbe-99e2-3b7fc9c77112",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Delete Account Error Message",
+     "config": {
+      "property": "deleteAccountError",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "ce717e37-f504-44a7-ba2e-e44b4881016a",
+       "path": [
+        "ce717e37-f504-44a7-ba2e-e44b4881016a",
+        "errorMessage"
+       ],
+       "displayLabel": "Handle Delete Account Error.errorMessage"
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 4
+    }
+   ],
+   "edges": [
+    {
+     "id": "d9d904f5-ace3-48ba-a2e1-521d249e5f6d",
+     "source": "d91de89c-bd83-4670-abdb-edde29b3c963",
+     "target": "e31ed325-fe0e-4302-957a-b4469b8c00ec"
+    },
+    {
+     "id": "985aa076-e8de-44e7-9c05-daf25b2830c4",
+     "source": "e31ed325-fe0e-4302-957a-b4469b8c00ec",
+     "target": "333d0124-c7b0-4fd5-a4da-01432c01dc66"
+    },
+    {
+     "id": "3dbc8d67-128e-41f3-ae90-fa4c42197a18",
+     "source": "ce717e37-f504-44a7-ba2e-e44b4881016a",
+     "target": "84b1a5b2-2fe3-4929-956c-81007d1b3b2e"
+    },
+    {
+     "id": "ab5cbe33-a0ed-4786-aeba-f142c6a15f32",
+     "source": "84b1a5b2-2fe3-4929-956c-81007d1b3b2e",
+     "target": "27c2856e-06d5-47d6-8415-0ed66aadd339"
+    },
+    {
+     "id": "e3b5d14a-8f0b-4da3-85fd-99df4caac64d",
+     "source": "27c2856e-06d5-47d6-8415-0ed66aadd339",
+     "target": "e2caeddb-3b6e-4a33-bdb7-4a8b3a074121"
+    },
+    {
+     "id": "bfa82165-155f-4cc1-a442-649550044c1c",
+     "source": "e2caeddb-3b6e-4a33-bdb7-4a8b3a074121",
+     "target": "9e6c2a1e-81ec-4bbe-99e2-3b7fc9c77112"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "ce717e37-f504-44a7-ba2e-e44b4881016a",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_ZVHlVGCOxh": true,
+    "TQ_bV7aXqq4eZ": true,
+    "TQ_XwqOY1alaQ": true,
+    "TQ_VTDe6qCzaH": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "e648ae9d-b89d-44b8-a32f-0c817b464b0b": {
+   "id": "e648ae9d-b89d-44b8-a32f-0c817b464b0b",
+   "name": "Cookie Consent Accepted 6",
+   "description": "Saves cookie consent and hides the banner when user clicks Accept",
+   "trigger": {
+    "nodeId": "e9e63f3e-6e3f-4b3e-accf-622e10c2e0cd",
+    "type": "event-element-clicked",
+    "config": {
+     "nodeId": "TQ_yd3XDxAnI9",
+     "preventDefault": false,
+     "elementHtmlId": "thq_button_c9bu",
+     "selectedPages": [
+      {
+       "id": "TQ_GikM4lgEbw",
+       "name": "profile"
+      }
+     ]
+    },
+    "scope": "element"
+   },
+   "nodes": [
+    {
+     "id": "64cf15f0-8e66-49de-b837-433d31d22179",
+     "type": "storage-local-set",
+     "label": "Set in LocalStorage",
+     "config": {
+      "key": "cookieConsent",
+      "value": "accepted"
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "ad63e4a4-9c3c-4c47-af5a-b0105c045366",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "config": {
+      "property": "cookieConsentVisible",
+      "value": false
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "fc4c218c-235d-47b6-9c3f-4e20eb4f252b",
+     "type": "toast-show",
+     "label": "Show Toast",
+     "config": {
+      "message": "Could not save your cookie preferences. Please try again.",
+      "toastType": "error",
+      "duration": 4000,
+      "dismissible": true
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    }
+   ],
+   "edges": [
+    {
+     "id": "f36dbcde-4e4f-438d-bff6-b0e09ce306e9",
+     "source": "e9e63f3e-6e3f-4b3e-accf-622e10c2e0cd",
+     "target": "64cf15f0-8e66-49de-b837-433d31d22179"
+    },
+    {
+     "id": "1ed7958a-0073-46e5-a131-6034fc66d329",
+     "source": "64cf15f0-8e66-49de-b837-433d31d22179",
+     "target": "ad63e4a4-9c3c-4c47-af5a-b0105c045366"
+    },
+    {
+     "id": "b8dd2e41-d3db-4625-8aae-77cbe3834b78",
+     "source": "829fe97a-4b9e-4d32-a3e6-fedd49a174f5",
+     "target": "fc4c218c-235d-47b6-9c3f-4e20eb4f252b"
+    }
+   ],
+   "errorHandler": {
+    "nodeId": "829fe97a-4b9e-4d32-a3e6-fedd49a174f5",
+    "type": "event-workflow-error",
+    "config": {
+     "isErrorHandler": true
+    },
+    "executionEnv": "universal"
+   },
+   "usedInNodes": {
+    "TQ_yd3XDxAnI9": true
+   },
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  }
+ },
+ "customNodes": {
+  "57b16073-d4de-4e7f-9971-6bba7526d1c7": {
+   "id": "57b16073-d4de-4e7f-9971-6bba7526d1c7",
+   "name": "Account Update Succeeded",
+   "description": "Sync the signed-in user everywhere, confirm the save, reset the account form, and refresh the session so the new profile survives a reload.",
+   "nodes": [
+    {
+     "id": "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+     "type": "state-get-local-state",
+     "label": "Get Local State",
+     "name": "Get Current Account Form Data",
+     "config": {
+      "property": "accountFormData"
+     },
+     "executionEnv": "client",
+     "stepNumber": 0
+    },
+    {
+     "id": "2b2e106f-354c-4e18-b968-c358c7037b21",
+     "type": "state-update-global-state",
+     "label": "Update Global State",
+     "name": "Sync Current User Name",
+     "config": {
+      "property": "currentUser",
+      "objectUpdateMode": "property",
+      "objectPropertyPath": "name",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+       "path": [
+        "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+        "value",
+        "name"
+       ]
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "a5d49f1a-1296-4cd0-a691-f2014a1bd36a",
+     "type": "toast-show",
+     "label": "Show Toast",
+     "name": "Show Account Updated Success Toast",
+     "config": {
+      "message": "Your account has been updated.",
+      "toastType": "success",
+      "position": "top-right",
+      "duration": "5000",
+      "dismissible": true
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "bf7d844f-5b60-470b-ab5f-0cfa078a99e3",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Initial Form Data Snapshot",
+     "config": {
+      "property": "initialAccountFormData",
+      "value": {
+       "type": "workflowContext",
+       "nodeId": "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+       "path": [
+        "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+        "value"
+       ]
+      }
+     },
+     "executionEnv": "client",
+     "stepNumber": 3
+    },
+    {
+     "id": "9f9966ff-494c-4e14-838c-d746b27b5340",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Disable Update Account Button Again",
+     "config": {
+      "property": "accountFormButtonState",
+      "value": "idle"
+     },
+     "executionEnv": "client",
+     "stepNumber": 4
+    },
+    {
+     "id": "5bc27a91-f821-4bc8-bc90-ea0ea5483acf",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Clear Picked Profile Image File",
+     "config": {
+      "property": "selectedProfileImageFile",
+      "value": []
+     },
+     "executionEnv": "client",
+     "stepNumber": 5
+    },
+    {
+     "id": "ef8aba3f-3c60-4968-a61f-03776c36f8be",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Clear Profile Image Dirty Flag",
+     "config": {
+      "property": "accountFormImageDirty",
+      "value": false
+     },
+     "executionEnv": "client",
+     "stepNumber": 6
+    },
+    {
+     "id": "f7153492-4435-4540-9cc2-35fd2cc45a5b",
+     "type": "account-refresh-session",
+     "label": "Refresh Session",
+     "name": "Refresh Signed-In User Session",
+     "config": {},
+     "executionEnv": "client",
+     "stepNumber": 7
+    }
+   ],
+   "edges": [
+    {
+     "id": "1be1f450-992d-4a66-9464-8f3d487fadce",
+     "source": "cd735f2f-cb42-42f3-b6a3-ecd6662b6e6f",
+     "target": "2b2e106f-354c-4e18-b968-c358c7037b21"
+    },
+    {
+     "id": "a266099c-8851-4e55-bfbd-b08a780c0242",
+     "source": "2b2e106f-354c-4e18-b968-c358c7037b21",
+     "target": "a5d49f1a-1296-4cd0-a691-f2014a1bd36a"
+    },
+    {
+     "id": "018a59f6-6794-47b0-83ce-b5d29c18f164",
+     "source": "a5d49f1a-1296-4cd0-a691-f2014a1bd36a",
+     "target": "bf7d844f-5b60-470b-ab5f-0cfa078a99e3"
+    },
+    {
+     "id": "4e4ee2c1-75f8-4aa2-8392-35c648bffc6e",
+     "source": "bf7d844f-5b60-470b-ab5f-0cfa078a99e3",
+     "target": "9f9966ff-494c-4e14-838c-d746b27b5340"
+    },
+    {
+     "id": "ea6db81e-f42d-407a-92c1-c36e74321eac",
+     "source": "9f9966ff-494c-4e14-838c-d746b27b5340",
+     "target": "5bc27a91-f821-4bc8-bc90-ea0ea5483acf"
+    },
+    {
+     "id": "90a56ff1-035e-4e6f-b0aa-c12f55a183b4",
+     "source": "5bc27a91-f821-4bc8-bc90-ea0ea5483acf",
+     "target": "ef8aba3f-3c60-4968-a61f-03776c36f8be"
+    },
+    {
+     "id": "551944b5-7190-4f21-83c0-c6c2dc0d8a22",
+     "source": "ef8aba3f-3c60-4968-a61f-03776c36f8be",
+     "target": "f7153492-4435-4540-9cc2-35fd2cc45a5b"
+    }
+   ],
+   "parameters": [],
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  },
+  "27219f4c-d757-474c-996b-491c3b6e7a5a": {
+   "id": "27219f4c-d757-474c-996b-491c3b6e7a5a",
+   "name": "Account Update Did Not Save",
+   "description": "Report a save that completed without writing anything, and put the Update Account button back so the visitor can retry.",
+   "nodes": [
+    {
+     "id": "6bc07536-4ef2-40ca-b526-fc9ade39458d",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Re-enable Update Account Button",
+     "config": {
+      "property": "accountFormButtonState",
+      "value": "changed"
+     },
+     "executionEnv": "client",
+     "stepNumber": 0
+    },
+    {
+     "id": "a014e197-98db-4a72-aa0a-20482fd205be",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Show Update Account Error Banner",
+     "config": {
+      "property": "accountFormHasError",
+      "value": true
+     },
+     "executionEnv": "client",
+     "stepNumber": 1
+    },
+    {
+     "id": "6dcf10b2-07c7-464a-bfee-50ad90dabb19",
+     "type": "state-update-local-state",
+     "label": "Update Local State",
+     "name": "Store Update Account Error Message",
+     "config": {
+      "property": "accountFormError",
+      "value": "We couldn't save your changes. Please try again."
+     },
+     "executionEnv": "client",
+     "stepNumber": 2
+    },
+    {
+     "id": "19ae3295-a57e-42b2-8237-f901439e7ffd",
+     "type": "toast-show",
+     "label": "Show Toast",
+     "name": "Show Account Update Failed Toast",
+     "config": {
+      "message": "We couldn't save your changes. Please try again.",
+      "toastType": "error",
+      "position": "top-right",
+      "duration": "5000",
+      "dismissible": true
+     },
+     "executionEnv": "client",
+     "stepNumber": 3
+    }
+   ],
+   "edges": [
+    {
+     "id": "c8f79d3f-1e28-4e81-956c-2d824d63f997",
+     "source": "6bc07536-4ef2-40ca-b526-fc9ade39458d",
+     "target": "a014e197-98db-4a72-aa0a-20482fd205be"
+    },
+    {
+     "id": "d0bbbe9d-ca40-4d10-ab4f-f1455648f59f",
+     "source": "a014e197-98db-4a72-aa0a-20482fd205be",
+     "target": "6dcf10b2-07c7-464a-bfee-50ad90dabb19"
+    },
+    {
+     "id": "c90f906a-a418-4193-a5c9-e210f801c072",
+     "source": "6dcf10b2-07c7-464a-bfee-50ad90dabb19",
+     "target": "19ae3295-a57e-42b2-8237-f901439e7ffd"
+    }
+   ],
+   "parameters": [],
+   "protection": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "derivedFrom": "page"
+   }
+  }
+ },
+ "resources": {
+  "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersDetail": {
+   "id": "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersDetail",
+   "name": "fetch_users_detail",
+   "path": {
+    "baseUrl": {
+     "type": "static",
+     "content": "/api/data-source"
+    },
+    "route": {
+     "type": "static",
+     "content": "/5c867c01-ee7a-4d1e-aa5b-80c63182b472/users"
+    }
+   },
+   "params": {
+    "dataSourceId": {
+     "type": "static",
+     "content": "5c867c01-ee7a-4d1e-aa5b-80c63182b472"
+    },
+    "dataSourceType": {
+     "type": "static",
+     "content": "teleport"
+    },
+    "tableName": {
+     "type": "static",
+     "content": "users"
+    }
+   }
+  },
+  "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersPaths": {
+   "id": "TQ_5c867c01ee7a4d1eaa5b80c63182b472usersPaths",
+   "name": "fetch_users_paths",
+   "path": {
+    "baseUrl": {
+     "type": "static",
+     "content": "/api/data-source"
+    },
+    "route": {
+     "type": "static",
+     "content": "/5c867c01-ee7a-4d1e-aa5b-80c63182b472/users"
+    }
+   },
+   "params": {
+    "dataSourceId": {
+     "type": "static",
+     "content": "5c867c01-ee7a-4d1e-aa5b-80c63182b472"
+    },
+    "dataSourceType": {
+     "type": "static",
+     "content": "teleport"
+    },
+    "tableName": {
+     "type": "static",
+     "content": "users"
+    }
+   }
+  }
+ },
+ "dataSource": {
+  "id": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+  "name": "TeleportHQ database",
+  "type": "teleport",
+  "config": {
+   "selectedTables": {
+    "users": {
+     "name": "users",
+     "columns": [
+      {
+       "name": "id",
+       "type": "uuid",
+       "nullable": false,
+       "defaultValue": "gen_random_uuid()",
+       "isPrimaryKey": true
+      },
+      {
+       "name": "name",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "email",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "isUnique": true,
+       "length": 255
+      },
+      {
+       "name": "phone",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "details",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "email_verified",
+       "type": "timestamp with time zone",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "password",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "provider",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "provider_account_id",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "provider_type",
+       "type": "character varying",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "access_token",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "refresh_token",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "expires_at",
+       "type": "bigint",
+       "nullable": true,
+       "isPrimaryKey": false,
+       "precision": 64
+      },
+      {
+       "name": "id_token",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "scope",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "session_state",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "token_type",
+       "type": "text",
+       "nullable": true,
+       "isPrimaryKey": false
+      },
+      {
+       "name": "email_unsubscribed",
+       "type": "boolean",
+       "nullable": false,
+       "defaultValue": "false",
+       "isPrimaryKey": false
+      },
+      {
+       "name": "sms_unsubscribed",
+       "type": "boolean",
+       "nullable": false,
+       "defaultValue": "false",
+       "isPrimaryKey": false
+      },
+      {
+       "name": "image",
+       "type": "text",
+       "nullable": true,
+       "defaultValue": "'https://play.teleporthq.io/static/svg/placeholders/no-image.svg'::text",
+       "isPrimaryKey": false
+      },
+      {
+       "name": "role",
+       "type": "character varying",
+       "nullable": false,
+       "defaultValue": "USER",
+       "isPrimaryKey": false,
+       "length": 255
+      },
+      {
+       "name": "created_at",
+       "type": "timestamp with time zone",
+       "nullable": false,
+       "defaultValue": "CURRENT_TIMESTAMP",
+       "isPrimaryKey": false
+      },
+      {
+       "name": "updated_at",
+       "type": "timestamp with time zone",
+       "nullable": false,
+       "defaultValue": "CURRENT_TIMESTAMP",
+       "isPrimaryKey": false
+      }
+     ],
+     "indexes": [
+      {
+       "name": "users_email_key",
+       "columns": [
+        "email"
+       ],
+       "unique": true,
+       "type": "BTREE"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "globalStateDefinitions": {
+  "teleportProductFavourites": {
+   "id": "65f74530-787d-4b7a-a333-d0f527e691aa",
+   "type": "array",
+   "defaultValue": [],
+   "name": "teleportProductFavourites",
+   "dataSourceBinding": {
+    "dataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+    "refPath": [
+     "teleport_favourites"
+    ]
+   },
+   "mappingFunction": "function mapData(items) {\n  return items.map(function(el) { return el.entity_id })\n}",
+   "query": "SELECT f.entity_id FROM teleport_favourites f INNER JOIN teleport_products p ON f.entity_id = p.id::text WHERE f.entity_type = 'teleport_products' AND f.user_id = '{{Current User.id}}' ORDER BY f.created_at DESC LIMIT 100"
+  },
+  "deleteReviewModalOpen": {
+   "id": "cdb74c9c-6d79-43c7-b664-67ac47d17c5c",
+   "type": "boolean",
+   "defaultValue": false,
+   "name": "deleteReviewModalOpen"
+  },
+  "pendingDeleteReviewId": {
+   "id": "56183ef0-4334-40f3-b263-c7204afa742b",
+   "type": "string",
+   "defaultValue": "",
+   "name": "pendingDeleteReviewId"
+  }
+ },
+ "authentication": {
+  "enabled": true,
+  "dataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+  "dataSourceType": "teleport",
+  "passwordAuthEnabled": true,
+  "providers": [],
+  "roles": [
+   "admin",
+   "user"
+  ],
+  "tables": {
+   "password_reset_tokens": [
+    {
+     "name": "id",
+     "type": "UUID",
+     "nullable": false,
+     "isPrimaryKey": true,
+     "defaultValue": "gen_random_uuid()"
+    },
+    {
+     "name": "email",
+     "type": "VARCHAR(255)",
+     "nullable": false
+    },
+    {
+     "name": "token",
+     "type": "TEXT",
+     "nullable": false
+    },
+    {
+     "name": "used",
+     "type": "BOOLEAN",
+     "nullable": false,
+     "defaultValue": "false"
+    },
+    {
+     "name": "created_at",
+     "type": "TIMESTAMPTZ",
+     "nullable": false,
+     "defaultValue": "CURRENT_TIMESTAMP"
+    }
+   ],
+   "users": [
+    {
+     "name": "id",
+     "type": "UUID",
+     "nullable": false,
+     "isPrimaryKey": true,
+     "defaultValue": "gen_random_uuid()"
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "email",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "phone",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "details",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "email_verified",
+     "type": "TIMESTAMPTZ",
+     "nullable": true
+    },
+    {
+     "name": "password",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "provider",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "provider_account_id",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "provider_type",
+     "type": "VARCHAR(255)",
+     "nullable": true
+    },
+    {
+     "name": "access_token",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "refresh_token",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "expires_at",
+     "type": "BIGINT",
+     "nullable": true
+    },
+    {
+     "name": "id_token",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "scope",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "session_state",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "token_type",
+     "type": "TEXT",
+     "nullable": true
+    },
+    {
+     "name": "email_unsubscribed",
+     "type": "BOOLEAN",
+     "nullable": false,
+     "defaultValue": "false"
+    },
+    {
+     "name": "sms_unsubscribed",
+     "type": "BOOLEAN",
+     "nullable": false,
+     "defaultValue": "false"
+    },
+    {
+     "name": "image",
+     "type": "TEXT",
+     "nullable": true,
+     "defaultValue": "https://play.teleporthq.io/static/svg/placeholders/no-image.svg"
+    },
+    {
+     "name": "role",
+     "type": "VARCHAR(255)",
+     "nullable": false,
+     "defaultValue": "user"
+    },
+    {
+     "name": "created_at",
+     "type": "TIMESTAMPTZ",
+     "nullable": false,
+     "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+     "name": "updated_at",
+     "type": "TIMESTAMPTZ",
+     "nullable": false,
+     "defaultValue": "CURRENT_TIMESTAMP"
+    }
+   ]
+  },
+  "pageProtection": {
+   "TQ_GikM4lgEbw": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "profile",
+    "route": "/profile",
+    "routePattern": "/profile/[id]"
+   },
+   "TQ_sdcoOOjfCP": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "my-profile",
+    "route": "/my-profile"
+   },
+   "TQ_9zsBhYE7Lo": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "order-details",
+    "route": "/orders",
+    "routePattern": "/orders/[order_number]",
+    "rowOwnerColumn": "user_id",
+    "rowOwnerTable": "teleport_orders",
+    "rowOwnerDataSourceId": "5c867c01-ee7a-4d1e-aa5b-80c63182b472",
+    "rowOwnerDifferentiator": "order_number"
+   },
+   "TQ_o_VMJqWLAC": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "my-orders-list",
+    "route": "/orders"
+   },
+   "TQ_l6hdS7MbQ_": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "my-favourites",
+    "route": "/my-favourites"
+   },
+   "TQ_NA0cBQUh4w": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "my-reviews",
+    "route": "/my-reviews"
+   },
+   "TQ_rDf_iff8Qt": {
+    "requiresAuth": true,
+    "allowedRoles": [],
+    "pageName": "create-review",
+    "route": "/create-review",
+    "routePattern": "/create-review/[slug]"
+   },
+   "TQ_Gl2lUSXFnR": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "dashboard",
+    "route": "/admin/dashboard"
+   },
+   "TQ_HVg57ChvT4": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "users-list",
+    "route": "/admin/users"
+   },
+   "TQ_yfBaIOwHFq": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "users-create",
+    "route": "/admin/users/create"
+   },
+   "TQ_q9PsJANGMx": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "users-update",
+    "route": "/admin/users/update",
+    "routePattern": "/admin/users/update/[id]"
+   },
+   "TQ_a9q-OZ0DF2": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "products-list1",
+    "route": "/admin/products"
+   },
+   "TQ_h1UIKdbN5B": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "products-create",
+    "route": "/admin/products/create"
+   },
+   "TQ_9m75hvEssI": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "products-update",
+    "route": "/admin/products/update",
+    "routePattern": "/admin/products/update/[id]"
+   },
+   "TQ_okWraMW9gx": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-variants-list",
+    "route": "/admin/product-variants"
+   },
+   "TQ_X5meKYECvB": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-variants-create",
+    "route": "/admin/product-variants/create"
+   },
+   "TQ_1ffcVm4-ZQ": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-variants-update",
+    "route": "/admin/product-variants/update",
+    "routePattern": "/admin/product-variants/update/[id]"
+   },
+   "TQ_Yz51O5zyQm": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "orders-list",
+    "route": "/admin/orders"
+   },
+   "TQ_Yg-nyHTo7C": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "orders-create",
+    "route": "/admin/orders/create"
+   },
+   "TQ_N3flPSlkfg": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "orders-update",
+    "route": "/admin/orders/update",
+    "routePattern": "/admin/orders/update/[id]"
+   },
+   "TQ_T6H03qMS9g": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "vouchers-list",
+    "route": "/admin/vouchers"
+   },
+   "TQ_-7tN3_WHBt": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "vouchers-create",
+    "route": "/admin/vouchers/create"
+   },
+   "TQ_MmNhj_JfoL": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "vouchers-update",
+    "route": "/admin/vouchers/update",
+    "routePattern": "/admin/vouchers/update/[id]"
+   },
+   "TQ_8Oo8hUToMF": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "invoices-list",
+    "route": "/admin/invoices"
+   },
+   "TQ_F7fsvvlaMl": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "invoices-create",
+    "route": "/admin/invoices/create"
+   },
+   "TQ_S3_ZbqpQYF": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "invoices-update",
+    "route": "/admin/invoices/update",
+    "routePattern": "/admin/invoices/update/[id]"
+   },
+   "TQ_RjfrCWngng": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "withdrawal-requests-list",
+    "route": "/admin/withdrawal-requests"
+   },
+   "TQ_gB-1LlErYQ": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "withdrawal-requests-create",
+    "route": "/admin/withdrawal-requests/create"
+   },
+   "TQ_zlNFL_x2NM": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "withdrawal-requests-update",
+    "route": "/admin/withdrawal-requests/update",
+    "routePattern": "/admin/withdrawal-requests/update/[id]"
+   },
+   "TQ_j-411CgBSr": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "abandoned-carts-list",
+    "route": "/admin/abandoned-carts"
+   },
+   "TQ_RcZ9p2kyEJ": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-reviews-list",
+    "route": "/admin/product-reviews"
+   },
+   "TQ_aJmK8E3eF3": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-reviews-create",
+    "route": "/admin/product-reviews/create"
+   },
+   "TQ_qE229UuqYB": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "product-reviews-update",
+    "route": "/admin/product-reviews/update",
+    "routePattern": "/admin/product-reviews/update/[id]"
+   },
+   "TQ_18yW-LczVw": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "assets-list",
+    "route": "/admin/assets"
+   },
+   "TQ_4Ed4dalM0H": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "assets-upload",
+    "route": "/admin/assets/upload"
+   },
+   "TQ_Y8BtGIbi7g": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-services-list",
+    "route": "/admin/alteration-services"
+   },
+   "TQ_aq3QAns9t_": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-services-create",
+    "route": "/admin/alteration-services/create"
+   },
+   "TQ_nwJMPv5q-t": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-services-update",
+    "route": "/admin/alteration-services/update",
+    "routePattern": "/admin/alteration-services/update/[id]"
+   },
+   "TQ_D4dT3-c1GF": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-process-steps-list",
+    "route": "/admin/alteration-process-steps"
+   },
+   "TQ_ukp3TrpjIr": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-process-steps-create",
+    "route": "/admin/alteration-process-steps/create"
+   },
+   "TQ_ta_QE7pRUT": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-process-steps-update",
+    "route": "/admin/alteration-process-steps/update",
+    "routePattern": "/admin/alteration-process-steps/update/[id]"
+   },
+   "TQ_TrPL0WOSBg": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-pricing-examples-list",
+    "route": "/admin/alteration-pricing-examples"
+   },
+   "TQ_iWfRDdRFJx": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-pricing-examples-create",
+    "route": "/admin/alteration-pricing-examples/create"
+   },
+   "TQ_jiBv7WGNDa": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "alteration-pricing-examples-update",
+    "route": "/admin/alteration-pricing-examples/update",
+    "routePattern": "/admin/alteration-pricing-examples/update/[id]"
+   },
+   "TQ_wN3H8nYjDn": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "featured-product-curations-list",
+    "route": "/admin/featured-product-curations"
+   },
+   "TQ_tcl1luAluC": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "featured-product-curations-create",
+    "route": "/admin/featured-product-curations/create"
+   },
+   "TQ_Xn_eOq7b3A": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "featured-product-curations-update",
+    "route": "/admin/featured-product-curations/update",
+    "routePattern": "/admin/featured-product-curations/update/[id]"
+   },
+   "TQ_MIEZYG9MwE": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "category-tiles-list",
+    "route": "/admin/category-tiles"
+   },
+   "TQ_Xjz34zmcyw": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "category-tiles-create",
+    "route": "/admin/category-tiles/create"
+   },
+   "TQ_VO1O5hTW9H": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "category-tiles-update",
+    "route": "/admin/category-tiles/update",
+    "routePattern": "/admin/category-tiles/update/[id]"
+   },
+   "TQ_a-ZKMBu0At": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "blog-posts-list1",
+    "route": "/admin/blog-posts"
+   },
+   "TQ_DqRzYwzB8A": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "blog-posts-create",
+    "route": "/admin/blog-posts/create"
+   },
+   "TQ_HXN_px2EqH": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "pageName": "blog-posts-update",
+    "route": "/admin/blog-posts/update",
+    "routePattern": "/admin/blog-posts/update/[id]"
+   }
+  },
+  "folderProtection": {
+   "TQ_sQiRGm002w": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "admin-panel",
+    "parentId": "pages",
+    "children": {
+     "TQ_Gl2lUSXFnR": "page",
+     "TQ_oYa2sYv5pr": "folder",
+     "TQ_hpX5g3lrDH": "folder",
+     "TQ_ASCo82ngQG": "folder",
+     "TQ_qOzjg9Vo8S": "folder",
+     "TQ_xnFtAI_6IK": "folder",
+     "TQ_oDLlUppEgM": "folder",
+     "TQ_LIsuBgJqGi": "folder",
+     "TQ_289sZqhtu7": "folder",
+     "TQ_c__ruYrN6k": "folder",
+     "TQ_MTIkVmduhL": "folder",
+     "TQ_4kWNex197I": "folder",
+     "TQ_pzhZsegvMw": "folder",
+     "TQ_dKAYZJ3Um_": "folder",
+     "TQ_JTZOxQk03m": "folder",
+     "TQ_9Gt5qxeiMR": "folder",
+     "TQ_0RWGfakQ0Y": "folder"
+    }
+   },
+   "TQ_oYa2sYv5pr": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "users",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_HVg57ChvT4": "page",
+     "TQ_yfBaIOwHFq": "page",
+     "TQ_q9PsJANGMx": "page"
+    }
+   },
+   "TQ_hpX5g3lrDH": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "products",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_a9q-OZ0DF2": "page",
+     "TQ_h1UIKdbN5B": "page",
+     "TQ_9m75hvEssI": "page"
+    }
+   },
+   "TQ_ASCo82ngQG": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "product-variants",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_okWraMW9gx": "page",
+     "TQ_X5meKYECvB": "page",
+     "TQ_1ffcVm4-ZQ": "page"
+    }
+   },
+   "TQ_qOzjg9Vo8S": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "orders",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_Yz51O5zyQm": "page",
+     "TQ_Yg-nyHTo7C": "page",
+     "TQ_N3flPSlkfg": "page"
+    }
+   },
+   "TQ_xnFtAI_6IK": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "vouchers",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_T6H03qMS9g": "page",
+     "TQ_-7tN3_WHBt": "page",
+     "TQ_MmNhj_JfoL": "page"
+    }
+   },
+   "TQ_oDLlUppEgM": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "invoices",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_8Oo8hUToMF": "page",
+     "TQ_F7fsvvlaMl": "page",
+     "TQ_S3_ZbqpQYF": "page"
+    }
+   },
+   "TQ_LIsuBgJqGi": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "withdrawal-requests",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_RjfrCWngng": "page",
+     "TQ_gB-1LlErYQ": "page",
+     "TQ_zlNFL_x2NM": "page"
+    }
+   },
+   "TQ_289sZqhtu7": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "abandoned-carts",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_j-411CgBSr": "page"
+    }
+   },
+   "TQ_c__ruYrN6k": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "product-reviews",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_RcZ9p2kyEJ": "page",
+     "TQ_aJmK8E3eF3": "page",
+     "TQ_qE229UuqYB": "page"
+    }
+   },
+   "TQ_MTIkVmduhL": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "assets",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_18yW-LczVw": "page",
+     "TQ_4Ed4dalM0H": "page"
+    }
+   },
+   "TQ_4kWNex197I": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "alteration-services",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_Y8BtGIbi7g": "page",
+     "TQ_aq3QAns9t_": "page",
+     "TQ_nwJMPv5q-t": "page"
+    }
+   },
+   "TQ_pzhZsegvMw": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "alteration-process-steps",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_D4dT3-c1GF": "page",
+     "TQ_ukp3TrpjIr": "page",
+     "TQ_ta_QE7pRUT": "page"
+    }
+   },
+   "TQ_dKAYZJ3Um_": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "alteration-pricing-examples",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_TrPL0WOSBg": "page",
+     "TQ_iWfRDdRFJx": "page",
+     "TQ_jiBv7WGNDa": "page"
+    }
+   },
+   "TQ_JTZOxQk03m": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "featured-product-curations",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_wN3H8nYjDn": "page",
+     "TQ_tcl1luAluC": "page",
+     "TQ_Xn_eOq7b3A": "page"
+    }
+   },
+   "TQ_9Gt5qxeiMR": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "category-tiles",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_MIEZYG9MwE": "page",
+     "TQ_Xjz34zmcyw": "page",
+     "TQ_VO1O5hTW9H": "page"
+    }
+   },
+   "TQ_0RWGfakQ0Y": {
+    "requiresAuth": true,
+    "allowedRoles": [
+     "admin"
+    ],
+    "folderName": "blog-posts",
+    "parentId": "TQ_sQiRGm002w",
+    "children": {
+     "TQ_a-ZKMBu0At": "page",
+     "TQ_DqRzYwzB8A": "page",
+     "TQ_HXN_px2EqH": "page"
+    }
+   }
+  },
+  "authPages": {
+   "signIn": {
+    "pageId": "TQ_xg-kBqUWla",
+    "pageName": "sign-in",
+    "route": "/sign-in"
+   },
+   "signUp": {
+    "pageId": "TQ__u3og6budI",
+    "pageName": "sign-up",
+    "route": "/sign-up"
+   }
+  },
+  "callbackBaseUrl": "/api/auth/callback",
+  "envKeys": {},
+  "customUserProperties": []
+ },
+ "styleSetDefinitions": {
+  "hero-title": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "fontSize": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-size-4xl",
+      "fallback": ""
+     }
+    },
+    "fontFamily": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-family-heading",
+      "fallback": ""
+     }
+    },
+    "fontWeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-weight-heading",
+      "fallback": ""
+     }
+    },
+    "lineHeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--line-height-heading",
+      "fallback": ""
+     }
+    },
+    "letterSpacing": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--letter-spacing-heading",
+      "fallback": ""
+     }
+    },
+    "textTransform": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--text-transform-heading",
+      "fallback": ""
+     }
+    },
+    "fontStyle": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-style-heading",
+      "fallback": ""
+     }
+    },
+    "color": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--color-on-surface",
+      "fallback": ""
+     }
+    }
+   },
+   "conditions": []
+  },
+  "form-input": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "background": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--color-surface",
+      "fallback": ""
+     }
+    },
+    "border": {
+     "type": "static",
+     "content": "1px solid var(--color-border)"
+    },
+    "borderRadius": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--border-radius-md",
+      "fallback": ""
+     }
+    },
+    "padding": {
+     "type": "static",
+     "content": "0 var(--spacing-lg)"
+    },
+    "color": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--color-on-surface",
+      "fallback": ""
+     }
+    },
+    "minWidth": {
+     "type": "static",
+     "content": "0"
+    },
+    "boxSizing": {
+     "type": "static",
+     "content": "border-box"
+    },
+    "minHeight": {
+     "type": "static",
+     "content": "2.75rem"
+    },
+    "width": {
+     "type": "static",
+     "content": "100%"
+    },
+    "fontFamily": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-family-body",
+      "fallback": ""
+     }
+    },
+    "fontSize": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-size-base",
+      "fallback": ""
+     }
+    },
+    "lineHeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--line-height-body",
+      "fallback": ""
+     }
+    },
+    "transition": {
+     "type": "static",
+     "content": "border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease"
+    }
+   },
+   "conditions": []
+  },
+  "input": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "backgroundColor": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-light",
+      "fallback": ""
+     }
+    },
+    "borderColor": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-dark",
+      "fallback": ""
+     }
+    },
+    "color": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-dark",
+      "fallback": ""
+     }
+    },
+    "borderWidth": {
+     "type": "static",
+     "content": "1px"
+    },
+    "borderRadius": {
+     "type": "static",
+     "content": "4px"
+    },
+    "padding": {
+     "type": "static",
+     "content": "0.5rem 1rem"
+    },
+    "cursor": {
+     "type": "static",
+     "content": "auto"
+    }
+   },
+   "conditions": []
+  },
+  "button": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "display": {
+     "type": "static",
+     "content": "inline-block"
+    },
+    "backgroundColor": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-light",
+      "fallback": ""
+     }
+    },
+    "color": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-dark",
+      "fallback": ""
+     }
+    },
+    "borderRadius": {
+     "type": "static",
+     "content": "4px"
+    },
+    "borderColor": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--dl-color-theme-neutral-dark",
+      "fallback": ""
+     }
+    },
+    "borderWidth": {
+     "type": "static",
+     "content": "1px"
+    },
+    "padding": {
+     "type": "static",
+     "content": "0.5rem 1rem"
+    }
+   },
+   "conditions": []
+  },
+  "btn": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "display": {
+     "type": "static",
+     "content": "inline-flex"
+    },
+    "alignItems": {
+     "type": "static",
+     "content": "center"
+    },
+    "justifyContent": {
+     "type": "static",
+     "content": "center"
+    },
+    "gap": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--spacing-xs",
+      "fallback": ""
+     }
+    },
+    "minHeight": {
+     "type": "static",
+     "content": "2.75rem"
+    },
+    "padding": {
+     "type": "static",
+     "content": "0 var(--spacing-lg)"
+    },
+    "fontFamily": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-family-body",
+      "fallback": ""
+     }
+    },
+    "fontSize": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-size-base",
+      "fallback": ""
+     }
+    },
+    "fontWeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-weight-medium",
+      "fallback": ""
+     }
+    },
+    "lineHeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--line-height-body",
+      "fallback": ""
+     }
+    },
+    "textTransform": {
+     "type": "static",
+     "content": "none"
+    },
+    "letterSpacing": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--letter-spacing-body",
+      "fallback": ""
+     }
+    },
+    "borderRadius": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--border-radius-md",
+      "fallback": ""
+     }
+    },
+    "boxShadow": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--shadow-level-1",
+      "fallback": ""
+     }
+    },
+    "border": {
+     "type": "static",
+     "content": "1px solid transparent"
+    },
+    "textAlign": {
+     "type": "static",
+     "content": "center"
+    },
+    "cursor": {
+     "type": "static",
+     "content": "pointer"
+    },
+    "textDecoration": {
+     "type": "static",
+     "content": "none"
+    },
+    "whiteSpace": {
+     "type": "static",
+     "content": "nowrap"
+    },
+    "boxSizing": {
+     "type": "static",
+     "content": "border-box"
+    },
+    "transition": {
+     "type": "static",
+     "content": "transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease-in-out, color 0.2s ease-in-out"
+    },
+    "userSelect": {
+     "type": "static",
+     "content": "none"
+    }
+   },
+   "conditions": []
+  },
+  "btn-lg": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "minHeight": {
+     "type": "static",
+     "content": "calc(2.75rem + 0.5rem)"
+    },
+    "padding": {
+     "type": "static",
+     "content": "0 var(--spacing-lg)"
+    },
+    "fontSize": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-size-lg",
+      "fallback": ""
+     }
+    }
+   },
+   "conditions": []
+  },
+  "section-title": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "fontSize": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-size-3xl",
+      "fallback": ""
+     }
+    },
+    "fontFamily": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-family-heading",
+      "fallback": ""
+     }
+    },
+    "fontWeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-weight-heading",
+      "fallback": ""
+     }
+    },
+    "lineHeight": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--line-height-heading",
+      "fallback": ""
+     }
+    },
+    "letterSpacing": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--letter-spacing-heading",
+      "fallback": ""
+     }
+    },
+    "textTransform": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--text-transform-heading",
+      "fallback": ""
+     }
+    },
+    "fontStyle": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--font-style-heading",
+      "fallback": ""
+     }
+    }
+   },
+   "conditions": []
+  },
+  "btn-secondary": {
+   "type": "reusable-project-style-map",
+   "content": {
+    "backgroundColor": {
+     "type": "static",
+     "content": "transparent"
+    },
+    "border": {
+     "type": "static",
+     "content": "1px solid var(--color-outline)"
+    },
+    "color": {
+     "type": "dynamic",
+     "content": {
+      "referenceType": "token",
+      "id": "--color-on-surface",
+      "fallback": ""
+     }
+    }
+   },
+   "conditions": []
+  }
+ },
+ "designLanguage": {
+  "tokens": {
+   "--dl-layout-size-xsmall": {
+    "type": "static",
+    "content": "16px"
+   },
+   "--dl-layout-size-small": {
+    "type": "static",
+    "content": "48px"
+   },
+   "--dl-layout-size-medium": {
+    "type": "static",
+    "content": "96px"
+   },
+   "--dl-layout-size-large": {
+    "type": "static",
+    "content": "144px"
+   },
+   "--dl-layout-size-xlarge": {
+    "type": "static",
+    "content": "192px"
+   },
+   "--dl-layout-size-xxlarge": {
+    "type": "static",
+    "content": "288px"
+   },
+   "--dl-layout-size-maxwidth": {
+    "type": "static",
+    "content": "1400px"
+   },
+   "--dl-layout-space-halfunit": {
+    "type": "static",
+    "content": "8px"
+   },
+   "--dl-layout-space-unit": {
+    "type": "static",
+    "content": "16px"
+   },
+   "--dl-layout-space-oneandhalfunits": {
+    "type": "static",
+    "content": "24px"
+   },
+   "--dl-layout-space-twounits": {
+    "type": "static",
+    "content": "32px"
+   },
+   "--dl-layout-space-threeunits": {
+    "type": "static",
+    "content": "48px"
+   },
+   "--dl-layout-space-fourunits": {
+    "type": "static",
+    "content": "64px"
+   },
+   "--dl-layout-space-fiveunits": {
+    "type": "static",
+    "content": "80px"
+   },
+   "--dl-layout-space-sixunits": {
+    "type": "static",
+    "content": "96px"
+   },
+   "--dl-layout-radius-radius2": {
+    "type": "static",
+    "content": "2px"
+   },
+   "--dl-layout-radius-radius4": {
+    "type": "static",
+    "content": "4px"
+   },
+   "--dl-layout-radius-radius8": {
+    "type": "static",
+    "content": "8px"
+   },
+   "--dl-layout-radius-round": {
+    "type": "static",
+    "content": "50%"
+   },
+   "--dl-color-theme-primary1": {
+    "type": "static",
+    "content": "#BF4408"
+   },
+   "--dl-color-theme-primary2": {
+    "type": "static",
+    "content": "#E65103"
+   },
+   "--dl-color-theme-secondary1": {
+    "type": "static",
+    "content": "#FFFFFF"
+   },
+   "--dl-color-theme-secondary2": {
+    "type": "static",
+    "content": "#FBF1EB"
+   },
+   "--dl-color-theme-accent1": {
+    "type": "static",
+    "content": "#FFFFFF"
+   },
+   "--dl-color-theme-accent2": {
+    "type": "static",
+    "content": "#F5D1B0"
+   },
+   "--dl-color-theme-neutral-dark": {
+    "type": "static",
+    "content": "#191818"
+   },
+   "--dl-color-theme-neutral-light": {
+    "type": "static",
+    "content": "#FBFAF9"
+   },
+   "--dl-layout-radius-buttonradius": {
+    "type": "static",
+    "content": "24px"
+   },
+   "--dl-layout-radius-inputradius": {
+    "type": "static",
+    "content": "24px"
+   },
+   "--dl-layout-radius-cardradius": {
+    "type": "static",
+    "content": "8px"
+   },
+   "--dl-layout-radius-imageradius": {
+    "type": "static",
+    "content": "8px"
+   },
+   "--color-primary": {
+    "type": "static",
+    "content": "#4f7a78"
+   },
+   "--color-on-primary": {
+    "type": "static",
+    "content": "#ffffff"
+   },
+   "--color-secondary": {
+    "type": "static",
+    "content": "#bfb7ae"
+   },
+   "--color-on-secondary": {
+    "type": "static",
+    "content": "#111111"
+   },
+   "--color-accent": {
+    "type": "static",
+    "content": "#4f7a78"
+   },
+   "--color-on-accent": {
+    "type": "static",
+    "content": "#ffffff"
+   },
+   "--color-neutral": {
+    "type": "static",
+    "content": "#cbc5c0"
+   },
+   "--color-surface": {
+    "type": "static",
+    "content": "#fffaf6"
+   },
+   "--color-surface-elevated": {
+    "type": "static",
+    "content": "color-mix(in oklab, var(--color-surface) 92%, var(--color-secondary))"
+   },
+   "--color-surface-tint": {
+    "type": "static",
+    "content": "color-mix(in oklab, var(--color-surface) 92%, var(--color-primary))"
+   },
+   "--color-on-surface": {
+    "type": "static",
+    "content": "#141414"
+   },
+   "--color-on-surface-secondary": {
+    "type": "static",
+    "content": "#4c4743"
+   },
+   "--color-border": {
+    "type": "static",
+    "content": "#988c83"
+   },
+   "--color-outline": {
+    "type": "static",
+    "content": "#bfb7ae"
+   },
+   "--color-overlay": {
+    "type": "static",
+    "content": "color-mix(in oklab, #000000 40%, transparent)"
+   },
+   "--color-backplate": {
+    "type": "static",
+    "content": "color-mix(in oklab, #000000 55%, transparent)"
+   },
+   "--color-scrim": {
+    "type": "static",
+    "content": "color-mix(in oklab, #000000 65%, transparent)"
+   },
+   "--spacing-xs": {
+    "type": "static",
+    "content": "0.25rem"
+   },
+   "--spacing-sm": {
+    "type": "static",
+    "content": "0.5rem"
+   },
+   "--spacing-md": {
+    "type": "static",
+    "content": "0.75rem"
+   },
+   "--spacing-lg": {
+    "type": "static",
+    "content": "1rem"
+   },
+   "--spacing-xl": {
+    "type": "static",
+    "content": "1.5rem"
+   },
+   "--spacing-2xl": {
+    "type": "static",
+    "content": "2.25rem"
+   },
+   "--spacing-3xl": {
+    "type": "static",
+    "content": "clamp(1.45rem, 4vw, 3rem)"
+   },
+   "--spacing-4xl": {
+    "type": "static",
+    "content": "clamp(1.67rem, 6vw, 4.5rem)"
+   },
+   "--font-family-heading": {
+    "type": "static",
+    "content": "\"Playfair Display\", serif"
+   },
+   "--font-family-body": {
+    "type": "static",
+    "content": "\"Plus Jakarta Sans\", system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+   },
+   "--font-size-base": {
+    "type": "static",
+    "content": "1rem"
+   },
+   "--font-size-xs": {
+    "type": "static",
+    "content": "clamp(0.75rem, 0.9rem, 0.9rem)"
+   },
+   "--font-size-sm": {
+    "type": "static",
+    "content": "clamp(0.875rem, 1rem, 1rem)"
+   },
+   "--font-size-lg": {
+    "type": "static",
+    "content": "clamp(1.125rem, 1.3rem, 1.4rem)"
+   },
+   "--font-size-xl": {
+    "type": "static",
+    "content": "clamp(1.375rem, 1.6rem, 1.8rem)"
+   },
+   "--font-size-2xl": {
+    "type": "static",
+    "content": "clamp(1.6rem, 1.95rem, 2.2rem)"
+   },
+   "--font-size-3xl": {
+    "type": "static",
+    "content": "clamp(2.2rem, 3rem, 3.2rem)"
+   },
+   "--font-size-4xl": {
+    "type": "static",
+    "content": "clamp(3rem, 4.2rem, 5rem)"
+   },
+   "--font-weight-heading": {
+    "type": "static",
+    "content": "600"
+   },
+   "--font-weight-body": {
+    "type": "static",
+    "content": "400"
+   },
+   "--font-weight-medium": {
+    "type": "static",
+    "content": "500"
+   },
+   "--line-height-heading": {
+    "type": "static",
+    "content": "1.25"
+   },
+   "--line-height-body": {
+    "type": "static",
+    "content": "1.6"
+   },
+   "--letter-spacing-heading": {
+    "type": "static",
+    "content": "0"
+   },
+   "--letter-spacing-body": {
+    "type": "static",
+    "content": "0.01em"
+   },
+   "--text-transform-heading": {
+    "type": "static",
+    "content": "none"
+   },
+   "--font-style-heading": {
+    "type": "static",
+    "content": "normal"
+   },
+   "--font-style-subheading": {
+    "type": "static",
+    "content": "normal"
+   },
+   "--border-radius-none": {
+    "type": "static",
+    "content": "0px"
+   },
+   "--border-radius-sm": {
+    "type": "static",
+    "content": "8px"
+   },
+   "--border-radius-md": {
+    "type": "static",
+    "content": "16px"
+   },
+   "--border-radius-lg": {
+    "type": "static",
+    "content": "28px"
+   },
+   "--border-radius-xl": {
+    "type": "static",
+    "content": "40px"
+   },
+   "--border-radius-full": {
+    "type": "static",
+    "content": "9999px"
+   },
+   "--border-radius-control": {
+    "type": "static",
+    "content": "var(--border-radius-md)"
+   },
+   "--border-radius-card": {
+    "type": "static",
+    "content": "var(--border-radius-lg)"
+   },
+   "--shadow-level-1": {
+    "type": "static",
+    "content": "0 6px 18px color-mix(in oklab, var(--color-neutral) 8%, transparent)"
+   },
+   "--shadow-level-2": {
+    "type": "static",
+    "content": "0 10px 30px color-mix(in oklab, var(--color-neutral) 12%, transparent)"
+   },
+   "--shadow-level-3": {
+    "type": "static",
+    "content": "0 24px 60px color-mix(in oklab, var(--color-neutral) 20%, transparent)"
+   },
+   "--content-max-width": {
+    "type": "static",
+    "content": "72rem"
+   },
+   "--divider-value": {
+    "type": "static",
+    "content": "0px none var(--color-neutral)"
+   },
+   "--dashboard-content-max-width": {
+    "type": "static",
+    "content": "48rem"
+   },
+   "--blur-level-1": {
+    "type": "static",
+    "content": "6px"
+   },
+   "--blur-level-2": {
+    "type": "static",
+    "content": "14px"
+   },
+   "--blur-level-3": {
+    "type": "static",
+    "content": "24px"
+   }
+  }
+ }
+}

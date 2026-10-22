@@ -25,6 +25,7 @@ import * as SessionCookieResolver from './utils/session-cookie-resolver'
 import * as SubscriptionAccess from './utils/subscription-access'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
+import * as EmailSender from './utils/email-sender'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as RichTextContent from './utils/rich-text-content'
@@ -67,6 +68,7 @@ export {
   SubscriptionAccess,
   FontPreconnect,
   EmailDate,
+  EmailSender,
   RichTextEmbeds,
   RichTextEmbedsCodegen,
   RichTextContent,

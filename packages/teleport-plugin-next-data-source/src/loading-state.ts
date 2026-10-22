@@ -52,6 +52,14 @@ import { findCachedFetchNetworkChain } from './cache/ast'
  * Nothing changes for a provider that is idle or mounting: `isFetching` starts
  * at `false`, so the server render and the first client render are identical
  * (no hydration mismatch) and the `initialData` fast path is untouched.
+ *
+ * An appending list (infinite scroll, Load more) is the exception to "show the
+ * loading slot while a request is in flight": its next page belongs BELOW the
+ * rows on show. Swapping those rows for the loading slot until the page arrived
+ * collapsed the list on every append — the page jumped up under the visitor's
+ * scroll. Such a list also tracks whether the request in flight only appends
+ * (`isAppendingVar`) and keeps its rows through it; the loading slot replaces
+ * them only when the list loads afresh (a filter, sort or search change).
  */
 
 export interface LoadingStateVars {
@@ -80,6 +88,13 @@ export interface LoadingStateVars {
   fetchSeqRefVar: string
   /** Ref holding the rows of the newest request that settled — what an overtaken one resolves with. */
   latestDataRefVar: string
+  /**
+   * Boolean state of an appending list: `true` while the request it made last
+   * adds a page to the rows on show, so they stay there through it.
+   */
+  isAppendingVar: string
+  /** Setter for `isAppendingVar`. */
+  setIsAppendingVar: string
 }
 
 export function getLoadingStateVars(index: number): LoadingStateVars {
@@ -89,6 +104,8 @@ export function getLoadingStateVars(index: number): LoadingStateVars {
     inFlightRefVar: `ds_${index}_fetchesInFlight`,
     fetchSeqRefVar: `ds_${index}_fetchSeq`,
     latestDataRefVar: `ds_${index}_latestData`,
+    isAppendingVar: `ds_${index}_isAppending`,
+    setIsAppendingVar: `setDs_${index}_isAppending`,
   }
 }
 
@@ -97,14 +114,18 @@ export function getLoadingStateVars(index: number): LoadingStateVars {
  * `const ds_N_fetchSeq = useRef(0)`
  * `const ds_N_latestData = useRef(undefined)`
  * `const [ds_N_isFetching, setDs_N_isFetching] = useState(false)`
+ * `const [ds_N_isAppending, setDs_N_isAppending] = useState(false)` (an appending list)
  *
  * All are stable across renders (ref objects and a `useState` setter), which
  * is what lets the wrapped `fetchData` keep its empty `useCallback` dependency
  * array — a changing `fetchData` identity would retrigger the provider's fetch
  * effect on every render.
  */
-export function buildLoadingStateDeclarations(vars: LoadingStateVars): types.Statement[] {
-  return [
+export function buildLoadingStateDeclarations(
+  vars: LoadingStateVars,
+  appends: boolean = false
+): types.Statement[] {
+  const declarations: types.Statement[] = [
     types.variableDeclaration('const', [
       types.variableDeclarator(
         types.identifier(vars.inFlightRefVar),
@@ -133,6 +154,20 @@ export function buildLoadingStateDeclarations(vars: LoadingStateVars): types.Sta
       ),
     ]),
   ]
+  if (appends) {
+    declarations.push(
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.arrayPattern([
+            types.identifier(vars.isAppendingVar),
+            types.identifier(vars.setIsAppendingVar),
+          ]),
+          types.callExpression(types.identifier('useState'), [types.booleanLiteral(false)])
+        ),
+      ])
+    )
+  }
+  return declarations
 }
 
 /**
@@ -146,11 +181,17 @@ export function buildLoadingStateDeclarations(vars: LoadingStateVars): types.Sta
  *   - `fetchData` missing, not memoized, or not an expression-bodied promise
  *     chain — see `findMemoizedFetchDataArrow`.
  *   - already wired — keeps a second pass over the same AST idempotent.
+ *
+ * `appendingRequest` makes it an appending list's: the expression telling,
+ * inside `fetchData`, whether the request about to be made only adds a page to
+ * the rows on show (see `isAppendingVar`). The caller declares the state with
+ * `buildLoadingStateDeclarations(vars, true)`.
  */
 export function applyLoadingStateToDataProvider(
   // tslint:disable-next-line:no-any
   dataProvider: any,
-  vars: LoadingStateVars
+  vars: LoadingStateVars,
+  appendingRequest?: types.Expression
 ): boolean {
   const attributes = dataProvider?.openingElement?.attributes
   if (!Array.isArray(attributes)) {
@@ -172,16 +213,16 @@ export function applyLoadingStateToDataProvider(
   }
 
   if (fetchArrow.body.type === 'CallExpression') {
-    fetchArrow.body = buildTrackedFetchBody(fetchArrow.body, vars)
+    fetchArrow.body = buildTrackedFetchBody(fetchArrow.body, vars, appendingRequest)
   } else if (fetchArrow.body.type === 'BlockStatement') {
-    if (!injectTrackingIntoCachedBody(fetchArrow.body, vars)) {
+    if (!injectTrackingIntoCachedBody(fetchArrow.body, vars, appendingRequest)) {
       return false
     }
   } else {
     return false
   }
 
-  setPersistDataDuringLoading(attributes, vars)
+  setPersistDataDuringLoading(attributes, vars, !!appendingRequest)
 
   return true
 }
@@ -199,7 +240,11 @@ export function applyLoadingStateToDataProvider(
  * Returns `false` when the body is not the shape this module knows how to wrap,
  * so the caller emits no state declarations rather than half-wiring it.
  */
-function injectTrackingIntoCachedBody(body: types.BlockStatement, vars: LoadingStateVars): boolean {
+function injectTrackingIntoCachedBody(
+  body: types.BlockStatement,
+  vars: LoadingStateVars,
+  appendingRequest?: types.Expression
+): boolean {
   // Idempotent: a second pass over the same AST must not double-count.
   if (containsIdentifier(body, vars.setIsFetchingVar)) {
     return false
@@ -210,7 +255,11 @@ function injectTrackingIntoCachedBody(body: types.BlockStatement, vars: LoadingS
     return false
   }
 
-  const tracked = buildTrackedFetchBody(networkChain.statement.argument as types.Expression, vars)
+  const tracked = buildTrackedFetchBody(
+    networkChain.statement.argument as types.Expression,
+    vars,
+    appendingRequest
+  )
   body.body.splice(networkChain.index, 1, ...tracked.body)
   markCacheHitAsNewest(body, vars)
 
@@ -363,10 +412,14 @@ function findMemoizedFetchDataArrow(
  * `fetchExpression` is the `fetch(...).then(...).then(...)` chain the generator
  * emitted, so `.finally` is always available on it — the caller only reaches
  * here for a call-expression body.
+ *
+ * An appending list also records, as the flag goes up, whether this request
+ * only appends — `setDs_N_isAppending(<appendingRequest>)`, batched with it.
  */
 function buildTrackedFetchBody(
   fetchExpression: types.Expression,
-  vars: LoadingStateVars
+  vars: LoadingStateVars,
+  appendingRequest?: types.Expression
 ): types.BlockStatement {
   const inFlightCount = types.memberExpression(
     types.identifier(vars.inFlightRefVar),
@@ -456,6 +509,15 @@ function buildTrackedFetchBody(
         types.numericLiteral(1)
       )
     ),
+    ...(appendingRequest
+      ? [
+          types.expressionStatement(
+            types.callExpression(types.identifier(vars.setIsAppendingVar), [
+              types.cloneNode(appendingRequest, true),
+            ])
+          ),
+        ]
+      : []),
     types.expressionStatement(
       types.callExpression(types.identifier(vars.setIsFetchingVar), [types.booleanLiteral(true)])
     ),
@@ -467,13 +529,23 @@ function buildTrackedFetchBody(
   ])
 }
 
-/** `persistDataDuringLoading={!ds_N_isFetching}`, replacing any existing value. */
-// tslint:disable-next-line:no-any
-function setPersistDataDuringLoading(attributes: any[], vars: LoadingStateVars): void {
+/**
+ * `persistDataDuringLoading={!ds_N_isFetching}` — or, for an appending list,
+ * `{!ds_N_isFetching || ds_N_isAppending}` — replacing any existing value.
+ */
+function setPersistDataDuringLoading(
+  // tslint:disable-next-line:no-any
+  attributes: any[],
+  vars: LoadingStateVars,
+  appends: boolean
+): void {
+  const notFetching = types.unaryExpression('!', types.identifier(vars.isFetchingVar), true)
   const attribute = types.jsxAttribute(
     types.jsxIdentifier('persistDataDuringLoading'),
     types.jsxExpressionContainer(
-      types.unaryExpression('!', types.identifier(vars.isFetchingVar), true)
+      appends
+        ? types.logicalExpression('||', notFetching, types.identifier(vars.isAppendingVar))
+        : notFetching
     )
   )
 

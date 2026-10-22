@@ -2,32 +2,11 @@ import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/tel
 import { TRACKER_SOURCE } from './tracker-source'
 import { buildTrackerComponentSource } from './tracker-component'
 import { injectSiblingIntoApp } from '../app-sibling-injection'
+import { loadsGoogleTag } from './google-consent-mode'
 
 const ENV_URL_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_URL'
 const ENV_PUBLIC_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY'
 const TELEPORT_SECRETS_PREFIX = 'teleporthq.secrets.'
-
-/** Host both the gtag script and the Tag Manager container are loaded from. */
-const GOOGLE_TAG_HOST = 'googletagmanager.com'
-/** The array both of them push into, and the one the mirror writes to. */
-const DATA_LAYER_GLOBAL = 'dataLayer'
-
-/**
- * True when the project already loads something that reads `window.dataLayer` —
- * a Google Analytics tag or a Tag Manager container, injected as script assets
- * by the GUI's project mapper from the merchant's own ids.
- */
-function hasDataLayerConsumer(uidl: ProjectPluginStructure['uidl']): boolean {
-  const assets = uidl.globals?.assets ?? []
-  return assets.some((asset) => {
-    if (asset.type !== 'script') {
-      return false
-    }
-    const path = 'path' in asset && typeof asset.path === 'string' ? asset.path : ''
-    const content = 'content' in asset && typeof asset.content === 'string' ? asset.content : ''
-    return path.indexOf(GOOGLE_TAG_HOST) !== -1 || content.indexOf(DATA_LAYER_GLOBAL) !== -1
-  })
-}
 
 // Growth visitor analytics. When `uidl.analytics.enabled` is set (paid plan +
 // analytics on at publish time), the published project ships a tiny
@@ -54,7 +33,7 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
     const { uidl, files } = structure
 
     const teleportAnalyticsEnabled = !!uidl.analytics?.enabled
-    if (!teleportAnalyticsEnabled && !hasDataLayerConsumer(uidl)) {
+    if (!teleportAnalyticsEnabled && !loadsGoogleTag(uidl)) {
       return structure
     }
 

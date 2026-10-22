@@ -38,6 +38,16 @@ import { DataCache, TableAccess } from '@teleporthq/teleport-shared'
 import type { DataSourceServerCacheOptions } from './cache/types'
 import { isViewDependentTable } from './fetchers/utils/browser-row-policy'
 
+/** `public."users"` → `users`: the table a spelling names. */
+const bareTableName = (tableName: string): string =>
+  (
+    String(tableName || '')
+      .trim()
+      .toLowerCase()
+      .split('.')
+      .pop() || ''
+  ).replace(/"/g, '')
+
 export { generateRawQueryFetcher, parseQueryTemplateVariables }
 
 interface DataSourceFetcherDependencies {
@@ -337,6 +347,12 @@ const __tqViewDependent = ${JSON.stringify(
           ...Object.keys(TableAccess.PUBLIC_FEED_TABLES),
         ])
       )}
+// The members' public profiles a page reads (see __BRP_PUBLIC_PROFILE) are never
+// a visitor's answer — a browser is served no row of the table — so they are
+// read fresh, never kept where a browser's request could be answered from.
+const __tqProfileTable = ${JSON.stringify(
+        TableAccess.AUTH_CREDENTIAL_TABLES.indexOf(bareTableName(tableName)) !== -1
+      )}
 function __tqCacheByView(fn, opts) {
   const publicView = tqWithCache(fn, opts)
   const trustedView = tqWithCache(fn, Object.assign({}, opts, {
@@ -346,6 +362,7 @@ function __tqCacheByView(fn, opts) {
     swr: 0,
   }))
   return async function (req, res) {
+    if (__tqProfileTable && __taIsVisitorView(req)) return fn(req, res)
     return (await __brpSharesPublicView(req, __tqViewDependent)) ? publicView(req, res) : trustedView(req, res)
   }
 }
@@ -379,15 +396,21 @@ export default { fetchData, fetchCount, handler: ${handlerExport}, getCount: ${c
 
   return `${[...allImports, cachePreamble].filter(Boolean).join('\n')}
 
-async function fetchData(params = {}) {
-  // A server-side call from this process (getStaticProps, a page-load
-  // workflow): the money-table guard trusts the marker, which no HTTP request
-  // can carry.
-  const req = {
-    query: params,
-    method: 'GET',
-    __tqServerCall: true,
+// Who a call from this process reads for. The store's own server code — a
+// workflow, pricing, checkout — reads every row: its request carries a marker
+// the guards trust, which no HTTP request can. A page renders what a visitor
+// may see, so its data is read \`{ as: 'visitor' }\`: the route answers it as it
+// answers an anonymous visitor's browser — the row policy, the refused tables,
+// the hidden columns — through the statement the page itself wrote.
+function __tqServerRequest(params, options) {
+  if (options && options.as === 'visitor') {
+    return { query: params, method: 'GET', headers: {}, __tqVisitorView: true }
   }
+  return { query: params, method: 'GET', __tqServerCall: true }
+}
+
+async function fetchData(params = {}, options = {}) {
+  const req = __tqServerRequest(params, options)
   
   let result = null
   let statusCode = 200
@@ -412,12 +435,8 @@ async function fetchData(params = {}) {
   return result.data
 }
 
-async function fetchCount(params = {}) {
-  const req = {
-    query: params,
-    method: 'GET',
-    __tqServerCall: true,
-  }
+async function fetchCount(params = {}, options = {}) {
+  const req = __tqServerRequest(params, options)
   
   let result = null
   let statusCode = 200

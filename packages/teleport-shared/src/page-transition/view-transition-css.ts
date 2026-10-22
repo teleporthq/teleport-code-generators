@@ -18,13 +18,16 @@ import * as PageTransition from './variants'
  *          arriving page; the first animates over [0, D], the second waits D
  *          and animates over [D, 2D]. Same order, same timing.
  *
- * The reveals (Circle, the Wipes) are the exception, in both exports: the
- * arriving page is revealed OVER the leaving one, which holds still underneath
- * for the whole run. Played one after the other, the leaving page was wiped
- * away to the site's bare background and the arriving one wiped in over it —
- * a white sheet between every two pages. Here the leaving picture keeps no
- * animation (the browser would otherwise fade it out under the arriving one)
- * and the arriving picture opens over [0, D].
+ * The reveals (Circle, the Wipes) and the dissolves (Fade, Crossfade) are the
+ * exception, in both exports: the arriving page comes in OVER the leaving one,
+ * which holds still underneath for the whole run. Played one after the other,
+ * the leaving page was wiped or faded away to the site's bare background before
+ * the arriving one came in — an empty screen between every two pages. Here the
+ * leaving picture keeps no animation (the browser would otherwise fade it out
+ * under the arriving one) and the arriving picture comes in over [0, D]. A
+ * picture of a page is opaque (the site's background included), so a dissolve
+ * shows the two pages mixed and never the background between them; faded both
+ * at once, the background showed through the two.
  *
  * A browser without the feature (Firefox today) simply navigates, which is
  * also what a visitor who asked for less motion gets.
@@ -81,6 +84,10 @@ const COVER_CLIPS: Record<string, { covered: string; opening: string }> = {
 }
 const OPEN = 'inset(0 0 0 0)'
 
+/** A dissolve (Fade, Crossfade): the arriving page fades in over the leaving one, which holds. */
+export const pageTransitionDissolves = (preset: string): boolean =>
+  preset === 'fade' || preset === 'crossfade'
+
 interface Animations {
   leave: [State, State]
   arrive: [State, State]
@@ -128,6 +135,8 @@ export interface ViewTransitionPlan {
   flies: boolean
   /** The arriving page is revealed over the leaving one, which holds (Circle, the Wipes). */
   revealsOver: boolean
+  /** The arriving page comes in over the leaving one, which holds: a reveal, or a dissolve (Fade, Crossfade). */
+  arrivesOver: boolean
 }
 
 export const viewTransitionPlan = (
@@ -170,20 +179,21 @@ export const viewTransitionPlan = (
     : null
 
   const timing = `${duration}s cubic-bezier(${curve.join(', ')})`
-  // A reveal opens the arriving page over the leaving one: only the arrival
-  // animates, from the start, and the leaving picture just stays.
+  // A reveal or a dissolve brings the arriving page in over the leaving one:
+  // only the arrival animates, from the start, and the leaving picture just stays.
   const revealsOver = !COVER_CLIPS[preset] && forward.arrive[1].clipPath !== undefined
-  const arriveTiming = revealsOver ? `${timing} both` : `${timing} ${duration}s both`
+  const arrivesOver = revealsOver || pageTransitionDissolves(preset)
+  const arriveTiming = arrivesOver ? `${timing} both` : `${timing} ${duration}s both`
   const rules = [
     // Opting every page in is for page-to-page navigations only; a single-page
     // app starts its own transitions and must not turn full reloads into them.
     ...(target.crossDocument ? ['@view-transition {\n  navigation: auto;\n}'] : []),
     '::view-transition-old(root),\n::view-transition-new(root) {\n  mix-blend-mode: normal;\n}',
-    revealsOver
+    arrivesOver
       ? '::view-transition-old(root) {\n  animation: none;\n}'
       : `::view-transition-old(root) {\n  animation: tq-page-leave ${timing} both;\n}`,
     `::view-transition-new(root) {\n  animation: tq-page-arrive ${arriveTiming};\n}`,
-    ...(revealsOver ? [] : [keyframes('tq-page-leave', forward.leave[0], forward.leave[1])]),
+    ...(arrivesOver ? [] : [keyframes('tq-page-leave', forward.leave[0], forward.leave[1])]),
     keyframes('tq-page-arrive', forward.arrive[0], forward.arrive[1]),
   ]
   if (COVER_CLIPS[preset]) {
@@ -194,14 +204,14 @@ export const viewTransitionPlan = (
     )
   }
   if (back) {
-    if (!revealsOver) {
+    if (!arrivesOver) {
       rules.push(
         `html[${BACK_ATTR}="back"]::view-transition-old(root) {\n  animation-name: tq-page-leave-back;\n}`
       )
     }
     rules.push(
       `html[${BACK_ATTR}="back"]::view-transition-new(root) {\n  animation-name: tq-page-arrive-back;\n}`,
-      ...(revealsOver ? [] : [keyframes('tq-page-leave-back', back.leave[0], back.leave[1])]),
+      ...(arrivesOver ? [] : [keyframes('tq-page-leave-back', back.leave[0], back.leave[1])]),
       keyframes('tq-page-arrive-back', back.arrive[0], back.arrive[1])
     )
   }
@@ -212,13 +222,13 @@ export const viewTransitionPlan = (
   // with its page instead of lingering over the next one.
   const flies = config.flyingPictures !== false
   if (flies) {
-    const flight = revealsOver ? duration : duration * 2
+    const flight = arrivesOver ? duration : duration * 2
     rules.push(
       `::view-transition-group(${MORPH_NAME}) {\n  animation-duration: ${flight}s;\n  animation-timing-function: cubic-bezier(${curve.join(
         ', '
       )});\n}`,
       `::view-transition-old(${MORPH_NAME}),\n::view-transition-new(${MORPH_NAME}) {\n  height: 100%;\n  object-fit: cover;\n  overflow: clip;\n  animation-duration: ${flight}s;\n}`,
-      revealsOver
+      arrivesOver
         ? `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-morph-away ${timing} both;\n}`
         : `::view-transition-old(${MORPH_NAME}):only-child {\n  animation: tq-page-leave ${timing} both, tq-morph-away ${timing} both;\n}`,
       `::view-transition-new(${MORPH_NAME}):only-child {\n  animation: tq-page-arrive ${arriveTiming}, tq-morph-in ${arriveTiming};\n}`,
@@ -233,5 +243,6 @@ export const viewTransitionPlan = (
     needsOrigin,
     flies,
     revealsOver,
+    arrivesOver,
   }
 }

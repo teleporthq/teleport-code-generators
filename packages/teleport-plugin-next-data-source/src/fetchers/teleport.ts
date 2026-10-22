@@ -316,7 +316,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     // \`fetchData({ rawQuery })\` and expect it to execute verbatim.
     if (req.query && typeof req.query.rawQuery === 'string' && req.query.rawQuery.length > 0) {
       assertRawQuerySafe(req.query.rawQuery)
-      const rawResult = await client.query(req.query.rawQuery)
+      // A page's own statement, read for a visitor, runs over the rows a
+      // visitor is served of every narrowed table it names.
+      const rawSql = __rowAccess.narrowRaw ? __brpNarrowRawQuery(req.query.rawQuery) : req.query.rawQuery
+      const rawResult = await client.query(rawSql)
       const rawRows = Array.isArray(rawResult?.rows) ? rawResult.rows : []
       const rawPlain = rawRows.map((row) =>
         row && typeof row.toJSON === 'function' ? row.toJSON() : row
@@ -326,7 +329,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
         success: true,
         // Every row here ends up in a browser (a page's props or a client
         // refetch), so no credential column survives, whatever joined it.
-        data: __taWithoutCredentials(rawSafe, null),
+        data: __taWithoutCredentials(
+          __rowAccess.narrowRaw ? __brpStripHiddenOfRaw(req.query.rawQuery, rawSafe) : rawSafe,
+          null
+        ),
         timestamp: Date.now()
       })
     }

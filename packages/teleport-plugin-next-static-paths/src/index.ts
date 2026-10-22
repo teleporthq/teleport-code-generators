@@ -17,6 +17,7 @@ interface StaticPropsPluginConfig {
 
 const {
   isDynamicRoute,
+  pageDataReadArguments,
   pageHasSameTableMutationWorkflow,
   pageReadsProtectedTable,
   pageSeedsStateFromDataSource,
@@ -166,12 +167,17 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       return structure
     }
 
+    // Only the rows the page's reader may see become pages: a visitor's, unless
+    // only the store's trusted readers can open the page.
     const getStaticPathsAST = generateInitialPathsAST(
       uidl.outputOptions.initialPathsData,
       resourceImportName,
       resource,
       uidl.outputOptions.pagination,
-      uidl.outputOptions.dynamicRouteAttribute
+      uidl.outputOptions.dynamicRouteAttribute,
+      // A resource the project generated forwards it to the data-source module;
+      // another package's function takes its own arguments.
+      isLocalResource ? pageDataReadArguments(uidl, options.auth) : []
     )
 
     chunks.push({

@@ -1,4 +1,5 @@
 import { UIDLInvoiceEmailDelivery } from '@teleporthq/teleport-types'
+import { EmailSender } from '@teleporthq/teleport-shared'
 
 export const generateEmailSenderCode = (emailDelivery: UIDLInvoiceEmailDelivery): string => {
   if (!emailDelivery || !emailDelivery.enabled || !emailDelivery.provider) {
@@ -33,6 +34,8 @@ var BODY_TEMPLATE = ${JSON.stringify(bodyTemplate)};
 // Per-language copies of the subject/body (main language excluded), chosen by
 // the locale the generate route resolved for the invoice (the order's).
 var LOCALIZED_TEMPLATES = ${JSON.stringify(localizedTemplates)};
+${EmailSender.generateEmailSenderHelperCode()}
+var SENDER = __emailSender(${JSON.stringify({ from: fromEmail, name: fromName })});
 
 function resolveSecretKey(keyName) {
   var envName = SECRET_KEYS[keyName];
@@ -52,7 +55,8 @@ function buildEmailData(invoiceData) {
     subject: replacePlaceholders(copy.subject, data),
     body: replacePlaceholders(copy.body, data),
     to: invoiceData.customerEmail || '',
-    from: ${JSON.stringify(fromName ? `${fromName} <${fromEmail}>` : fromEmail)},
+    from: SENDER.header,
+    sender: SENDER,
     templateData: data,
   };
 }
@@ -63,7 +67,9 @@ function attachmentName(invoiceData) {
 
 ${generateProviderSendFunction(emailDelivery.provider)}
 
-async function sendInvoiceEmail(invoiceData, pdfBuffer) {
+// sourceRef names the route that sent it in the ledger: the payment's
+// generate route unless the caller says otherwise.
+async function sendInvoiceEmail(invoiceData, pdfBuffer, sourceRef) {
   var emailData = buildEmailData(invoiceData);
   if (!emailData.to) return { success: false, error: 'No customer email provided' };
   var result;
@@ -77,6 +83,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
     audience: 'customer',
     to: emailData.to,
     from: emailData.from,
+    fromName: emailData.sender.name,
     subject: emailData.subject,
     html: emailData.body,
     payload: emailData.templateData,
@@ -91,7 +98,7 @@ async function sendInvoiceEmail(invoiceData, pdfBuffer) {
     status: result && result.success ? 'sent' : 'failed',
     error: result && !result.success ? result.error : null,
     source: 'invoice',
-    sourceRef: 'api/invoices/generate',
+    sourceRef: sourceRef || 'api/invoices/generate',
     orderId: invoiceData.orderId,
     referenceType: 'invoice',
     referenceId: invoiceData.id,
@@ -139,9 +146,12 @@ async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
     var apiKey = resolveSecretKey('apiKey');
     if (!apiKey) return { success: false, error: 'SendGrid API key not configured' };
     sgMail.setApiKey(apiKey);
+    // SendGrid reads a "Name <email>" string's name verbatim, quotes included,
+    // so a named sender goes as its two parts.
+    var sender = emailData.sender;
     var msg = {
       to: emailData.to,
-      from: emailData.from,
+      from: sender.name ? { email: sender.email, name: sender.name } : sender.email,
       subject: emailData.subject,
       html: emailData.body,
       attachments: [{
@@ -217,26 +227,6 @@ async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
 
     case 'mailersend':
       return `
-// Pulls "name" and "email" out of the RFC-5322-ish \`from\` string the
-// builder assembles. Three shapes in the wild:
-//   1. "Acme Billing <billing@acme.com>"  → name="Acme Billing",  email="billing@acme.com"
-//   2. "billing@acme.com"                  → name="",             email="billing@acme.com"
-//   3. ""                                   → {}, caller handles the fallback
-// The old implementation used naive \`.replace()\` chains that produced
-// \`name="billing@acme.com"\` in case (2) — MailerSend accepts that but the
-// email then appears in the recipient's client with itself as the sender
-// name, which is ugly. Kept as a pure helper (no fallbacks baked in) so
-// the caller decides what to do when a field is missing.
-function parseFromString(from) {
-  var str = String(from || '').trim();
-  if (!str) return { name: '', email: '' };
-  var m = /^(.*)<([^<>]+)>\\s*$/.exec(str);
-  if (m) {
-    return { name: m[1].trim(), email: m[2].trim() };
-  }
-  return { name: '', email: str };
-}
-
 async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
   var invoiceNumber = invoiceData && invoiceData.invoiceNumber ? invoiceData.invoiceNumber : '(no number)';
   try {
@@ -256,7 +246,7 @@ async function sendInvoiceEmailWithProvider(emailData, invoiceData, pdfBuffer) {
 
     var mailerSend = new MailerSend({ apiKey: apiKey });
 
-    var parsedFrom = parseFromString(emailData.from);
+    var parsedFrom = emailData.sender;
     if (!parsedFrom.email) {
       console.error('[invoice-email][mailersend] skip — from address is empty (set invoiceSettings.emailDelivery.fromEmail)');
       return { success: false, error: 'Sender email not configured' };

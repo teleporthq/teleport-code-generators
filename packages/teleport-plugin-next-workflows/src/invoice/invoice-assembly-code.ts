@@ -35,8 +35,9 @@ ${ProductOptions.generateProductOptionsHelperCode()}
 
 // The invoice details an order's metadata (JSON text) carries beside its
 // billing columns — the keys \`ORDER_BILLING_METADATA_KEYS\` (teleport-gui)
-// writes: the address in its parts and the buyer's tax or VAT number. Every
-// part is '' when the order has none or its metadata is no JSON object.
+// writes: the address in its parts, the company and the buyer's tax or VAT
+// number. Every part is '' when the order has none or its metadata is no JSON
+// object.
 function readOrderBillingMetadata(raw) {
   var parsed = raw;
   if (typeof raw === 'string') {
@@ -53,6 +54,7 @@ function readOrderBillingMetadata(raw) {
   }
   return {
     taxId: part('billingTaxId'),
+    company: part('billingCompany'),
     street: part('billingStreet'),
     city: part('billingCity'),
     postalCode: part('billingPostalCode'),
@@ -446,10 +448,11 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
   // who checked "bill to a different address" has both on the order.
   //
   // An order whose buyer gave invoice details of their own (a booking's
-  // "Add invoice details") carries them in its metadata as well: the address
-  // in its parts and the tax or VAT number. Those parts are the invoice's
-  // address — never mixed with a shipping address — and the number is the
-  // buyer's VAT.
+  // "Add invoice details", a store checkout's "Billing Details") carries them
+  // in its metadata as well: the address in its parts, the company and the tax
+  // or VAT number. Those parts are the invoice's address — never mixed with a
+  // shipping address — the company is printed under the buyer's name, and the
+  // number is the buyer's VAT.
   var orderRow = orderShippingSource;
   var orderBilling = readOrderBillingMetadata(orderRow.metadata);
   var billedApart = !!(orderBilling.street || orderBilling.city || orderBilling.country);
@@ -487,6 +490,7 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
     customerZip: body.customerZip || fallbackCustomerZip || '',
     customerCountry: body.customerCountry || fallbackCustomerCountry || '',
     customerVat: body.customerVat || orderBilling.taxId || '',
+    customerCompany: body.customerCompany || orderBilling.company || '',
     companyName: pdfGenerator.COMPANY_DETAILS.companyName || '',
     companyAddress: pdfGenerator.COMPANY_DETAILS.companyAddress || '',
     companyCity: pdfGenerator.COMPANY_DETAILS.companyCity || '',
