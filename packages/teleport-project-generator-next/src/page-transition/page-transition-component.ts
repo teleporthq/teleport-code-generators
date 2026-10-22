@@ -154,16 +154,17 @@ const PANELS = pageTransitionCover(PRESET)
 const SKIP_ROUTES = ${JSON.stringify(skipRoutes)}
 const INSTANT = { initial: {}, animate: {}, exit: {} }
 // A reveal (Circle, the Wipes): the arriving page opens over the leaving one.
-// Without View Transitions it runs frame by frame, framer writing each
-// clip-path onto the page: run by the browser (framer's default for clip-path),
-// the animation ends one frame before framer writes its last value, and for
-// that frame the page shows its starting clip — the whole page blinks away as
-// the reveal completes. An onUpdate handler, even one that does nothing, keeps
-// the animation in framer's own loop.
 const REVEAL = (() => {
   const variants = pageTransitionVariants(PRESET, SLIDE_PX, CENTER, OPTIONS, CUSTOM || undefined)
   return !!(variants && variants.animate.clipPath)
 })()
+// Every page change plays frame by frame, framer writing each value onto the
+// page. Run by the browser (framer's default for opacity, clip-path and
+// filter), an animation ends one frame before framer writes its last value,
+// and for that frame the page shows where it started: a reveal blinks away as
+// it completes, a page faded in over the leaving one turns clear and the
+// leaving page flashes back, a page that has left shows again. An onUpdate
+// handler, even one that does nothing, keeps the animation in framer's own loop.
 const stepByFrame = () => {}
 // A dissolve (Fade, Crossfade): the arriving page fades in over the leaving
 // one, which has no exit of its own — it holds still until the arrival is in.
@@ -654,7 +655,7 @@ const TqPageTransition = ({ children }) => {
         exit="exit"
         variants={variants}
         transition={{ duration: DURATION, ease: EASE }}
-        onUpdate={REVEAL ? stepByFrame : undefined}
+        onUpdate={stepByFrame}
         onAnimationComplete={onPageAnimationComplete}
         style={pageStyle}
         data-tq-page-transition={routeKey}
