@@ -313,8 +313,8 @@ const computePropsAST = (
 /**
  * The page, without its row: `{ props: { ...context?.params, <exposeAs>: null } }`.
  *
- * For a page whose reader is served no row of the table it shows (an account,
- * an order — see `TableAccess.isTableRefusedToVisitors`). Reading it as the
+ * For a page whose reader is served no row of the table it shows (an order, a
+ * gift card — see `TableAccess.pageDataReadsNoRowOf`). Reading it as the
  * store put another member's row in the page data of whoever opened the
  * address; reading it as the visitor is always refused, which would 404 the
  * page whatever else it shows.

@@ -2,7 +2,7 @@
 import type { UIDLAuthentication } from '@teleporthq/teleport-types'
 import {
   generateTableAccessHelperCode,
-  isTableRefusedToVisitors,
+  pageDataReadsNoRowOf,
   pageReadsAsStore,
 } from '../../src/utils/table-access'
 
@@ -105,13 +105,17 @@ describe('pageReadsAsStore', () => {
   })
 })
 
-describe('isTableRefusedToVisitors', () => {
+describe('pageDataReadsNoRowOf', () => {
   it('names the protected and the feed tables, however spelled', () => {
-    expect(isTableRefusedToVisitors('users')).toBe(true)
-    expect(isTableRefusedToVisitors('public.teleport_orders')).toBe(true)
-    expect(isTableRefusedToVisitors('"teleport_gift_cards"')).toBe(true)
-    expect(isTableRefusedToVisitors('teleport_products')).toBe(false)
-    expect(isTableRefusedToVisitors('teleport_blog_posts')).toBe(false)
+    expect(pageDataReadsNoRowOf('public.teleport_orders')).toBe(true)
+    expect(pageDataReadsNoRowOf('"teleport_gift_cards"')).toBe(true)
+    expect(pageDataReadsNoRowOf('teleport_products')).toBe(false)
+    expect(pageDataReadsNoRowOf('teleport_blog_posts')).toBe(false)
+  })
+
+  it('leaves out the members: a page reads their public profiles', () => {
+    expect(pageDataReadsNoRowOf('users')).toBe(false)
+    expect(pageDataReadsNoRowOf('public."users"')).toBe(false)
   })
 })
 
@@ -123,10 +127,15 @@ describe('the emitted guard, reading a page for a visitor', () => {
       '__tqSessionToken',
       `${generateTableAccessHelperCode({ trustedReaderRoles: ['admin'] })}
 return __taGuardRead`
-    )({ env: { NEXTAUTH_SECRET: 'server-secret' } }, async (req: unknown) => {
-      sessionReads.push(req)
-      return { sub: 'u1', role: 'admin' }
-    }) as (req: unknown, tableName: string, rawQuery: string | null) => Promise<unknown>
+    )(
+      { env: { NEXTAUTH_SECRET: 'server-secret' } },
+      async (req: { headers?: { cookie?: string } }) => {
+        sessionReads.push(req)
+        // A browser's session cookie, here simply the role it signs in.
+        const role = req?.headers?.cookie
+        return role ? { sub: 'u1', role } : null
+      }
+    ) as (req: unknown, tableName: string, rawQuery: string | null) => Promise<unknown>
     return { guardRead, sessionReads }
   }
   const pageRead = { query: {}, method: 'GET', headers: {}, __tqVisitorView: true }
@@ -140,7 +149,25 @@ return __taGuardRead`
     })
   })
 
-  it('refuses it every protected table, as nobody signed in', async () => {
+  it("lets it read the members' public profiles, through the structured read only", async () => {
+    const { guardRead, sessionReads } = bootGuard()
+    expect(await guardRead(pageRead, 'users', null)).toBeNull()
+    expect(await guardRead(pageRead, 'public.users', null)).toBeNull()
+    // A statement cannot be projected onto the public profile.
+    expect(await guardRead(pageRead, 'users', 'SELECT email FROM users')).toEqual({
+      status: 401,
+      message: 'Unauthenticated',
+    })
+    expect(sessionReads).toEqual([])
+    // A browser still reads the table only as a trusted role.
+    expect(await guardRead({ headers: {} }, 'users', null)).toMatchObject({ status: 401 })
+    expect(await guardRead({ headers: { cookie: 'user' } }, 'users', null)).toMatchObject({
+      status: 403,
+    })
+    expect(await guardRead({ headers: { cookie: 'admin' } }, 'users', null)).toBeNull()
+  })
+
+  it('refuses it every other protected table, as nobody signed in', async () => {
     const { guardRead, sessionReads } = bootGuard()
     expect(await guardRead(pageRead, 'teleport_orders', null)).toEqual({
       status: 401,

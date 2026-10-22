@@ -434,6 +434,79 @@ describe('products: a visitor reads the active products', () => {
   })
 })
 
+describe("members: a page carries a member's public profile, never their account", () => {
+  const MEMBER = {
+    id: 'u2',
+    name: 'Bo',
+    email: 'bo@example.com',
+    phone: '+40 700 000 000',
+    details: { address: '1 Main St' },
+    role: 'user',
+    password: 'hash',
+    access_token: 'token',
+    image: 'https://cdn.example.com/bo.png',
+    created_at: '2026-01-01T00:00:00.000Z',
+  }
+  const PRIVATE = [
+    'bo@example.com',
+    '+40 700',
+    '1 Main St',
+    'hash',
+    'token',
+    '"role"',
+    '2026-01-01',
+  ]
+  const byId = JSON.stringify([
+    { type: 'condition', source: 'id', destination: 'u2', operand: '=' },
+  ])
+
+  it('reads the profile a page shows: id, name and avatar only', async () => {
+    const users = bootTableRoute('users', { rows: [MEMBER] })
+    const rows = (await users.pageFetch({ filters: byId, limit: 1 })) as any[]
+
+    expect(rows).toEqual([{ id: 'u2', name: 'Bo', image: 'https://cdn.example.com/bo.png' }])
+    PRIVATE.forEach((value) => expect(JSON.stringify(rows)).not.toContain(value))
+    expect(mainQuery({ queries: users.queries } as RouteResult)).toBe(
+      'SELECT * FROM users WHERE id = $1 AND (TRUE) LIMIT 1'
+    )
+  })
+
+  it('never answers a filter, sort or search over a private column', async () => {
+    const users = bootTableRoute('users', { rows: [MEMBER] })
+    const email = JSON.stringify([
+      { type: 'condition', source: 'email', destination: 'bo@example.com', operand: '=' },
+    ])
+    await expect(users.pageFetch({ filters: email })).rejects.toThrow('email is not readable')
+    await expect(
+      users.pageFetch({ sorts: JSON.stringify([{ field: 'role', order: 'asc' }]) })
+    ).rejects.toThrow('role is not readable')
+    expect(users.queries).toEqual([])
+
+    await users.pageFetch({ query: 'bo', queryColumns: JSON.stringify(['name', 'email']) })
+    const searched = mainQuery({ queries: users.queries } as RouteResult)
+    expect(searched).toContain('"name"::text ILIKE')
+    expect(searched).not.toContain('"email"')
+  })
+
+  it("keeps a browser out, the admin's and the server's reads whole, and the profile out of every cache", async () => {
+    const users = bootTableRoute('users', {
+      rows: [MEMBER],
+      cache: { scope: 'ds-1:users', ttlSeconds: 60, sMaxAge: 30 },
+    })
+    expect((await users.run({})).status).toBe(401)
+    expect((await users.run({ session: { role: 'user' } })).status).toBe(403)
+    const admin = await users.run({ session: { role: 'admin' } })
+    expect(admin.body.data[0].email).toBe('bo@example.com')
+    expect(((await users.serverFetch()) as any[])[0].email).toBe('bo@example.com')
+    // Never a credential, whoever reads.
+    expect(JSON.stringify(admin.body.data)).not.toContain('hash')
+
+    users.cacheCalls.length = 0
+    await users.pageFetch({ filters: byId, limit: 1 })
+    expect(users.cacheCalls).toEqual([])
+  })
+})
+
 describe("a page's own data never carries a table a visitor may not read", () => {
   it('refuses the protected tables, by name or in a statement', async () => {
     const orders = bootTableRoute('teleport_orders', { rows: [{ id: 'o1', total: 10 }] })

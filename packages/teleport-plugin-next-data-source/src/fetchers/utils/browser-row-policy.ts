@@ -1,4 +1,4 @@
-import { ContentTables } from '@teleporthq/teleport-shared'
+import { ContentTables, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
  * What a per-table read route (`/api/teleport-<table>-<source>` and its count
@@ -42,6 +42,15 @@ export const generateBrowserRowPolicyCode =
   (): string => `// GENERATED — see browser-row-policy.ts in teleport-plugin-next-data-source.
 var __BRP_POLICIES = ${JSON.stringify(BROWSER_ROW_POLICIES)};
 
+// What a page's own data carries of a member, read for a visitor: the public
+// profile (TableAccess.PUBLIC_PROFILE_COLUMNS) — an allow-list, so a column the
+// account row gains later stays out too. A browser reads the table not at all.
+var __BRP_PUBLIC_PROFILE = ${JSON.stringify({
+    predicate: 'TRUE',
+    hiddenColumns: [],
+    visibleColumns: TableAccess.PUBLIC_PROFILE_COLUMNS,
+  })};
+
 // Who is asking: the store's own server code and its administrators read every
 // row; anyone else is a visitor — a page's own data included (\`__taIsVisitorView\`).
 async function __brpReader(req) {
@@ -70,6 +79,9 @@ function __brpMentionsAny(rawQuery, tables) {
 // The session is only decoded when the read touches one of these tables.
 async function __brpAccess(req, tableName, rawQuery) {
   var raw = typeof rawQuery === 'string' && rawQuery.length > 0 ? rawQuery : null;
+  if (!raw && __taIsVisitorView(req) && __taIsCredentialTable(tableName)) {
+    return { denied: null, policy: __BRP_PUBLIC_PROFILE };
+  }
   var bare = __taNormalizeTable(tableName);
   var rawNarrowed = !!raw && __brpMentionsAny(raw, Object.keys(__BRP_POLICIES));
   var policy = raw ? null : (Object.prototype.hasOwnProperty.call(__BRP_POLICIES, bare) ? __BRP_POLICIES[bare] : null);
@@ -144,8 +156,11 @@ function __brpColumnName(field) {
   return parts[parts.length - 1];
 }
 
+// A column the policy keeps from the reader: one it hides, or — for a policy
+// that names the only columns it serves (\`visibleColumns\`) — any other.
 function __brpIsHidden(policy, field) {
   var name = __brpColumnName(field).toLowerCase();
+  if (policy.visibleColumns) return policy.visibleColumns.indexOf(name) === -1;
   for (var i = 0; i < policy.hiddenColumns.length; i++) {
     if (policy.hiddenColumns[i].toLowerCase() === name) return true;
   }

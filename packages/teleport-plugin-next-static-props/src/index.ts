@@ -77,17 +77,18 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
         StringUtils.camelCaseToDashCase(usedResource.name + 'Resource')
       )
 
-      // A visitor is served no row of an account, an order or a gift card, so
-      // a page that is not the admin's renders without one rather than carry a
-      // row read as the store — which put any member's account in the page data
-      // of whoever opened `/profile/<id>`.
+      // A visitor is served no row of an order or a gift card, so a page that
+      // is not the admin's renders without one rather than carry a row read as
+      // the store. A member's page reads their public profile only (see
+      // `TableAccess.PUBLIC_PROFILE_COLUMNS`): read as the store, it put any
+      // member's whole account in the page data of whoever opened `/profile/<id>`.
       const tableName = usedResource.params?.tableName?.content
       const sourceType = usedResource.params?.dataSourceType?.content
       entityReadable = !(
         readsAsVisitor &&
         typeof tableName === 'string' &&
         GUARDED_SOURCE_TYPES.indexOf(String(sourceType)) !== -1 &&
-        TableAccess.isTableRefusedToVisitors(tableName)
+        TableAccess.pageDataReadsNoRowOf(tableName)
       )
 
       dependencies[resourceImportName] = {

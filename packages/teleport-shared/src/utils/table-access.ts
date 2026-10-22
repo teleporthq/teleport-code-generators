@@ -246,17 +246,41 @@ export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): str
   resolveAdminPanelRoles(auth)
 
 /**
- * The tables a per-table read route serves a visitor no row of: the protected
- * ones, and the feed tables, whose one visitor projection lives on the data
- * API. A page read for a visitor (`pageReadsAsStore` false) gets nothing from
- * them, so it need not ask.
+ * What a page shows of a member to whoever opens it: their public profile —
+ * who they are, never how to reach them. A page's own data, read for a visitor,
+ * carries only these columns of the auth users table: never an email, a phone
+ * or an address, a credential, a role or anything else of the account. The
+ * member's own private fields reach their own page from their session.
  */
-export const isTableRefusedToVisitors = (tableName: string): boolean => {
+export const PUBLIC_PROFILE_COLUMNS: ReadonlyArray<string> = [
+  'id',
+  'name',
+  'display_name',
+  'image',
+  'avatar',
+  'avatar_url',
+  'bio',
+]
+
+const bareTableName = (tableName: string): string => {
   const parts = String(tableName || '')
     .trim()
     .toLowerCase()
     .split('.')
-  const bare = parts[parts.length - 1].replace(/"/g, '')
+  return parts[parts.length - 1].replace(/"/g, '')
+}
+
+/**
+ * The tables a page's own data, read for a visitor (`pageReadsAsStore` false),
+ * gets no row of — so it need not ask: the protected ones, and the feed tables,
+ * whose one visitor projection lives on the data API. Not the auth users table:
+ * a page reads its members' public profiles (`PUBLIC_PROFILE_COLUMNS`).
+ */
+export const pageDataReadsNoRowOf = (tableName: string): boolean => {
+  const bare = bareTableName(tableName)
+  if (AUTH_CREDENTIAL_TABLES.indexOf(bare) !== -1) {
+    return false
+  }
   return (
     PROTECTED_TABLES.indexOf(bare) !== -1 ||
     Object.prototype.hasOwnProperty.call(PUBLIC_FEED_TABLES, bare)
@@ -653,8 +677,15 @@ async function __taGuardRead(req, tableName, rawQuery) {
   var touched = __taProtectedTablesRead(tableName, rawQuery);
   if (touched.length === 0) return null;
   if (__taIsInternalRequest(req)) return null;
-  // A visitor is nobody in particular: no session to read.
-  if (visitorView) return { status: 401, message: 'Unauthenticated' };
+  if (visitorView) {
+    // A page reads its members' public profiles: the auth users table alone,
+    // through the structured read, which the route's row policy projects onto
+    // the public profile columns. Nothing else protected, and no statement.
+    var readsProfiles = !(typeof rawQuery === 'string' && rawQuery.length > 0) &&
+      touched.length === 1 && __taIsCredentialTable(tableName);
+    // A visitor is nobody in particular: no session to read.
+    return readsProfiles ? null : { status: 401, message: 'Unauthenticated' };
+  }
   var token = null;
   try {
     token = await __tqSessionToken(req);

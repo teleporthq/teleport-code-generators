@@ -112,7 +112,7 @@ describe('teleport-plugin-next-static-props: whom a details page reads for', () 
     expect(code).not.toContain('visitor')
   })
 
-  it('renders a page without a row its reader is never served, instead of reading it as the store', async () => {
+  it("reads a member's page as the visitor read of their public profile", async () => {
     const code = await getStaticPropsCode({
       folderPath: ['profile'],
       pageId: 'p-profile',
@@ -120,9 +120,24 @@ describe('teleport-plugin-next-static-props: whom a details page reads for', () 
       resource: dataSourceResource('users'),
     })
 
-    // No read of the accounts table at all, and no 404 for the member.
-    expect(code).not.toContain('fetchUsersDetailResource(')
-    expect(code).toContain('try { return { props: { ...context?.params, user: null } }; }')
+    // The route serves a visitor read of the account table as the public
+    // profile alone (id, name, avatar); the page shows it, or 404s an id with none.
+    expect(code).toMatch(/await fetchUsersDetailResource\(\{[^)]*\}, \{ as: "visitor" \}\)/)
+    expect(code).toContain('notFound: true')
+    expect(code).not.toContain('user: null')
+  })
+
+  it('renders a page without a row its reader is never served, instead of reading it as the store', async () => {
+    const code = await getStaticPropsCode({
+      folderPath: ['orders'],
+      pageId: 'p-profile',
+      exposeAs: 'order',
+      resource: dataSourceResource('teleport_orders'),
+    })
+
+    // No read of the orders table at all, and no 404 for the member.
+    expect(code).not.toContain('fetchTeleportOrdersDetailResource(')
+    expect(code).toContain('try { return { props: { ...context?.params, order: null } }; }')
   })
 
   it('hands another package’s function only its own arguments', async () => {
