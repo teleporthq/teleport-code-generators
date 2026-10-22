@@ -30,6 +30,7 @@
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.44.1",
     "@teleporthq/teleport-project-generator": "^0.44.1",
     "@teleporthq/teleport-shared": "^0.44.1",
+    "@teleporthq/teleport-types": "^0.44.0",
     "cheerio": "^1.0.0-rc.12",
     "path-browserify": "^1.0.1"
   }

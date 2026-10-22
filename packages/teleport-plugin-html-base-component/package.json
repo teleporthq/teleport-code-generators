@@ -28,6 +28,7 @@
     "@teleporthq/teleport-plugin-css": "^0.44.1",
     "@teleporthq/teleport-shared": "^0.44.1",
     "@teleporthq/teleport-types": "^0.44.0",
-    "@teleporthq/teleport-uidl-builders": "^0.44.0"
+    "@teleporthq/teleport-uidl-builders": "^0.44.0",
+    "@teleporthq/teleport-uidl-resolver": "^0.44.1"
   }
 }
