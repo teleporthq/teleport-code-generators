@@ -654,7 +654,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dynamicRouteAttr,
           uidl.outputOptions?.folderPath,
           transformOptions,
-          () => RouteUtils.pageDataReadArguments(uidl, options.auth)
+          () => RouteUtils.pageDataReadArguments(uidl, options.auth),
+          uidl.stateDefinitions
         )
 
         if (result.success && result.chunk) {

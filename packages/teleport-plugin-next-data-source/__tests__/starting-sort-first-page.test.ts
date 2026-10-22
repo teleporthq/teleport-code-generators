@@ -1,10 +1,15 @@
-/* tslint:disable:function-constructor max-classes-per-file */
 import * as types from '@babel/types'
 import generator from '@babel/generator'
 import { ComponentStructure, UIDLStateDefinition } from '@teleporthq/teleport-types'
 import { createNextArrayMapperPaginationPlugin } from '../src/pagination-plugin'
-import { generateDataSourceFetcherWithCore } from '../src/data-source-fetchers'
 import { extractDynamicSort, readSortStateDefaults } from '../src/sort-utils'
+import {
+  bootProductsRoute,
+  browserParams,
+  buildTimeArguments,
+  orderBy,
+  rowWindow,
+} from './_helpers/first-page-runtime'
 import {
   makeGetStaticPropsChunk,
   makeUidlNode,
@@ -237,52 +242,8 @@ describe('a list sorted by a dropdown, on a page', () => {
  * one ordering of one row set, page after page.
  */
 describe('the first page and the next, run', () => {
-  // What getStaticProps hands fetchData: `{ page: 1, perPage: 20, …, sorts }`,
-  // then who it reads for.
-  const buildTimeArguments = (staticPropsChunk: any): Array<Record<string, unknown>> => {
-    let call: types.CallExpression | undefined
-    types.traverseFast(staticPropsChunk.content, (node) => {
-      if (
-        !call &&
-        node.type === 'CallExpression' &&
-        node.callee.type === 'MemberExpression' &&
-        node.callee.property.type === 'Identifier' &&
-        node.callee.property.name === 'fetchData' &&
-        node.arguments[0]?.type === 'ObjectExpression'
-      ) {
-        call = node
-      }
-    })
-    const args = call!.arguments.map((arg) => generator(arg as types.Node).code)
-    return new Function(`return [${args.join(', ')}]`)()
-  }
   const buildTimeParams = (staticPropsChunk: any): Record<string, unknown> =>
     buildTimeArguments(staticPropsChunk)[0]
-
-  // The provider's params as the browser computes them, for the given state.
-  const browserParams = (chunk: any, state: Record<string, unknown>): Record<string, string> => {
-    let memo: types.Expression | undefined
-    types.traverseFast(chunk.content, (node) => {
-      if (
-        !memo &&
-        node.type === 'JSXAttribute' &&
-        node.name.name === 'params' &&
-        node.value?.type === 'JSXExpressionContainer' &&
-        node.value.expression.type === 'CallExpression'
-      ) {
-        const arrow = node.value.expression.arguments[0]
-        if (arrow?.type === 'ArrowFunctionExpression') {
-          memo = arrow.body as types.Expression
-        }
-      }
-    })
-    const names = Object.keys(state)
-    const params = new Function(...names, `return (${generator(memo!).code})`)(
-      ...names.map((name) => state[name])
-    )
-    // What `new URLSearchParams(params)` puts on the wire.
-    return Object.fromEntries(new URLSearchParams(params))
-  }
 
   it('sends the build and the browser one sort string while the dropdown is untouched', async () => {
     const { staticPropsChunk, chunk } = await runPagePlugin({ searchEnabled: true })
@@ -300,90 +261,6 @@ describe('the first page and the next, run', () => {
         .sorts
     ).toBe('[{"field":"price","order":"desc"}]')
   })
-
-  /**
-   * The products route as the project ships it, over a database that records
-   * the statements it is sent.
-   */
-  const bootProductsRoute = () => {
-    const dataSource = {
-      id: 'ds-1',
-      name: 'db',
-      type: 'teleport',
-      config: {
-        host: 'teleporthq.secrets.TELEPORT_DB_HOST',
-        port: 5432,
-        user: 'teleporthq.secrets.TELEPORT_DB_USER',
-        password: 'teleporthq.secrets.TELEPORT_DB_PASSWORD',
-        database: 'teleporthq.secrets.TELEPORT_DB_NAME',
-        selectedTables: { teleport_products: { columns: [{ name: 'id', type: 'uuid' }] } },
-      },
-    }
-    const code = generateDataSourceFetcherWithCore(dataSource as never, 'teleport_products')
-      .replace(
-        "import { Client, types as pgTypes } from 'pg'",
-        "const { Client, types: pgTypes } = require('pg')"
-      )
-      .replace(/^export \{[^}]*\}\s*$/m, '')
-      .replace(/^export default \{[^}]*\}\s*$/m, '')
-      .concat('\nmodule.exports = { handler: handler, fetchData: fetchData }')
-    expect(code).not.toMatch(/^(export|import) /m)
-
-    const statements: string[] = []
-    class FakeClient {
-      public async connect(): Promise<void> {
-        return
-      }
-      public async end(): Promise<void> {
-        return
-      }
-      public async query(sql: string): Promise<any> {
-        statements.push(sql)
-        return { rows: [], rowCount: 0 }
-      }
-    }
-    const fakeRequire = (name: string): any => {
-      if (name === 'pg') {
-        return { Client: FakeClient }
-      }
-      if (name === 'next-auth/jwt') {
-        return { getToken: async () => null }
-      }
-      throw new Error('unexpected require: ' + name)
-    }
-    const moduleObj: { exports: any } = { exports: {} }
-    new Function('require', 'module', 'exports', 'process', 'console', code)(
-      fakeRequire,
-      moduleObj,
-      moduleObj.exports,
-      {
-        env: {
-          NEXTAUTH_SECRET: 'secret',
-          TELEPORT_DB_HOST: 'h',
-          TELEPORT_DB_USER: 'u',
-          TELEPORT_DB_PASSWORD: 'p',
-          TELEPORT_DB_NAME: 'd',
-        },
-      },
-      { error: () => undefined, warn: () => undefined, log: () => undefined }
-    )
-    const lastSelect = (): string =>
-      statements.filter((sql) => /^\s*SELECT \* FROM/i.test(sql)).pop() || ''
-    return {
-      atBuild: async (args: Array<Record<string, unknown>>) => {
-        await moduleObj.exports.fetchData(...args)
-        return lastSelect()
-      },
-      inBrowser: async (query: Record<string, string>) => {
-        const res = { status: () => res, json: () => res, setHeader: () => res }
-        await moduleObj.exports.handler({ method: 'GET', query, headers: {} }, res)
-        return lastSelect()
-      },
-    }
-  }
-
-  const orderBy = (sql: string): string => (sql.match(/ ORDER BY .*? LIMIT/) || [''])[0]
-  const rowWindow = (sql: string): string => (sql.match(/ LIMIT \d+( OFFSET \d+)?$/) || [''])[0]
 
   it('orders page 1 at build time exactly as the browser orders page 2', async () => {
     const { staticPropsChunk, chunk } = await runPagePlugin({ searchEnabled: true })

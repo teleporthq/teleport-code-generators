@@ -197,6 +197,35 @@ export const readSortStateDefaults = (
 }
 
 /**
+ * A list repeater's own sort, read the one way for every part of the plugin
+ * that fetches the list's rows — the build's fetch for a page and the
+ * browser's: a column the editor fixed (`fixed`), or one bound to state
+ * (`dynamic`) with, when the build can know them, the values a visitor starts
+ * with (`starting`, see `readSortStateDefaults`). Empty without a sort.
+ */
+export interface RepeaterSort {
+  fixed?: { field: string; order: 'asc' | 'desc' }
+  dynamic?: DynamicSortAST
+  starting?: SortStateDefault[]
+}
+
+export const readRepeaterSort = (
+  sort: UIDLStaticValue | UIDLExpressionValue | undefined,
+  sortDirection: UIDLStaticValue | UIDLExpressionValue | undefined,
+  stateDefinitions: Record<string, UIDLStateDefinition> | undefined
+): RepeaterSort => {
+  if (!sort) {
+    return {}
+  }
+  const fixed = readFixedSort(sort, sortDirection)
+  if (fixed) {
+    return { fixed }
+  }
+  const dynamic = extractDynamicSort(sort, sortDirection)
+  return dynamic ? { dynamic, starting: readSortStateDefaults(dynamic, stateDefinitions) } : {}
+}
+
+/**
  * The `sorts` param of the build-time fetch: the browser's own expression,
  * evaluated with every state it reads at its default —
  *

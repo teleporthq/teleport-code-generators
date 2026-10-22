@@ -22,9 +22,7 @@ import {
   buildSortAtStartGuard,
   buildStartingSortsValue,
   DynamicSortAST,
-  extractDynamicSort,
-  readFixedSort,
-  readSortStateDefaults,
+  readRepeaterSort,
   type SortStateDefault,
 } from './sort-utils'
 import {
@@ -554,22 +552,20 @@ function buildStateRegistry(
         // is skipped for a dynamic sort) — the pre-rendered HTML carried no
         // posts, and the browser fetched page 1 a second time. Only a sort
         // bound to state (the admin panel's sortable columns) is dynamic.
-        let dynamicSort: DynamicSortAST | undefined
-        if ((!sorts || sorts.length === 0) && content.sort) {
-          const fixedSort = readFixedSort(content.sort, content.sortDirection)
-          if (fixedSort) {
-            sorts = [fixedSort]
-          } else {
-            dynamicSort = extractDynamicSort(content.sort, content.sortDirection)
-          }
-        }
+        //
         // A sort the visitor picks still starts somewhere — the store's sort
         // dropdown at "Name A-Z". Known at build time, it orders the
         // server-side first page, which the list then shows while the visitor
-        // leaves the sort alone.
-        const startingSort = dynamicSort
-          ? readSortStateDefaults(dynamicSort, stateDefinitions)
-          : undefined
+        // leaves the sort alone. Read as a plain list's page fetch reads it.
+        const repeaterSort =
+          !sorts || sorts.length === 0
+            ? readRepeaterSort(content.sort, content.sortDirection, stateDefinitions)
+            : {}
+        if (repeaterSort.fixed) {
+          sorts = [repeaterSort.fixed]
+        }
+        const dynamicSort = repeaterSort.dynamic
+        const startingSort = repeaterSort.starting
 
         // Extract filters from parent's resource params, keeping the group tree
         // the inspector authored (see `readFilterTree`).
@@ -3029,20 +3025,58 @@ function updateDataProviderForSearchOnly(
   )
 }
 
+/**
+ * A plain list on a page is seeded with the rows its `getStaticProps` fetched
+ * (`extractDataSourceIntoGetStaticProps`), and a seeded provider skips its first
+ * fetch. With a sort the visitor picks, those rows are the list's only while the
+ * sort is where a visitor starts — the build fetched them by it:
+ *
+ *   initialData={sortBy === "name-asc" ? props.items_products : undefined}
+ *
+ * — and any other sort is fetched fresh, through the params it changes. When the
+ * build cannot know where the sort starts (`prefetchFollowsSort`), it fetched
+ * the rows unsorted, and the list is never seeded with them. A plain list has no
+ * search, and is only seeded without a filter a visitor sets.
+ */
+function seedPlainListWhileSortStarts(dp: any, usage: DataSourceUsage): void {
+  if (!usage.dynamicSort) {
+    return
+  }
+  const attrs = dp.openingElement.attributes
+  const index = attrs.findIndex(
+    (attr: any) => attr.type === 'JSXAttribute' && attr.name?.name === 'initialData'
+  )
+  if (index === -1) {
+    return
+  }
+  if (!prefetchFollowsSort(usage)) {
+    attrs.splice(index, 1)
+    return
+  }
+  const sortGuard = buildStartingSortGuard(usage)
+  const seeded = (attrs[index] as types.JSXAttribute).value
+  if (!sortGuard || seeded?.type !== 'JSXExpressionContainer') {
+    return
+  }
+  attrs[index] = types.jsxAttribute(
+    types.jsxIdentifier('initialData'),
+    types.jsxExpressionContainer(
+      types.conditionalExpression(
+        sortGuard,
+        seeded.expression as types.Expression,
+        types.identifier('undefined')
+      )
+    )
+  )
+}
+
 function updateDataProviderForPlain(
   dp: any,
   fileName: string,
   usage: DataSourceUsage,
   localized: boolean
 ): void {
-  // A sort bound to state is the visitor's, which the server cannot know: rows
-  // pre-rendered in the table's order would stand in for it, since a seeded
-  // provider skips its first fetch — the paginated lists drop them the same way.
-  if (usage.dynamicSort) {
-    dp.openingElement.attributes = dp.openingElement.attributes.filter(
-      (attr: any) => !(attr.type === 'JSXAttribute' && attr.name?.name === 'initialData')
-    )
-  }
+  seedPlainListWhileSortStarts(dp, usage)
 
   const attrs = dp.openingElement.attributes
 
