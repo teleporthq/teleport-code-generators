@@ -700,7 +700,7 @@ describe('Next generator reveal presets (Circle, the Wipes)', () => {
     expect(circleWrapper).toContain('if (!image && !REVEAL) {')
     // without them the reveal runs frame by frame in framer's own loop — a browser-run
     // clip-path animation ends one frame before its last value and the page blinks away
-    expect(circleWrapper).toContain('onUpdate={REVEAL ? stepByFrame : undefined}')
+    expect(circleWrapper).toContain('onUpdate={stepByFrame}')
     const plan = PageTransition.viewTransitionPlan(
       { preset: 'circle', duration: 0.3, easing: 'ease-out' },
       { crossDocument: false }
@@ -788,6 +788,9 @@ describe('Next generator dissolve presets (Fade, Crossfade)', () => {
       expect(played.exit).toEqual({})
       expect(played.initial).toEqual(pageTransitionVariants(preset, 24)?.initial)
       expect(played.animate).toEqual(pageTransitionVariants(preset, 24)?.animate)
+      // the fade runs in framer's own loop: run by the browser, it ended one frame before
+      // framer wrote opacity 1, the arriving page turned clear and the leaving page flashed back
+      expect(wrapper).toContain('onUpdate={stepByFrame}')
       expect(wrapper).toContain(
         ': dissolveOver(\n            revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen)\n          )'
       )
@@ -806,6 +809,9 @@ describe('Next generator dissolve presets (Fade, Crossfade)', () => {
       const wrapper = await wrapperFor({ preset })
       expect(wrapper).toContain('const DISSOLVE = false')
       expect(playedBy(wrapper, preset).exit).toEqual(pageTransitionVariants(preset, 24)?.exit)
+      // the leaving page's exit ends in framer's own loop too, never shown again for a frame
+      expect(wrapper).toContain('onUpdate={stepByFrame}')
+      expect(wrapper).not.toContain('onUpdate={REVEAL')
     }
   })
 
