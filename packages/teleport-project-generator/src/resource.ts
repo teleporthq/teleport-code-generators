@@ -146,10 +146,11 @@ const generateDirectDataSourceResource = (
   }
 
   // Generate:
-  // export default async function (params = {}) {
-  //   const data = await dataSourceModule.fetchData(params)
+  // export default async function (params = {}, options = {}) {
+  //   const data = await dataSourceModule.fetchData(params, options)
   //   return { success: true, data: data }
   // }
+  // `options` says whom the read is for: a page's data reads `{ as: 'visitor' }`.
   const fetchDataCall = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('data'),
@@ -159,7 +160,7 @@ const generateDirectDataSourceResource = (
             types.identifier('dataSourceModule'),
             types.identifier('fetchData')
           ),
-          [buildFetchDataArgument(resource)]
+          [buildFetchDataArgument(resource), types.identifier('options')]
         )
       )
     ),
@@ -181,7 +182,10 @@ const generateDirectDataSourceResource = (
         (() => {
           const fn = types.functionDeclaration(
             null,
-            [types.assignmentPattern(types.identifier('params'), types.objectExpression([]))],
+            [
+              types.assignmentPattern(types.identifier('params'), types.objectExpression([])),
+              types.assignmentPattern(types.identifier('options'), types.objectExpression([])),
+            ],
             types.blockStatement([fetchDataCall, returnObj]),
             false,
             true

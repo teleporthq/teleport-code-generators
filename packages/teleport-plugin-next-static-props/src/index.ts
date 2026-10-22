@@ -5,7 +5,7 @@ import {
   FileType,
   TeleportError,
 } from '@teleporthq/teleport-types'
-import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, GenericUtils, TableAccess } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPropsAST } from './utils'
 
@@ -13,7 +13,17 @@ interface StaticPropsPluginConfig {
   componentChunkName?: string
 }
 
-const { isDynamicRoute, pageHasSameTableMutationWorkflow, pageReadsProtectedTable } = RouteUtils
+const {
+  isDynamicRoute,
+  pageDataReadArguments,
+  pageDataReadsAsStore,
+  pageHasSameTableMutationWorkflow,
+  pageReadsProtectedTable,
+} = RouteUtils
+
+// The data sources whose read routes guard their tables (see
+// teleport-plugin-next-data-source `table-access-guard.ts`).
+const GUARDED_SOURCE_TYPES = ['teleport', 'postgresql']
 
 export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginConfig> = (
   config
@@ -50,6 +60,10 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       Name of the function that is being imported
     */
     let resourceImportName
+    // The page's row is what it renders, so it is read as a visitor is served
+    // it — unless only the store's trusted readers can open the page.
+    const readsAsVisitor = !pageDataReadsAsStore(uidl, options.auth)
+    let entityReadable = true
 
     if (isLocalResource) {
       const usedResource = resources.items?.[resource.id]
@@ -61,6 +75,19 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
       resourceImportName = StringUtils.dashCaseToCamelCase(
         StringUtils.camelCaseToDashCase(usedResource.name + 'Resource')
+      )
+
+      // A visitor is served no row of an account, an order or a gift card, so
+      // a page that is not the admin's renders without one rather than carry a
+      // row read as the store — which put any member's account in the page data
+      // of whoever opened `/profile/<id>`.
+      const tableName = usedResource.params?.tableName?.content
+      const sourceType = usedResource.params?.dataSourceType?.content
+      entityReadable = !(
+        readsAsVisitor &&
+        typeof tableName === 'string' &&
+        GUARDED_SOURCE_TYPES.indexOf(String(sourceType)) !== -1 &&
+        TableAccess.isTableRefusedToVisitors(tableName)
       )
 
       dependencies[resourceImportName] = {
@@ -83,7 +110,11 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resourceImportName,
       resources.cache,
       options.skipI18n,
-      useServerSideProps
+      useServerSideProps,
+      // A resource the project generated forwards it to the data-source module;
+      // another package's function takes its own arguments.
+      () => (isLocalResource ? pageDataReadArguments(uidl, options.auth) : []),
+      entityReadable
     )
 
     // NOTE: the chunk is always registered under the 'getStaticProps' name

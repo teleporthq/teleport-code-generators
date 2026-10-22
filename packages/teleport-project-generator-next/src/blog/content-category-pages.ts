@@ -100,6 +100,9 @@ ${presetEntries.join('\n')}
 var POST_LIMIT = ${CATEGORY_PAGE_POST_LIMIT}
 var CATEGORY_COLUMN = 'category_filter_ids'
 var PUBLISHED_ONLY = { type: 'condition', source: 'status', destination: 'published', operand: '=' }
+// Public pages: the posts as a visitor is served them (published, no author
+// email), never as the store reads its own table.
+var PAGE_READ = { as: 'visitor' }
 
 // A post field under its transformed name, else its column name.
 function field(post, key, column) {
@@ -168,7 +171,7 @@ async function resolveCategoryPage(preset, params) {
       { type: 'condition', source: CATEGORY_COLUMN, destination: category.id, operand: 'array_overlap' },
     ]),
     locale: locale || undefined,
-  })
+  }, PAGE_READ)
   var posts = []
   ;(Array.isArray(rows) ? rows : []).forEach(function (post) {
     if (!post || typeof post !== 'object' || redirectsElsewhere(post)) return

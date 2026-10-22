@@ -193,10 +193,24 @@ function bootTableRoute(tableName: string, options: BootOptions = {}) {
     return moduleObj.exports.fetchData({})
   }
 
-  return { run, serverFetch, queries, cacheCalls }
+  // A page's own data, as its getStaticProps / getServerSideProps reads it.
+  const pageFetch = async (params: Record<string, unknown> = {}): Promise<unknown> => {
+    queries.length = 0
+    session = null
+    return moduleObj.exports.fetchData(params, { as: 'visitor' })
+  }
+  const pageCount = async (params: Record<string, unknown> = {}): Promise<unknown> => {
+    queries.length = 0
+    session = null
+    return moduleObj.exports.fetchCount(params, { as: 'visitor' })
+  }
+
+  return { run, serverFetch, pageFetch, pageCount, queries, cacheCalls }
 }
 
 const internal = { 'x-internal-data-secret': SECRET }
+
+const SORT_BY_NAME = JSON.stringify([{ field: 'name', order: 'asc' }])
 
 const mainQuery = (result: RouteResult): string =>
   (result.queries.find((q) => /^\s*SELECT \* FROM/i.test(q.sql)) || { sql: '' }).sql
@@ -233,7 +247,7 @@ describe('blog posts: a visitor reads the published posts, never an author email
     expect(JSON.stringify(shopper.body.data)).not.toContain('ana@example.com')
   })
 
-  it('serves the store everything: the admin, a server segment and getStaticProps', async () => {
+  it("serves the store everything: the admin, a server segment and the store's own server code", async () => {
     const admin = await posts.run({ session: { role: 'admin' } })
     expect(mainQuery(admin)).not.toContain("status = 'published'")
     // The post view model carries no email for anyone — a page's data must not
@@ -250,6 +264,26 @@ describe('blog posts: a visitor reads the published posts, never an author email
     await posts.serverFetch()
     const serverRead = posts.queries.find((q) => /^\s*SELECT \* FROM/i.test(q.sql))
     expect(serverRead && serverRead.sql).not.toContain("(status = 'published')")
+  })
+
+  // This used to read as the store too: a page's getStaticProps called
+  // fetchData with the store's own marker. But a page's data is what it renders,
+  // and it reaches whoever opens the page (and `/_next/data` without rendering
+  // it): a draft painted on page 1 that the visitor's own page 2 skipped, a
+  // draft's details page anyone could open. A page reads `{ as: 'visitor' }`.
+  it("reads a page's data as a visitor: published posts, no author email", async () => {
+    await posts.pageFetch()
+    const pageRead = posts.queries.find((q) => /^\s*SELECT \* FROM/i.test(q.sql))
+    expect(pageRead && pageRead.sql).toContain("(status = 'published')")
+
+    const rawRows = (await posts.pageFetch({ rawRows: 'true' })) as any[]
+    expect(JSON.stringify(rawRows)).not.toContain('ana@example.com')
+    expect(rawRows[0].title).toBe('Hello')
+
+    await posts.pageCount()
+    expect(posts.queries.some((q) => /COUNT\(\*\).*\(status = 'published'\)/.test(q.sql))).toBe(
+      true
+    )
   })
 
   it('narrows the count the same way', async () => {
@@ -333,6 +367,99 @@ describe('products: a visitor reads the active products', () => {
       "= 'active'"
     )
     expect(mainQuery(await products.run({ headers: internal }))).not.toContain("= 'active'")
+  })
+
+  it("narrows a page's own data like a visitor's request, page and count alike", async () => {
+    const visitor = mainQuery(
+      await products.run({ query: { page: '1', perPage: '20', sorts: SORT_BY_NAME } })
+    )
+    await products.pageFetch({ page: 1, perPage: 20, sorts: SORT_BY_NAME })
+    const page = (products.queries.find((q) => /^\s*SELECT \* FROM/i.test(q.sql)) || { sql: '' })
+      .sql
+    expect(page).toContain("(LOWER(TRIM(status)) = 'active')")
+    expect(page).toBe(visitor)
+
+    await products.pageCount()
+    expect(
+      products.queries.some((q) =>
+        /COUNT\(\*\).*\(LOWER\(TRIM\(status\)\) = 'active'\)/.test(q.sql)
+      )
+    ).toBe(true)
+  })
+
+  it("runs a page's own statement over the products a visitor is served", async () => {
+    const featured =
+      'SELECT tp.slug, fpc.blurb FROM featured_product_curations fpc INNER JOIN teleport_products tp ON tp.id = fpc.product_id ORDER BY fpc.display_rank ASC LIMIT 8'
+    await products.pageFetch({ rawQuery: featured })
+    expect(products.queries.map((q) => q.sql)).toEqual([
+      `WITH "teleport_products" AS (SELECT * FROM "teleport_products" AS __brp_rows WHERE (LOWER(TRIM(status)) = 'active')) ${featured}`,
+    ])
+
+    // Its own WITH list comes after, so its entries read the visitor's rows too.
+    const picked =
+      'WITH picks AS (SELECT * FROM teleport_products WHERE price > 6) SELECT slug FROM picks;'
+    await products.pageFetch({ rawQuery: picked })
+    expect(products.queries.map((q) => q.sql)).toEqual([
+      `WITH "teleport_products" AS (SELECT * FROM "teleport_products" AS __brp_rows WHERE (LOWER(TRIM(status)) = 'active')),  picks AS (SELECT * FROM teleport_products WHERE price > 6) SELECT slug FROM picks`,
+    ])
+
+    // A statement over no narrowed table runs as written.
+    await products.pageFetch({ rawQuery: 'SELECT id FROM category_tiles' })
+    expect(products.queries.map((q) => q.sql)).toEqual(['SELECT id FROM category_tiles'])
+
+    // The store's own server code still reads every product.
+    await products.serverFetch()
+    expect(products.queries.map((q) => q.sql).join(' ')).not.toContain("= 'active'")
+  })
+
+  it('refuses a statement it cannot narrow, rather than run it whole', async () => {
+    // A schema reaches the table past the visitor's rows; a RECURSIVE list
+    // would see its own entries.
+    for (const rawQuery of [
+      'SELECT * FROM public.teleport_products',
+      'SELECT * FROM "public"."teleport_products"',
+      'WITH RECURSIVE t AS (SELECT 1) SELECT * FROM teleport_products',
+    ]) {
+      await expect(products.pageFetch({ rawQuery })).rejects.toThrow(/cannot be read for a visitor/)
+      expect(products.queries).toEqual([])
+    }
+    // A statement that can read a table without naming it is refused sooner:
+    // it may be reading any protected one.
+    await expect(
+      products.pageFetch({
+        rawQuery: "SELECT query_to_xml('select * from teleport_products', true, true, '')",
+      })
+    ).rejects.toThrow('Unauthenticated')
+    expect(products.queries).toEqual([])
+  })
+})
+
+describe("a page's own data never carries a table a visitor may not read", () => {
+  it('refuses the protected tables, by name or in a statement', async () => {
+    const orders = bootTableRoute('teleport_orders', { rows: [{ id: 'o1', total: 10 }] })
+    await expect(orders.pageFetch()).rejects.toThrow('Unauthenticated')
+    await expect(orders.pageCount()).rejects.toThrow('Unauthenticated')
+    expect(orders.queries).toEqual([])
+    // The store's own server code reads them, as it always has.
+    expect(await orders.serverFetch()).toEqual([{ id: 'o1', total: 10, __rowNumber: 1 }])
+
+    const products = bootTableRoute('teleport_products')
+    await expect(
+      products.pageFetch({
+        rawQuery: 'SELECT * FROM teleport_products p JOIN users u ON u.id = p.owner_id',
+      })
+    ).rejects.toThrow('Unauthenticated')
+    expect(products.queries).toEqual([])
+  })
+
+  it("shares the visitors' cache entry, never the store's", async () => {
+    const posts = bootTableRoute('teleport_blog_posts', {
+      rows: POSTS,
+      cache: { scope: 'ds-1:teleport_blog_posts', ttlSeconds: 60, sMaxAge: 30 },
+    })
+    posts.cacheCalls.length = 0
+    await posts.pageFetch()
+    expect(posts.cacheCalls).toEqual([{ scope: 'ds-1:teleport_blog_posts', sMaxAge: 30 }])
   })
 })
 

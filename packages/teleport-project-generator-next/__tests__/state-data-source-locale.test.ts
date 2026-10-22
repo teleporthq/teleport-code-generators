@@ -63,7 +63,7 @@ const getStaticPropsCode = async (
 describe('state-data-source-plugin — the fetch locale', () => {
   it('fetches a bound table in the language getStaticProps runs for', async () => {
     const code = await getStaticPropsCode({ featuredProducts: makeState() }, true)
-    expect(code).toContain('.fetchData({ locale: context.locale })')
+    expect(code).toContain('.fetchData({ locale: context.locale }, { as: "visitor" })')
   })
 
   it('never sends a locale with a raw query', async () => {
@@ -77,7 +77,7 @@ describe('state-data-source-plugin — the fetch locale', () => {
 
   it('sends none in a single-language project', async () => {
     const code = await getStaticPropsCode({ featuredProducts: makeState() }, false)
-    expect(code).toContain('.fetchData({})')
+    expect(code).toContain('.fetchData({}, { as: "visitor" })')
     expect(code).not.toContain('locale')
   })
 })

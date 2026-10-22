@@ -43,8 +43,9 @@ export const generateBrowserRowPolicyCode =
 var __BRP_POLICIES = ${JSON.stringify(BROWSER_ROW_POLICIES)};
 
 // Who is asking: the store's own server code and its administrators read every
-// row; anyone else is a visitor.
+// row; anyone else is a visitor — a page's own data included (\`__taIsVisitorView\`).
 async function __brpReader(req) {
+  if (__taIsVisitorView(req)) return { trusted: false };
   if (__taIsInternalRequest(req)) return { trusted: true };
   var token = null;
   try {
@@ -63,9 +64,10 @@ function __brpMentionsAny(rawQuery, tables) {
   return false;
 }
 
-// A raw statement cannot be narrowed, so a visitor's statement that names a
-// narrowed table is refused whole. The session is only decoded when the read
-// touches one of these tables.
+// A visitor's browser may not send a statement that names a narrowed table: it
+// is refused whole. A page's own statement, read for a visitor, is run over the
+// rows a visitor is served instead (\`narrowRaw\`, see \`__brpNarrowRawQuery\`).
+// The session is only decoded when the read touches one of these tables.
 async function __brpAccess(req, tableName, rawQuery) {
   var raw = typeof rawQuery === 'string' && rawQuery.length > 0 ? rawQuery : null;
   var bare = __taNormalizeTable(tableName);
@@ -75,9 +77,66 @@ async function __brpAccess(req, tableName, rawQuery) {
   var reader = await __brpReader(req);
   if (reader.trusted) return { denied: null, policy: null };
   if (rawNarrowed) {
+    if (__taIsVisitorView(req)) return { denied: null, policy: null, narrowRaw: true };
     return { denied: { status: 403, message: 'Forbidden: raw queries over this table are only available to server-side calls' }, policy: null };
   }
   return { denied: null, policy: policy };
+}
+
+function __brpRefuseRaw(what) {
+  var err = new Error('Forbidden: ' + what + ' cannot be read for a visitor');
+  err.status = 403;
+  return err;
+}
+
+// A page's own statement over the rows a visitor is served: every narrowed
+// table it reads becomes a WITH entry of the same name, ahead of the
+// statement, which its own references — and its own WITH entries — resolve to:
+//
+//   WITH "teleport_products" AS (SELECT * FROM "teleport_products" AS __brp_rows WHERE (<predicate>)) <statement>
+//
+// Inside its own definition the entry names the table itself (a WITH that is
+// not RECURSIVE does not see itself). A hidden column reads NULL however the
+// statement spells it — an alias, a whole-row value. A statement this cannot
+// vouch for is refused: unreadable or opaque, RECURSIVE (its entries would see
+// themselves), or naming a narrowed table through a schema, which reaches the
+// table past the entry.
+function __brpNarrowRawQuery(sql) {
+  var cleaned = __taCleanSql(sql);
+  if (!cleaned.ok || __TA_OPAQUE_SQL_RE.test(cleaned.text)) throw __brpRefuseRaw('this statement');
+  var tables = Object.keys(__BRP_POLICIES).filter(function(table) {
+    return new RegExp('(?:^|[^A-Za-z0-9_])"?' + table + '"?(?![A-Za-z0-9_])', 'i').test(cleaned.text);
+  });
+  if (tables.length === 0) return sql;
+  var leading = /^\\s*with\\b(\\s+recursive\\b)?/i.exec(cleaned.text);
+  if (leading && leading[1]) throw __brpRefuseRaw('a recursive statement');
+  tables.forEach(function(table) {
+    if (new RegExp('\\\\.\\\\s*"?' + table + '"?(?![A-Za-z0-9_])', 'i').test(cleaned.text)) throw __brpRefuseRaw(table);
+  });
+  var entries = tables.map(function(table) {
+    var policy = __BRP_POLICIES[table];
+    var hidden = {};
+    policy.hiddenColumns.forEach(function(column) { hidden[column] = null; });
+    var columns = policy.hiddenColumns.length > 0
+      ? '(jsonb_populate_record(__brp_rows, ' + "'" + JSON.stringify(hidden) + "'" + '::jsonb)).*'
+      : '*';
+    return '"' + table + '" AS (SELECT ' + columns + ' FROM "' + table + '" AS __brp_rows WHERE (' + policy.predicate + '))';
+  });
+  var statement = String(sql).trim().replace(/;\\s*$/, '');
+  if (!leading) return 'WITH ' + entries.join(', ') + ' ' + statement;
+  // The statement's own WITH list follows ours, so its entries read ours too.
+  var own = /^with\\b/i.exec(statement);
+  if (!own) throw __brpRefuseRaw('this statement');
+  return 'WITH ' + entries.join(', ') + ', ' + statement.slice(own[0].length);
+}
+
+// The rows of a statement narrowed for a visitor, without the hidden columns
+// of the tables it read.
+function __brpStripHiddenOfRaw(sql, rows) {
+  var cleaned = __taCleanSql(sql);
+  return Object.keys(__BRP_POLICIES).reduce(function(current, table) {
+    return cleaned.ok && __taSqlMentionsTable(sql, table) ? __brpStripHidden(__BRP_POLICIES[table], current) : current;
+  }, rows);
 }
 
 function __brpColumnName(field) {

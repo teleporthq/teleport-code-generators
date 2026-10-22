@@ -8,6 +8,7 @@ import {
   UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import {
   extractDataSourceIntoNextAPIFolder,
   extractDataSourceIntoGetStaticProps,
@@ -652,7 +653,8 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
           dependencies,
           dynamicRouteAttr,
           uidl.outputOptions?.folderPath,
-          transformOptions
+          transformOptions,
+          () => RouteUtils.pageDataReadArguments(uidl, options.auth)
         )
 
         if (result.success && result.chunk) {
@@ -794,7 +796,10 @@ export const createNextPagesDataSourcePlugin: ComponentPluginFactory<{}> = () =>
                   types.identifier(fetcherImportName),
                   types.identifier('fetchData')
                 ),
-                [types.objectExpression([])]
+                [
+                  types.objectExpression([]),
+                  ...RouteUtils.pageDataReadArguments(uidl, options.auth),
+                ]
               )
 
               const safeFetchExpression = types.callExpression(

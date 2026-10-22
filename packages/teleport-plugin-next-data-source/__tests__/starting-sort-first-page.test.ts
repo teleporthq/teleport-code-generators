@@ -129,7 +129,7 @@ describe('a list sorted by a dropdown, on a page', () => {
     // The browser's own sort expression, with the dropdown at its default —
     // not a copy of what the default means.
     expect(staticProps).toContain(
-      `postgresqlProductsDs1.fetchData({ page: 1, perPage: 20, queryColumns: JSON.stringify(["name"]), sorts: ${STARTING_SORTS} })`
+      `postgresqlProductsDs1.fetchData({ page: 1, perPage: 20, queryColumns: JSON.stringify(["name"]), sorts: ${STARTING_SORTS} }, { as: "visitor" })`
     )
   })
 
@@ -237,23 +237,27 @@ describe('a list sorted by a dropdown, on a page', () => {
  * one ordering of one row set, page after page.
  */
 describe('the first page and the next, run', () => {
-  // The `{ page: 1, perPage: 20, …, sorts }` getStaticProps hands fetchData.
-  const buildTimeParams = (staticPropsChunk: any): Record<string, unknown> => {
-    let params: types.ObjectExpression | undefined
+  // What getStaticProps hands fetchData: `{ page: 1, perPage: 20, …, sorts }`,
+  // then who it reads for.
+  const buildTimeArguments = (staticPropsChunk: any): Array<Record<string, unknown>> => {
+    let call: types.CallExpression | undefined
     types.traverseFast(staticPropsChunk.content, (node) => {
       if (
-        !params &&
+        !call &&
         node.type === 'CallExpression' &&
         node.callee.type === 'MemberExpression' &&
         node.callee.property.type === 'Identifier' &&
         node.callee.property.name === 'fetchData' &&
         node.arguments[0]?.type === 'ObjectExpression'
       ) {
-        params = node.arguments[0]
+        call = node
       }
     })
-    return new Function(`return (${generator(params!).code})`)()
+    const args = call!.arguments.map((arg) => generator(arg as types.Node).code)
+    return new Function(`return [${args.join(', ')}]`)()
   }
+  const buildTimeParams = (staticPropsChunk: any): Record<string, unknown> =>
+    buildTimeArguments(staticPropsChunk)[0]
 
   // The provider's params as the browser computes them, for the given state.
   const browserParams = (chunk: any, state: Record<string, unknown>): Record<string, string> => {
@@ -366,8 +370,8 @@ describe('the first page and the next, run', () => {
     const lastSelect = (): string =>
       statements.filter((sql) => /^\s*SELECT \* FROM/i.test(sql)).pop() || ''
     return {
-      atBuild: async (params: Record<string, unknown>) => {
-        await moduleObj.exports.fetchData(params)
+      atBuild: async (args: Array<Record<string, unknown>>) => {
+        await moduleObj.exports.fetchData(...args)
         return lastSelect()
       },
       inBrowser: async (query: Record<string, string>) => {
@@ -385,7 +389,7 @@ describe('the first page and the next, run', () => {
     const { staticPropsChunk, chunk } = await runPagePlugin({ searchEnabled: true })
     const route = bootProductsRoute()
 
-    const firstPage = await route.atBuild(buildTimeParams(staticPropsChunk))
+    const firstPage = await route.atBuild(buildTimeArguments(staticPropsChunk))
     const secondPage = await route.inBrowser(
       browserParams(chunk, { ds_0_state: { page: 2, debouncedQuery: '' }, sortBy: 'name-asc' })
     )
@@ -396,5 +400,9 @@ describe('the first page and the next, run', () => {
     // Page 2 starts where page 1 ends.
     expect(rowWindow(firstPage)).toBe(' LIMIT 20 OFFSET 0')
     expect(rowWindow(secondPage)).toBe(' LIMIT 20 OFFSET 20')
+    // Over the same rows: the products a visitor is served, never a draft the
+    // build could read as the store.
+    expect(firstPage).toContain("WHERE (LOWER(TRIM(status)) = 'active')")
+    expect(firstPage.replace(/ OFFSET \d+$/, '')).toBe(secondPage.replace(/ OFFSET \d+$/, ''))
   })
 })

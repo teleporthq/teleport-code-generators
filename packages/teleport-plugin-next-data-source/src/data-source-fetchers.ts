@@ -379,15 +379,21 @@ export default { fetchData, fetchCount, handler: ${handlerExport}, getCount: ${c
 
   return `${[...allImports, cachePreamble].filter(Boolean).join('\n')}
 
-async function fetchData(params = {}) {
-  // A server-side call from this process (getStaticProps, a page-load
-  // workflow): the money-table guard trusts the marker, which no HTTP request
-  // can carry.
-  const req = {
-    query: params,
-    method: 'GET',
-    __tqServerCall: true,
+// Who a call from this process reads for. The store's own server code — a
+// workflow, pricing, checkout — reads every row: its request carries a marker
+// the guards trust, which no HTTP request can. A page renders what a visitor
+// may see, so its data is read \`{ as: 'visitor' }\`: the route answers it as it
+// answers an anonymous visitor's browser — the row policy, the refused tables,
+// the hidden columns — through the statement the page itself wrote.
+function __tqServerRequest(params, options) {
+  if (options && options.as === 'visitor') {
+    return { query: params, method: 'GET', headers: {}, __tqVisitorView: true }
   }
+  return { query: params, method: 'GET', __tqServerCall: true }
+}
+
+async function fetchData(params = {}, options = {}) {
+  const req = __tqServerRequest(params, options)
   
   let result = null
   let statusCode = 200
@@ -412,12 +418,8 @@ async function fetchData(params = {}) {
   return result.data
 }
 
-async function fetchCount(params = {}) {
-  const req = {
-    query: params,
-    method: 'GET',
-    __tqServerCall: true,
-  }
+async function fetchCount(params = {}, options = {}) {
+  const req = __tqServerRequest(params, options)
   
   let result = null
   let statusCode = 200

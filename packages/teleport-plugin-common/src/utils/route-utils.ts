@@ -1,4 +1,5 @@
-import { UIDLStateDefinition, UIDLWorkflows } from '@teleporthq/teleport-types'
+import * as types from '@babel/types'
+import { UIDLAuthentication, UIDLStateDefinition, UIDLWorkflows } from '@teleporthq/teleport-types'
 import { RoutePaths, TableAccess } from '@teleporthq/teleport-shared'
 
 /**
@@ -166,3 +167,48 @@ export const pageSeedsStateFromDataSource = (
       !!dataSources?.[definition.dataSourceBinding.dataSourceId] &&
       !stateQueryHasTemplatePlaceholder(definition)
   )
+
+/**
+ * The path a page is served at, from where its file lands: `/admin/orders`
+ * for `pages/admin/orders.js`, `/` for the home page.
+ */
+const pageRouteOf = (outputOptions?: { folderPath?: string[]; fileName?: string }): string => {
+  const { folderPath = [], fileName = '' } = outputOptions || {}
+  const segments = [...folderPath, fileName].filter(
+    (segment, index, all) => segment !== '' && !(segment === 'index' && index === all.length - 1)
+  )
+  return `/${segments.join('/')}`
+}
+
+/**
+ * Whether a page's own data may be read as the store — only an admin panel
+ * page that nobody but the store's trusted readers may open
+ * (`TableAccess.pageReadsAsStore`). Every other page renders what a visitor
+ * is served of the store's tables.
+ */
+export const pageDataReadsAsStore = (
+  uidl: { outputOptions?: { folderPath?: string[]; fileName?: string; pageId?: string } },
+  auth?: UIDLAuthentication | null
+): boolean =>
+  TableAccess.pageReadsAsStore(
+    { route: pageRouteOf(uidl.outputOptions), pageId: uidl.outputOptions?.pageId },
+    auth
+  )
+
+/**
+ * The arguments a page's data read hands a data-source module after its
+ * params: `{ as: 'visitor' }` — read what a visitor is served (the route's row
+ * policy, hidden columns and refused tables) — or none on a page that reads as
+ * the store (`pageDataReadsAsStore`).
+ */
+export const pageDataReadArguments = (
+  uidl: { outputOptions?: { folderPath?: string[]; fileName?: string; pageId?: string } },
+  auth?: UIDLAuthentication | null
+): types.Expression[] =>
+  pageDataReadsAsStore(uidl, auth)
+    ? []
+    : [
+        types.objectExpression([
+          types.objectProperty(types.identifier('as'), types.stringLiteral('visitor')),
+        ]),
+      ]

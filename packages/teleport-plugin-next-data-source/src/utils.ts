@@ -1217,7 +1217,11 @@ export const extractDataSourceIntoGetStaticProps = (
   dependencies: Record<string, any>,
   dynamicRouteAttr?: string,
   folderPath?: string[],
-  transformOptions: EntityTransformOptions = {}
+  transformOptions: EntityTransformOptions = {},
+  // What the read hands the module after its params: `{ as: 'visitor' }` on
+  // every page but an admin page only trusted readers open (see
+  // `RouteUtils.pageDataReadArguments`).
+  readArguments: () => types.Expression[] = () => []
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -1768,7 +1772,7 @@ export const extractDataSourceIntoGetStaticProps = (
 
     const fetchCallExpression = types.callExpression(
       types.memberExpression(types.identifier(fetcherImportName), types.identifier('fetchData')),
-      [types.objectExpression(paramsProperties)]
+      [types.objectExpression(paramsProperties), ...readArguments()]
     )
 
     const safeFetchExpression = createSafeFetchExpression(fetchCallExpression, propKey)

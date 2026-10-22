@@ -8,7 +8,12 @@ import {
 import * as types from '@babel/types'
 import { parseExpression } from '@babel/parser'
 import { ASTStatementOrder, GenericUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils, URLQueryWriter, URLSearchParamSync } from '@teleporthq/teleport-plugin-common'
+import {
+  ASTUtils,
+  RouteUtils,
+  URLQueryWriter,
+  URLSearchParamSync,
+} from '@teleporthq/teleport-plugin-common'
 import { collectFilterLeafConditions, generateSafeFileName, pruneFilterTree } from './utils'
 import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import { buildProductTransformOptions, type EntityTransformOptions } from './transformations'
@@ -2107,14 +2112,17 @@ export const createNextArrayMapperPaginationPlugin: ComponentPluginFactory<{}> =
       }
     })
 
-    // STEP 6: Update getStaticProps if this is a page
+    // STEP 6: Update getStaticProps if this is a page. Its rows are what the
+    // page renders, so they are read as a visitor is served them — unless only
+    // the store's trusted readers can open the page (`pageDataReadArguments`).
     if (isPage) {
       updateGetStaticProps(
         chunks,
         registry,
         dependencies,
         uidl.outputOptions?.folderPath,
-        localized
+        localized,
+        () => RouteUtils.pageDataReadArguments(uidl, options.auth)
       )
     }
 
@@ -3849,12 +3857,24 @@ export default dataSourceModule.getCount
   }
 }
 
+// `fetchCount(<params>, <read arguments>)`: the params may be left out only
+// when nothing follows them.
+const countReadArguments = (
+  countParams: types.ObjectProperty[],
+  readArguments: types.Expression[]
+): types.Expression[] =>
+  countParams.length > 0 || readArguments.length > 0
+    ? [types.objectExpression(countParams), ...readArguments]
+    : []
+
 function updateGetStaticProps(
   chunks: any[],
   registry: StateRegistry,
   dependencies: Record<string, any>,
   folderPath: string[] | undefined,
-  localized: boolean
+  localized: boolean,
+  // The arguments every read hands the module after its params (fresh nodes per call).
+  readArguments: () => types.Expression[]
 ): void {
   const getStaticPropsChunk = chunks.find((c) => c.name === 'getStaticProps')
   if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
@@ -4033,7 +4053,7 @@ function updateGetStaticProps(
                   types.identifier(fetcherImportName),
                   types.identifier('fetchData')
                 ),
-                [types.objectExpression(fetchParams)]
+                [types.objectExpression(fetchParams), ...readArguments()]
               ),
               types.identifier('catch')
             ),
@@ -4222,7 +4242,7 @@ function updateGetStaticProps(
                   types.identifier(fetcherImportName),
                   types.identifier('fetchCount')
                 ),
-                countParams.length > 0 ? [types.objectExpression(countParams)] : []
+                countReadArguments(countParams, readArguments())
               ),
               types.identifier('catch')
             ),

@@ -87,6 +87,9 @@ var SUMMARY_LENGTH = 300
 var PUBLISHED_ONLY = JSON.stringify([
   { type: 'condition', source: 'status', destination: 'published', operand: '=' },
 ])
+// Public pages: the posts as a visitor is served them (published, no author
+// email), never as the store reads its own table.
+var PAGE_READ = { as: 'visitor' }
 var NAMED_ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
   mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
@@ -291,7 +294,7 @@ export async function getServerSideProps(context) {
       sortOrder: 'desc',
       filters: PUBLISHED_ONLY,
       locale: locale || undefined,
-    })
+    }, PAGE_READ)
   } catch (error) {
     console.error('[rss] The posts could not be read: ' + (error && error.message ? error.message : String(error)))
     res.statusCode = 503

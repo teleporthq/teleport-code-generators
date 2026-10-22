@@ -121,7 +121,7 @@ async function readPosts(preset, locale) {
       sorts: NEWEST_FIRST,
       filters: PUBLISHED_ONLY,
       locale: locale || undefined,
-    })
+    }, PAGE_READ)
     rows = Array.isArray(rows) ? rows : []
     for (var i = 0; i < rows.length; i++) {
       var post = rows[i]
@@ -805,6 +805,9 @@ var DESCRIPTION_LENGTH = 200
 var PUBLISHED_ONLY = JSON.stringify([
   { type: 'condition', source: 'status', destination: 'published', operand: '=' },
 ])
+// Public pages: the posts as a visitor is served them (published, no author
+// email), never as the store reads its own table.
+var PAGE_READ = { as: 'visitor' }
 var NEWEST_FIRST = JSON.stringify([
   { field: 'created_at', order: 'desc' },
   { field: 'id', order: 'asc' },
