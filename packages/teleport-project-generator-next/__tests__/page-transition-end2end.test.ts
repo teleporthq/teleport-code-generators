@@ -113,19 +113,135 @@ describe('Next generator page transition', () => {
     )
   })
 
-  it('plays an arriving page once the pictures on its first screen are decoded, 300 ms at most', async () => {
+  // Hero photographs of 3000px missed a 300 ms wait: the page faded in on an
+  // empty hero and the photograph snapped in over it in one frame.
+  it('plays an arriving page once the pictures on its first screen are decoded, longer while the leaving page holds the screen', async () => {
     const output = await generator.generateProject(
       buildUidl({ preset: 'fade', duration: 0.35, easing: 'ease-out' }),
       template()
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
-    expect(wrapper).toContain('const PICTURE_WAIT_MS = 300')
+    expect(wrapper).toContain('const PICTURE_WAIT_MS = 1200')
+    expect(wrapper).toContain('const BARE_PICTURE_WAIT_MS = 300')
     expect(wrapper).toContain('image.decode().catch(() => {})')
+    // the long wait only where the leaving page is still on screen: overlapping, or pictured by the browser
+    expect(wrapper).toContain(
+      'const held = !!landing || !!(overlap && overlap.arrivingKey === key)\n' +
+        '    Promise.all([picturesReady(node, held ? PICTURE_WAIT_MS : BARE_PICTURE_WAIT_MS), twinReady]).then(([loading]) => {'
+    )
     // the first page is ready at once; a later one waits at its starting state
     expect(wrapper).toContain('const [readyKey, setReadyKey] = React.useState(routeKey)')
     expect(wrapper).toContain("animate={readyKey === routeKey ? 'animate' : 'initial'}")
     // a page that arrived after it takes the turn: a late answer changes nothing
     expect(wrapper).toContain('if (readyKeyRef.current === key) {')
+  })
+
+  describe('a picture that misses the wait', () => {
+    const latePictures = async () => {
+      const output = await generator.generateProject(
+        buildUidl({ preset: 'fade', duration: 0.35, easing: 'ease-out' }),
+        template()
+      )
+      const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+      const runtime = new Function(
+        'window',
+        [
+          declarationOf(wrapper, 'DURATION'),
+          declarationOf(wrapper, 'LATE_PICTURE_WAIT_MS'),
+          declarationOf(wrapper, 'LATE_PICTURE_ATTR'),
+          declarationOf(wrapper, 'picturesReady'),
+          declarationOf(wrapper, 'fadeInWhenLoaded'),
+          'return { picturesReady, fadeInWhenLoaded }',
+        ].join('\n')
+      )({ innerHeight: 800 })
+      jest.useFakeTimers()
+      return { wrapper, ...runtime }
+    }
+    const pictureAt = (
+      top: number,
+      loaded: boolean,
+      decode = () => new Promise(() => undefined)
+    ) => {
+      const attributes = new Map<string, string>()
+      const listeners = new Map<string, Set<(event: { type: string }) => void>>()
+      const picture = {
+        complete: loaded,
+        attributes,
+        decode,
+        getBoundingClientRect: () => ({ top, bottom: top + 400 }),
+        setAttribute: (name: string, value: string) => attributes.set(name, value),
+        removeAttribute: (name: string) => attributes.delete(name),
+        addEventListener: (type: string, listener: (event: { type: string }) => void) =>
+          listeners.set(type, (listeners.get(type) || new Set()).add(listener)),
+        removeEventListener: (type: string, listener: (event: { type: string }) => void) =>
+          listeners.get(type)?.delete(listener),
+        listening: () => [...listeners.values()].reduce((sum, set) => sum + set.size, 0),
+        fire: (type: string) => {
+          picture.complete = true
+          ;[...(listeners.get(type) || [])].forEach((listener) => listener({ type }))
+        },
+      }
+      return picture
+    }
+    const ATTR = 'data-tq-late-picture'
+
+    afterEach(() => jest.useRealTimers())
+
+    it('waits unseen and fades in once it has loaded, the way its page did', async () => {
+      const { wrapper, picturesReady, fadeInWhenLoaded } = await latePictures()
+      const decoded = pictureAt(0, true, () => Promise.resolve())
+      const hero = pictureAt(100, false)
+      const belowTheFold = pictureAt(1200, false)
+      const ready = picturesReady({ querySelectorAll: () => [decoded, hero, belowTheFold] }, 1200)
+      jest.advanceTimersByTime(1200)
+      // settled by the wait, with the first-screen pictures still loading
+      expect(await ready).toEqual([hero])
+
+      fadeInWhenLoaded(hero)
+      expect(hero.attributes.get(ATTR)).toBe('loading')
+      hero.fire('load')
+      expect(hero.attributes.get(ATTR)).toBe('in')
+      jest.advanceTimersByTime(350 + 100)
+      expect(hero.attributes.has(ATTR)).toBe(false)
+      expect(hero.listening()).toBe(0)
+
+      // unseen while loading, then faded in with the page's own duration and curve
+      expect(wrapper).toContain(
+        'const LATE_PICTURE_CSS = ' +
+          JSON.stringify(
+            `[${ATTR}="loading"] { opacity: 0 !important; }\n` +
+              `[${ATTR}="in"] { transition: opacity 0.35s cubic-bezier(0, 0, 0.58, 1) !important; }`
+          )
+      )
+      expect(wrapper).toContain('<style dangerouslySetInnerHTML={{ __html: LATE_PICTURE_CSS }} />')
+      // only the pictures that missed the wait; not the flight's twin, nor for less motion or a page shown at once
+      expect(wrapper).toContain(
+        '        if (!prefersLessMotion() && !isSkippedRoute(key)) {\n' +
+          '          loading.filter((image) => image !== twin).forEach(fadeInWhenLoaded)\n' +
+          '        }\n' +
+          '        setReadyKey(key)'
+      )
+    })
+
+    it('is never left unseen: one that fails shows at once, one that never loads after the hard timeout', async () => {
+      const { fadeInWhenLoaded } = await latePictures()
+      const broken = pictureAt(0, false)
+      fadeInWhenLoaded(broken)
+      broken.fire('error')
+      expect(broken.attributes.has(ATTR)).toBe(false)
+      expect(broken.listening()).toBe(0)
+
+      const stalled = pictureAt(0, false)
+      fadeInWhenLoaded(stalled)
+      jest.advanceTimersByTime(5000 - 1)
+      expect(stalled.attributes.get(ATTR)).toBe('loading')
+      jest.advanceTimersByTime(1)
+      expect(stalled.attributes.has(ATTR)).toBe(false)
+      expect(stalled.listening()).toBe(0)
+      // loading after all, it simply appears: nothing hides it again
+      stalled.fire('load')
+      expect(stalled.attributes.has(ATTR)).toBe(false)
+    })
   })
 
   // Frozen, the leaving page no longer gives the document a height: a scrollbar
@@ -342,6 +458,168 @@ describe('Next generator flying picture', () => {
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain('setTimeout(() => abandon(change), ARRIVAL_WAIT_MS)')
     expect(wrapper).toContain("router.events.on('routeChangeError', onRouteChangeError)")
+  })
+
+  // Nothing is frozen in a View Transition's page change, and every export
+  // scrolls smoothly for its in-page anchors: the product page arrived at the
+  // card's offset and glided up through itself to its top.
+  describe("holds <html>'s scrolling instant through the change, and gives it back on every path", () => {
+    const pageRoot = (own?: [string, string]) => {
+      const declarations = new Map<string, [string, string]>(own ? [['scroll-behavior', own]] : [])
+      return {
+        declarations,
+        style: {
+          getPropertyValue: (name: string) => (declarations.get(name) || [''])[0],
+          getPropertyPriority: (name: string) => (declarations.get(name) || ['', ''])[1],
+          setProperty: (name: string, value: string, priority = '') => {
+            declarations.set(name, [value, priority])
+          },
+          removeProperty: (name: string) => {
+            declarations.delete(name)
+          },
+        },
+        setAttribute: () => undefined,
+        removeAttribute: () => undefined,
+      }
+    }
+    const viewChanges = async (root: ReturnType<typeof pageRoot>, failsToStart = false) => {
+      const output = await generator.generateProject(buildUidl(config), template())
+      const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
+      const effect = wrapper.slice(
+        wrapper.indexOf('    const root = document.documentElement\n'),
+        wrapper.indexOf('    const onRouteChangeStart = ')
+      )
+      const transitions: Array<{
+        finish: () => void
+        fail: () => void
+        skipTransition: () => void
+      }> = []
+      const document = {
+        documentElement: root,
+        startViewTransition: () => {
+          if (failsToStart) {
+            throw new Error('InvalidStateError')
+          }
+          let finish = () => undefined
+          let fail = () => undefined
+          const finished = new Promise<void>((resolve, reject) => {
+            finish = resolve
+            fail = reject
+          })
+          const transition = {
+            ready: Promise.resolve(),
+            finished,
+            finish,
+            fail,
+            skipTransition: () => finish(),
+          }
+          transitions.push(transition)
+          return transition
+        },
+      }
+      const changeRef = { current: null }
+      const { startViewChange, abandon } = new Function(
+        'document',
+        'changeRef',
+        'scrollRef',
+        'pageRef',
+        'clickedRef',
+        'overlapRef',
+        'routeKeyRef',
+        [
+          declarationOf(wrapper, 'VT_CSS'),
+          declarationOf(wrapper, 'FLIES'),
+          declarationOf(wrapper, 'ARRIVAL_WAIT_MS'),
+          declarationOf(wrapper, 'holdStyle'),
+          'const REVEAL = false',
+          'const TQ_MORPH_NAME = "tq-morph"',
+          'const prefersLessMotion = () => false',
+          'const tqMorphClear = () => {}',
+          'const tqMorphSource = () => ({ style: {}, src: "/hero.jpg" })',
+          effect,
+          'return { startViewChange, abandon }',
+        ].join('\n')
+      )(
+        document,
+        changeRef,
+        { current: null },
+        { current: {} },
+        { current: null },
+        { current: null },
+        { current: '/products' }
+      )
+      const changeTo = (url: string) => startViewChange(url, null, false)
+      const scrolling = () => root.declarations.get('scroll-behavior')
+      return { changeTo, abandon, changeRef, transitions, scrolling }
+    }
+    const settled = () => new Promise((resolve) => setImmediate(resolve))
+    const flushed = async () => {
+      for (let tick = 0; tick < 5; tick++) {
+        await Promise.resolve()
+      }
+    }
+
+    it('when the change plays through, or its transition fails', async () => {
+      const root = pageRoot()
+      const { changeTo, transitions, scrolling } = await viewChanges(root)
+      expect(changeTo('/products/terra')).toBe(true)
+      expect(scrolling()).toEqual(['auto', 'important'])
+      transitions[0].finish()
+      await settled()
+      expect(scrolling()).toBeUndefined()
+
+      expect(changeTo('/products/lumen')).toBe(true)
+      expect(scrolling()).toEqual(['auto', 'important'])
+      transitions[1].fail()
+      await settled()
+      expect(scrolling()).toBeUndefined()
+    })
+
+    it("when the change cannot start, putting the page's own value back exactly", async () => {
+      const root = pageRoot(['smooth', ''])
+      const { changeTo, scrolling } = await viewChanges(root, true)
+      expect(changeTo('/products/terra')).toBe(false)
+      expect(scrolling()).toEqual(['smooth', ''])
+    })
+
+    it('when the page never arrives, or its route fails', async () => {
+      const root = pageRoot()
+      const { changeTo, abandon, changeRef, scrolling } = await viewChanges(root)
+      jest.useFakeTimers()
+      try {
+        changeTo('/products/terra')
+        jest.advanceTimersByTime(3000 - 1)
+        await flushed()
+        expect(scrolling()).toEqual(['auto', 'important'])
+        jest.advanceTimersByTime(1)
+        await flushed()
+        expect(scrolling()).toBeUndefined()
+
+        // routeChangeError abandons the change in flight
+        changeTo('/products/lumen')
+        expect(scrolling()).toEqual(['auto', 'important'])
+        abandon(changeRef.current)
+        await flushed()
+        expect(scrolling()).toBeUndefined()
+      } finally {
+        jest.useRealTimers()
+      }
+    })
+
+    it('when a second change interrupts the first: held once, given back by the last', async () => {
+      const root = pageRoot(['smooth', ''])
+      const { changeTo, transitions, scrolling } = await viewChanges(root)
+      changeTo('/products/terra')
+      changeTo('/products/lumen')
+      transitions[0].finish()
+      await settled()
+      // the first change no longer owns the page: the second is still playing
+      expect(scrolling()).toEqual(['auto', 'important'])
+      transitions[1].finish()
+      await settled()
+      // held once, so the first hold's "auto" is never taken for the page's own
+      expect(scrolling()).toEqual(['smooth', ''])
+    })
   })
 })
 
