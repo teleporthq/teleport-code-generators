@@ -1849,25 +1849,19 @@ function findStreamingAINodes(allNodes, allEdges) {
     const n = allNodes[ni];
     if (aiTypes.indexOf(n.type) >= 0 && n.config && n.config.streaming) {
       let onStreamEdge = null;
-      let onEndEdge = null;
       for (let ei = 0; ei < allEdges.length; ei++) {
-        if (allEdges[ei].source === n.id) {
-          if (allEdges[ei].sourceHandle === 'on-stream') onStreamEdge = allEdges[ei];
-          if (allEdges[ei].sourceHandle === 'on-end') onEndEdge = allEdges[ei];
-        }
+        if (allEdges[ei].source === n.id && allEdges[ei].sourceHandle === 'on-stream') onStreamEdge = allEdges[ei];
       }
       const onStreamNodes = onStreamEdge ? utils.collectBranchNodes(onStreamEdge.target, allNodes, allEdges, n.id) : [];
-      const onEndNodes = onEndEdge ? utils.collectBranchNodes(onEndEdge.target, allNodes, allEdges, n.id) : [];
-      map[n.id] = { node: n, onStreamNodes: onStreamNodes, onEndNodes: onEndNodes };
+      map[n.id] = { node: n, onStreamNodes: onStreamNodes };
     }
   }
   return map;
 }
 
-// A streaming AI node's on-stream / on-end branches are collected from the
-// FULL workflow node list, so they may contain server nodes (e.g. the SQL
-// insert persisting a chat answer). Those already execute inside their own
-// server segments with full configs; the browser bundle only ships their
+// A streaming AI node's on-stream branch is collected from the FULL workflow
+// node list, so it may contain server nodes. Those already execute inside their
+// own server segments with full configs; the browser bundle only ships their
 // config redacted down to the client-safe whitelist (segment-splitter's
 // redactServerNodeConfig), so executing them here with CLIENT handlers both
 // double-executes them and crashes on the missing config. Emitted nodes carry
@@ -1880,7 +1874,6 @@ function clientExecutableBranchNodes(branchNodes) {
 async function callStreamingServerSegment(segmentUrl, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId, stateKeys) {
   const prunedContext = pruneContext(context, stateKeys);
   const handledNodeIds = {};
-  const streamedNodeIds = {};
   // Same relative-URL problem as callServerSegment above — required even
   // for streaming segments because a server-side caller (e.g. an AI
   // chat webhook) would otherwise fail to parse the URL.
@@ -1927,7 +1920,6 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
       try { data = JSON.parse(jsonStr); } catch(e) { continue; }
 
       if (data.type === 'chunk' && data.nodeId) {
-        streamedNodeIds[data.nodeId] = true;
         context[data.nodeId] = { chunk: data.chunk, fullResponse: data.fullResponse };
         const info = streamingInfo[data.nodeId];
         if (info && info.onStreamNodes.length > 0) {
@@ -1942,21 +1934,12 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
       } else if (data.type === 'node-result' && data.nodeId) {
         context[data.nodeId] = data.result;
       } else if (data.type === 'done') {
+        // The on-end branch is not run here: its steps sit in the segments after
+        // this one, and the caller runs those in graph order, so a browser step
+        // waits for the server steps before it (the chat's "Bump Conversation
+        // After Reply" -> "Get Chat Messages for Final Update").
         if (data.results) {
           mergeServerResults(context, data.results, workflowConfig && workflowConfig.triggerNodeId);
-        }
-        const streamedKeys = Object.keys(streamedNodeIds);
-        for (let sk = 0; sk < streamedKeys.length; sk++) {
-          const endInfo = streamingInfo[streamedKeys[sk]];
-          if (endInfo && endInfo.onEndNodes.length > 0) {
-            const runnableEndNodes = clientExecutableBranchNodes(endInfo.onEndNodes);
-            if (runnableEndNodes.length > 0) {
-              await utils.executeNodes(runnableEndNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
-            }
-            for (let eni = 0; eni < endInfo.onEndNodes.length; eni++) {
-              handledNodeIds[endInfo.onEndNodes[eni].id] = true;
-            }
-          }
         }
       } else if (data.type === 'error') {
         throw new Error(data.error || 'Streaming workflow segment failed');
