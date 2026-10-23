@@ -14,6 +14,11 @@ import { generateAccountDeleteRoute } from '../src/account-delete-route-generato
  * pages read `owner = me OR owner IS NULL`: every other signed-in visitor saw
  * them. `teleport_bookings` has no link to users at all and kept the user id
  * with the customer's name, email and phone.
+ *
+ * THE RULE. A table's rows are attributed through exactly ONE column — the one
+ * its "My …" pages read by (teleport-shared's `resolveOwnerColumn`, shipped
+ * into the route as text) — and deleted only when that column says whose the
+ * row is, never when it says who acted on it.
  */
 
 const USER_ID = '7d1c4c6a-2f7e-4d3b-9c1e-1a2b3c4d5e6f'
@@ -48,23 +53,29 @@ const PLATFORM: FixtureSchema = {
   password_reset_tokens: { columns: ['id', 'email', 'token'] },
   teleport_orders: { columns: ['id', 'user_id', 'billing_email', 'billing_name', 'total'] },
   teleport_cart: { columns: ['id', 'user_id'], links: { user_id: 'users.id' } },
-  // A business record with a user link and no handling of its own: kept as it is.
-  teleport_subscriptions: { columns: ['id', 'user_id', 'customer_email', 'status'] },
+  teleport_subscriptions: {
+    columns: ['id', 'user_id', 'customer_email', 'customer_name', 'status'],
+  },
+  teleport_abandoned_carts: { columns: ['id', 'cart_id', 'user_id', 'customer_email'] },
+  teleport_voucher_redemptions: {
+    columns: ['id', 'voucher_id', 'order_id', 'user_id', 'billing_email'],
+  },
+  teleport_push_subscriptions: { columns: ['id', 'endpoint', 'user_id'] },
 }
 
 const USER_ROW = 'SELECT * FROM users WHERE id = $1'
 const COLUMNS_OF_ONE_TABLE =
   "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1"
 const COLUMNS_OF_EVERY_TABLE =
-  'SELECT c.table_name, c.column_name FROM information_schema.columns c'
+  'SELECT c.table_name, c.column_name, c.ordinal_position FROM information_schema.columns c'
 const FOREIGN_KEYS = 'FROM pg_constraint'
 
 const columnRows = (schema: FixtureSchema) => {
-  const rows: Array<{ table_name: string; column_name: string }> = []
+  const rows: Array<{ table_name: string; column_name: string; ordinal_position: number }> = []
   for (const tableName of Object.keys(schema)) {
-    for (const columnName of schema[tableName].columns) {
-      rows.push({ table_name: tableName, column_name: columnName })
-    }
+    schema[tableName].columns.forEach((columnName, index) => {
+      rows.push({ table_name: tableName, column_name: columnName, ordinal_position: index + 1 })
+    })
   }
   return rows
 }
@@ -109,6 +120,7 @@ const runRoute = async (schema: FixtureSchema, refuse: Refuse = () => null): Pro
         return { rows: table ? table.columns.map((column_name) => ({ column_name })) : [] }
       }
       if (sql.indexOf(COLUMNS_OF_EVERY_TABLE) === 0) {
+        expect(sql).toContain(' ORDER BY c.table_name, c.ordinal_position')
         return { rows: columnRows(schema) }
       }
       if (sql.indexOf(FOREIGN_KEYS) !== -1) {
@@ -180,76 +192,158 @@ const sqlOf = (run: Run): string[] => run.statements.map((statement) => statemen
 const writesOf = (run: Run): string[] =>
   sqlOf(run).filter((sql) => /^(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|DELETE|UPDATE)/.test(sql))
 
-const deletesOf = (run: Run): Statement[] =>
-  run.statements.filter((statement) => statement.sql.indexOf('DELETE') === 0)
+/** The deletes in the site's own tables: the route quotes those identifiers. */
+const ownDeletesOf = (run: Run): Statement[] =>
+  run.statements.filter((statement) => statement.sql.indexOf('DELETE FROM "') === 0)
+
+interface Scenario {
+  table: string
+  columns: string[]
+  links?: Record<string, string>
+  /** The column the visitor's rows go through, or null when the table is left alone. */
+  deletedThrough: string | null
+  why: string
+}
+
+const SCENARIOS: Scenario[] = [
+  {
+    table: 'saved_items',
+    columns: ['id', 'user_id', 'title'],
+    links: { user_id: 'users.id' },
+    deletedThrough: 'user_id',
+    why: 'the plain owner link',
+  },
+  {
+    table: 'requests',
+    columns: ['id', 'owner_user_id', 'subject'],
+    links: { owner_user_id: 'users.id' },
+    deletedThrough: 'owner_user_id',
+    why: 'the <role>_user_id convention, an owning role',
+  },
+  {
+    table: 'reviews',
+    columns: ['id', 'created_by', 'body'],
+    deletedThrough: 'created_by',
+    why: 'an older project whose link to users was dropped: the name is all there is',
+  },
+  {
+    table: 'posts',
+    columns: ['id', 'author_id', 'body'],
+    links: { author_id: 'users.id' },
+    deletedThrough: 'author_id',
+    why: 'the pipeline names the signed-in author this way; the page is scoped by it',
+  },
+  {
+    table: 'expenses',
+    columns: ['id', 'submitter_user_id', 'approved_by_user_id', 'amount'],
+    links: { submitter_user_id: 'users.id', approved_by_user_id: 'users.id' },
+    deletedThrough: 'submitter_user_id',
+    why: 'an approver leaving must not delete the expenses they approved',
+  },
+  {
+    table: 'tickets',
+    columns: ['id', 'user_id', 'created_by', 'subject'],
+    links: { user_id: 'users.id', created_by: 'users.id' },
+    deletedThrough: 'user_id',
+    why: "an agent leaving must not delete the customers' tickets they opened",
+  },
+  {
+    table: 'listing_inquiries',
+    columns: ['id', 'sender_user_id', 'recipient_user_id', 'listing_id', 'body'],
+    links: { sender_user_id: 'users.id', recipient_user_id: 'users.id' },
+    deletedThrough: 'sender_user_id',
+    why: "a seller leaving must not delete the buyers' inquiries",
+  },
+  {
+    table: 'wishlists',
+    columns: ['id', 'owner_user_id', 'user_id'],
+    links: { owner_user_id: 'users.id', user_id: 'users.id' },
+    deletedThrough: 'user_id',
+    why: 'one column per table — the one the page reads by, whatever the column order',
+  },
+  {
+    table: 'accounts',
+    columns: ['id', 'user_id', 'label'],
+    links: { user_id: 'users.id' },
+    deletedThrough: 'user_id',
+    why: "a table named like a platform scope is still the site's own",
+  },
+  {
+    table: 'tasks',
+    columns: ['id', 'title', 'assigned_to', 'updated_by'],
+    links: { assigned_to: 'users.id', updated_by: 'users.id' },
+    deletedThrough: null,
+    why: "actor links only: the rows are other people's",
+  },
+  {
+    table: 'approvals',
+    columns: ['id', 'approved_by_user_id', 'note'],
+    links: { approved_by_user_id: 'users.id' },
+    deletedThrough: null,
+    why: "the page reads by an acting role; what leaks there is the read side's null-inclusive predicate",
+  },
+  {
+    table: 'transactions',
+    columns: ['id', 'account_id', 'amount'],
+    links: { account_id: 'accounts.id' },
+    deletedThrough: null,
+    why: 'account_id names an account of the site, not a user: a domain link',
+  },
+  {
+    table: 'products',
+    columns: ['id', 'name', 'price'],
+    deletedThrough: null,
+    why: 'nobody owns the row',
+  },
+]
 
 describe("closing an account — the rows the visitor owns in the site's own tables", () => {
-  it('deletes them through every owner column, each under a savepoint, before the account', async () => {
+  describe.each(SCENARIOS.map((scenario) => [scenario.table, scenario] as [string, Scenario]))(
+    '%s',
+    (_table, scenario) => {
+      it(scenario.why, async () => {
+        const run = await runRoute({
+          ...PLATFORM,
+          [scenario.table]: { columns: scenario.columns, links: scenario.links },
+        })
+
+        expect(run.status).toBe(200)
+        expect(run.body).toEqual({ success: true })
+        expect(ownDeletesOf(run)).toEqual(
+          scenario.deletedThrough === null
+            ? []
+            : [
+                {
+                  sql: `DELETE FROM "${scenario.table}" WHERE "${scenario.deletedThrough}" = $1`,
+                  params: [USER_ID],
+                },
+              ]
+        )
+        expect(run.errors).toEqual([])
+      })
+    }
+  )
+
+  it('deletes them under their own savepoints, inside the one transaction, before the account', async () => {
     const run = await runRoute({
       ...PLATFORM,
       saved_items: { columns: ['id', 'user_id', 'title'], links: { user_id: 'users.id' } },
-      requests: {
-        columns: ['id', 'owner_user_id', 'subject'],
-        links: { owner_user_id: 'users.id' },
-      },
-      // An older project: the link to users was dropped, the name is all there is.
-      reviews: { columns: ['id', 'created_by', 'body'] },
+      posts: { columns: ['id', 'author_id', 'body'], links: { author_id: 'users.id' } },
     })
-
-    expect(run.status).toBe(200)
-    expect(run.body).toEqual({ success: true })
-    const deletes = deletesOf(run)
-    expect(deletes.map((statement) => statement.sql)).toEqual([
-      'DELETE FROM teleport_cart WHERE user_id = $1',
-      'DELETE FROM "saved_items" WHERE "user_id" = $1',
-      'DELETE FROM "requests" WHERE "owner_user_id" = $1',
-      'DELETE FROM "reviews" WHERE "created_by" = $1',
-      'DELETE FROM password_reset_tokens WHERE email = $1',
-      'DELETE FROM users WHERE id = $1',
-    ])
-    for (const owned of deletes.slice(1, 4)) {
-      expect(owned.params).toEqual([USER_ID])
-    }
 
     const writes = writesOf(run)
     expect(writes[0]).toBe('BEGIN')
     expect(writes[writes.length - 1]).toBe('COMMIT')
-    const at = writes.indexOf('DELETE FROM "requests" WHERE "owner_user_id" = $1')
+    const at = writes.indexOf('DELETE FROM "posts" WHERE "author_id" = $1')
     expect(writes.slice(at - 1, at + 2)).toEqual([
       'SAVEPOINT owned_rows',
-      'DELETE FROM "requests" WHERE "owner_user_id" = $1',
+      'DELETE FROM "posts" WHERE "author_id" = $1',
       'RELEASE SAVEPOINT owned_rows',
     ])
-    expect(run.errors).toEqual([])
-  })
-
-  it("leaves other people's rows alone: actor links, audit links, domain links, platform records", async () => {
-    const run = await runRoute({
-      ...PLATFORM,
-      tasks: {
-        columns: ['id', 'title', 'assigned_to', 'updated_by'],
-        links: { assigned_to: 'users.id', updated_by: 'users.id' },
-      },
-      accounts: { columns: ['id', 'user_id', 'label'], links: { user_id: 'users.id' } },
-      // `account_id` names an account, not a user: a domain link.
-      transactions: {
-        columns: ['id', 'account_id', 'amount'],
-        links: { account_id: 'accounts.id' },
-      },
-    })
-
-    expect(run.status).toBe(200)
-    expect(deletesOf(run).map((statement) => statement.sql)).toEqual([
-      'DELETE FROM teleport_cart WHERE user_id = $1',
-      'DELETE FROM "accounts" WHERE "user_id" = $1',
-      'DELETE FROM password_reset_tokens WHERE email = $1',
-      'DELETE FROM users WHERE id = $1',
-    ])
-    const touched = sqlOf(run).join('\n')
-    expect(touched).not.toContain('"tasks"')
-    expect(touched).not.toContain('"transactions"')
-    expect(touched).not.toContain('DELETE FROM teleport_subscriptions')
-    expect(touched).not.toContain('"teleport_subscriptions"')
+    expect(writes.indexOf('DELETE FROM "saved_items" WHERE "user_id" = $1')).toBeLessThan(
+      writes.indexOf('DELETE FROM users WHERE id = $1')
+    )
+    expect(at).toBeLessThan(writes.indexOf('DELETE FROM users WHERE id = $1'))
   })
 
   it('anonymises a booking like an order: no account, no name, no phone, a synthetic email', async () => {
@@ -271,37 +365,42 @@ describe("closing an account — the rows the visitor owns in the site's own tab
     })
 
     expect(run.status).toBe(200)
-    const updates = run.statements.filter((statement) => statement.sql.indexOf('UPDATE') === 0)
-    expect(updates).toEqual([
-      {
-        sql: 'UPDATE teleport_orders SET user_id = NULL, billing_email = $2 WHERE user_id = $1',
-        params: [USER_ID, SYNTHETIC_EMAIL],
-      },
+    const booking = run.statements.filter((statement) =>
+      statement.sql.startsWith('UPDATE teleport_bookings')
+    )
+    expect(booking).toEqual([
       {
         sql: 'UPDATE teleport_bookings SET user_id = NULL, customer_email = $2, customer_name = NULL, customer_phone = NULL WHERE user_id = $1',
         params: [USER_ID, SYNTHETIC_EMAIL],
       },
     ])
     const writes = writesOf(run)
-    expect(writes.indexOf(updates[1].sql)).toBeLessThan(
+    expect(writes.indexOf(booking[0].sql)).toBeLessThan(
       writes.indexOf('DELETE FROM users WHERE id = $1')
     )
     expect(sqlOf(run).join('\n')).not.toContain('DELETE FROM teleport_bookings')
     expect(sqlOf(run).join('\n')).not.toContain('"teleport_bookings"')
   })
 
-  it('a project with no tables of its own deletes exactly what it did before', async () => {
+  it('a project with no tables of its own touches only the platform tables, in their order', async () => {
     const run = await runRoute(PLATFORM)
 
     expect(run.status).toBe(200)
     expect(writesOf(run)).toEqual([
       'BEGIN',
       'UPDATE teleport_orders SET user_id = NULL, billing_email = $2 WHERE user_id = $1',
+      'UPDATE teleport_subscriptions SET user_id = NULL, customer_email = $2 WHERE user_id = $1',
+      'UPDATE teleport_abandoned_carts SET user_id = NULL, customer_email = $2 WHERE user_id = $1',
+      'UPDATE teleport_voucher_redemptions SET user_id = NULL, billing_email = $2 WHERE user_id = $1',
       'DELETE FROM teleport_cart WHERE user_id = $1',
+      'DELETE FROM teleport_push_subscriptions WHERE user_id = $1',
       'DELETE FROM password_reset_tokens WHERE email = $1',
       'DELETE FROM users WHERE id = $1',
       'COMMIT',
     ])
+    for (const update of run.statements.filter((statement) => statement.sql.startsWith('UPDATE'))) {
+      expect(update.params).toEqual([USER_ID, SYNTHETIC_EMAIL])
+    }
     expect(run.errors).toEqual([])
   })
 
@@ -347,20 +446,24 @@ describe("closing an account — the rows the visitor owns in the site's own tab
     expect(writes.filter((sql) => sql === 'DELETE FROM "posts" WHERE "user_id" = $1')).toHaveLength(
       3
     )
-    expect(writes.filter((sql) => sql === 'ROLLBACK TO SAVEPOINT owned_rows')).toHaveLength(4)
+    const rollbacks = writes
+      .map((sql, index) => (sql === 'ROLLBACK TO SAVEPOINT owned_rows' ? index : -1))
+      .filter((index) => index !== -1)
+    expect(rollbacks).toHaveLength(4)
+    for (const index of rollbacks) {
+      expect(writes[index + 1]).toBe('RELEASE SAVEPOINT owned_rows')
+    }
     expect(writes).not.toContain('ROLLBACK')
     expect(run.errors).toEqual([
       [`[account-delete] rows kept in posts (user_id): ${someoneElsesCommentPointsAtPost.message}`],
     ])
   })
 
-  it('carries the shared owner vocabulary, byte for byte', () => {
+  it('carries the shared resolver as text, byte for byte', () => {
     const code = generateAccountDeleteRoute({ authUsersTableName: 'users' })
-    expect(code).toContain(
-      `const OWNER_COLUMN_NAMES = ${JSON.stringify(OwnerColumns.OWNER_COLUMN_NAMES)};`
-    )
-    expect(code).toContain(
-      `const OWNER_COLUMN_SUFFIX = ${JSON.stringify(OwnerColumns.OWNER_COLUMN_SUFFIX)};`
-    )
+    expect(code).toContain(OwnerColumns.OWNER_COLUMN_SOURCES.resolveOwnerColumn)
+    expect(code).toContain(OwnerColumns.OWNER_COLUMN_SOURCES.attributionKind)
+    expect(code).toContain(OwnerColumns.OWNER_COLUMN_SOURCES.userIdRole)
+    expect(code).toContain(OwnerColumns.OWNER_COLUMN_SOURCES.ownerColumnPriority)
   })
 })

@@ -9,8 +9,9 @@
  *      records (orders, withdrawal requests, bookings) so tracking survives,
  *      deletes the user's personal data (reviews, cart, favourites, chat
  *      history), deletes the rows the user owns in the project's own tables —
- *      the ones the AI made for the site, found through the shared owner-column
- *      vocabulary — and then the user row, and
+ *      the ones the AI made for the site, each through the one column the
+ *      site's "My …" pages read it by (teleport-shared's resolveOwnerColumn,
+ *      shipped into the route as text) — and then the user row, and
  *   3. best-effort sends the farewell email (a failed send never fails the
  *      deletion).
  *
@@ -87,10 +88,19 @@ const DELETE_TABLES = [
   'teleport_cart',
   'teleport_ai_chat_messages',
   'teleport_ai_chat_conversations',
+  // A push subscription is the capability to notify the user's device.
+  'teleport_push_subscriptions',
 ];
 // Business / legal records that must survive: the user link is nulled and any
 // stored personal email is replaced with a synthetic, self-describing address.
-const ANONYMIZE_TABLES = ['teleport_orders', 'teleport_withdrawal_requests', 'teleport_bookings'];
+const ANONYMIZE_TABLES = [
+  'teleport_orders',
+  'teleport_withdrawal_requests',
+  'teleport_bookings',
+  'teleport_subscriptions',
+  'teleport_abandoned_carts',
+  'teleport_voucher_redemptions',
+];
 const EMAIL_COLUMNS = ['billing_email', 'shipping_email', 'customer_email', 'email'];
 // A booking also names the customer and carries their phone; both are cleared.
 const CLEARED_COLUMNS = { teleport_bookings: ['customer_name', 'customer_phone'] };
@@ -142,8 +152,15 @@ async function deleteRowsByEmail(client, table, column, email) {
 // "My …" pages read "owner = me OR owner IS NULL": every other signed-in
 // visitor saw them. Platform tables keep the explicit handling above —
 // deleted, anonymised, or kept as the business's records.
-const OWNER_COLUMN_NAMES = ${JSON.stringify(OwnerColumns.OWNER_COLUMN_NAMES)};
-const OWNER_COLUMN_SUFFIX = ${JSON.stringify(OwnerColumns.OWNER_COLUMN_SUFFIX)};
+//
+// Each table is attributed through exactly ONE column, the one its "My …"
+// pages read it by: resolveOwnerColumn below is the AI pipeline's own
+// decision, shipped here as text, so the two sides cannot disagree. Rows go
+// only through an "owner" column (whose the row is: author, submitter,
+// sender); an "actor" column (who approved, reviewed, was assigned or
+// addressed) names somebody else's row and leaves the table alone.
+${OwnerColumns.generateOwnerColumnResolverCode()}
+
 const PLATFORM_TABLE_PREFIX = 'teleport_';
 const PLATFORM_TABLES = [AUTH_USERS_TABLE, 'password_reset_tokens'];
 
@@ -151,31 +168,23 @@ function isPlatformTable(table) {
   return PLATFORM_TABLES.indexOf(table) !== -1 || table.indexOf(PLATFORM_TABLE_PREFIX) === 0;
 }
 
-// The rule the AI pipeline scopes a "My …" page by: one of the owner names, or
-// the <entity>_user_id convention. Actor and audit links (assigned_to,
-// updated_by …) name someone else's part in a row and are not owner columns —
-// deleting on them would delete other people's rows.
-function isOwnerColumn(column) {
-  var name = String(column).toLowerCase();
-  return OWNER_COLUMN_NAMES.indexOf(name) !== -1 || name.slice(-OWNER_COLUMN_SUFFIX.length) === OWNER_COLUMN_SUFFIX;
-}
-
 function quoteIdentifier(name) {
   return '"' + String(name).split('"').join('""') + '"';
 }
 
 // The (table, column) pairs through which the project's own tables name their
-// owner: an owner-named column that references the users table — or references
-// nothing, in older projects whose link was dropped. An owner-named column that
-// references another table (account_id -> accounts) is a domain link and is
-// left alone. Links are read from pg_constraint rather than information_schema:
-// constraint names are only unique per table, so a join by name can pair the
-// wrong tables.
+// owner: the resolved owner column when it references the users table — or
+// references nothing, in older projects whose link was dropped. One that
+// references another table (account_id -> accounts) is a domain link and the
+// table is left alone. Links are read from pg_constraint rather than
+// information_schema: constraint names are only unique per table, so a join
+// by name can pair the wrong tables.
 async function ownedRowLinks(client) {
   var columns = await client.query(
-    "SELECT c.table_name, c.column_name FROM information_schema.columns c" +
+    "SELECT c.table_name, c.column_name, c.ordinal_position FROM information_schema.columns c" +
       " JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name" +
-      " WHERE c.table_schema = 'public' AND t.table_type = 'BASE TABLE'"
+      " WHERE c.table_schema = 'public' AND t.table_type = 'BASE TABLE'" +
+      " ORDER BY c.table_name, c.ordinal_position"
   );
   var links = await client.query(
     "SELECT cl.relname AS table_name, a.attname AS column_name," +
@@ -193,14 +202,25 @@ async function ownedRowLinks(client) {
     var link = links.rows[i];
     referenced[link.table_name + '.' + link.column_name] = link.referenced_table + '.' + link.referenced_column;
   }
-  var owned = [];
+  var tables = [];
+  var columnsOf = {};
   for (var j = 0; j < columns.rows.length; j++) {
-    var table = columns.rows[j].table_name;
-    var column = columns.rows[j].column_name;
-    if (isPlatformTable(table) || !isOwnerColumn(column)) { continue; }
-    var target = referenced[table + '.' + column];
+    var row = columns.rows[j];
+    if (!columnsOf[row.table_name]) {
+      columnsOf[row.table_name] = [];
+      tables.push(row.table_name);
+    }
+    columnsOf[row.table_name].push({ name: row.column_name, ordinalPosition: Number(row.ordinal_position) });
+  }
+  var owned = [];
+  for (var t = 0; t < tables.length; t++) {
+    var table = tables[t];
+    if (isPlatformTable(table)) { continue; }
+    var resolved = resolveOwnerColumn(columnsOf[table]);
+    if (!resolved || resolved.kind !== 'owner') { continue; }
+    var target = referenced[table + '.' + resolved.column];
     if (target && target !== AUTH_USERS_TABLE + '.id') { continue; }
-    owned.push({ table: table, column: column });
+    owned.push({ table: table, column: resolved.column });
   }
   return owned;
 }
@@ -226,6 +246,7 @@ async function deleteOwnedRows(client, userId) {
         await client.query('RELEASE SAVEPOINT owned_rows');
       } catch (err) {
         await client.query('ROLLBACK TO SAVEPOINT owned_rows');
+        await client.query('RELEASE SAVEPOINT owned_rows');
         link.error = err && err.message ? err.message : String(err);
         refused.push(link);
       }
