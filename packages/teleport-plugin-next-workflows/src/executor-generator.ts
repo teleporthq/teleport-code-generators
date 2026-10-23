@@ -5,6 +5,7 @@ import {
 } from './email-locale'
 import { generateSignedInDestinationCode } from './auth-return/signed-in-destination-code'
 import { generateCredentialColumnsCode } from './credential-columns-code'
+import { generateCredentialResultsCode } from './credential-results'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -1418,7 +1419,12 @@ var SEGMENT_REPLY_PRIVATE_KEYS = {
 //
 // A data node's rows are replied without the auth users table's credentials
 // (see credential-columns-code.ts).
+//
+// A node whose result is a credential (a password hash) is left out here too,
+// whatever its config says: the server runtime replies it sealed, readable by
+// a later server segment only (see credential-results.ts).
 ${generateCredentialColumnsCode()}
+${generateCredentialResultsCode()}
 // The nodes whose result the client branches on: never kept on the server.
 function isBranchingNodeType(type) {
   return type === 'general-if-statement' || type === 'general-switch';
@@ -1427,7 +1433,7 @@ function isBranchingNodeType(type) {
 function segmentReply(segmentConfig, context, snapshot) {
   var reply = {};
   var own = {};
-  var kept = {};
+  var kept = credentialResultNodeIds(segmentConfig);
   var nodes = (segmentConfig && segmentConfig.nodes) || [];
   for (var ni = 0; ni < nodes.length; ni++) {
     own[nodes[ni].id] = nodes[ni];
@@ -1514,6 +1520,7 @@ module.exports = {
   snapshotIncomingContext,
   segmentReply,
   withoutCredentialColumns,
+  credentialResultNodeIds,
   evaluateCondition,
   evaluateSingleComparison,
   normalizeComparisonOperator,

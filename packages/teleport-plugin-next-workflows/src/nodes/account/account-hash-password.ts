@@ -47,6 +47,7 @@ async function account_hash_password(config: any, context: Record<string, unknow
 export const accountHashPassword: NodeHandlerGenerator = {
   nodeType: 'account-hash-password',
   executionEnv: 'server',
+  resultIsCredential: true,
   dependencies: {
     bcryptjs: '^2.4.3',
   },
