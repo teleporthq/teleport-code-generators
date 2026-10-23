@@ -67,41 +67,50 @@ export function userIdRole(name: string): string | null {
 /**
  * Whether `name` attributes a row to a visitor, and as what; null when it does
  * not. An `owner` name says whose the row is; an `actor` name says who acted on
- * it. A `<role>_user_id` column is an actor when its role carries an acting
- * word (`approved_by`, `reviewer`, `recipient`), an owner otherwise
+ * it.
+ *
+ * A `<verb>_by` name — plain, or as the role of a `<verb>_by_user_id` column —
+ * is an owner only when the verb is one that brings the row into being
+ * (`created_by`, `submitted_by`, `sent_by_user_id`) and an actor for every
+ * other verb (`approved_by`, `changed_by_user_id`, `closed_by`, `handled_by`):
+ * the pipeline names "who created, submitted, approved or changed a row" this
+ * way, and only the first two make the row theirs. The verb is the word right
+ * before `by` (`last_edited_by_user_id` → `edited`).
+ *
+ * Any other `<role>_user_id` column is an actor when its role carries an
+ * acting word (`reviewer`, `recipient`, `assignee`), an owner otherwise
  * (`author`, `sender`, `submitter`).
  */
 export function attributionKind(name: string): OwnerColumnKind | null {
   const normalized = String(name).trim().toLowerCase()
-  const owners = ownerColumnPriority().concat([
-    'owned_by',
-    'author_id',
-    'creator_id',
-    'submitted_by',
-    'posted_by',
-    'authored_by',
-    'uploaded_by',
-    'added_by',
-    'requested_by',
-  ])
+  const owners = ownerColumnPriority().concat(['author_id', 'creator_id'])
   if (owners.indexOf(normalized) !== -1) {
     return 'owner'
   }
-  const actors = [
-    'assigned_to',
-    'assignee_id',
-    'assigned_by',
-    'approved_by',
-    'reviewed_by',
-    'updated_by',
-    'edited_by',
-    'modified_by',
-    'deleted_by',
-  ]
+  const actors = ['assigned_to', 'assignee_id']
   if (actors.indexOf(normalized) !== -1) {
     return 'actor'
   }
   const role = userIdRole(normalized)
+  const words = (role === null ? normalized : role).split('_')
+  if (words.length >= 2 && words[words.length - 1] === 'by' && words[words.length - 2] !== '') {
+    const creationVerbs = [
+      'created',
+      'submitted',
+      'posted',
+      'authored',
+      'uploaded',
+      'added',
+      'requested',
+      'sent',
+      'booked',
+      'ordered',
+      'placed',
+      'reported',
+      'owned',
+    ]
+    return creationVerbs.indexOf(words[words.length - 2]) !== -1 ? 'owner' : 'actor'
+  }
   if (role === null) {
     return null
   }
@@ -121,7 +130,6 @@ export function attributionKind(name: string): OwnerColumnKind | null {
     'receiver',
     'to',
   ]
-  const words = role.split('_')
   for (let i = 0; i < words.length; i++) {
     if (actingWords.indexOf(words[i]) !== -1) {
       return 'actor'

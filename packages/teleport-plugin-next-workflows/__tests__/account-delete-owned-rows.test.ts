@@ -66,8 +66,7 @@ const PLATFORM: FixtureSchema = {
 const USER_ROW = 'SELECT * FROM users WHERE id = $1'
 const COLUMNS_OF_ONE_TABLE =
   "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1"
-const COLUMNS_OF_EVERY_TABLE =
-  'SELECT c.table_name, c.column_name, c.ordinal_position FROM information_schema.columns c'
+const COLUMNS_OF_EVERY_TABLE = 'SELECT c.table_name, c.column_name'
 const FOREIGN_KEYS = 'FROM pg_constraint'
 
 const columnRows = (schema: FixtureSchema) => {
@@ -120,11 +119,15 @@ const runRoute = async (schema: FixtureSchema, refuse: Refuse = () => null): Pro
         return { rows: table ? table.columns.map((column_name) => ({ column_name })) : [] }
       }
       if (sql.indexOf(COLUMNS_OF_EVERY_TABLE) === 0) {
-        expect(sql).toContain(' ORDER BY c.table_name, c.ordinal_position')
         return { rows: columnRows(schema) }
       }
       if (sql.indexOf(FOREIGN_KEYS) !== -1) {
         return { rows: linkRows(schema) }
+      }
+      // A catalogue read this stub does not know would otherwise answer no rows
+      // and let every "left alone" scenario pass with nothing looked at.
+      if (sql.indexOf('SELECT') === 0) {
+        throw new Error(`unexpected catalogue read: ${sql}`)
       }
       attempts[sql] = (attempts[sql] || 0) + 1
       const refusal = refuse(sql, attempts[sql])
@@ -295,6 +298,13 @@ const SCENARIOS: Scenario[] = [
     deletedThrough: null,
     why: 'nobody owns the row',
   },
+  {
+    table: 'status_changes',
+    columns: ['id', 'ticket_id', 'from_status', 'to_status', 'changed_by_user_id'],
+    links: { changed_by_user_id: 'users.id' },
+    deletedThrough: null,
+    why: "the leaver's history rows on everyone's tickets are not theirs: changing is not creating",
+  },
 ]
 
 describe("closing an account — the rows the visitor owns in the site's own tables", () => {
@@ -457,6 +467,15 @@ describe("closing an account — the rows the visitor owns in the site's own tab
     expect(run.errors).toEqual([
       [`[account-delete] rows kept in posts (user_id): ${someoneElsesCommentPointsAtPost.message}`],
     ])
+  })
+
+  it('reads the catalogue with the column positions, in table and column order', async () => {
+    const run = await runRoute(PLATFORM)
+    const catalogue = sqlOf(run).filter((sql) => sql.indexOf(COLUMNS_OF_EVERY_TABLE) === 0)
+    expect(catalogue).toHaveLength(1)
+    expect(catalogue[0]).toContain('SELECT c.table_name, c.column_name, c.ordinal_position FROM')
+    expect(catalogue[0]).toContain(" AND t.table_type = 'BASE TABLE'")
+    expect(catalogue[0].endsWith(' ORDER BY c.table_name, c.ordinal_position')).toBe(true)
   })
 
   it('carries the shared resolver as text, byte for byte', () => {

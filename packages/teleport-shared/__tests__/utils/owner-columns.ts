@@ -105,6 +105,29 @@ describe.each(resolvers)('resolveOwnerColumn — %s', (_label, resolve) => {
     expect(resolve(table('ID', 'Author_Id'))).toEqual({ column: 'Author_Id', kind: 'owner' })
     expect(resolve(table('id', ' User_Id '))).toEqual({ column: ' User_Id ', kind: 'owner' })
   })
+
+  it('reads a "who did it" role as an owner only when the doing created the row', () => {
+    // The leaver's history rows on everyone's tickets are not theirs.
+    expect(
+      resolve(table('id', 'ticket_id', 'from_status', 'to_status', 'changed_by_user_id'))
+    ).toEqual({ column: 'changed_by_user_id', kind: 'actor' })
+    expect(resolve(table('id', 'ticket_id', 'closed_by_user_id', 'note'))).toEqual({
+      column: 'closed_by_user_id',
+      kind: 'actor',
+    })
+    expect(resolve(table('id', 'ticket_id', 'resolved_by_user_id'))).toEqual({
+      column: 'resolved_by_user_id',
+      kind: 'actor',
+    })
+    expect(resolve(table('id', 'case_id', 'handled_by'))).toEqual({
+      column: 'handled_by',
+      kind: 'actor',
+    })
+    expect(resolve(table('id', 'body', 'sent_by_user_id'))).toEqual({
+      column: 'sent_by_user_id',
+      kind: 'owner',
+    })
+  })
 })
 
 describe('attributionKind — owner, actor, or not an attribution at all', () => {
@@ -120,11 +143,20 @@ describe('attributionKind — owner, actor, or not an attribution at all', () =>
       'uploaded_by',
       'added_by',
       'requested_by',
+      'sent_by',
+      'booked_by',
+      'ordered_by',
+      'placed_by',
+      'reported_by',
       'author_user_id',
       'owner_user_id',
       'sender_user_id',
       'submitter_user_id',
+      'creator_user_id',
       'created_by_user_id',
+      'sent_by_user_id',
+      'booked_by_user_id',
+      'reported_by_user_id',
       'User_Id',
     ]) {
       expect([name, attributionKind(name)]).toEqual([name, 'owner'])
@@ -142,11 +174,25 @@ describe('attributionKind — owner, actor, or not an attribution at all', () =>
       'edited_by',
       'modified_by',
       'deleted_by',
+      'changed_by',
+      'closed_by',
+      'resolved_by',
+      'cancelled_by',
+      'rejected_by',
+      'completed_by',
+      'handled_by',
+      'processed_by',
+      'verified_by',
       'approved_by_user_id',
+      'changed_by_user_id',
+      'closed_by_user_id',
+      'resolved_by_user_id',
+      'verified_by_user_id',
+      'last_edited_by_user_id',
       'reviewer_user_id',
       'recipient_user_id',
       'assignee_user_id',
-      'last_edited_by_user_id',
+      'assigned_user_id',
       'to_user_id',
     ]) {
       expect([name, attributionKind(name)]).toEqual([name, 'actor'])
@@ -154,7 +200,16 @@ describe('attributionKind — owner, actor, or not an attribution at all', () =>
   })
 
   it('null: not an attribution column', () => {
-    for (const name of ['id', 'product_id', 'user', 'userid', 'email', '_user_id', 'users_id']) {
+    for (const name of [
+      'id',
+      'product_id',
+      'user',
+      'userid',
+      'email',
+      '_user_id',
+      'users_id',
+      'by',
+    ]) {
       expect([name, attributionKind(name)]).toEqual([name, null])
     }
     expect(userIdRole('approved_by_user_id')).toBe('approved_by')
