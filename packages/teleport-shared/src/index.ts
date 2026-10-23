@@ -39,6 +39,7 @@ import * as PageTransition from './page-transition'
 import * as StateBindings from './state-bindings'
 import * as WebPush from './utils/web-push'
 import * as InlineScriptErrorGuard from './utils/inline-script-error-guard'
+import * as OwnerColumns from './utils/owner-columns'
 
 export {
   Constants,
@@ -82,4 +83,5 @@ export {
   StateBindings,
   WebPush,
   InlineScriptErrorGuard,
+  OwnerColumns,
 }
