@@ -128,6 +128,26 @@ describe.each(resolvers)('resolveOwnerColumn — %s', (_label, resolve) => {
       kind: 'owner',
     })
   })
+
+  it('never takes a setting that arranges the rows for the visitor', () => {
+    // A "My …" page filtered by `sort_by = me` would show nothing.
+    expect(resolve(table('id', 'sort_by', 'title'))).toBeNull()
+    expect(
+      resolve(table('id', 'order_by', 'group_by', 'filter_by', 'partition_by', 'rank_by'))
+    ).toBeNull()
+    expect(resolve(table('id', 'sort_by', 'closed_by'))).toEqual({
+      column: 'closed_by',
+      kind: 'actor',
+    })
+    expect(resolve(table('id', 'order_by', 'ordered_by'))).toEqual({
+      column: 'ordered_by',
+      kind: 'owner',
+    })
+    expect(resolve(table('id', 'sort_by_user_id', 'title'))).toEqual({
+      column: 'sort_by_user_id',
+      kind: 'actor',
+    })
+  })
 })
 
 describe('attributionKind — owner, actor, or not an attribution at all', () => {
@@ -214,5 +234,20 @@ describe('attributionKind — owner, actor, or not an attribution at all', () =>
     }
     expect(userIdRole('approved_by_user_id')).toBe('approved_by')
     expect(userIdRole('user_id')).toBeNull()
+  })
+
+  it('null: a plain <word>_by that arranges the rows, not a person', () => {
+    for (const name of [
+      'sort_by',
+      'order_by',
+      'group_by',
+      'filter_by',
+      'partition_by',
+      'rank_by',
+    ]) {
+      expect([name, attributionKind(name)]).toEqual([name, null])
+    }
+    expect(attributionKind('ordered_by')).toBe('owner')
+    expect(attributionKind('sort_by_user_id')).toBe('actor')
   })
 })

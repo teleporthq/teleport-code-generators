@@ -75,7 +75,8 @@ export function userIdRole(name: string): string | null {
  * other verb (`approved_by`, `changed_by_user_id`, `closed_by`, `handled_by`):
  * the pipeline names "who created, submitted, approved or changed a row" this
  * way, and only the first two make the row theirs. The verb is the word right
- * before `by` (`last_edited_by_user_id` → `edited`).
+ * before `by` (`last_edited_by_user_id` → `edited`). A plain `<word>_by` whose
+ * word arranges the rows (`sort_by`, `order_by`, `group_by`) names nobody.
  *
  * Any other `<role>_user_id` column is an actor when its role carries an
  * acting word (`reviewer`, `recipient`, `assignee`), an owner otherwise
@@ -94,6 +95,11 @@ export function attributionKind(name: string): OwnerColumnKind | null {
   const role = userIdRole(normalized)
   const words = (role === null ? normalized : role).split('_')
   if (words.length >= 2 && words[words.length - 1] === 'by' && words[words.length - 2] !== '') {
+    /** These name how rows are arranged, never who acted. */
+    const arrangementWords = ['sort', 'order', 'group', 'filter', 'partition', 'rank']
+    if (role === null && arrangementWords.indexOf(words[words.length - 2]) !== -1) {
+      return null
+    }
     const creationVerbs = [
       'created',
       'submitted',
