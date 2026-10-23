@@ -93,6 +93,16 @@ var CURRENCY_SYMBOLS = {
   'CLP': 'CLP$', 'PEN': 'S/.', 'VND': '\\u20AB', 'UAH': '\\u20B4',
 };
 
+// \`teleport_orders.payment_status\` values that mean the order's money was
+// collected — the editor's PAID_PAYMENT_STATUS_VALUES (teleport-gui
+// e-commerce/constants/order-statuses.ts), provider spellings included.
+var PAID_ORDER_PAYMENT_STATUSES = ['paid', 'partially_refunded', 'succeeded', 'success', 'completed', 'captured'];
+
+function isPaidOrder(order) {
+  var paymentStatus = String((order && order.payment_status) || '').trim().toLowerCase();
+  return PAID_ORDER_PAYMENT_STATUSES.indexOf(paymentStatus) !== -1;
+}
+
 function isLoopbackHost(host) {
   var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
   return name === 'localhost' || name === '127.0.0.1' || name === '[::1]';
@@ -473,15 +483,22 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
   var fallbackPaymentIntentId = orderRow.payment_intent_id || '';
   var fallbackNotes = orderRow.notes || '';
 
+  // Paid or not, when the caller does not say: the order's money state. The
+  // payment webhook marks an order paid and then asks for its invoice with just
+  // the order id; a cash-on-delivery order is invoiced unpaid when it is placed.
+  // The orders table keeps no payment time of its own — the mark-paid write
+  // stamps \`updated_at\`, just before the webhook asks.
+  var paidByOrder = !body.status && isPaidOrder(orderRow);
+
   var invoiceData = {
     id: body.id || require('crypto').randomUUID(),
     // Numbered by the route: an invoice issued at payment takes the next
     // number, a regenerated one keeps its own.
     invoiceNumber: '',
-    status: body.status || 'issued',
+    status: body.status || (paidByOrder ? 'paid' : 'issued'),
     issueDate: issueDate,
     dueDate: dueDate,
-    paidAt: body.paidAt || null,
+    paidAt: body.paidAt || (paidByOrder ? orderRow.updated_at || new Date().toISOString() : null),
     customerName: body.customerName || fallbackCustomerName || '',
     customerEmail: body.customerEmail || fallbackCustomerEmail || '',
     customerAddress: body.customerAddress || fallbackCustomerAddress || '',

@@ -420,7 +420,9 @@ describe('invoice PDF renderer — vouchers and the gift-card tender', () => {
     expect(voucherEmail).not.toContain('Delivery')
     expect(voucherEmail).not.toContain('gift card')
     expect(voucherEmail).toContain('<tr><td>Discount</td><td>−$25.00</td></tr>')
-    expect(voucherEmail).toContain('<tr><td>Amount due</td><td>$75.00</td></tr>')
+    // Without a gift card nothing is left beside the total, so, as on the PDF,
+    // there is no amount due.
+    expect(voucherEmail).not.toContain('Amount due')
 
     const giftCardEmail = pdfGenerator.replacePlaceholders(
       body,
@@ -434,10 +436,10 @@ describe('invoice PDF renderer — vouchers and the gift-card tender', () => {
     // A rich-text editor turns table rows into paragraphs; the same rule holds.
     expect(
       pdfGenerator.replacePlaceholders(
-        '<p>Delivery {{shippingAmount}}</p><p>Due {{amountDue}}</p>',
+        '<p>Delivery {{shippingAmount}}</p><p>Total {{totalAmount}}</p>',
         pdfGenerator.buildDataContext(voucherInvoice)
       )
-    ).toBe('<p>Due $75.00</p>')
+    ).toBe('<p>Total $75.00</p>')
   })
 })
 
