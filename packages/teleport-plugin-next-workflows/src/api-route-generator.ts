@@ -527,9 +527,12 @@ function __isStreamingAI(node, config) {
   return config && config.streaming && __streamingAITypes.indexOf(node.type) >= 0;
 }
 
-// One node's result to the browser — never one kept on the server, and a data
-// node's rows without the users table's credentials (see segmentReply).
+// One node's result to the browser — never one kept on the server nor a
+// credential (the closing reply carries that one sealed), and a data node's
+// rows without the users table's credentials (see segmentReply).
+const __credentialResultIds = utils.credentialResultNodeIds(SEGMENT_CONFIG);
 function __streamNodeResult(res, nodeId, result) {
+  if (__credentialResultIds[nodeId]) return;
   const kept = SEGMENT_CONFIG.nodes.find(function(nd) { return nd.id === nodeId; });
   if (kept && kept.config && kept.config.keepResultOnServer === true && !utils.isBranchingNodeType(kept.type)) return;
   res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: utils.withoutCredentialColumns(kept, result) }) + '\\n\\n');
