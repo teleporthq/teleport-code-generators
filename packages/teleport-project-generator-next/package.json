@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-next",
-  "version": "0.44.5",
+  "version": "0.44.6",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "@teleporthq/teleport-plugin-next-inline-fetch": "^0.44.5",
     "@teleporthq/teleport-plugin-next-static-paths": "^0.44.5",
     "@teleporthq/teleport-plugin-next-static-props": "^0.44.5",
-    "@teleporthq/teleport-plugin-next-workflows": "^0.44.5",
+    "@teleporthq/teleport-plugin-next-workflows": "^0.44.6",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.44.5",
     "@teleporthq/teleport-project-generator": "^0.44.5",
     "@teleporthq/teleport-shared": "^0.44.5",
