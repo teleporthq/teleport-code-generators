@@ -527,11 +527,12 @@ function __isStreamingAI(node, config) {
   return config && config.streaming && __streamingAITypes.indexOf(node.type) >= 0;
 }
 
-// One node's result to the browser — never one kept on the server (see segmentReply).
+// One node's result to the browser — never one kept on the server, and a data
+// node's rows without the users table's credentials (see segmentReply).
 function __streamNodeResult(res, nodeId, result) {
   const kept = SEGMENT_CONFIG.nodes.find(function(nd) { return nd.id === nodeId; });
   if (kept && kept.config && kept.config.keepResultOnServer === true && !utils.isBranchingNodeType(kept.type)) return;
-  res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: result }) + '\\n\\n');
+  res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: utils.withoutCredentialColumns(kept, result) }) + '\\n\\n');
 }
 
 function __collectSegBranchNodes(startId, excludeId) {

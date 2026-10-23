@@ -136,7 +136,7 @@ export const AUTH_CREDENTIAL_TABLES: ReadonlyArray<string> = ['users']
  * (`scope` and `expires_at` are ordinary columns elsewhere — a gift card
  * expires).
  */
-const UNAMBIGUOUS_CREDENTIAL_COLUMNS = AUTH_CREDENTIAL_COLUMNS.filter(
+export const UNAMBIGUOUS_CREDENTIAL_COLUMNS: ReadonlyArray<string> = AUTH_CREDENTIAL_COLUMNS.filter(
   (column) => column !== 'scope' && column !== 'expires_at'
 )
 
