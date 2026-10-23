@@ -4,6 +4,7 @@ import {
   generateWorkflowLocaleHelpersCode,
 } from './email-locale'
 import { generateSignedInDestinationCode } from './auth-return/signed-in-destination-code'
+import { generateCredentialColumnsCode } from './credential-columns-code'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -1414,6 +1415,10 @@ var SEGMENT_REPLY_PRIVATE_KEYS = {
 // nodes after it in the same segment and never leaves the server (a statement's
 // rows read only to build what the browser may see, a sender's recipients).
 // Nothing in a later segment can read it.
+//
+// A data node's rows are replied without the auth users table's credentials
+// (see credential-columns-code.ts).
+${generateCredentialColumnsCode()}
 // The nodes whose result the client branches on: never kept on the server.
 function isBranchingNodeType(type) {
   return type === 'general-if-statement' || type === 'general-switch';
@@ -1425,7 +1430,7 @@ function segmentReply(segmentConfig, context, snapshot) {
   var kept = {};
   var nodes = (segmentConfig && segmentConfig.nodes) || [];
   for (var ni = 0; ni < nodes.length; ni++) {
-    own[nodes[ni].id] = true;
+    own[nodes[ni].id] = nodes[ni];
     if (nodes[ni].config && nodes[ni].config.keepResultOnServer === true && !isBranchingNodeType(nodes[ni].type)) {
       kept[nodes[ni].id] = true;
     }
@@ -1436,7 +1441,11 @@ function segmentReply(segmentConfig, context, snapshot) {
     if (SEGMENT_REPLY_PRIVATE_KEYS[key] || kept[key]) continue;
     var value = context[key];
     if (value === undefined) continue;
-    if (own[key] || !snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
+    if (own[key]) {
+      reply[key] = withoutCredentialColumns(own[key], value);
+      continue;
+    }
+    if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
       reply[key] = value;
       continue;
     }
@@ -1504,6 +1513,7 @@ module.exports = {
   loopIterationContext,
   snapshotIncomingContext,
   segmentReply,
+  withoutCredentialColumns,
   evaluateCondition,
   evaluateSingleComparison,
   normalizeComparisonOperator,

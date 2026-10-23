@@ -15,7 +15,7 @@ import { generateSqlValidatorCode } from './sql-validator'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import { ContentTables, TableAccess } from '@teleporthq/teleport-shared'
 
-const DATA_NODE_TYPES = new Set([
+export const DATA_NODE_TYPES: ReadonlySet<string> = new Set([
   'data-select',
   'data-create-item',
   'data-update-item',
@@ -677,6 +677,13 @@ function dropMissingOptionalColumns(tableName, entries, colTypes) {
   return kept;
 }
 
+// The row a create or update answers with, whoever asked, without the auth
+// users table's credentials (the columns a browser read is served without):
+// a server-side caller hands that answer on to the browser as its result.
+function withoutCredentialColumns(row, tableName) {
+  return row ? __taWithoutCredentials([row], tableName)[0] : row;
+}
+
 async function handleCreate(client, body) {
   var tableName = body.tableName;
   var columnMappings = body.columnMappings || {};
@@ -751,7 +758,7 @@ async function handleCreate(client, body) {
   var item = result.rows && result.rows[0] ? result.rows[0] : null;
   var idIdx = columns.indexOf('id');
   var resolvedId = item ? (item.id || null) : (idIdx >= 0 ? values[idIdx] : null);
-  return { item: item, id: resolvedId };
+  return { item: withoutCredentialColumns(item, tableName), id: resolvedId };
 }
 
 async function handleUpdate(client, body) {
@@ -803,7 +810,8 @@ async function handleUpdate(client, body) {
   sql += ' RETURNING *';
 
   var result = await safeQuery(client, sql, queryParams, 'update');
-  return { updatedCount: result.rowCount || 0, item: result.rows[0] || null, id: (result.rows[0] && result.rows[0].id) || null };
+  var updated = result.rows[0] || null;
+  return { updatedCount: result.rowCount || 0, item: withoutCredentialColumns(updated, tableName), id: (updated && updated.id) || null };
 }
 
 async function handleDelete(client, body) {
