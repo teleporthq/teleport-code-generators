@@ -7,7 +7,9 @@
  *      client-supplied id) and, when the request carries a password, goes on
  *      only if it is the account's own,
  *   2. runs a single DB transaction that detaches + anonymises business/legal
- *      records (orders, withdrawal requests, bookings) so tracking survives,
+ *      records (orders, withdrawal requests, bookings, downloads, gift cards
+ *      the user bought or received) so tracking survives, takes the user's
+ *      email out of the activity log and the sent-email ledger,
  *      deletes the user's personal data (reviews, cart, favourites, chat
  *      history), deletes the rows the user owns in the project's own tables —
  *      the ones the AI made for the site, each through the one column the
@@ -101,10 +103,29 @@ const ANONYMIZE_TABLES = [
   'teleport_subscriptions',
   'teleport_abandoned_carts',
   'teleport_voucher_redemptions',
+  'teleport_downloads',
 ];
 const EMAIL_COLUMNS = ['billing_email', 'shipping_email', 'customer_email', 'email'];
 // A booking also names the customer and carries their phone; both are cleared.
-const CLEARED_COLUMNS = { teleport_bookings: ['customer_name', 'customer_phone'] };
+// A download keeps its count against the order's limit, without who fetched it
+// from where.
+const CLEARED_COLUMNS = {
+  teleport_bookings: ['customer_name', 'customer_phone'],
+  teleport_downloads: ['ip_address'],
+};
+// Tables that name the user only by their email: each column holding it takes
+// the anonymised address (a gift card stays redeemable by its code) or a blank
+// (an activity-log line keeps what happened, not who did it).
+const EMAIL_REFERENCES = [
+  { table: 'teleport_gift_cards', column: 'purchaser_email', replacement: 'anonymised' },
+  { table: 'teleport_gift_cards', column: 'recipient_email', replacement: 'anonymised' },
+  { table: 'teleport_events', column: 'actor', replacement: 'blank' },
+];
+const SENT_EMAILS_TABLE = 'teleport_sent_emails';
+
+function anonymisedEmailOf(userId) {
+  return String(DELETED_EMAIL_PATTERN).split('{{userId}}').join(String(userId));
+}
 
 async function tableColumns(client, table) {
   var r = await client.query(
@@ -145,6 +166,36 @@ async function deleteRowsByEmail(client, table, column, email) {
   var cols = await tableColumns(client, table);
   if (cols.indexOf(column) === -1) { return; }
   await client.query('DELETE FROM ' + table + ' WHERE ' + column + ' = $1', [email]);
+}
+
+async function replaceEmailReferences(client, email, anonymisedEmail) {
+  if (!email) { return; }
+  for (var i = 0; i < EMAIL_REFERENCES.length; i++) {
+    var ref = EMAIL_REFERENCES[i];
+    var cols = await tableColumns(client, ref.table);
+    if (cols.indexOf(ref.column) === -1) { continue; }
+    await client.query(
+      'UPDATE ' + ref.table + ' SET ' + ref.column + ' = $1 WHERE lower(' + ref.column + ') = lower($2)',
+      [ref.replacement === 'anonymised' ? anonymisedEmail : '', email]
+    );
+  }
+}
+
+// The emails the site sent the user stay on record (which email, when, through
+// which provider), without the address, the body or the values it was filled
+// with.
+async function blankSentEmailsTo(client, email) {
+  if (!email) { return; }
+  var cols = await tableColumns(client, SENT_EMAILS_TABLE);
+  if (cols.indexOf('recipient_email') === -1) { return; }
+  var sets = ["recipient_email = ''"];
+  if (cols.indexOf('recipients') !== -1) { sets.push('recipients = NULL'); }
+  if (cols.indexOf('body_html') !== -1) { sets.push("body_html = ''"); }
+  if (cols.indexOf('payload') !== -1) { sets.push('payload = NULL'); }
+  await client.query(
+    'UPDATE ' + SENT_EMAILS_TABLE + ' SET ' + sets.join(', ') + ' WHERE lower(recipient_email) = lower($1)',
+    [email]
+  );
 }
 
 // Rows the user owns in the project's OWN tables — the ones the AI made for
@@ -344,6 +395,7 @@ ${generateProviderSendFunction(provider, {
   source: 'account-delete',
   sourceRef: 'api/account/delete-current',
   relativePrefix: '../../..',
+  withoutRecipientDetails: true,
 })}
 
 // \`locale\` is the language of the page the deletion was requested from
@@ -359,7 +411,7 @@ async function sendFarewellEmail(toEmail, tokenValues, userId, locale) {
   var copy = resolveFarewellEmailCopy(locale);
   var subject = fillTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
-  await __sendProviderEmail({ from: from, fromName: EMAIL_FROM_NAME, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
+  await __sendProviderEmail({ from: from, fromName: EMAIL_FROM_NAME, to: toEmail, recordedTo: anonymisedEmailOf(userId), subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 
 module.exports = async function handler(req, res) {
@@ -401,7 +453,7 @@ module.exports = async function handler(req, res) {
         requestPassword !== null && !passwordMatches(requestPassword, userRes.rows[0].password);
     }
     if (userFound && !passwordRefused) {
-      var syntheticEmail = String(DELETED_EMAIL_PATTERN).split('{{userId}}').join(String(userId));
+      var syntheticEmail = anonymisedEmailOf(userId);
 
       await client.query('BEGIN');
       try {
@@ -415,6 +467,8 @@ module.exports = async function handler(req, res) {
           await deleteUserRows(client, DELETE_TABLES[d], userId);
         }
         await deleteOwnedRows(client, userId);
+        await replaceEmailReferences(client, userEmail, syntheticEmail);
+        await blankSentEmailsTo(client, userEmail);
         // password_reset_tokens has no user_id — it is keyed by the email string.
         await deleteRowsByEmail(client, 'password_reset_tokens', 'email', userEmail);
         await client.query('DELETE FROM ' + AUTH_USERS_TABLE + ' WHERE id = $1', [userId]);

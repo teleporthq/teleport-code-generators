@@ -24,6 +24,8 @@ export interface DeleteRouteSetup {
   requestBody?: unknown
   env?: Record<string, string>
   options?: AccountDeleteRouteOptions
+  /** Further modules the route may require, by the name it requires them with. */
+  modules?: Record<string, unknown>
 }
 
 // bcryptjs is not installed in this repository; this stand-in keeps bcrypt's
@@ -85,6 +87,9 @@ export const runAccountDeleteRoute = async (setup: DeleteRouteSetup): Promise<De
     }
     if (name.endsWith('/utils/email/email-locale')) {
       return { pickLocalizedTemplate: (base: unknown) => base, resolveRequestLocale: () => 'en' }
+    }
+    if (setup.modules && name in setup.modules) {
+      return setup.modules[name]
     }
     throw new Error(`unexpected require: ${name}`)
   }
