@@ -4,7 +4,8 @@
  *
  * The client node calls this route, which:
  *   1. resolves the current user from the NextAuth session (never trusting a
- *      client-supplied id),
+ *      client-supplied id) and, when the request carries a password, goes on
+ *      only if it is the account's own,
  *   2. runs a single DB transaction that detaches + anonymises business/legal
  *      records (orders, withdrawal requests, bookings) so tracking survives,
  *      deletes the user's personal data (reviews, cart, favourites, chat
@@ -299,6 +300,36 @@ async function anonymizeInvoices(client, ordersTable, invoicesTable, userId, syn
   );
 }
 
+// The password a request confirms the deletion with, or null when it names
+// none. A request without one deletes as before; one with a password deletes
+// only when it is the account's own (the editor's delete-account form asks for
+// it).
+function readRequestPassword(req) {
+  var body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) { body = null; }
+  }
+  if (!body || typeof body !== 'object' || body.password === undefined || body.password === null) {
+    return null;
+  }
+  return String(body.password);
+}
+
+// The sign-in check (utils/auth/hash-password.js verifyPassword): bcrypt over
+// the SHA-256 of the password and AUTH_PEPPER. An account without a stored
+// password (a social sign-in) matches no password.
+function passwordMatches(password, storedHash) {
+  if (!storedHash || password.length > 1000) { return false; }
+  var bcrypt = require('bcryptjs');
+  var crypto = require('crypto');
+  var prepared = crypto.createHash('sha256').update(password + (process.env.AUTH_PEPPER || '')).digest('base64');
+  try {
+    return bcrypt.compareSync(prepared, String(storedHash));
+  } catch (e) {
+    return false;
+  }
+}
+
 ${generateFillTemplateFn()}
 
 ${generateLocalizedEmailCopyFn({
@@ -348,10 +379,12 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthenticated' });
   }
 
+  var requestPassword = readRequestPassword(req);
   var client = getClient();
   var userEmail = '';
   var userName = '';
   var userFound = false;
+  var passwordRefused = false;
   var failed = false;
   // try/finally so the pg connection is ALWAYS closed — every early exit
   // (not-found, error) leaves via the finally, never leaking a connection.
@@ -364,7 +397,10 @@ module.exports = async function handler(req, res) {
       userFound = true;
       userEmail = userRes.rows[0].email || '';
       userName = userRes.rows[0].name || '';
-
+      passwordRefused =
+        requestPassword !== null && !passwordMatches(requestPassword, userRes.rows[0].password);
+    }
+    if (userFound && !passwordRefused) {
       var syntheticEmail = String(DELETED_EMAIL_PATTERN).split('{{userId}}').join(String(userId));
 
       await client.query('BEGIN');
@@ -400,6 +436,9 @@ module.exports = async function handler(req, res) {
   }
   if (!userFound) {
     return res.status(404).json({ error: 'Account not found' });
+  }
+  if (passwordRefused) {
+    return res.status(403).json({ error: 'Incorrect password' });
   }
 
   // Best-effort farewell email AFTER the successful commit (connection closed).
