@@ -1219,7 +1219,15 @@ module.exports = async function handler(req, res) {
   }
 
   var operation = params[params.length - 1];
-  var body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  var body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    body = null;
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ error: 'Invalid request body. Expected a JSON object.' });
+  }
   var client = getClient();
 
   try {
