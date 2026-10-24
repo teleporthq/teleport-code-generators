@@ -387,6 +387,122 @@ describe('invoice PDF renderer — vouchers and the gift-card tender', () => {
     expect(voucherHtml).not.toContain('Amount due:')
   })
 
+  describe('an order paid partly by gift card and the rest by card', () => {
+    // 96.00 in all: 40.00 from the gift card, 56.00 charged to the buyer's card
+    // or collected by the courier.
+    const splitTender: Row = {
+      ...giftCardInvoice,
+      giftCardAmount: 40,
+      amountDue: 56,
+    }
+    const paidSplitTender: Row = { ...splitTender, status: 'paid', paidAt: '2026-10-20' }
+    // Cash on delivery the courier has not collected yet.
+    const unpaidSplitTender: Row = { ...splitTender, status: 'issued' }
+
+    const textNode = (children: unknown[]) => ({
+      type: 'element',
+      content: { elementType: 'text', semanticType: 'p', children },
+    })
+    const totalsLine = (label: string, valuePath: string) => ({
+      type: 'element',
+      content: {
+        elementType: 'container',
+        children: [
+          textNode([{ type: 'static', content: label }]),
+          textNode([{ type: 'expr', content: `invoiceData?.Invoice?.${valuePath}` }]),
+        ],
+      },
+    })
+    const giftCardGated = (line: unknown) => ({
+      type: 'conditional',
+      content: {
+        reference: { type: 'expr', content: 'invoiceData?.Invoice?.hasGiftCard' },
+        condition: { conditions: [{ operation: '=', operand: 'true' }] },
+        node: line,
+      },
+    })
+    // The editor's default layout: the grand total, then a block holding the
+    // gift-card line and the amount-due line, both shown when a card was used.
+    const editorTemplate = loadPdfGenerator({
+      name: 'invoice-template',
+      node: {
+        type: 'element',
+        content: {
+          elementType: 'container',
+          children: [
+            totalsLine('Total:', 'total'),
+            {
+              type: 'element',
+              content: {
+                elementType: 'container',
+                children: [
+                  giftCardGated(totalsLine('Paid by gift card:', 'giftCardAmount')),
+                  giftCardGated(totalsLine('Amount due:', 'amountDue')),
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    it('prints no amount due on the PDF once the order is paid, and keeps the gift card line', () => {
+      const html = editorTemplate.buildInvoiceHtml(paidSplitTender)
+      expect(html).toContain('<p>Total:</p><p>$96.00</p>')
+      expect(html).toContain('<p>Paid by gift card:</p><p>$40.00</p>')
+      expect(html).not.toContain('Amount due')
+      expect(html).not.toContain('$56.00')
+    })
+
+    it('still prints the real amount due while the rest is not collected', () => {
+      const html = editorTemplate.buildInvoiceHtml(unpaidSplitTender)
+      expect(html).toContain('<p>Paid by gift card:</p><p>$40.00</p>')
+      expect(html).toContain('<p>Amount due:</p><p>$56.00</p>')
+    })
+
+    it('keeps a block of the merchant that holds the amount due beside another field, owing nothing', () => {
+      const merchantTemplate = loadPdfGenerator({
+        name: 'invoice-template',
+        node: {
+          type: 'element',
+          content: {
+            elementType: 'container',
+            children: [
+              textNode([
+                { type: 'static', content: 'Total ' },
+                { type: 'expr', content: 'invoiceData?.Invoice?.total' },
+              ]),
+              textNode([
+                { type: 'static', content: 'Balance ' },
+                { type: 'expr', content: 'invoiceData?.Invoice?.amountDue' },
+              ]),
+            ],
+          },
+        },
+      })
+      const html = merchantTemplate.buildInvoiceHtml(paidSplitTender)
+      expect(html).toContain('<p>Total $96.00</p><p>Balance $0.00</p>')
+    })
+
+    it('prints no amount due in the fallback HTML once the order is paid', () => {
+      const paidHtml = pdfGenerator.buildInvoiceHtml(paidSplitTender)
+      expect(paidHtml).toContain('<span>Paid by gift card ••••1234</span><span>−$40.00</span>')
+      expect(paidHtml).not.toContain('Amount due')
+
+      const unpaidHtml = pdfGenerator.buildInvoiceHtml(unpaidSplitTender)
+      expect(unpaidHtml).toContain('<span>Paid by gift card ••••1234</span><span>−$40.00</span>')
+      expect(unpaidHtml).toContain('<span>Amount due</span><span>$56.00</span>')
+    })
+
+    it('leaves the amount due out of the email of the paid order as well', () => {
+      const email = pdfGenerator.replacePlaceholders(
+        '<p>Paid by gift card −{{giftCardAmount}}</p><p>Amount due {{amountDue}}</p>',
+        pdfGenerator.buildDataContext(paidSplitTender)
+      )
+      expect(email).toBe('<p>Paid by gift card −$40.00</p>')
+    })
+  })
+
   it('fills the {{amountDue}}, {{giftCardAmount}} and {{discountAmount}} merge tokens', () => {
     const giftCard = pdfGenerator.buildDataContext(giftCardInvoice)
     expect(

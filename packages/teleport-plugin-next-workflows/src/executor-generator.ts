@@ -655,9 +655,15 @@ function normalizeComparisonOperator(op) {
     .toLowerCase();
 }
 
+// The editor's templates write a comparison's sides as leftOperand /
+// rightOperand; everything else writes leftValue / rightValue.
+function comparisonSide(config, valueKey, operandKey) {
+  return config[valueKey] !== undefined ? config[valueKey] : config[operandKey];
+}
+
 function evaluateSingleComparison(config, context) {
-  var rawLeft = resolveValue(config.leftValue, context);
-  var rawRight = resolveValue(config.rightValue, context);
+  var rawLeft = resolveValue(comparisonSide(config, 'leftValue', 'leftOperand'), context);
+  var rawRight = resolveValue(comparisonSide(config, 'rightValue', 'rightOperand'), context);
   const op = normalizeComparisonOperator(config.operator || 'equals');
   var isUnary = op === 'is-empty' || op === 'is-not-empty' || op === 'is-truthy' || op === 'is-falsy' ||
     op === 'is-null' || op === 'is-not-null' || op === 'is-true' || op === 'is-false';
@@ -667,7 +673,7 @@ function evaluateSingleComparison(config, context) {
   switch (op) {
     case '===': return left === right;
     case '!==': return left !== right;
-    case '==': case 'equals': return left == right;
+    case '=': case '==': case 'equals': return left == right;
     case '!=': case 'not-equals': return left != right;
     case '>': case 'greater-than': return left > right;
     case '<': case 'less-than': return left < right;
@@ -809,10 +815,16 @@ var __DATA_NODE_TYPES = {
   'data-delete-item': true
 };
 
-// A data node the author opted out of awaiting. Only an explicit \`false\` opts
-// out, so a config written before the option existed keeps awaiting.
+// Mirrors NOT_AWAITABLE_SERVER_NODE_TYPES in await-result.ts — PAIRED EDIT.
+var __NOT_AWAITABLE_SERVER_NODE_TYPES = {
+  'ecommerce-generate-invoice': true
+};
+
+// A data node (or a step listed above) the author opted out of awaiting. Only
+// an explicit \`false\` opts out, so a config written before the option existed
+// keeps awaiting.
 function isFireAndForgetNode(node) {
-  if (!node || !__DATA_NODE_TYPES[node.type]) return false;
+  if (!node || !(__DATA_NODE_TYPES[node.type] || __NOT_AWAITABLE_SERVER_NODE_TYPES[node.type])) return false;
   return !!node.config && node.config.awaitResult === false;
 }
 

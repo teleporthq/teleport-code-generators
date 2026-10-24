@@ -442,7 +442,7 @@ module.exports = async function handler(req, res) {
         for (var h = 0; h < hKeys.length; h++) {
           res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
         }
-        await utils.settlePendingNodePromises(context);
+        await utils.handOffPendingNodePromises(context);
         res.status(earlyRes.status || 500).json(earlyRes.body || {});
         return;
       }
@@ -453,11 +453,11 @@ module.exports = async function handler(req, res) {
       if (result && result.__terminal) break;
     }
 
-    // Land every fire-and-forget query BEFORE replying: the platform may freeze
-    // this function the moment the response is sent, which would drop the write.
-    // The visitor does not pay for this — the client dispatched this segment
-    // without awaiting it (see seg.fireAndForget in the client runtime).
-    await utils.settlePendingNodePromises(context);
+    // Every not-awaited step must still land: the platform may freeze this
+    // function the moment the response is sent, which would drop the work. On
+    // Vercel it finishes after the reply (waitUntil); elsewhere the reply waits
+    // for it (see handOffPendingNodePromises in the server runtime).
+    await utils.handOffPendingNodePromises(context);
     delete context.__request;
     delete context.__pendingNodePromises;
     // MUST be stripped before replying: the results payload below IS this
@@ -469,7 +469,7 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });
   } catch (error) {
     console.error('Workflow segment error:', error);
-    if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
+    if (__wfContext) { await utils.handOffPendingNodePromises(__wfContext); }
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 };
@@ -876,7 +876,7 @@ module.exports = async function handler(req, res) {
         }
         const result = await nodeHandler(resolved, context);
         if (result && result.__earlyResponse) {
-          await utils.settlePendingNodePromises(context);
+          await utils.handOffPendingNodePromises(context);
           if (streamStarted) {
             res.write('data: ' + JSON.stringify({ type: 'error', error: (result.__earlyResponse.body && result.__earlyResponse.body.message) || 'Request rejected' }) + '\\n\\n');
             res.end();
@@ -901,10 +901,9 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // See the non-streaming segment route: land every fire-and-forget query
-    // before the response completes, or the platform may freeze this function
-    // with the write still in flight.
-    await utils.settlePendingNodePromises(context);
+    // See the non-streaming segment route: every not-awaited step must still
+    // land, after the reply on Vercel, before it anywhere else.
+    await utils.handOffPendingNodePromises(context);
     delete context.__request;
     delete context.__pendingNodePromises;
     // MUST be stripped before replying: the results payload below IS this
@@ -922,7 +921,7 @@ module.exports = async function handler(req, res) {
     }
   } catch (error) {
     console.error('Streaming workflow segment error:', error);
-    if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
+    if (__wfContext) { await utils.handOffPendingNodePromises(__wfContext); }
     if (streamStarted) {
       try {
         res.write('data: ' + JSON.stringify({ type: 'error', error: error.message || 'Internal server error' }) + '\\n\\n');

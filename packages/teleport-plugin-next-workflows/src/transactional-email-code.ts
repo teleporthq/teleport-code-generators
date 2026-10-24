@@ -38,10 +38,17 @@ export interface TransactionalEmailLedger {
   source: string
   sourceRef: string
   relativePrefix: string
+  /**
+   * Records the send without the recipient's details: `msg.recordedTo` in
+   * place of the address, and neither the body nor the values it was filled
+   * with. For an email to someone whose details the route is removing (the
+   * farewell after an account deletion).
+   */
+  withoutRecipientDetails?: boolean
 }
 
-// Provider-specific `__sendProviderEmail({ from, fromName?, to, subject, html,
-// apiKey, tokenValues?, userId? })`, preceded by the `__emailSender` helper that
+// Provider-specific `__sendProviderEmail({ from, fromName?, to, recordedTo?,
+// subject, html, apiKey, tokenValues?, userId? })`, preceded by the `__emailSender` helper that
 // names the sender. No attachment (unlike the invoice sender). When no provider
 // is configured the function is a no-op so the route stays self-contained and
 // never throws. With `ledger`, the provider function is emitted as
@@ -77,12 +84,12 @@ async function __sendProviderEmail(msg) {
   __sentEmailLog.recordSentEmail({
     emailType: ${JSON.stringify(ledger.emailType)},
     audience: 'customer',
-    to: msg.to,
+    to: ${ledger.withoutRecipientDetails ? 'msg.recordedTo' : 'msg.to'},
     from: sender.email,
     fromName: sender.name,
     subject: msg.subject,
-    html: msg.html,
-    payload: msg.tokenValues,
+    html: ${ledger.withoutRecipientDetails ? "''" : 'msg.html'},
+    payload: ${ledger.withoutRecipientDetails ? 'null' : 'msg.tokenValues'},
     provider: ${JSON.stringify(provider)},
     status: failure ? 'failed' : 'sent',
     error: failure ? (failure.message || String(failure)) : null,

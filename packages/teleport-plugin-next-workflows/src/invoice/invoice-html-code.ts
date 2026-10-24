@@ -265,6 +265,54 @@ function formatDateValue(raw) {
   }
 }
 
+// How the invoice says it was paid: the method in words, with the provider that
+// took the money when a provider did ("Card (Stripe)", "Paid online" for a
+// booking paid through the site, "Cash on delivery", "Gift card"), and the
+// provider's payment id as "Ref. pi_…". The stored values are ids.
+var PAYMENT_PROVIDER_LABELS = {
+  stripe: 'Stripe', paypal: 'PayPal', mollie: 'Mollie', razorpay: 'Razorpay',
+  square: 'Square', paddle: 'Paddle', coingate: 'CoinGate',
+};
+var PAYMENT_METHOD_LABELS = {
+  card: 'Card',
+  online: 'Paid online',
+  cash_on_delivery: 'Cash on delivery',
+  cod: 'Cash on delivery',
+  cash: 'Cash',
+  store_pickup: 'Paid at pickup',
+  pickup: 'Paid at pickup',
+  gift_card: 'Gift card',
+  bank_transfer: 'Bank transfer',
+};
+var PAYMENT_METHODS_NAMING_PROVIDER = { card: true, online: true };
+
+function humanizePaymentId(value) {
+  var words = String(value).replace(/[_-]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function paymentProviderLabel(provider) {
+  var id = String(provider || '').trim().toLowerCase();
+  return PAYMENT_PROVIDER_LABELS[id] || (id ? humanizePaymentId(id) : '');
+}
+
+function paymentMethodLabel(method, provider) {
+  var id = String(method || '').trim().toLowerCase();
+  var providerLabel = paymentProviderLabel(provider);
+  if (PAYMENT_METHOD_LABELS[id]) {
+    return PAYMENT_METHOD_LABELS[id] +
+      (PAYMENT_METHODS_NAMING_PROVIDER[id] && providerLabel ? ' (' + providerLabel + ')' : '');
+  }
+  if (PAYMENT_PROVIDER_LABELS[id]) return 'Paid online (' + PAYMENT_PROVIDER_LABELS[id] + ')';
+  if (!id) return providerLabel ? 'Paid online (' + providerLabel + ')' : '';
+  return humanizePaymentId(id);
+}
+
+function paymentReference(paymentId) {
+  var ref = String(paymentId || '').trim();
+  return ref ? 'Ref. ' + ref : '';
+}
+
 function buildInvoiceDataScope(invoiceData) {
   var contextCompany = extractStaticAttrsFromContext(TEMPLATE_COMPONENT_UIDL).Company || {};
   var sym = invoiceData.currencySymbol || '$';
@@ -311,10 +359,13 @@ function buildInvoiceDataScope(invoiceData) {
   var giftCardLast4 = String(invoiceData.giftCardLast4 || '').trim();
   var totalNumber = Number(invoiceData.total);
   if (!isFinite(totalNumber)) totalNumber = 0;
+  // What is left to pay after the gift card. The invoice records what the
+  // provider or the courier was to collect; once that is paid, nothing is left.
   var amountDueNumber = Number(invoiceData.amountDue);
   if (invoiceData.amountDue == null || !isFinite(amountDueNumber)) {
     amountDueNumber = Math.max(0, totalNumber - giftCardAmountNumber);
   }
+  if (isSettledInvoice(invoiceData.status)) amountDueNumber = 0;
 
   // A paid invoice asks for nothing: where the due date would print, it says
   // when it was paid. The order keeps no payment method finer than its
@@ -376,9 +427,9 @@ function buildInvoiceDataScope(invoiceData) {
   realCustomer.hasVat = realCustomer.vat ? 'true' : 'false';
 
   var realPayment = {
-    method: invoiceData.paymentMethod || '',
-    provider: invoiceData.paymentProvider || '',
-    intentId: invoiceData.paymentIntentId || '',
+    method: paymentMethodLabel(invoiceData.paymentMethod, invoiceData.paymentProvider),
+    provider: paymentProviderLabel(invoiceData.paymentProvider),
+    intentId: paymentReference(invoiceData.paymentIntentId),
     orderId: invoiceData.orderId || '',
   };
 
@@ -746,6 +797,39 @@ function renderComponentReference(content, scope, depth) {
   return rendered;
 }
 
+// A paid invoice asks for nothing, so, as in the email, its amount-due line is
+// left out. The template shows that line whenever a gift card was used, which
+// cannot tell whether the rest was paid since. The line is the innermost
+// container holding the field (the editor lays each summary line out as a row
+// of texts), and only when the field is all it holds: a container that also
+// holds a block or another field is the merchant's own, and stays.
+var AMOUNT_DUE_FIELD = /\\bInvoice\\??\\.amountDue\\b/;
+
+function isPaidAmountDueLine(content, scope) {
+  var inv = scope.invoiceData && scope.invoiceData.Invoice;
+  if (!inv || !isSettledInvoice(inv.status)) return false;
+  var fields = { amountDue: 0, other: 0 };
+  return countLineFields(content.children, fields) && fields.amountDue > 0 && fields.other === 0;
+}
+
+// Counts the fields a line prints into \`fields\`; false when it holds anything
+// but text, which makes it a block rather than a line.
+function countLineFields(children, fields) {
+  var list = children || [];
+  for (var i = 0; i < list.length; i++) {
+    var child = list[i];
+    if (!child || child.type === 'static') continue;
+    if (child.type === 'expr') {
+      if (AMOUNT_DUE_FIELD.test(String(child.content))) fields.amountDue++;
+      else fields.other++;
+      continue;
+    }
+    var isText = child.type === 'element' && child.content && child.content.elementType === 'text';
+    if (!isText || !countLineFields(child.content.children, fields)) return false;
+  }
+  return true;
+}
+
 function renderNode(node, scope, componentName, depth) {
   if (!node) return '';
   if (typeof depth !== 'number') depth = 0;
@@ -799,6 +883,10 @@ function renderNode(node, scope, componentName, depth) {
   if (elementType === 'fragment') {
     var fragChildren = content.children || [];
     return fragChildren.map(function (c) { return renderNode(c, scope, componentName, depth); }).join('');
+  }
+
+  if (elementType === 'container' && isPaidAmountDueLine(content, scope)) {
+    return '';
   }
 
   var tag = content.semanticType || elementTypeToTag(elementType);
@@ -1034,11 +1122,14 @@ function buildFallbackInvoiceHtml(scope) {
   }
   totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;border-top:2px solid #333;padding-top:4px;"><span>Total</span><span>' + escapeHtml(inv.total) + '</span></div>';
   // A gift card settles part (or all) of the total, so what is left to pay is
-  // printed beneath it — 0.00 included, which is the buyer's proof of that.
+  // printed beneath it — 0.00 included, which is the buyer's proof of that —
+  // until the invoice is paid, whose paid date says nothing is left.
   if (inv.hasGiftCard === 'true') {
     var giftCardLabel = 'Paid by gift card' + (inv.giftCardLast4 ? ' \\u2022\\u2022\\u2022\\u2022' + inv.giftCardLast4 : '');
     totalsRows += '<div style="display:flex;justify-content:space-between;margin-top:4px;margin-bottom:4px;"><span>' + escapeHtml(giftCardLabel) + '</span><span>\\u2212' + escapeHtml(inv.giftCardAmount) + '</span></div>';
-    totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Amount due</span><span>' + escapeHtml(inv.amountDue) + '</span></div>';
+    if (!isSettledInvoice(inv.status)) {
+      totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Amount due</span><span>' + escapeHtml(inv.amountDue) + '</span></div>';
+    }
   }
   parts.push('<div style="display:flex;justify-content:flex-end;margin-top:16px;"><div style="width:240px;">' +
     totalsRows +

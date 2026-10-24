@@ -673,7 +673,9 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
       if (!verifyPassword(String(credentials.password), user.password)) {
         throw new Error('InvalidCredentials');
       }
-      return sanitizeUser(user);
+      const signedIn = sanitizeUser(user);
+      signedIn[TOKEN_PASSWORD_FINGERPRINT] = passwordFingerprint(user.password);
+      return signedIn;
     } catch (err) {
       if (err && err.message === 'InvalidCredentials') throw err;
       // A hashing/serialisation fault is an infrastructure problem, not a
@@ -758,6 +760,22 @@ const USER_REFRESH_INTERVAL_MS = ${USER_REFRESH_INTERVAL_MS};
 // internal timestamp on every binding that enumerates the user object.
 const TOKEN_REFRESH_STAMP = '__userRefreshedAt';
 
+// A short fingerprint of the account's stored password hash, carried in the
+// token from sign-in (or from the first refresh of a token that has none). A
+// password change, a reset included, changes it, and the refresh then ends the
+// session: every session opened before the change is signed out at its next
+// refresh. Keyed with NEXTAUTH_SECRET; never the hash itself, and like the
+// stamp above never copied onto \`session.user\`.
+const TOKEN_PASSWORD_FINGERPRINT = '__passwordFingerprint';
+
+function passwordFingerprint(storedHash) {
+  return require('crypto')
+    .createHmac('sha256', String(process.env.NEXTAUTH_SECRET || ''))
+    .update('teleport-password-fingerprint:v1|' + (storedHash ? String(storedHash) : ''))
+    .digest('base64')
+    .slice(0, 16);
+}
+
 const authOptions = {
   providers: providers,
   pages: {
@@ -803,6 +821,7 @@ const authOptions = {
       if (params.trigger !== 'update' && isFresh) {
         return token;
       }
+      let passwordChanged = false;
       try {
         if (token && token.email && typeof findUserByEmail === 'function') {
           const fresh = await findUserByEmail(String(token.email));
@@ -813,9 +832,22 @@ const authOptions = {
               token[fk[i]] = safe[fk[i]];
             }
           }
+          if (fresh) {
+            const currentFingerprint = passwordFingerprint(fresh.password);
+            if (typeof token[TOKEN_PASSWORD_FINGERPRINT] !== 'string') {
+              token[TOKEN_PASSWORD_FINGERPRINT] = currentFingerprint;
+            } else if (token[TOKEN_PASSWORD_FINGERPRINT] !== currentFingerprint) {
+              passwordChanged = true;
+            }
+          }
         }
       } catch (e) {
         // Keep the existing token on any DB hiccup — never sign the user out.
+      }
+      if (passwordChanged) {
+        // NextAuth answers a jwt callback that throws by clearing the session
+        // cookie and returning no session: the visitor is signed out.
+        throw new Error('The account password changed since this session signed in');
       }
       // Stamped even when the read threw, so an unreachable database costs one
       // attempt per interval instead of one per request.
@@ -830,6 +862,7 @@ const authOptions = {
       if (token && session.user) {
         const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
         skip[TOKEN_REFRESH_STAMP] = 1;
+        skip[TOKEN_PASSWORD_FINGERPRINT] = 1;
         const keys = Object.keys(token);
         for (let i = 0; i < keys.length; i++) {
           if (!skip[keys[i]]) {

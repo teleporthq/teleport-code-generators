@@ -72,6 +72,7 @@ import {
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
 import { ensureWebhookDeliveryLeaseModule } from './webhook-delivery-lease'
+import { declareVercelFunctionsWhereRequired } from './vercel-functions'
 import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
 import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
@@ -385,6 +386,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       if (hasAuthentication) {
         this.injectSessionProviderIntoApp(structure)
       }
+      declareVercelFunctionsWhereRequired(files, dependencies)
       return structure
     }
 
@@ -974,6 +976,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       this.injectSessionProviderIntoApp(structure)
     }
 
+    declareVercelFunctionsWhereRequired(files, dependencies)
     return structure
   }
 
