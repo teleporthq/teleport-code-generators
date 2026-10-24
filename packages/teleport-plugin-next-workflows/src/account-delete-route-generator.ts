@@ -9,7 +9,9 @@
  *   2. runs a single DB transaction that detaches + anonymises business/legal
  *      records (orders, withdrawal requests, bookings, downloads, gift cards
  *      the user bought or received) so tracking survives, takes the user's
- *      email out of the activity log and the sent-email ledger,
+ *      email out of the activity log and the sent-email ledger, leaves the
+ *      invoices already issued as they are (an invoice must keep naming its
+ *      buyer),
  *      deletes the user's personal data (reviews, cart, favourites, chat
  *      history), deletes the rows the user owns in the project's own tables —
  *      the ones the AI made for the site, each through the one column the
@@ -311,46 +313,6 @@ async function deleteOwnedRows(client, userId) {
   }
 }
 
-// Invoices are a financial/tax record that must survive, but they store the
-// customer's PII denormalised and link to the user only through order_id (no
-// user_id). Scrub the PII in place, matching invoices whose order belongs to the
-// user. MUST run BEFORE the orders row is anonymised (its user_id is still set).
-var INVOICE_PII_NULL_COLUMNS = [
-  'customer_name',
-  'customer_address',
-  'customer_city',
-  'customer_state',
-  'customer_zip',
-  'customer_country',
-  'customer_vat',
-  'customer_phone',
-];
-
-async function anonymizeInvoices(client, ordersTable, invoicesTable, userId, syntheticEmail) {
-  var invCols = await tableColumns(client, invoicesTable);
-  if (invCols.indexOf('order_id') === -1) { return; }
-  var orderCols = await tableColumns(client, ordersTable);
-  if (orderCols.indexOf('user_id') === -1) { return; }
-  var sets = [];
-  var params = [];
-  if (invCols.indexOf('customer_email') !== -1) {
-    params.push(syntheticEmail);
-    sets.push('customer_email = $' + params.length);
-  }
-  for (var i = 0; i < INVOICE_PII_NULL_COLUMNS.length; i++) {
-    if (invCols.indexOf(INVOICE_PII_NULL_COLUMNS[i]) !== -1) {
-      sets.push(INVOICE_PII_NULL_COLUMNS[i] + ' = NULL');
-    }
-  }
-  if (sets.length === 0) { return; }
-  params.push(userId);
-  await client.query(
-    'UPDATE ' + invoicesTable + ' SET ' + sets.join(', ') +
-      ' WHERE order_id IN (SELECT id FROM ' + ordersTable + ' WHERE user_id = $' + params.length + ')',
-    params
-  );
-}
-
 // The password a request confirms the deletion with, or null when it names
 // none. A request without one deletes as before; one with a password deletes
 // only when it is the account's own (the editor's delete-account form asks for
@@ -457,9 +419,6 @@ module.exports = async function handler(req, res) {
 
       await client.query('BEGIN');
       try {
-        // Scrub invoice PII FIRST — invoices link to the user only through
-        // order_id, so this must run while the orders row still carries user_id.
-        await anonymizeInvoices(client, 'teleport_orders', 'teleport_invoices', userId, syntheticEmail);
         for (var a = 0; a < ANONYMIZE_TABLES.length; a++) {
           await anonymizeUserRows(client, ANONYMIZE_TABLES[a], userId, syntheticEmail);
         }

@@ -6,7 +6,8 @@ import { DeleteRouteRun, runAccountDeleteRoute, sqlOf } from './_helpers/run-acc
  * fetched it from where, a gift card they bought or received keeps working
  * under the anonymised address, and the emails the site sent them stay on
  * record without the address, the body or the values they were filled with.
- * A table the site does not have is left alone.
+ * The invoices already issued to them are the exception: an invoice must keep
+ * naming its buyer. A table the site does not have is left alone.
  */
 
 const USER_ID = 'user-1'
@@ -94,6 +95,44 @@ describe('deleting an account removes the visitor from the site’s records', ()
       expect(at).toBeGreaterThan(begin)
       expect(at).toBeLessThan(commit)
     }
+  })
+})
+
+describe('the invoices already issued to them', () => {
+  const SHOP_TABLES = {
+    users: TABLES.users,
+    teleport_orders: ['id', 'user_id', 'customer_email', 'billing_email', 'invoice_pdf_url'],
+    teleport_invoices: [
+      'id',
+      'order_id',
+      'customer_name',
+      'customer_address',
+      'customer_city',
+      'customer_country',
+      'customer_vat',
+      'customer_email',
+      'pdf_url',
+    ],
+    teleport_invoice_items: ['id', 'invoice_id', 'description', 'amount'],
+  }
+  let run: DeleteRouteRun
+
+  beforeAll(async () => {
+    run = await runAccountDeleteRoute({ userRow, tables: SHOP_TABLES })
+  })
+
+  it('keep the buyer’s name, address, tax number and email', () => {
+    expect(run.status).toBe(200)
+    expect(sqlOf(run).filter((sql) => sql.indexOf('teleport_invoice') !== -1)).toEqual([])
+  })
+
+  it('while their orders still drop the account and its email', () => {
+    expect(updatesOf(run, 'teleport_orders')).toEqual([
+      {
+        sql: 'UPDATE teleport_orders SET user_id = NULL, billing_email = $2, customer_email = $3 WHERE user_id = $1',
+        params: [USER_ID, ANONYMISED, ANONYMISED],
+      },
+    ])
   })
 })
 
