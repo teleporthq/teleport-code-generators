@@ -265,6 +265,54 @@ function formatDateValue(raw) {
   }
 }
 
+// How the invoice says it was paid: the method in words, with the provider that
+// took the money when a provider did ("Card (Stripe)", "Paid online" for a
+// booking paid through the site, "Cash on delivery", "Gift card"), and the
+// provider's payment id as "Ref. pi_…". The stored values are ids.
+var PAYMENT_PROVIDER_LABELS = {
+  stripe: 'Stripe', paypal: 'PayPal', mollie: 'Mollie', razorpay: 'Razorpay',
+  square: 'Square', paddle: 'Paddle', coingate: 'CoinGate',
+};
+var PAYMENT_METHOD_LABELS = {
+  card: 'Card',
+  online: 'Paid online',
+  cash_on_delivery: 'Cash on delivery',
+  cod: 'Cash on delivery',
+  cash: 'Cash',
+  store_pickup: 'Paid at pickup',
+  pickup: 'Paid at pickup',
+  gift_card: 'Gift card',
+  bank_transfer: 'Bank transfer',
+};
+var PAYMENT_METHODS_NAMING_PROVIDER = { card: true, online: true };
+
+function humanizePaymentId(value) {
+  var words = String(value).replace(/[_-]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function paymentProviderLabel(provider) {
+  var id = String(provider || '').trim().toLowerCase();
+  return PAYMENT_PROVIDER_LABELS[id] || (id ? humanizePaymentId(id) : '');
+}
+
+function paymentMethodLabel(method, provider) {
+  var id = String(method || '').trim().toLowerCase();
+  var providerLabel = paymentProviderLabel(provider);
+  if (PAYMENT_METHOD_LABELS[id]) {
+    return PAYMENT_METHOD_LABELS[id] +
+      (PAYMENT_METHODS_NAMING_PROVIDER[id] && providerLabel ? ' (' + providerLabel + ')' : '');
+  }
+  if (PAYMENT_PROVIDER_LABELS[id]) return 'Paid online (' + PAYMENT_PROVIDER_LABELS[id] + ')';
+  if (!id) return providerLabel ? 'Paid online (' + providerLabel + ')' : '';
+  return humanizePaymentId(id);
+}
+
+function paymentReference(paymentId) {
+  var ref = String(paymentId || '').trim();
+  return ref ? 'Ref. ' + ref : '';
+}
+
 function buildInvoiceDataScope(invoiceData) {
   var contextCompany = extractStaticAttrsFromContext(TEMPLATE_COMPONENT_UIDL).Company || {};
   var sym = invoiceData.currencySymbol || '$';
@@ -376,9 +424,9 @@ function buildInvoiceDataScope(invoiceData) {
   realCustomer.hasVat = realCustomer.vat ? 'true' : 'false';
 
   var realPayment = {
-    method: invoiceData.paymentMethod || '',
-    provider: invoiceData.paymentProvider || '',
-    intentId: invoiceData.paymentIntentId || '',
+    method: paymentMethodLabel(invoiceData.paymentMethod, invoiceData.paymentProvider),
+    provider: paymentProviderLabel(invoiceData.paymentProvider),
+    intentId: paymentReference(invoiceData.paymentIntentId),
     orderId: invoiceData.orderId || '',
   };
 
