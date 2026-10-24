@@ -5,9 +5,10 @@ import { generateServerRuntimeCode } from '../../src/server-runtime-code'
 /**
  * The generated `utils/workflows/server-runtime.js` exactly as a route loads
  * it: the shared runtime utilities plus the server-only signed hand-off,
- * internal-call token and trusted base URL.
+ * internal-call token and trusted base URL. `modules` answers the packages a
+ * project may have installed (`@vercel/functions`); any other is missing.
  */
-export function loadServerRuntime(): Record<string, any> {
+export function loadServerRuntime(modules: Record<string, unknown> = {}): Record<string, any> {
   const shared: { exports: Record<string, unknown> } = { exports: {} }
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   new Function('module', 'exports', generateSharedRuntimeUtilsCode())(shared, shared.exports)
@@ -18,6 +19,9 @@ export function loadServerRuntime(): Record<string, any> {
     }
     if (id === './runtime-utils') {
       return shared.exports
+    }
+    if (id in modules) {
+      return modules[id]
     }
     throw new Error(`Unexpected require in server runtime: ${id}`)
   }

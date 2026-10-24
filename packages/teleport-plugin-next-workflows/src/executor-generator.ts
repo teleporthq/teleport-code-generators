@@ -809,10 +809,16 @@ var __DATA_NODE_TYPES = {
   'data-delete-item': true
 };
 
-// A data node the author opted out of awaiting. Only an explicit \`false\` opts
-// out, so a config written before the option existed keeps awaiting.
+// Mirrors NOT_AWAITABLE_SERVER_NODE_TYPES in await-result.ts — PAIRED EDIT.
+var __NOT_AWAITABLE_SERVER_NODE_TYPES = {
+  'ecommerce-generate-invoice': true
+};
+
+// A data node (or a step listed above) the author opted out of awaiting. Only
+// an explicit \`false\` opts out, so a config written before the option existed
+// keeps awaiting.
 function isFireAndForgetNode(node) {
-  if (!node || !__DATA_NODE_TYPES[node.type]) return false;
+  if (!node || !(__DATA_NODE_TYPES[node.type] || __NOT_AWAITABLE_SERVER_NODE_TYPES[node.type])) return false;
   return !!node.config && node.config.awaitResult === false;
 }
 

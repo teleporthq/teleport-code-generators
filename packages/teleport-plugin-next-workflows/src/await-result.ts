@@ -16,20 +16,32 @@ export const DATA_NODE_TYPES: ReadonlyArray<string> = [
 ]
 
 /**
+ * The other steps the author may choose not to wait for: server work whose
+ * result nothing downstream needs (a cash order's invoice, rendered, stored
+ * and mailed while the buyer is already on the confirmation page). The
+ * editor offers the choice on the same steps (`supportsAwaitResultOption` in
+ * teleport-gui's `@teleport/workflow-schema`) — a PAIRED EDIT.
+ */
+export const NOT_AWAITABLE_SERVER_NODE_TYPES: ReadonlyArray<string> = ['ecommerce-generate-invoice']
+
+/**
  * Config key carrying the author's await choice. Only `false` opts out —
  * `undefined` (never configured) and `true` both mean "await", so every
  * project generated before this option existed keeps its old behaviour.
  */
 export const AWAIT_RESULT_CONFIG_KEY = 'awaitResult'
 
-const DATA_NODE_TYPE_SET = new Set<string>(DATA_NODE_TYPES)
+const AWAIT_OPTIONAL_NODE_TYPE_SET = new Set<string>([
+  ...DATA_NODE_TYPES,
+  ...NOT_AWAITABLE_SERVER_NODE_TYPES,
+])
 
 /**
- * True when this node runs fire-and-forget: the runtime starts the query,
+ * True when this node runs fire-and-forget: the runtime starts the step,
  * publishes `null` under the node's id and moves straight on to the next node.
  */
 export const isFireAndForgetNode = (node: UIDLWorkflowNode | undefined | null): boolean => {
-  if (!node || !DATA_NODE_TYPE_SET.has(node.type)) {
+  if (!node || !AWAIT_OPTIONAL_NODE_TYPE_SET.has(node.type)) {
     return false
   }
   const config = node.config as Record<string, unknown> | undefined
@@ -41,10 +53,10 @@ export const isFireAndForgetNode = (node: UIDLWorkflowNode | undefined | null): 
  * response — i.e. every node it holds is fire-and-forget, so nothing
  * downstream can read anything the segment produces.
  *
- * The API route itself still awaits each query before replying (a serverless
- * function may be frozen the moment it responds, which would drop an in-flight
- * write); what this flag removes is the CLIENT's wait on that round trip, which
- * is where the latency the visitor feels actually comes from.
+ * The API route itself still lands each step (a serverless function may be
+ * frozen the moment it responds, which would drop an in-flight write: on
+ * Vercel the step finishes after the reply, elsewhere the reply waits); what
+ * this flag removes is the CLIENT's wait on that round trip.
  */
 export const isFireAndForgetSegment = (segment: WorkflowSegment): boolean =>
   segment.env === 'server' &&

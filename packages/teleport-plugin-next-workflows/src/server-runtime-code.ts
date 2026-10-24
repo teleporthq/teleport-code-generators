@@ -1,3 +1,5 @@
+import { generateVercelFunctionsLoaderCode } from './vercel-functions'
+
 /**
  * `utils/workflows/server-runtime.js`: what every server route loads. It is the
  * shared runtime utilities plus the parts only a server may run — the signed
@@ -41,6 +43,8 @@
 export const generateServerRuntimeCode = (): string => `'use strict';
 var crypto = require('crypto');
 var utils = require('./runtime-utils');
+
+${generateVercelFunctionsLoaderCode()}
 
 var __stepKeyCache = { secret: null, key: null };
 
@@ -394,7 +398,25 @@ function trustedBaseUrl(req) {
   return origin;
 }
 
+// The work a segment's not-awaited steps left running (an invoice being
+// rendered and mailed) must still finish, but the visitor need not wait for
+// it: on Vercel it is handed to waitUntil, which keeps the function running
+// after the reply. Anywhere else the route awaits it before replying, since a
+// function frozen after its reply would drop it.
+function handOffPendingNodePromises(context) {
+  var queue = context && context.__pendingNodePromises;
+  if (!queue || queue.length === 0) return Promise.resolve();
+  // Drained through the queue itself: the route deletes it from the context
+  // before replying, and a parallel branch still running pushes onto it.
+  var drained = utils.settlePendingNodePromises({ __pendingNodePromises: queue });
+  var waitUntil = __vercelWaitUntil();
+  if (!waitUntil) return drained;
+  waitUntil(drained);
+  return Promise.resolve();
+}
+
 module.exports = Object.assign({}, utils, {
+  handOffPendingNodePromises: handOffPendingNodePromises,
   claimSegmentContext: claimSegmentContext,
   segmentReply: segmentReply,
   internalRequestHeaders: internalRequestHeaders,
