@@ -24,10 +24,14 @@ describe('Generates NEXT-JS project with plugins', () => {
     const pages = result.subFolders.find((folder) => folder.name === 'pages')
     const styleModule = pages.files.find((file) => file.fileType === FileType.CSS)
     const appRoot = pages.files.find((file) => file.name === '_app')
+    const middleware = result.files.find((file) => file.name === 'middleware')
 
-    expect(result.files.length).toBe(2)
+    // package.json, next.config.js, the password wall's middleware, and the
+    // .env / .env.example the wall's five empty values bring with them.
+    expect(result.files.length).toBe(5)
     expect(packageJSON).toBeDefined()
     expect(nextConfig).toBeDefined()
+    expect(middleware?.content).toContain('__tqWallGate')
     expect(pages.files.length).toBe(6)
     expect(styleModule).toBeDefined()
     expect(styleModule.name).toBe('style.module')

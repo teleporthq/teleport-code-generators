@@ -261,23 +261,23 @@ export default async function handler(req, res) {
     let filteredData = [...filteredRows]
     
     if (query) {
-      const searchQuery = query.toLowerCase()
+      const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
       
       if (queryColumns) {
         const searchColumns = safeJSONParse(queryColumns)
         filteredData = filteredData.filter((item) => {
-          return searchColumns.some((col) => {
+          return searchTerms.every((term) => searchColumns.some((col) => {
             // Map label to column ID
             const field = labelToIdMap[col] || col
             const value = getNestedValue(item, field)
-            return value && String(value).toLowerCase().includes(searchQuery)
-          })
+            return value && String(value).toLowerCase().includes(term)
+          }))
         })
       } else {
         filteredData = filteredData.filter((item) => {
           try {
             const stringified = JSON.stringify(item).toLowerCase()
-            return stringified.includes(searchQuery)
+            return searchTerms.every((term) => stringified.includes(term))
           } catch {
             return false
           }

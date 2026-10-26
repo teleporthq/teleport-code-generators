@@ -60,6 +60,7 @@ import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
 import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { NextPwaProjectPlugin } from './pwa/project-plugin'
 import { NextWebPushProjectPlugin } from './web-push/project-plugin'
+import { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 import { NextSecurityHeadersProjectPlugin } from './security-headers'
 import { createNextWidgetProjectPlugins } from './widgets'
 import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
@@ -129,6 +130,8 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextPwaProjectPlugin(),
   new NextWebPushProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
+  // Last: wraps the middleware the workflows plugin may have emitted.
+  new NextPasswordWallProjectPlugin(),
 ]
 
 const createNextProjectGenerator = () => {
@@ -298,6 +301,11 @@ export { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plug
 export { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
 export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
+export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
+export {
+  buildStandaloneWallMiddleware,
+  wrapMiddlewareWithWall,
+} from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'

@@ -68,18 +68,18 @@ export default async function handler(req, res) {
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
-        const searchQuery = query.toLowerCase()
+        const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
         
         if (queryColumns) {
           try {
             const parsed = safeJSONParse(queryColumns)
             const columns = Array.isArray(parsed) ? parsed : [parsed]
             data = data.filter(item => {
-              return columns.some(col => {
+              return searchTerms.every((term) => columns.some(col => {
                 const value = getNestedValue(item, col)
                 if (value === null || value === undefined) return false
-                return String(value).toLowerCase().includes(searchQuery)
-              })
+                return String(value).toLowerCase().includes(term)
+              }))
             })
           } catch (err) {
             console.error('Error parsing queryColumns:', err)
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
           data = data.filter(item => {
             try {
               const stringified = JSON.stringify(item).toLowerCase()
-              return stringified.includes(searchQuery)
+              return searchTerms.every((term) => stringified.includes(term))
             } catch {
               return false
             }

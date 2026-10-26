@@ -81,11 +81,12 @@ export default Welcome`,
     const customFolder = pagesFolder.subFolders.find((file) => file.name === 'custom-folder')
 
     // package.json (template) + next.config.js (security headers) + the two
-    // custom root files the plugin injects (config.json, package.json).
+    // custom root files the plugin injects (config.json, package.json) + the
+    // password wall's middleware.js with the .env / .env.example its values bring.
     expect(files.map((file) => `${file.name}.${file.fileType || ''}`)).toEqual(
-      expect.arrayContaining(['package.json', 'next.config.js', 'config.json'])
+      expect.arrayContaining(['package.json', 'next.config.js', 'config.json', 'middleware.js'])
     )
-    expect(files.length).toBe(4)
+    expect(files.length).toBe(7)
     expect(pagesFolder).toBeDefined()
     expect(customFolder).toBeDefined()
     expect(customFolder.files.length).toBe(1)

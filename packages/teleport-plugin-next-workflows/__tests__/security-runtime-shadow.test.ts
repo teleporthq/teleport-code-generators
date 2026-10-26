@@ -145,7 +145,7 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
     }
   })
 
-  it('PROTECTED_ENV_NAMES contains exactly the 10 documented secrets', () => {
+  it('PROTECTED_ENV_NAMES contains exactly the 11 documented secrets', () => {
     expect([...PROTECTED_ENV_NAMES].sort()).toEqual(
       [
         'PDF_SERVICE_API_KEY',
@@ -158,6 +158,7 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
         'TELEPORT_CRON_SECRET_PREVIOUS',
         'TELEPORT_DB_CONNECTION_STRING',
         'TELEPORT_PROJECT_TOKEN',
+        'TELEPORT_WALL_SECRET',
       ].sort()
     )
   })
