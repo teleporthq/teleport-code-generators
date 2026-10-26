@@ -80,6 +80,12 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
         flyingPictures: optional(boolean()),
       })
     ),
+    // The password page's logo, set by a paying workspace; absent = TeleportHQ's.
+    passwordWall: optional(
+      object({
+        logo: optional(string()),
+      })
+    ),
   }),
   customCode: optional(
     object({
