@@ -348,6 +348,19 @@ function __entryFromNode(nodeType, config, result, error) {
   };
 }
 
+// A node that reached several recipients one provider call each reports a
+// delivery per recipient; the ledger then says who got the email and who was
+// refused, one row per address. Any other result is one row for the node run.
+function __entriesFromNode(nodeType, config, result) {
+  var deliveries = result && Array.isArray(result.deliveries) ? result.deliveries : [];
+  if (deliveries.length === 0) return [__entryFromNode(nodeType, config, result, null)];
+  return deliveries.map(function (delivery) {
+    var entry = __entryFromNode(nodeType, config, delivery, null);
+    entry.to = delivery.to;
+    return entry;
+  });
+}
+
 /**
  * Wraps a server node handler so every send is recorded. The record is
  * registered on the workflow context's fire-and-forget queue — the same one
@@ -368,7 +381,10 @@ function wrapEmailNodeHandler(nodeType, handler) {
       __register(context, recordSentEmail(__entryFromNode(nodeType, config, null, err)));
       throw err;
     }
-    __register(context, recordSentEmail(__entryFromNode(nodeType, config, result, null)));
+    var entries = __entriesFromNode(nodeType, config, result);
+    for (var i = 0; i < entries.length; i++) {
+      __register(context, recordSentEmail(entries[i]));
+    }
     return result;
   };
 }

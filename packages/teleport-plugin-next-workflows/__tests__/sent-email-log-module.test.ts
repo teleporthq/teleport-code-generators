@@ -340,6 +340,60 @@ describe('sent-email-log runtime module', () => {
       }
     })
 
+    it('writes one row per delivery when the node reached its recipients one call each', async () => {
+      const { api, queries, restore } = loadModule({})
+      try {
+        const wrapped = api.wrapEmailNodeHandler('email-resend', async () => ({
+          id: 're-1',
+          success: true,
+          error: 'refused for blocked@lumen.test (only the owner)',
+          deliveries: [
+            { to: 'jane@lumen.test', success: true, id: 're-1' },
+            { to: 'blocked@lumen.test', success: false, error: 'only the owner' },
+            { to: 'ana@lumen.test', success: true, id: 're-3' },
+          ],
+        }))
+        const context: any = {}
+        await wrapped(
+          {
+            to: ['jane@lumen.test', 'blocked@lumen.test', 'ana@lumen.test'],
+            cc: 'ops@lumen.test',
+            from: 'shop@acme.com',
+            subject: 'Hi',
+            body: '<p>x</p>',
+            emailPurpose: 'welcome',
+            emailAudience: 'customer',
+          },
+          context
+        )
+        expect(context.__pendingNodePromises).toHaveLength(3)
+        await Promise.all(context.__pendingNodePromises)
+        const rows = queries.map(rowOf)
+        expect(
+          rows.map((row) => [
+            row.recipient_email,
+            row.recipients,
+            row.status,
+            row.provider_message_id,
+            row.error_message,
+          ])
+        ).toEqual([
+          ['jane@lumen.test', '["jane@lumen.test"]', 'sent', 're-1', null],
+          ['blocked@lumen.test', '["blocked@lumen.test"]', 'failed', null, 'only the owner'],
+          ['ana@lumen.test', '["ana@lumen.test"]', 'sent', 're-3', null],
+        ])
+        for (const row of rows) {
+          expect(row.cc).toBe('["ops@lumen.test"]')
+          expect(row.email_type).toBe('welcome')
+          expect(row.audience).toBe('customer')
+          expect(row.provider).toBe('resend')
+          expect(row.source_ref).toBe('email-resend')
+        }
+      } finally {
+        restore()
+      }
+    })
+
     it('records an integration node only for its send-email action, and forwards extra arguments', async () => {
       const { api, queries, restore } = loadModule({})
       try {

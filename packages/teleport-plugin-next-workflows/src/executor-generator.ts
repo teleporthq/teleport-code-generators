@@ -892,9 +892,12 @@ async function settlePendingNodePromises(context) {
 // ({ error: '...' } / { success: false }) or through the AI-node contract
 // ({ error: true, message, code } — provider/auth failures). Both must halt
 // the workflow; treating error:true as success used to let the pipeline limp
-// into downstream NOT NULL violations.
+// into downstream NOT NULL violations. A result that says success: true is
+// the node's own verdict: an email node that reached some of its recipients
+// reports success with the refused addresses under error, and goes on.
 function isFatalNodeResult(result) {
   if (!result) return false;
+  if (result.success === true) return false;
   return result.success === false ||
     (typeof result.error === 'string' && result.error) ||
     result.error === true;
