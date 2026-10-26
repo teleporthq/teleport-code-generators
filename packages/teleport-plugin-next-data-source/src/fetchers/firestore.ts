@@ -191,11 +191,11 @@ export default async function handler(req, res) {
     
     // Apply post-filtering if needed
     if (usePostFiltering && query) {
-      const searchQuery = query.toLowerCase()
+      const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
       documents = documents.filter((item) => {
         try {
           const stringified = JSON.stringify(item).toLowerCase()
-          return stringified.includes(searchQuery)
+          return searchTerms.every((term) => stringified.includes(term))
         } catch {
           return false
         }

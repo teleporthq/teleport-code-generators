@@ -97,7 +97,7 @@ describe.each<[string, FetcherSetup]>([
     expect(data.templates.map((r) => r.id)).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
   })
 
-  it('searches the inner array', async () => {
+  it('searches the inner array, every typed word on its own', async () => {
     const result = await runHandler(
       setup.code,
       {
@@ -108,8 +108,9 @@ describe.each<[string, FetcherSetup]>([
       setup.fetchImpl
     )
 
+    // "row" and "2" each match somewhere in the name: row 2, row 12, row 20–25.
     const data = result.data as { templates: Array<{ id: number }> }
-    expect(data.templates.map((r) => r.id)).toEqual([2, 20, 21, 22, 23, 24, 25])
+    expect(data.templates.map((r) => r.id)).toEqual([2, 12, 20, 21, 22, 23, 24, 25])
   })
 
   it('returns the payload untouched without the param', async () => {
