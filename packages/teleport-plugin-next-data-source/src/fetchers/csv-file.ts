@@ -4,6 +4,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateCSVConfig = (
@@ -169,6 +170,12 @@ const generateHandlerBody = (): string => {
       })
     }
     
+    if (query && queryColumns) {
+      filteredData = rankBySearch(filteredData, query, safeJSONParse(queryColumns), (item, col) =>
+        getNestedValue(item, labelToIdMap[col] || col)
+      )
+    }
+    
     const limitValue = limit || perPage
     const offsetValue = offsetParam !== undefined ? parseInt(offsetParam) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : 0)
     
@@ -210,6 +217,8 @@ const firstRowIsHeader = ${firstRowIsHeader}
 const configColumns = ${JSON.stringify(configColumns)}
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 
@@ -320,6 +329,8 @@ export default async function handler(req, res) {${generateHandlerBody()}
 const columns = ${JSON.stringify(configColumns)}
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 

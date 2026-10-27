@@ -5,6 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
+import { generateSearchSqlHelpersCode, MARIADB_SEARCH_MATCH_SQL } from '../search-relevance'
 
 interface MariaDBConfig {
   host?: string
@@ -31,6 +32,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchSqlHelpersCode(MARIADB_SEARCH_MATCH_SQL)}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {
@@ -110,6 +112,7 @@ export default async function handler(req, res) {
     
     const conditions = []
     const queryParams = []
+    let search = null
     
     if (query) {
       let columns = []
@@ -135,14 +138,10 @@ export default async function handler(req, res) {
         }
       }
       
-      if (columns.length > 0) {
-        const pattern = "%" + escapeLikePattern(query) + "%"
-        const searchConditions = columns.map(
-          (col) =>
-            "LOWER(CAST(\`" + sanitizeSearchIdentifier(col) + "\` AS CHAR)) LIKE LOWER(?) ESCAPE '|'"
-        )
-        columns.forEach(() => queryParams.push(pattern))
-        conditions.push("(" + searchConditions.join(" OR ") + ")")
+      search = buildSearchSql(query, columns)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
       }
     }
 
@@ -155,22 +154,24 @@ export default async function handler(req, res) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
     }
     
-    // Handle sorts - new array format
+    // Handle sorts - new array format. A search orders its matches by where
+    // the words are first; the sort orders the rows within each of those groups.
+    const orderClauses = search && search.rank ? [search.rank] : []
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
-        const orderClauses = parsedSorts.map((sort) => {
+        orderClauses.push(...parsedSorts.map((sort) => {
           if (!sort.field) return null
           const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\\\`\${sort.field}\\\` \${order}\`
-        }).filter(Boolean)
-
-        if (orderClauses.length > 0) {
-          sql += \` ORDER BY \${orderClauses.join(', ')}\`
-        }
+        }).filter(Boolean))
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \\\`\${sortBy}\\\` \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
+      orderClauses.push(\`\\\`\${sortBy}\\\` \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`)
+    }
+    if (orderClauses.length > 0) {
+      sql += \` ORDER BY \${orderClauses.join(', ')}\`
+      if (search && search.rank) queryParams.push(...search.rankParams)
     }
     
     const limitValue = limit || perPage
@@ -284,16 +285,10 @@ async function getCount(req, res) {
         }
       }
       
-      if (columns.length > 0) {
-        const pattern = "%" + escapeLikePattern(query) + "%"
-        const searchConditions = columns
-          .map(
-            (col) =>
-              "LOWER(CAST(\`" + sanitizeSearchIdentifier(col) + "\` AS CHAR)) LIKE LOWER(?) ESCAPE '|'"
-          )
-          .join(" OR ")
-        conditions.push("(" + searchConditions + ")")
-        columns.forEach(() => queryParams.push(pattern))
+      const search = buildSearchSql(query, columns)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
       }
     }
 

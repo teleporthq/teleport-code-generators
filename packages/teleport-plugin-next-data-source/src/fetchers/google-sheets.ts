@@ -3,6 +3,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateGoogleSheetsConfig = (
@@ -54,6 +55,8 @@ export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): st
   return `import fetch from 'node-fetch'
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateSortFilterHelperCode()}
 
@@ -369,6 +372,12 @@ export default async function handler(req, res) {
         
         return comparison * sortOrderValue
       })
+    }
+    
+    if (query && queryColumns) {
+      filteredData = rankBySearch(filteredData, query, safeJSONParse(queryColumns), (item, col) =>
+        getNestedValue(item, labelToIdMap[col] || col)
+      )
     }
     
     const limitValue = limit || perPage
