@@ -151,6 +151,21 @@ function categorySummary(config, category) {
 
 ${ARRANGED_ORDER_RUNTIME}
 
+// A category page lists cards: each post without its body or its own lists,
+// which no card shows (a 44-post category page carried 621 kB of data).
+// MUST mirror \`card\` in packages/renderer/src/utils/blog-posts.ts (teleport-gui).
+function postCard(post, href) {
+  return Object.assign({}, post, {
+    href: href,
+    content: '',
+    relatedPosts: [],
+    previousPosts: [],
+    nextPosts: [],
+    comments: [],
+    sections: [],
+  })
+}
+
 async function resolveCategoryPage(preset, params) {
   var slug = params && params.slug !== undefined && params.slug !== null ? String(params.slug) : ''
   var locale = params && params.locale ? params.locale : null
@@ -176,7 +191,7 @@ async function resolveCategoryPage(preset, params) {
   ;(Array.isArray(rows) ? rows : []).forEach(function (post) {
     if (!post || typeof post !== 'object' || redirectsElsewhere(post)) return
     var href = postHref(preset.config, post)
-    if (href) posts.push(Object.assign({}, post, { href: href }))
+    if (href) posts.push(postCard(post, href))
   })
   if (preset.config.arranged) posts = arrangeCategoryPosts(posts, category)
   var summary = categorySummary(preset.config, category)

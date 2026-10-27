@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 import generate from '@babel/generator'
-import { generateInitialPathsAST } from '../src/utils'
+import { generateInitialPathsAST, PRERENDERED_RECORDS_CODE } from '../src/utils'
 import { UIDLInitialPathsData } from '@teleporthq/teleport-types'
 
 const initialPathsData: UIDLInitialPathsData = {
@@ -24,7 +24,8 @@ const runStaticPaths = async (response: unknown) => {
 
   const factory = new Function(
     'fetchProducts',
-    `${code.replace('export async function getStaticPaths', 'async function getStaticPaths')}
+    `${PRERENDERED_RECORDS_CODE}
+    ${code.replace('export async function getStaticPaths', 'async function getStaticPaths')}
     return getStaticPaths`
   )
 

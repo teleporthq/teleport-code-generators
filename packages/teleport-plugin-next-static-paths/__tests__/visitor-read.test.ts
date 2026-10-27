@@ -72,11 +72,13 @@ const runStaticPaths = async (folderPath: string[], pageId: string) => {
   } as unknown as ComponentStructure
   const result = await createStaticPathsPlugin()(structure)
   const chunk = result.chunks.find((c) => c.name === 'getStaticPaths')
+  const helper = result.chunks.find((c) => c.name === 'prerendered-records')
   const { code } = generate(types.program([chunk!.content as types.Statement]))
   const calls: unknown[][] = []
   const getStaticPaths = new Function(
     'fetchProductsPathsResource',
-    `${code.replace('export async function getStaticPaths', 'async function getStaticPaths')}
+    `${helper ? helper.content : ''}
+    ${code.replace('export async function getStaticPaths', 'async function getStaticPaths')}
     return getStaticPaths`
   )((...args: unknown[]) => {
     calls.push(args)
