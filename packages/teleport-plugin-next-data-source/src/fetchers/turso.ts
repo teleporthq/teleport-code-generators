@@ -5,7 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
-import { generateSearchSqlHelpersCode, SQLITE_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, SQLITE_SEARCH_SQL } from '../search-relevance'
 
 export const validateTursoConfig = (
   config: Record<string, unknown>
@@ -47,7 +47,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(SQLITE_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(SQLITE_SEARCH_SQL)}
 
 ${generateDateFormatterCode()}
 

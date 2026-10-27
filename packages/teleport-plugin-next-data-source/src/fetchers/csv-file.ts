@@ -64,22 +64,17 @@ const generateHandlerBody = (): string => {
     let filteredData = [...data]
     
     if (query) {
-      const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
-      
       if (queryColumns) {
         const searchColumns = safeJSONParse(queryColumns)
-        filteredData = filteredData.filter((item) => {
-          return searchTerms.every((term) => searchColumns.some((col) => {
-            const field = labelToIdMap[col] || col
-            const value = getNestedValue(item, field)
-            return value && String(value).toLowerCase().includes(term)
-          }))
-        })
+        filteredData = filteredData.filter((item) =>
+          matchesSearch(item, query, searchColumns, (row, col) => getNestedValue(row, labelToIdMap[col] || col))
+        )
       } else {
+        const terms = searchTerms(query)
         filteredData = filteredData.filter((item) => {
           try {
-            const stringified = JSON.stringify(item).toLowerCase()
-            return searchTerms.every((term) => stringified.includes(term))
+            const text = searchText(item)
+            return terms.every((term) => text.indexOf(term) !== -1)
           } catch {
             return false
           }
