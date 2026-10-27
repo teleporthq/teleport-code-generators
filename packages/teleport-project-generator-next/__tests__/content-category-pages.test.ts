@@ -220,7 +220,11 @@ describe('the content-category-pages module', () => {
       helpPosts: async (params) => {
         calls.push(params)
         return [
-          post({}),
+          post({
+            excerpt: 'Point your domain at the site',
+            content: '<p>Every step of connecting a domain</p>',
+            relatedPosts: [post({ id: 'p9' })],
+          }),
           post({ id: 'p2', slug: 'old', redirectUrl: '/help/connect-a-domain' }),
           post({ id: 'p3', slug: '' }),
         ]
@@ -243,6 +247,17 @@ describe('the content-category-pages module', () => {
     expect(page.posts.map((entry) => [entry.id, entry.href])).toEqual([
       ['p1', '/help/connect-a-domain'],
     ])
+    // A card, not a page: no body and none of the post's own lists.
+    expect(page.posts[0]).toMatchObject({
+      title: 'Connect a domain',
+      excerpt: 'Point your domain at the site',
+      content: '',
+      relatedPosts: [],
+      previousPosts: [],
+      nextPosts: [],
+      comments: [],
+      sections: [],
+    })
 
     // One read: the category's published posts, newest first, in the locale.
     expect(calls).toHaveLength(1)

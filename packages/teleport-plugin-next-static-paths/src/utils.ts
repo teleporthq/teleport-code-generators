@@ -9,7 +9,9 @@ export const generateInitialPathsAST = (
   pagination?: PagePaginationOptions,
   dynamicRouteAttribute?: string,
   /** What the read hands the resource after its params (`{ as: 'visitor' }`). */
-  readArguments: types.Expression[] = []
+  readArguments: types.Expression[] = [],
+  /** Lists only the records `prerenderedRecords` picks; otherwise every one. */
+  newestRecordsOnly = true
 ) => {
   const computedResourceAST = computePropsAST(
     initialData,
@@ -17,7 +19,8 @@ export const generateInitialPathsAST = (
     resource,
     pagination,
     dynamicRouteAttribute,
-    readArguments
+    readArguments,
+    newestRecordsOnly
   )
 
   return types.exportNamedDeclaration(
@@ -43,8 +46,39 @@ const methodCall = (
 ): types.CallExpression =>
   types.callExpression(types.memberExpression(target, types.identifier(method), false), args)
 
+/** How many of a details page's records a publish builds; the rest are built on their first visit. */
+export const PRERENDERED_RECORDS = 50
+
 /**
- * `paths` for a details page: one entry per record, keyed on the URL attribute.
+ * `prerenderedRecords(items)`, emitted beside a details page's
+ * `getStaticPaths`: the records whose pages a publish builds — the newest
+ * PRERENDERED_RECORDS by when they were published or created, records without
+ * a date after the dated ones in the source's order.
+ *
+ * Building every record's page made a publish as slow as its record count: a
+ * 486-article help center spent 8.5 of its 9 minutes building article pages,
+ * about 0.9 s each. Every other record's page is built on its first visit —
+ * `fallback: 'blocking'` serves it complete, to a visitor or a crawler alike —
+ * and cached, as Next.js recommends for sites with many data-driven pages.
+ */
+export const PRERENDERED_RECORDS_CODE = `function prerenderedRecords(items) {
+  const timeOf = (item) => {
+    const value = item
+      ? [item.publishedAt, item.published_at, item.createdAt, item.created_at].find((date) => date != null)
+      : null
+    const time = typeof value === 'number' ? value : typeof value === 'string' ? Date.parse(value) : NaN
+    return Number.isNaN(time) ? -Infinity : time
+  }
+  return (Array.isArray(items) ? items : [])
+    .map((item, index) => ({ item, index, time: timeOf(item) }))
+    .sort((a, b) => (a.time === b.time ? a.index - b.index : b.time > a.time ? 1 : -1))
+    .slice(0, ${PRERENDERED_RECORDS})
+    .map((entry) => entry.item)
+}`
+
+/**
+ * `paths` for a details page: one entry per record a publish builds
+ * (`prerenderedRecords`), keyed on the URL attribute.
  *
  * Emitted as read the differentiator off every record, DROP the unusable ones,
  * DEDUPE, then build the params — rather than mapping records straight to
@@ -65,7 +99,8 @@ const methodCall = (
  */
 const generatePathsFromItemsAST = (
   initialData: UIDLInitialPathsData,
-  dynamicRouteAttribute?: string
+  dynamicRouteAttribute?: string,
+  newestRecordsOnly = true
 ): types.Expression => {
   const items = types.logicalExpression(
     '||',
@@ -76,7 +111,11 @@ const generatePathsFromItemsAST = (
     types.arrayExpression()
   )
 
-  const differentiators = methodCall(items, 'map', [
+  const prerendered = newestRecordsOnly
+    ? types.callExpression(types.identifier('prerenderedRecords'), [items])
+    : items
+
+  const differentiators = methodCall(prerendered, 'map', [
     types.arrowFunctionExpression(
       [types.identifier('item')],
       ASTUtils.generateMemberExpressionASTFromPath([
@@ -144,7 +183,8 @@ const computePropsAST = (
   resource: UIDLInitialPathsData['resource'],
   pagination?: PagePaginationOptions,
   dynamicRouteAttribute?: string,
-  readArguments: types.Expression[] = []
+  readArguments: types.Expression[] = [],
+  newestRecordsOnly = true
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
     (acc: types.ObjectProperty[], item) => {
@@ -252,7 +292,7 @@ const computePropsAST = (
                 ),
               ]
             )
-          : generatePathsFromItemsAST(initialData, dynamicRouteAttribute),
+          : generatePathsFromItemsAST(initialData, dynamicRouteAttribute, newestRecordsOnly),
         false,
         false
       ),
