@@ -71,27 +71,20 @@ export default async function handler(req, res) {
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
-        const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
-        
         if (queryColumns) {
           try {
             const parsed = safeJSONParse(queryColumns)
             const columns = Array.isArray(parsed) ? parsed : [parsed]
-            data = data.filter(item => {
-              return searchTerms.every((term) => columns.some(col => {
-                const value = getNestedValue(item, col)
-                if (value === null || value === undefined) return false
-                return String(value).toLowerCase().includes(term)
-              }))
-            })
+            data = data.filter((item) => matchesSearch(item, query, columns, getNestedValue))
           } catch (err) {
             console.error('Error parsing queryColumns:', err)
           }
         } else {
-          data = data.filter(item => {
+          const terms = searchTerms(query)
+          data = data.filter((item) => {
             try {
-              const stringified = JSON.stringify(item).toLowerCase()
-              return searchTerms.every((term) => stringified.includes(term))
+              const text = searchText(item)
+              return terms.every((term) => text.indexOf(term) !== -1)
             } catch {
               return false
             }

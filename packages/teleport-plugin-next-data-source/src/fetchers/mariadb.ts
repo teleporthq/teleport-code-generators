@@ -5,7 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
-import { generateSearchSqlHelpersCode, MARIADB_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, MARIADB_SEARCH_SQL } from '../search-relevance'
 
 interface MariaDBConfig {
   host?: string
@@ -32,7 +32,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(MARIADB_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(MARIADB_SEARCH_SQL)}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {

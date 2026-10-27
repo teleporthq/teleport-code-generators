@@ -10,7 +10,7 @@ import { SORT_NULLS_LAST_SQL } from '../list-sort-order'
 import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../row-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
-import { generateSearchSqlHelpersCode, PG_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, PG_SEARCH_SQL } from '../search-relevance'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
@@ -73,7 +73,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(PG_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(PG_SEARCH_SQL)}
 ${generateArrayOverlapSqlCode()}
 
 // Builds one SQL clause for the whole filter tree, so an OR group nested in
@@ -176,6 +176,7 @@ ${generateReadGuardCall(tableName, null)}
     const queryParams = []
     let paramIndex = 1
     let searchRank = ''
+    let searchFrom = ''
     
     if (query) {
       let columns = []
@@ -214,6 +215,7 @@ ${generateReadGuardCall(tableName, null)}
         queryParams.push(...search.params)
         paramIndex = search.nextIndex
         searchRank = search.rank
+        searchFrom = search.from
       }
     }
 
@@ -221,7 +223,8 @@ ${generateReadGuardCall(tableName, null)}
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
-    let sql = \`SELECT * FROM "${tableName}"\`
+    // A search's worked-out texts stay out of the rows: only the table's own columns.
+    let sql = \`SELECT \${searchFrom ? '"${tableName}".*' : '*'} FROM "${tableName}"\${searchFrom}\`
     
     if (conditions.length > 0) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
@@ -352,6 +355,7 @@ ${generateReadGuardCall(tableName, null)}
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let searchFrom = ''
 
     if (query) {
       let columns = []
@@ -390,6 +394,7 @@ ${generateReadGuardCall(tableName, null)}
         conditions.push(search.where)
         queryParams.push(...search.params)
         paramIndex = search.nextIndex
+        searchFrom = search.from
       }
     }
 
@@ -397,7 +402,7 @@ ${generateReadGuardCall(tableName, null)}
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
-    let countSql = \`SELECT COUNT(*) FROM "${tableName}"\`
+    let countSql = \`SELECT COUNT(*) FROM "${tableName}"\${searchFrom}\`
     if (conditions.length > 0) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }

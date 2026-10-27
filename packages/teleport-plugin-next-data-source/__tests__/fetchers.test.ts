@@ -337,7 +337,7 @@ describe('generateDataSourceFetcher', () => {
 
     expect(code).toContain('import { Client, types as pgTypes } from')
     expect(code).toContain('export default async function handler')
-    expect(code).toContain('SELECT * FROM "users"')
+    expect(code).toContain(`'"users".*' : '*'} FROM "users"`)
     expect(code).toContain('localhost')
   })
 

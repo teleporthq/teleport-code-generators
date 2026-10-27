@@ -213,7 +213,7 @@ const internal = { 'x-internal-data-secret': SECRET }
 const SORT_BY_NAME = JSON.stringify([{ field: 'name', order: 'asc' }])
 
 const mainQuery = (result: RouteResult): string =>
-  (result.queries.find((q) => /^\s*SELECT \* FROM/i.test(q.sql)) || { sql: '' }).sql
+  (result.queries.find((q) => /^\s*SELECT (\S+\.)?\* FROM/i.test(q.sql)) || { sql: '' }).sql
 
 const POSTS = [
   {
@@ -325,24 +325,24 @@ describe('blog posts: a visitor reads the published posts, never an author email
       expect((await posts.run({ handler: 'getCount', query })).status).toBe(200)
     }
     const searched = await posts.run({ query: { query: 'ana', queryColumns } })
-    expect(mainQuery(searched)).toContain('"title"::text ILIKE')
+    expect(mainQuery(searched)).toContain('lower("title"::text)')
 
     const admin = await posts.run({
       query: { query: 'ana', queryColumns },
       session: { role: 'admin' },
     })
-    expect(mainQuery(admin)).toContain('"author_email"::text ILIKE')
+    expect(mainQuery(admin)).toContain('lower("author_email"::text)')
   })
 
   it('searches a visitor only through the columns it is served', async () => {
     const guest = await posts.run({ query: { query: 'ana' } })
     expect(guest.status).toBe(200)
     const sql = mainQuery(guest)
-    expect(sql).toContain('"title"::text ILIKE')
+    expect(sql).toContain('lower("title"::text)')
     expect(sql).not.toContain('"author_email"')
 
     const admin = await posts.run({ query: { query: 'ana' }, session: { role: 'admin' } })
-    expect(mainQuery(admin)).toContain('"author_email"::text ILIKE')
+    expect(mainQuery(admin)).toContain('lower("author_email"::text)')
   })
 
   it('applies to the generic Postgres route too', async () => {
@@ -484,7 +484,7 @@ describe("members: a page carries a member's public profile, never their account
 
     await users.pageFetch({ query: 'bo', queryColumns: JSON.stringify(['name', 'email']) })
     const searched = mainQuery({ queries: users.queries } as RouteResult)
-    expect(searched).toContain('"name"::text ILIKE')
+    expect(searched).toContain('lower("name"::text)')
     expect(searched).not.toContain('"email"')
   })
 

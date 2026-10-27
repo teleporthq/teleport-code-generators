@@ -5,7 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
-import { generateSearchSqlHelpersCode, MYSQL_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, MYSQL_SEARCH_SQL } from '../search-relevance'
 
 interface MySQLConfig {
   host?: string
@@ -69,7 +69,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(MYSQL_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(MYSQL_SEARCH_SQL)}
 
 // Helper function to process filters and build conditions
 const processFilters = (filters, conditions, queryParams) => {

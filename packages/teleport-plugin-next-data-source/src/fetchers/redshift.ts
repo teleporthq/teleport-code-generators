@@ -5,7 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
-import { generateSearchSqlHelpersCode, PG_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, REDSHIFT_SEARCH_SQL } from '../search-relevance'
 
 interface RedshiftConfig {
   host?: string
@@ -61,7 +61,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(PG_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(REDSHIFT_SEARCH_SQL)}
 
 ${generateDateFormatterCode()}
 

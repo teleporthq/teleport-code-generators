@@ -20,7 +20,7 @@ import { REQUEST_LOCALE_PARAM } from '../request-locale'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
-import { generateSearchSqlHelpersCode, PG_SEARCH_MATCH_SQL } from '../search-relevance'
+import { generateSearchSqlHelpersCode, PG_SEARCH_SQL } from '../search-relevance'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
 
 interface TeleportDBConfig {
@@ -163,7 +163,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
-${generateSearchSqlHelpersCode(PG_SEARCH_MATCH_SQL)}
+${generateSearchSqlHelpersCode(PG_SEARCH_SQL)}
 ${generateArrayOverlapSqlCode()}
 ${getTransformationCode(tableName, transformOptions)}
 ${getTransformWrapperCode(tableName, transformOptions)}
@@ -349,6 +349,7 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     const queryParams = []
     let paramIndex = 1
     let searchRank = ''
+    let searchFrom = ''
     
     if (query) {
       let columns = []
@@ -385,13 +386,15 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
         queryParams.push(...search.params)
         paramIndex = search.nextIndex
         searchRank = search.rank
+        searchFrom = search.from
       }
     }
     
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
-    let sql = \`SELECT * FROM ${tableName}\`
+    // A search's worked-out texts stay out of the rows: only the table's own columns.
+    let sql = \`SELECT \${searchFrom ? '${tableName}.*' : '*'} FROM ${tableName}\${searchFrom}\`
     
     if (conditions.length > 0) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
@@ -542,6 +545,7 @@ ${generateReadGuardCall(tableName, null)}
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let searchFrom = ''
 
     if (query) {
       let columns = []
@@ -577,13 +581,14 @@ ${generateReadGuardCall(tableName, null)}
         conditions.push(search.where)
         queryParams.push(...search.params)
         paramIndex = search.nextIndex
+        searchFrom = search.from
       }
     }
 
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
-    let countSql = \`SELECT COUNT(*) FROM ${tableName}\`
+    let countSql = \`SELECT COUNT(*) FROM ${tableName}\${searchFrom}\`
     if (conditions.length > 0) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }
