@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-static-paths",
-  "version": "0.44.11",
+  "version": "0.44.14",
   "description": "A plugin for adding getStaticPaths inside a nextjs page",
   "author": "teleportHQ",
   "license": "MIT",
