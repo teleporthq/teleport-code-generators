@@ -5,6 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
+import { generateSearchSqlHelpersCode, SQLITE_SEARCH_MATCH_SQL } from '../search-relevance'
 
 export const validateTursoConfig = (
   config: Record<string, unknown>
@@ -46,6 +47,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchSqlHelpersCode(SQLITE_SEARCH_MATCH_SQL)}
 
 ${generateDateFormatterCode()}
 
@@ -63,6 +65,7 @@ export default async function handler(req, res) {
     const whereClauses = []
     const queryParams = []
     let searchQueryColumns = null
+    let search = null
     
     if (query) {
       if (queryColumns) {
@@ -70,15 +73,11 @@ export default async function handler(req, res) {
         const columns = Array.isArray(parsed) ? parsed : [parsed]
         // Cast columns to TEXT and LOWER both sides so the match is
         // case-insensitive regardless of SQLite collation.
-        const pattern = "%" + escapeLikePattern(query) + "%"
-        const searchConditions = columns.map(
-          (col) =>
-            'LOWER(CAST("' + sanitizeSearchIdentifier(col) + '" AS TEXT)) LIKE LOWER(?) ESCAPE ' + "'|'"
-        )
-        whereClauses.push("(" + searchConditions.join(" OR ") + ")")
-        columns.forEach(() => {
-          queryParams.push(pattern)
-        })
+        search = buildSearchSql(query, columns)
+        if (search) {
+          whereClauses.push(search.where)
+          queryParams.push(...search.params)
+        }
       } else {
         // Store query for post-filtering if columns not specified
         searchQueryColumns = query
@@ -135,23 +134,25 @@ export default async function handler(req, res) {
       sql += \` WHERE \${whereClauses.join(' AND ')}\`
     }
     
-    // Handle sorts - new array format
+    // Handle sorts - new array format. A search orders its matches by where
+    // the words are first; the sort orders the rows within each of those groups.
+    const orderClauses = search && search.rank ? [search.rank] : []
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
-        const orderClauses = parsedSorts.map((sort) => {
+        orderClauses.push(...parsedSorts.map((sort) => {
           if (!sort.field) return null
           const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sanitizeIdentifier(sort.field)} \${order}\`
-        }).filter(Boolean)
-
-        if (orderClauses.length > 0) {
-          sql += \` ORDER BY \${orderClauses.join(', ')}\`
-        }
+        }).filter(Boolean))
       }
     } else if (sortBy) {
       const sortOrderValue = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
-      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${sortOrderValue}\`
+      orderClauses.push(\`\${sanitizeIdentifier(sortBy)} \${sortOrderValue}\`)
+    }
+    if (orderClauses.length > 0) {
+      sql += \` ORDER BY \${orderClauses.join(', ')}\`
+      if (search && search.rank) queryParams.push(...search.rankParams)
     }
     
     const limitValue = limit || perPage

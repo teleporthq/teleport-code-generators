@@ -5,6 +5,7 @@ import {
   generateSearchEscapeHelpersCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchWordsCode } from '../search-relevance'
 
 export const validateSupabaseConfig = (
   config: Record<string, unknown>
@@ -131,6 +132,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchWordsCode()}
 
 // Helper function to process filter values
 const processFilterValue = (value) => {
@@ -354,16 +356,19 @@ export default async function handler(req, res) {
         // shared identifier sanitizer to reject injection. Note:
         // PostgREST .ilike. does not expose a LIKE ESCAPE clause, so
         // raw % / _ in the user input still act as wildcards in this
-        // backend; the canvas preview path escapes them explicitly.
-        const rawPattern = "%" + String(query) + "%"
-        const escapedForPostgrest = rawPattern
-          .replace(/\\\\/g, "\\\\\\\\")
-          .replace(/"/g, '\\\\"')
-        const searchPattern = '"' + escapedForPostgrest + '"'
-        const orConditions = columns
-          .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
-          .join(",")
-        queryRef = queryRef.or(orConditions)
+        // backend; the canvas preview path escapes them explicitly. Each
+        // typed word gets its own .or(), and PostgREST ANDs them.
+        searchWords(query).forEach((word) => {
+          const rawPattern = "%" + word + "%"
+          const escapedForPostgrest = rawPattern
+            .replace(/\\\\/g, "\\\\\\\\")
+            .replace(/"/g, '\\\\"')
+          const searchPattern = '"' + escapedForPostgrest + '"'
+          const orConditions = columns
+            .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
+            .join(",")
+          queryRef = queryRef.or(orConditions)
+        })
       }
     }
 
@@ -478,16 +483,18 @@ async function getCount(req, res) {
       if (columns.length > 0) {
         // Mirror the fetch handler: sanitize identifiers, wrap the
         // pattern in double quotes for PostgREST .or() DSL, and escape
-        // backslashes / quotes in the user's search term.
-        const rawPattern = "%" + String(query) + "%"
-        const escapedForPostgrest = rawPattern
-          .replace(/\\\\/g, "\\\\\\\\")
-          .replace(/"/g, '\\\\"')
-        const searchPattern = '"' + escapedForPostgrest + '"'
-        const orConditions = columns
-          .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
-          .join(",")
-        countQuery = countQuery.or(orConditions)
+        // backslashes / quotes in the user's search term, one .or() per word.
+        searchWords(query).forEach((word) => {
+          const rawPattern = "%" + word + "%"
+          const escapedForPostgrest = rawPattern
+            .replace(/\\\\/g, "\\\\\\\\")
+            .replace(/"/g, '\\\\"')
+          const searchPattern = '"' + escapedForPostgrest + '"'
+          const orConditions = columns
+            .map((col) => sanitizeSearchIdentifier(col) + ".ilike." + searchPattern)
+            .join(",")
+          countQuery = countQuery.or(orConditions)
+        })
       }
     }
 

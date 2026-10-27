@@ -10,6 +10,7 @@ import { SORT_NULLS_LAST_SQL } from '../list-sort-order'
 import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../row-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
+import { generateSearchSqlHelpersCode, PG_SEARCH_MATCH_SQL } from '../search-relevance'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
@@ -72,6 +73,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchSqlHelpersCode(PG_SEARCH_MATCH_SQL)}
 ${generateArrayOverlapSqlCode()}
 
 // Builds one SQL clause for the whole filter tree, so an OR group nested in
@@ -173,6 +175,7 @@ ${generateReadGuardCall(tableName, null)}
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let searchRank = ''
     
     if (query) {
       let columns = []
@@ -205,15 +208,12 @@ ${generateReadGuardCall(tableName, null)}
       }
       if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
-      if (columns.length > 0) {
-        const pattern = '%' + escapeLikePattern(query) + '%'
-        const placeholder = '$' + paramIndex
-        paramIndex++
-        queryParams.push(pattern)
-        const searchConditions = columns.map(
-          (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
-        )
-        conditions.push('(' + searchConditions.join(' OR ') + ')')
+      const search = buildSearchSql(query, columns, paramIndex)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
+        paramIndex = search.nextIndex
+        searchRank = search.rank
       }
     }
 
@@ -230,8 +230,11 @@ ${generateReadGuardCall(tableName, null)}
     // Handle sorts - new array format. Two ORDER BY clauses are built: the one
     // actually used (the products table's price rewrites, rows without a value
     // last), and a plain-column twin kept only as the fallback below.
+    // A search orders its matches by where the words are first; the sort
+    // orders the rows within each of those groups.
     let orderBySql = ''
     let plainOrderBySql = ''
+    const searchOrder = searchRank ? searchRank + ', ' : ''
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
@@ -245,16 +248,19 @@ ${generateReadGuardCall(tableName, null)}
           // The row's own key last, so equal rows can't repeat across pages
           // or vanish between them.
           const tiebreak = rowOrderTiebreak(valid.map((sort) => sort.field), orderOf(valid[valid.length - 1]))
-          orderBySql = \` ORDER BY \${orderClauses.join(', ')}\${tiebreak}\`
-          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}\${tiebreak}\`
+          orderBySql = \` ORDER BY \${searchOrder}\${orderClauses.join(', ')}\${tiebreak}\`
+          plainOrderBySql = \` ORDER BY \${searchOrder}\${plainClauses.join(', ')}\${tiebreak}\`
         }
       }
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
       const tiebreak = rowOrderTiebreak([sortBy], sortByDirection)
-      orderBySql = \` ORDER BY \${sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\${tiebreak}\`
-      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\${tiebreak}\`
+      orderBySql = \` ORDER BY \${searchOrder}\${sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\${tiebreak}\`
+      plainOrderBySql = \` ORDER BY \${searchOrder}\${sortBy} \${sortByDirection}\${tiebreak}\`
+    }
+    if (!orderBySql && searchRank) {
+      orderBySql = plainOrderBySql = ' ORDER BY ' + searchRank + rowOrderTiebreak([], 'ASC')
     }
     const usedRewrittenSort = orderBySql !== plainOrderBySql
 
@@ -379,17 +385,11 @@ ${generateReadGuardCall(tableName, null)}
       }
       if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
-      if (columns.length > 0) {
-        const pattern = '%' + escapeLikePattern(query) + '%'
-        const placeholder = '$' + paramIndex
-        paramIndex++
-        queryParams.push(pattern)
-        const searchConditions = columns
-          .map(
-            (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
-          )
-          .join(' OR ')
-        conditions.push('(' + searchConditions + ')')
+      const search = buildSearchSql(query, columns, paramIndex)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
+        paramIndex = search.nextIndex
       }
     }
 

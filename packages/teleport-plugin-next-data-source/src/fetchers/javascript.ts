@@ -5,6 +5,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 
 export const validateJavaScriptConfig = (
   config: Record<string, unknown>
@@ -45,6 +46,8 @@ export const generateJavaScriptFetcher = (config: Record<string, unknown>): stri
   const jsConfig = config as JavaScriptConfig
 
   return `${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 
@@ -182,6 +185,10 @@ export default async function handler(req, res) {
           
           return comparison * sortOrderValue
         })
+      }
+      
+      if (query && queryColumns) {
+        data = rankBySearch(data, query, safeJSONParse(queryColumns), getNestedValue)
       }
       
       const limitValue = limit || perPage

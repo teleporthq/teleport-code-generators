@@ -5,6 +5,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import {
   RESTAPICacheConfig,
   generateRESTAPIResponseCacheCode,
@@ -123,6 +124,8 @@ export const generateRESTAPIFetcher = (config: Record<string, unknown>): string 
   return `import fetch from 'node-fetch'
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 
@@ -308,6 +311,10 @@ export default async function handler(req, res) {
           
           return comparison * sortOrderValue
         })
+      }
+      
+      if (query && queryColumns) {
+        data = rankBySearch(data, query, safeJSONParse(queryColumns), getNestedValue)
       }
       
       const limitValue = limit || perPage
