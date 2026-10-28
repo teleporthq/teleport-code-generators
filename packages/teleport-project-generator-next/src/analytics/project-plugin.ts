@@ -1,11 +1,16 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { TRACKER_SOURCE } from './tracker-source'
 import { buildTrackerComponentSource } from './tracker-component'
+import { buildExperimentHeadSnippet, collectExperimentIds } from './experiments'
 import { injectSiblingIntoApp } from '../app-sibling-injection'
 import { loadsGoogleTag } from './google-consent-mode'
 
 const ENV_URL_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_URL'
 const ENV_PUBLIC_KEY = 'NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY'
+// Server-only (no NEXT_PUBLIC_ prefix): what the site's server segments
+// present when they report a purchase or a booking. Minted by the platform at
+// deploy time from the public key; never reaches the browser bundle.
+const ENV_SERVER_KEY = 'TELEPORT_ANALYTICS_SERVER_KEY'
 const TELEPORT_SECRETS_PREFIX = 'teleporthq.secrets.'
 
 // Growth visitor analytics. When `uidl.analytics.enabled` is set (paid plan +
@@ -26,6 +31,17 @@ const TELEPORT_SECRETS_PREFIX = 'teleporthq.secrets.'
 // deploy and quietly start reporting.
 export class NextAnalyticsProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
+    // A/B tests: the arm is picked in <head>, before the body is parsed, so a
+    // page with an experiment never shows both variants. Independent of
+    // analytics being on — the page must still show ONE variant; only the
+    // counting needs the tracker. Added here (before the document is built)
+    // because `_document` reads `customCode.head` during generation.
+    const { uidl } = structure
+    const snippet = buildExperimentHeadSnippet(collectExperimentIds(uidl))
+    if (snippet) {
+      const customCode = uidl.globals.customCode ?? {}
+      uidl.globals.customCode = { ...customCode, head: `${snippet}${customCode.head ?? ''}` }
+    }
     return structure
   }
 
@@ -82,6 +98,9 @@ export class NextAnalyticsProjectPlugin implements ProjectPlugin {
     }
     if (!uidl.globals.env[ENV_PUBLIC_KEY]) {
       uidl.globals.env[ENV_PUBLIC_KEY] = `${TELEPORT_SECRETS_PREFIX}${ENV_PUBLIC_KEY}`
+    }
+    if (!uidl.globals.env[ENV_SERVER_KEY]) {
+      uidl.globals.env[ENV_SERVER_KEY] = `${TELEPORT_SECRETS_PREFIX}${ENV_SERVER_KEY}`
     }
   }
 }

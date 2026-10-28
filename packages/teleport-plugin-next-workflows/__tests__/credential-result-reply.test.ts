@@ -10,6 +10,7 @@ import { splitIntoSegments } from '../src/segment-splitter'
 import { buildSegmentTrust } from '../src/segment-trust'
 import type { WorkflowSegment } from '../src/types'
 import { loadServerRuntime } from './_helpers/load-server-runtime'
+import { isSecurityRuntimeSpecifier, loadSecurityRuntime } from './_helpers/load-security-runtime'
 
 /**
  * The result of the password-hashing node is a credential: a server segment
@@ -103,12 +104,17 @@ function bootRoute(segment: WorkflowSegment, graph: Graph) {
     ? generateStreamingServerSegmentAPIRoute(segment, 'Flow', undefined, options)
     : generateServerSegmentAPIRoute(segment, 'Flow', undefined, options)
   const runtime = loadServerRuntime()
+  const security = loadSecurityRuntime()
   const modules: Record<string, unknown> = { bcryptjs: fakeBcrypt, crypto, openai: FakeOpenAI }
   const routeModule: { exports: unknown } = { exports: {} }
   new Function('module', 'exports', 'require', source)(
     routeModule,
     routeModule.exports,
-    (id: string) => (id.endsWith('server-runtime') ? runtime : modules[id] || {})
+    (id: string) => {
+      if (id.endsWith('server-runtime')) return runtime
+      if (isSecurityRuntimeSpecifier(id)) return security
+      return modules[id] || {}
+    }
   )
   const handler = routeModule.exports as (req: unknown, res: unknown) => Promise<void>
   return async (context: Context): Promise<RouteReply> => {
@@ -470,7 +476,7 @@ describe('the other ways a hash could reach the browser', () => {
   it('a loop that maps passwords to hashes replies its results sealed', async () => {
     const loop = graphOf(
       [
-        step('each', 'general-loop', 1, { collection: ['First-1', 'Second-2'], loopType: 'map' }),
+        step('each', 'general-loop', 1, { collection: ['First-12', 'Second-2'], loopType: 'map' }),
         step('hash', 'account-hash-password', 2, { password: ref('each', 'currentItem') }),
       ],
       [edge('each', 'hash', 'loop')]
@@ -481,14 +487,22 @@ describe('the other ways a hash could reach the browser', () => {
     expect(reply.text).not.toMatch(BCRYPT_SHAPED)
     expect(reply.body?.results?.each).toEqual({ __sealed: expect.any(String) })
 
+    const trust = buildSegmentTrust(segment, loop)
     const runtime = loadServerRuntime()
     const relayed = JSON.parse(JSON.stringify(reply.body?.results))
     runtime.claimSegmentContext(
-      { nodes: [], edges: [], entryNodeIds: [], signedNodeIds: ['each', 'hash'] },
+      {
+        nodes: [],
+        edges: [],
+        entryNodeIds: [],
+        workflowId: trust.workflowId,
+        signedNodeIds: ['each', 'hash'],
+        signedBy: { each: segment.id, hash: segment.id },
+      },
       relayed
     )
     expect(relayed.each.results).toEqual([
-      { hash: hashOf('First-1') },
+      { hash: hashOf('First-12') },
       { hash: hashOf('Second-2') },
     ])
   })
@@ -496,7 +510,7 @@ describe('the other ways a hash could reach the browser', () => {
   it('a loop that only repeats the hash keeps its count readable', async () => {
     const loop = graphOf(
       [
-        step('each', 'general-loop', 1, { collection: ['First-1'], loopType: 'forEach' }),
+        step('each', 'general-loop', 1, { collection: ['First-12'], loopType: 'forEach' }),
         step('hash', 'account-hash-password', 2, { password: ref('each', 'currentItem') }),
       ],
       [edge('each', 'hash', 'loop')]

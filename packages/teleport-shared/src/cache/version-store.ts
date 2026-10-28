@@ -58,11 +58,20 @@ function isEnabled() {
   return !!(process.env.TELEPORT_DB_CONNECTION_STRING || process.env.TELEPORT_DB_HOST);
 }
 
+// A page's version read is public (the version route answers anyone), so every
+// statement here is cut off after 10 s — for its own transaction only (SET
+// LOCAL): a slow or flooded database never holds a request, and on a pooled
+// connection the setting never reaches the next request that shares it.
+var STATEMENT_TIMEOUT_SQL = "BEGIN; SET LOCAL statement_timeout = '10s'";
+
 async function withClient(run) {
   var client = getClient();
   try {
     await client.connect();
-    return await run(client);
+    await client.query(STATEMENT_TIMEOUT_SQL);
+    var result = await run(client);
+    await client.query('COMMIT');
+    return result;
   } finally {
     try {
       await client.end();

@@ -276,6 +276,17 @@ describe('generated /rss.xml', () => {
     ])
   })
 
+  it('leaves out a post kept out of search engines, like one sent elsewhere', async () => {
+    const { res } = await runFeed([
+      post({ id: 1, slug: 'listed' }),
+      post({ id: 2, slug: 'hidden', noIndex: true }),
+      post({ id: 3, slug: 'hidden-raw', no_index: 't' }),
+      post({ id: 4, slug: 'moved', redirectUrl: '/elsewhere' }),
+    ])
+    expect(itemsOf(res.body)).toHaveLength(1)
+    expect(res.body).toContain('/blog/listed')
+  })
+
   it('writes a valid, cacheable RSS 2.0 document linking each post canonically', async () => {
     const { res, result } = await runFeed([
       post({
@@ -453,5 +464,16 @@ describe('generated /rss.xml', () => {
     expect(res.body).toContain('<link>https://journal.example.com/es</link>')
     // No description of its own: the channel repeats its title.
     expect(res.body).toContain('<description>The Journal</description>')
+  })
+})
+
+describe('a post imported with a numeric-looking flag', () => {
+  it('stays out of the feed when no_index is the string "1", as the page itself reads it', async () => {
+    const { res } = await runFeed([
+      post({ id: 1, slug: 'listed' }),
+      post({ id: 2, slug: 'hidden-one', no_index: '1' }),
+    ])
+    expect(itemsOf(res.body)).toHaveLength(1)
+    expect(res.body).not.toContain('hidden-one')
   })
 })

@@ -59,6 +59,15 @@ function bootDataRoute(rows: Array<Record<string, unknown>>) {
     if (name === 'next-auth/jwt') {
       return { getToken: async () => ({ id: 'u-1' }) }
     }
+    if (/(^|\/)security-runtime$/.test(name)) {
+      return {
+        safeEqual: (given: unknown, expected: unknown) =>
+          typeof given === 'string' &&
+          typeof expected === 'string' &&
+          given !== '' &&
+          given === expected,
+      }
+    }
     throw new Error('unexpected require: ' + name)
   }
   new Function('require', 'module', 'exports', 'process', 'console', code)(

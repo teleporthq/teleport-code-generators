@@ -1,13 +1,23 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
-import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from './outbound-message-guard'
 import { EMAIL_RECIPIENTS_HELPER_SOURCE, EmailDeliveriesPlan } from './email-recipients'
 
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 // Ambient, not imported: a serialized handler has no module scope, so
 // generateHandler appends the recipients helper's source (beside this file).
 declare function __emailRecipients(to: unknown): unknown[]
 declare function __emailDeliveries(plan: EmailDeliveriesPlan): Promise<unknown>
 
 async function email_mailersend(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('email', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageId: '', skipped: true, reason: refused.skipped }
+      : { messageId: '', success: false, error: refused.error }
+  }
   const apiKey = config.apiKey
   const from = config.from
   const fromName = config.fromName || ''
@@ -96,10 +106,8 @@ export const emailMailersend: NodeHandlerGenerator = {
   dependencies: {
     mailersend: '^2.0.0',
   },
-  generateHandler(): string {
-    return assertHandlerHasNoModuleRefs(
-      handlerToString(email_mailersend) + '\n' + EMAIL_RECIPIENTS_HELPER_SOURCE,
-      'email-mailersend'
-    )
-  },
+  ...outboundMessageHandlerSources(email_mailersend, {
+    nodeType: 'email-mailersend',
+    extraSource: EMAIL_RECIPIENTS_HELPER_SOURCE,
+  }),
 }

@@ -1,4 +1,5 @@
-import { NodeHandlerGenerator } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions } from '../types'
+import { serverHandlerPrefix } from '../general/visitor-request'
 import {
   generateAIProviderUtils,
   generateAIStreamingProviderUtils,
@@ -7,6 +8,8 @@ import {
 
 declare function __ai_resolveTextField(val: any): string
 declare function __ai_resolveToken(token: any): string
+declare function __ai_publicMessage(err: any, code: string): string
+declare function __ai_publicCode(err: any, code: string): string
 declare function __ai_resolveProvider(config: any): string
 declare function __ai_clampTemperature(temp: any, provider: string): number
 declare function __ai_callProvider(params: any): Promise<any>
@@ -35,7 +38,11 @@ async function ai_text_transform(
   try {
     token = __ai_resolveToken(config.token)
   } catch (err: any) {
-    return { error: true, message: err.message, code: 'authentication_error' }
+    return {
+      error: true,
+      message: __ai_publicMessage(err, 'authentication_error'),
+      code: 'authentication_error',
+    }
   }
 
   const provider = __ai_resolveProvider(config)
@@ -94,7 +101,11 @@ async function ai_text_transform(
     try {
       return await __ai_handleStreamingCall(callParams, model, streamCallback)
     } catch (err: any) {
-      return { error: true, message: err.message || String(err), code: 'provider_error' }
+      return {
+        error: true,
+        message: __ai_publicMessage(err, 'provider_error'),
+        code: __ai_publicCode(err, 'provider_error'),
+      }
     }
   }
 
@@ -106,7 +117,11 @@ async function ai_text_transform(
       model,
     }
   } catch (err: any) {
-    return { error: true, message: err.message || String(err), code: 'provider_error' }
+    return {
+      error: true,
+      message: __ai_publicMessage(err, 'provider_error'),
+      code: __ai_publicCode(err, 'provider_error'),
+    }
   }
 }
 
@@ -117,7 +132,11 @@ export const aiTextTransform: NodeHandlerGenerator = {
   generateHandler(): string {
     return generateAIProviderUtils() + '\n\n' + ai_text_transform.toString()
   },
-  generateServerHandler(): string {
-    return generateAIStreamingProviderUtils() + '\n\n' + ai_text_transform.toString()
+  generateServerHandler(options?: ServerHandlerOptions): string {
+    return (
+      generateAIStreamingProviderUtils(serverHandlerPrefix(options)) +
+      '\n\n' +
+      ai_text_transform.toString()
+    )
   },
 }

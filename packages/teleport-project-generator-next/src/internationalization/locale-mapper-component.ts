@@ -543,6 +543,9 @@ export const createNextInternationalizationPlugin: ComponentPluginFactory<{}> = 
         case 'userIsLoggedIn':
           globalCtxProperties.add('userIsLoggedIn')
           break
+        case 'company':
+          globalCtxProperties.add('company')
+          break
         case 'ecommerce':
           needsEcommerce = true
           break

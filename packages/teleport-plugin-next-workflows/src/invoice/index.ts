@@ -126,7 +126,9 @@ export const generateInvoiceFiles = (
     }
   }
 
-  const generateRouteCode = generateInvoiceGenerateRouteCode(invoiceSettings)
+  // The session reader checks revocation only in a project with authentication.
+  const readerOptions = { withSessionRevocation: structure.uidl.authentication?.enabled === true }
+  const generateRouteCode = generateInvoiceGenerateRouteCode(invoiceSettings, readerOptions)
   files.set('invoice-generate-route', {
     path: ['pages', 'api', 'invoices'],
     files: [
@@ -138,7 +140,7 @@ export const generateInvoiceFiles = (
     ],
   })
 
-  const pdfRouteCode = generateInvoicePdfRouteCode()
+  const pdfRouteCode = generateInvoicePdfRouteCode(readerOptions)
   files.set('invoice-pdf-route', {
     path: ['pages', 'api', 'invoices', '[id]'],
     files: [
@@ -157,7 +159,7 @@ export const generateInvoiceFiles = (
       {
         name: 'regenerate',
         fileType: FileType.JS,
-        content: generateInvoiceRegenerateRouteCode(invoiceSettings),
+        content: generateInvoiceRegenerateRouteCode(invoiceSettings, readerOptions),
       },
     ],
   })
@@ -167,9 +169,9 @@ export const generateInvoiceFiles = (
   // root) instead of launching Chromium in-process. No puppeteer-core
   // or @sparticuz/chromium in the generated bundle — that saved ~48 MB
   // and the associated cold-start + memory cost on every deployment.
-  // Env wiring: `PDF_SERVICE_URL` and `PDF_SERVICE_API_KEY` are
-  // registered below and populated by the services-worker Vercel
-  // controller at deploy time.
+  // Env wiring: `PDF_SERVICE_URL`, `PDF_SERVICE_API_KEY` (the project's
+  // own key) and `PDF_SERVICE_PROJECT_ID` are registered below and
+  // populated by the services-worker Vercel controller at deploy time.
   const pdfEnvUidl = structure.uidl
   if (!pdfEnvUidl.globals) {
     ;(pdfEnvUidl as any).globals = { settings: { language: 'en' }, assets: [], env: {} }
@@ -182,6 +184,9 @@ export const generateInvoiceFiles = (
   }
   if (!pdfEnvUidl.globals.env.PDF_SERVICE_API_KEY) {
     pdfEnvUidl.globals.env.PDF_SERVICE_API_KEY = ''
+  }
+  if (!pdfEnvUidl.globals.env.PDF_SERVICE_PROJECT_ID) {
+    pdfEnvUidl.globals.env.PDF_SERVICE_PROJECT_ID = ''
   }
 
   const dbDeps = getDatabaseDriverDependencies(dataSourceType)

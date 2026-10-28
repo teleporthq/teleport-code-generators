@@ -1,5 +1,5 @@
 import { UIDLEcommerceSettings } from '@teleporthq/teleport-types'
-import { SessionCookieResolver } from '@teleporthq/teleport-shared'
+import { SessionCookieResolver, TableAccess } from '@teleporthq/teleport-shared'
 import { generateDbImport } from './ecommerce-api-routes-generator'
 
 /**
@@ -55,13 +55,16 @@ export const DOWNLOAD_ROUTE_ERRORS = {
  * The order the link names, with its key (read through the row's JSON form so
  * a store whose orders table predates the column answers NULL rather than
  * failing) and whether it was placed from an account: a guest checkout stamps
- * the browser's anonymous id into `user_id`, and that id is no `users` row.
- * `$1` order id.
+ * the browser's anonymous id into `user_id`, and that id is no account — no
+ * `users` row, or the guest's own anonymous one
+ * (`TableAccess.registeredAccountEmailSql`). `$1` order id.
  */
 export const DOWNLOAD_ORDER_QUERY = [
   'SELECT o.id::text AS order_id, o.user_id::text AS user_id, o.status, o.payment_status,',
   "  to_jsonb(o) ->> 'download_key' AS download_key,",
-  '  EXISTS (SELECT 1 FROM users u WHERE u.id::text = o.user_id::text) AS account_order',
+  `  EXISTS (SELECT 1 FROM users u WHERE u.id::text = o.user_id::text AND ${TableAccess.registeredAccountEmailSql(
+    'u.email'
+  )}) AS account_order`,
   'FROM teleport_orders o',
   'WHERE o.id::text = $1',
   'LIMIT 1',
@@ -134,7 +137,9 @@ export const DOWNLOAD_CLAIM_QUERY = [
 export const generateDownloadApiRoute = (
   settings: UIDLEcommerceSettings,
   dataSourceType: string | null,
-  dataSourceConfig: Record<string, unknown> | null
+  dataSourceConfig: Record<string, unknown> | null,
+  // The project has authentication: the session reader checks revocation.
+  options: { withSessionRevocation?: boolean } = {}
 ): string => {
   const dbImport = generateDbImport(dataSourceType, dataSourceConfig)
   const revokeOnRefund = settings.digitalProducts?.revokeOnRefund !== false
@@ -155,7 +160,9 @@ export const generateDownloadApiRoute = (
     '',
     // `__tqSessionToken(req)`: the NextAuth session decoded from the cookie
     // the request actually carries, the way every generated route does it.
-    SessionCookieResolver.generateCommonJsSessionTokenResolverCode(),
+    SessionCookieResolver.generateCommonJsSessionTokenResolverCode('../../..', {
+      withRevocation: options.withSessionRevocation !== false,
+    }),
     `const DOWNLOAD_ERRORS = ${JSON.stringify(DOWNLOAD_ROUTE_ERRORS)}`,
     `const REVOKE_ON_REFUND = ${revokeOnRefund}`,
     "const PAID_STATUSES = ['paid', 'partially_refunded']",

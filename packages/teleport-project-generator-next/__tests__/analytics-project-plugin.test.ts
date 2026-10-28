@@ -154,6 +154,8 @@ describe('NextAnalyticsProjectPlugin', () => {
     expect(structure.uidl.globals.env).toEqual({
       NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'teleporthq.secrets.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL',
       NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'teleporthq.secrets.NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY',
+      // Server-only: minted by the platform at deploy time, never NEXT_PUBLIC_.
+      TELEPORT_ANALYTICS_SERVER_KEY: 'teleporthq.secrets.TELEPORT_ANALYTICS_SERVER_KEY',
     })
   })
 
@@ -230,7 +232,12 @@ describe('NextAnalyticsProjectPlugin', () => {
 
     await plugin.runAfter(structure)
 
-    expect(Object.keys(structure.uidl.globals.env)).toHaveLength(3)
+    // The two the mapper set are kept, the server key is filled in, the
+    // unrelated key is untouched.
+    expect(Object.keys(structure.uidl.globals.env)).toHaveLength(4)
     expect(structure.uidl.globals.env.OTHER_KEY).toBe('value')
+    expect(structure.uidl.globals.env.TELEPORT_ANALYTICS_SERVER_KEY).toBe(
+      'teleporthq.secrets.TELEPORT_ANALYTICS_SERVER_KEY'
+    )
   })
 })

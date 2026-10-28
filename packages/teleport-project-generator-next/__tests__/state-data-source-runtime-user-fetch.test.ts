@@ -270,7 +270,13 @@ describe('state-data-source-plugin runtime {{Current User.*}} fetch', () => {
     const routeKeys = Object.keys(resources).filter((k) => k.startsWith('pages/api/page-state/'))
     expect(routeKeys).toHaveLength(1)
     expect(resources[routeKeys[0]].content).toContain('m.guild_id = $1')
-    expect(resources[routeKeys[0]].content).toContain('const { currentPageEntityId } = req.query')
+    // The route param is read from the request as one short string.
+    expect(resources[routeKeys[0]].content).toContain(
+      'const { currentPageEntityId: __raw_currentPageEntityId } = req.query'
+    )
+    expect(resources[routeKeys[0]].content).toContain(
+      'const currentPageEntityId = requestParam(__raw_currentPageEntityId)'
+    )
 
     const code = componentCode(result as any)
     expect(code).toContain('const __pageStateRouter = useRouter()')

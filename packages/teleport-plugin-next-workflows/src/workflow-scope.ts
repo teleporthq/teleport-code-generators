@@ -1,4 +1,5 @@
 import { UIDLWorkflow, UIDLWorkflows } from '@teleporthq/teleport-types'
+import { BUSINESS_EVENT_TRIGGER } from './automations/automations-scope'
 
 /**
  * Which workflows belong to a page or a component, and which element a
@@ -53,6 +54,11 @@ export const getRelevantWorkflows = (
     }
 
     if (trigger.type === 'event-webhook-received') {
+      return
+    }
+
+    // An automation runs in a handler module of the in-app event bus.
+    if (trigger.type === BUSINESS_EVENT_TRIGGER) {
       return
     }
 

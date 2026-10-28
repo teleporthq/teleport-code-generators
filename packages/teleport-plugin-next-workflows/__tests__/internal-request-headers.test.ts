@@ -1,4 +1,5 @@
 import { generateSharedRuntimeUtilsCode } from '../src/executor-generator'
+import { generateProtectionBypassHeaderStatements } from '../src/self-call-headers'
 import {
   generateServerSegmentAPIRoute,
   generateStreamingServerSegmentAPIRoute,
@@ -76,6 +77,30 @@ describe('internalRequestHeaders', () => {
   it('invents no cookie when the caller sent none', () => {
     delete process.env.VERCEL_AUTOMATION_BYPASS_SECRET
     expect(utils.internalRequestHeaders({ headers: {} }).cookie).toBeUndefined()
+  })
+
+  it('builds the bypass with the one self-call helper, and never adds the app secret', () => {
+    // The visitor's cookies scope the call to the visitor: the app secret would
+    // make it an unscoped server call.
+    expect(generateSharedRuntimeUtilsCode()).toContain(
+      generateProtectionBypassHeaderStatements('headers')
+    )
+    const savedSecret = process.env.NEXTAUTH_SECRET
+    process.env.NEXTAUTH_SECRET = 'app-secret'
+    process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'sekret'
+    try {
+      expect(utils.internalRequestHeaders({ headers: { cookie: 'a=1' } })).toEqual({
+        cookie: 'a=1',
+        'x-vercel-protection-bypass': 'sekret',
+        'x-vercel-set-bypass-cookie': 'false',
+      })
+    } finally {
+      if (savedSecret === undefined) {
+        delete process.env.NEXTAUTH_SECRET
+      } else {
+        process.env.NEXTAUTH_SECRET = savedSecret
+      }
+    }
   })
 })
 

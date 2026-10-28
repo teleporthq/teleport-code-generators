@@ -1,10 +1,18 @@
 import type {
+  DataReadExposure,
   GeneratorOptions,
+  ProjectDataExposure,
+  ProjectUIDL,
   UIDLBlogSettings,
   UIDLAuthentication,
   UIDLEcommerceCategory,
 } from '@teleporthq/teleport-types'
-import { ContentTables, StorefrontTax, TableAccess } from '@teleporthq/teleport-shared'
+import {
+  ContentTables,
+  DataExposure,
+  StorefrontTax,
+  TableAccess,
+} from '@teleporthq/teleport-shared'
 import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
@@ -69,6 +77,22 @@ export interface EntityTransformOptions extends EcommerceProductTransformOptions
    * `TableAccess.resolveTrustedReaderRoles`.
    */
   trustedReaderRoles?: string[]
+  /**
+   * Who may read each table from a browser, decided from the pages that bind
+   * it — see `DataExposure.resolveDataExposure`. Absent (no project around the
+   * fetcher), every read route serves the app's own server code only.
+   */
+  dataExposure?: ProjectDataExposure
+  /** The exposure of the one route being generated, resolved for its data source and table. */
+  routeExposure?: DataReadExposure
+  /**
+   * The project has authentication: the route's session reader checks each
+   * session against the account store (`utils/auth/session-revocation`).
+   * Absent, it does; false (no authentication), the reader is HEAD's.
+   */
+  sessionRevocation?: boolean
+  /** The route's path back to the project root; absent, two folders (`utils/data-sources/`, `pages/api/`). */
+  routeProjectRoot?: string
 }
 
 /**
@@ -136,6 +160,19 @@ export const contentSettingsFor = (
   return {}
 }
 
+/**
+ * The exposure of a project plugin's caller, which hands over the project UIDL
+ * itself (its pages are in `root`); a page plugin's options carry it already
+ * (`GeneratorOptions.dataExposure`).
+ */
+const projectDataExposure = (options: object): ProjectDataExposure | undefined => {
+  const uidl = options as Partial<ProjectUIDL>
+  if (!uidl.root || !uidl.root.stateDefinitions || !uidl.root.stateDefinitions.route) {
+    return undefined
+  }
+  return DataExposure.resolveDataExposure(uidl as ProjectUIDL)
+}
+
 export const buildProductTransformOptions = (
   options: Pick<
     GeneratorOptions,
@@ -145,6 +182,7 @@ export const buildProductTransformOptions = (
     | 'bookingSettings'
     | 'helpCenterSettings'
     | 'auth'
+    | 'dataExposure'
   > &
     LocalizedProjectOptions & {
       /**
@@ -173,6 +211,8 @@ export const buildProductTransformOptions = (
   productPages: options.ecommerceSettings?.productPages,
   localization: resolveContentLocalization(options),
   trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth || options.authentication),
+  dataExposure: options.dataExposure || projectDataExposure(options),
+  sessionRevocation: (options.auth || options.authentication)?.enabled === true,
 })
 
 export type TransformationType =
@@ -255,6 +295,9 @@ export const getTransformationCode = (
           headingAnchors: settings.headingAnchors,
           contents: settings.contents === true,
           arranged: settings.order === 'manual',
+          locales: options.localization
+            ? [options.localization.mainLocale, ...options.localization.secondaryLocales]
+            : [],
         })
       )
     }

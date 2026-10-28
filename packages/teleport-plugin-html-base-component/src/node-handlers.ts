@@ -1109,10 +1109,17 @@ const generateComponentContent = async (
     componentWrapper = `${componentWrapper}-${StringUtils.generateRandomString()}`
   }
 
-  // Transfer data-node attributes from component instance to wrapper
+  // The wrapper is display:contents. data-node* keeps the instance selectable.
+  // data-tq-exp* is the A/B marker: without it on the wrapper the published
+  // hide rule never sees a component-instance variation.
   const wrapperAttrs: Record<string, UIDLAttributeValue> = {}
   Object.keys(attrs).forEach((attrKey) => {
-    if (attrKey.startsWith('dataNode') || attrKey.startsWith('data-node')) {
+    if (
+      attrKey.startsWith('dataNode') ||
+      attrKey.startsWith('data-node') ||
+      attrKey === 'data-tq-exp' ||
+      attrKey === 'data-tq-exp-variant'
+    ) {
       wrapperAttrs[attrKey] = attrs[attrKey]
     }
   })

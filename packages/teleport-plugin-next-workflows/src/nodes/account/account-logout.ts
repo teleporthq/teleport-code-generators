@@ -31,7 +31,7 @@ export const accountLogout: NodeHandlerGenerator = {
   nodeType: 'account-logout',
   executionEnv: 'client',
   dependencies: {
-    'next-auth': '^4.24.0',
+    'next-auth': '4.24.15',
   },
   generateHandler(): string {
     return handlerToString(account_logout)

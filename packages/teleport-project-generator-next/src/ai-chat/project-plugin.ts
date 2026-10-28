@@ -7,6 +7,7 @@ import {
 import { generateDBConnectionCode, getDBDependencies } from './db-generator'
 import { generateProviderCode, getProviderDependencies } from './provider-generator'
 import {
+  ChatRouteOptions,
   generateMessageRouteCode,
   generateConversationsRouteCode,
   generateConversationByIdRouteCode,
@@ -28,6 +29,7 @@ import {
 } from './localized-messages'
 import { AI_CHAT_SESSION_STORE_FILE, generateAIChatSessionStoreCode } from './session-store'
 import { injectImportIntoApp } from '../app-import-injection'
+import { ensureSecurityRuntimeModule } from '@teleporthq/teleport-plugin-next-workflows'
 import { emitLegacyPeerDepsNpmrc } from '../npmrc-legacy-peer-deps'
 
 export class NextAIChatProjectPlugin implements ProjectPlugin {
@@ -54,7 +56,12 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
     const dataSource = this.resolveDataSource(uidl, chat)
 
     this.generateLibFiles(files, chat, dataSource)
-    this.generateAPIRoutes(files, chat)
+    this.generateAPIRoutes(files, chat, {
+      withSessionRevocation: uidl.authentication?.enabled === true,
+    })
+    // The routes' rate limits and the site's AI budget (utils/security-runtime.js);
+    // a chat can exist in an app with no other server route.
+    ensureSecurityRuntimeModule(structure)
     this.generateHookFile(files, chat)
     if (!hasUIDLChatComponent) {
       this.generateWidgetFiles(files, chat)
@@ -159,7 +166,8 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
 
   private generateAPIRoutes(
     files: ProjectPluginStructure['files'],
-    chat: UIDLAIAssistantChat
+    chat: UIDLAIAssistantChat,
+    readerOptions: ChatRouteOptions
   ): void {
     files.set('ai-chat-api-message', {
       path: ['pages', 'api', 'ai-chat'],
@@ -167,7 +175,7 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
         {
           name: 'message',
           fileType: FileType.JS,
-          content: generateMessageRouteCode(chat),
+          content: generateMessageRouteCode(chat, readerOptions),
         },
       ],
     })
@@ -178,7 +186,7 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
         {
           name: 'index',
           fileType: FileType.JS,
-          content: generateConversationsRouteCode(chat),
+          content: generateConversationsRouteCode(chat, readerOptions),
         },
       ],
     })
@@ -189,7 +197,7 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
         {
           name: '[id]',
           fileType: FileType.JS,
-          content: generateConversationByIdRouteCode(chat),
+          content: generateConversationByIdRouteCode(chat, readerOptions),
         },
       ],
     })
@@ -200,7 +208,7 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
         {
           name: 'messages',
           fileType: FileType.JS,
-          content: generateConversationMessagesRouteCode(chat),
+          content: generateConversationMessagesRouteCode(chat, readerOptions),
         },
       ],
     })
@@ -333,6 +341,14 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
       uidl.globals.env = {}
     }
 
+    // The chat routes sign the visitor cookie with the app secret and refuse
+    // without one. An app with other server routes already has it; a chat-only
+    // app gets its own random default here (the deploy worker replaces it with
+    // the project's persisted secret).
+    if (!uidl.globals.env.NEXTAUTH_SECRET) {
+      uidl.globals.env.NEXTAUTH_SECRET = randomSecretHex()
+    }
+
     if (chat.aiProvider?.secretKeyReference) {
       const key = chat.aiProvider.secretKeyReference
       if (!uidl.globals.env[key]) {
@@ -412,6 +428,18 @@ export class NextAIChatProjectPlugin implements ProjectPlugin {
 
     appFile.content = content
   }
+}
+
+/** 32 random bytes as hex: Web Crypto where the generator runs in a browser, Node's crypto otherwise. */
+function randomSecretHex(): string {
+  const webCrypto = (globalThis as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } })
+    .crypto
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    const bytes = webCrypto.getRandomValues(new Uint8Array(32))
+    return Array.from(bytes, (b) => (b < 16 ? '0' : '') + b.toString(16)).join('')
+  }
+  // tslint:disable-next-line:no-var-requires
+  return require('crypto').randomBytes(32).toString('hex')
 }
 
 function findMatchingClosingParen(str: string): number {

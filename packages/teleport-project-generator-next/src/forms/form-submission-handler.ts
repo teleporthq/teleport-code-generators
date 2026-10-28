@@ -1546,6 +1546,8 @@ function createFormSubmitHandler(
           t.returnStatement(),
         ])
       ),
+      // Growth analytics: the platform accepted the submission — a lead.
+      createLeadReport(formId),
       // Handle success behavior
       ...createSuccessHandler(
         sanitizedFormId,
@@ -1636,6 +1638,48 @@ function createFormSubmitHandler(
  * @param behavior - Form behavior configuration
  * @param formDefinition - The complete form definition containing messages
  */
+/**
+ * `window.tpAnalytics.track('lead', { recordId: <form id> })`, guarded: the
+ * tracker is absent on a project without analytics, and a form must never
+ * fail because of it. Emitted right after the platform accepted the
+ * submission, before the success behavior (which may redirect).
+ */
+function createLeadReport(formId: string): types.Statement {
+  const t = types
+  const tracker = t.memberExpression(t.identifier('window'), t.identifier('tpAnalytics'))
+  const track = t.memberExpression(tracker, t.identifier('track'))
+  return t.tryStatement(
+    t.blockStatement([
+      t.ifStatement(
+        t.logicalExpression(
+          '&&',
+          t.logicalExpression(
+            '&&',
+            t.binaryExpression(
+              '!==',
+              t.unaryExpression('typeof', t.identifier('window')),
+              t.stringLiteral('undefined')
+            ),
+            tracker
+          ),
+          t.binaryExpression('===', t.unaryExpression('typeof', track), t.stringLiteral('function'))
+        ),
+        t.blockStatement([
+          t.expressionStatement(
+            t.callExpression(track, [
+              t.stringLiteral('lead'),
+              t.objectExpression([
+                t.objectProperty(t.identifier('recordId'), t.stringLiteral(formId)),
+              ]),
+            ])
+          ),
+        ])
+      ),
+    ]),
+    t.catchClause(t.identifier('_analyticsError'), t.blockStatement([]))
+  )
+}
+
 function createSuccessHandler(
   sanitizedFormId: string,
   behavior: UIDLFormBehavior,

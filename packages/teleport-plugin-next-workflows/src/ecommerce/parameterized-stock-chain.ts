@@ -187,9 +187,19 @@ export const isParameterizedStockDecrementQuery = (query: string): boolean => {
 //             Postgres row-level UPDATE locking serialises concurrent orders,
 //             so the second order re-checks against the post-first value —
 //             the guard is what makes the race unable to drive stock negative.
-export const buildParameterizedStockDecrementQuery = (allowBackorders: boolean): string => {
-  const productGuard = allowBackorders ? '' : ' AND p.quantity >= d.qty'
-  const variantGuard = allowBackorders ? '' : ' AND v.quantity >= d.qty'
+//
+// `reservedAtRedemption`: the order's stock was already taken, locked and
+// refused-if-short, by the redemption statement right after the order row
+// (./place-order-guards.ts). The statement keeps its shape and its four
+// bound arrays, so it stays recognisable and binds what it always bound, but
+// updates nothing (`AND false`): the units are never taken twice.
+export const buildParameterizedStockDecrementQuery = (
+  allowBackorders: boolean,
+  reservedAtRedemption = false
+): string => {
+  const reserved = reservedAtRedemption ? ' AND false' : ''
+  const productGuard = (allowBackorders ? '' : ' AND p.quantity >= d.qty') + reserved
+  const variantGuard = (allowBackorders ? '' : ' AND v.quantity >= d.qty') + reserved
   return [
     'WITH product_decrement AS (',
     'UPDATE teleport_products AS p SET quantity = p.quantity - d.qty, updated_at = NOW()',
@@ -329,10 +339,44 @@ const firstParamNodeId = (node: LooseNode): string | null => {
 // template drift), the WHOLE chain is left untouched and a warn is emitted —
 // a decrement rewritten to expect `$3`/`$4` that nothing provides would
 // silently stop decrementing anything.
+// Whether every parameterized decrement in these nodes can be re-baked: there
+// is at least one, and each reads a cart-deltas builder of a known shape (the
+// same test the rewrite below skips a chain on).
+export const isParameterizedDecrementChainRewritable = (nodes: unknown): boolean => {
+  if (!Array.isArray(nodes)) {
+    return false
+  }
+  const nodeById = new Map<string, LooseNode>()
+  for (const n of nodes as LooseNode[]) {
+    if (n && typeof n.id === 'string') {
+      nodeById.set(n.id, n)
+    }
+  }
+  let found = 0
+  for (const node of nodes as LooseNode[]) {
+    if (!node || node.type !== 'data-raw-query') {
+      continue
+    }
+    if (!isParameterizedStockDecrementQuery(node.config?.query as string)) {
+      continue
+    }
+    const deltasNodeId = firstParamNodeId(node)
+    const deltasCode = deltasNodeId ? nodeById.get(deltasNodeId)?.config?.code : undefined
+    if (
+      typeof deltasCode !== 'string' ||
+      !(looksLikeCartDeltasBuilder(deltasCode) || isRewrittenCartDeltasBuilder(deltasCode))
+    ) {
+      return false
+    }
+    found++
+  }
+  return found > 0
+}
+
 export const rewriteParameterizedStockChainInNodes = (
   nodes: unknown,
   ownerName: string,
-  options: { threshold: number; allowBackorders: boolean },
+  options: { threshold: number; allowBackorders: boolean; reservedAtRedemption?: boolean },
   summary: ParameterizedChainRewriteSummary
 ): void => {
   if (!Array.isArray(nodes)) {
@@ -380,7 +424,10 @@ export const rewriteParameterizedStockChainInNodes = (
       summary.deltasBuilderRewrites++
     }
 
-    node.config!.query = buildParameterizedStockDecrementQuery(options.allowBackorders)
+    node.config!.query = buildParameterizedStockDecrementQuery(
+      options.allowBackorders,
+      options.reservedAtRedemption === true
+    )
     node.config!.params = buildChainParams(deltasNodeId)
     summary.decrementQueryRewrites++
 

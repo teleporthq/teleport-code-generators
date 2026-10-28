@@ -4,6 +4,8 @@ import { generateDataSourceFetcher } from '../src/data-source-fetchers'
 import { generateTeleportCountFetcher } from '../src/fetchers/teleport'
 import { generateCSVFileFetcher } from '../src/fetchers/csv-file'
 import { generateSearchRankHelperCode, generateSearchTermsCode } from '../src/search-relevance'
+import { DataExposure } from '@teleporthq/teleport-shared'
+import { publicRead } from './_helpers/exposure'
 
 /**
  * A list's search: the typed text is split into terms at white space, the
@@ -24,16 +26,38 @@ interface Query {
 
 const SEARCHED = JSON.stringify(['title', 'excerpt', 'content'])
 
+const ARTICLES_SCHEMA = {
+  articles: {
+    columns: [
+      { name: 'id' },
+      { name: 'title' },
+      { name: 'excerpt' },
+      { name: 'content' },
+      { name: 'sort_order' },
+      { name: 'status' },
+    ],
+  },
+}
+
 const pgRoute = (type: 'teleport' | 'postgresql', withCount = false) => {
   const config =
     type === 'teleport'
       ? {
           host: 'db',
           database: 'site',
-          selectedTables: { articles: { columns: [{ name: 'id' }] } },
+          selectedTables: ARTICLES_SCHEMA,
         }
-      : { host: 'h', port: 5432, user: 'u', password: 'p', database: 'd' }
-  const route = generateDataSourceFetcher({ type, config } as never, 'articles')
+      : {
+          host: 'h',
+          port: 5432,
+          user: 'u',
+          password: 'p',
+          database: 'd',
+          selectedTables: ARTICLES_SCHEMA,
+        }
+  const route = generateDataSourceFetcher({ type, config } as never, 'articles', {
+    routeExposure: publicRead(),
+  })
   return withCount && type === 'teleport'
     ? route + generateTeleportCountFetcher(config, 'articles')
     : route
@@ -167,7 +191,9 @@ describe.each(['teleport', 'postgresql'] as const)('the %s list route', (type) =
       queryColumns: JSON.stringify(['title']),
     })
     expect(main.sql).toMatch(
-      new RegExp(` ORDER BY \\(CASE WHEN .* THEN 3 .* ELSE 0 END\\) DESC(, "id" ASC)?$`)
+      new RegExp(
+        ` ORDER BY \\(CASE WHEN .* THEN 3 .* ELSE 0 END\\) DESC, "id" ASC LIMIT ${DataExposure.BROWSER_READ_DEFAULT_LIMIT}$`
+      )
     )
   })
 
@@ -205,8 +231,18 @@ describe('the built-in database count route', () => {
 
 describe('the MySQL list route', () => {
   const route = generateDataSourceFetcher(
-    { type: 'mysql', config: { host: 'h', user: 'u', password: 'p', database: 'd' } } as never,
-    'articles'
+    {
+      type: 'mysql',
+      config: {
+        host: 'h',
+        user: 'u',
+        password: 'p',
+        database: 'd',
+        selectedTables: ARTICLES_SCHEMA,
+      },
+    } as never,
+    'articles',
+    { routeExposure: publicRead() }
   )
 
   it('binds the ranking terms after every WHERE parameter, as the ORDER BY follows the WHERE', async () => {

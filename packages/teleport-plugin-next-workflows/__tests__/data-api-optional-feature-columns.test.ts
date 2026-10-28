@@ -1,5 +1,9 @@
 /* tslint:disable:function-constructor */
 import { generateDataAPIRoute } from '../src/data-api-route-generator'
+import { isSecurityRuntimeSpecifier, loadSecurityRuntime } from './_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * Product options added columns to tables every store already has: the option
@@ -52,6 +56,9 @@ function bootRoute(columnsByTable: Record<string, string[] | null>) {
   const fakeRequire = (name: string): any => {
     if (name === 'pg') {
       return { Client: FakeClient }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }
@@ -223,6 +230,43 @@ describe('data API — columns product options added', () => {
     expect(out.writes[0].sql).toBe(
       'UPDATE teleport_products SET product_page = $1 WHERE id = $2 RETURNING *'
     )
+  })
+
+  it('writes an event without its entity on a store whose ledger predates the columns', async () => {
+    const run = bootRoute({
+      teleport_events: ['id', 'event_type', 'dedupe_key', 'order_id', 'payload', 'status'],
+    })
+    const out = await run('create', {
+      tableName: 'teleport_events',
+      columnMappings: [
+        { column: 'event_type', value: 'order-paid' },
+        { column: 'dedupe_key', value: 'order-paid:ord-1' },
+        { column: 'entity_type', value: 'order' },
+        { column: 'entity_id', value: 'ord-1' },
+        { column: 'payload', value: '{}' },
+      ],
+    })
+    expect(out.status).toBe(200)
+    expect(out.writes[0].sql).toContain('(event_type, dedupe_key, payload, id)')
+    expect(out.warnings).toEqual([
+      '[data-api] teleport_events has no entity_type, entity_id column; written without it.',
+    ])
+  })
+
+  it('writes the event entity once the ledger has the columns', async () => {
+    const run = bootRoute({
+      teleport_events: ['id', 'event_type', 'dedupe_key', 'entity_type', 'entity_id', 'payload'],
+    })
+    const out = await run('create', {
+      tableName: 'teleport_events',
+      columnMappings: [
+        { column: 'event_type', value: 'order-paid' },
+        { column: 'entity_type', value: 'order' },
+        { column: 'entity_id', value: 'ord-1' },
+      ],
+    })
+    expect(out.writes[0].sql).toContain('(event_type, entity_type, entity_id, id)')
+    expect(out.warnings).toEqual([])
   })
 
   it('never touches a table the feature does not own', async () => {

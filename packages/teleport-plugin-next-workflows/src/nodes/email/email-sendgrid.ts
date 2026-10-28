@@ -1,8 +1,9 @@
 import { EmailSender } from '@teleporthq/teleport-shared'
-import { NodeHandlerGenerator, handlerToString } from '../types'
-import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from './outbound-message-guard'
 import { EMAIL_RECIPIENTS_HELPER_SOURCE, EmailDeliveriesPlan } from './email-recipients'
 
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 // Ambient, not imported: a serialized handler has no module scope, so
 // generateHandler appends the helpers' source (EmailSender from teleport-shared,
 // the recipients helper beside this file).
@@ -11,6 +12,15 @@ declare function __emailRecipients(to: unknown): unknown[]
 declare function __emailDeliveries(plan: EmailDeliveriesPlan): Promise<unknown>
 
 async function email_sendgrid(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('email', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageId: '', skipped: true, reason: refused.skipped }
+      : { messageId: '', success: false, error: refused.error }
+  }
   const apiKey = config.apiKey
   const from = config.from
   const fromName = config.fromName
@@ -86,14 +96,9 @@ export const emailSendgrid: NodeHandlerGenerator = {
   dependencies: {
     '@sendgrid/mail': '^8.0.0',
   },
-  generateHandler(): string {
-    return assertHandlerHasNoModuleRefs(
-      handlerToString(email_sendgrid) +
-        '\n' +
-        EmailSender.generateEmailSenderHelperCode() +
-        '\n' +
-        EMAIL_RECIPIENTS_HELPER_SOURCE,
-      'email-sendgrid'
-    )
-  },
+  ...outboundMessageHandlerSources(email_sendgrid, {
+    nodeType: 'email-sendgrid',
+    extraSource:
+      EmailSender.generateEmailSenderHelperCode() + '\n' + EMAIL_RECIPIENTS_HELPER_SOURCE,
+  }),
 }

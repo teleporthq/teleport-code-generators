@@ -5,6 +5,7 @@ import {
   generateFilterTreeHelpersCode,
   generateSearchEscapeHelpersCode,
 } from '../utils'
+import { DataExposure } from '@teleporthq/teleport-shared'
 import { generateSearchSqlHelpersCode, REDSHIFT_SEARCH_SQL } from '../search-relevance'
 
 interface RedshiftConfig {
@@ -34,8 +35,10 @@ export const generateRedshiftFetcher = (
 
   return `import { Client } from 'pg'
 
+// No query waits on the database longer than this (enforced by the client).
 const getClient = () => {
   return new Client({
+    query_timeout: ${DataExposure.READ_QUERY_TIMEOUT_MS},
     host: ${JSON.stringify(host)},
     port: ${port || 5439},
     user: ${JSON.stringify(user)},

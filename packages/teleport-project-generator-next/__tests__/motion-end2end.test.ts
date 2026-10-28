@@ -72,7 +72,7 @@ describe('Next generator with a Motion element', () => {
     expect(packageJson.dependencies['framer-motion']).toBe('^11.18.0')
     expect(packageJson.dependencies.react).toBe('^18.3.1')
     expect(packageJson.dependencies['react-dom']).toBe('^18.3.1')
-    expect(packageJson.dependencies.next).toBe('^12.1.10')
+    expect(packageJson.dependencies.next).toBe('^12.3.7')
 
     // A root .npmrc (legacy-peer-deps) ships so the React-18 bump survives
     // template deps with React-17-only peer ranges (e.g. dangerous-html embeds).

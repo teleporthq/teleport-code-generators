@@ -1,4 +1,9 @@
 import { SessionCookieResolver, WebPush } from '@teleporthq/teleport-shared'
+import {
+  CONFIGURED_NEXTAUTH_URL_EXPRESSION,
+  generateProtectionBypassHeaderStatements,
+  securityRuntimeSpecifier,
+} from '@teleporthq/teleport-plugin-next-workflows'
 import { toJsLiteral } from '../pwa/source-literals'
 import { WEB_PUSH_MODULE_NAME, WEB_PUSH_MODULE_PATH } from './server-module-source'
 
@@ -15,23 +20,27 @@ const MISSING_TABLE =
  * page cannot link its own device to a signed-in visitor), validates the
  * subscription completely, takes the user from the session cookie, never from
  * the body, and changes a stored subscription only for the browser holding its
- * auth secret. Each server instance also caps the requests per client.
+ * auth secret. Each visitor (an IPv6 one by its /64) may send 30 requests per
+ * 10 minutes, counted in the app's database by the shared security runtime —
+ * every instance together, keyed on the address the host vouches for, never on
+ * a forwarded header the visitor wrote.
  */
-export const buildSubscriptionsRouteSource = (): string => `var push = require(${toJsLiteral(
-  MODULE_IMPORT
-)});
+export const buildSubscriptionsRouteSource = (
+  // The project has authentication: the session reader checks revocation.
+  options: { withSessionRevocation?: boolean } = {}
+): string => `var push = require(${toJsLiteral(MODULE_IMPORT)});
+var security = require(${toJsLiteral(securityRuntimeSpecifier('../../..'))});
 
-${SessionCookieResolver.generateCommonJsSessionTokenResolverCode()}
+${SessionCookieResolver.generateCommonJsSessionTokenResolverCode('../../..', {
+  withRevocation: options.withSessionRevocation !== false,
+})}
 
 var MISSING_TABLE = ${toJsLiteral(MISSING_TABLE)};
 var KEY_CHANGED = 'This page uses push notification keys that have since been replaced. Reload the page and try again.';
 var TAKEN = 'This push subscription is saved for another browser.';
 // A visitor subscribes once and re-saves a few times per visit; more than this
 // from one client within the window is somebody filling the table.
-var RATE_WINDOW_MS = 10 * 60 * 1000;
-var RATE_LIMIT = 30;
-var RATE_TRACKED_CLIENTS = 10000;
-var __requestsByClient = new Map();
+var RATE_LIMIT = { scope: 'push-subscriptions', limit: 30, windowSeconds: 600 };
 
 function isSameOrigin(req) {
   var site = req.headers['sec-fetch-site'];
@@ -47,33 +56,6 @@ function isSameOrigin(req) {
   } catch (error) {
     return false;
   }
-}
-
-function clientAddress(req) {
-  var forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || (req.socket && req.socket.remoteAddress) || 'unknown';
-}
-
-function isRateLimited(req) {
-  var now = Date.now();
-  var client = clientAddress(req);
-  var entry = __requestsByClient.get(client);
-  if (!entry || now - entry.start >= RATE_WINDOW_MS) {
-    if (__requestsByClient.size >= RATE_TRACKED_CLIENTS) {
-      __requestsByClient.forEach(function (tracked, key) {
-        if (now - tracked.start >= RATE_WINDOW_MS) {
-          __requestsByClient.delete(key);
-        }
-      });
-      if (__requestsByClient.size >= RATE_TRACKED_CLIENTS) {
-        __requestsByClient.clear();
-      }
-    }
-    entry = { start: now, count: 0 };
-    __requestsByClient.set(client, entry);
-  }
-  entry.count += 1;
-  return entry.count > RATE_LIMIT;
 }
 
 async function signedInUserId(req) {
@@ -94,9 +76,9 @@ export default async function handler(req, res) {
   if (!isSameOrigin(req)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  if (isRateLimited(req)) {
-    res.setHeader('Retry-After', String(RATE_WINDOW_MS / 1000));
-    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  // Answers the 429 itself (with Retry-After) past the limit.
+  if (!(await security.rateLimitRequest(req, res, RATE_LIMIT))) {
+    return;
   }
   var problem = push.configurationProblem();
   if (problem) {
@@ -139,7 +121,9 @@ export default async function handler(req, res) {
  *
  * One call sends for as long as a serverless call can wait; the rest of a
  * large audience is relayed to a new call of this route, which resumes after
- * the last subscription reached and relays on in turn.
+ * the last subscription reached and relays on in turn — at the app's own
+ * origin (the server runtime's trustedBaseUrl rule), never at a host a request
+ * header named, with the bypass header the self-call helper builds.
  */
 export const buildSendRouteSource = (): string => `var push = require(${toJsLiteral(
   MODULE_IMPORT
@@ -160,21 +144,38 @@ function contactSubject(req) {
   return 'https://' + requestHost(req);
 }
 
+function isLoopbackHost(host) {
+  var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
+  return name === 'localhost' || name === '127.0.0.1' || name === '[::1]';
+}
+
+// The relay carries the send token and the protection bypass, so it goes to
+// this deployment's own origin by the rule every such self-call follows (the
+// workflow server runtime's trustedBaseUrl, which the push step's own call to
+// this route was sent by), never to a host a header named: on Vercel the
+// request's host (Vercel routes only this deployment's domains to it);
+// elsewhere NEXTAUTH_URL as the deployment configured it, except that a local
+// server keeps its own loopback address.
 function relayUrl(req) {
-  var host = requestHost(req);
-  var local = host.indexOf('localhost') === 0 || host.indexOf('127.0.0.1') === 0;
-  var proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || (local ? 'http' : 'https');
-  return proto + '://' + host + SEND_ROUTE;
+  var host = String(req.headers.host || '');
+  var proto = String(req.headers['x-forwarded-proto'] || (isLoopbackHost(host) ? 'http' : 'https')).split(',')[0].trim();
+  var origin = proto + '://' + host;
+  if (!process.env.VERCEL) {
+    var configured = String(${CONFIGURED_NEXTAUTH_URL_EXPRESSION} || '').trim();
+    if (configured) {
+      try {
+        var own = new URL(configured).origin;
+        if (!(isLoopbackHost(host) && isLoopbackHost(new URL(own).host))) origin = own;
+      } catch (e) {}
+    }
+  }
+  return origin + SEND_ROUTE;
 }
 
 async function relay(req, body) {
   var headers = { 'Content-Type': 'application/json' };
   headers[TOKEN_HEADER] = String(req.headers[TOKEN_HEADER]);
-  var bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (bypass) {
-    headers['x-vercel-protection-bypass'] = bypass;
-    headers['x-vercel-set-bypass-cookie'] = 'false';
-  }
+${generateProtectionBypassHeaderStatements('headers')}
   var controller = new AbortController();
   var timer = setTimeout(function () {
     controller.abort();

@@ -34,9 +34,14 @@ import {
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
 import type { EntityTransformOptions } from './transformations'
-import { DataCache, TableAccess } from '@teleporthq/teleport-shared'
+import { DataCache, DataExposure, TableAccess } from '@teleporthq/teleport-shared'
 import type { DataSourceServerCacheOptions } from './cache/types'
 import { isViewDependentTable } from './fetchers/utils/browser-row-policy'
+import {
+  guardExternalDriverCount,
+  guardExternalDriverModule,
+} from './fetchers/utils/external-read-guard'
+import { schemaOf } from './fetchers/utils/table-access-guard'
 
 /** `public."users"` → `users`: the table a spelling names. */
 const bareTableName = (tableName: string): string =>
@@ -92,7 +97,58 @@ export const getDataSourceDependencies = (
   return dependencyMap[type]
 }
 
+/**
+ * Whether the driver's read route carries the table-access guard inline (the
+ * TeleportHQ and Postgres-family fetchers); every other driver is wrapped by
+ * `guardExternalDriverModule`.
+ */
+const hasInlineReadGuard = (dataSource: UIDLDataSource): boolean =>
+  dataSource.type === 'teleport' ||
+  dataSource.type === 'postgresql' ||
+  dataSource.type === 'cockroachdb' ||
+  (dataSource.type === 'supabase' && isSupabaseConnectionStringFallback(dataSource.config))
+
+/**
+ * The read route of `tableName` over `dataSource`: its driver's fetcher, behind
+ * the read guard (see `fetchers/utils/table-access-guard.ts`).
+ */
 export function generateDataSourceFetcher(
+  dataSource: UIDLDataSource,
+  tableName: string,
+  transformOptions: EntityTransformOptions = {}
+): string {
+  const routeExposure = routeExposureOf(dataSource, tableName, transformOptions)
+  const driverCode = generateDriverFetcher(dataSource, tableName, {
+    ...transformOptions,
+    routeExposure,
+  })
+  if (hasInlineReadGuard(dataSource)) {
+    return driverCode
+  }
+  return guardExternalDriverModule(driverCode, {
+    tableName,
+    dataSourceType: dataSource.type,
+    exposure: routeExposure,
+    trustedReaderRoles: transformOptions.trustedReaderRoles || [],
+    schema: schemaOf(dataSource.config, tableName),
+    reader: transformOptions,
+  })
+}
+
+/** The exposure of the route of `tableName` over `dataSource` (by source id and table). */
+const routeExposureOf = (
+  dataSource: UIDLDataSource,
+  tableName: string,
+  transformOptions: EntityTransformOptions
+) =>
+  transformOptions.routeExposure ||
+  DataExposure.readExposureFor(transformOptions.dataExposure, {
+    tableName,
+    dataSourceId: dataSource && dataSource.id,
+    dataSourceType: dataSource && dataSource.type,
+  })
+
+function generateDriverFetcher(
   dataSource: UIDLDataSource,
   tableName: string,
   transformOptions: EntityTransformOptions = {}
@@ -119,7 +175,14 @@ export function generateDataSourceFetcher(
         if (!validation.isValid) {
           throw new Error(`PostgreSQL/CockroachDB config validation failed: ${validation.error}`)
         }
-        return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
+        return generatePostgreSQLFetcher(
+          config,
+          tableName,
+          transformOptions.trustedReaderRoles,
+          transformOptions.dataExposure,
+          transformOptions.routeExposure,
+          transformOptions
+        )
       }
 
       case 'mysql':
@@ -196,7 +259,14 @@ export function generateDataSourceFetcher(
               `Supabase (PostgreSQL fallback) config validation failed: ${pgValidation.error}`
             )
           }
-          return generatePostgreSQLFetcher(config, tableName, transformOptions.trustedReaderRoles)
+          return generatePostgreSQLFetcher(
+            config,
+            tableName,
+            transformOptions.trustedReaderRoles,
+            transformOptions.dataExposure,
+            transformOptions.routeExposure,
+            transformOptions
+          )
         }
 
         const validation = validateSupabaseConfig(config)
@@ -275,6 +345,13 @@ export function generateDataSourceFetcherWithCore(
   transformOptions: EntityTransformOptions = {},
   cacheOptions?: DataSourceServerCacheOptions
 ): string {
+  // A row-owned page's read answers each session its own rows: nothing about
+  // it may be cached for another (see DataReadExposure.ownerRules).
+  const ownedExposure = routeExposureOf(dataSource, tableName, transformOptions)
+  const routeCacheOptions =
+    ownedExposure.public || ownedExposure.anySession || !(ownedExposure.ownerRules || []).length
+      ? cacheOptions
+      : undefined
   const apiHandler = generateDataSourceFetcher(dataSource, tableName, transformOptions)
 
   // Extract the handler function body from the API route
@@ -292,8 +369,12 @@ export function generateDataSourceFetcherWithCore(
   const imports = handlerCode.match(importRegex) || []
   const handlerWithoutImports = handlerCode.replace(importRegex, '').trim()
 
-  // Generate count fetcher code and extract its imports
-  const countFetcherCode = generateCountFetcher(dataSource, tableName)
+  // Generate count fetcher code and extract its imports. An external driver's
+  // count runs behind the same guard as its rows.
+  const driverCountCode = generateCountFetcher(dataSource, tableName)
+  const countFetcherCode = hasInlineReadGuard(dataSource)
+    ? driverCountCode
+    : guardExternalDriverCount(driverCountCode)
   const countImports = countFetcherCode.match(importRegex) || []
   const countFetcherWithoutImports = countFetcherCode.replace(importRegex, '').trim()
 
@@ -309,31 +390,38 @@ export function generateDataSourceFetcherWithCore(
   // The import depth differs by destination: this module is written to
   // `utils/data-sources/` normally, but the `isApiRoute` variant is inlined
   // straight into `pages/api/`.
-  const cachePreamble = cacheOptions
+  const cachePreamble = routeCacheOptions
     ? `import { tqWithCache } from '${isApiRoute ? '../../' : '../'}tq-cache/server'`
     : ''
   // A module carrying the browser row policy (the Postgres-family routes) keys
   // its cache by who is reading; see `__tqCacheByView` below.
   const splitsCacheByView = handlerCode.indexOf('function __brpSharesPublicView(') !== -1
+  // Only a table every visitor may read can sit in a shared (CDN) cache, and a
+  // table only some sessions may read is checked BEFORE the cache: a cached
+  // answer never reaches a visitor the route itself would refuse.
+  const routeExposure = routeExposureOf(dataSource, tableName, transformOptions)
+  const routeIsPublic = routeExposure.public
+  const sharedCacheSeconds = (seconds: number | undefined): number =>
+    routeIsPublic ? seconds || 0 : 0
 
-  const cacheWiring = cacheOptions
+  const cacheWiring = routeCacheOptions
     ? `
 const __tqDataCache = ${JSON.stringify({
-        scope: cacheOptions.scope,
-        ttl: cacheOptions.ttlSeconds,
-        sMaxAge: cacheOptions.sMaxAge || 0,
-        swr: cacheOptions.staleWhileRevalidate || 0,
+        scope: routeCacheOptions.scope,
+        ttl: routeCacheOptions.ttlSeconds,
+        sMaxAge: sharedCacheSeconds(routeCacheOptions.sMaxAge),
+        swr: sharedCacheSeconds(routeCacheOptions.staleWhileRevalidate),
       })}
 const __tqCountCache = ${JSON.stringify({
-        scope: DataCache.countScopeFor(cacheOptions.scope),
+        scope: DataCache.countScopeFor(routeCacheOptions.scope),
         // Its OWN keyspace, but the DATA scope's version row. A write bumps one
         // row; if the count kept a separate version nothing would ever bump it,
         // and the total would stay stale after every create and delete — the
         // grid showing one more row than the pager counts.
-        versionScope: cacheOptions.scope,
-        ttl: cacheOptions.ttlSeconds,
-        sMaxAge: cacheOptions.sMaxAge || 0,
-        swr: cacheOptions.staleWhileRevalidate || 0,
+        versionScope: routeCacheOptions.scope,
+        ttl: routeCacheOptions.ttlSeconds,
+        sMaxAge: sharedCacheSeconds(routeCacheOptions.sMaxAge),
+        swr: sharedCacheSeconds(routeCacheOptions.staleWhileRevalidate),
       })}
 
 ${
@@ -361,22 +449,55 @@ function __tqCacheByView(fn, opts) {
     sMaxAge: 0,
     swr: 0,
   }))
+  // The app's own server code reads whole tables; a browser's read is capped
+  // (__taReadWindow). Neither is ever served the other's answer.
+  const serverView = tqWithCache(fn, Object.assign({}, opts, {
+    scope: opts.scope + ':server',
+    versionScope: opts.versionScope || opts.scope,
+    sMaxAge: 0,
+    swr: 0,
+  }))
   return async function (req, res) {
+    if (__taIsInternalRequest(req)) return serverView(req, res)
     if (__tqProfileTable && __taIsVisitorView(req)) return fn(req, res)
     return (await __brpSharesPublicView(req, __tqViewDependent)) ? publicView(req, res) : trustedView(req, res)
   }
 }
-
-const cachedHandler = __tqCacheByView(handler, __tqDataCache)
-const cachedGetCount = __tqCacheByView(getCount, __tqCountCache)`
+${
+  routeIsPublic
+    ? ''
+    : `
+// Readable only by some sessions (see __TA_ROUTE_EXPOSURE): the session is
+// checked before any cached answer is handed out.
+function __tqExposureFirst(fn) {
+  return async function (req, res) {
+    const __denied = await __taGuardExposure(req)
+    if (__denied) {
+      return res.status(__denied.status).json({ success: false, error: __denied.message, timestamp: Date.now() })
+    }
+    return fn(req, res)
+  }
+}
+`
+}
+const cachedHandler = ${
+        routeIsPublic
+          ? '__tqCacheByView(handler, __tqDataCache)'
+          : '__tqExposureFirst(__tqCacheByView(handler, __tqDataCache))'
+      }
+const cachedGetCount = ${
+        routeIsPublic
+          ? '__tqCacheByView(getCount, __tqCountCache)'
+          : '__tqExposureFirst(__tqCacheByView(getCount, __tqCountCache))'
+      }`
     : `const cachedHandler = tqWithCache(handler, __tqDataCache)
 const cachedGetCount = tqWithCache(getCount, __tqCountCache)`
 }
 `
     : ''
 
-  const handlerExport = cacheOptions ? 'cachedHandler' : 'handler'
-  const countExport = cacheOptions ? 'cachedGetCount' : 'getCount'
+  const handlerExport = routeCacheOptions ? 'cachedHandler' : 'handler'
+  const countExport = routeCacheOptions ? 'cachedGetCount' : 'getCount'
 
   // For API routes, export just the handler function
   // For utils files, export the full object with all functions
@@ -384,7 +505,7 @@ const cachedGetCount = tqWithCache(getCount, __tqCountCache)`
   // The uncached branch is spelled out verbatim rather than interpolated, so an
   // uncached project keeps generating byte-identical output — `handler as
   // handler` would be harmless at runtime and still a diff in every snapshot.
-  const exports = !cacheOptions
+  const exports = !routeCacheOptions
     ? isApiRoute
       ? 'export default handler'
       : `export { fetchData, fetchCount, handler, getCount }

@@ -368,12 +368,23 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       '"PDF_SERVICE_API_KEY":1,' +
       '"TELEPORT_CRON_SECRET":1,' +
       '"TELEPORT_CRON_SECRET_PREVIOUS":1,' +
+      '"NEXTAUTH_SECRET":1,' +
+      '"AUTH_PEPPER_SECRET":1,' +
+      '"VERCEL_AUTOMATION_BYPASS_SECRET":1,' +
+      '"TQ_CACHE_SECRET":1,' +
+      '"NEWSLETTER_SERVICE_TOKEN":1,' +
+      '"NEWSLETTER_SERVICE_URL":1,' +
       '"TELEPORT_WALL_SECRET":1' +
       '};\n' +
       // The merchant's payment credentials (see PROTECTED_ENV_NAME_PATTERN in
       // security-scanner.ts), whatever number a second save gave them.
       'var __TQ_PROTECTED_RE = /^(?:CONFIGURATION_)?(?:STRIPE|PAYPAL|MOLLIE|RAZORPAY|SQUARE|PADDLE|COINGATE)_[A-Z0-9_]+$/;\n' +
-      'function __TQ_isProtected(k){ return !!__TQ_PROTECTED[k] || (typeof k === "string" && __TQ_PROTECTED_RE.test(k)); }\n' +
+      // Every TELEPORT_DB_ name (see PLATFORM_ENV_NAME_PATTERN in security-scanner.ts).
+      'var __TQ_PROTECTED_PLATFORM_RE = /^TELEPORT_DB_[A-Z0-9_]+$/;\n' +
+      // Every __ name: an integration's own sign-in (see INTEGRATION_ENV_NAME_PATTERN
+      // in security-scanner.ts), which builds published before 2026-10-26 carry.
+      'var __TQ_PROTECTED_INTEGRATION_RE = /^__[A-Za-z0-9_]+$/;\n' +
+      'function __TQ_isProtected(k){ return !!__TQ_PROTECTED[k] || (typeof k === "string" && (__TQ_PROTECTED_RE.test(k) || __TQ_PROTECTED_PLATFORM_RE.test(k) || __TQ_PROTECTED_INTEGRATION_RE.test(k))); }\n' +
       'var __TQ_origProcess = (typeof globalThis !== "undefined" && globalThis.process) ? globalThis.process : ((typeof ' +
       PROC +
       ' !== "undefined") ? ' +
@@ -396,6 +407,21 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       '" ? __TQ_safeProcess : t[k]; } })' +
       ' : __TQ_origGlobalThis;\n'
 
+    // On the server the user code runs in strict mode: there a function called
+    // plainly gets `this === undefined`, never the real global object, so
+    // `(function(){ return this })().process` cannot step around the shadow
+    // above. (The editor, codegen and publish scanners refuse the other ways
+    // to reach the global — see SANDBOX_ESCAPE_PATTERNS in security-scanner.ts.)
+    // The directive sits in a parameterless function wrapped around the user
+    // code, never in a function with the user's parameter list: a directive
+    // there is a SyntaxError for any non-simple list (`params = {}`), and
+    // strictness is inherited by everything the wrapper contains.
+    const STRICT_OPEN =
+      typeof window === 'undefined'
+        ? "(function() {\n'use strict';\nreturn "
+        : '(function() {\nreturn '
+    const STRICT_CLOSE = '\n})()'
+
     const slice = code.slice(codeStart)
     const customHandlerMatch = slice.match(/function\s+customHandler\s*\(([^)]*)\)/)
     const fnMatch = customHandlerMatch
@@ -408,8 +434,13 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
         .map((a: string) => a.trim())
         .filter(Boolean)
       // If the user declared no args, fall back to passing `params` so
-      // legacy code that ignores arguments keeps working.
-      const argNames = declaredArgs.length > 0 ? declaredArgs : ['params']
+      // legacy code that ignores arguments keeps working. A parameter with a
+      // default (`params = {}`) is forwarded by its name: the user's own
+      // signature applies the default.
+      const argNames = (declaredArgs.length > 0 ? declaredArgs : ['params']).map((arg: string) => {
+        const named = /^([A-Za-z_$][\w$]*)\s*=/.exec(arg)
+        return named ? named[1] : arg
+      })
       // User code runs inside an IIFE so the safe `process` / `globalThis`
       // shadow are visible as locals without var-hoisting hazards. The
       // IIFE forwards the outer argument names through its own parameter
@@ -422,7 +453,9 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       const iifeArgs = ['__TQ_safeProcess', '__TQ_safeGlobalThis'].concat(argNames).join(', ')
       const execCode =
         SECURITY_PREAMBLE +
-        'return (function(' +
+        'return ' +
+        STRICT_OPEN +
+        '(function(' +
         iifeParams +
         ') {\n' +
         'var ' +
@@ -436,7 +469,9 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
         argNames.join(', ') +
         ');\n})(' +
         iifeArgs +
-        ');'
+        ');' +
+        STRICT_CLOSE +
+        ';'
       // The legacy Function(parameterList, body) form takes a comma-separated
       // string of formal parameter names. We use it here so the handler's
       // compiled output stays free of helper-dependent spread syntax — the
@@ -469,13 +504,17 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
     // `globalThis` shadow via local var reassignment (see SECURITY_PREAMBLE).
     const scriptBody =
       SECURITY_PREAMBLE +
-      'return (function(__TQ_p, __TQ_g, params, previousContext) {\n' +
+      'return ' +
+      STRICT_OPEN +
+      '(function(__TQ_p, __TQ_g, params, previousContext) {\n' +
       'var ' +
       PROC +
       ' = __TQ_p;\n' +
       'var globalThis = __TQ_g;\n' +
       code +
-      '\n})(__TQ_safeProcess, __TQ_safeGlobalThis, params, previousContext);'
+      '\n})(__TQ_safeProcess, __TQ_safeGlobalThis, params, previousContext);' +
+      STRICT_CLOSE +
+      ';'
     const scriptBodyFn = new Function('params', 'previousContext', scriptBody)
     let scriptResult = scriptBodyFn(argValues.params, argValues.previousContext)
     if (scriptResult && typeof scriptResult.then === 'function') {

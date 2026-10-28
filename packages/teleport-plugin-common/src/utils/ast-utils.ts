@@ -1208,6 +1208,7 @@ export const GLOBAL_REF_ID_MAP: Record<string, string> = {
   'E-commerce': 'ecommerce',
   Cart: 'cart',
   'Current User': 'currentUser',
+  Company: 'company',
 }
 
 export const resolveGlobalRefId = (

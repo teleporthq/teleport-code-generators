@@ -1,8 +1,12 @@
-import { NodeHandlerGenerator } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions } from '../types'
+import { serverHandlerPrefix } from '../general/visitor-request'
 import { generateAIProviderUtils, AI_PROVIDER_DEPENDENCIES } from './ai-provider-utils'
 
 declare function __ai_resolveTextField(val: any): string
 declare function __ai_resolveToken(token: any): string
+declare function __ai_publicMessage(err: any, code: string): string
+declare function __ai_publicCode(err: any, code: string): string
+declare function __ai_enforceCallBudget(prompt?: any): Promise<void>
 
 /**
  * Text embeddings, always through OpenAI's embeddings API.
@@ -52,13 +56,15 @@ async function ai_generate_text_embedding(config: any, context: Record<string, u
   try {
     token = __ai_resolveToken(config.token)
   } catch (err: any) {
-    return fail(err.message, 'authentication_error')
+    return fail(__ai_publicMessage(err, 'authentication_error'), 'authentication_error')
   }
 
   const model = config.model || 'text-embedding-3-small'
   const encodingFormat = config.encodingFormat || 'float'
 
   try {
+    // Counts against the site's daily AI budget like every other AI call.
+    await __ai_enforceCallBudget()
     const __nodeRequire =
       typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
     const _mod = __nodeRequire('openai')
@@ -99,7 +105,7 @@ async function ai_generate_text_embedding(config: any, context: Record<string, u
       },
     }
   } catch (err: any) {
-    return fail(err.message || String(err), 'provider_error')
+    return fail(__ai_publicMessage(err, 'provider_error'), __ai_publicCode(err, 'provider_error'))
   }
 }
 
@@ -109,5 +115,12 @@ export const aiGenerateTextEmbedding: NodeHandlerGenerator = {
   dependencies: { openai: AI_PROVIDER_DEPENDENCIES.openai },
   generateHandler(): string {
     return generateAIProviderUtils() + '\n\n' + ai_generate_text_embedding.toString()
+  },
+  generateServerHandler(options?: ServerHandlerOptions): string {
+    return (
+      generateAIProviderUtils(serverHandlerPrefix(options)) +
+      '\n\n' +
+      ai_generate_text_embedding.toString()
+    )
   },
 }

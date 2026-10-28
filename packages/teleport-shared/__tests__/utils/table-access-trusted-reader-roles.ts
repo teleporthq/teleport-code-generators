@@ -142,3 +142,58 @@ return __taGuardRead`
     }
   })
 })
+
+describe('the emitted guard compares the app secret with the shared security runtime', () => {
+  const boot = (runtime: unknown, projectRoot?: string) => {
+    const required: string[] = []
+    const presentsAppSecret = new Function(
+      'process',
+      'require',
+      `${generateTableAccessHelperCode({ trustedReaderRoles: [], projectRoot })}
+return __taPresentsAppSecret`
+    )({ env: { NEXTAUTH_SECRET: 'server-secret' } }, (id: string) => {
+      required.push(id)
+      if (runtime && id.endsWith('/utils/security-runtime')) {
+        return runtime
+      }
+      throw new Error("Cannot find module '" + id + "'")
+    }) as (req: unknown) => boolean
+    return { presentsAppSecret, required }
+  }
+  const presenting = (secret?: string) => ({
+    headers: secret === undefined ? {} : { 'x-internal-data-secret': secret },
+  })
+
+  it("asks the runtime's safeEqual, required from the folder the route sits in", () => {
+    const calls: unknown[][] = []
+    const runtime = {
+      safeEqual: (a: unknown, b: unknown) => {
+        calls.push([a, b])
+        return a === b
+      },
+    }
+    const dataApi = boot(runtime)
+    expect(dataApi.presentsAppSecret(presenting('server-secret'))).toBe(true)
+    expect(dataApi.presentsAppSecret(presenting('guessed-secret'))).toBe(false)
+    expect(calls).toEqual([
+      ['server-secret', 'server-secret'],
+      ['guessed-secret', 'server-secret'],
+    ])
+    // pages/api/data/[...params].js by default; a fetcher two folders down.
+    expect(dataApi.required).toEqual([
+      '../../../utils/security-runtime',
+      '../../../utils/security-runtime',
+    ])
+    const fetcher = boot(runtime, '../..')
+    expect(fetcher.presentsAppSecret(presenting('server-secret'))).toBe(true)
+    expect(fetcher.required).toEqual(['../../utils/security-runtime'])
+  })
+
+  it('matches no secret without the runtime, and loads nothing for a request presenting none', () => {
+    const missing = boot(null)
+    expect(missing.presentsAppSecret(presenting())).toBe(false)
+    expect(missing.required).toEqual([])
+    expect(missing.presentsAppSecret(presenting('server-secret'))).toBe(false)
+    expect(missing.required).toEqual(['../../../utils/security-runtime'])
+  })
+})

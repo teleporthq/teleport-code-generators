@@ -4,6 +4,7 @@ import {
   UIDLDynamicReference,
   UIDLStaticValue,
   UIDLExternalDependency,
+  UIDLCanonicalAsset,
 } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils, RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -99,8 +100,12 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
           const { staticParts: pathParts, paramNames } = parseDynamicSegments(pathname)
           const isDynamic = paramNames.length > 0
 
-          // Add useRouter hook when needed for locale-aware or dynamic canonical
-          if ((hasMultipleLocales || isDynamic) && !routerAdded) {
+          const pageSuffix = () => buildPageSuffixExpression(asset.pageParam)
+          const localizedParam = (locale: string) =>
+            buildLocalizedParamExpression(asset.localizedParams, locale)
+
+          // Add useRouter hook when needed for locale-aware, dynamic or paged canonical
+          if ((hasMultipleLocales || isDynamic || asset.pageParam) && !routerAdded) {
             structure.dependencies.useRouter = {
               type: 'library',
               path: 'next/router',
@@ -160,7 +165,10 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
             }
 
             const localeCanonicalOverride = canonicalOverride()
-            const localeTemplateExpr = types.templateLiteral(quasis, expressions)
+            const localeTemplateExpr = withSuffix(
+              types.templateLiteral(quasis, expressions),
+              pageSuffix()
+            )
             const canonicalHrefExpr = localeCanonicalOverride
               ? types.logicalExpression('||', localeCanonicalOverride, localeTemplateExpr)
               : localeTemplateExpr
@@ -206,7 +214,10 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               ...paramNames.map((name) => buildRouterQueryParam(name)),
             ]
             const ogUrlOverride = canonicalOverride()
-            const ogUrlTemplateExpr = types.templateLiteral(ogUrlQuasis, ogUrlExpressions)
+            const ogUrlTemplateExpr = withSuffix(
+              types.templateLiteral(ogUrlQuasis, ogUrlExpressions),
+              pageSuffix()
+            )
             const ogUrlContentExpr = ogUrlOverride
               ? types.logicalExpression('||', ogUrlOverride, ogUrlTemplateExpr)
               : ogUrlTemplateExpr
@@ -225,7 +236,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
               ASTUtils.addAttributeToJSXTag(hreflangLink, 'hrefLang', locale)
               const localePrefix = locale === i18n.main.locale ? '' : '/' + locale
               const hrefPath = pathname === '/' && localePrefix ? '' : pathname
-              addDynamicHrefAttribute(hreflangLink, origin + localePrefix + hrefPath)
+              addDynamicHrefAttribute(hreflangLink, origin + localePrefix + hrefPath, null, {
+                paramExpression: localizedParam(locale),
+              })
               headASTTags.push(hreflangLink)
             })
 
@@ -233,32 +246,27 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
             const xDefaultLink = ASTBuilders.createSelfClosingJSXTag('link')
             ASTUtils.addAttributeToJSXTag(xDefaultLink, 'rel', 'alternate')
             ASTUtils.addAttributeToJSXTag(xDefaultLink, 'hrefLang', 'x-default')
-            addDynamicHrefAttribute(xDefaultLink, origin + pathname)
+            addDynamicHrefAttribute(xDefaultLink, origin + pathname, null, {
+              paramExpression: localizedParam(i18n.main.locale),
+            })
             headASTTags.push(xDefaultLink)
-          } else if (isDynamic) {
-            // No i18n but has dynamic params — needs router.query interpolation
-            const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
-            ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-            addDynamicHrefAttribute(canonicalLink, asset.path, canonicalOverride())
-            headASTTags.push(canonicalLink)
-
-            // og:url meta tag — mirrors the canonical href
-            const ogUrlMeta = ASTBuilders.createSelfClosingJSXTag('meta')
-            ASTUtils.addAttributeToJSXTag(ogUrlMeta, 'property', 'og:url')
-            addDynamicContentAttribute(ogUrlMeta, asset.path, canonicalOverride())
-            headASTTags.push(ogUrlMeta)
           } else {
-            // No i18n or single locale — static canonical (an entity override,
-            // when present, turns the attribute into `{override || 'path'}`)
+            // One locale: a static canonical, or a template over the route's
+            // params (an entity override, when present, turns the attribute
+            // into `{override || 'path'}`; a page parameter is appended).
             const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
             ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-            addDynamicHrefAttribute(canonicalLink, asset.path, canonicalOverride())
+            addDynamicHrefAttribute(canonicalLink, asset.path, canonicalOverride(), {
+              suffixExpression: pageSuffix(),
+            })
             headASTTags.push(canonicalLink)
 
             // og:url meta tag — mirrors the canonical href
             const ogUrlMeta = ASTBuilders.createSelfClosingJSXTag('meta')
             ASTUtils.addAttributeToJSXTag(ogUrlMeta, 'property', 'og:url')
-            addDynamicContentAttribute(ogUrlMeta, asset.path, canonicalOverride())
+            addDynamicContentAttribute(ogUrlMeta, asset.path, canonicalOverride(), {
+              suffixExpression: pageSuffix(),
+            })
             headASTTags.push(ogUrlMeta)
           }
         }
@@ -266,29 +274,29 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     }
 
     if (uidl.seo.structuredData && uidl.seo.structuredData.length > 0) {
-      uidl.seo.structuredData.forEach((entry) => {
-        const { scriptTag, usesTranslations, usesRouter } = buildStructuredDataScript(entry)
-        if (usesTranslations && !translationsAdded) {
-          structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
-          reactHooks.push(getTranslationsAST())
-          translationsAdded = true
+      const { scriptTag, usesTranslations, usesRouter } = buildStructuredDataScript(
+        uidl.seo.structuredData
+      )
+      if (usesTranslations && !translationsAdded) {
+        structure.dependencies.useTranslations = USE_TRANSLATIONS_HOOK
+        reactHooks.push(getTranslationsAST())
+        translationsAdded = true
+      }
+      // The script interpolated a route parameter (a details page's own URL in
+      // a BreadcrumbList), so it needs the same `useRouter` hook the dynamic
+      // canonical uses. `routerAdded` is shared with the canonical branch
+      // above so the hook is declared exactly once.
+      if (usesRouter && !routerAdded) {
+        structure.dependencies.useRouter = {
+          type: 'library',
+          path: 'next/router',
+          version: '^12.1.10',
+          meta: { namedImport: true },
         }
-        // The script interpolated a route parameter (a details page's own URL in
-        // a BreadcrumbList), so it needs the same `useRouter` hook the dynamic
-        // canonical uses. `routerAdded` is shared with the canonical branch
-        // above so the hook is declared exactly once.
-        if (usesRouter && !routerAdded) {
-          structure.dependencies.useRouter = {
-            type: 'library',
-            path: 'next/router',
-            version: '^12.1.10',
-            meta: { namedImport: true },
-          }
-          reactHooks.push(getRouterAST())
-          routerAdded = true
-        }
-        headASTTags.push(scriptTag)
-      })
+        reactHooks.push(getRouterAST())
+        routerAdded = true
+      }
+      headASTTags.push(scriptTag)
     }
 
     if (headASTTags.length > 0) {
@@ -437,6 +445,73 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
   }
 
   /**
+   * `(Number(router.query.<param>) > 1 ? `?<param>=${router.query.<param>}` : '')`
+   * — what a paged listing's canonical carries from the second page on; null
+   * without a page parameter.
+   */
+  const buildPageSuffixExpression = (pageParam?: string): types.Expression | null => {
+    if (!pageParam) {
+      return null
+    }
+    const param = buildRouterQueryParam(pageParam)
+    return types.conditionalExpression(
+      types.binaryExpression(
+        '>',
+        types.callExpression(types.identifier('Number'), [param]),
+        types.numericLiteral(1)
+      ),
+      types.templateLiteral(
+        [
+          types.templateElement({ raw: `?${pageParam}=`, cooked: `?${pageParam}=` }, false),
+          types.templateElement({ raw: '', cooked: '' }, true),
+        ],
+        [buildRouterQueryParam(pageParam)]
+      ),
+      types.stringLiteral('')
+    )
+  }
+
+  const withSuffix = (
+    expression: types.Expression,
+    suffix: types.Expression | null
+  ): types.Expression => (suffix ? types.binaryExpression('+', expression, suffix) : expression)
+
+  /**
+   * For a locale's hreflang link: a route parameter the row localizes reads
+   * `props?.<entity>?.<map>?.["<locale>"] ?? router.query.<param>`; any other
+   * parameter stays the route's own.
+   */
+  const buildLocalizedParamExpression =
+    (localizedParams: UIDLCanonicalAsset['localizedParams'], locale: string) =>
+    (paramName: string): types.Expression => {
+      const reference = localizedParams?.[paramName]
+      if (
+        reference?.type !== 'dynamic' ||
+        reference.content.referenceType !== 'prop' ||
+        !reference.content.refPath?.length
+      ) {
+        return buildRouterQueryParam(paramName)
+      }
+      return types.logicalExpression(
+        '??',
+        types.optionalMemberExpression(
+          buildPropsChainExpression(reference.content.refPath),
+          types.stringLiteral(locale),
+          true,
+          true
+        ),
+        buildRouterQueryParam(paramName)
+      )
+    }
+
+  interface DynamicAttributeOptions {
+    /** What a route parameter resolves to; `router.query.<name>` by default. */
+    paramExpression?: (paramName: string) => types.Expression
+    /** Appended to the whole value (a paged listing's `?page=N`). */
+    suffixExpression?: types.Expression | null
+  }
+
+  /**
    * Adds an href attribute to a JSX tag. If the href contains ${paramName} patterns,
    * generates a template literal with router.query.paramName expressions.
    * Otherwise, adds a static string attribute.
@@ -445,22 +520,26 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     tag: types.JSXElement,
     attrName: string,
     value: string,
-    overrideExpr?: types.Expression | null
+    overrideExpr?: types.Expression | null,
+    options: DynamicAttributeOptions = {}
   ): void => {
     const { staticParts, paramNames } = parseDynamicSegments(value)
-    if (paramNames.length === 0 && !overrideExpr) {
+    if (paramNames.length === 0 && !overrideExpr && !options.suffixExpression) {
       ASTUtils.addAttributeToJSXTag(tag, attrName, value)
       return
     }
-    const baseExpr: types.Expression =
+    const paramExpression = options.paramExpression ?? buildRouterQueryParam
+    const baseExpr: types.Expression = withSuffix(
       paramNames.length === 0
         ? types.stringLiteral(value)
         : types.templateLiteral(
             staticParts.map((part, i) =>
               types.templateElement({ raw: part, cooked: part }, i === staticParts.length - 1)
             ),
-            paramNames.map((name) => buildRouterQueryParam(name))
-          )
+            paramNames.map((name) => paramExpression(name))
+          ),
+      options.suffixExpression ?? null
+    )
     // The override wraps the WHOLE fallback expression: an entity-supplied URL
     // must never be spliced into the page-level template (locale prefixes,
     // route params) — it either fully replaces the href or is absent.
@@ -473,17 +552,19 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
   const addDynamicHrefAttribute = (
     tag: types.JSXElement,
     href: string,
-    overrideExpr?: types.Expression | null
+    overrideExpr?: types.Expression | null,
+    options?: DynamicAttributeOptions
   ): void => {
-    addDynamicAttributeToTag(tag, 'href', href, overrideExpr)
+    addDynamicAttributeToTag(tag, 'href', href, overrideExpr, options)
   }
 
   const addDynamicContentAttribute = (
     tag: types.JSXElement,
     content: string,
-    overrideExpr?: types.Expression | null
+    overrideExpr?: types.Expression | null,
+    options?: DynamicAttributeOptions
   ): void => {
-    addDynamicAttributeToTag(tag, 'content', content, overrideExpr)
+    addDynamicAttributeToTag(tag, 'content', content, overrideExpr, options)
   }
 
   const addAttributeToMetaTag = (

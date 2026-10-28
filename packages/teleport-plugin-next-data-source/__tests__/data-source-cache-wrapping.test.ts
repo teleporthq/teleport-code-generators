@@ -1,6 +1,7 @@
 import { UIDLDataSource } from '@teleporthq/teleport-types'
 import { generateDataSourceFetcherWithCore } from '../src/data-source-fetchers'
 import { mergeServerCacheOptions } from '../src/cache/config'
+import { publicExposure } from './_helpers/exposure'
 
 const dataSource: UIDLDataSource = {
   id: 'ds_1',
@@ -10,6 +11,9 @@ const dataSource: UIDLDataSource = {
 }
 
 const CACHE = { scope: 'ds_1:teleport_products', ttlSeconds: 60 }
+
+// The products table as a project with a public shop page exposes it.
+const PUBLIC = publicExposure(['teleport_products', 'products'])
 
 describe('generateDataSourceFetcherWithCore — server cache wrapping', () => {
   /**
@@ -36,7 +40,7 @@ describe('generateDataSourceFetcherWithCore — server cache wrapping', () => {
       dataSource,
       'teleport_products',
       false,
-      {},
+      PUBLIC,
       CACHE
     )
 
@@ -50,18 +54,55 @@ describe('generateDataSourceFetcherWithCore — server cache wrapping', () => {
     )
   })
 
-  it('wraps a route without the row policy in one shared cache, as before', () => {
+  it('an external driver route carries the read guard, so its cache is split by view too', () => {
     const mysql: UIDLDataSource = {
       id: 'ds_2',
       name: 'Shop',
       type: 'mysql',
       config: { host: 'h', port: 3306, user: 'u', password: 'p', database: 'd' },
     }
-    const code = generateDataSourceFetcherWithCore(mysql, 'products', false, {}, CACHE)
+    const code = generateDataSourceFetcherWithCore(mysql, 'products', false, PUBLIC, CACHE)
 
-    expect(code).toContain('const cachedHandler = tqWithCache(handler, __tqDataCache)')
-    expect(code).toContain('const cachedGetCount = tqWithCache(getCount, __tqCountCache)')
-    expect(code).not.toContain('__tqCacheByView')
+    expect(code).toContain('const cachedHandler = __tqCacheByView(handler, __tqDataCache)')
+    expect(code).toContain('const cachedGetCount = __tqCacheByView(getCount, __tqCountCache)')
+    expect(code).toContain('__taGuardedDriverRead(req, res, __tqUnguardedHandler')
+  })
+
+  /**
+   * A table only some sessions may read: a cached answer filled by one of them
+   * must never reach a visitor the route would refuse, and never a CDN.
+   */
+  it('checks the session before the cache, and shares nothing, for a table not every visitor may read', () => {
+    const code = generateDataSourceFetcherWithCore(
+      dataSource,
+      'teleport_products',
+      false,
+      {},
+      { ...CACHE, sMaxAge: 30, staleWhileRevalidate: 300 }
+    )
+
+    expect(code).toContain(
+      'const cachedHandler = __tqExposureFirst(__tqCacheByView(handler, __tqDataCache))'
+    )
+    expect(code).toContain(
+      'const cachedGetCount = __tqExposureFirst(__tqCacheByView(getCount, __tqCountCache))'
+    )
+    expect(code).toContain('"sMaxAge":0')
+    expect(code).not.toContain('"sMaxAge":30')
+  })
+
+  /** The app's own server code reads whole tables; a browser's read is capped. */
+  it('never shares a cache entry between a server-side read and a browser read', () => {
+    const code = generateDataSourceFetcherWithCore(
+      dataSource,
+      'teleport_products',
+      false,
+      PUBLIC,
+      CACHE
+    )
+
+    expect(code).toContain("scope: opts.scope + ':server'")
+    expect(code).toContain('if (__taIsInternalRequest(req)) return serverView(req, res)')
   })
 
   /**
@@ -117,7 +158,7 @@ describe('generateDataSourceFetcherWithCore — server cache wrapping', () => {
       dataSource,
       'teleport_products',
       false,
-      {},
+      PUBLIC,
       {
         ...CACHE,
         sMaxAge: 30,

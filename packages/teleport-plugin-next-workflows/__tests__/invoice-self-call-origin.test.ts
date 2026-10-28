@@ -26,7 +26,7 @@ interface Assembly {
   ) => Promise<{ storageUrl: string }>
 }
 
-const ENV_KEYS = ['NEXTAUTH_URL', 'VERCEL', 'NEXTAUTH_SECRET']
+const ENV_KEYS = ['NEXTAUTH_URL', 'VERCEL', 'NEXTAUTH_SECRET', 'VERCEL_AUTOMATION_BYPASS_SECRET']
 
 describe('invoice self-calls go to the store, never to a host the request named', () => {
   const saved: Record<string, string | undefined> = {}
@@ -58,6 +58,20 @@ describe('invoice self-calls go to the store, never to a host the request named'
     expect(requestBaseUrl({ headers: { host: 'evil.test', 'x-forwarded-proto': 'http' } })).toBe(
       'https://shop.example'
     )
+  })
+
+  it('reads NEXTAUTH_URL as configured, never as the auth route rewrote it from a request', () => {
+    const scope = globalThis as Record<string, unknown>
+    // /api/auth kept the configured value, then rewrote the live one from X-Forwarded-Host.
+    scope.__tqConfiguredNextAuthUrl = 'https://shop.example'
+    process.env.NEXTAUTH_URL = 'https://evil.test'
+    try {
+      expect(assembly().requestBaseUrl({ headers: { host: 'evil.test' } })).toBe(
+        'https://shop.example'
+      )
+    } finally {
+      delete scope.__tqConfiguredNextAuthUrl
+    }
   })
 
   it("keeps the routed host on Vercel, and a local server's own port", () => {
@@ -113,5 +127,47 @@ describe('invoice self-calls go to the store, never to a host the request named'
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('https://shop.example/api/runtime-storage/upload')
     expect(calls[0].headers['x-internal-data-secret']).toBe('app-secret')
+    // No password wall here: no bypass.
+    expect(calls[0].headers).not.toHaveProperty('x-vercel-protection-bypass')
+  })
+
+  it("passes the deployment's password wall with the upload when it has one", async () => {
+    process.env.NEXTAUTH_URL = 'https://shop.example'
+    process.env.NEXTAUTH_SECRET = 'app-secret'
+    process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'bypass-1'
+    const { uploadInvoicePdfToRuntimeStorage } = assembly()
+    const headers: Array<Record<string, string>> = []
+    const globals = globalThis as any
+    const original = { fetch: globals.fetch, Blob: globals.Blob, FormData: globals.FormData }
+    globals.Blob = globals.Blob || NodeBlob
+    globals.FormData =
+      globals.FormData ||
+      class {
+        public append(): void {
+          return
+        }
+      }
+    globals.fetch = async (_url: string, init: { headers: Record<string, string> }) => {
+      headers.push(init.headers)
+      return { ok: true, status: 200, json: async () => ({ files: [{ url: 'u', id: 'f' }] }) }
+    }
+    try {
+      await uploadInvoicePdfToRuntimeStorage(
+        Buffer.from('%PDF-1.4'),
+        'INV-1.pdf',
+        'https://shop.example'
+      )
+    } finally {
+      globals.fetch = original.fetch
+      globals.Blob = original.Blob
+      globals.FormData = original.FormData
+    }
+    expect(headers).toEqual([
+      {
+        'x-internal-data-secret': 'app-secret',
+        'x-vercel-protection-bypass': 'bypass-1',
+        'x-vercel-set-bypass-cookie': 'false',
+      },
+    ])
   })
 })

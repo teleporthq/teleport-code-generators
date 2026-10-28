@@ -123,15 +123,18 @@ describe('legacy payment webhook routes', () => {
 })
 
 describe('legacy Stripe webhook route — completed checkouts', () => {
-  // Records every statement the route sends to the store's database.
+  // Records every statement the route sends to the store's database; the
+  // order the session names reads as due exactly what it took.
   const fakePg = () => {
     const queries: Array<{ text: string; values: unknown[] }> = []
     function Client(): Record<string, unknown> {
       return {
         connect: async (): Promise<void> => undefined,
-        query: async (text: string, values: unknown[]): Promise<{ rowCount: number }> => {
+        query: async (text: string, values: unknown[]) => {
           queries.push({ text, values })
-          return { rowCount: 1 }
+          return /^SELECT/.test(text)
+            ? { rows: [{ total_amount: '10.00', gift_card_amount: '0', currency: 'USD' }] }
+            : { rowCount: 1 }
         },
         end: async (): Promise<void> => undefined,
       }
@@ -147,12 +150,13 @@ describe('legacy Stripe webhook route — completed checkouts', () => {
         payment_status: paymentStatus,
         payment_intent: 'pi_1',
         amount_total: 1000,
+        currency: 'usd',
         metadata: { orderId: 'order-1' },
       },
     },
   })
   const deliver = async (source: string, event: unknown) => {
-    const { pg, queries } = fakePg()
+    const { pg, queries: all } = fakePg()
     const route = loadRoute(source, async () => ({ ok: true, body: event }), { pg })
     const { reply, fetched } = await withEnv(
       { ...CREDENTIALS, TELEPORT_DB_CONNECTION_STRING: 'postgres://store' },
@@ -162,6 +166,8 @@ describe('legacy Stripe webhook route — completed checkouts', () => {
           async (calls) => ({ reply: await route.post('{}'), fetched: calls.map((c) => c.url) })
         )
     )
+    // The writes; the order read before them is the amount check's.
+    const queries = all.filter((query) => !/^SELECT/.test(query.text))
     return { reply, queries, fetched }
   }
   const ecommerce: any = { orderNotifications: true }
@@ -371,9 +377,98 @@ describe('legacy Stripe webhook route — amounts and payment intents', () => {
       ['jpy', 1234, 1234],
       ['kwd', 12340, 12.34],
     ] as const) {
-      const { posted } = await deliverTo(source, session(currency, minor))
+      const { posted } = await deliverTo(source, session(currency, minor), {
+        total_amount: String(major),
+        gift_card_amount: '0',
+        currency: currency.toUpperCase(),
+      })
       expect(posted('/api/ecommerce/order-notification')[0].json.totalAmount).toBe(major)
     }
+  })
+
+  // A session pays its order only when it took, in the order's currency, at
+  // least what the order is due (its total less a gift card): the rule the
+  // workflow-driven webhook and the legacy PayPal route already apply.
+  it('marks nothing paid, invoices nothing and announces nothing for a session that does not pay its order', async () => {
+    const sources = [
+      generateStripeWebhookCode(undefined, { orderNotifications: true } as any),
+      generateStripeWebhookCode(
+        { enabled: true, autoGenerateOnPayment: true } as any,
+        { orderNotifications: true } as any
+      ),
+    ]
+    const order = { total_amount: '50.00', gift_card_amount: '0', currency: 'USD' }
+    for (const source of sources) {
+      for (const [event, row] of [
+        // Short: 49.99 for an order due 50.00.
+        [session('usd', 4999), order],
+        // Another currency, the same digits.
+        [session('eur', 5000), order],
+        // No such order.
+        [session('usd', 5000), null],
+        // An amount the event does not state.
+        [session('usd', null as any), order],
+      ] as Array<[unknown, Record<string, unknown> | null]>) {
+        const { reply, queries, posted } = await deliverTo(source, event, row)
+        expect(reply.status).toBe(200)
+        expect(queries.every((query) => /^SELECT/.test(query.text))).toBe(true)
+        expect(posted('/api/invoices/generate')).toEqual([])
+        expect(posted('/api/ecommerce/order-notification')).toEqual([])
+      }
+    }
+  })
+
+  // A session that collected nothing (a free trial, a 100% coupon) pays only an
+  // order that is due nothing: the same rule, with nothing taken.
+  it('pays nothing with a session that collected nothing, unless the order is due nothing', async () => {
+    const source = generateStripeWebhookCode(undefined, {} as any)
+    const free = {
+      ...session('usd', 0),
+      data: { object: { ...session('usd', 0).data.object, payment_status: 'no_payment_required' } },
+    }
+    const owing = await deliverTo(source, free, { total_amount: '20.00', currency: 'USD' })
+    expect(owing.queries.every((query) => /^SELECT/.test(query.text))).toBe(true)
+    const nothingDue = await deliverTo(source, free, { total_amount: '0', currency: 'USD' })
+    expect(nothingDue.queries.filter((query) => !/^SELECT/.test(query.text))).toHaveLength(1)
+  })
+
+  it('answers 500 when the order cannot be read, so Stripe retries the paid mark', async () => {
+    const source = generateStripeWebhookCode(undefined, {} as any)
+    const failing = {
+      Client: function Client(): Record<string, unknown> {
+        return {
+          connect: async (): Promise<void> => undefined,
+          query: async () => {
+            throw new Error('connection reset')
+          },
+          end: async (): Promise<void> => undefined,
+        }
+      },
+    }
+    const route = loadRoute(source, async () => ({ ok: true, body: session('usd', 1000) }), {
+      pg: failing,
+    })
+    const reply = await withEnv(
+      { ...CREDENTIALS, TELEPORT_DB_CONNECTION_STRING: 'postgres://store' },
+      () =>
+        withFetch(
+          () => ({ status: 200, body: {} }),
+          async () => route.post('{}')
+        )
+    )
+    expect(reply.status).toBe(500)
+  })
+
+  it('pays an order whose gift card covered part of it once the session took the rest', async () => {
+    const source = generateStripeWebhookCode(undefined, {} as any)
+    const { queries } = await deliverTo(source, session('usd', 2000), {
+      total_amount: '50.00',
+      gift_card_amount: '30.00',
+      currency: 'USD',
+    })
+    const writes = queries.filter((query) => !/^SELECT/.test(query.text))
+    expect(writes).toHaveLength(1)
+    expect(writes[0].values).toEqual(['paid', 'paid', 'pi_1', 'order-1'])
   })
 
   it('invoices a zero-decimal payment intent at its own amount', async () => {

@@ -17,6 +17,21 @@ async function integration_slack(config: any, context: Record<string, unknown>) 
       return { error_summary: text, error: text, message: text, raw: text }
     }
   }
+  // A value embedded in a message reaches it HTML-escaped (the runtime's
+  // resolveRichTextContext): `&amp;`, `&lt;` and `&gt;` are Slack's own escapes
+  // and stay, so a value can never open a link or a mention. A quote is no
+  // Slack control character and Slack shows its entity as typed, so it is put back.
+  const slackText = (value: any) =>
+    typeof value === 'string'
+      ? value.replace(/&quot;|&#34;|&#39;|&#x27;/g, (entity: string) =>
+          entity === '&quot;' || entity === '&#34;' ? '"' : "'"
+        )
+      : value
+  // The same for the text inside Block Kit blocks.
+  const slackBlocks = (blocks: any) =>
+    blocks && typeof blocks === 'object'
+      ? JSON.parse(JSON.stringify(blocks), (_key: string, value: any) => slackText(value))
+      : blocks
   const token = config.token
   const action = config.action
   const baseUrl = 'https://slack.com/api/'
@@ -29,10 +44,10 @@ async function integration_slack(config: any, context: Record<string, unknown>) 
     case 'send-message': {
       const body: Record<string, any> = {
         channel: config.channel,
-        text: config.text,
+        text: slackText(config.text),
       }
       if (config.blocks) {
-        body.blocks = config.blocks
+        body.blocks = slackBlocks(config.blocks)
       }
       if (config.threadTs) {
         body.thread_ts = config.threadTs
@@ -112,10 +127,10 @@ async function integration_slack(config: any, context: Record<string, unknown>) 
       const body: Record<string, any> = {
         channel: config.channel,
         ts: config.ts,
-        text: config.text,
+        text: slackText(config.text),
       }
       if (config.blocks) {
-        body.blocks = config.blocks
+        body.blocks = slackBlocks(config.blocks)
       }
       const response = await fetch(baseUrl + 'chat.update', {
         method: 'POST',
@@ -376,11 +391,11 @@ async function integration_slack(config: any, context: Record<string, unknown>) 
     case 'schedule-message': {
       const body: Record<string, any> = {
         channel: config.channel,
-        text: config.text,
+        text: slackText(config.text),
         post_at: config.postAt || Math.floor(Date.now() / 1000) + 60,
       }
       if (config.blocks) {
-        body.blocks = config.blocks
+        body.blocks = slackBlocks(config.blocks)
       }
       const response = await fetch(baseUrl + 'chat.scheduleMessage', {
         method: 'POST',

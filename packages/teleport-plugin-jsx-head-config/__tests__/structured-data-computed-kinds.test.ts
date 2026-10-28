@@ -27,7 +27,7 @@ const entry = (extra: UIDLStructuredDataObject): UIDLStructuredDataObject => ({
 
 /** The emitted JavaScript, as text. */
 const renderSource = (document: UIDLStructuredDataObject): string => {
-  const { scriptTag } = buildStructuredDataScript(document)
+  const { scriptTag } = buildStructuredDataScript([document])
   const attribute = scriptTag.openingElement.attributes.find(
     (attr) => types.isJSXAttribute(attr) && attr.name.name === 'dangerouslySetInnerHTML'
   ) as types.JSXAttribute
@@ -41,7 +41,7 @@ const render = (
   document: UIDLStructuredDataObject,
   props: Record<string, unknown>
 ): Record<string, unknown> => {
-  const { scriptTag } = buildStructuredDataScript(document)
+  const { scriptTag } = buildStructuredDataScript([document])
   const attribute = scriptTag.openingElement.attributes.find(
     (attr) => types.isJSXAttribute(attr) && attr.name.name === 'dangerouslySetInnerHTML'
   ) as types.JSXAttribute

@@ -68,7 +68,14 @@ const bootAuthOptions = () => {
       return crypto
     }
     if (name === './hash-password') {
-      return { verifyPassword: (password: string, hash: string) => hash === hashOf(password) }
+      return {
+        verifyPassword: (password: string, hash: string) => hash === hashOf(password),
+        checkPassword: (password: string, hash: string) => ({
+          ok: typeof hash === 'string' && hash !== '' && hash === hashOf(password),
+          needsRehash: false,
+        }),
+        hashPassword: (password: string) => hashOf(password),
+      }
     }
     if (name === './db-health') {
       return { classifyAuthInfrastructureError: () => 'unknown' }

@@ -1,6 +1,18 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from '../email/outbound-message-guard'
+
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 
 async function sms_infobip(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('sms', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageId: '', skipped: true, reason: refused.skipped }
+      : { messageId: '', success: false, error: refused.error }
+  }
   const apiKey = config.apiKey
   // Infobip's dashboard gives the base URL WITH the scheme (https://xxx.api.infobip.com).
   // Strip any existing scheme so we don't build the invalid `https://https://...`.
@@ -60,7 +72,5 @@ async function sms_infobip(config: any, context: Record<string, unknown>) {
 export const smsInfobip: NodeHandlerGenerator = {
   nodeType: 'sms-infobip',
   executionEnv: 'server',
-  generateHandler(): string {
-    return handlerToString(sms_infobip)
-  },
+  ...outboundMessageHandlerSources(sms_infobip),
 }

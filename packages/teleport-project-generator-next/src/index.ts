@@ -35,6 +35,7 @@ import { NextPageRevalidatePlugin } from './page-revalidate/project-plugin'
 import { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
 import {
   createNextWorkflowPlugin,
+  NextNewsletterProjectPlugin,
   NextWorkflowProjectPlugin,
 } from '@teleporthq/teleport-plugin-next-workflows'
 import { createNextGlobalStateComponentPlugin } from './global-state/component-plugin'
@@ -60,8 +61,14 @@ import { NextPlaySoundProjectPlugin } from './play-sound/project-plugin'
 import { NextPaginationScrollProjectPlugin } from './pagination-scroll/project-plugin'
 import { NextPwaProjectPlugin } from './pwa/project-plugin'
 import { NextWebPushProjectPlugin } from './web-push/project-plugin'
+import { NextAccessRulesProjectPlugin } from './access-rules/project-plugin'
+import { createPageAccessGuardPlugin } from './access-rules/page-access-guard-plugin'
+import { NextInstantSearchProjectPlugin } from './instant-search/project-plugin'
+import { NextItemComparisonProjectPlugin } from './item-comparison/project-plugin'
+import { NextPopupsProjectPlugin } from './popups/project-plugin'
 import { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 import { NextSecurityHeadersProjectPlugin } from './security-headers'
+import { NextImageSettingsProjectPlugin } from './next-config-images'
 import { createNextWidgetProjectPlugins } from './widgets'
 import { NextSnapIntoViewProjectPlugin } from './snap-into-view/project-plugin'
 import { NextPageTransitionProjectPlugin } from './page-transition/project-plugin'
@@ -104,6 +111,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
   new NextBlogProjectPlugin(),
+  new NextNewsletterProjectPlugin(),
   new NextBookingProjectPlugin(),
   new NextGlobalStateProjectPlugin(),
   new NextAIChatProjectPlugin(),
@@ -127,8 +135,15 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   // Before the service worker's: the rule for every path comes first, so a
   // path's own rule, later in the same headers(), has the last word.
   new NextSecurityHeadersProjectPlugin(),
+  new NextImageSettingsProjectPlugin(),
   new NextPwaProjectPlugin(),
   new NextWebPushProjectPlugin(),
+  // After the workflow project plugin: it wraps the authentication middleware
+  // that one writes.
+  new NextAccessRulesProjectPlugin(),
+  new NextInstantSearchProjectPlugin(),
+  new NextItemComparisonProjectPlugin(),
+  new NextPopupsProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
   // Last: wraps the middleware the workflows plugin may have emitted.
   new NextPasswordWallProjectPlugin(),
@@ -240,6 +255,8 @@ const createNextProjectGenerator = () => {
         // point) — see entity-mutation-ssr-finalize-plugin.ts for why the
         // rename can't happen any earlier.
         entityMutationSsrFinalizerPlugin,
+        // A protected page checks the session in its own getServerSideProps.
+        createPageAccessGuardPlugin(),
         importStatementsPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -301,11 +318,12 @@ export { createAIChatMarkdownStylesPlugin } from './ai-chat/markdown-styles-plug
 export { createAIChatOptionChipsStylesPlugin } from './ai-chat/option-chips-styles-plugin'
 export { createAIChatSessionPersistencePlugin } from './ai-chat/session-persistence-plugin'
 export { NextAnalyticsProjectPlugin } from './analytics/project-plugin'
+export { NextAccessRulesProjectPlugin } from './access-rules/project-plugin'
+export { NextInstantSearchProjectPlugin } from './instant-search/project-plugin'
+export { NextItemComparisonProjectPlugin } from './item-comparison/project-plugin'
+export { NextPopupsProjectPlugin } from './popups/project-plugin'
 export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
-export {
-  buildStandaloneWallMiddleware,
-  wrapMiddlewareWithWall,
-} from './password-wall/gate-source'
+export { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'
@@ -335,7 +353,10 @@ export { NextFormsCaptchaScriptPlugin } from './forms/captcha-script-plugin'
 export { NextProjectPlugini18nConfig } from './internationalization/project'
 export { NextDataSourceDependenciesPlugin } from './data-source-dependencies'
 export { NextDataSourceUtilityPlugin } from './data-source-utility-plugin'
-export { NextWorkflowProjectPlugin } from '@teleporthq/teleport-plugin-next-workflows'
+export {
+  NextNewsletterProjectPlugin,
+  NextWorkflowProjectPlugin,
+} from '@teleporthq/teleport-plugin-next-workflows'
 export { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 export { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
 export { createNextFormSubmissionPlugin } from './forms/form-submission-handler'

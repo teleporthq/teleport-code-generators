@@ -1,3 +1,6 @@
+import { EventEmitter } from 'events'
+import { Readable } from 'stream'
+
 export interface FetchCall {
   url: string
   method: string
@@ -94,3 +97,75 @@ export const withEnv = async <T>(
     }
   }
 }
+
+/**
+ * `dns`, `http` and `https` for a generated route under test, answered by the
+ * fake `globalThis.fetch` the test installed (see `withFetch`).
+ *
+ * The general-http-request node never calls `fetch`: it connects through its
+ * own DNS lookup and `http(s).request`, so it can refuse private addresses on
+ * the address it actually connects to. A route `require`-shim that answers
+ * these three ids from here lets that node reach the test's fake fetch, with
+ * every name resolving to one public address.
+ */
+export const FETCH_BACKED_NETWORK: Record<string, unknown> = (() => {
+  const PUBLIC_ADDRESS = { address: '93.184.216.34', family: 4 }
+  const dns = {
+    lookup(_hostname: string, options: any, callback: any) {
+      if (options && options.all) {
+        callback(null, [PUBLIC_ADDRESS])
+      } else {
+        callback(null, PUBLIC_ADDRESS.address, PUBLIC_ADDRESS.family)
+      }
+    },
+  }
+  const transport = (protocol: string) => ({
+    request(options: any, onResponse: (res: any) => void) {
+      const req: any = new EventEmitter()
+      const chunks: Buffer[] = []
+      req.write = (chunk: unknown) => {
+        chunks.push(Buffer.from(chunk as string))
+        return true
+      }
+      req.destroy = (): void => undefined
+      req.end = () => {
+        options.lookup(options.hostname, { all: true }, async (err: unknown) => {
+          if (err) {
+            req.emit('error', err)
+            return
+          }
+          try {
+            const port = options.port ? ':' + options.port : ''
+            const headers: Record<string, string> = {}
+            Object.keys(options.headers || {}).forEach((key) => {
+              headers[key] = String(options.headers[key])
+            })
+            const answer = await (globalThis as any).fetch(
+              protocol + '//' + options.hostname + port + options.path,
+              {
+                method: options.method,
+                headers,
+                body: chunks.length > 0 ? Buffer.concat(chunks).toString('utf8') : undefined,
+              }
+            )
+            const text = answer && typeof answer.text === 'function' ? await answer.text() : ''
+            const res: any = Readable.from(text ? [Buffer.from(text)] : [])
+            res.statusCode = answer.status
+            res.statusMessage = ''
+            res.headers = {}
+            if (answer.headers && typeof answer.headers.forEach === 'function') {
+              answer.headers.forEach((value: string, key: string) => {
+                res.headers[String(key).toLowerCase()] = value
+              })
+            }
+            onResponse(res)
+          } catch (fetchError) {
+            req.emit('error', fetchError)
+          }
+        })
+      }
+      return req
+    },
+  })
+  return { dns, http: transport('http:'), https: transport('https:') }
+})()

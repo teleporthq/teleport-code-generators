@@ -8,6 +8,7 @@ import { UIDLLocalizedEmailTemplates } from '@teleporthq/teleport-types'
 import { EmailSender } from '@teleporthq/teleport-shared'
 import { getEmailProviderDependencies } from './invoice/email-sender-code'
 import { EMAIL_LOCALE_FILE_NAME, EMAIL_LOCALE_PATH } from './email-locale/email-locale-scope'
+import { escapeHtmlValueJs } from './nodes/email/html-escape-code'
 
 export const SUPPORTED_EMAIL_PROVIDERS = new Set([
   'resend',
@@ -46,6 +47,19 @@ export interface TransactionalEmailLedger {
    */
   withoutRecipientDetails?: boolean
 }
+
+/**
+ * The sent-email purpose (`emailType`) of the link a sign-up mails to an
+ * address the site knows without a password (a newsletter subscriber, a
+ * checkout guest): "Set your password to finish creating your account".
+ */
+export const SET_PASSWORD_EMAIL = 'set-password'
+
+/**
+ * The sent-email purpose of the notice a sign-up mails to an address that
+ * already has an account: "You already have an account".
+ */
+export const EXISTING_ACCOUNT_EMAIL = 'existing-account'
 
 // Provider-specific `__sendProviderEmail({ from, fromName?, to, recordedTo?,
 // subject, html, apiKey, tokenValues?, userId? })`, preceded by the `__emailSender` helper that
@@ -158,17 +172,29 @@ const generateRawProviderSendFunction = (provider?: string | null): string => {
   }
 }
 
-// Emits the `fillTemplate(str, values)` flat `{{key}}` replacer used to fill the
-// email subject/body tokens at send time.
-export const generateFillTemplateFn = (): string => `function fillTemplate(str, values) {
+// Emits the flat `{{key}}` replacers used to fill the email tokens at send
+// time: `fillTemplate(str, values)` for the HTML body, where every value is
+// escaped once (a name typed at signup, a Host header, …; an already escaped
+// value is not escaped again) and only the author's
+// template stays HTML; `fillSubjectTemplate(str, values)` for the subject, a
+// header, where a value loses its line breaks instead.
+export const generateFillTemplateFn = (): string => `function __fillTokens(str, values, encode) {
   if (!str) { return ''; }
   var out = String(str);
   var keys = Object.keys(values);
   for (var i = 0; i < keys.length; i++) {
     var v = values[keys[i]];
-    out = out.split('{{' + keys[i] + '}}').join(v == null ? '' : String(v));
+    out = out.split('{{' + keys[i] + '}}').join(v == null ? '' : encode(String(v)));
   }
   return out;
+}
+function fillTemplate(str, values) {
+  return __fillTokens(str, values, function (text) {
+    return ${escapeHtmlValueJs('text')};
+  });
+}
+function fillSubjectTemplate(str, values) {
+  return __fillTokens(str, values, function (text) { return text.replace(/[\\r\\n]+/g, ' '); });
 }`
 
 /**

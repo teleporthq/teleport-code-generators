@@ -96,10 +96,10 @@ describe('welcome and farewell routes', () => {
 
   it('send the copy of the request language', () => {
     expect(signup).toContain('var copy = resolveWelcomeEmailCopy(locale);')
-    expect(signup).toContain('var subject = fillTemplate(copy.subject, tokenValues);')
+    expect(signup).toContain('var subject = fillSubjectTemplate(copy.subject, tokenValues);')
     expect(signup).toContain('var html = fillTemplate(copy.body, tokenValues);')
     expect(del).toContain('var copy = resolveFarewellEmailCopy(locale);')
-    expect(del).toContain('var subject = fillTemplate(copy.subject, tokenValues);')
+    expect(del).toContain('var subject = fillSubjectTemplate(copy.subject, tokenValues);')
     expect(del).toContain('var html = fillTemplate(copy.body, tokenValues);')
   })
 
@@ -132,7 +132,9 @@ describe('welcome and farewell routes', () => {
   })
 
   it('the signup route never inserts the copies as a user column', () => {
-    expect(signup).toContain('"localizedTemplates":1')
+    // An allow-list: only the fields a sign-up form collects reach the row.
+    expect(signup).toContain('const signupFields = ["image"];')
+    expect(signup).not.toContain('userData[bodyKeys[i]]')
   })
 })
 

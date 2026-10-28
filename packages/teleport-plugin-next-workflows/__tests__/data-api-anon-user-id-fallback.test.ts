@@ -65,7 +65,10 @@ describe('data-api route generator: anonymousUserId fallback', () => {
   })
 
   it('handleCreate reads body.__anonymousUserId and passes it through to coercion', () => {
-    expect(code).toContain('var anonymousUserIdFallback = body.__anonymousUserId')
+    // Only an anonymous id is taken (never a registered account's): see __dataGuestFallback.
+    expect(code).toContain(
+      'var anonymousUserIdFallback = await __dataGuestFallback(client, req, body.__anonymousUserId)'
+    )
     expect(code).toContain('coerceUuidColumnValue(col, val, colTypes, anonymousUserIdFallback)')
   })
 
@@ -74,7 +77,9 @@ describe('data-api route generator: anonymousUserId fallback', () => {
       code.indexOf('async function handleUpdate'),
       code.indexOf('async function handleDelete')
     )
-    expect(updateBody).toContain('var anonymousUserIdFallback = body.__anonymousUserId')
+    expect(updateBody).toContain(
+      'var anonymousUserIdFallback = await __dataGuestFallback(client, req, body.__anonymousUserId)'
+    )
     expect(updateBody).toContain(
       'coerceUuidColumnValue(col, val, colTypes, anonymousUserIdFallback)'
     )

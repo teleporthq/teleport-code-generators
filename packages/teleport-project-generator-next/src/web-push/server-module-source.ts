@@ -23,6 +23,14 @@ const PUSH_SERVICE_HOST_SUFFIXES = [
   '.notify.windows.com',
 ]
 
+/**
+ * `NEXTAUTH_URL` as the deployment configured it — the same expression as
+ * teleport-plugin-next-workflows' `CONFIGURED_NEXTAUTH_URL_EXPRESSION`: the
+ * auth route rewrites the live variable from a request's headers.
+ */
+const CONFIGURED_NEXTAUTH_URL =
+  "(typeof globalThis.__tqConfiguredNextAuthUrl === 'string' ? globalThis.__tqConfiguredNextAuthUrl : process.env.NEXTAUTH_URL)"
+
 const KEYS_MISMATCH_MESSAGE =
   'The push notification keys of this site do not belong together. Create new keys in Project settings > Push notifications and publish again.'
 
@@ -67,6 +75,7 @@ var CONCURRENCY = 50;
 var TIME_BUDGET_MS = 5000;
 // A push service that stops answering is given up on after this long.
 var REQUEST_TIMEOUT_MS = 3000;
+var PUBLIC_STATEMENT_TIMEOUT = '10s';
 var DEFAULT_TTL_SECONDS = 86400;
 var MAX_TTL_SECONDS = 2419200;
 var URGENCIES = ['very-low', 'low', 'normal', 'high'];
@@ -216,6 +225,25 @@ async function withClient(work) {
   }
 }
 
+// The statements a visitor's request runs (saving or forgetting a
+// subscription) are cut off after PUBLIC_STATEMENT_TIMEOUT, so a slow or
+// flooded database never holds a public route. SET LOCAL lasts for this
+// transaction only: on a pooled connection the setting never reaches the next
+// request that shares it.
+async function withPublicClient(work) {
+  return withClient(async function (client) {
+    await client.query("BEGIN; SET LOCAL statement_timeout = '" + PUBLIC_STATEMENT_TIMEOUT + "'");
+    try {
+      var result = await work(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(function () {});
+      throw error;
+    }
+  });
+}
+
 // Upserted by endpoint, and only by the browser holding the subscription: a
 // stored one changes only when the request carries its auth secret, so knowing
 // an endpoint is not enough to relink or replace a visitor's browser. The user
@@ -225,7 +253,7 @@ async function withClient(work) {
 async function saveSubscription(subscription, options) {
   var previousEndpoint = normalizeEndpoint(options.previousEndpoint);
   var previousAuth = typeof options.previousAuth === 'string' ? options.previousAuth : '';
-  return withClient(async function (client) {
+  return withPublicClient(async function (client) {
     var result = await client.query(
       'INSERT INTO ' + TABLE + ' (endpoint, p256dh, auth, vapid_public_key, user_id, updated_at)' +
         ' VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)' +
@@ -249,7 +277,7 @@ async function deleteSubscription(endpoint, auth) {
   if (!normalized || typeof auth !== 'string' || !auth) {
     return false;
   }
-  return withClient(async function (client) {
+  return withPublicClient(async function (client) {
     var result = await client.query('DELETE FROM ' + TABLE + ' WHERE endpoint = $1 AND auth = $2', [normalized, auth]);
     return (result.rowCount || 0) > 0;
   });
@@ -260,19 +288,67 @@ function clip(value, max) {
   return text.trim().slice(0, max);
 }
 
-function normalizeNotification(input) {
+// This site's hosts a notification may open: the one the send was made on,
+// and the canonical one the deployment configured (NEXTAUTH_URL as configured,
+// never as a request rewrote it) — a push sent from the platform domain may
+// link to the custom domain, and back.
+function siteHosts(siteOrigin) {
+  var hosts = [];
+  try {
+    hosts.push(new URL(siteOrigin).host);
+  } catch (error) {
+    // No origin to send from.
+  }
+  try {
+    var configured = String(${CONFIGURED_NEXTAUTH_URL} || '').trim();
+    if (configured) {
+      hosts.push(new URL(configured).host);
+    }
+  } catch (error) {
+    // Not a URL.
+  }
+  return hosts;
+}
+
+// The page a notification opens, as a path on this site: an address on one of
+// this site's hosts keeps its path, any other is dropped (the notification
+// then opens the home page). A notification's text and link can come from what
+// a visitor typed; its click must never send every subscriber elsewhere.
+function sameSitePath(value, siteOrigin) {
+  var text = clip(value, LIMITS.url);
+  var hosts = siteHosts(siteOrigin);
+  if (!text || hosts.length === 0) {
+    return '';
+  }
+  try {
+    var url = new URL(text, 'https://' + hosts[0]);
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || hosts.indexOf(url.host) === -1) {
+      return '';
+    }
+    // A path stays as it was written; an address on this site becomes its path.
+    return text.charAt(0) === '/' ? text : url.pathname + url.search + url.hash;
+  } catch (error) {
+    return '';
+  }
+}
+
+function normalizeNotification(input, siteOrigin) {
   var source = input && typeof input === 'object' ? input : {};
   var title = clip(source.title, LIMITS.title);
   if (!title) {
     return null;
   }
   var notification = { title: title };
-  ['body', 'url', 'icon', 'image', 'tag'].forEach(function (field) {
+  ['body', 'icon', 'image', 'tag'].forEach(function (field) {
     var value = clip(source[field], LIMITS[field]);
     if (value) {
       notification[field] = value;
     }
   });
+  var path = sameSitePath(source.url, siteOrigin);
+  if (path) {
+    notification.url = path;
+  }
   if (source.requireInteraction === true) {
     notification.requireInteraction = true;
   }
@@ -376,7 +452,8 @@ async function forEachConcurrently(items, limit, shouldStop, worker) {
 // merchant's subscribers. A send that runs out of time reports complete: false
 // with the cursor a later call resumes after (as request.after).
 async function sendNotification(request, subject) {
-  var notification = normalizeNotification(request.notification);
+  // The VAPID subject is this site's own origin (the send route's request host).
+  var notification = normalizeNotification(request.notification, subject);
   if (!notification) {
     return { success: false, error: 'A push notification needs a title.' };
   }

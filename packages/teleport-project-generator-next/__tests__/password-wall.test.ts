@@ -4,7 +4,10 @@ import standalone from 'prettier/standalone.js'
 import parserBabel from 'prettier/parser-babel.js'
 import { FileType, ProjectPluginStructure, ProjectUIDL } from '@teleporthq/teleport-types'
 import { NextPasswordWallProjectPlugin } from '../src/password-wall/project-plugin'
-import { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from '../src/password-wall/gate-source'
+import {
+  buildStandaloneWallMiddleware,
+  wrapMiddlewareWithWall,
+} from '../src/password-wall/gate-source'
 import { buildWallHelperSource } from '../src/password-wall/helper-source'
 import { buildPasswordPageModule } from '../src/password-wall/page-html'
 import { buildSignInRouteSource } from '../src/password-wall/sign-in-route-source'
@@ -18,7 +21,11 @@ const structureFor = (
   ({
     uidl: {
       name: 'site',
-      globals: { settings: { title: 'Harbor Store', language: 'en', ...settings }, meta: [], assets: [] },
+      globals: {
+        settings: { title: 'Harbor Store', language: 'en', ...settings },
+        meta: [],
+        assets: [],
+      },
       root: {} as never,
     } as unknown as ProjectUIDL,
     template: { name: 'site', files: [], subFolders: [] },
@@ -27,7 +34,7 @@ const structureFor = (
     devDependencies: {},
     strategy: {} as never,
     rootFolder: { name: 'site', files: [], subFolders: [] },
-  }) as ProjectPluginStructure
+  } as ProjectPluginStructure)
 
 const fileOf = (files: ProjectPluginStructure['files'], key: string) => files.get(key)!.files[0]
 

@@ -262,6 +262,50 @@ export interface GeneratorOptions {
   // machinery that rewrites translated NODES (`useTranslations`) cannot reach
   // it — the plugin has to read the per-locale copy from here.
   aiAssistantChat?: UIDLAIAssistantChat
+  // Which tables a browser may read through the generated read routes, decided
+  // once from the WHOLE project (every page that binds a table, and the
+  // protection of each) — a page plugin sees only its own page. See
+  // `DataExposure.resolveDataExposure` in teleport-shared.
+  dataExposure?: ProjectDataExposure
+}
+
+/**
+ * Who may read one table (or one non-table data source) from a browser:
+ * everyone when a page every visitor may open binds it; otherwise a session the
+ * binding pages admit (`anySession`, or one of `roles`). Server-side callers
+ * (the app secret, an in-process call) always may. `defaultLimit` / `maxLimit`
+ * bound the rows one browser read gets.
+ */
+export interface DataReadExposure {
+  public: boolean
+  anySession: boolean
+  roles: string[]
+  /**
+   * The subscriber-only pages that bind the table: a session they admit (any
+   * session when `roles` is empty) that also holds an entitled subscription —
+   * to one of `productIds`, or to any product when the list is empty.
+   */
+  subscriberRules?: Array<{ roles: string[]; productIds: string[] }>
+  /**
+   * The row-owned (self-guarded) details pages that bind the table: any
+   * session reads it, but only the rows whose `column` is the session's own
+   * user id — the server adds the condition, whatever the request asks.
+   */
+  ownerRules?: Array<{ column: string }>
+  /** The fields the project's own bindings of the table filter, sort or search by. */
+  fields?: string[]
+  defaultLimit: number
+  maxLimit: number
+}
+
+export interface ProjectDataExposure {
+  /**
+   * By `<data source id>:<bare, lower-case table name>` (`*:<table>` for a
+   * binding that names no data source) — see `DataExposure.tableExposureKey`.
+   */
+  tables: Record<string, DataReadExposure>
+  /** By data source id — for the sources without tables (REST, CSV, JavaScript, sheets). */
+  dataSources: Record<string, DataReadExposure>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

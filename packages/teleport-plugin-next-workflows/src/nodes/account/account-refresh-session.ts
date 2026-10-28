@@ -89,7 +89,7 @@ export const accountRefreshSession: NodeHandlerGenerator = {
   nodeType: 'account-refresh-session',
   executionEnv: 'client',
   dependencies: {
-    'next-auth': '^4.24.0',
+    'next-auth': '4.24.15',
   },
   generateHandler(): string {
     return handlerToString(account_refresh_session)

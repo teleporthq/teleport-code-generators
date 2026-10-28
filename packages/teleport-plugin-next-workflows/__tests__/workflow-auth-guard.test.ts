@@ -71,7 +71,15 @@ function bootGuard(secret: string | undefined, subscriberAccess?: SubscriberAcce
   return moduleObj.exports.guardWorkflowRequest as Guard
 }
 
-const reqWith = (extra: Record<string, unknown> = {}): any => ({ headers: {}, ...extra })
+// A local request carries the plain session cookie (the only name read on http;
+// see session-cookie-resolver); getToken then reads \`req.__token\`.
+const reqWith = (extra: Record<string, unknown> = {}): any => ({
+  ...extra,
+  headers: {
+    cookie: 'next-auth.session-token=signed',
+    ...((extra.headers as Record<string, string> | undefined) || {}),
+  },
+})
 
 describe("guardWorkflowRequest — calls from this deployment's own server code", () => {
   const serverOnly = { requiresAuth: false, allowedRoles: [], serverOnly: true }

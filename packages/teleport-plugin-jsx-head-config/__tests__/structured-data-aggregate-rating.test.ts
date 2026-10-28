@@ -36,7 +36,7 @@ const productEntry = (): UIDLStructuredDataObject => ({
 
 /** Renders the `__html` expression and evaluates it against a page-props object. */
 const renderJsonLd = (props: Record<string, unknown>): Record<string, unknown> => {
-  const { scriptTag } = buildStructuredDataScript(productEntry())
+  const { scriptTag } = buildStructuredDataScript([productEntry()])
   const attribute = scriptTag.openingElement.attributes.find(
     (attr) => types.isJSXAttribute(attr) && attr.name.name === 'dangerouslySetInnerHTML'
   ) as types.JSXAttribute
@@ -102,15 +102,17 @@ describe('structured data — aggregateRating', () => {
   })
 
   it('falls back to `column` when no rating value column was given', () => {
-    const { scriptTag } = buildStructuredDataScript({
-      '@type': 'Product',
-      aggregateRating: {
-        type: 'computed',
-        kind: 'aggregateRating',
-        refPath: ['p'],
-        column: 'ratingCount',
+    const { scriptTag } = buildStructuredDataScript([
+      {
+        '@type': 'Product',
+        aggregateRating: {
+          type: 'computed',
+          kind: 'aggregateRating',
+          refPath: ['p'],
+          column: 'ratingCount',
+        },
       },
-    })
+    ])
     const code = generate(scriptTag).code
     // Degrades to using the count for both rather than emitting `undefined` as
     // the score, which would produce a malformed block.

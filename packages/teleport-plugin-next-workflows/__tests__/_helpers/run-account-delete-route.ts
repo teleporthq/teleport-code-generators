@@ -129,7 +129,9 @@ export const runAccountDeleteRoute = async (setup: DeleteRouteSetup): Promise<De
   await handler(
     {
       method: 'POST',
-      headers: {},
+      // No host: the request is local http, so the plain session cookie is the
+      // one the reader accepts. getToken is stubbed and ignores its value.
+      headers: { cookie: 'next-auth.session-token=signed' },
       ...(setup.requestBody === undefined ? {} : { body: setup.requestBody }),
     },
     res

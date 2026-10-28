@@ -1,0 +1,242 @@
+{
+  "claimedByPage": [
+    {
+      "name": "Admin Panel: Execute Asset Delete",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-delete",
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Next Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Prev Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Search",
+      "triggerType": "event-input-updated",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Load Assets List",
+      "triggerType": "event-page-loaded",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Next Assets Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Open Image Picker (image_url)",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Previous Assets Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Search Assets",
+      "triggerType": "event-input-updated",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    }
+  ],
+  "claimedByNoPage": [
+    {
+      "name": "Admin Panel: Execute Asset Delete",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-delete",
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Next Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Prev Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Image Picker Search",
+      "triggerType": "event-input-updated",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Load Assets List",
+      "triggerType": "event-page-loaded",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Next Assets Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Open Image Picker (image_url)",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Previous Assets Page",
+      "triggerType": "event-element-clicked",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "name": "Admin Panel: Search Assets",
+      "triggerType": "event-input-updated",
+      "steps": [
+        "file-storage-list"
+      ],
+      "protection": {
+        "requiresAuth": true,
+        "allowedRoles": [
+          "admin"
+        ]
+      }
+    }
+  ]
+}

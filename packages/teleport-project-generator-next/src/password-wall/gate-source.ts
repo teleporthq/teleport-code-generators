@@ -100,7 +100,8 @@ function __tqWallPage(request, direct) {
 `
 
 /** `middleware.js` for a site that has no middleware of its own. */
-export const buildStandaloneWallMiddleware = (): string => `import { NextResponse } from 'next/server';
+export const buildStandaloneWallMiddleware =
+  (): string => `import { NextResponse } from 'next/server';
 ${helperImport}
 ${gateFunctions}
 export default async function middleware(request, event) {
@@ -125,7 +126,9 @@ const MATCHER_LINE = /matcher: \[[^\]]*\],/
  */
 export const wrapMiddlewareWithWall = (authMiddlewareSource: string): string => {
   if (authMiddlewareSource.indexOf(DEFAULT_EXPORT) === -1) {
-    throw new Error('The site middleware has no default export to put the password wall in front of')
+    throw new Error(
+      'The site middleware has no default export to put the password wall in front of'
+    )
   }
   if (!MATCHER_LINE.test(authMiddlewareSource)) {
     throw new Error('The site middleware has no matcher to widen for the password wall')

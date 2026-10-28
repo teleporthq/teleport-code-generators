@@ -6,6 +6,8 @@ import {
 } from '@teleporthq/teleport-types'
 import { ensurePaymentDriversModule, resolveStorePaymentDriverIds } from './payments'
 import { DEFAULT_PAYMENT_DRIVER_IDS } from './payments/payment-drivers-scope'
+import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
+import { generateSelfCallHeadersCode } from './self-call-headers'
 
 /**
  * The origin a legacy webhook route calls this deployment's own routes on
@@ -18,7 +20,8 @@ import { DEFAULT_PAYMENT_DRIVER_IDS } from './payments/payment-drivers-scope'
  * NEXTAUTH_URL's origin when it is set — except that a local server on another
  * port than a local NEXTAUTH_URL keeps its own loopback address (NEXTAUTH_URL
  * stuck at :3000 while `next dev` runs on :3001). With no Host header at all,
- * the configured URLs as before.
+ * the configured URLs as before. NEXTAUTH_URL is read as configured, never as
+ * the auth route rewrote it from a request (configured-nextauth-url.ts).
  */
 const WEBHOOK_BASE_URL_CODE = `function __isLoopbackHost(host) {
   var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
@@ -29,20 +32,22 @@ function __webhookBaseUrl(req) {
   var headers = (req && req.headers) || {};
   var host = headers.host || '';
   if (!host) {
-    var envBaseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '';
+    var envBaseUrl = ${CONFIGURED_NEXTAUTH_URL_EXPRESSION} || process.env.VERCEL_URL || '';
     if (envBaseUrl && !envBaseUrl.startsWith('http')) envBaseUrl = 'https://' + envBaseUrl;
     return envBaseUrl || 'http://localhost:3000';
   }
   var proto = headers['x-forwarded-proto'] || (__isLoopbackHost(host) ? 'http' : 'https');
   var requestOrigin = String(proto).split(',')[0].trim() + '://' + host;
   if (process.env.VERCEL) return requestOrigin;
-  var configured = String(process.env.NEXTAUTH_URL || '').trim();
+  var configured = String(${CONFIGURED_NEXTAUTH_URL_EXPRESSION} || '').trim();
   if (!configured) return requestOrigin;
   var origin;
   try { origin = new URL(configured).origin; } catch (e) { return requestOrigin; }
   if (__isLoopbackHost(host) && __isLoopbackHost(new URL(origin).host)) return requestOrigin;
   return origin;
-}`
+}
+
+${generateSelfCallHeadersCode()}`
 
 export const generateStripeWebhookCode = (
   invoiceSettings: UIDLInvoiceSettings | undefined,
@@ -78,7 +83,7 @@ function __stripeSecretKey() {
   return __paymentDrivers.core.credential('stripe', 'secretKey', ['STRIPE_TEST_KEY']);
 }
 ${
-  autoGenerateInvoice || hasOrderNotifications
+  autoGenerateInvoice || hasEcommerce
     ? `
 // Stripe reports money in the currency's smallest unit (JPY has none, KWD a
 // thousandth); the store keeps the major one, converted as its drivers do.
@@ -138,6 +143,23 @@ module.exports = async function handler(req, res) {
         if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
           console.log('Checkout session completed, payment not received yet:', session.id);
           break;
+        }${
+          hasEcommerce
+            ? `
+        // A session that took less than its order is due, or another
+        // currency, pays nothing: no paid mark, no invoice, no order email.
+        var sessionCheck = await __checkStripeSession(session);
+        if (!sessionCheck.ok) {
+          console.error('Stripe webhook: checkout ' + session.id + ' does not pay its order: ' + sessionCheck.reason);
+          // The order could not be read: Stripe retries a 500, so a database
+          // blip delays the paid mark instead of losing it.
+          if (sessionCheck.retry) {
+            res.status(500).json({ error: 'Webhook processing failed' });
+            return;
+          }
+          break;
+        }`
+            : ''
         }
         ${
           autoGenerateInvoice
@@ -240,11 +262,69 @@ ${hasOrderNotifications ? generateOrderNotificationWebhookCode() : ''}
 }
 
 function generateEcommerceOrderUpdateCode(): string {
-  // Used ONLY when invoice auto-generation is OFF — when invoices are on,
-  // handleInvoiceGeneration calls __linkInvoiceToOrder which does the same
-  // mark-paid update plus invoice linkage, so this function is skipped to
-  // avoid two writes that race for the row.
+  // handleEcommerceOrderUpdate is used ONLY when invoice auto-generation is
+  // OFF — when invoices are on, handleInvoiceGeneration calls
+  // __linkInvoiceToOrder which does the same mark-paid update plus invoice
+  // linkage, so it is skipped to avoid two writes that race for the row.
+  // __checkStripeSession runs before either, the way the PayPal route's
+  // __checkPaypalCapture does, with the rule the workflow-driven "Process
+  // Payment Webhook" applies (a payment may not take less than is due).
   return `
+// Whether a paid checkout session may pay the store order it names: the order
+// exists and the session took, in the order's currency, at least what the
+// order is due — its total less what a gift card covered. A session that names
+// no store order has nothing to check.
+async function __checkStripeSession(session) {
+  var orderId = session && session.metadata && session.metadata.orderId;
+  if (!orderId) {
+    return { ok: true };
+  }
+  var connStr = process.env.TELEPORT_DB_CONNECTION_STRING || process.env.DATABASE_URL || '';
+  if (!connStr) {
+    return { ok: false, retry: true, reason: 'no database connection to check order ' + orderId + ' against' };
+  }
+  var pg;
+  try {
+    pg = require('pg');
+  } catch (e) {
+    return { ok: false, retry: true, reason: 'the pg module is unavailable to check order ' + orderId };
+  }
+  var client = new pg.Client({ connectionString: connStr, ssl: connStr.indexOf('sslmode=require') !== -1 ? { rejectUnauthorized: false } : undefined });
+  var order = null;
+  try {
+    await client.connect();
+    // gift_card_amount and currency are read through the row's JSON: a store
+    // provisioned before them has no such column.
+    var found = await client.query(
+      "SELECT o.total_amount, COALESCE(to_jsonb(o) ->> 'gift_card_amount', '0') AS gift_card_amount, COALESCE(to_jsonb(o) ->> 'currency', '') AS currency FROM teleport_orders o WHERE o.id::text = $1",
+      [String(orderId)]
+    );
+    order = found && found.rows && found.rows[0] ? found.rows[0] : null;
+  } catch (err) {
+    return { ok: false, retry: true, reason: 'order ' + orderId + ' could not be read (' + (err && err.message) + ')' };
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+  if (!order) {
+    return { ok: false, reason: 'the store has no order ' + orderId };
+  }
+  var paidCurrency = String(session.currency || '').toUpperCase();
+  var orderCurrency = String(order.currency || '').toUpperCase();
+  if (orderCurrency && paidCurrency !== orderCurrency) {
+    return { ok: false, reason: 'the session is in ' + (paidCurrency || 'no currency') + ' and order ' + orderId + ' in ' + orderCurrency };
+  }
+  // Whole cents, so 12.30 - 4.10 compares as 820 and never 8.199999999999999.
+  var due = Math.max(0, Math.round((Number(order.total_amount) - Number(order.gift_card_amount || 0)) * 100));
+  var paid = session.amount_total == null ? NaN : Math.round(__stripeMajor(session.amount_total, session.currency) * 100);
+  if (!isFinite(due) || !isFinite(paid) || paid < due) {
+    return {
+      ok: false,
+      reason: 'the session took ' + (isFinite(paid) ? (paid / 100).toFixed(2) : 'an unknown amount') + ' ' + paidCurrency + ' and order ' + orderId + ' is due ' + (due / 100).toFixed(2),
+    };
+  }
+  return { ok: true };
+}
+
 async function handleEcommerceOrderUpdate(session) {
   try {
     var orderId = session.metadata && session.metadata.orderId;
@@ -281,7 +361,7 @@ async function sendOrderNotification(session, baseUrl) {
     await fetch(resolvedBaseUrl + '/api/ecommerce/order-notification', {
       method: 'POST',
       // The route emails the merchant only for the store's own server code.
-      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         orderId: orderId || session.id,
         customerEmail: session.customer_email || (session.customer_details && session.customer_details.email) || '',
@@ -402,7 +482,7 @@ async function handleInvoiceGeneration(paymentObj, source, baseUrl, stripeSecret
       method: 'POST',
       // The route issues invoices only for the store's own server code, which
       // presents the app secret.
-      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(invoicePayload),
     });
 
@@ -542,7 +622,7 @@ async function handleStripeInvoicePayment(stripeInvoice, baseUrl) {
       method: 'POST',
       // The route issues invoices only for the store's own server code, which
       // presents the app secret.
-      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(invoicePayload),
     });
 
@@ -659,7 +739,7 @@ module.exports = async function handler(req, res) {
           await fetch(__baseUrl + '/api/ecommerce/order-notification', {
             method: 'POST',
             // The route emails the merchant only for the store's own server code.
-            headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+            headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
               // The internal order id, so the route can load the order's own
               // lines and the rates they were charged at; the capture id is
@@ -871,7 +951,7 @@ async function handlePaypalInvoiceGeneration(resource, baseUrl) {
       method: 'POST',
       // The route issues invoices only for the store's own server code, which
       // presents the app secret.
-      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(invoicePayload),
     });
 

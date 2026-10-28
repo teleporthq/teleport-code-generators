@@ -71,7 +71,15 @@ const bootRoute = (options: { signedIn?: boolean; runtime?: boolean }) => {
         return this
       },
     }
-    await moduleObj.exports({ method: 'POST', query: { op: 'mark-ordered' }, headers, body }, res)
+    // A signed-in local request carries the plain session cookie (the only
+    // name read on http; see teleport-shared session-cookie-resolver).
+    const requestHeaders = options.signedIn
+      ? { cookie: 'next-auth.session-token=signed', ...headers }
+      : headers
+    await moduleObj.exports(
+      { method: 'POST', query: { op: 'mark-ordered' }, headers: requestHeaders, body },
+      res
+    )
     return { payload, updates: queries.filter((query) => /^UPDATE teleport_cart/.test(query.sql)) }
   }
   return { markOrdered, required }

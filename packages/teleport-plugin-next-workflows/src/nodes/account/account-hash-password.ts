@@ -14,8 +14,16 @@ async function account_hash_password(config: any, context: Record<string, unknow
     throw new Error('Password cannot be empty')
   }
 
-  if (passwordStr.length > 1000) {
-    throw new Error('Password exceeds maximum length')
+  // The password a site accepts (the sign-up and reset routes apply the same).
+  if (passwordStr.length < 8) {
+    throw new Error('Password must be at least 8 characters')
+  }
+
+  if (
+    passwordStr.length > 1000 ||
+    (globalThis as any).Buffer.byteLength(passwordStr, 'utf8') > 128
+  ) {
+    throw new Error('Password is too long (at most 128 bytes)')
   }
 
   if (!Number.isInteger(saltRounds) || saltRounds < 4 || saltRounds > 31) {
@@ -34,7 +42,15 @@ async function account_hash_password(config: any, context: Record<string, unknow
   const bcrypt = __nodeRequire('bcryptjs')
   const crypto = __nodeRequire('crypto')
 
-  const PEPPER = (globalThis as any).process.env.AUTH_PEPPER || ''
+  // The project's own pepper (AUTH_PEPPER_SECRET) when the deployment has one,
+  // else the one every earlier hash used (AUTH_PEPPER) — as utils/auth/hash-password.
+  const env = (globalThis as any).process.env
+  const secretPepper =
+    typeof env.AUTH_PEPPER_SECRET === 'string' &&
+    env.AUTH_PEPPER_SECRET.indexOf('teleporthq.secrets.') !== 0
+      ? env.AUTH_PEPPER_SECRET
+      : ''
+  const PEPPER = secretPepper || env.AUTH_PEPPER || ''
   const sha = crypto
     .createHash('sha256')
     .update(passwordStr + PEPPER)

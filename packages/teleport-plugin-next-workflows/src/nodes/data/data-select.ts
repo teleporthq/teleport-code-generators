@@ -55,8 +55,16 @@ async function data_select(config: any, context: any) {
     return false
   }
 
-  const effectiveFilters = filters.filter(function (filter: any) {
-    return !shouldSkipOptionalFilter(filter)
+  // A filter this node would leave out is kept, marked: the data API leaves it
+  // out exactly as before, except on a customer table read for a visitor, where
+  // an empty or "all" value must not widen the read to every customer's rows.
+  const effectiveFilters: any[] = []
+  filters.forEach(function (filter: any) {
+    if (!shouldSkipOptionalFilter(filter)) {
+      effectiveFilters.push(filter)
+    } else if (filter && typeof filter === 'object') {
+      effectiveFilters.push({ ...filter, __skippable: true })
+    }
   })
 
   // A filter whose value is the unresolved route-param sentinel (see
@@ -71,6 +79,7 @@ async function data_select(config: any, context: any) {
     const __f: any = effectiveFilters[__fi]
     if (
       __f &&
+      __f.__skippable !== true &&
       (__f.value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
         __f.destination === '__TQ_UNRESOLVED_ROUTE_PARAM__')
     ) {

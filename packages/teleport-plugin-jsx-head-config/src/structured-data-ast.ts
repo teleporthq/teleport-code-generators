@@ -219,6 +219,14 @@ const buildComputedExpression = (node: UIDLStructuredDataComputed): types.Expres
     )
   }
 
+  if (node.kind === 'faqPage') {
+    return buildFaqPageExpression(entityField)
+  }
+
+  if (node.kind === 'breadcrumbTrail') {
+    return buildBreadcrumbTrailExpression(node)
+  }
+
   // concatUrl: `${urlPrefix}${<entity>.<column>}`
   const prefix = node.urlPrefix || ''
   return types.templateLiteral(
@@ -228,6 +236,154 @@ const buildComputedExpression = (node: UIDLStructuredDataComputed): types.Expres
     ],
     [entityField]
   )
+}
+
+const SCHEMA_CONTEXT = 'https://schema.org'
+
+const property = (key: string, value: types.Expression): types.ObjectProperty =>
+  types.objectProperty(types.stringLiteral(key), value)
+
+/** `${prefix}${value}` */
+const prefixed = (prefix: string, value: types.Expression): types.Expression =>
+  types.templateLiteral(
+    [
+      types.templateElement({ raw: prefix, cooked: prefix }, false),
+      types.templateElement({ raw: '', cooked: '' }, true),
+    ],
+    [value]
+  )
+
+/**
+ * `.map` through an OPTIONAL CALL — see the note on `reviewList`: a plain call
+ * around an optional member is lowered by SWC to a conditional callee, which
+ * loses the receiver and dies at runtime on the one page that has rows.
+ */
+const optionalMap = (
+  list: types.Expression,
+  callback: types.ArrowFunctionExpression
+): types.Expression =>
+  types.optionalCallExpression(
+    types.optionalMemberExpression(list, types.identifier('map'), false, true),
+    [callback],
+    false
+  )
+
+/**
+ * The whole FAQPage, or `undefined` with fewer than two pairs:
+ *   Array.isArray(f) && f.length >= 2
+ *     ? { '@context', '@type': 'FAQPage', mainEntity: f.map(q => ({ Question… })) }
+ *     : undefined
+ */
+const buildFaqPageExpression = (pairs: types.Expression): types.Expression => {
+  const pair = types.identifier('q')
+  const pairProp = (name: string): types.MemberExpression =>
+    types.memberExpression(pair, types.identifier(name), false, false)
+  const question = types.arrowFunctionExpression(
+    [pair],
+    types.objectExpression([
+      property('@type', types.stringLiteral('Question')),
+      property('name', pairProp('question')),
+      property(
+        'acceptedAnswer',
+        types.objectExpression([
+          property('@type', types.stringLiteral('Answer')),
+          property('text', pairProp('answer')),
+        ])
+      ),
+    ])
+  )
+  return types.conditionalExpression(
+    types.logicalExpression(
+      '&&',
+      types.callExpression(
+        types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+        [pairs]
+      ),
+      types.binaryExpression(
+        '>=',
+        types.optionalMemberExpression(pairs, types.identifier('length'), false, true),
+        types.numericLiteral(2)
+      )
+    ),
+    types.objectExpression([
+      property('@context', types.stringLiteral(SCHEMA_CONTEXT)),
+      property('@type', types.stringLiteral('FAQPage')),
+      property('mainEntity', optionalMap(pairs, question)),
+    ]),
+    types.identifier('undefined')
+  )
+}
+
+/**
+ * The whole BreadcrumbList, numbered at render time:
+ *   { '@context', '@type': 'BreadcrumbList',
+ *     itemListElement: [ ...crumbs, category || undefined, entity ]
+ *       .filter(Boolean)
+ *       .map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })) }
+ */
+const buildBreadcrumbTrailExpression = (node: UIDLStructuredDataComputed): types.Expression => {
+  const crumb = (name: types.Expression, item: types.Expression): types.Expression =>
+    types.objectExpression([property('name', name), property('item', item)])
+  const staticCrumbs = (node.crumbs || []).map((entry) =>
+    crumb(types.stringLiteral(entry.name), types.stringLiteral(entry.item))
+  )
+  const categoryName = node.categoryNameColumn
+    ? buildPropExpression([...node.refPath, node.categoryNameColumn])
+    : null
+  // A crumb needs an address: a row may still name a category whose record is
+  // gone (its slug null), and `…/category/null` is no address.
+  const categoryCrumb =
+    categoryName && node.categorySlugColumn
+      ? [
+          types.conditionalExpression(
+            types.logicalExpression(
+              '&&',
+              categoryName,
+              buildPropExpression([...node.refPath, node.categorySlugColumn])
+            ),
+            crumb(
+              categoryName,
+              prefixed(
+                node.categoryUrlPrefix || '',
+                buildPropExpression([...node.refPath, node.categorySlugColumn])
+              )
+            ),
+            types.identifier('undefined')
+          ),
+        ]
+      : []
+  const entityCrumb = crumb(
+    buildPropExpression([...node.refPath, node.column]),
+    prefixed(
+      node.urlPrefix || '',
+      buildPropExpression([...node.refPath, node.slugColumn || 'slug'])
+    )
+  )
+  const kept = types.callExpression(
+    types.memberExpression(
+      types.arrayExpression([...staticCrumbs, ...categoryCrumb, entityCrumb]),
+      types.identifier('filter')
+    ),
+    [types.identifier('Boolean')]
+  )
+  const crumbParam = types.identifier('c')
+  const index = types.identifier('i')
+  const numbered = types.callExpression(types.memberExpression(kept, types.identifier('map')), [
+    types.arrowFunctionExpression(
+      [crumbParam, index],
+      types.objectExpression([
+        property('@type', types.stringLiteral('ListItem')),
+        property('position', types.binaryExpression('+', index, types.numericLiteral(1))),
+        property('name', types.memberExpression(crumbParam, types.identifier('name'))),
+        property('item', types.memberExpression(crumbParam, types.identifier('item'))),
+      ])
+    ),
+  ])
+  return types.objectExpression([
+    property('@context', types.stringLiteral(SCHEMA_CONTEXT)),
+    property('@type', types.stringLiteral('BreadcrumbList')),
+    property('itemListElement', numbered),
+  ])
 }
 
 /** Converts a plain JSON value (no dynamic/computed markers) into a literal AST. */
@@ -311,20 +467,38 @@ const buildObject = (
   return { expression: types.objectExpression(properties), usesTranslations }
 }
 
+interface StructuredDataContent {
+  /** The JSON text of one entry, as an expression evaluated when the page renders. */
+  expression: types.Expression
+  usesTranslations: boolean
+  usesRouter: boolean
+  /** A computed whole document: `''` at render time when it is absent. */
+  optional: boolean
+}
+
+/** `JSON.stringify(<expression>).replace(/</g, '\u003c')` — the `<` escape keeps `</script>` inside the tag. */
+const stringified = (expression: types.Expression): types.Expression =>
+  types.callExpression(
+    types.memberExpression(
+      types.callExpression(
+        types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+        [expression]
+      ),
+      types.identifier('replace')
+    ),
+    [types.regExpLiteral('<', 'g'), types.stringLiteral('\\u003c')]
+  )
+
 /**
- * Builds `<script type="application/ld+json" dangerouslySetInnerHTML={{ __html }} />`.
+ * The JSON text of one entry.
  * - A string entry is a pre-serialized JSON document (the mapper has already
  *   escaped `<`), emitted verbatim.
- * - An object entry is built into an object expression and rendered at runtime
- *   via `JSON.stringify(obj).replace(/</g, '<')` — the replace prevents a
- *   product value containing `</script>` from breaking out of the tag, and
- *   `JSON.stringify` drops `undefined` (missing optional fields).
+ * - An object entry is built into an object expression and serialized at
+ *   runtime via `JSON.stringify(obj).replace(/</g, '\u003c')` — the replace
+ *   prevents a product value containing `</script>` from breaking out of the
+ *   tag, and `JSON.stringify` drops `undefined` (missing optional fields).
  */
-export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): StructuredDataScript => {
-  let htmlExpression: types.Expression
-  let usesTranslations = false
-  let usesRouter = false
-
+const buildStructuredDataContent = (entry: UIDLStructuredDataEntry): StructuredDataContent => {
   if (typeof entry === 'string') {
     // A pre-serialized document can still embed the page's own ROUTE TEMPLATE:
     // the BreadcrumbList's last `item` is the current page's URL, which for a
@@ -333,10 +507,15 @@ export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): Struc
     // `${router.query.id}` exactly as the canonical link does.
     const { staticParts, paramNames } = RoutePaths.parseDynamicPathSegments(entry)
     if (paramNames.length === 0) {
-      htmlExpression = types.stringLiteral(entry)
-    } else {
-      usesRouter = true
-      htmlExpression = types.templateLiteral(
+      return {
+        expression: types.stringLiteral(entry),
+        usesTranslations: false,
+        usesRouter: false,
+        optional: false,
+      }
+    }
+    return {
+      expression: types.templateLiteral(
         staticParts.map((part, index) =>
           types.templateElement({ raw: part, cooked: part }, index === staticParts.length - 1)
         ),
@@ -346,20 +525,95 @@ export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): Struc
             types.identifier(name)
           )
         )
-      )
+      ),
+      usesTranslations: false,
+      usesRouter: true,
+      optional: false,
     }
-  } else {
-    const built = buildObject(entry)
-    usesTranslations = built.usesTranslations
-    const stringifyCall = types.callExpression(
-      types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-      [built.expression]
-    )
-    htmlExpression = types.callExpression(
-      types.memberExpression(stringifyCall, types.identifier('replace')),
-      [types.regExpLiteral('<', 'g'), types.stringLiteral('\\u003c')]
-    )
   }
+
+  if (isComputed(entry)) {
+    // A whole document the row may not have: `doc ? JSON.stringify(doc)… : ''`.
+    const document = types.identifier('document')
+    return {
+      expression: types.callExpression(
+        types.arrowFunctionExpression(
+          [document],
+          types.conditionalExpression(document, stringified(document), types.stringLiteral(''))
+        ),
+        [buildComputedExpression(entry)]
+      ),
+      usesTranslations: false,
+      usesRouter: false,
+      optional: true,
+    }
+  }
+
+  const built = buildObject(entry)
+  return {
+    expression: stringified(built.expression),
+    usesTranslations: built.usesTranslations,
+    usesRouter: false,
+    optional: false,
+  }
+}
+
+/** `a + b + c`, with neighbouring string literals joined into one. */
+const concatenate = (parts: types.Expression[]): types.Expression => {
+  const folded = parts.reduce<types.Expression[]>((list, part) => {
+    const previous = list[list.length - 1]
+    if (previous && types.isStringLiteral(previous) && types.isStringLiteral(part)) {
+      list[list.length - 1] = types.stringLiteral(previous.value + part.value)
+    } else {
+      list.push(part)
+    }
+    return list
+  }, [])
+  return folded.reduce((sum, part) => types.binaryExpression('+', sum, part))
+}
+
+/**
+ * Builds the page's ONE `<script type="application/ld+json" dangerouslySetInnerHTML={{ __html }} />`.
+ * A page states everything it says about itself in a single document: one
+ * entry as it is, several as a JSON-LD array of them (each keeps its own
+ * `@context`, and nodes still link by `@id`). One script per entry put three,
+ * four, five blocks in every page's head for what is one description of it.
+ */
+export const buildStructuredDataScript = (
+  entries: UIDLStructuredDataEntry[]
+): StructuredDataScript => {
+  const contents = entries.map(buildStructuredDataContent)
+  const anyOptional = contents.some((content) => content.optional)
+  const htmlExpression =
+    contents.length === 1
+      ? contents[0].expression
+      : anyOptional
+      ? // An absent document must leave the array, not sit in it as a hole:
+        // '[' + [a, b, c].filter(Boolean).join(',') + ']'
+        concatenate([
+          types.stringLiteral('['),
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(
+                types.memberExpression(
+                  types.arrayExpression(contents.map((content) => content.expression)),
+                  types.identifier('filter')
+                ),
+                [types.identifier('Boolean')]
+              ),
+              types.identifier('join')
+            ),
+            [types.stringLiteral(',')]
+          ),
+          types.stringLiteral(']'),
+        ])
+      : concatenate([
+          types.stringLiteral('['),
+          ...contents.flatMap((content, index) =>
+            index === 0 ? [content.expression] : [types.stringLiteral(','), content.expression]
+          ),
+          types.stringLiteral(']'),
+        ])
 
   const scriptTag = ASTBuilders.createSelfClosingJSXTag('script')
   ASTUtils.addAttributeToJSXTag(scriptTag, 'type', 'application/ld+json')
@@ -372,5 +626,9 @@ export const buildStructuredDataScript = (entry: UIDLStructuredDataEntry): Struc
     )
   )
 
-  return { scriptTag, usesTranslations, usesRouter }
+  return {
+    scriptTag,
+    usesTranslations: contents.some((content) => content.usesTranslations),
+    usesRouter: contents.some((content) => content.usesRouter),
+  }
 }

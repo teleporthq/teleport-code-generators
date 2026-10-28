@@ -22,7 +22,10 @@ import * as CartCurrency from './utils/cart-currency'
 import * as TableAccess from './utils/table-access'
 import * as ContentTables from './utils/content-tables'
 import * as SessionCookieResolver from './utils/session-cookie-resolver'
+import * as AccountFields from './utils/account-fields'
 import * as SubscriptionAccess from './utils/subscription-access'
+import * as PageAccess from './utils/page-access'
+import * as DataExposure from './utils/data-exposure'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
 import * as EmailSender from './utils/email-sender'
@@ -66,7 +69,10 @@ export {
   TableAccess,
   ContentTables,
   SessionCookieResolver,
+  AccountFields,
   SubscriptionAccess,
+  PageAccess,
+  DataExposure,
   FontPreconnect,
   EmailDate,
   EmailSender,

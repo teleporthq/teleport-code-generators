@@ -72,6 +72,9 @@ const runStaticPaths = async (folderPath: string[], pageId: string) => {
   } as unknown as ComponentStructure
   const result = await createStaticPathsPlugin()(structure)
   const chunk = result.chunks.find((c) => c.name === 'getStaticPaths')
+  if (!chunk) {
+    return { calls: null, paths: undefined }
+  }
   const helper = result.chunks.find((c) => c.name === 'prerendered-records')
   const { code } = generate(types.program([chunk!.content as types.Statement]))
   const calls: unknown[][] = []
@@ -96,9 +99,9 @@ describe('teleport-plugin-next-static-paths: whom the listed rows are read for',
     expect(paths).toEqual([{ params: { slug: 'mug' } }])
   })
 
-  it('lists them as the store for an admin page only trusted readers open', async () => {
+  it('does not prerender a page behind a sign-in', async () => {
     const { calls } = await runStaticPaths(['admin', 'products', 'update'], 'p-admin-products')
 
-    expect(calls).toEqual([[{}]])
+    expect(calls).toBeNull()
   })
 })

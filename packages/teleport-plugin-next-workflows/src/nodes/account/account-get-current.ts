@@ -146,7 +146,7 @@ export const accountGetCurrent: NodeHandlerGenerator = {
   nodeType: 'account-get-current',
   executionEnv: 'client',
   dependencies: {
-    'next-auth': '^4.24.0',
+    'next-auth': '4.24.15',
   },
   generateHandler(): string {
     return handlerToString(account_get_current)

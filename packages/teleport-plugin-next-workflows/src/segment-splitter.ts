@@ -25,8 +25,11 @@ const resolveExecutionEnv = (
   // function (which has its own client/server segments). The server handler is
   // a stub — if this node is placed in a server segment the nested workflow
   // never runs and downstream references to its output resolve to the marker.
+  // The exception is a call of a node only server code may run (`serverOnly`,
+  // which the editor marks `executionEnv: 'server'`): it stays in its caller's
+  // server segment, whose route runs it (server-custom-node-call.ts).
   if (node.type === 'general-custom-node') {
-    return 'client'
+    return node.executionEnv === 'server' ? 'server' : 'client'
   }
 
   const registered = nodeRegistry[node.type]
@@ -412,9 +415,14 @@ const ROUTE_ONLY_ACCOUNT_CONFIG_KEYS = new Set<string>([
   ...WELCOME_EMAIL_CONFIG_KEYS,
   'domain',
   'deletedEmailPattern',
+  'resetPagePath',
 ])
 
-const ROUTE_BACKED_ACCOUNT_NODE_TYPES = new Set(['account-signup', 'account-delete-current'])
+const ROUTE_BACKED_ACCOUNT_NODE_TYPES = new Set([
+  'account-signup',
+  'account-delete-current',
+  'account-request-password-reset',
+])
 
 const redactRouteOnlyAccountConfig = (config: Record<string, unknown>): Record<string, unknown> => {
   const safe: Record<string, unknown> = {}

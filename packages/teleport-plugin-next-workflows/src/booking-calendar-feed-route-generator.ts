@@ -35,6 +35,11 @@ ${generatePgClientCode()}
 // one 'event' row per blocked period.
 var FEED_STATEMENT = ${JSON.stringify(feedStatement)};
 var FEED_FILE_RE = /^([A-Za-z0-9_-]{20,80})[.]ics$/;
+// The feed is public: its statement is cut off after 10 s, for its own
+// transaction only (SET LOCAL), so a slow or flooded database never holds the
+// route — and on a pooled connection the setting never reaches the next
+// request that shares it.
+var STATEMENT_TIMEOUT_SQL = "BEGIN; SET LOCAL statement_timeout = '10s'";
 var DATE_RE = /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
 var DATE_TIME_RE = /^([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2})([0-9]{2})([0-9]{2})Z$/;
 var TEXT_TYPE = 'text/plain; charset=utf-8';
@@ -234,9 +239,12 @@ module.exports = async function handler(req, res) {
   try {
     client = getClient();
     await client.connect();
+    await client.query(STATEMENT_TIMEOUT_SQL);
     var result = await client.query(FEED_STATEMENT, [fileMatch[1]]);
+    await client.query('COMMIT');
     rows = result && Array.isArray(result.rows) ? result.rows : [];
   } catch (e) {
+    rows = null;
     console.error('[bookings-ical] calendar feed query failed:', e && e.message ? e.message : e);
   } finally {
     if (client) {

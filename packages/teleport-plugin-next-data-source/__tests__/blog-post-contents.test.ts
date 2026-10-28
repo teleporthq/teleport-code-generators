@@ -32,11 +32,13 @@ const DETAILS = { details: true }
 
 const CONTENTS_FIXTURES: Array<{ name: string; html: string; sections: string[][] }> = [
   {
-    name: 'a help article: its h2 sections, not the h3 under them, never the h1',
+    // A body's own h1 is demoted to a section (the page title is the one h1).
+    name: 'a help article: its h2 sections, not the h3 under them; a body h1 is a section too',
     html:
       '<h1>Title</h1><p>Intro</p><h2>Before you start</h2><p>x</p><h2>Steps</h2>' +
       '<h3>Open the panel</h3><h2>Check that it worked</h2><h2>Troubleshooting</h2>',
     sections: [
+      ['title', 'Title'],
       ['before-you-start', 'Before you start'],
       ['steps', 'Steps'],
       ['check-that-it-worked', 'Check that it worked'],

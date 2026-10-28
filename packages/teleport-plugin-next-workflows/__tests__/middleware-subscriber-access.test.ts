@@ -153,7 +153,7 @@ describe('the generated middleware on a subscriber-only page', () => {
     expect(access?.url).toBe(
       'https://shop.test/api/auth/subscriber-access?products=prod-1%2Cprod-2'
     )
-    expect(access?.cookie).toBe('next-auth.session-token=stub')
+    expect(access?.cookie).toBe('__Host-next-auth.session-token=stub')
   })
 
   it('redirects a non-subscriber to the product page the route suggests, flagged', async () => {

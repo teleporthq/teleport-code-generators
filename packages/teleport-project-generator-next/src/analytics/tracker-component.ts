@@ -8,15 +8,21 @@ export const buildTrackerComponentSource = (disabledPaths: string[] = []): strin
   `import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
+  analyticsIds,
   initTeleportAnalytics,
   resetCommerceView,
   trackCommerceEvent,
   trackCommerceView,
+  trackNotFound,
+  trackOutcome,
   trackRouteChange,
   trackRouteLeave,
 } from '../../lib/teleport-analytics'
 
 const EXCLUDED_PATHS = ${JSON.stringify(disabledPaths)}
+// The pages-router mounts the custom not-found page under this pathname
+// whatever address the visitor asked for.
+const NOT_FOUND_PATHNAME = '/404'
 
 const AnalyticsTracker = () => {
   const router = useRouter()
@@ -33,6 +39,9 @@ const AnalyticsTracker = () => {
     // so a project with analytics disabled (where this component is never
     // emitted) simply does nothing instead of throwing inside a checkout.
     window.tpTrackCommerce = trackCommerceEvent
+    // Outcomes (a lead, a sign-up, a search) and the visit's ids, for the same
+    // callers: workflow nodes and generated handlers reach them through this.
+    window.tpAnalytics = { track: trackOutcome, ids: analyticsIds }
 
     // A page declares its funnel step with a data attribute (see
     // trackCommerceView). Deferred to the next frame because the marker element
@@ -40,7 +49,13 @@ const AnalyticsTracker = () => {
     const reportCommerceView = () => {
       window.requestAnimationFrame(() => trackCommerceView())
     }
+    const reportNotFound = () => {
+      if (router.pathname === NOT_FOUND_PATHNAME) {
+        trackNotFound()
+      }
+    }
     reportCommerceView()
+    reportNotFound()
 
     const handleRouteChangeStart = (url) => trackRouteLeave(url)
     const handleRouteChangeComplete = (url) => {
@@ -49,6 +64,7 @@ const AnalyticsTracker = () => {
       // concerned, so the once-per-view guard has to be released first.
       resetCommerceView()
       reportCommerceView()
+      reportNotFound()
     }
 
     router.events.on('routeChangeStart', handleRouteChangeStart)
@@ -58,8 +74,8 @@ const AnalyticsTracker = () => {
       router.events.off('routeChangeStart', handleRouteChangeStart)
       router.events.off('routeChangeComplete', handleRouteChangeComplete)
       // Left in place deliberately on unmount: this component lives in _app for
-      // the whole session, and removing the global during a fast-refresh remount
-      // would break any in-flight checkout handler holding a reference to it.
+      // the whole session, and removing the globals during a fast-refresh remount
+      // would break any in-flight checkout handler holding a reference to them.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

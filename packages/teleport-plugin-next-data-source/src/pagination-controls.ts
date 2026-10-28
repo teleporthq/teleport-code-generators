@@ -46,7 +46,10 @@ export type PaginationControlKind =
  */
 export const PAGINATION_FOR_ATTR = 'data-tq-pagination-for'
 
-/** The words of a `range` control, with `{from}`, `{to}` and `{total}` placeholders. */
+/**
+ * The words of a `range` control, with `{from}`, `{to}`, `{total}`, `{page}`,
+ * `{pages}` and `{perPage}` placeholders — see `range-control.ts`.
+ */
 export const RANGE_TEMPLATE_ATTR = 'data-tq-range-template'
 
 /** What a `range` control reads when it carries no template. */

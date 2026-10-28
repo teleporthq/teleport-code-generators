@@ -143,18 +143,17 @@ const describeDelivery = (uidl: ProjectUIDL): StoreFixtureSummaryLine => {
   return { tone: 'info', text: `Delivery: fee ${formatMoney(config.deliveryPrice)}, ${threshold}` }
 }
 
-const describeRegionalPricing = (uidl: ProjectUIDL): StoreFixtureSummaryLine => {
-  if (uidl.ecommerceSettings?.regionalPricing?.enabled) {
-    return {
-      tone: 'info',
-      text: 'Shipping zones & tax regions: exported (zones, rates and tax rows are read from the database at runtime)',
-    }
+/**
+ * Regional pricing is optional: a store without it prices from its Delivery
+ * Settings, which is a valid setup, so it is only mentioned when it is on.
+ */
+const describeRegionalPricing = (uidl: ProjectUIDL): StoreFixtureSummaryLine | null => {
+  if (!uidl.ecommerceSettings?.regionalPricing?.enabled) {
+    return null
   }
   return {
-    tone: 'warning',
-    text:
-      'Shipping zones & tax regions: NOT exported — the store prices from its Delivery Settings only. ' +
-      'Turn on "Shipping & Tax Regions" in THIS project (and recreate a checkout built before them) before exporting',
+    tone: 'info',
+    text: 'Shipping zones & tax regions: exported (zones, rates and tax rows are read from the database at runtime)',
   }
 }
 
@@ -168,7 +167,11 @@ export const describeStoreFixture = (
   const { uidl, identity, env } = input
   const lines = [describeProject(uidl, identity), describeDatabase(env, identity)]
   if (uidl.ecommerceSettings) {
-    lines.push(describeDelivery(uidl), describeRegionalPricing(uidl))
+    lines.push(describeDelivery(uidl))
+    const regionalPricing = describeRegionalPricing(uidl)
+    if (regionalPricing) {
+      lines.push(regionalPricing)
+    }
   }
   return lines
 }

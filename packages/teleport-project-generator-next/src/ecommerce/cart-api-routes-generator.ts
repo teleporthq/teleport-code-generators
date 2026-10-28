@@ -27,7 +27,9 @@ export { isPostgresCartDataSource }
  */
 export const generateCartApiRoute = (
   dataSourceType: string | null,
-  dataSourceConfig: Record<string, unknown> | null
+  dataSourceConfig: Record<string, unknown> | null,
+  // The project has authentication: the session reader checks revocation.
+  options: { withSessionRevocation?: boolean } = {}
 ): string | null => {
   if (!isPostgresCartDataSource(dataSourceType)) {
     return null
@@ -38,7 +40,9 @@ export const generateCartApiRoute = (
   }
 
   return `${dbImport}
-${generateCommonJsSessionTokenResolverCode()}
+${generateCommonJsSessionTokenResolverCode('../../..', {
+  withRevocation: options.withSessionRevocation !== false,
+})}
 var emailLocale = require('../../../utils/email/email-locale')
 const UUID_RE =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -122,13 +126,17 @@ function readLineOptions(item) {
   return { configuration: configuration, configurationKey: key }
 }
 
+// A cart's key: from the server's cryptographic generator only, never a
+// predictable one (an older runtime without randomUUID still has randomBytes).
 function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0
-    var v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
+  var nodeCrypto = require('crypto')
+  if (typeof nodeCrypto.randomUUID === 'function') return nodeCrypto.randomUUID()
+  var bytes = nodeCrypto.randomBytes(16)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  var hex = bytes.toString('hex')
+  return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20)
 }
 
 // Whether the request is this deployment's own server code — the order write

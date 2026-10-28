@@ -30,7 +30,9 @@ export const ROLE_OF_TOKEN_CODE = `function roleOf(token) {
  * protection + a scan of its graph for user-owned writes), so enforcement is a
  * single local JWT decode — `getToken` reads the session cookie the browser
  * already sends and verifies it with `NEXTAUTH_SECRET`. No DB, no network, no
- * round trip. `next-auth/jwt` is required LAZILY so a project generated without
+ * round trip — except the shared reader's session-stamp check, which reads a
+ * stamped session's account at most once a minute per instance
+ * (`session-revocation-generator.ts`). `next-auth/jwt` is required LAZILY so a project generated without
  * authentication (where the package is absent) never fails to load this file —
  * such projects also carry no protected workflows, so the guard no-ops.
  *
@@ -41,7 +43,7 @@ export const ROLE_OF_TOKEN_CODE = `function roleOf(token) {
  * anonymous, and the page-load workflow answered 401.
  */
 export const generateWorkflowAuthHelperFile = (
-  options: { withSubscriberAccess?: boolean } = {}
+  options: { withSubscriberAccess?: boolean; withSessionRevocation?: boolean } = {}
 ): string => {
   return `'use strict';
 
@@ -52,9 +54,12 @@ export const generateWorkflowAuthHelperFile = (
 // (const __WF_AUTH) computed by the GUI mapper from the protection of the
 // page(s) that trigger the workflow plus a graph scan for user-owned writes.
 
-${generateCommonJsSessionTokenResolverCode()}
+${generateCommonJsSessionTokenResolverCode('../..', {
+  withRevocation: options.withSessionRevocation !== false,
+})}
 function getSessionToken(req) {
-  // Local cookie decode — no DB, no network.
+  // Local cookie decode, then the shared session-stamp check of the reader
+  // (a session revoked by a password change is no session).
   return __tqSessionToken(req);
 }
 

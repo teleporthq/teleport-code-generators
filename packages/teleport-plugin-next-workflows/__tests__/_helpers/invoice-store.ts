@@ -180,6 +180,15 @@ export function openStore(options: { emailDelivery?: boolean } = {}): Store {
     if (id === 'next-auth/jwt') {
       return { getToken: async () => ({ id: 'admin-1', role: 'admin' }) }
     }
+    if (/(^|\/)security-runtime$/.test(id)) {
+      return {
+        safeEqual: (given: unknown, expected: unknown) =>
+          typeof given === 'string' &&
+          typeof expected === 'string' &&
+          given !== '' &&
+          given === expected,
+      }
+    }
     const name = id.split('/').pop() as string
     if (sources[name] !== undefined) {
       if (!(name in loaded)) {
@@ -224,7 +233,7 @@ export function openStore(options: { emailDelivery?: boolean } = {}): Store {
     'x-forwarded-proto': 'https',
     'x-teleport-locale': 'de',
     referer: 'https://shop.test/de/admin/invoices',
-    cookie: 'next-auth.session-token=abc; NEXT_LOCALE=de',
+    cookie: '__Host-next-auth.session-token=abc; NEXT_LOCALE=de',
   }
 
   const store: Store = {

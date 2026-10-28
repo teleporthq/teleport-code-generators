@@ -196,7 +196,10 @@ const run = async () => {
   // 3i. Global context: generate-global-context/
   console.info(chalk.cyan('\nGlobal context:'))
   t1 = performance.now()
-  const globalContextResult = partial.generateGlobalContext(split.projectUIDL.internationalization)
+  const globalContextResult = partial.generateGlobalContext(
+    split.projectUIDL.internationalization,
+    split.projectUIDL.companyDetails
+  )
   const gcOutputDir = join(OUTPUT_DIR, 'generate-global-context')
   logStep('generate-global-context', t1)
   globalContextResult.files.forEach((file) => writeFile(gcOutputDir, '', file))

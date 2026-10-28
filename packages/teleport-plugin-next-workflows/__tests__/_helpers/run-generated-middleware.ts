@@ -140,7 +140,12 @@ export const compileGeneratedMiddleware = (
   ): Promise<MiddlewareResult> => {
     const origin = options.origin || 'https://shop.test'
     const sessionUser = options.sessionUser ?? null
-    const cookieHeader = sessionUser ? 'next-auth.session-token=stub' : ''
+    // The session cookie the site sets for the origin's protocol (see the auth options).
+    const sessionCookie =
+      origin.indexOf('https://') === 0
+        ? '__Host-next-auth.session-token'
+        : 'next-auth.session-token'
+    const cookieHeader = sessionUser ? `${sessionCookie}=stub` : ''
     const subscriberAccess: SubscriberAccessStub = options.subscriberAccess ?? { entitled: false }
 
     const fetchImpl = async (url: string, init?: { headers?: { cookie?: string } }) => {
@@ -168,7 +173,7 @@ export const compileGeneratedMiddleware = (
       url: `${origin}${localePrefix}${pathname}`,
       cookies: {
         get: (name: string) =>
-          sessionUser && name === 'next-auth.session-token' ? { name, value: 'stub' } : undefined,
+          sessionUser && name === sessionCookie ? { name, value: 'stub' } : undefined,
       },
       headers: { get: (name: string) => (name === 'cookie' ? cookieHeader : '') },
     })

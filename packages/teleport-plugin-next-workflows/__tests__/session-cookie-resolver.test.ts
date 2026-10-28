@@ -182,10 +182,13 @@ describe('the emitted session-cookie resolver', () => {
   })
 
   describe('__tqSessionTokenCandidates', () => {
-    it('names the secure cookie the https request is actually carrying', () => {
+    it('names the __Host- cookie on an https request', () => {
       expect(
-        resolver.__tqSessionTokenCandidates(httpsReq('__Secure-next-auth.session-token=abc'))
-      ).toEqual([{ cookieName: '__Secure-next-auth.session-token', secureCookie: true }])
+        resolver.__tqSessionTokenCandidates(httpsReq('__Host-next-auth.session-token=abc'))
+      ).toEqual([{ cookieName: '__Host-next-auth.session-token', secureCookie: true }])
+      expect(
+        resolver.__tqSessionTokenCandidates(httpsReq('__Host-next-auth.session-token.0=abc'))
+      ).toEqual([{ cookieName: '__Host-next-auth.session-token', secureCookie: true }])
     })
 
     it('names the plain cookie on a local http request', () => {
@@ -196,51 +199,51 @@ describe('the emitted session-cookie resolver', () => {
       ).toEqual([{ cookieName: 'next-auth.session-token', secureCookie: false }])
     })
 
-    it('tries the protocol-matching cookie FIRST when a site carries both', () => {
-      const both = httpsReq('next-auth.session-token=old; __Secure-next-auth.session-token=new')
-      expect(resolver.__tqSessionTokenCandidates(both)[0]).toEqual({
-        cookieName: '__Secure-next-auth.session-token',
-        secureCookie: true,
-      })
-    })
-
-    it('recognises the Auth.js cookie names too', () => {
+    it('COOKIE TOSSING: never takes another name for a session on https', () => {
+      // A sibling site on the shared parent domain can set any of these for it.
+      for (const planted of [
+        '__Secure-next-auth.session-token=evil',
+        'next-auth.session-token=evil',
+        '__Secure-authjs.session-token=evil',
+        'authjs.session-token=evil',
+      ]) {
+        expect(resolver.__tqSessionTokenCandidates(httpsReq(planted))).toEqual([])
+      }
       expect(
-        resolver.__tqSessionTokenCandidates(httpsReq('__Secure-authjs.session-token=abc'))
-      ).toEqual([{ cookieName: '__Secure-authjs.session-token', secureCookie: true }])
+        resolver.__tqSessionTokenCandidates(
+          httpsReq('next-auth.session-token=evil; __Host-next-auth.session-token=mine')
+        )
+      ).toEqual([{ cookieName: '__Host-next-auth.session-token', secureCookie: true }])
     })
 
-    it('falls back to the request protocol when no known cookie is present', () => {
-      // A project may configure a custom cookie name in authOptions; letting
-      // getToken apply its own defaults is the only correct answer there — but
-      // with the REQUEST's protocol, not a localhost env var.
-      expect(resolver.__tqSessionTokenCandidates(httpsReq('unrelated=1'))).toEqual([
-        { secureCookie: true },
-      ])
-      expect(resolver.__tqSessionTokenCandidates({ headers: {} })).toEqual([
-        { secureCookie: false },
-      ])
+    it('treats a non-local host without a proto header as https, like the auth route does', () => {
+      const req = { headers: { host: 'shop.teleporthq.app', cookie: 'next-auth.session-token=x' } }
+      expect(resolver.__tqRequestIsSecure(req)).toBe(true)
+      expect(resolver.__tqSessionTokenCandidates(req)).toEqual([])
+      expect(resolver.__tqRequestIsSecure({ headers: { host: 'localhost:3000' } })).toBe(false)
+    })
+
+    it('names nothing when no session cookie is present', () => {
+      expect(resolver.__tqSessionTokenCandidates(httpsReq('unrelated=1'))).toEqual([])
+      expect(resolver.__tqSessionTokenCandidates({ headers: {} })).toEqual([])
     })
   })
 
   describe('__tqResolveSessionToken', () => {
     it('THE DEFECT: resolves the session that the env-derived default would miss', async () => {
-      // Exactly the deployed setup: browser holds the secure cookie, the lambda
-      // holds NEXTAUTH_URL=http://localhost:3000 so next-auth's own default is
-      // the plain name.
+      // The lambda holds NEXTAUTH_URL=http://localhost:3000, so next-auth's own
+      // default is the plain name; the browser holds the __Host- cookie.
       const getToken = realisticGetToken('next-auth.session-token')
-      const req = httpsReq('__Secure-next-auth.session-token=abc')
+      const req = httpsReq('__Host-next-auth.session-token=abc')
 
-      // What the old code did — one call, no cookieName — still returns null…
       expect(await getToken({ req } as never)).toBeNull()
-      // …and the resolver finds the session.
       expect(await resolver.__tqResolveSessionToken(getToken, req, 'secret')).toEqual({
         id: 'user-1',
         sub: 'user-1',
       })
     })
 
-    it('still resolves on plain http, where the old default happened to be right', async () => {
+    it('still resolves on plain http', async () => {
       const getToken = realisticGetToken('next-auth.session-token')
       const req = { headers: { cookie: 'next-auth.session-token=abc' } }
       expect(await resolver.__tqResolveSessionToken(getToken, req, 'secret')).toEqual({
@@ -254,79 +257,34 @@ describe('the emitted session-cookie resolver', () => {
       expect(await resolver.__tqResolveSessionToken(getToken, httpsReq(''), 'secret')).toBeNull()
     })
 
-    it('tries the other cookie when the first candidate does not decode', async () => {
-      // A site reached over both protocols: the stale plain cookie is present
-      // but only the secure one decodes.
-      const getToken = realisticGetToken('next-auth.session-token')
-      const req = {
-        headers: {
-          cookie: 'next-auth.session-token=stale; __Secure-next-auth.session-token=live',
-          'x-forwarded-proto': 'http',
-        },
+    it('COOKIE TOSSING: a planted cookie of the old name is never decoded on https', async () => {
+      const getToken = jest.fn(async () => ({ id: 'attacker' }))
+      for (const planted of [
+        '__Secure-next-auth.session-token=evil',
+        'next-auth.session-token=evil',
+      ]) {
+        expect(
+          await resolver.__tqResolveSessionToken(getToken, httpsReq(planted), 'secret')
+        ).toBeNull()
       }
-      expect(await resolver.__tqResolveSessionToken(getToken, req, 'secret')).toEqual({
-        id: 'user-1',
-        sub: 'user-1',
-      })
+      expect(getToken).not.toHaveBeenCalled()
     })
 
-    it('THE ROLE DEFECT: when both cookies decode, the most recently issued one wins over the protocol order', async () => {
-      // A local dev server whose NextAuth ran under an https origin for a while
-      // (a tunnel request had rewritten NEXTAUTH_URL) left the browser with
-      // both cookies: the plain one frozen when the account was still a
-      // "user", the "__Secure-" one re-issued on every session read since the
-      // promotion. The request is plain http, so the plain cookie is tried
-      // first — and used to be returned.
-      const tokens: Record<string, { email: string; role: string; iat: number }> = {
-        'next-auth.session-token': { email: 'a@shop.test', role: 'user', iat: 1790000000 },
-        '__Secure-next-auth.session-token': {
-          email: 'a@shop.test',
-          role: 'admin',
-          iat: 1790336037,
-        },
-      }
-      const getToken = jest.fn(async (params: { cookieName?: string }) =>
-        params.cookieName ? tokens[params.cookieName] || null : null
+    it('asks getToken for exactly the __Host- cookie', async () => {
+      const getToken = jest.fn(async () => ({ id: 'u1' }))
+      await resolver.__tqResolveSessionToken(
+        getToken,
+        httpsReq('__Host-next-auth.session-token=b'),
+        'secret'
       )
-      const req = {
-        headers: {
-          cookie: 'next-auth.session-token=old; __Secure-next-auth.session-token=live',
-        },
-      }
-      expect(resolver.__tqSessionTokenCandidates(req)[0].cookieName).toBe('next-auth.session-token')
-
-      const token = (await resolver.__tqResolveSessionToken(getToken, req, 'secret')) as {
-        role: string
-      }
-      expect(token.role).toBe('admin')
-      expect(getToken).toHaveBeenCalledTimes(2)
-
-      // And the other way round: the plain cookie is the live one.
-      tokens['next-auth.session-token'].iat = 1790400000
-      const again = (await resolver.__tqResolveSessionToken(getToken, req, 'secret')) as {
-        role: string
-      }
-      expect(again.role).toBe('user')
-    })
-
-    it('keeps the protocol-matching cookie on a tie, and a token without iat still beats none', async () => {
-      const getToken = async (params: { cookieName?: string }) =>
-        params.cookieName === '__Secure-next-auth.session-token'
-          ? { id: 'secure', iat: 5 }
-          : params.cookieName === 'next-auth.session-token'
-          ? { id: 'plain', iat: 5 }
-          : null
-      const both = httpsReq('next-auth.session-token=a; __Secure-next-auth.session-token=b')
-      expect(await resolver.__tqResolveSessionToken(getToken, both, 'secret')).toEqual({
-        id: 'secure',
-        iat: 5,
-      })
-
-      const noIat = async (params: { cookieName?: string }) =>
-        params.cookieName === 'next-auth.session-token' ? { id: 'plain' } : null
-      expect(await resolver.__tqResolveSessionToken(noIat, both, 'secret')).toEqual({
-        id: 'plain',
-      })
+      expect(getToken).toHaveBeenCalledTimes(1)
+      expect(getToken.mock.calls[0]).toEqual([
+        expect.objectContaining({
+          cookieName: '__Host-next-auth.session-token',
+          secureCookie: true,
+          secret: 'secret',
+        }),
+      ])
     })
 
     it('returns null rather than throwing when getToken throws', async () => {
@@ -336,7 +294,7 @@ describe('the emitted session-cookie resolver', () => {
       await expect(
         resolver.__tqResolveSessionToken(
           throwing,
-          httpsReq('__Secure-next-auth.session-token=a'),
+          httpsReq('__Host-next-auth.session-token=a'),
           'secret'
         )
       ).resolves.toBeNull()
@@ -354,12 +312,12 @@ describe('the emitted session-cookie resolver', () => {
   })
 
   describe('the CommonJS wrapper', () => {
-    it('reads NEXTAUTH_SECRET itself and resolves the secure cookie', async () => {
+    it('reads NEXTAUTH_SECRET itself and resolves the __Host- cookie', async () => {
       const cjs = bootCommonJsResolver({
         secret: 'server-secret',
         getToken: realisticGetToken('next-auth.session-token'),
       })
-      expect(await cjs.__tqSessionToken(httpsReq('__Secure-next-auth.session-token=abc'))).toEqual({
+      expect(await cjs.__tqSessionToken(httpsReq('__Host-next-auth.session-token=abc'))).toEqual({
         id: 'user-1',
         sub: 'user-1',
       })
@@ -369,15 +327,13 @@ describe('the emitted session-cookie resolver', () => {
       const cjs = bootCommonJsResolver({
         getToken: realisticGetToken('next-auth.session-token'),
       })
-      expect(
-        await cjs.__tqSessionToken(httpsReq('__Secure-next-auth.session-token=abc'))
-      ).toBeNull()
+      expect(await cjs.__tqSessionToken(httpsReq('__Host-next-auth.session-token=abc'))).toBeNull()
     })
 
     it('is null — not a crash — for a project generated without next-auth', async () => {
       const cjs = bootCommonJsResolver({ secret: 'server-secret', nextAuthPresent: false })
       await expect(
-        cjs.__tqSessionToken(httpsReq('__Secure-next-auth.session-token=abc'))
+        cjs.__tqSessionToken(httpsReq('__Host-next-auth.session-token=abc'))
       ).resolves.toBeNull()
     })
   })

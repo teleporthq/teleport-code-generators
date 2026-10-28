@@ -19,7 +19,10 @@ const INVOICE_ADMIN_ROLES = ['admin']
  * NEXTAUTH_SECRET, so a browser cannot forge it; it is compared in constant
  * time. Everyone else is who their session says they are.
  */
-const INVOICE_CALLER_CODE = `${generateCommonJsSessionTokenResolverCode()}
+const invoiceCallerCode = (
+  projectRoot: string,
+  withRevocation: boolean
+): string => `${generateCommonJsSessionTokenResolverCode(projectRoot, { withRevocation })}
 ${ROLE_OF_TOKEN_CODE}
 
 var INVOICE_ADMIN_ROLES = ${JSON.stringify(INVOICE_ADMIN_ROLES)};
@@ -93,7 +96,10 @@ async function recordInvoiceEmailSent(invoiceData, sender) {
   });
 }`
 
-export const generateInvoiceGenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
+export const generateInvoiceGenerateRouteCode = (
+  settings: UIDLInvoiceSettings,
+  options: { withSessionRevocation?: boolean } = {}
+): string => {
   const prefix = settings.invoicePrefix || 'INV-'
   const autoGenerate = settings.autoGenerateOnPayment !== false
   const emailEnabled = settings.emailDelivery?.enabled === true
@@ -127,7 +133,7 @@ var INVOICE_PREFIX = ${JSON.stringify(prefix)};
 // the same order finishes it: longer than any one request lives.
 var UNFINISHED_INVOICE_STALE_SECONDS = 900;
 
-${INVOICE_CALLER_CODE}
+${invoiceCallerCode('../../..', options.withSessionRevocation !== false)}
 ${emailEnabled ? RECORD_INVOICE_EMAIL_CODE : ''}
 
 // ---------------------------------------------------------------------------
@@ -570,7 +576,10 @@ async function emailFirstInvoice(invoiceData, pdfBuffer, order) {
  * route is reached from the merchant's browser only, so it checks the session
  * itself: signed in, with an admin role.
  */
-export const generateInvoiceRegenerateRouteCode = (settings: UIDLInvoiceSettings): string => {
+export const generateInvoiceRegenerateRouteCode = (
+  settings: UIDLInvoiceSettings,
+  options: { withSessionRevocation?: boolean } = {}
+): string => {
   const emailEnabled = settings.emailDelivery?.enabled === true
 
   return `/**
@@ -596,7 +605,9 @@ var emailLocale = require('../../../../utils/email/email-locale');`
     : ''
 }
 
-${generateCommonJsSessionTokenResolverCode()}
+${generateCommonJsSessionTokenResolverCode('../../../..', {
+  withRevocation: options.withSessionRevocation !== false,
+})}
 ${ROLE_OF_TOKEN_CODE}
 
 var REGENERATE_ALLOWED_ROLES = ${JSON.stringify(REGENERATE_INVOICE_ROLES)};
@@ -835,7 +846,9 @@ ${
  * store's server code — and to nobody else, whoever knows the id. An invoice
  * someone may not read answers exactly like one that does not exist.
  */
-export const generateInvoicePdfRouteCode = (): string => {
+export const generateInvoicePdfRouteCode = (
+  options: { withSessionRevocation?: boolean } = {}
+): string => {
   return `/**
  * GET /api/invoices/[id]/pdf
  * Returns the invoice PDF binary for download, to its buyer or the store.
@@ -843,7 +856,7 @@ export const generateInvoicePdfRouteCode = (): string => {
 
 var dataAccess = require('../../../../utils/invoices/data-access');
 
-${INVOICE_CALLER_CODE}
+${invoiceCallerCode('../../../..', options.withSessionRevocation !== false)}
 
 // Postgres refuses an id that is not a UUID ("invalid_text_representation").
 var MALFORMED_ID_ERROR_CODE = '22P02';

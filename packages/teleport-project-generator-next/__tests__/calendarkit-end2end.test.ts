@@ -65,7 +65,7 @@ describe('Next generator with a CalendarKit calendar element', () => {
     expect(packageJson.dependencies['calendarkit-basic']).toBe('1.1.0')
     expect(packageJson.dependencies.react).toBe('^18.3.1')
     expect(packageJson.dependencies['react-dom']).toBe('^18.3.1')
-    expect(packageJson.dependencies.next).toBe('^12.1.10')
+    expect(packageJson.dependencies.next).toBe('^12.3.7')
 
     const indexPage = findFile(outputFolder, 'pages', 'index')
     expect(indexPage?.content).toContain("import { BasicScheduler } from 'calendarkit-basic'")
