@@ -1,20 +1,46 @@
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { PluginCSS, UIDLConditionExpressionEntry, UIDLPropDefinition } from '@teleporthq/teleport-types'
+import {
+  PluginCSS,
+  UIDLConditionExpressionEntry,
+  UIDLPropDefinition,
+} from '@teleporthq/teleport-types'
 
+/**
+ * Each rule of a class condition as a JavaScript test of a value known at
+ * build time. `resolveOperand` reads an operand that names another value; what
+ * it cannot read compares as `undefined`, which is what the JSX exports see.
+ */
 export const createConditionalStatement = (
   conditions: UIDLConditionExpressionEntry[],
-  leftOperand: UIDLPropDefinition['defaultValue']
+  leftOperand: UIDLPropDefinition['defaultValue'],
+  leftOperandType?: string,
+  resolveOperand: (operand: UIDLConditionExpressionEntry['operand']) => unknown = (operand) =>
+    operand
 ) => {
   return conditions.map((condition) => {
-    const { operation, operand } = condition
+    const { operation } = condition
+    const operand = ASTUtils.coerceToDeclaredType(
+      condition.operand === undefined ? undefined : resolveOperand(condition.operand),
+      leftOperandType
+    )
 
-    if (operand === undefined) {
-      return `${ASTUtils.convertToUnaryOperator(operation)}${getValueType(operand)}`
+    if (ASTUtils.isCollectionOperation(operation)) {
+      return String(
+        ASTUtils.passesCollectionTest(operation, leftOperand, operand, {
+          containsField: condition.containsField,
+          valueType: leftOperandType,
+        })
+      )
+    }
+
+    // No operand: the rule tests the value itself, as the JSX exports do.
+    if (condition.operand === undefined) {
+      return `${ASTUtils.convertToUnaryOperator(operation)}(${getValueType(leftOperand)})`
     }
 
     return `${getValueType(leftOperand)} ${ASTUtils.convertToBinaryOperator(
       operation
-    )} ${getValueType(operand)}`
+    )} ${getValueType(operand as UIDLPropDefinition['defaultValue'])}`
   })
 }
 
@@ -115,10 +141,13 @@ export const sanitizeStylesheetSelectors = (css: string): string => {
 }
 
 const getValueType = (value: UIDLPropDefinition['defaultValue']) => {
+  if (value === undefined || value === null) {
+    return String(value)
+  }
   const valueType = typeof value
   switch (valueType) {
     case 'string':
-      return `"${value}"`
+      return JSON.stringify(value)
     case 'number':
       return value
     case 'boolean':

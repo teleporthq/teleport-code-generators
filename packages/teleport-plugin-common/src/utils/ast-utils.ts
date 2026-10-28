@@ -732,6 +732,98 @@ type ExpressionLiteral =
   | types.ObjectExpression
   | types.NullLiteral
 
+/**
+ * A value stored as text, read as the type it is declared with: a number prop
+ * or a condition comparing one meets "2" as the number 2, and a boolean one
+ * meets "true"/"false" as true/false, the way the editor's canvas compares
+ * them. A prop default and a condition's operand both arrive as text from
+ * writers that keep every input's value as typed.
+ */
+export const coerceToDeclaredType = <T>(value: T, declaredType?: string): T | number | boolean => {
+  if (typeof value !== 'string') {
+    return value
+  }
+  if (declaredType === 'number' && value.trim() !== '' && !isNaN(Number(value))) {
+    return Number(value)
+  }
+  if (declaredType === 'boolean' && (value === 'true' || value === 'false')) {
+    return value === 'true'
+  }
+  return value
+}
+
+const COLLECTION_OPERATIONS = [
+  'isEmpty',
+  'isNotEmpty',
+  'lengthEquals',
+  'lengthGreaterThan',
+  'lengthLessThan',
+  'contains',
+  'notContains',
+  'hasKey',
+  'notHasKey',
+]
+
+/** The operations that read a value as a collection rather than compare it. */
+export const isCollectionOperation = (operation?: string): boolean =>
+  COLLECTION_OPERATIONS.includes(operation)
+
+/**
+ * A collection operation answered on a value known at build time, with the
+ * meaning `createBinaryExpression` (node-to-jsx) gives it at runtime: the
+ * length of `value || []` (its key count, `value || {}`, for an object),
+ * `.includes(operand)`, `.some((item) => item[field] === operand)`,
+ * `hasOwnProperty`.
+ */
+export const passesCollectionTest = (
+  operation: string,
+  value: unknown,
+  operand: unknown,
+  options: { containsField?: string; valueType?: string } = {}
+): boolean => {
+  const { containsField, valueType } = options
+  const collection = (value || (valueType === 'object' ? {} : [])) as {
+    length?: number
+    includes?: (item: unknown) => boolean
+    some?: (test: (item: unknown) => boolean) => boolean
+  }
+  const length = valueType === 'object' ? Object.keys(collection).length : collection.length
+  const contains = (): boolean => {
+    if (containsField) {
+      return (
+        typeof collection.some === 'function' &&
+        collection.some(
+          (item) => (item as Record<string, unknown> | null)?.[containsField] === operand
+        )
+      )
+    }
+    return typeof collection.includes === 'function' && collection.includes(operand)
+  }
+  const hasKey = (): boolean =>
+    Object.prototype.hasOwnProperty.call(value || {}, operand as PropertyKey)
+
+  switch (operation) {
+    case 'isEmpty':
+      return length === 0
+    case 'isNotEmpty':
+      return length > 0
+    case 'lengthEquals':
+      return length === operand
+    case 'lengthGreaterThan':
+      return length > (operand as number)
+    case 'lengthLessThan':
+      return length < (operand as number)
+    case 'contains':
+      return contains()
+    case 'notContains':
+      return !contains()
+    case 'hasKey':
+      return hasKey()
+    default:
+      return !hasKey()
+  }
+}
+
 export const convertValueToLiteral = (
   // tslint:disable-next-line no-any
   value: any,

@@ -14,6 +14,8 @@ import {
   UIDLReferencedStyles,
   UIDLStyleSetTokenReference,
   ComponentValidationError,
+  UIDLConditionalExpression,
+  UIDLConditionExpressionGroup,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -121,6 +123,41 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const usedImportKeys: string[] = []
   const errors: string[] = []
 
+  const markReferenceUsed = (reference: unknown) => {
+    const { type, content } = (reference || {}) as {
+      type?: string
+      content?: { referenceType?: string; id?: unknown }
+    }
+    if (type !== 'dynamic' || typeof content?.id !== 'string') {
+      return
+    }
+    const dynamicIdRoot = content.id.split('.')[0]
+    if (content.referenceType === 'prop') {
+      usedPropKeys.push(dynamicIdRoot)
+    }
+    if (content.referenceType === 'state') {
+      usedStateKeys.push(dynamicIdRoot)
+    }
+  }
+
+  // A condition reads its own reference, and each of its rules may read
+  // another one on either side: a class or an element shown only under a
+  // condition still uses every value the condition reads.
+  const markConditionUsed = (
+    reference: unknown,
+    chain: UIDLConditionalExpression | UIDLConditionExpressionGroup | undefined
+  ) => {
+    markReferenceUsed(reference)
+    ;(chain?.conditions || []).forEach((entry) => {
+      if (UIDLUtils.isUIDLConditionGroup(entry)) {
+        markConditionUsed(undefined, entry)
+        return
+      }
+      markReferenceUsed(entry.reference)
+      markReferenceUsed(entry.operand)
+    })
+  }
+
   UIDLUtils.traverseNodes(input.node as UIDLNode, (node, parent) => {
     if (node.type === 'element') {
       const { content } = node
@@ -174,8 +211,18 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
         })
       })
 
+      const { renderingConditions } = node.content || {}
+      if (renderingConditions) {
+        markConditionUsed(renderingConditions.reference, renderingConditions.condition)
+      }
+
       const dynamicVariants: string[] = []
       Object.values(node.content?.referencedStyles || {}).forEach((styleRef) => {
+        if (styleRef.content.mapType === 'project-referenced' && styleRef.content.condition) {
+          const { condition } = styleRef.content
+          markConditionUsed(condition.reference, condition.expression)
+        }
+
         if (
           styleRef.content.mapType === 'component-referenced' &&
           styleRef.content.content.type === 'dynamic'
@@ -214,6 +261,10 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
         } is using multiple dynamic variants using propDefinitions.
         We can have only one dynamic variant at once`)
       }
+    }
+
+    if (node.type === 'conditional') {
+      markConditionUsed(node.content.reference, node.content.condition)
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {

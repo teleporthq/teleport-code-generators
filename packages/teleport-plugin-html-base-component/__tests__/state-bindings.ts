@@ -74,6 +74,18 @@ describe('State bindings: conditions', () => {
     )
   })
 
+  it("compares a number or boolean state with a rule stored as text in the state's type", () => {
+    expect(printed(stateRef('count'), { conditions: [{ operation: '===', operand: '2' }] })).toBe(
+      'count === 2'
+    )
+    expect(
+      printed(stateRef('menuOpen'), { conditions: [{ operation: '!==', operand: 'true' }] })
+    ).toBe('menuOpen !== true')
+    expect(printed(stateRef('plan'), { conditions: [{ operation: '===', operand: '2' }] })).toBe(
+      `plan === '2'`
+    )
+  })
+
   it('joins a flat chain by its matching criteria', () => {
     expect(
       printed(stateRef('count'), {
