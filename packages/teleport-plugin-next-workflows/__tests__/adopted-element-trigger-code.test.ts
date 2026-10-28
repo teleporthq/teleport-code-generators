@@ -3,13 +3,15 @@
 // a click on a linked control, and the submit of a search form, both with
 // `preventDefault` + `stopPropagation`.
 //
-// The generated Next.js components wire the same triggers through React props
-// (see `adopted-navigation-element-end2end.test.ts` in the Next project
-// generator, which proves the id and handler sit on the element that receives
-// the click). This is the same contract for the exported `generateTriggerCode`
-// itself: the listener is attached to the element found by its published html id
-// (never the editor's internal node id), cancels the default action and the
-// bubbling BEFORE the workflow runs, and does so only when the trigger asked.
+// `generateTriggerCode` has NO production caller: what a published site runs are
+// the React props `workflow-component-plugin.ts` puts on the element, proven in
+// `adopted-navigation-element-end2end.test.ts` (and, for a form whose submissions
+// the platform stores, `adopted-search-form-submission-end2end.test.ts`) in the
+// Next project generator. This file only pins the same contract on the exported
+// function, for whoever wires it again: the listener is attached to the element
+// found by its published html id (never the editor's internal node id), cancels
+// the default action and the bubbling BEFORE the workflow runs, and does so only
+// when the trigger asked.
 
 import type { UIDLWorkflow } from '@teleporthq/teleport-types'
 import { generateTriggerCode } from '../src/trigger-generator'
