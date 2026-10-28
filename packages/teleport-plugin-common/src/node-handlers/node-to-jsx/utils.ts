@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 
 import {
+  coerceToDeclaredType,
   convertToBinaryOperator,
   convertToUnaryOperator,
   convertValueToLiteral,
@@ -10,6 +11,7 @@ import { JSIdentifiers, StringUtils, UIDLUtils } from '@teleporthq/teleport-shar
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,
+  UIDLDynamicCondition,
   UIDLDynamicReference,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
@@ -1033,6 +1035,28 @@ const createConditionChainExpression = (
 }
 
 /**
+ * The test a conditionally-bound class applies under: every rule of its chain,
+ * joined by the chain's matchingCriteria, or the single `value` it equals. A
+ * condition with neither can never hold, so there is no test and the caller
+ * leaves the class off.
+ */
+export const createClassConditionExpression = (
+  condition: UIDLDynamicCondition,
+  conditionalIdentifier: ConditionalIdentifier
+): types.Expression | null => {
+  if (condition.expression?.conditions?.length) {
+    return createConditionChainExpression(condition.expression, conditionalIdentifier, {})
+  }
+  if (condition.value !== undefined) {
+    return createBinaryExpression(
+      { operation: '===', operand: condition.value },
+      conditionalIdentifier
+    )
+  }
+  return null
+}
+
+/**
  * Resolves an operand value to an AST expression, handling dynamic refs, expressions, and static values.
  */
 const resolveOperandExpression = (
@@ -1346,7 +1370,14 @@ export const createBinaryExpression = (
       )
     }
 
-    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
+    // An expression's type is a placeholder, not the type of its value.
+    const stateValueIdentifier = convertValueToLiteral(
+      coerceToDeclaredType(
+        operand,
+        conditionalIdentifier.isExpression ? undefined : conditionalIdentifier.type
+      ),
+      conditionalIdentifier.type
+    )
 
     const lhs =
       (conditionalIdentifier.referenceType === 'global' ||

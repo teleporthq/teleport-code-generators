@@ -6,7 +6,7 @@ import {
   HASTUtils,
   HASTBuilders,
   ASTUtils,
-  createBinaryExpression,
+  createClassConditionExpression,
 } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -23,7 +23,6 @@ import {
   PluginCSS,
   UIDLElement,
   UIDLElementNode,
-  UIDLExpressionValue,
   StateDefaultValueTypes,
   PropDefaultValueTypes,
   UIDLStyleInlineAsset,
@@ -361,29 +360,70 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
             if (styleRef.content.condition) {
               if (templateStyle === 'html') {
-                const {
-                  value: staticValue,
-                  reference,
-                  expression: { matchingCriteria },
-                } = styleRef.content.condition
+                const { value: staticValue, reference, expression } = styleRef.content.condition
                 // Class conditions are single-reference flat chains: no writer
-                // emits per-entry references or nested groups here.
-                const conditions = styleRef.content.condition.expression
-                  .conditions as UIDLConditionExpressionEntry[]
+                // emits per-entry references or nested groups here. A chain wins
+                // over a lone `value`, as in createClassConditionExpression.
+                const chain = (expression?.conditions ?? []) as UIDLConditionExpressionEntry[]
+                const conditions: UIDLConditionExpressionEntry[] =
+                  chain.length === 0 && staticValue !== undefined
+                    ? [{ operand: staticValue, operation: '===' }]
+                    : chain
+                const joiner = expression?.matchingCriteria === 'all' ? '&&' : '||'
 
                 const {
                   content: { referenceType, id, refPath = [] },
                 } = reference
 
+                // An operand naming another prop or state compares with the value
+                // that one holds for this instance: `undefined` when it holds none
+                // or names a value the build cannot read, as at runtime in the JSX
+                // exports.
+                const resolveOperand = (operand: UIDLConditionExpressionEntry['operand']) => {
+                  if (typeof operand !== 'object') {
+                    return operand
+                  }
+                  if (operand.type === 'expr') {
+                    return operand.content
+                  }
+                  const { referenceType: operandType, id: operandId } = operand.content
+                  if (operandType === 'prop') {
+                    return propDefinitions[operandId]?.defaultValue
+                  }
+                  if (operandType === 'state') {
+                    return stateDefinitions[operandId]?.defaultValue
+                  }
+                  return undefined
+                }
+
+                const isConditionPassing = (
+                  value: StateDefaultValueTypes | PropDefaultValueTypes,
+                  valueType: string
+                ): boolean => {
+                  const conditionString = createConditionalStatement(
+                    conditions,
+                    value,
+                    valueType,
+                    resolveOperand
+                  ).join(` ${joiner} `)
+                  // tslint:disable-next-line function-constructor
+                  return Boolean(new Function(`return ${conditionString}`)())
+                }
+
+                // A condition with no rule, or reading a prop or state deleted
+                // after the class was bound, can never hold: the class stays off.
+                const hasNoRule = conditions.length === 0
+
                 switch (referenceType) {
                   case 'prop': {
                     const usedProp = propDefinitions[id]
-                    if (usedProp === undefined || usedProp.defaultValue === undefined) {
-                      throw new PluginCSS(`Prop with ${id} is missing in the propDefinitions.`)
+                    if (usedProp === undefined || hasNoRule) {
+                      return
                     }
 
+                    // An instance that sets no value of a prop without a default
+                    // compares `undefined`, as the props of the JSX exports do.
                     let defaultValue = usedProp.defaultValue
-                    let operandDefaultValue: StateDefaultValueTypes | PropDefaultValueTypes | string
                     for (const path of refPath) {
                       defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
                     }
@@ -391,68 +431,15 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     // If defaultValue is undefined or null after path traversal, use original default
                     defaultValue = defaultValue ?? usedProp.defaultValue
 
-                    // our conditions can be of type 'expr' or they can be a dynamic reference
-                    const rightSideCondition = conditions[0].operand
-                    const rightSideConditionType = typeof rightSideCondition
-                    if (rightSideConditionType === 'object') {
-                      const type = (
-                        rightSideCondition as UIDLDynamicReference | UIDLExpressionValue
-                      ).type
-                      if (type === 'dynamic') {
-                        const dynamicRef = rightSideCondition as UIDLDynamicReference
-                        if (dynamicRef.content.referenceType === 'prop') {
-                          const prop = propDefinitions[dynamicRef.content.id]
-                          if (prop && prop.defaultValue) {
-                            operandDefaultValue = prop.defaultValue
-                          }
-                        }
-                        if (dynamicRef.content.referenceType === 'state') {
-                          const state = stateDefinitions[dynamicRef.content.id]
-                          if (state && state.defaultValue) {
-                            defaultValue = state.defaultValue
-                          }
-                        }
-                      }
-                      if (type === 'expr') {
-                        operandDefaultValue = (rightSideCondition as UIDLExpressionValue).content
-                      }
-                    } else {
-                      operandDefaultValue = rightSideCondition
-                    }
-
-                    // Since we know the operand and the default value from the prop.
-                    // We can try building the condition and check if the condition is true or false.
-                    // @todo: You can only use a 'value' in UIDL or 'conditions' but not both.
-                    // UIDL validations need to be improved on this aspect.
-                    const resolvedConditions = [
-                      {
-                        operation: conditions[0].operation,
-                        operand: operandDefaultValue as string,
-                      },
-                    ]
-
-                    const dynamicConditions = createConditionalStatement(
-                      staticValue !== undefined
-                        ? [{ operand: staticValue, operation: '===' }]
-                        : resolvedConditions,
-                      defaultValue
-                    )
-                    const matchCondition =
-                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
-
-                    // tslint:disable-next-line function-constructor
-                    const isConditionPassing = new Function(`return ${conditionString}`)()
-                    if (isConditionPassing) {
+                    if (isConditionPassing(defaultValue, usedProp.type)) {
                       classNamesToAppend.add(styleRef.content.referenceId)
-                      return
                     }
                     return
                   }
                   case 'state': {
                     const usedState = stateDefinitions[id]
-                    if (usedState === undefined || usedState.defaultValue === undefined) {
-                      throw new PluginCSS(`State with ${id} is missing in the stateDefinitions.`)
+                    if (usedState === undefined || hasNoRule) {
+                      return
                     }
                     let defaultValue = usedState.defaultValue
                     for (const path of refPath) {
@@ -471,20 +458,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     }
                     defaultValue = defaultValue ?? usedState.defaultValue
 
-                    const dynamicConditions = createConditionalStatement(
-                      staticValue !== undefined
-                        ? [{ operand: staticValue, operation: '===' }]
-                        : conditions,
-                      defaultValue
-                    )
-                    const matchCondition =
-                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
-                    // tslint:disable-next-line function-constructor
-                    const isConditionPassing = new Function(`return ${conditionString}`)()
-                    if (isConditionPassing) {
+                    if (isConditionPassing(defaultValue, usedState.type)) {
                       classNamesToAppend.add(styleRef.content.referenceId)
-                      return
                     }
                     return
                   }
@@ -503,20 +478,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                       ] as typeof defaultValue
                     }
                     defaultValue = defaultValue ?? (gsDef.defaultValue as StateDefaultValueTypes)
-                    const dynamicConditions = createConditionalStatement(
-                      staticValue !== undefined
-                        ? [{ operand: staticValue, operation: '===' }]
-                        : conditions,
-                      defaultValue
-                    )
-                    const matchCondition =
-                      matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-                    const conditionString = dynamicConditions.join(` ${matchCondition} `)
-                    // tslint:disable-next-line function-constructor
-                    const isConditionPassing = new Function(`return ${conditionString}`)()
-                    if (isConditionPassing) {
+                    if (isConditionPassing(defaultValue, gsDef.type)) {
                       classNamesToAppend.add(styleRef.content.referenceId)
-                      return
                     }
                     return
                   }
@@ -527,32 +490,39 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   }
                 }
               } else {
-                const referenceContent = styleRef.content.condition.reference.content
+                const { condition } = styleRef.content
+                const referenceContent = condition.reference.content
                 const referenceType = referenceContent.referenceType
                 const nameToAppend =
                   referenceType === 'local' && referenceContent.refPath?.length
                     ? referenceContent.refPath.join('.')
                     : referenceContent.id
 
-                // Same flat-leaf contract as the html branch above.
-                const conditions = styleRef.content.condition.expression
-                  .conditions as UIDLConditionExpressionEntry[]
-
-                const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
-                const right = conditions[0].operand as string | number | boolean
-
+                // A prop or state deleted after the class was bound leaves a
+                // condition that can never hold: the class stays off.
                 let binaryExpressionType = ''
                 switch (referenceType) {
                   case 'prop': {
+                    if (!propDefinitions[nameToAppend]) {
+                      return
+                    }
                     binaryExpressionType = propDefinitions[nameToAppend].type
                     break
                   }
                   case 'state': {
+                    if (!stateDefinitions[nameToAppend]) {
+                      return
+                    }
                     binaryExpressionType = stateDefinitions[nameToAppend].type
                     break
                   }
                   case 'local': {
-                    binaryExpressionType = typeof right as string
+                    // Same flat-leaf contract as the html branch above.
+                    const [firstCondition] = (condition.expression?.conditions ??
+                      []) as UIDLConditionExpressionEntry[]
+                    binaryExpressionType = typeof (firstCondition
+                      ? firstCondition.operand
+                      : condition.value)
                     break
                   }
                   default: {
@@ -580,21 +550,21 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   binaryKey = gsDef ? gsDef.name : nameToAppend
                 }
 
-                const binaryExpression = createBinaryExpression(
-                  { operation: operator, operand: right },
-                  {
-                    key: binaryKey,
-                    type: binaryExpressionType,
-                  }
-                )
+                const classCondition = createClassConditionExpression(condition, {
+                  key: binaryKey,
+                  type: binaryExpressionType,
+                })
+                if (!classCondition) {
+                  return
+                }
 
-                const conditionalExpression = types.conditionalExpression(
-                  binaryExpression,
-                  types.stringLiteral(content.referenceId),
-                  types.stringLiteral('')
+                dynamicVariantsToAppend.add(
+                  types.conditionalExpression(
+                    classCondition,
+                    types.stringLiteral(content.referenceId),
+                    types.stringLiteral('')
+                  )
                 )
-
-                dynamicVariantsToAppend.add(conditionalExpression)
                 return
               }
             } else {

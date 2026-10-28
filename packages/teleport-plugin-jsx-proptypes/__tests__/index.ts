@@ -164,4 +164,31 @@ describe('plugin-jsx-proptypes', () => {
       'ArrowFunctionExpression'
     )
   })
+
+  it('writes number and boolean defaults stored as text as numbers and booleans', async () => {
+    const structure: ComponentStructure = {
+      chunks: [reactChunk, exportChunk],
+      options: {},
+      uidl: component('Test', elementNode('container'), {
+        size: { type: 'number', defaultValue: '2' },
+        fullWidth: { type: 'boolean', defaultValue: 'true' },
+        label: { type: 'string', defaultValue: '2' },
+        note: { type: 'number', defaultValue: 'many' },
+      }),
+      dependencies: {},
+    }
+    const { chunks } = await plugin(structure)
+    const defaultPropsChunk = chunks.find((chunk) => chunk.name === 'component-default-props')
+    const statement = defaultPropsChunk.content as ExpressionStatement
+    const rightProperties = (statement.expression as AssignmentExpression).right as ObjectExpression
+    const defaults = Object.fromEntries(
+      rightProperties.properties.map((property) => {
+        const { key, value } = property as ObjectProperty
+        const name = key.type === 'Identifier' ? key.name : (key as { value: string }).value
+        return [name, (value as { value: unknown }).value]
+      })
+    )
+
+    expect(defaults).toEqual({ size: 2, fullWidth: true, label: '2', note: 'many' })
+  })
 })

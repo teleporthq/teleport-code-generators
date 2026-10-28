@@ -47,7 +47,7 @@ export const buildDefaultPropsAst = (
       }
 
       if (typeof defaultValue !== 'undefined') {
-        acc.values[key] = defaultValue
+        acc.values[key] = ASTUtils.coerceToDeclaredType(defaultValue, type)
         acc.count++
       }
       return acc

@@ -77,6 +77,39 @@ describe('createBinaryExpression', () => {
     })
   })
 
+  it('a number reference compares with a number when the operand is stored as text', () => {
+    const conditionIdentifier = { key: 'count', type: 'number' }
+
+    expect(
+      generate(createBinaryExpression({ operation: '===', operand: '2' }, conditionIdentifier)).code
+    ).toBe('count === 2')
+    expect(
+      generate(createBinaryExpression({ operation: '!==', operand: '' }, conditionIdentifier)).code
+    ).toBe('count !== ""')
+  })
+
+  it('a boolean reference compares with a boolean when the operand is stored as text', () => {
+    const conditionIdentifier = { key: 'open', type: 'boolean' }
+    const printed = (operation: string, operand: string) =>
+      generate(createBinaryExpression({ operation, operand }, conditionIdentifier)).code
+
+    expect(printed('===', 'true')).toBe('open === true')
+    expect(printed('===', 'false')).toBe('open === false')
+    expect(printed('!==', 'true')).toBe('open !== true')
+    expect(printed('===', 'yes')).toBe('open === "yes"')
+  })
+
+  it('an expression keeps a text operand as text: its value type is not known', () => {
+    expect(
+      generate(
+        createBinaryExpression(
+          { operation: '===', operand: 'true' },
+          { key: 'router.query.open', type: 'boolean', isExpression: true }
+        )
+      ).code
+    ).toBe('router.query.open === "true"')
+  })
+
   it('varName == text -> varName === text', () => {
     const condition = { operation: '==,', operand: 'text' }
     const conditionIdentifier = {

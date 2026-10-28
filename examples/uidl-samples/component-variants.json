@@ -1,0 +1,443 @@
+{
+  "name": "Component Variants",
+  "globals": {
+    "settings": {
+      "title": "Component Variants",
+      "language": "en"
+    },
+    "assets": [],
+    "meta": []
+  },
+  "root": {
+    "name": "App",
+    "designLanguage": {
+      "tokens": {}
+    },
+    "styleSetDefinitions": {
+      "btn": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "padding": {
+            "type": "static",
+            "content": "8px 16px"
+          }
+        }
+      },
+      "btn-primary": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "backgroundColor": {
+            "type": "static",
+            "content": "blue"
+          }
+        }
+      },
+      "btn-secondary": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "backgroundColor": {
+            "type": "static",
+            "content": "gray"
+          }
+        }
+      },
+      "btn-outline": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "border": {
+            "type": "static",
+            "content": "1px solid green"
+          }
+        }
+      },
+      "btn-link": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "textDecoration": {
+            "type": "static",
+            "content": "underline"
+          }
+        }
+      },
+      "btn-full": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "width": {
+            "type": "static",
+            "content": "100%"
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "route": {
+        "type": "string",
+        "defaultValue": "Home",
+        "values": [
+          {
+            "value": "Home",
+            "seo": {
+              "title": "Component Variants"
+            }
+          }
+        ]
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              },
+              "value": "Home",
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "key": "home",
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "primaryButton",
+                        "name": "primaryButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "buttonType": {
+                            "type": "static",
+                            "content": "primary"
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Primary"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "secondaryButton",
+                        "name": "secondaryButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "buttonType": {
+                            "type": "static",
+                            "content": "secondary"
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Secondary"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "outlineButton",
+                        "name": "outlineButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "buttonType": {
+                            "type": "static",
+                            "content": "outline"
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Outline"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "linkButton",
+                        "name": "linkButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "buttonType": {
+                            "type": "static",
+                            "content": "link"
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Link"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "unsetButton",
+                        "name": "unsetButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "label": {
+                            "type": "static",
+                            "content": "Unset"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "fullWidthButton",
+                        "name": "fullWidthButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "buttonType": {
+                            "type": "static",
+                            "content": "outline"
+                          },
+                          "fullWidth": {
+                            "type": "static",
+                            "content": true
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Full width"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "ActionButton",
+                        "semanticType": "ActionButton",
+                        "key": "notFullWidthButton",
+                        "name": "notFullWidthButton",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "attrs": {
+                          "fullWidth": {
+                            "type": "static",
+                            "content": false
+                          },
+                          "label": {
+                            "type": "static",
+                            "content": "Not full width"
+                          }
+                        },
+                        "children": []
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "ActionButton": {
+      "name": "ActionButton",
+      "propDefinitions": {
+        "buttonType": {
+          "type": "string",
+          "defaultValue": "primary"
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "defaultValue": false
+        },
+        "label": {
+          "type": "string",
+          "defaultValue": "Button"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "button",
+          "semanticType": "button",
+          "key": "action-button",
+          "referencedStyles": {
+            "base": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn"
+              }
+            },
+            "primary": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn-primary",
+                "condition": {
+                  "reference": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "buttonType"
+                    }
+                  },
+                  "expression": {
+                    "conditions": [
+                      {
+                        "operation": "===",
+                        "operand": "primary"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "secondary": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn-secondary",
+                "condition": {
+                  "reference": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "buttonType"
+                    }
+                  },
+                  "expression": {
+                    "conditions": [
+                      {
+                        "operation": "===",
+                        "operand": "secondary"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "outline": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn-outline",
+                "condition": {
+                  "reference": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "buttonType"
+                    }
+                  },
+                  "expression": {
+                    "conditions": [
+                      {
+                        "operation": "===",
+                        "operand": "outline"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "link": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn-link",
+                "condition": {
+                  "reference": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "buttonType"
+                    }
+                  },
+                  "expression": {
+                    "conditions": [
+                      {
+                        "operation": "===",
+                        "operand": "link"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "full": {
+              "type": "style-map",
+              "content": {
+                "mapType": "project-referenced",
+                "referenceId": "btn-full",
+                "condition": {
+                  "reference": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "fullWidth"
+                    }
+                  },
+                  "expression": {
+                    "conditions": [
+                      {
+                        "operation": "===",
+                        "operand": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "label"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

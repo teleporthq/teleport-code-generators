@@ -86,3 +86,44 @@ describe('plugin-html-base-component', () => {
     expect(hastText.value).toBe('Hello World')
   })
 })
+
+describe('show/hide conditions on a typed prop', () => {
+  const shownWhen = (
+    propId: string,
+    operand: string,
+    defaultValue: number | boolean,
+    type: 'number' | 'boolean'
+  ) =>
+    component(
+      'Test',
+      elementNode('container', {}, [
+        {
+          type: 'conditional',
+          content: {
+            reference: { type: 'dynamic', content: { referenceType: 'prop', id: propId } },
+            node: elementNode('text', {}, [staticNode('Shown')]),
+            condition: { conditions: [{ operation: '===', operand }] },
+          },
+        },
+      ]),
+      { [propId]: { type, defaultValue } }
+    )
+
+  const renders = async (uidl: ReturnType<typeof component>) => {
+    const { htmlComponentPlugin } = createHTMLBasePlugin()
+    const { chunks } = await htmlComponentPlugin({ ...getMockComponentStructure(), uidl })
+    return JSON.stringify(chunks[0].content).includes('Shown')
+  }
+
+  it('compares a number prop with an operand stored as text as numbers', async () => {
+    expect(await renders(shownWhen('count', '2', 2, 'number'))).toBe(true)
+    expect(await renders(shownWhen('count', '2', 3, 'number'))).toBe(false)
+  })
+
+  it('compares a boolean prop with an operand stored as "true" or "false" as booleans', async () => {
+    expect(await renders(shownWhen('open', 'true', true, 'boolean'))).toBe(true)
+    expect(await renders(shownWhen('open', 'true', false, 'boolean'))).toBe(false)
+    expect(await renders(shownWhen('open', 'false', false, 'boolean'))).toBe(true)
+    expect(await renders(shownWhen('open', 'false', true, 'boolean'))).toBe(false)
+  })
+})
