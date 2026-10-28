@@ -17,7 +17,7 @@ import {
   UIDLWorkflowNode,
   UIDLWorkflows,
 } from '@teleporthq/teleport-types'
-import { HASTBuilders } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 import { StateBindings, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 /**
@@ -212,18 +212,6 @@ const compileReference = (
   }
 }
 
-const COLLECTION_OPERATIONS = [
-  'contains',
-  'notContains',
-  'isEmpty',
-  'isNotEmpty',
-  'lengthEquals',
-  'lengthGreaterThan',
-  'lengthLessThan',
-  'hasKey',
-  'notHasKey',
-]
-
 /**
  * `=` and `==` are the editor's spellings of `===`. The JSX generators print
  * any unknown operation (`startsWith`…) as `===` as well; that is never what
@@ -248,16 +236,32 @@ const comparisonOf = (operation: string): StateBindings.ComparisonOperator | nul
   }
 }
 
+/** The declared type of the value a condition's left side reads, when it reads one whole. */
+const declaredTypeOf = (
+  reference: ConditionReference | undefined,
+  context: BindingContext
+): string | undefined => {
+  if (reference?.type !== 'dynamic' || reference.content.refPath?.length) {
+    return undefined
+  }
+  const { referenceType, id } = reference.content
+  if (referenceType === 'state') {
+    return context.scope?.states[id]?.type
+  }
+  return referenceType === 'prop' ? context.props[id]?.type : undefined
+}
+
 const compileEntry = (
   entry: UIDLConditionExpressionEntry,
   chainReference: ConditionReference | undefined,
   context: BindingContext
 ): StateExpression | null => {
   const { operation, operand, containsField } = entry
-  if (containsField || COLLECTION_OPERATIONS.includes(operation)) {
+  if (containsField || ASTUtils.isCollectionOperation(operation)) {
     return null
   }
-  const left = compileReference(entry.reference ?? chainReference, context)
+  const leftReference = entry.reference ?? chainReference
+  const left = compileReference(leftReference, context)
   if (!left) {
     return null
   }
@@ -275,7 +279,7 @@ const compileEntry = (
   const right =
     operand !== null && typeof operand === 'object'
       ? compileReference(operand, context)
-      : literalOf(operand)
+      : literalOf(ASTUtils.coerceToDeclaredType(operand, declaredTypeOf(leftReference, context)))
   return comparison && right ? StateBindings.binary(comparison, left, right) : null
 }
 

@@ -10,7 +10,10 @@ import * as URLQueryWriter from './utils/url-query-writer'
 import * as RouteUtils from './utils/route-utils'
 import ParsedASTNode from './utils/parsed-ast'
 
-import { createBinaryExpression } from './node-handlers/node-to-jsx/utils'
+import {
+  createBinaryExpression,
+  createClassConditionExpression,
+} from './node-handlers/node-to-jsx/utils'
 
 export {
   ASTBuilders,
@@ -24,6 +27,7 @@ export {
   RouteUtils,
   ParsedASTNode,
   createBinaryExpression,
+  createClassConditionExpression,
 }
 
 export { default as createHTMLTemplateSyntax } from './node-handlers/node-to-html'

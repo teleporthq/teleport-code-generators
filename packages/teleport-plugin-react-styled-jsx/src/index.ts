@@ -4,7 +4,7 @@ import {
   StyleBuilders,
   ASTBuilders,
   ParsedASTNode,
-  createBinaryExpression,
+  createClassConditionExpression,
 } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
@@ -262,33 +262,40 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
             }
 
             if (styleRef.content.condition) {
-              const referenceContent = styleRef.content.condition.reference.content
+              const { condition } = styleRef.content
+              const referenceContent = condition.reference.content
               const referenceType = referenceContent.referenceType
               const nameToAppend =
                 referenceType === 'local' && referenceContent.refPath?.length
                   ? referenceContent.refPath.join('.')
                   : referenceContent.id
 
-              // Class conditions are single-reference flat chains: no writer
-              // emits per-entry references or nested groups here.
-              const conditions = styleRef.content.condition.expression
-                .conditions as UIDLConditionExpressionEntry[]
-
-              const operator = conditions[0].operation as '===' | '!==' | '<' | '<=' | '>' | '>='
-              const right = conditions[0].operand
-
+              // A prop or state deleted after the class was bound leaves a
+              // condition that can never hold: the class stays off.
               let binaryExpressionType = ''
               switch (referenceType) {
                 case 'prop': {
+                  if (!propDefinitions[nameToAppend]) {
+                    return
+                  }
                   binaryExpressionType = propDefinitions[nameToAppend].type
                   break
                 }
                 case 'state': {
+                  if (!stateDefinitions[nameToAppend]) {
+                    return
+                  }
                   binaryExpressionType = stateDefinitions[nameToAppend].type
                   break
                 }
                 case 'local': {
-                  binaryExpressionType = typeof right as string
+                  // Class conditions are single-reference flat chains: no writer
+                  // emits per-entry references or nested groups here.
+                  const [firstCondition] = (condition.expression?.conditions ??
+                    []) as UIDLConditionExpressionEntry[]
+                  binaryExpressionType = typeof (firstCondition
+                    ? firstCondition.operand
+                    : condition.value)
                   break
                 }
                 default: {
@@ -301,21 +308,21 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   )
                 }
               }
-              const binaryExpression = createBinaryExpression(
-                { operation: operator, operand: right },
-                {
-                  key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
-                  type: binaryExpressionType,
-                }
-              )
+              const classCondition = createClassConditionExpression(condition, {
+                key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                type: binaryExpressionType,
+              })
+              if (!classCondition) {
+                return
+              }
 
-              const conditionalExpression = types.conditionalExpression(
-                binaryExpression,
-                types.stringLiteral(content.referenceId),
-                types.stringLiteral('')
+              dynamicVariantsToAppend.add(
+                types.conditionalExpression(
+                  classCondition,
+                  types.stringLiteral(content.referenceId),
+                  types.stringLiteral('')
+                )
               )
-
-              dynamicVariantsToAppend.add(conditionalExpression)
             } else {
               classNamesToAppend.add(content.referenceId)
             }

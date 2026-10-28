@@ -25,6 +25,7 @@ import {
 } from '@teleporthq/teleport-uidl-builders'
 import { ComponentUIDL, UIDLStyleInlineAsset } from '@teleporthq/teleport-types'
 import { parseProjectJSON } from '../../src/parser'
+import { checkDynamicDefinitions } from '../../src/validator/utils'
 
 const uidl = component(
   'Repeat Component',
@@ -232,5 +233,98 @@ describe('Parses UIDL and then converts the key-values to key-static-nodes', () 
   it('Parsers key-values in attrs and converts to UIDL nodes', () => {
     const parsedUIDL = parseProjectJSON(projectUidlSample)
     expect((parsedUIDL.globals.assets[0] as UIDLStyleInlineAsset)?.attrs).toBeDefined()
+  })
+})
+
+describe('props and states read only by condition rules count as used', () => {
+  const propRef = (id: string) =>
+    ({ type: 'dynamic', content: { referenceType: 'prop', id } } as const)
+  const stateRef = (id: string) =>
+    ({ type: 'dynamic', content: { referenceType: 'state', id } } as const)
+
+  const unusedWarnings = (componentUidl: ComponentUIDL) => {
+    const warn = jest.spyOn(global.console, 'warn').mockImplementation(() => undefined)
+    warn.mockClear()
+    try {
+      checkDynamicDefinitions(componentUidl as unknown as Record<string, unknown>)
+      return warn.mock.calls.map(([message]) => String(message)).filter((m) => /not used/.test(m))
+    } finally {
+      warn.mockRestore()
+    }
+  }
+
+  it('counts a prop read only by a class condition', () => {
+    const button = elementNode('button')
+    button.content.referencedStyles = {
+      primary: {
+        type: 'style-map',
+        content: {
+          mapType: 'project-referenced',
+          referenceId: 'btn-primary',
+          condition: {
+            reference: propRef('buttonType'),
+            expression: { conditions: [{ operation: '===', operand: 'primary' }] },
+          },
+        },
+      },
+      outlined: {
+        type: 'style-map',
+        content: {
+          mapType: 'project-referenced',
+          referenceId: 'btn-outline',
+          condition: { reference: stateRef('isOutlined'), value: true },
+        },
+      },
+    }
+
+    expect(
+      unusedWarnings(
+        component(
+          'Button',
+          button,
+          { buttonType: definition('string', 'primary'), unused: definition('string', '') },
+          { isOutlined: definition('boolean', false) }
+        )
+      )
+    ).toEqual(['"unused" is defined in propDefinitions but it is not used in the UIDL.'])
+  })
+
+  it('counts props and states read by the rules of a show/hide condition', () => {
+    const shownNode = {
+      type: 'conditional',
+      content: {
+        reference: propRef('count'),
+        node: elementNode('text'),
+        condition: {
+          matchingCriteria: 'all',
+          conditions: [
+            { operation: '>', operand: propRef('minimum') },
+            {
+              conditions: [{ operation: '===', operand: true, reference: stateRef('isOpen') }],
+            },
+          ],
+        },
+      },
+    } as const
+    const inlineCondition = elementNode('text')
+    inlineCondition.content.renderingConditions = {
+      reference: propRef('label'),
+      condition: { conditions: [{ operation: '!==', operand: stateRef('hiddenLabel') }] },
+    }
+
+    expect(
+      unusedWarnings(
+        component(
+          'Counter',
+          elementNode('container', {}, [shownNode as never, inlineCondition]),
+          {
+            count: definition('number', 0),
+            minimum: definition('number', 1),
+            label: definition('string', ''),
+          },
+          { isOpen: definition('boolean', false), hiddenLabel: definition('string', '') }
+        )
+      )
+    ).toEqual([])
   })
 })

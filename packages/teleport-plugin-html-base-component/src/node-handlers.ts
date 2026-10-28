@@ -265,7 +265,10 @@ export const generateHtmlSyntax: NodeToHTML<
       // export. (State conditions used to render nothing at all, true or not —
       // the burger of a closed menu, the first tab — and a download lost that
       // content.)
-      const renderWhenPassing = async (currentValue: UIDLPropDefinition['defaultValue']) => {
+      const renderWhenPassing = async (
+        currentValue: UIDLPropDefinition['defaultValue'],
+        currentValueType?: string
+      ) => {
         const joiner = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
         try {
           // Inside the guard: a value this evaluator cannot write as code (a
@@ -276,7 +279,8 @@ export const generateHtmlSyntax: NodeToHTML<
             staticValue !== undefined
               ? [{ operand: staticValue, operation: '===' }]
               : leafConditions,
-            currentValue
+            currentValue,
+            currentValueType
           )
           // tslint:disable-next-line function-constructor
           const passing = new Function(`return ${statements.join(` ${joiner} `)}`)()
@@ -316,7 +320,12 @@ export const generateHtmlSyntax: NodeToHTML<
           // If defaultValue is undefined or null after path traversal, use original default
           defaultValue = defaultValue ?? usedProp.defaultValue
 
-          return renderWhenPassing(defaultValue)
+          // A field read from an object prop has the type of its value, as in
+          // the JSX exports' `createConditionIdentifier`.
+          return renderWhenPassing(
+            defaultValue,
+            refPath.length > 0 ? typeof defaultValue : usedProp.type
+          )
         }
 
         case 'local': {
@@ -356,7 +365,7 @@ export const generateHtmlSyntax: NodeToHTML<
           for (const path of refPath) {
             startValue = (startValue as Record<string, UIDLPropDefinition['defaultValue']>)?.[path]
           }
-          return renderWhenPassing(startValue)
+          return renderWhenPassing(startValue, refPath.length > 0 ? undefined : usedState.type)
         }
 
         default:
@@ -456,91 +465,30 @@ export const generateHtmlSyntax: NodeToHTML<
   }
 }
 
-/**
- * The operations that read a value as a collection, answered on the value
- * itself with the meaning the generators give them everywhere else
- * (`stringifyConditionalExpression` in teleport-plugin-common's node-to-html,
- * `createBinaryExpression` in node-to-jsx): `(value || []).length`,
- * `.includes(operand)`, `.some((item) => item[field] === operand)`,
- * `hasOwnProperty`. A list or an object cannot be written into the comparison
- * `createConditionalStatement` builds, and the unary fallback below read
- * "is not empty" as "is not".
- */
-const COLLECTION_OPERATIONS = [
-  'isEmpty',
-  'isNotEmpty',
-  'lengthEquals',
-  'lengthGreaterThan',
-  'lengthLessThan',
-  'contains',
-  'notContains',
-  'hasKey',
-  'notHasKey',
-]
-
-const passesCollectionTest = (
-  operation: string,
-  value: unknown,
-  operand: unknown,
-  containsField?: string
-): boolean => {
-  const collection = (value || []) as {
-    length?: number
-    includes?: (item: unknown) => boolean
-    some?: (test: (item: unknown) => boolean) => boolean
-  }
-  const length = collection.length as number
-  const contains = (): boolean => {
-    if (containsField) {
-      return (
-        typeof collection.some === 'function' &&
-        collection.some(
-          (item) => (item as Record<string, unknown> | null)?.[containsField] === operand
-        )
-      )
-    }
-    return typeof collection.includes === 'function' && collection.includes(operand)
-  }
-  const hasKey = (): boolean =>
-    Object.prototype.hasOwnProperty.call(value || {}, operand as PropertyKey)
-
-  switch (operation) {
-    case 'isEmpty':
-      return length === 0
-    case 'isNotEmpty':
-      return length > 0
-    case 'lengthEquals':
-      return length === operand
-    case 'lengthGreaterThan':
-      return length > (operand as number)
-    case 'lengthLessThan':
-      return length < (operand as number)
-    case 'contains':
-      return contains()
-    case 'notContains':
-      return !contains()
-    case 'hasKey':
-      return hasKey()
-    default:
-      return !hasKey()
-  }
-}
-
 /** Another value of the page, read while the page runs: not known here. */
 const isReference = (operand: unknown): boolean =>
   typeof operand === 'object' && operand !== null && 'type' in operand
 
 const createConditionalStatement = (
   conditions: UIDLConditionExpressionEntry[],
-  leftOperand: UIDLPropDefinition['defaultValue']
+  leftOperand: UIDLPropDefinition['defaultValue'],
+  leftOperandType?: string
 ) => {
   return conditions.map((condition) => {
-    const { operation, operand } = condition
+    const { operation } = condition
+    const operand = ASTUtils.coerceToDeclaredType(condition.operand, leftOperandType)
 
-    if (operation && COLLECTION_OPERATIONS.includes(operation)) {
+    // A list or an object cannot be written into the comparison built below,
+    // and the unary fallback read "is not empty" as "is not".
+    if (ASTUtils.isCollectionOperation(operation)) {
       return isReference(operand)
         ? 'false'
-        : String(passesCollectionTest(operation, leftOperand, operand, condition.containsField))
+        : String(
+            ASTUtils.passesCollectionTest(operation, leftOperand, operand, {
+              containsField: condition.containsField,
+              valueType: leftOperandType,
+            })
+          )
     }
 
     // No operand: the condition tests the value itself ("is open", "not
@@ -1143,6 +1091,15 @@ const generateComponentContent = async (
     if (attribute === undefined) {
       const propFromCurrentComponent = combinedProps[propKey]
       propsForInstance[propKey] = propFromCurrentComponent
+    }
+
+    // A number or boolean prop arrives as text from writers that keep every
+    // input as typed; the conditions and bindings of the instance read it as
+    // its declared type, as the JSX exports' defaultProps do.
+    const definition = propsForInstance[propKey]
+    const typedValue = ASTUtils.coerceToDeclaredType(definition?.defaultValue, definition?.type)
+    if (typedValue !== definition?.defaultValue) {
+      propsForInstance[propKey] = { ...definition, defaultValue: typedValue }
     }
   }
 
