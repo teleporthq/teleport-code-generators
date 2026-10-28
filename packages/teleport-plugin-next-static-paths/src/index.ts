@@ -7,9 +7,9 @@ import {
   TeleportError,
   UIDLLocalResource,
 } from '@teleporthq/teleport-types'
-import { StringUtils, GenericUtils, PageAccess } from '@teleporthq/teleport-shared'
+import { StringUtils, GenericUtils, PageAccess, ContentTables } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
-import { generateInitialPathsAST } from './utils'
+import { generateInitialPathsAST, PRERENDERED_RECORDS_CODE } from './utils'
 
 interface StaticPropsPluginConfig {
   componentChunkName?: string
@@ -17,6 +17,7 @@ interface StaticPropsPluginConfig {
 
 const {
   isDynamicRoute,
+  pageDataReadArguments,
   pageHasSameTableMutationWorkflow,
   pageReadsProtectedTable,
   pageSeedsStateFromDataSource,
@@ -168,12 +169,31 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       return structure
     }
 
+    // A details page's publish builds its newest records' pages
+    // (`prerenderedRecords`). A paginated listing lists its page numbers and a
+    // content preset's category pages list every category: listings, few, and
+    // what a search engine reaches every post through.
+    const listsCategories =
+      isExternalResource &&
+      ContentTables.CONTENT_TABLES.some(
+        (tables) =>
+          (resource as { name: string }).name ===
+          ContentTables.contentCategoryPathsListerName(tables.key)
+      )
+    const buildsNewestRecords = !uidl.outputOptions.pagination && !listsCategories
+
+    // Only the rows the page's reader may see become pages: a visitor's, unless
+    // only the store's trusted readers can open the page.
     const getStaticPathsAST = generateInitialPathsAST(
       uidl.outputOptions.initialPathsData,
       resourceImportName,
       resource,
       uidl.outputOptions.pagination,
-      uidl.outputOptions.dynamicRouteAttribute
+      uidl.outputOptions.dynamicRouteAttribute,
+      // A resource the project generated forwards it to the data-source module;
+      // another package's function takes its own arguments.
+      isLocalResource ? pageDataReadArguments(uidl, options.auth) : [],
+      buildsNewestRecords
     )
 
     chunks.push({
@@ -183,6 +203,16 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       content: getStaticPathsAST,
       linkAfter: [componentChunkName],
     })
+
+    if (buildsNewestRecords) {
+      chunks.push({
+        name: 'prerendered-records',
+        type: ChunkType.STRING,
+        fileType: FileType.JS,
+        content: PRERENDERED_RECORDS_CODE,
+        linkAfter: ['getStaticPaths'],
+      })
+    }
 
     return structure
   }

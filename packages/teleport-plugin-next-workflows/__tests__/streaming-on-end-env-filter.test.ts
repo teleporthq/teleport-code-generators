@@ -15,8 +15,10 @@
 // reproduced live against a published chat bundle.
 //
 // The fix: emitted nodes carry `executionEnv`, and the client runtime filters
-// on-stream / on-end branch execution down to client-executable nodes. Server
-// branch nodes stay server-side where they already run with full configs.
+// on-stream branch execution down to client-executable nodes. Server branch
+// nodes stay server-side where they already run with full configs. The on-end
+// branch is no longer run by the 'done' handler at all: its steps run in their
+// own segments, in edge order (see streaming-on-end-order.test.ts).
 
 import {
   generateSharedRuntimeUtilsCode,
@@ -167,7 +169,7 @@ describe('callStreamingServerSegment — on-stream/on-end env filter', () => {
     global.fetch = originalFetch
   })
 
-  it('executes ONLY client-executable branch nodes client-side; server branch nodes are skipped but still marked handled', async () => {
+  it('runs the on-stream client nodes per chunk and leaves the whole on-end branch to its segments', async () => {
     const { runtime } = loadRuntimeModules()
     const nodes = clientBundleNodes()
     const edges = workflowEdges()
@@ -211,20 +213,15 @@ describe('callStreamingServerSegment — on-stream/on-end env filter', () => {
       'exec-1'
     )
 
-    // Client branch nodes ran (on-stream state update + on-end state update).
-    expect(calls).toContain('state:answer')
-    expect(calls).toContain('state:done')
-    // Server branch nodes were NEVER executed with client handlers.
-    expect(calls).not.toContain('general-custom-js')
-    expect(calls).not.toContain('data-raw-query')
-    // All on-end branch nodes stay marked handled so later client segments
-    // do not re-run them (unchanged bookkeeping semantics).
-    expect(handled[ON_END_SERVER_JS_ID]).toBe(true)
-    expect(handled[ON_END_SERVER_SQL_ID]).toBe(true)
-    expect(handled[ON_END_CLIENT_ID]).toBe(true)
+    // Only the on-stream state update ran; server nodes never ran with client
+    // handlers, and the on-end client node waits for the server steps before it.
+    expect(calls).toEqual(['state:answer'])
+    expect(handled[ON_STREAM_CLIENT_ID]).toBe(true)
+    // Not marked handled, so its own client segment still runs it.
+    expect(handled[ON_END_CLIENT_ID]).toBeUndefined()
   })
 
-  it('keeps executing branch nodes WITHOUT an executionEnv marker (older bundles)', async () => {
+  it('keeps executing on-stream nodes WITHOUT an executionEnv marker (older bundles)', async () => {
     const { runtime } = loadRuntimeModules()
     const nodes = clientBundleNodes().map((n) => {
       const { executionEnv, ...rest } = n
@@ -268,9 +265,12 @@ describe('callStreamingServerSegment — on-stream/on-end env filter', () => {
       'exec-2'
     )
 
-    // Fail-open: without the marker, behavior is unchanged from older bundles.
-    expect(calls).toContain('general-custom-js')
-    expect(calls).toContain('data-raw-query')
+    // Fail-open: an unmarked on-stream node still runs per chunk.
+    expect(calls).toContain('state:answer')
+    // The on-end branch runs in its own segments, marker or not.
+    expect(calls).not.toContain('general-custom-js')
+    expect(calls).not.toContain('data-raw-query')
+    expect(calls).not.toContain('state:done')
   })
 })
 

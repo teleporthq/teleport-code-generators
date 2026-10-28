@@ -824,6 +824,14 @@ export interface UIDLGlobalProjectValues {
       /** False when the author turned the flying pictures off; absent means a linked picture flies into its twin. */
       flyingPictures?: boolean
     }
+    /**
+     * The site's password page (the wall the platform raises on a workspace
+     * without paid hosting, or the one a paying workspace enables). The page
+     * shows TeleportHQ's logo unless a paying workspace set its own.
+     */
+    passwordWall?: {
+      logo?: string
+    }
   }
   customCode?: {
     head?: string

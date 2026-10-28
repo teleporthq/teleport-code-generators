@@ -37,8 +37,9 @@ ${ProductOptions.generateProductOptionsHelperCode()}
 
 // The invoice details an order's metadata (JSON text) carries beside its
 // billing columns — the keys \`ORDER_BILLING_METADATA_KEYS\` (teleport-gui)
-// writes: the address in its parts and the buyer's tax or VAT number. Every
-// part is '' when the order has none or its metadata is no JSON object.
+// writes: the address in its parts, the company and the buyer's tax or VAT
+// number. Every part is '' when the order has none or its metadata is no JSON
+// object.
 function readOrderBillingMetadata(raw) {
   var parsed = raw;
   if (typeof raw === 'string') {
@@ -55,6 +56,7 @@ function readOrderBillingMetadata(raw) {
   }
   return {
     taxId: part('billingTaxId'),
+    company: part('billingCompany'),
     street: part('billingStreet'),
     city: part('billingCity'),
     postalCode: part('billingPostalCode'),
@@ -92,6 +94,16 @@ var CURRENCY_SYMBOLS = {
   'KES': 'KSh', 'GHS': 'GH\\u20B5', 'COP': 'COL$', 'ARS': 'AR$',
   'CLP': 'CLP$', 'PEN': 'S/.', 'VND': '\\u20AB', 'UAH': '\\u20B4',
 };
+
+// \`teleport_orders.payment_status\` values that mean the order's money was
+// collected — the editor's PAID_PAYMENT_STATUS_VALUES (teleport-gui
+// e-commerce/constants/order-statuses.ts), provider spellings included.
+var PAID_ORDER_PAYMENT_STATUSES = ['paid', 'partially_refunded', 'succeeded', 'success', 'completed', 'captured'];
+
+function isPaidOrder(order) {
+  var paymentStatus = String((order && order.payment_status) || '').trim().toLowerCase();
+  return PAID_ORDER_PAYMENT_STATUSES.indexOf(paymentStatus) !== -1;
+}
 
 function isLoopbackHost(host) {
   var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
@@ -451,10 +463,11 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
   // who checked "bill to a different address" has both on the order.
   //
   // An order whose buyer gave invoice details of their own (a booking's
-  // "Add invoice details") carries them in its metadata as well: the address
-  // in its parts and the tax or VAT number. Those parts are the invoice's
-  // address — never mixed with a shipping address — and the number is the
-  // buyer's VAT.
+  // "Add invoice details", a store checkout's "Billing Details") carries them
+  // in its metadata as well: the address in its parts, the company and the tax
+  // or VAT number. Those parts are the invoice's address — never mixed with a
+  // shipping address — the company is printed under the buyer's name, and the
+  // number is the buyer's VAT.
   var orderRow = orderShippingSource;
   var orderBilling = readOrderBillingMetadata(orderRow.metadata);
   var billedApart = !!(orderBilling.street || orderBilling.city || orderBilling.country);
@@ -475,15 +488,22 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
   var fallbackPaymentIntentId = orderRow.payment_intent_id || '';
   var fallbackNotes = orderRow.notes || '';
 
+  // Paid or not, when the caller does not say: the order's money state. The
+  // payment webhook marks an order paid and then asks for its invoice with just
+  // the order id; a cash-on-delivery order is invoiced unpaid when it is placed.
+  // The orders table keeps no payment time of its own — the mark-paid write
+  // stamps \`updated_at\`, just before the webhook asks.
+  var paidByOrder = !body.status && isPaidOrder(orderRow);
+
   var invoiceData = {
     id: body.id || require('crypto').randomUUID(),
     // Numbered by the route: an invoice issued at payment takes the next
     // number, a regenerated one keeps its own.
     invoiceNumber: '',
-    status: body.status || 'issued',
+    status: body.status || (paidByOrder ? 'paid' : 'issued'),
     issueDate: issueDate,
     dueDate: dueDate,
-    paidAt: body.paidAt || null,
+    paidAt: body.paidAt || (paidByOrder ? orderRow.updated_at || new Date().toISOString() : null),
     customerName: body.customerName || fallbackCustomerName || '',
     customerEmail: body.customerEmail || fallbackCustomerEmail || '',
     customerAddress: body.customerAddress || fallbackCustomerAddress || '',
@@ -492,6 +512,7 @@ function assembleInvoiceData(body, hydratedOrder, hydratedItems) {
     customerZip: body.customerZip || fallbackCustomerZip || '',
     customerCountry: body.customerCountry || fallbackCustomerCountry || '',
     customerVat: body.customerVat || orderBilling.taxId || '',
+    customerCompany: body.customerCompany || orderBilling.company || '',
     companyName: pdfGenerator.COMPANY_DETAILS.companyName || '',
     companyAddress: pdfGenerator.COMPANY_DETAILS.companyAddress || '',
     companyCity: pdfGenerator.COMPANY_DETAILS.companyCity || '',

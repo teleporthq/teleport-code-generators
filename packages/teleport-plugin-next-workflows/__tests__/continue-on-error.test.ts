@@ -102,6 +102,33 @@ describe('executeNodes — a refused result on a continueOnError node', () => {
   })
 })
 
+describe('executeNodes — an email node that reached some of its recipients', () => {
+  it('reports success with the refused addresses and the chain goes on, flag or not', async () => {
+    const utils = loadSharedRuntime()
+    const partlyDelivered = {
+      id: 're-1',
+      success: true,
+      error: 'refused for blocked@lumen.test (only the owner)',
+      deliveries: [
+        { to: 'jane@lumen.test', success: true, id: 're-1' },
+        { to: 'blocked@lumen.test', success: false, error: 'only the owner' },
+      ],
+    }
+    const ran: string[] = []
+    const handlers = {
+      'email-resend': async () => partlyDelivered,
+      'toast-show': async () => {
+        ran.push('toast')
+        return { shown: true }
+      },
+    }
+    const context: Record<string, unknown> = {}
+    await utils.executeNodes([sendNode(), afterNode], edges, context, handlers, {}, null, 'x4')
+    expect(context.send).toEqual(partlyDelivered)
+    expect(ran).toEqual(['toast'])
+  })
+})
+
 describe('generated server segment route', () => {
   const segment: WorkflowSegment = {
     id: 'server-1',

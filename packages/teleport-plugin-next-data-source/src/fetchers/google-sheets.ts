@@ -3,6 +3,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateGoogleSheetsConfig = (
@@ -54,6 +55,8 @@ export const generateGoogleSheetsFetcher = (config: Record<string, unknown>): st
   return `import fetch from 'node-fetch'
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateSortFilterHelperCode()}
 
@@ -261,23 +264,17 @@ export default async function handler(req, res) {
     let filteredData = [...filteredRows]
     
     if (query) {
-      const searchQuery = query.toLowerCase()
-      
       if (queryColumns) {
         const searchColumns = safeJSONParse(queryColumns)
-        filteredData = filteredData.filter((item) => {
-          return searchColumns.some((col) => {
-            // Map label to column ID
-            const field = labelToIdMap[col] || col
-            const value = getNestedValue(item, field)
-            return value && String(value).toLowerCase().includes(searchQuery)
-          })
-        })
+        filteredData = filteredData.filter((item) =>
+          matchesSearch(item, query, searchColumns, (row, col) => getNestedValue(row, labelToIdMap[col] || col))
+        )
       } else {
+        const terms = searchTerms(query)
         filteredData = filteredData.filter((item) => {
           try {
-            const stringified = JSON.stringify(item).toLowerCase()
-            return stringified.includes(searchQuery)
+            const text = searchText(item)
+            return terms.every((term) => text.indexOf(term) !== -1)
           } catch {
             return false
           }
@@ -369,6 +366,12 @@ export default async function handler(req, res) {
         
         return comparison * sortOrderValue
       })
+    }
+    
+    if (query && queryColumns) {
+      filteredData = rankBySearch(filteredData, query, safeJSONParse(queryColumns), (item, col) =>
+        getNestedValue(item, labelToIdMap[col] || col)
+      )
     }
     
     const limitValue = limit || perPage

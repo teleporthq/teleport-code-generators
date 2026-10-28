@@ -76,30 +76,92 @@ const loadLease = (options: {
 }
 
 describe('webhook delivery lease module', () => {
-  it('creates its table once, claims with a fresh token and releases only its own claim', async () => {
+  it('creates a missing table once, claims with a fresh token and releases only its own claim', async () => {
     const lease = loadLease({})
     try {
       const first = await lease.claim('webhooks/stripe-payment', Buffer.from('{"id":"evt_1"}'), {
         id: 'evt_1',
       })
       expect(first.claimed).toBe(true)
-      expect(lease.queries[0].sql).toMatch(
+      expect(lease.queries[0]).toEqual({
+        sql: 'SELECT to_regclass($1) IS NOT NULL AS present',
+        values: ['teleport_webhook_deliveries'],
+      })
+      expect(lease.queries[1].sql).toMatch(
         /^CREATE TABLE IF NOT EXISTS "teleport_webhook_deliveries"/
       )
-      const claim = lease.queries[1]
+      const claim = lease.queries[2]
       expect(claim.sql).toContain('ON CONFLICT (delivery_key) DO UPDATE')
       expect(claim.sql).toContain('WHERE d.claimed_at < NOW() - make_interval(secs => $3::int)')
       expect(claim.values[0]).toMatch(/^[0-9a-f]{64}$/)
       expect(claim.values[2]).toBe(300)
       await first.release()
-      const release = lease.queries[2]
+      const release = lease.queries[3]
       expect(release.sql).toMatch(
         /^DELETE FROM "teleport_webhook_deliveries" WHERE \(delivery_key = \$1 AND claim_token = \$2\)/
       )
       expect(release.values).toEqual([claim.values[0], claim.values[1]])
-      // The table is not created again by the next delivery.
+      // The table is neither looked up nor created again by the next delivery.
       await lease.claim('webhooks/stripe-payment', Buffer.from('{"id":"evt_2"}'), { id: 'evt_2' })
-      expect(lease.queries[3].sql).toMatch(/^INSERT INTO/)
+      expect(lease.queries[4].sql).toMatch(/^INSERT INTO/)
+    } finally {
+      lease.restore()
+    }
+  })
+
+  it('uses a table that exists without trying to create it', async () => {
+    // The site's role may write the table the editor made, not create one.
+    const lease = loadLease({
+      queryImpl: async (sql: string, values: unknown[]) => {
+        if (sql.startsWith('SELECT to_regclass')) {
+          return { rows: [{ present: true }] }
+        }
+        if (sql.startsWith('CREATE')) {
+          throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+        }
+        return sql.startsWith('INSERT') ? { rows: [{ claim_token: values[1] }] } : { rows: [] }
+      },
+    })
+    try {
+      const first = await lease.claim('webhooks/stripe-payment', Buffer.from('{"id":"evt_1"}'), {
+        id: 'evt_1',
+      })
+      expect(first.claimed).toBe(true)
+      expect(lease.queries.map((query) => query.sql.split(' ')[0])).toEqual(['SELECT', 'INSERT'])
+
+      // A twin of a held delivery is turned away: the lease is in force.
+      const twin = loadLease({
+        queryImpl: async (sql: string) =>
+          sql.startsWith('SELECT to_regclass') ? { rows: [{ present: true }] } : { rows: [] },
+      })
+      try {
+        expect((await twin.claim('w', Buffer.from('{}'), {})).claimed).toBe(false)
+        expect(twin.queries.some((query) => query.sql.startsWith('CREATE'))).toBe(false)
+      } finally {
+        twin.restore()
+      }
+    } finally {
+      lease.restore()
+    }
+  })
+
+  it('lets every delivery run when the table is missing and cannot be created', async () => {
+    const lease = loadLease({
+      queryImpl: async (sql: string) => {
+        if (sql.startsWith('SELECT to_regclass')) {
+          return { rows: [{ present: false }] }
+        }
+        if (sql.startsWith('CREATE')) {
+          throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+        }
+        return { rows: [] }
+      },
+    })
+    try {
+      expect((await lease.claim('w', Buffer.from('{}'), {})).claimed).toBe(true)
+      const tried = lease.queries.length
+      expect((await lease.claim('w', Buffer.from('{}'), {})).claimed).toBe(true)
+      expect(lease.queries).toHaveLength(tried)
     } finally {
       lease.restore()
     }

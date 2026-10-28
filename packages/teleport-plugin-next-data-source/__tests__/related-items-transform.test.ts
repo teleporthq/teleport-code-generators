@@ -174,6 +174,23 @@ describe('blog post transform — related posts', () => {
     expect(related.map((entry) => entry.id)).toEqual(['b'])
     expect(related[0].relatedPosts).toEqual([])
   })
+
+  it('carries no body in a related card; the post keeps its own', () => {
+    const built = buildBlogPost(
+      post('a', { content: '<p>Post a body</p>', related_post_ids: '["b"]' }),
+      {
+        relatedPostsById: mapOf([
+          post('b', { content: '<p>A long body nobody reads in a card</p>', excerpt: 'Short' }),
+        ]),
+      }
+    )
+
+    const related = built.relatedPosts as Array<Record<string, unknown>>
+    expect(built.content).toBe('<p>Post a body</p>')
+    expect(related[0].content).toBe('')
+    expect(related[0].excerpt).toBe('Short')
+    expect(related[0].readingTimeMinutes).toBe(1)
+  })
 })
 
 describe('the transform wrapper', () => {

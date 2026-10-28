@@ -11,6 +11,8 @@ import {
 } from './nodes/email/trusted-html-code'
 import { escapeHtmlTextJs, escapeHtmlValueJs } from './nodes/email/html-escape-code'
 import { generateProtectionBypassHeaderStatements } from './self-call-headers'
+import { generateCredentialColumnsCode } from './credential-columns-code'
+import { generateCredentialResultsCode } from './credential-results'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -947,9 +949,15 @@ function normalizeComparisonOperator(op) {
     .toLowerCase();
 }
 
+// The editor's templates write a comparison's sides as leftOperand /
+// rightOperand; everything else writes leftValue / rightValue.
+function comparisonSide(config, valueKey, operandKey) {
+  return config[valueKey] !== undefined ? config[valueKey] : config[operandKey];
+}
+
 function evaluateSingleComparison(config, context) {
-  var rawLeft = resolveValue(config.leftValue, context);
-  var rawRight = resolveValue(config.rightValue, context);
+  var rawLeft = resolveValue(comparisonSide(config, 'leftValue', 'leftOperand'), context);
+  var rawRight = resolveValue(comparisonSide(config, 'rightValue', 'rightOperand'), context);
   const op = normalizeComparisonOperator(config.operator || 'equals');
   var isUnary = op === 'is-empty' || op === 'is-not-empty' || op === 'is-truthy' || op === 'is-falsy' ||
     op === 'is-null' || op === 'is-not-null' || op === 'is-true' || op === 'is-false';
@@ -959,7 +967,7 @@ function evaluateSingleComparison(config, context) {
   switch (op) {
     case '===': return left === right;
     case '!==': return left !== right;
-    case '==': case 'equals': return left == right;
+    case '=': case '==': case 'equals': return left == right;
     case '!=': case 'not-equals': return left != right;
     case '>': case 'greater-than': return left > right;
     case '<': case 'less-than': return left < right;
@@ -1101,10 +1109,16 @@ var __DATA_NODE_TYPES = {
   'data-delete-item': true
 };
 
-// A data node the author opted out of awaiting. Only an explicit \`false\` opts
-// out, so a config written before the option existed keeps awaiting.
+// Mirrors NOT_AWAITABLE_SERVER_NODE_TYPES in await-result.ts — PAIRED EDIT.
+var __NOT_AWAITABLE_SERVER_NODE_TYPES = {
+  'ecommerce-generate-invoice': true
+};
+
+// A data node (or a step listed above) the author opted out of awaiting. Only
+// an explicit \`false\` opts out, so a config written before the option existed
+// keeps awaiting.
 function isFireAndForgetNode(node) {
-  if (!node || !__DATA_NODE_TYPES[node.type]) return false;
+  if (!node || !(__DATA_NODE_TYPES[node.type] || __NOT_AWAITABLE_SERVER_NODE_TYPES[node.type])) return false;
   return !!node.config && node.config.awaitResult === false;
 }
 
@@ -1172,9 +1186,12 @@ async function settlePendingNodePromises(context) {
 // ({ error: '...' } / { success: false }) or through the AI-node contract
 // ({ error: true, message, code } — provider/auth failures). Both must halt
 // the workflow; treating error:true as success used to let the pipeline limp
-// into downstream NOT NULL violations.
+// into downstream NOT NULL violations. A result that says success: true is
+// the node's own verdict: an email node that reached some of its recipients
+// reports success with the refused addresses under error, and goes on.
 function isFatalNodeResult(result) {
   if (!result) return false;
+  if (result.success === true) return false;
   return result.success === false ||
     (typeof result.error === 'string' && result.error) ||
     result.error === true;
@@ -1703,6 +1720,15 @@ var SEGMENT_REPLY_PRIVATE_KEYS = {
 // nodes after it in the same segment and never leaves the server (a statement's
 // rows read only to build what the browser may see, a sender's recipients).
 // Nothing in a later segment can read it.
+//
+// A data node's rows are replied without the auth users table's credentials
+// (see credential-columns-code.ts).
+//
+// A node whose result is a credential (a password hash) is left out here too,
+// whatever its config says: the server runtime replies it sealed, readable by
+// a later server segment only (see credential-results.ts).
+${generateCredentialColumnsCode()}
+${generateCredentialResultsCode()}
 // The nodes whose result the client branches on: never kept on the server.
 function isBranchingNodeType(type) {
   return type === 'general-if-statement' || type === 'general-switch';
@@ -1711,10 +1737,10 @@ function isBranchingNodeType(type) {
 function segmentReply(segmentConfig, context, snapshot) {
   var reply = {};
   var own = {};
-  var kept = {};
+  var kept = credentialResultNodeIds(segmentConfig);
   var nodes = (segmentConfig && segmentConfig.nodes) || [];
   for (var ni = 0; ni < nodes.length; ni++) {
-    own[nodes[ni].id] = true;
+    own[nodes[ni].id] = nodes[ni];
     if (nodes[ni].config && nodes[ni].config.keepResultOnServer === true && !isBranchingNodeType(nodes[ni].type)) {
       kept[nodes[ni].id] = true;
     }
@@ -1725,7 +1751,11 @@ function segmentReply(segmentConfig, context, snapshot) {
     if (SEGMENT_REPLY_PRIVATE_KEYS[key] || kept[key]) continue;
     var value = context[key];
     if (value === undefined) continue;
-    if (own[key] || !snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
+    if (own[key]) {
+      reply[key] = withoutCredentialColumns(own[key], value);
+      continue;
+    }
+    if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, key)) {
       reply[key] = value;
       continue;
     }
@@ -1789,6 +1819,8 @@ module.exports = {
   loopIterationContext,
   snapshotIncomingContext,
   segmentReply,
+  withoutCredentialColumns,
+  credentialResultNodeIds,
   evaluateCondition,
   matchSwitchCase,
   evaluateSingleComparison,
@@ -2147,25 +2179,19 @@ function findStreamingAINodes(allNodes, allEdges) {
     const n = allNodes[ni];
     if (aiTypes.indexOf(n.type) >= 0 && n.config && n.config.streaming) {
       let onStreamEdge = null;
-      let onEndEdge = null;
       for (let ei = 0; ei < allEdges.length; ei++) {
-        if (allEdges[ei].source === n.id) {
-          if (allEdges[ei].sourceHandle === 'on-stream') onStreamEdge = allEdges[ei];
-          if (allEdges[ei].sourceHandle === 'on-end') onEndEdge = allEdges[ei];
-        }
+        if (allEdges[ei].source === n.id && allEdges[ei].sourceHandle === 'on-stream') onStreamEdge = allEdges[ei];
       }
       const onStreamNodes = onStreamEdge ? utils.collectBranchNodes(onStreamEdge.target, allNodes, allEdges, n.id) : [];
-      const onEndNodes = onEndEdge ? utils.collectBranchNodes(onEndEdge.target, allNodes, allEdges, n.id) : [];
-      map[n.id] = { node: n, onStreamNodes: onStreamNodes, onEndNodes: onEndNodes };
+      map[n.id] = { node: n, onStreamNodes: onStreamNodes };
     }
   }
   return map;
 }
 
-// A streaming AI node's on-stream / on-end branches are collected from the
-// FULL workflow node list, so they may contain server nodes (e.g. the SQL
-// insert persisting a chat answer). Those already execute inside their own
-// server segments with full configs; the browser bundle only ships their
+// A streaming AI node's on-stream branch is collected from the FULL workflow
+// node list, so it may contain server nodes. Those already execute inside their
+// own server segments with full configs; the browser bundle only ships their
 // config redacted down to the client-safe whitelist (segment-splitter's
 // redactServerNodeConfig), so executing them here with CLIENT handlers both
 // double-executes them and crashes on the missing config. Emitted nodes carry
@@ -2178,7 +2204,6 @@ function clientExecutableBranchNodes(branchNodes) {
 async function callStreamingServerSegment(segmentUrl, context, streamingInfo, allNodes, allEdges, clientHandlers, workflowConfig, executionId, stateKeys) {
   const prunedContext = pruneContext(context, stateKeys);
   const handledNodeIds = {};
-  const streamedNodeIds = {};
   // Same relative-URL problem as callServerSegment above — required even
   // for streaming segments because a server-side caller (e.g. an AI
   // chat webhook) would otherwise fail to parse the URL.
@@ -2234,7 +2259,6 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
       try { data = JSON.parse(jsonStr); } catch(e) { continue; }
 
       if (data.type === 'chunk' && data.nodeId) {
-        streamedNodeIds[data.nodeId] = true;
         context[data.nodeId] = { chunk: data.chunk, fullResponse: data.fullResponse };
         const info = streamingInfo[data.nodeId];
         if (info && info.onStreamNodes.length > 0) {
@@ -2249,21 +2273,12 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
       } else if (data.type === 'node-result' && data.nodeId) {
         context[data.nodeId] = data.result;
       } else if (data.type === 'done') {
+        // The on-end branch is not run here: its steps sit in the segments after
+        // this one, and the caller runs those in graph order, so a browser step
+        // waits for the server steps before it (the chat's "Bump Conversation
+        // After Reply" -> "Get Chat Messages for Final Update").
         if (data.results) {
           mergeServerResults(context, data.results, workflowConfig && workflowConfig.triggerNodeId);
-        }
-        const streamedKeys = Object.keys(streamedNodeIds);
-        for (let sk = 0; sk < streamedKeys.length; sk++) {
-          const endInfo = streamingInfo[streamedKeys[sk]];
-          if (endInfo && endInfo.onEndNodes.length > 0) {
-            const runnableEndNodes = clientExecutableBranchNodes(endInfo.onEndNodes);
-            if (runnableEndNodes.length > 0) {
-              await utils.executeNodes(runnableEndNodes, allEdges, context, clientHandlers, workflowConfig, null, executionId);
-            }
-            for (let eni = 0; eni < endInfo.onEndNodes.length; eni++) {
-              handledNodeIds[endInfo.onEndNodes[eni].id] = true;
-            }
-          }
         }
       } else if (data.type === 'error') {
         throw new Error(data.error || 'Streaming workflow segment failed');

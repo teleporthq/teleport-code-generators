@@ -28,6 +28,7 @@ import * as PageAccess from './utils/page-access'
 import * as DataExposure from './utils/data-exposure'
 import * as FontPreconnect from './utils/font-preconnect'
 import * as EmailDate from './utils/email-date'
+import * as EmailSender from './utils/email-sender'
 import * as RichTextEmbeds from './utils/rich-text-embeds'
 import * as RichTextEmbedsCodegen from './utils/rich-text-embeds-codegen'
 import * as RichTextContent from './utils/rich-text-content'
@@ -41,6 +42,7 @@ import * as PageTransition from './page-transition'
 import * as StateBindings from './state-bindings'
 import * as WebPush from './utils/web-push'
 import * as InlineScriptErrorGuard from './utils/inline-script-error-guard'
+import * as OwnerColumns from './utils/owner-columns'
 
 export {
   Constants,
@@ -73,6 +75,7 @@ export {
   DataExposure,
   FontPreconnect,
   EmailDate,
+  EmailSender,
   RichTextEmbeds,
   RichTextEmbedsCodegen,
   RichTextContent,
@@ -86,4 +89,5 @@ export {
   StateBindings,
   WebPush,
   InlineScriptErrorGuard,
+  OwnerColumns,
 }

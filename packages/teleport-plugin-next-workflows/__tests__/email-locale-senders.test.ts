@@ -176,6 +176,7 @@ describe('invoice email', () => {
       'SUBJECT_TEMPLATE',
       'BODY_TEMPLATE',
       'LOCALIZED_TEMPLATES',
+      'SENDER',
       `${buildEmailData}; return buildEmailData;`
     )(
       locale,
@@ -183,7 +184,8 @@ describe('invoice email', () => {
       replacePlaceholders,
       delivery.subject,
       delivery.body,
-      delivery.localizedTemplates
+      delivery.localizedTemplates,
+      { email: 'billing@example.com', name: 'Billing', header: 'Billing <billing@example.com>' }
     )
     expect(build({ invoiceNumber: 'INV-7', locale: 'es', customerEmail: 'a@b.c' })).toMatchObject({
       subject: 'Factura INV-7',

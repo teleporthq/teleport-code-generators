@@ -122,6 +122,12 @@ export interface NodeHandlerGenerator {
   nodeType: string
   executionEnv: 'client' | 'server' | 'universal'
   isTerminal?: boolean
+  /**
+   * The node's result is a credential (a password hash). A server segment
+   * never replies it as it is: the browser receives it sealed, and only the
+   * app's own later server segments can open it (see credential-results.ts).
+   */
+  resultIsCredential?: boolean
   dependencies?: Record<string, string>
   generateHandler(): string
   generateServerHandler?(options?: ServerHandlerOptions): string

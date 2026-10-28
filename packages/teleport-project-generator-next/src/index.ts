@@ -66,6 +66,7 @@ import { createPageAccessGuardPlugin } from './access-rules/page-access-guard-pl
 import { NextInstantSearchProjectPlugin } from './instant-search/project-plugin'
 import { NextItemComparisonProjectPlugin } from './item-comparison/project-plugin'
 import { NextPopupsProjectPlugin } from './popups/project-plugin'
+import { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 import { NextSecurityHeadersProjectPlugin } from './security-headers'
 import { NextImageSettingsProjectPlugin } from './next-config-images'
 import { createNextWidgetProjectPlugins } from './widgets'
@@ -144,6 +145,8 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextItemComparisonProjectPlugin(),
   new NextPopupsProjectPlugin(),
   ...createNextWidgetProjectPlugins(),
+  // Last: wraps the middleware the workflows plugin may have emitted.
+  new NextPasswordWallProjectPlugin(),
 ]
 
 const createNextProjectGenerator = () => {
@@ -319,6 +322,8 @@ export { NextAccessRulesProjectPlugin } from './access-rules/project-plugin'
 export { NextInstantSearchProjectPlugin } from './instant-search/project-plugin'
 export { NextItemComparisonProjectPlugin } from './item-comparison/project-plugin'
 export { NextPopupsProjectPlugin } from './popups/project-plugin'
+export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
+export { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'

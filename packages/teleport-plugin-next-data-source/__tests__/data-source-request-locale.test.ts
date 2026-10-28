@@ -209,11 +209,12 @@ describe('data-source fetches in a multi-language project', () => {
   describe('a paginated list page', () => {
     it('fetches the first page for the language getStaticProps runs for', async () => {
       const { staticProps } = await run(pagesPlugin, makeListNode(true), makeListProvider(), true)
+      // Read as a visitor is served the rows: a public page.
       expect(collapse(staticProps)).toContain(
-        'fetchData({ page: 1, perPage: 20, queryColumns: JSON.stringify(["name", "es_name"]), locale: context.locale })'
+        'fetchData({ page: 1, perPage: 20, queryColumns: JSON.stringify(["name", "es_name"]), locale: context.locale }, { as: "visitor" })'
       )
       // The count is the same in every language.
-      expect(collapse(staticProps)).toContain('fetchCount().catch')
+      expect(collapse(staticProps)).toContain('fetchCount({}, { as: "visitor" }).catch')
     })
 
     it('sends the client locale with every refetch and refetches when it changes', async () => {
@@ -247,7 +248,7 @@ describe('data-source fetches in a multi-language project', () => {
         true
       )
       expect(collapse(staticProps)).toContain(
-        'fetchData({ "queryColumns": JSON.stringify(["name", "es_name"]), locale: context.locale })'
+        'fetchData({ "queryColumns": JSON.stringify(["name", "es_name"]), locale: context.locale }, { as: "visitor" })'
       )
       expect(collapse(code)).toContain(
         'params={useMemo(() => ({ locale: router?.locale }), [router?.locale])}'

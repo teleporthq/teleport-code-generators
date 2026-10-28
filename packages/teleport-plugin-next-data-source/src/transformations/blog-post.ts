@@ -282,6 +282,7 @@ function buildBlogPost(record, options) {
     assetMap: assetMap,
     currentLanguage: currentLang,
     mainLanguage: mainLang,
+    card: true,
   }
   if (relatedPostsById && relatedPostIds.length > 0) {
     for (var rp = 0; rp < relatedPostIds.length; rp++) {
@@ -334,7 +335,10 @@ function buildBlogPost(record, options) {
     id: id,
     title: title,
     slug: slug,
-    content: content,
+    // A card of another post carries no body: no card shows one, and six
+    // related cards' bodies were most of an article page's data. MUST mirror
+    // \`card\` in packages/renderer/src/utils/blog-posts.ts (teleport-gui).
+    content: options.card === true ? '' : content,
     excerpt: excerpt,
     status: status,
     category: category,

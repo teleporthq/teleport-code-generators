@@ -18,8 +18,9 @@ import type { WorkflowSegment } from '../src/types'
 //   1. the workflow does not wait for the query;
 //   2. the node's context entry is `null` — never a partial or stale value;
 //   3. a failure cannot abort the workflow (it is logged, not thrown);
-//   4. the server route STILL settles the query before it responds, because a
-//      serverless function may be frozen the instant it replies;
+//   4. the server route STILL lands the query, because a serverless function
+//      may be frozen the instant it replies: on Vercel through waitUntil, after
+//      the reply; elsewhere before it (pending-work-after-reply.test.ts);
 //   5. the client dispatches an all-fire-and-forget SEGMENT without awaiting the
 //      round trip, which is where the latency the visitor feels actually goes.
 
@@ -448,9 +449,9 @@ describe('generated server segment route', () => {
     expect(route).toContain('context[node.id] = null;')
   })
 
-  it('settles in-flight queries BEFORE responding (the platform can freeze us)', () => {
-    expect(route).toContain('await utils.settlePendingNodePromises(context);')
-    const settleAt = route.indexOf('await utils.settlePendingNodePromises(context);')
+  it('hands in-flight queries off (or settles them) BEFORE responding (the platform can freeze us)', () => {
+    expect(route).toContain('await utils.handOffPendingNodePromises(context);')
+    const settleAt = route.indexOf('await utils.handOffPendingNodePromises(context);')
     const respondAt = route.indexOf(
       'res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });'
     )
@@ -464,7 +465,7 @@ describe('generated server segment route', () => {
 
   it('drains even when the segment throws', () => {
     expect(route).toContain(
-      'if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }'
+      'if (__wfContext) { await utils.handOffPendingNodePromises(__wfContext); }'
     )
   })
 

@@ -373,7 +373,8 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       '"VERCEL_AUTOMATION_BYPASS_SECRET":1,' +
       '"TQ_CACHE_SECRET":1,' +
       '"NEWSLETTER_SERVICE_TOKEN":1,' +
-      '"NEWSLETTER_SERVICE_URL":1' +
+      '"NEWSLETTER_SERVICE_URL":1,' +
+      '"TELEPORT_WALL_SECRET":1' +
       '};\n' +
       // The merchant's payment credentials (see PROTECTED_ENV_NAME_PATTERN in
       // security-scanner.ts), whatever number a second save gave them.

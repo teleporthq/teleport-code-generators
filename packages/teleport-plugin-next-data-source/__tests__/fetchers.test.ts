@@ -337,7 +337,7 @@ describe('generateDataSourceFetcher', () => {
 
     expect(code).toContain('import { Client, types as pgTypes } from')
     expect(code).toContain('export default async function handler')
-    expect(code).toContain('SELECT * FROM "users"')
+    expect(code).toContain(`'"users".*' : '*'} FROM "users"`)
     expect(code).toContain('localhost')
   })
 
@@ -481,8 +481,12 @@ describe('generateDataSourceFetcherWithCore', () => {
     const dataSource = createPostgreSQLDataSource('ds-1')
     const code = generateDataSourceFetcherWithCore(dataSource, 'users')
 
-    expect(code).toContain('const req = {')
-    expect(code).toContain('query: params')
+    // The store's own call by default; a page's data `{ as: 'visitor' }`.
+    expect(code).toContain('const req = __tqServerRequest(params, options)')
+    expect(code).toContain("return { query: params, method: 'GET', __tqServerCall: true }")
+    expect(code).toContain(
+      "return { query: params, method: 'GET', headers: {}, __tqVisitorView: true }"
+    )
     expect(code).toContain('const res = {')
     expect(code).toContain('status: (code)')
     expect(code).toContain('json: (data)')

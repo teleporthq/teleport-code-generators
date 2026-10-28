@@ -6,7 +6,9 @@
 //   banner consent (`localStorage.cookieConsent === 'accepted'`) exists; the
 //   anonymous id is then a random UUID, never derived from personal data.
 // - Only pathnames are sent — never query strings or fragments. The one
-//   exception is the on-site search box (the typed words, capped).
+//   exception is the on-site search box (the typed words, capped). The landing
+//   pageview also names its query parameters, never their values, so a buyer
+//   back from their bank or wallet stays in the visit they shopped in.
 // - Never a typed value: form progress carries field NAMES only; clicks carry
 //   the text of buttons and links only; errors carry a message, never a stack.
 // - The tracker self-disables on localhost, for bots (navigator.webdriver)
@@ -58,6 +60,7 @@ let seq = 0
 let currentPath = null
 let initialReferrer = null
 let utm = null
+let landingQueryKeys = []
 // Pages the owner keeps out of analytics (admin-panel pages by default), as
 // path patterns baked in at publish time, and the site's locales so a prefixed
 // address matches the same list.
@@ -237,6 +240,32 @@ function parseUtm() {
   } catch (e) {
     return null
   }
+}
+
+// The landing address's query parameter NAMES, never their values: a buyer
+// back from their bank or wallet lands on one whose names say so
+// (payment=success, payment_intent with redirect_status), and the server then
+// keeps them in the visit they shopped in. Shaped and capped the way the server
+// accepts them, so no name can carry an "=", "@", "/" or a space.
+const QUERY_KEY_PATTERN = /^[A-Za-z0-9_.[\\]-]{1,64}$/
+const MAX_QUERY_KEYS = 20
+
+function parseQueryKeys() {
+  const keys = []
+  try {
+    new URLSearchParams(window.location.search).forEach((_value, key) => {
+      if (
+        keys.length < MAX_QUERY_KEYS &&
+        keys.indexOf(key) === -1 &&
+        QUERY_KEY_PATTERN.test(key)
+      ) {
+        keys.push(key)
+      }
+    })
+  } catch (e) {
+    /* an address the browser cannot read names nothing */
+  }
+  return keys
 }
 
 function endpoint(suffix) {
@@ -604,6 +633,9 @@ function trackPageview(isFirstLoad) {
   const event = baseEvent('pageview')
   event.referrer = isFirstLoad ? (document.referrer || null) : null
   event.utm = isFirstLoad ? utm : null
+  if (isFirstLoad && landingQueryKeys.length > 0) {
+    event.queryKeys = landingQueryKeys
+  }
   event.screenW = window.screen && window.screen.width ? window.screen.width : null
   event.vc = viewportClass()
   enqueue(event)
@@ -1667,6 +1699,7 @@ export function initTeleportAnalytics(options) {
   utm = parseUtm()
   observeVitals()
   startMutationObserver()
+  landingQueryKeys = parseQueryKeys()
 
   document.addEventListener('click', onClickCapture, true)
   document.addEventListener('focusin', onFocusIn, true)

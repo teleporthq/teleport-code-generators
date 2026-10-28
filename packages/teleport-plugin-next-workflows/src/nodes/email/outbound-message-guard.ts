@@ -14,6 +14,7 @@ import {
 } from '../general/visitor-request'
 import { collectMessageTrust, MessageTrust, stepNameOf } from './message-trust'
 import { escapeHtmlValueJs } from './html-escape-code'
+import { assertHandlerHasNoModuleRefs } from '../analytics/commerce-tracking'
 
 /**
  * Email and SMS nodes on a route a visitor can call.
@@ -543,12 +544,29 @@ var __outboundMessageGuard = typeof __outboundMessageGuard !== 'undefined' ? __o
  * The two sources of an email/SMS node: the guard, then the node. A server
  * route passes where it sits; anything else gets a guard without the runtime.
  */
+export interface OutboundHandlerSourceOptions {
+  /** Helper source appended after the handler (the sender, the recipients). */
+  extraSource?: string
+  /** When set, the serialized source is refused if it names a module. */
+  nodeType?: string
+}
+
 export const outboundMessageHandlerSources = (
-  handler: HandlerFn
-): Pick<NodeHandlerGenerator, 'generateHandler' | 'generateServerHandler'> => ({
-  generateHandler: () => generateOutboundMessageGuardCode() + '\n\n' + handlerToString(handler),
-  generateServerHandler: (options?: ServerHandlerOptions) =>
-    generateOutboundMessageGuardCode(serverHandlerPrefix(options)) +
-    '\n\n' +
-    handlerToString(handler),
-})
+  handler: HandlerFn,
+  options: OutboundHandlerSourceOptions = {}
+): Pick<NodeHandlerGenerator, 'generateHandler' | 'generateServerHandler'> => {
+  const extra = options.extraSource ? '\n' + options.extraSource : ''
+  const finish = (source: string): string =>
+    options.nodeType ? assertHandlerHasNoModuleRefs(source, options.nodeType) : source
+  return {
+    generateHandler: () =>
+      finish(generateOutboundMessageGuardCode() + '\n\n' + handlerToString(handler) + extra),
+    generateServerHandler: (serverOptions?: ServerHandlerOptions) =>
+      finish(
+        generateOutboundMessageGuardCode(serverHandlerPrefix(serverOptions)) +
+          '\n\n' +
+          handlerToString(handler) +
+          extra
+      ),
+  }
+}

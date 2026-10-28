@@ -200,7 +200,7 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
     }
   })
 
-  it('PROTECTED_ENV_NAMES contains exactly the 16 documented secrets', () => {
+  it('PROTECTED_ENV_NAMES contains exactly the 17 documented secrets', () => {
     expect([...PROTECTED_ENV_NAMES].sort()).toEqual(
       [
         'PDF_SERVICE_API_KEY',
@@ -221,6 +221,7 @@ describe('assertWorkflowsAreSecure (codegen gate)', () => {
         // (the admin panel's newsletter route reads them, nothing else).
         'NEWSLETTER_SERVICE_TOKEN',
         'NEWSLETTER_SERVICE_URL',
+        'TELEPORT_WALL_SECRET',
       ].sort()
     )
   })

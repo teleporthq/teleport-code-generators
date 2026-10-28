@@ -44,24 +44,40 @@ export const collectWorkflowContextNodeIds = (value: unknown, out: Set<string>):
   Object.values(record).forEach((child) => collectWorkflowContextNodeIds(child, out))
 }
 
-export const getTopologicalOrder = (
+/**
+ * The edge that sends a loop body back to its loop for the next item. The loop
+ * does not wait for it: counted as a dependency it left the loop, and every
+ * node after it, waiting forever.
+ */
+const isLoopBackEdge = (edge: UIDLWorkflowEdge): boolean => edge.targetHandle === 'loop-back'
+
+/**
+ * Where a node runs once the segment splitter places it, or `null` for a node
+ * that runs wherever the node before it ran (an if-statement), so it never
+ * forces a switch between browser and server.
+ */
+export type ExecutionSide = 'client' | 'server'
+export type ExecutionSideOf = (node: UIDLWorkflowNode) => ExecutionSide | null
+
+/**
+ * Every dependency each node waits for: the source of each edge into it (but a
+ * loop's back edge) and every node whose output it reads through a
+ * `workflowContext` reference. Listed per SOURCE, in edge order then reference
+ * order — the order the topological sort below releases them in.
+ */
+export const getDependents = (
   nodes: UIDLWorkflowNode[],
   edges: UIDLWorkflowEdge[]
-): string[] => {
+): Record<string, string[]> => {
   const nodeIds = new Set(nodes.map((n) => n.id))
-  const inDegree: Record<string, number> = {}
   const adjacency: Record<string, string[]> = {}
-
-  const nodeIdArr = Array.from(nodeIds)
-  nodeIdArr.forEach((id) => {
-    inDegree[id] = 0
+  nodeIds.forEach((id) => {
     adjacency[id] = []
   })
 
   edges.forEach((edge) => {
-    if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
+    if (nodeIds.has(edge.source) && nodeIds.has(edge.target) && !isLoopBackEdge(edge)) {
       adjacency[edge.source].push(edge.target)
-      inDegree[edge.target]++
     }
   })
 
@@ -92,9 +108,104 @@ export const getTopologicalOrder = (
         return
       }
       adjacency[refId].push(node.id)
-      inDegree[node.id]++
     })
   })
+
+  return adjacency
+}
+
+/**
+ * Every node reachable from `startId` without passing through `parentId` or a
+ * loop's back edge: what the runtime skips when `parentId` does not take the
+ * branch starting at `startId`.
+ */
+const collectBranchNodeIds = (
+  startId: string,
+  targetsBySource: Map<string, string[]>,
+  parentId: string
+): Set<string> => {
+  const reached = new Set<string>()
+  const queue = [startId]
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    if (reached.has(current) || current === parentId) {
+      continue
+    }
+    reached.add(current)
+    queue.push(...(targetsBySource.get(current) || []))
+  }
+  return reached
+}
+
+/**
+ * Whether two nodes can never both run: they lie on different branches of the
+ * same if-statement or switch, and the runtime skips everything reachable from
+ * the branch it did not take.
+ */
+export const getNeverRunTogether = (
+  nodes: UIDLWorkflowNode[],
+  edges: UIDLWorkflowEdge[]
+): ((a: string, b: string) => boolean) => {
+  const targetsBySource = new Map<string, string[]>()
+  edges.forEach((edge) => {
+    if (!isLoopBackEdge(edge)) {
+      targetsBySource.set(edge.source, [...(targetsBySource.get(edge.source) || []), edge.target])
+    }
+  })
+  const branchesByNodeId = new Map<string, Array<{ gateId: string; branch: string }>>()
+  nodes.forEach((gate) => {
+    const branchTargets =
+      gate.type === 'general-if-statement'
+        ? Object.entries(getIfBranches(gate.id, edges))
+        : gate.type === 'general-switch'
+        ? getSwitchCases(gate.id, edges).map(({ caseId, targetId }) => [caseId, targetId])
+        : []
+    branchTargets.forEach(([branch, targetId]) => {
+      if (!targetId) {
+        return
+      }
+      collectBranchNodeIds(targetId, targetsBySource, gate.id).forEach((id) => {
+        const branches = branchesByNodeId.get(id) || []
+        branches.push({ gateId: gate.id, branch })
+        branchesByNodeId.set(id, branches)
+      })
+    })
+  })
+  return (a, b) => {
+    const branchesOfB = branchesByNodeId.get(b) || []
+    return (branchesByNodeId.get(a) || []).some((x) =>
+      branchesOfB.some((y) => x.gateId === y.gateId && x.branch !== y.branch)
+    )
+  }
+}
+
+/**
+ * Kahn's order, the lowest `stepNumber` first among the nodes ready to run.
+ *
+ * With `sideOf` (the segment splitter), a ready node that stays on the side
+ * the previous node ran on may go ahead of lower-step nodes on the other side —
+ * one client/server switch fewer, so one server round trip fewer — but only of
+ * nodes it never runs together with. A refusal branch's toast waits for the
+ * main chain's server steps; two steps that both run keep their order, which
+ * custom JavaScript reads `params` by.
+ */
+export const getTopologicalOrder = (
+  nodes: UIDLWorkflowNode[],
+  edges: UIDLWorkflowEdge[],
+  sideOf?: ExecutionSideOf
+): string[] => {
+  const nodeIds = new Set(nodes.map((n) => n.id))
+  const adjacency = getDependents(nodes, edges)
+  const inDegree: Record<string, number> = {}
+  const nodeIdArr = Array.from(nodeIds)
+  nodeIdArr.forEach((id) => {
+    inDegree[id] = 0
+  })
+  nodeIdArr.forEach((id) =>
+    adjacency[id].forEach((dependent) => {
+      inDegree[dependent]++
+    })
+  )
 
   const queue: string[] = []
   nodeIdArr.forEach((id) => {
@@ -103,6 +214,26 @@ export const getTopologicalOrder = (
     }
   })
 
+  const nodeById = new Map(nodes.map((n) => [n.id, n]))
+  const neverRunTogether = sideOf ? getNeverRunTogether(nodes, edges) : null
+  let currentSide: ExecutionSide | null = null
+  const staysOnCurrentSide = (id: string): boolean => {
+    const side = sideOf(nodeById.get(id))
+    return side === null || side === currentSide
+  }
+  const nextIndex = (): number => {
+    if (!sideOf || currentSide === null || staysOnCurrentSide(queue[0])) {
+      return 0
+    }
+    const index = queue.findIndex(
+      (id, i) =>
+        i > 0 &&
+        staysOnCurrentSide(id) &&
+        queue.slice(0, i).every((ahead) => neverRunTogether(id, ahead))
+    )
+    return Math.max(index, 0)
+  }
+
   const order: string[] = []
   while (queue.length > 0) {
     queue.sort((a, b) => {
@@ -110,7 +241,8 @@ export const getTopologicalOrder = (
       const nodeB = nodes.find((n) => n.id === b)
       return (nodeA?.stepNumber || 0) - (nodeB?.stepNumber || 0)
     })
-    const current = queue.shift()!
+    const [current] = queue.splice(nextIndex(), 1)
+    currentSide = (sideOf && sideOf(nodeById.get(current))) || currentSide
     order.push(current)
 
     for (const neighbor of adjacency[current] || []) {

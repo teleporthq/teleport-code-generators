@@ -12,12 +12,12 @@ import { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 //
 // The UIDL tree has several features that need runtime handling:
 //
-//   1. `<context>` elements carry default invoice data on their attributes
-//      (Company, Invoice, Customer, Products, Payment). Children reference
-//      that data through expressions like `invoiceData?.Company?.name`. We
-//      build a per-render scope from the attrs merged with real DB data
-//      (real wins unless empty) so every expression resolves against the
-//      buyer's actual order.
+//   1. `<context>` elements carry the design canvas's sample invoice on
+//      their attributes (Company, Invoice, Customer, Products, Payment).
+//      Children reference that data through expressions like
+//      `invoiceData?.Company?.name`. Every render builds the scope from the
+//      real invoice alone, so every expression resolves against the buyer's
+//      actual order and an empty field prints nothing — never the sample.
 //
 //   2. `cms-list-repeater` iterates `invoiceData.Products` with a
 //      per-iteration variable (the `renderPropIdentifier`). Each line item
@@ -153,11 +153,12 @@ var COMPONENT_DEFINITIONS = ${componentDefinitionsJson};
 var MAX_COMPONENT_DEPTH = 12;
 
 // ---------------------------------------------------------------------------
-// Scope construction — merges real DB data with defaults the user set on
-// the <context> element in the editor. Per-field fallback: if the real
-// field is empty/null, the UIDL default wins. Covers the common dev case
-// where COMPANY_DETAILS from invoiceSettings isn't filled in but the user
-// dropped "Acme Corporation" into the template preview.
+// Scope construction — the real invoice, the store's company details and the
+// buyer, never the sample on the template's <context>: an empty notes field,
+// VAT number or paid date printed the design canvas's "Payment is due within
+// 30 days", "US123456789" or "Jan 20, 2025" on a real invoice. The one value
+// read from the context is the company logo URL, which the editor writes there
+// from the store's own logo (the sample's is empty).
 // ---------------------------------------------------------------------------
 
 function extractStaticAttrsFromContext(uidl) {
@@ -194,23 +195,9 @@ function findFirstContextNode(node) {
   return null;
 }
 
-function nonEmpty(v) {
-  if (v == null) return false;
-  if (typeof v === 'string') return v.length > 0;
-  if (typeof v === 'number') return !isNaN(v);
-  return true;
-}
-
-function mergeWithDefaults(primary, defaults) {
-  var out = Object.assign({}, defaults || {});
-  if (primary) {
-    Object.keys(primary).forEach(function (k) {
-      if (nonEmpty(primary[k])) out[k] = primary[k];
-    });
-  }
-  return out;
-}
-
+// Money on the invoice, in the PDF and the email alike. A symbol that ends in
+// a letter is a word ("lei", "CHF", "kr") and stands apart from the number
+// ("lei 119.00"); a sign sits against it ("$119.00", "\u20AC119.00").
 function formatCurrencyValue(amount, sym, decimals) {
   var num = Number(amount);
   if (!isFinite(num)) num = 0;
@@ -218,7 +205,17 @@ function formatCurrencyValue(amount, sym, decimals) {
   var fixed = num.toFixed(dec);
   var parts = fixed.split('.');
   parts[0] = parts[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
-  return (sym || '') + parts.join('.');
+  var symbol = String(sym == null ? '' : sym).trim();
+  var separator = /\\p{L}$/u.test(symbol) ? ' ' : '';
+  return symbol + separator + parts.join('.');
+}
+
+// Invoice statuses of money that was collected: a refund later moves a paid
+// invoice to one of the last two, and it was paid all the same.
+var SETTLED_INVOICE_STATUSES = ['paid', 'partially_refunded', 'refunded'];
+
+function isSettledInvoice(status) {
+  return SETTLED_INVOICE_STATUSES.indexOf(String(status || '').toLowerCase()) !== -1;
 }
 
 // Per-line VAT formulas. These MIRROR the GUI helpers in
@@ -268,8 +265,56 @@ function formatDateValue(raw) {
   }
 }
 
+// How the invoice says it was paid: the method in words, with the provider that
+// took the money when a provider did ("Card (Stripe)", "Paid online" for a
+// booking paid through the site, "Cash on delivery", "Gift card"), and the
+// provider's payment id as "Ref. pi_…". The stored values are ids.
+var PAYMENT_PROVIDER_LABELS = {
+  stripe: 'Stripe', paypal: 'PayPal', mollie: 'Mollie', razorpay: 'Razorpay',
+  square: 'Square', paddle: 'Paddle', coingate: 'CoinGate',
+};
+var PAYMENT_METHOD_LABELS = {
+  card: 'Card',
+  online: 'Paid online',
+  cash_on_delivery: 'Cash on delivery',
+  cod: 'Cash on delivery',
+  cash: 'Cash',
+  store_pickup: 'Paid at pickup',
+  pickup: 'Paid at pickup',
+  gift_card: 'Gift card',
+  bank_transfer: 'Bank transfer',
+};
+var PAYMENT_METHODS_NAMING_PROVIDER = { card: true, online: true };
+
+function humanizePaymentId(value) {
+  var words = String(value).replace(/[_-]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function paymentProviderLabel(provider) {
+  var id = String(provider || '').trim().toLowerCase();
+  return PAYMENT_PROVIDER_LABELS[id] || (id ? humanizePaymentId(id) : '');
+}
+
+function paymentMethodLabel(method, provider) {
+  var id = String(method || '').trim().toLowerCase();
+  var providerLabel = paymentProviderLabel(provider);
+  if (PAYMENT_METHOD_LABELS[id]) {
+    return PAYMENT_METHOD_LABELS[id] +
+      (PAYMENT_METHODS_NAMING_PROVIDER[id] && providerLabel ? ' (' + providerLabel + ')' : '');
+  }
+  if (PAYMENT_PROVIDER_LABELS[id]) return 'Paid online (' + PAYMENT_PROVIDER_LABELS[id] + ')';
+  if (!id) return providerLabel ? 'Paid online (' + providerLabel + ')' : '';
+  return humanizePaymentId(id);
+}
+
+function paymentReference(paymentId) {
+  var ref = String(paymentId || '').trim();
+  return ref ? 'Ref. ' + ref : '';
+}
+
 function buildInvoiceDataScope(invoiceData) {
-  var defaults = extractStaticAttrsFromContext(TEMPLATE_COMPONENT_UIDL);
+  var contextCompany = extractStaticAttrsFromContext(TEMPLATE_COMPONENT_UIDL).Company || {};
   var sym = invoiceData.currencySymbol || '$';
 
   var realCompany = {
@@ -283,7 +328,7 @@ function buildInvoiceDataScope(invoiceData) {
     registrationNumber: COMPANY_DETAILS.companyRegNumber,
     email: COMPANY_DETAILS.companyEmail,
     phone: COMPANY_DETAILS.companyPhone,
-    logoUrl: invoiceData.companyLogoUrl || '',
+    logoUrl: invoiceData.companyLogoUrl || contextCompany.logoUrl || '',
     website: COMPANY_DETAILS.companyWebsite,
   };
 
@@ -314,17 +359,28 @@ function buildInvoiceDataScope(invoiceData) {
   var giftCardLast4 = String(invoiceData.giftCardLast4 || '').trim();
   var totalNumber = Number(invoiceData.total);
   if (!isFinite(totalNumber)) totalNumber = 0;
+  // What is left to pay after the gift card. The invoice records what the
+  // provider or the courier was to collect; once that is paid, nothing is left.
   var amountDueNumber = Number(invoiceData.amountDue);
   if (invoiceData.amountDue == null || !isFinite(amountDueNumber)) {
     amountDueNumber = Math.max(0, totalNumber - giftCardAmountNumber);
   }
+  if (isSettledInvoice(invoiceData.status)) amountDueNumber = 0;
+
+  // A paid invoice asks for nothing: where the due date would print, it says
+  // when it was paid. The order keeps no payment method finer than its
+  // provider, so the line names none.
+  var paid = isSettledInvoice(invoiceData.status);
+  var paidDate = formatDateValue(invoiceData.paidAt || (paid ? invoiceData.issueDate : ''));
+  var paidLine = paid ? 'Paid' + (paidDate ? ' on ' + paidDate : '') : '';
 
   var realInvoice = {
     invoiceNumber: invoiceData.invoiceNumber ? '#' + invoiceData.invoiceNumber : '',
     status: invoiceData.status || '',
     issueDate: formatDateValue(invoiceData.issueDate),
-    dueDate: formatDateValue(invoiceData.dueDate),
-    paidDate: formatDateValue(invoiceData.paidAt),
+    dueDate: paidLine || formatDateValue(invoiceData.dueDate),
+    paidDate: paidDate,
+    paidLine: paidLine,
     subtotal: formatCurrencyValue(invoiceData.subtotal, sym),
     taxRate: invoiceData.taxRate != null ? String(invoiceData.taxRate) : '',
     taxAmount: formatCurrencyValue(invoiceData.taxAmount, sym),
@@ -351,16 +407,10 @@ function buildInvoiceDataScope(invoiceData) {
     notes: invoiceData.notes || '',
     pdfUrl: invoiceData.pdfUrl || '',
   };
-  // The merge below lets an EMPTY real value fall back to the template's
-  // sample — right for a company address, wrong for a code or a card tail: an
-  // order without a voucher must not print the designer's "SAVE20".
-  var realInvoiceNeverSampled = { voucherCode: voucherCode, giftCardLast4: giftCardLast4 };
-  // The buyer and their payment are never sampled either: an order with no
-  // city (a booking, a pickup, a download) must not print the designer's
-  // sample customer's, nor a card it was not paid with.
 
   var realCustomer = {
     name: invoiceData.customerName || '',
+    company: invoiceData.customerCompany || '',
     email: invoiceData.customerEmail || '',
     address: invoiceData.customerAddress || '',
     city: invoiceData.customerCity || '',
@@ -371,14 +421,15 @@ function buildInvoiceDataScope(invoiceData) {
   };
   // The "Bill to" lines a buyer may leave out show only when they did not
   // (string flags: the template compares strings, as with \`hasShipping\`).
+  realCustomer.hasCompany = realCustomer.company ? 'true' : 'false';
   realCustomer.hasZip = realCustomer.zip ? 'true' : 'false';
   realCustomer.hasCountry = realCustomer.country ? 'true' : 'false';
   realCustomer.hasVat = realCustomer.vat ? 'true' : 'false';
 
   var realPayment = {
-    method: invoiceData.paymentMethod || '',
-    provider: invoiceData.paymentProvider || '',
-    intentId: invoiceData.paymentIntentId || '',
+    method: paymentMethodLabel(invoiceData.paymentMethod, invoiceData.paymentProvider),
+    provider: paymentProviderLabel(invoiceData.paymentProvider),
+    intentId: paymentReference(invoiceData.paymentIntentId),
     orderId: invoiceData.orderId || '',
   };
 
@@ -468,11 +519,11 @@ function buildInvoiceDataScope(invoiceData) {
 
   return {
     invoiceData: {
-      Company: mergeWithDefaults(realCompany, defaults.Company),
-      Invoice: Object.assign(mergeWithDefaults(realInvoice, defaults.Invoice), realInvoiceNeverSampled),
+      Company: realCompany,
+      Invoice: realInvoice,
       Customer: realCustomer,
       Payment: realPayment,
-      Products: realProducts.length > 0 ? realProducts : (defaults.Products || []),
+      Products: realProducts,
     },
   };
 }
@@ -746,6 +797,39 @@ function renderComponentReference(content, scope, depth) {
   return rendered;
 }
 
+// A paid invoice asks for nothing, so, as in the email, its amount-due line is
+// left out. The template shows that line whenever a gift card was used, which
+// cannot tell whether the rest was paid since. The line is the innermost
+// container holding the field (the editor lays each summary line out as a row
+// of texts), and only when the field is all it holds: a container that also
+// holds a block or another field is the merchant's own, and stays.
+var AMOUNT_DUE_FIELD = /\\bInvoice\\??\\.amountDue\\b/;
+
+function isPaidAmountDueLine(content, scope) {
+  var inv = scope.invoiceData && scope.invoiceData.Invoice;
+  if (!inv || !isSettledInvoice(inv.status)) return false;
+  var fields = { amountDue: 0, other: 0 };
+  return countLineFields(content.children, fields) && fields.amountDue > 0 && fields.other === 0;
+}
+
+// Counts the fields a line prints into \`fields\`; false when it holds anything
+// but text, which makes it a block rather than a line.
+function countLineFields(children, fields) {
+  var list = children || [];
+  for (var i = 0; i < list.length; i++) {
+    var child = list[i];
+    if (!child || child.type === 'static') continue;
+    if (child.type === 'expr') {
+      if (AMOUNT_DUE_FIELD.test(String(child.content))) fields.amountDue++;
+      else fields.other++;
+      continue;
+    }
+    var isText = child.type === 'element' && child.content && child.content.elementType === 'text';
+    if (!isText || !countLineFields(child.content.children, fields)) return false;
+  }
+  return true;
+}
+
 function renderNode(node, scope, componentName, depth) {
   if (!node) return '';
   if (typeof depth !== 'number') depth = 0;
@@ -799,6 +883,10 @@ function renderNode(node, scope, componentName, depth) {
   if (elementType === 'fragment') {
     var fragChildren = content.children || [];
     return fragChildren.map(function (c) { return renderNode(c, scope, componentName, depth); }).join('');
+  }
+
+  if (elementType === 'container' && isPaidAmountDueLine(content, scope)) {
+    return '';
   }
 
   var tag = content.semanticType || elementTypeToTag(elementType);
@@ -973,13 +1061,19 @@ function buildFallbackInvoiceHtml(scope) {
   var parts = [];
   parts.push('<div style="padding:32px;font-family:Helvetica,Arial,sans-serif;color:#333;font-size:10pt;">');
   parts.push('<h1 style="text-align:right;font-size:24pt;margin:0 0 4px;">INVOICE</h1>');
-  parts.push('<p style="text-align:right;color:#666;margin:0 0 24px;">' + escapeHtml(inv.invoiceNumber || '') + '</p>');
+  if (inv.paidLine) {
+    parts.push('<p style="text-align:right;color:#666;margin:0 0 4px;">' + escapeHtml(inv.invoiceNumber || '') + '</p>');
+    parts.push('<p style="text-align:right;color:#666;margin:0 0 24px;">' + escapeHtml(inv.paidLine) + '</p>');
+  } else {
+    parts.push('<p style="text-align:right;color:#666;margin:0 0 24px;">' + escapeHtml(inv.invoiceNumber || '') + '</p>');
+  }
   parts.push('<div style="display:flex;gap:40px;margin-bottom:24px;">');
   parts.push('<div style="flex:1;"><strong>' + escapeHtml(comp.name || '') + '</strong><br/>' +
     escapeHtml(comp.address || '') + '<br/>' +
     escapeHtml(comp.city || '') + '<br/>' +
     escapeHtml(comp.email || '') + '</div>');
   parts.push('<div style="flex:1;"><strong>' + escapeHtml(cust.name || '') + '</strong><br/>' +
+    (cust.company ? escapeHtml(cust.company) + '<br/>' : '') +
     escapeHtml(cust.email || '') + '<br/>' +
     escapeHtml(cust.address || '') + '<br/>' +
     escapeHtml(cust.city || '') + '</div>');
@@ -1028,11 +1122,14 @@ function buildFallbackInvoiceHtml(scope) {
   }
   totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;border-top:2px solid #333;padding-top:4px;"><span>Total</span><span>' + escapeHtml(inv.total) + '</span></div>';
   // A gift card settles part (or all) of the total, so what is left to pay is
-  // printed beneath it — 0.00 included, which is the buyer's proof of that.
+  // printed beneath it — 0.00 included, which is the buyer's proof of that —
+  // until the invoice is paid, whose paid date says nothing is left.
   if (inv.hasGiftCard === 'true') {
     var giftCardLabel = 'Paid by gift card' + (inv.giftCardLast4 ? ' \\u2022\\u2022\\u2022\\u2022' + inv.giftCardLast4 : '');
     totalsRows += '<div style="display:flex;justify-content:space-between;margin-top:4px;margin-bottom:4px;"><span>' + escapeHtml(giftCardLabel) + '</span><span>\\u2212' + escapeHtml(inv.giftCardAmount) + '</span></div>';
-    totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Amount due</span><span>' + escapeHtml(inv.amountDue) + '</span></div>';
+    if (!isSettledInvoice(inv.status)) {
+      totalsRows += '<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Amount due</span><span>' + escapeHtml(inv.amountDue) + '</span></div>';
+    }
   }
   parts.push('<div style="display:flex;justify-content:flex-end;margin-top:16px;"><div style="width:240px;">' +
     totalsRows +
@@ -1071,25 +1168,47 @@ function resolveTextSpans(spans, scope) {
   }).join('');
 }
 
-// Amount tokens whose line means nothing at zero: "Delivery $0.00" on a
-// pickup order, "Discount −$0.00" without a voucher. The table row (or list
-// item / paragraph) that carries such a token is dropped before the tokens are
-// filled, so the merchant's summary only lists the figures that applied.
-// Matched innermost — a row inside a row keeps its parent.
-var OPTIONAL_AMOUNT_TOKENS = ['shippingAmount', 'discountAmount', 'giftCardAmount'];
+// The summary lines the email leaves out. An amount whose line means nothing at
+// zero: "Delivery $0.00" on a pickup order, "Discount −$0.00" without a
+// voucher, "Tax $0.00" in an untaxed store. And what a paid invoice no longer
+// asks for: its due date and the amount due. As on the PDF, the amount due is
+// printed only beside a gift card; without one it is the total again.
+var OPTIONAL_AMOUNT_TOKENS = ['shippingAmount', 'discountAmount', 'taxAmount', 'giftCardAmount'];
 
-function stripZeroAmountLines(template, inv) {
-  var out = template;
-  for (var i = 0; i < OPTIONAL_AMOUNT_TOKENS.length; i++) {
-    var key = OPTIONAL_AMOUNT_TOKENS[i];
-    if (Number(inv[key] || 0) > 0) continue;
-    var line = new RegExp(
-      '<(tr|li|p)\\\\b(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?\\\\{\\\\{' + key + '\\\\}\\\\}(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?<\\\\/\\\\1\\\\s*>',
-      'g'
-    );
-    out = out.replace(line, '');
-  }
-  return out;
+function omittedLineTokens(inv) {
+  var tokens = OPTIONAL_AMOUNT_TOKENS.filter(function (key) {
+    return !(Number(inv[key] || 0) > 0);
+  });
+  var paid = isSettledInvoice(inv.status);
+  if (paid) tokens.push('dueDate');
+  if (paid || !(Number(inv.giftCardAmount || 0) > 0)) tokens.push('amountDue');
+  return tokens;
+}
+
+// A line is the table row, list item or paragraph carrying the token, matched
+// innermost — a row inside a row keeps its parent. The editor's designs publish
+// each line as a <div> of <span>s instead, so a token outside those drops the
+// innermost <div> holding it, and only when that <div> is the line alone: one
+// that also holds a block or another token is the merchant's own, and stays.
+var NO_BLOCK_OR_TOKEN = '(?!<\\\\/?(?:div|p|tr|li|table|ul|ol|h[1-6])\\\\b|\\\\{\\\\{)';
+
+function stripLinesHolding(template, key) {
+  var token = '\\\\{\\\\{' + key + '\\\\}\\\\}';
+  var row = new RegExp(
+    '<(tr|li|p)\\\\b(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?' + token + '(?:(?!<\\\\/?\\\\1\\\\b)[\\\\s\\\\S])*?<\\\\/\\\\1\\\\s*>',
+    'g'
+  );
+  var lineDiv = new RegExp(
+    '<div\\\\b(?:' + NO_BLOCK_OR_TOKEN + '[\\\\s\\\\S])*?' + token + '(?:' + NO_BLOCK_OR_TOKEN + '[\\\\s\\\\S])*?<\\\\/div\\\\s*>',
+    'g'
+  );
+  return template.replace(row, '').replace(lineDiv, '');
+}
+
+function stripOmittedLines(template, inv) {
+  return omittedLineTokens(inv).reduce(function (out, key) {
+    return stripLinesHolding(out, key);
+  }, template);
 }
 
 function replacePlaceholders(template, data) {
@@ -1097,7 +1216,8 @@ function replacePlaceholders(template, data) {
   var inv = data.invoice || {};
   var cust = data.customer || {};
   var comp = data.company || {};
-  return stripZeroAmountLines(template, inv).replace(/\\{\\{(\\w+)\\}\\}/g, function (match, key) {
+  var sym = inv.currencySymbol;
+  return stripOmittedLines(template, inv).replace(/\\{\\{(\\w+)\\}\\}/g, function (match, key) {
     var map = {
       invoiceNumber: inv.number || '',
       customerName: cust.name || '',
@@ -1108,14 +1228,14 @@ function replacePlaceholders(template, data) {
       // so the mail and its attachment agree.
       invoiceDate: formatDateValue(inv.issueDate),
       dueDate: formatDateValue(inv.dueDate),
-      totalAmount: (inv.currencySymbol || '') + Number(inv.total || 0).toFixed(2),
-      subtotal: (inv.currencySymbol || '') + Number(inv.subtotal || 0).toFixed(2),
-      taxAmount: (inv.currencySymbol || '') + Number(inv.taxAmount || 0).toFixed(2),
-      shippingAmount: (inv.currencySymbol || '') + Number(inv.shippingAmount || 0).toFixed(2),
-      discountAmount: (inv.currencySymbol || '') + Number(inv.discountAmount || 0).toFixed(2),
-      giftCardAmount: (inv.currencySymbol || '') + Number(inv.giftCardAmount || 0).toFixed(2),
+      totalAmount: formatCurrencyValue(inv.total, sym),
+      subtotal: formatCurrencyValue(inv.subtotal, sym),
+      taxAmount: formatCurrencyValue(inv.taxAmount, sym),
+      shippingAmount: formatCurrencyValue(inv.shippingAmount, sym),
+      discountAmount: formatCurrencyValue(inv.discountAmount, sym),
+      giftCardAmount: formatCurrencyValue(inv.giftCardAmount, sym),
       // What is left after a gift card; the whole total when none was used.
-      amountDue: (inv.currencySymbol || '') + Number(inv.amountDue != null ? inv.amountDue : (inv.total || 0)).toFixed(2),
+      amountDue: formatCurrencyValue(inv.amountDue != null ? inv.amountDue : inv.total, sym),
       companyName: comp.name || '',
       companyEmail: comp.email || '',
       invoiceUrl: inv.pdfUrl || '',
@@ -1133,6 +1253,9 @@ function buildDataContext(invoiceData) {
   return {
     invoice: {
       number: invoiceData.invoiceNumber || '',
+      // Paid or not decides which lines the email keeps (see omittedLineTokens).
+      status: invoiceData.status || '',
+      paidAt: invoiceData.paidAt || null,
       issueDate: invoiceData.issueDate || '',
       dueDate: invoiceData.dueDate || '',
       subtotal: invoiceData.subtotal || 0,

@@ -7,6 +7,7 @@ import {
   UIDLDataSource,
   DataSourceType,
   ChunkType,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -15,7 +16,7 @@ import { generateDataSourceFetcherWithCore } from './data-source-fetchers'
 import type { EntityTransformOptions } from './transformations'
 import { DATA_SOURCE_ISR_REVALIDATE_SECONDS } from './isr'
 import { buildServerLocaleParam, hasLocaleParam, buildClientLocaleParam } from './request-locale'
-import { readFixedSort } from './sort-utils'
+import { buildStartingSortsValue, readRepeaterSort, type RepeaterSort } from './sort-utils'
 
 const VALID_DATA_SOURCE_TYPES: DataSourceType[] = [
   'rest-api',
@@ -1180,16 +1181,16 @@ const isSortKeyed = (properties: types.ObjectProperty[]): boolean =>
       (property.key.type === 'Identifier' && property.key.name === 'sorts')
   )
 
-/** The fixed sort of the first list repeater inside a data-source node, if it has one. */
+/** The first list repeater inside a data-source node: the list its rows are fetched for. */
 // tslint:disable-next-line:no-any
-const findRepeaterFixedSort = (node: any): { field: string; order: 'asc' | 'desc' } | undefined => {
+const findListRepeater = (node: any): Record<string, any> | undefined => {
   // tslint:disable-next-line:no-any
-  const visit = (current: any): { field: string; order: 'asc' | 'desc' } | null | undefined => {
+  const visit = (current: any): Record<string, any> | undefined => {
     if (!current || typeof current !== 'object') {
       return undefined
     }
     if (current.type === 'cms-list-repeater') {
-      return readFixedSort(current.content?.sort, current.content?.sortDirection) ?? null
+      return current.content ?? {}
     }
     const content = current.content
     const children = [
@@ -1204,8 +1205,27 @@ const findRepeaterFixedSort = (node: any): { field: string; order: 'asc' | 'desc
     }
     return undefined
   }
-  return visit(node) ?? undefined
+  return visit(node)
 }
+
+/**
+ * The order a list's page fetch carries, in what tells it apart from another
+ * list's fetch with the same params (`claimParamsPropKey`): the column the
+ * editor fixed, or a sort the visitor picks at the values they start with.
+ */
+const prefetchOrderOf = (
+  // tslint:disable-next-line:no-any
+  repeater: Record<string, any> | undefined,
+  sort: RepeaterSort
+): unknown =>
+  sort.fixed ??
+  (sort.dynamic && sort.starting
+    ? {
+        sort: repeater?.sort,
+        sortDirection: repeater?.sortDirection ?? null,
+        starting: sort.starting,
+      }
+    : undefined)
 
 export const extractDataSourceIntoGetStaticProps = (
   node: UIDLDataSourceItemNode | UIDLDataSourceListNode,
@@ -1217,7 +1237,13 @@ export const extractDataSourceIntoGetStaticProps = (
   dependencies: Record<string, any>,
   dynamicRouteAttr?: string,
   folderPath?: string[],
-  transformOptions: EntityTransformOptions = {}
+  transformOptions: EntityTransformOptions = {},
+  // What the read hands the module after its params: `{ as: 'visitor' }` on
+  // every page but an admin page only trusted readers open (see
+  // `RouteUtils.pageDataReadArguments`).
+  readArguments: () => types.Expression[] = () => [],
+  // The page's states: a list sorted by one is fetched by the value it starts at.
+  stateDefinitions?: Record<string, UIDLStateDefinition>
 ): { success: boolean; chunk?: any } => {
   try {
     // Validate node content
@@ -1281,11 +1307,13 @@ export const extractDataSourceIntoGetStaticProps = (
     }
     // tslint:disable-next-line:no-any
     const nodeResource = (node.content as any).resource
+    const repeater = findListRepeater(node)
+    const repeaterSort = readRepeaterSort(repeater?.sort, repeater?.sortDirection, stateDefinitions)
     const propKey = claimParamsPropKey(
       componentChunk,
       resourcePropKey,
       nodeResource,
-      findRepeaterFixedSort(node)
+      prefetchOrderOf(repeater, repeaterSort)
     )
 
     // Find matching JSX nodes for this data source
@@ -1732,11 +1760,13 @@ export const extractDataSourceIntoGetStaticProps = (
       }
     })
 
-    // The sort the list's repeater fixed, when the resource names none — the
+    // The sort the list's repeater carries, when the resource names none — the
     // rows the page is pre-rendered with come in the order the list shows them
-    // (the browser keeps them: the provider skips its first fetch).
-    const repeaterSort = isSortKeyed(paramsProperties) ? undefined : findRepeaterFixedSort(node)
-    if (repeaterSort) {
+    // (the browser keeps them: the provider skips its first fetch). A sort the
+    // visitor picks is fetched as they start with it, by the browser's own sort
+    // expression (`buildStartingSortsValue`), and the list keeps the rows only
+    // while the sort stays there (`seedPlainListWhileSortStarts`).
+    if (!isSortKeyed(paramsProperties) && repeaterSort.fixed) {
       paramsProperties.push(
         types.objectProperty(
           types.stringLiteral('sorts'),
@@ -1747,16 +1777,23 @@ export const extractDataSourceIntoGetStaticProps = (
                 types.objectExpression([
                   types.objectProperty(
                     types.identifier('field'),
-                    types.stringLiteral(repeaterSort.field)
+                    types.stringLiteral(repeaterSort.fixed.field)
                   ),
                   types.objectProperty(
                     types.identifier('order'),
-                    types.stringLiteral(repeaterSort.order)
+                    types.stringLiteral(repeaterSort.fixed.order)
                   ),
                 ]),
               ]),
             ]
           )
+        )
+      )
+    } else if (!isSortKeyed(paramsProperties) && repeaterSort.dynamic && repeaterSort.starting) {
+      paramsProperties.push(
+        types.objectProperty(
+          types.stringLiteral('sorts'),
+          buildStartingSortsValue(repeaterSort.dynamic, repeaterSort.starting)
         )
       )
     }
@@ -1768,7 +1805,7 @@ export const extractDataSourceIntoGetStaticProps = (
 
     const fetchCallExpression = types.callExpression(
       types.memberExpression(types.identifier(fetcherImportName), types.identifier('fetchData')),
-      [types.objectExpression(paramsProperties)]
+      [types.objectExpression(paramsProperties), ...readArguments()]
     )
 
     const safeFetchExpression = createSafeFetchExpression(fetchCallExpression, propKey)
@@ -1925,12 +1962,12 @@ const claimParamsPropKey = (
   componentChunk: ChunkDefinition,
   resourcePropKey: string,
   resource: { params?: Record<string, unknown> } | undefined,
-  // The list's own fixed sort rides on its prefetch too (see the params below).
-  repeaterSort?: { field: string; order: string }
+  // The list's own sort rides on its prefetch too (`prefetchOrderOf`).
+  prefetchOrder?: unknown
 ): string => {
   const meta = componentChunk.meta as { dataSourcePropKeyParams?: Record<string, string> }
   const claimed = meta.dataSourcePropKeyParams ?? (meta.dataSourcePropKeyParams = {})
-  const signature = JSON.stringify([resource?.params ?? {}, repeaterSort ?? null])
+  const signature = JSON.stringify([resource?.params ?? {}, prefetchOrder ?? null])
 
   let propKey = resourcePropKey
   for (let suffix = 2; claimed[propKey] !== undefined && claimed[propKey] !== signature; suffix++) {

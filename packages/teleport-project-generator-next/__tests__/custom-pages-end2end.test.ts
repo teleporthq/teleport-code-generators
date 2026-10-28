@@ -249,7 +249,11 @@ describe('Next generator — Custom Pages', () => {
       // draft would only be pre-rendered into a 404.
       const { page } = generated
       expect(page).toMatch(
-        /fetchTeleportPagesPathsResource\(\{\s*filters:\s*'\[.*"source":"status".*"source":"redirect_url","destination":null.*\]'/s
+        /fetchTeleportPagesPathsResource\(\s*\{\s*filters:\s*'\[.*"source":"status".*"source":"redirect_url","destination":null.*\]'/s
+      )
+      // Read as a visitor is served the pages: a draft never becomes a path.
+      expect(page).toMatch(
+        /fetchTeleportPagesPathsResource\([^)]*\},\s*\{\s*as: 'visitor',?\s*\}\s*\)/s
       )
     })
 

@@ -271,6 +271,14 @@ export interface RepeaterOptions {
   filters?: unknown[]
   /** The mapper's editor node id, as the UIDL carries it on the repeater. */
   nodeId?: string
+  /** The repeater's sort and direction as the UIDL carries them: a static column, or an expression. */
+  sort?: unknown
+  sortDirection?: unknown
+  /** The repeater's cache config. */
+  cache?: unknown
+  /** The repeater's `source`, for a list bound inside the payload (with `dataSourceType`). */
+  source?: string
+  dataSourceType?: string
 }
 
 export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'items'): any => ({
@@ -280,7 +288,7 @@ export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'ite
     resourceDefinition: {
       dataSourceId: 'ds1',
       tableName: 'products',
-      dataSourceType: 'postgresql',
+      dataSourceType: options.dataSourceType ?? 'postgresql',
     },
     resource: {
       params: {
@@ -301,6 +309,10 @@ export const makeUidlNode = (options: RepeaterOptions, identifier: string = 'ite
           ...(options.infiniteScroll ? { infiniteScroll: true } : {}),
           ...(options.infiniteScrollLoadMore ? { infiniteScrollLoadMore: true } : {}),
           ...(options.nodeId ? { nodeId: options.nodeId } : {}),
+          ...(options.sort ? { sort: options.sort } : {}),
+          ...(options.sortDirection ? { sortDirection: options.sortDirection } : {}),
+          ...(options.cache ? { cache: options.cache } : {}),
+          ...(options.source ? { source: options.source } : {}),
           nodes: { list: { type: 'element', content: { elementType: 'div' } } },
         },
       },
@@ -317,4 +329,58 @@ export const makeMultiMapperUidl = (repeaters: RepeaterOptions[]): any => ({
       makeUidlNode(options, `items${index === 0 ? '' : index}`)
     ),
   },
+})
+
+/**
+ * The page's `getStaticProps` as the main data-source plugin leaves it: a
+ * `Promise.all` of prefetches and a `props` object, which the pagination plugin
+ * extends with each paginated list's first page and its count. Its presence is
+ * what makes the component a page.
+ */
+export const makeGetStaticPropsChunk = (): ChunkDefinition => ({
+  name: 'getStaticProps',
+  type: ChunkType.AST,
+  fileType: FileType.JS,
+  linkAfter: ['jsx-component'],
+  meta: {},
+  content: types.exportNamedDeclaration(
+    types.functionDeclaration(
+      types.identifier('getStaticProps'),
+      [types.identifier('context')],
+      types.blockStatement([
+        types.tryStatement(
+          types.blockStatement([
+            types.variableDeclaration('const', [
+              types.variableDeclarator(
+                types.arrayPattern([]),
+                types.awaitExpression(
+                  types.callExpression(
+                    types.memberExpression(types.identifier('Promise'), types.identifier('all')),
+                    [types.arrayExpression([])]
+                  )
+                )
+              ),
+            ]),
+            types.returnStatement(
+              types.objectExpression([
+                types.objectProperty(types.identifier('props'), types.objectExpression([])),
+              ])
+            ),
+          ]),
+          types.catchClause(
+            types.identifier('error'),
+            types.blockStatement([
+              types.returnStatement(
+                types.objectExpression([
+                  types.objectProperty(types.identifier('props'), types.objectExpression([])),
+                ])
+              ),
+            ])
+          )
+        ),
+      ]),
+      false,
+      true
+    )
+  ),
 })

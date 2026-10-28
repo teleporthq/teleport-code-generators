@@ -42,6 +42,8 @@ export const PROTECTED_ENV_NAMES = [
   // the admin panel's newsletter route reads them.
   'NEWSLETTER_SERVICE_TOKEN',
   'NEWSLETTER_SERVICE_URL',
+  // The password wall's secret. Only the wall reads it.
+  'TELEPORT_WALL_SECRET',
 ] as const
 
 /**

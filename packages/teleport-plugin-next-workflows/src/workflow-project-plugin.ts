@@ -88,6 +88,7 @@ import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
 import { ensureWebhookDeliveryLeaseModule } from './webhook-delivery-lease'
 import { ensureSecurityRuntimeModule } from './security-runtime'
+import { declareVercelFunctionsWhereRequired } from './vercel-functions'
 import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
 import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
@@ -577,6 +578,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       if (hasAuthentication) {
         this.injectSessionProviderIntoApp(structure)
       }
+      declareVercelFunctionsWhereRequired(files, dependencies)
       return structure
     }
 
@@ -1046,6 +1048,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
               authUsersTableName: resolveAuthUsersTableName(uidl.authentication),
               emailProvider,
               fromEmail: typeof deleteConfig.from === 'string' ? deleteConfig.from : '',
+              fromName: typeof deleteConfig.fromName === 'string' ? deleteConfig.fromName : '',
               emailSecretEnvName,
               emailSubject: typeof deleteConfig.subject === 'string' ? deleteConfig.subject : '',
               emailBodyHtml: typeof deleteConfig.body === 'string' ? deleteConfig.body : '',
@@ -1240,6 +1243,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       this.injectSessionProviderIntoApp(structure)
     }
 
+    declareVercelFunctionsWhereRequired(files, dependencies)
     return structure
   }
 
@@ -2083,6 +2087,7 @@ module.exports = __customNodeRegistry;
         {
           emailProvider: welcomeProvider,
           fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
+          fromName: typeof signupConfig.fromName === 'string' ? signupConfig.fromName : '',
           emailSecretEnvName: welcomeSecretEnvName,
           emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
           emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',

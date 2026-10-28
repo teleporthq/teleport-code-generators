@@ -5,6 +5,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import {
   RESTAPICacheConfig,
   generateRESTAPIResponseCacheCode,
@@ -124,6 +125,8 @@ export const generateRESTAPIFetcher = (config: Record<string, unknown>): string 
 
 ${generateSafeJSONParseCode()}
 
+${generateSearchRankHelperCode()}
+
 ${generateDateFormatterCode()}
 
 ${generateSortFilterHelperCode()}
@@ -194,27 +197,20 @@ export default async function handler(req, res) {
     
     if (Array.isArray(data)) {
       if (query && query.trim()) {
-        const searchQuery = query.toLowerCase()
-        
         if (queryColumns) {
           try {
             const parsed = safeJSONParse(queryColumns)
             const columns = Array.isArray(parsed) ? parsed : [parsed]
-            data = data.filter((item) => {
-              return columns.some((col) => {
-                const value = getNestedValue(item, col)
-                if (value === null || value === undefined) return false
-                return String(value).toLowerCase().includes(searchQuery)
-              })
-            })
+            data = data.filter((item) => matchesSearch(item, query, columns, getNestedValue))
           } catch (err) {
             console.error('Error parsing queryColumns:', err)
           }
         } else {
+          const terms = searchTerms(query)
           data = data.filter((item) => {
             try {
-              const stringified = JSON.stringify(item).toLowerCase()
-              return stringified.includes(searchQuery)
+              const text = searchText(item)
+              return terms.every((term) => text.indexOf(term) !== -1)
             } catch {
               return false
             }
@@ -308,6 +304,10 @@ export default async function handler(req, res) {
           
           return comparison * sortOrderValue
         })
+      }
+      
+      if (query && queryColumns) {
+        data = rankBySearch(data, query, safeJSONParse(queryColumns), getNestedValue)
       }
       
       const limitValue = limit || perPage

@@ -25,7 +25,7 @@ import { APP_EVENTS_FILE_NAME, APP_EVENTS_PATH } from './automations/app-events-
 import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
 import { generateSelfCallHeadersCode } from './self-call-headers'
 
-const DATA_NODE_TYPES = new Set([
+export const DATA_NODE_TYPES: ReadonlySet<string> = new Set([
   'data-select',
   'data-create-item',
   'data-update-item',
@@ -985,6 +985,9 @@ function dropMissingOptionalColumns(tableName, entries, colTypes) {
   return kept;
 }
 
+// The row a create or update answers with, whoever asked, without the auth
+// users table's credentials (the columns a browser read is served without):
+// a server-side caller hands that answer on to the browser as its result.
 async function handleCreate(client, body, req) {
   var tableName = body.tableName;
   var columnMappings = body.columnMappings || {};
@@ -1112,10 +1115,11 @@ async function handleUpdate(client, body, req) {
   sql += ' RETURNING *';
 
   var result = await safeQuery(client, sql, queryParams, 'update');
+  var updated = result.rows[0] || null;
   return {
     updatedCount: result.rowCount || 0,
-    item: __dataWithoutItemCredentials(result.rows[0] || null, tableName),
-    id: (result.rows[0] && result.rows[0].id) || null,
+    item: __dataWithoutItemCredentials(updated, tableName),
+    id: (updated && updated.id) || null,
   };
 }
 
@@ -1936,7 +1940,15 @@ ${withAutomations ? '  kickDueAutomations(req);\n' : ''}
   }
 
   var operation = params[params.length - 1];
-  var body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  var body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    body = null;
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ error: 'Invalid request body. Expected a JSON object.' });
+  }
   var client = getClient();
 
   try {

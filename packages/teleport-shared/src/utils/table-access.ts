@@ -279,7 +279,7 @@ export const AUTH_CREDENTIAL_TABLES: ReadonlyArray<string> = ['users']
  * (`scope` and `expires_at` are ordinary columns elsewhere — a gift card
  * expires).
  */
-const UNAMBIGUOUS_CREDENTIAL_COLUMNS = AUTH_CREDENTIAL_COLUMNS.filter(
+export const UNAMBIGUOUS_CREDENTIAL_COLUMNS: ReadonlyArray<string> = AUTH_CREDENTIAL_COLUMNS.filter(
   (column) => column !== 'scope' && column !== 'expires_at'
 )
 
@@ -435,6 +435,135 @@ export const resolveStaffRoles = (auth?: UIDLAuthentication | null): string[] =>
 export const SECURITY_RUNTIME_MODULE_PATH = 'utils/security-runtime'
 
 /**
+ * What a page shows of a member to whoever opens it: their public profile —
+ * who they are, never how to reach them. A page's own data, read for a visitor,
+ * carries only these columns of the auth users table: never an email, a phone
+ * or an address, a credential, a role or anything else of the account. The
+ * member's own private fields reach their own page from their session.
+ */
+export const PUBLIC_PROFILE_COLUMNS: ReadonlyArray<string> = [
+  'id',
+  'name',
+  'display_name',
+  'image',
+  'avatar',
+  'avatar_url',
+  'bio',
+]
+
+const bareTableName = (tableName: string): string => {
+  const parts = String(tableName || '')
+    .trim()
+    .toLowerCase()
+    .split('.')
+  return parts[parts.length - 1].replace(/"/g, '')
+}
+
+/**
+ * The tables a page's own data, read for a visitor (`pageReadsAsStore` false),
+ * gets no row of — so it need not ask: the protected ones, and the feed tables,
+ * whose one visitor projection lives on the data API. Not the auth users table:
+ * a page reads its members' public profiles (`PUBLIC_PROFILE_COLUMNS`).
+ */
+export const pageDataReadsNoRowOf = (tableName: string): boolean => {
+  const bare = bareTableName(tableName)
+  if (AUTH_CREDENTIAL_TABLES.indexOf(bare) !== -1) {
+    return false
+  }
+  return (
+    PROTECTED_TABLES.indexOf(bare) !== -1 ||
+    Object.prototype.hasOwnProperty.call(PUBLIC_FEED_TABLES, bare)
+  )
+}
+
+const isAdminRoute = (route: string): boolean =>
+  route === ADMIN_ROUTE_PREFIX || route.startsWith(`${ADMIN_ROUTE_PREFIX}/`)
+
+interface RouteGate {
+  requiresAuth: boolean
+  roles: string[]
+}
+
+/**
+ * The gate the generated middleware puts on each route it knows
+ * (`generateMiddlewareFile`): a page's own protection, the roles of the
+ * role-gated folders it sits in merged in, and `/admin` — when any admin page
+ * is protected — admitting the admin panel's roles. A row-owned page is left
+ * to its own SQL there, so it gates nothing here either.
+ */
+const middlewareRouteGates = (auth: UIDLAuthentication): Map<string, RouteGate> => {
+  const gates = new Map<string, RouteGate>()
+  const folders = Object.values(auth.folderProtection || {})
+  Object.entries(auth.pageProtection || {}).forEach(([pageId, page]) => {
+    if (!page || typeof page.route !== 'string' || page.rowOwnerColumn) {
+      return
+    }
+    const folderRoles = folders
+      .filter((folder) => folder?.children?.[pageId] === 'page')
+      .flatMap((folder) => folder.allowedRoles || [])
+    const existing = gates.get(page.route)
+    gates.set(page.route, {
+      requiresAuth: !!existing?.requiresAuth || !!page.requiresAuth,
+      roles: Array.from(
+        new Set([...(existing?.roles || []), ...(page.allowedRoles || []), ...folderRoles])
+      ),
+    })
+  })
+  if (!gates.has(ADMIN_ROUTE_PREFIX) && Array.from(gates.keys()).some(isAdminRoute)) {
+    const panelRoles = resolveAdminPanelRoles(auth)
+    gates.set(ADMIN_ROUTE_PREFIX, {
+      requiresAuth: true,
+      roles: panelRoles.length > 0 ? panelRoles : ['admin'],
+    })
+  }
+  return gates
+}
+
+/**
+ * Whether a page's own data — what its getStaticProps / getServerSideProps
+ * read to render it — may be read as the store rather than as a visitor.
+ *
+ * Only an admin panel page that nobody but the store's trusted readers may
+ * open: at `/admin` or below, behind the middleware, with every role its gate
+ * admits in `resolveTrustedReaderRoles`. Whoever receives that page's data
+ * could read the same rows through the data routes. Every other page — public,
+ * members-only, or an admin screen another role may open — is rendered with
+ * what a visitor is served, since its data reaches whoever opens it, and
+ * through `/_next/data` without rendering it at all. `route` is the page's
+ * path when its own protection does not name it.
+ */
+export const pageReadsAsStore = (
+  page: { route?: string; pageId?: string },
+  auth?: UIDLAuthentication | null
+): boolean => {
+  if (!auth) {
+    return false
+  }
+  const trustedRoles = resolveTrustedReaderRoles(auth)
+  if (trustedRoles.length === 0) {
+    return false
+  }
+  const own = page.pageId ? auth.pageProtection?.[page.pageId] : undefined
+  if (own?.rowOwnerColumn) {
+    return false
+  }
+  const route = typeof own?.route === 'string' ? own.route : page.route
+  if (!route || !isAdminRoute(route)) {
+    return false
+  }
+  // The middleware's resolution: the route's own gate, else its nearest gated ancestor.
+  const gates = middlewareRouteGates(auth)
+  const ancestor = Array.from(gates.keys())
+    .filter((gated) => route.startsWith(`${gated}/`))
+    .sort((a, b) => b.length - a.length)[0]
+  const gate = gates.get(route) || (ancestor ? gates.get(ancestor) : undefined)
+  if (!gate || !gate.requiresAuth || gate.roles.length === 0) {
+    return false
+  }
+  return gate.roles.every((role) => trustedRoles.indexOf(role) !== -1)
+}
+
+/**
  * ES5 source of the guard, inlined into a generated route. Declares:
  *  - `__taIsInternalRequest(req)` — the caller presented the app secret, or
  *    is the module's own server-side `fetchData` (`req.__tqServerCall`).
@@ -546,6 +675,14 @@ function __taIsRestrictedRequest(req) {
 function __taIsInternalRequest(req) {
   if (req && req.__tqServerCall === true) return true;
   return __taPresentsAppSecret(req) && !__taIsRestrictedRequest(req);
+}
+
+// A page's own data, read to render it (the module's \`fetchData(params, { as:
+// 'visitor' })\`): served what an anonymous visitor is, through a statement the
+// page itself wrote. Marked on the request object, like an internal call, so
+// nothing on the wire can claim it.
+function __taIsVisitorView(req) {
+  return !!(req && req.__tqVisitorView === true);
 }
 
 // Generated browser code reads through the structured routes and never sends
@@ -793,12 +930,22 @@ function __taRetiredTableNamed(tableName, sql) {
 // null when the read may proceed, else { status, message }.
 async function __taGuardRead(req, tableName, rawQuery) {
   if (__taRetiredTableNamed(tableName, rawQuery)) return { status: 403, message: 'Forbidden' };
-  if (typeof rawQuery === 'string' && rawQuery.length > 0 && __taBrowserIsReadOnly(req)) {
+  var visitorView = __taIsVisitorView(req);
+  if (typeof rawQuery === 'string' && rawQuery.length > 0 && __taBrowserIsReadOnly(req) && !visitorView) {
     return { status: 403, message: 'Forbidden: raw queries are only available to server-side calls' };
   }
   var touched = __taProtectedTablesRead(tableName, rawQuery);
   if (touched.length === 0) return null;
   if (__taIsInternalRequest(req)) return null;
+  if (visitorView) {
+    // A page reads its members' public profiles: the auth users table alone,
+    // through the structured read, which the route's row policy projects onto
+    // the public profile columns. Nothing else protected, and no statement.
+    var readsProfiles = !(typeof rawQuery === 'string' && rawQuery.length > 0) &&
+      touched.length === 1 && __taIsCredentialTable(tableName);
+    // A visitor is nobody in particular: no session to read.
+    return readsProfiles ? null : { status: 401, message: 'Unauthenticated' };
+  }
   var token = null;
   try {
     token = await __tqSessionToken(req);

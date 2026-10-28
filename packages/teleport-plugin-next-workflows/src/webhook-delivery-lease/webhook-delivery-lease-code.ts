@@ -22,6 +22,12 @@ import {
  * released before the route replies; one left by a run that died expires
  * after a lease longer than any route may run.
  *
+ * The table is used when it exists (the editor creates it with the payment
+ * tables) and created only when it does not: a site's database role may read
+ * and write its tables without being allowed to create one, and
+ * CREATE TABLE IF NOT EXISTS asks for that permission even when the table is
+ * there.
+ *
  * Contract: `claimWebhookDelivery` never throws. Without Postgres, a driver,
  * the table or the privilege to create it, it claims nothing and lets the
  * delivery run — as every delivery ran before the lease existed.
@@ -48,6 +54,7 @@ ${generateLazyPgClientCode()}
 var TABLE_NAME = '${WEBHOOK_DELIVERY_LEASE_TABLE}';
 var LEASE_SECONDS = ${WEBHOOK_DELIVERY_LEASE_SECONDS};
 var QUERY_TIMEOUT_MS = 5000;
+var TABLE_EXISTS_SQL = 'SELECT to_regclass($1) IS NOT NULL AS present';
 var CREATE_SQL = 'CREATE TABLE IF NOT EXISTS "' + TABLE_NAME + '" (' +
   'delivery_key TEXT PRIMARY KEY, claim_token TEXT NOT NULL, ' +
   'claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), attempts INTEGER NOT NULL DEFAULT 1)';
@@ -80,18 +87,26 @@ function __withTimeout(promise, ms) {
   return Promise.race([promise, timeout]).then(function (v) { clearTimeout(timer); return v; }, function (err) { clearTimeout(timer); throw err; });
 }
 
-async function __run(statements) {
+// Runs \`work(query)\` on one connection, closed afterwards.
+async function __run(work) {
   var client = getClient();
   await __withTimeout(client.connect(), QUERY_TIMEOUT_MS);
   try {
-    var result = null;
-    for (var i = 0; i < statements.length; i++) {
-      result = await __withTimeout(client.query(statements[i].sql, statements[i].values), QUERY_TIMEOUT_MS);
-    }
-    return result;
+    return await work(function (sql, values) {
+      return __withTimeout(client.query(sql, values || []), QUERY_TIMEOUT_MS);
+    });
   } finally {
     try { await client.end(); } catch (_e) {}
   }
+}
+
+async function __ensureTable(query) {
+  if (__tableReady) return;
+  var found = await query(TABLE_EXISTS_SQL, [TABLE_NAME]);
+  if (!found || !Array.isArray(found.rows) || !found.rows[0] || !found.rows[0].present) {
+    await query(CREATE_SQL);
+  }
+  __tableReady = true;
 }
 
 function __stableJson(value) {
@@ -120,12 +135,12 @@ async function claimWebhookDelivery(scope, rawBody, verifiedBody) {
     .update(__stableJson(verifiedBody))
     .digest('hex');
   var token = crypto.randomBytes(16).toString('hex');
-  var statements = __tableReady ? [] : [{ sql: CREATE_SQL, values: [] }];
-  statements.push({ sql: CLAIM_SQL, values: [key, token, LEASE_SECONDS] });
   var result;
   try {
-    result = await __run(statements);
-    __tableReady = true;
+    result = await __run(async function (query) {
+      await __ensureTable(query);
+      return query(CLAIM_SQL, [key, token, LEASE_SECONDS]);
+    });
   } catch (err) {
     var code = err && err.code;
     if (code === '42501') { __disable('no privilege to create or write table ' + TABLE_NAME); }
@@ -138,7 +153,7 @@ async function claimWebhookDelivery(scope, rawBody, verifiedBody) {
   return {
     claimed: true,
     release: function () {
-      return __run([{ sql: RELEASE_SQL, values: [key, token] }]).then(
+      return __run(function (query) { return query(RELEASE_SQL, [key, token]); }).then(
         function () {},
         function (err) { console.error('[webhook-delivery-lease] release failed: ' + (err && err.message ? err.message : String(err))); }
       );

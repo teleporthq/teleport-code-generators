@@ -1177,6 +1177,22 @@ const USER_REFRESH_INTERVAL_MS = ${USER_REFRESH_INTERVAL_MS};
 // internal timestamp on every binding that enumerates the user object.
 const TOKEN_REFRESH_STAMP = '__userRefreshedAt';
 
+// A short fingerprint of the account's stored password hash, carried in the
+// token from sign-in (or from the first refresh of a token that has none). A
+// password change, a reset included, changes it, and the refresh then ends the
+// session: every session opened before the change is signed out at its next
+// refresh. Keyed with NEXTAUTH_SECRET; never the hash itself, and like the
+// stamp above never copied onto \`session.user\`.
+const TOKEN_PASSWORD_FINGERPRINT = '__passwordFingerprint';
+
+function passwordFingerprint(storedHash) {
+  return require('crypto')
+    .createHmac('sha256', String(process.env.NEXTAUTH_SECRET || ''))
+    .update('teleport-password-fingerprint:v1|' + (storedHash ? String(storedHash) : ''))
+    .digest('base64')
+    .slice(0, 16);
+}
+
 const authOptions = {
   providers: providers,
   pages: {
@@ -1277,6 +1293,7 @@ ${
       if (token && session.user) {
         const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
         skip[TOKEN_REFRESH_STAMP] = 1;
+        skip[TOKEN_PASSWORD_FINGERPRINT] = 1;
 ${withPassword ? `        skip['${SESSION_STAMP_KEY}'] = 1;\n` : ''}${
     withOAuthBinding ? '        skip[OAUTH_UNVERIFIED] = 1;\n' : ''
   }        const keys = Object.keys(token);
@@ -1378,6 +1395,17 @@ const PASSWORD_REFRESH_CODE = `      let revoked = false;
           // token was stamped, or the account is gone: the session is over.
           // Otherwise the token takes the stamp of the account as it is now.
           revoked = sessionStampCheck(token, fresh) === 'revoked';
+          // The same end, for a token issued before stamps: a short fingerprint
+          // of the stored hash, never the hash. A change (a reset included)
+          // signs that session out at its next refresh.
+          if (!revoked && fresh) {
+            const currentFingerprint = passwordFingerprint(fresh.password);
+            if (typeof token[TOKEN_PASSWORD_FINGERPRINT] !== 'string') {
+              token[TOKEN_PASSWORD_FINGERPRINT] = currentFingerprint;
+            } else if (token[TOKEN_PASSWORD_FINGERPRINT] !== currentFingerprint) {
+              revoked = true;
+            }
+          }
           const safe = !revoked && fresh && typeof sanitizeUser === 'function' ? sanitizeUser(fresh) : null;
           if (safe && typeof safe === 'object') {
             const fk = Object.keys(safe);
@@ -1493,6 +1521,9 @@ function withSessionStamp(safeUser, row) {
   var stamp = revocation ? revocation.credentialStamp(row) : null;
   if (safeUser && stamp) {
     safeUser[revocation.SESSION_STAMP_KEY] = stamp;
+  }
+  if (safeUser) {
+    safeUser[TOKEN_PASSWORD_FINGERPRINT] = passwordFingerprint(row ? row.password : null);
   }
   return safeUser;
 }
@@ -2082,6 +2113,7 @@ ${
 export interface WelcomeEmailOptions {
   emailProvider?: string | null
   fromEmail?: string
+  fromName?: string
   emailSecretEnvName?: string | null
   emailSubject?: string
   emailBodyHtml?: string
@@ -2431,6 +2463,7 @@ const findSignupUserByEmail = authUtils.findSignupUserByEmail;`
     welcomeHelpers = `
 const WELCOME_EMAIL_PROVIDER = ${JSON.stringify(welcomeProvider)};
 const WELCOME_EMAIL_FROM = ${JSON.stringify(welcome.fromEmail || '')};
+const WELCOME_EMAIL_FROM_NAME = ${JSON.stringify(welcome.fromName || '')};
 const WELCOME_EMAIL_SECRET_ENV_NAME = ${JSON.stringify(welcome.emailSecretEnvName || '')};
 const WELCOME_EMAIL_SUBJECT = ${JSON.stringify(welcome.emailSubject || 'Welcome')};
 const WELCOME_EMAIL_BODY_HTML = ${JSON.stringify(welcome.emailBodyHtml || '')};
@@ -2466,7 +2499,7 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
   var copy = resolveWelcomeEmailCopy(locale);
   var subject = fillSubjectTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
-  await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
+  await __sendProviderEmail({ from: from, fromName: WELCOME_EMAIL_FROM_NAME, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
 
 // A sign-up for an address that already has an account gets the same status,

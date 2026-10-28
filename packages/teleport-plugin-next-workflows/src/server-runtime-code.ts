@@ -2,6 +2,7 @@ import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import { ROLE_OF_TOKEN_CODE } from './workflow-auth-generator'
 import { SESSION_STAMP_KEY } from './session-revocation-generator'
+import { generateVercelFunctionsLoaderCode } from './vercel-functions'
 
 /** How long a signed step result stays good: older ones are refused. */
 export const SIGNED_RESULT_MAX_AGE_MS = 10 * 60 * 1000
@@ -60,6 +61,14 @@ export const STEP_EXPIRED_MESSAGE = 'This took too long. Please start again.'
  * that needs a trustworthy figure (a price, an owner) reads it from the
  * database itself.
  *
+ * A result that is a credential (a password hash, see credential-results.ts)
+ * makes the same trip SEALED: `segmentReply` replies it encrypted with a key
+ * derived from NEXTAUTH_SECRET (AES-256-GCM) and signs the sealed form, and
+ * `claimSegmentContext` opens every sealed value a request hands it (a
+ * relayed result once its signature holds). The browser relays it without
+ * ever reading it, and a later segment's reply hands back the sealed form,
+ * never the opened one.
+ *
  * The facts about the graph each route needs are baked into its
  * SEGMENT_CONFIG at generation time (see segment-trust.ts).
  */
@@ -68,6 +77,8 @@ export const generateServerRuntimeCode = (
 ): string => `'use strict';
 var crypto = require('crypto');
 var utils = require('./runtime-utils');
+
+${generateVercelFunctionsLoaderCode()}
 
 var __stepKeyCache = { secret: null, key: null };
 
@@ -84,6 +95,59 @@ function stepKey() {
 
 function mac(text) {
   return crypto.createHmac('sha256', stepKey()).update(text).digest('hex');
+}
+
+var __sealKeyCache = { secret: null, key: null };
+
+function sealKey() {
+  var secret = process.env.NEXTAUTH_SECRET || '';
+  if (__sealKeyCache.secret !== secret) {
+    __sealKeyCache = {
+      secret: secret,
+      key: crypto.createHmac('sha256', secret).update('teleport-workflow-seal:v1').digest()
+    };
+  }
+  return __sealKeyCache.key;
+}
+
+var SEAL_IV_BYTES = 12;
+var SEAL_TAG_BYTES = 16;
+
+var SEAL_AAD = Buffer.from('teleport-workflow-sealed-result:v1', 'utf8');
+
+// The sealed form of a credential result; undefined (the result is then not
+// replied at all) without an app secret, whose key anyone could derive.
+function sealResult(value) {
+  if (!process.env.NEXTAUTH_SECRET) return undefined;
+  var serialized;
+  try { serialized = JSON.stringify(value); } catch (e) { return undefined; }
+  if (serialized === undefined) return undefined;
+  var iv = crypto.randomBytes(SEAL_IV_BYTES);
+  var cipher = crypto.createCipheriv('aes-256-gcm', sealKey(), iv);
+  cipher.setAAD(SEAL_AAD);
+  var data = Buffer.concat([cipher.update(serialized, 'utf8'), cipher.final()]);
+  return { __sealed: Buffer.concat([iv, cipher.getAuthTag(), data]).toString('base64') };
+}
+
+function isSealedResult(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value) &&
+    typeof value.__sealed === 'string' && Object.keys(value).length === 1;
+}
+
+// { value } when the sealed form opens under this app's key, else null.
+function openSealedResult(sealed) {
+  if (!process.env.NEXTAUTH_SECRET) return null;
+  try {
+    var raw = Buffer.from(sealed.__sealed, 'base64');
+    if (raw.length <= SEAL_IV_BYTES + SEAL_TAG_BYTES) return null;
+    var decipher = crypto.createDecipheriv('aes-256-gcm', sealKey(), raw.subarray(0, SEAL_IV_BYTES));
+    decipher.setAAD(SEAL_AAD);
+    decipher.setAuthTag(raw.subarray(SEAL_IV_BYTES, SEAL_IV_BYTES + SEAL_TAG_BYTES));
+    var data = Buffer.concat([decipher.update(raw.subarray(SEAL_IV_BYTES + SEAL_TAG_BYTES)), decipher.final()]);
+    return { value: JSON.parse(data.toString('utf8')) };
+  } catch (e) {
+    return null;
+  }
 }
 
 // Without an app secret every key here would derive from '' — a value anyone
@@ -589,6 +653,43 @@ var __claimedRuns = new WeakMap();
 // signatures it accepted.
 var __claimedLinks = new WeakMap();
 
+// The sealed results this segment opened, so its reply hands the caller back
+// the sealed form it relayed (see resealRelayedResults).
+var __openedResults = new WeakMap();
+
+// Opens every sealed value the request hands this segment, so its nodes read
+// the credential itself: a relayed server result (whose signature
+// dropUnsignedResults checked first), or a value the browser holds from one
+// (a custom node's output, the previous result). Only this app's server
+// seals, so what opens is what it sealed.
+function openSealedResults(context) {
+  var opened = [];
+  Object.keys(context).forEach(function(key) {
+    if (isControlKey(key) && key !== '__previousNodeResult') return;
+    if (!isSealedResult(context[key])) return;
+    var result = openSealedResult(context[key]);
+    if (!result) return;
+    opened.push({ sealed: context[key], value: result.value });
+    context[key] = result.value;
+  });
+  __openedResults.set(context, opened);
+}
+
+// Every reply entry that is an opened value (the value itself, or the previous
+// result taken from it) goes back sealed.
+function resealRelayedResults(context, reply) {
+  var opened = __openedResults.get(context) || [];
+  if (opened.length === 0) return;
+  Object.keys(reply).forEach(function(key) {
+    for (var i = 0; i < opened.length; i++) {
+      if (reply[key] === opened[i].value) {
+        reply[key] = opened[i].sealed;
+        return;
+      }
+    }
+  });
+}
+
 function claimSegmentContext(segmentConfig, context) {
   var now = Date.now();
   var workflowId = workflowIdOf(segmentConfig);
@@ -602,6 +703,8 @@ function claimSegmentContext(segmentConfig, context) {
   context.__sigRun = { id: run.id, mac: run.mac };
   // The route's own (see VISITOR_REQUEST_INJECTION); a request never sets it.
   delete context.__request;
+  // Sealed credentials open only after their signature held.
+  openSealedResults(context);
   stripForeignControlKeys(segmentConfig, context);
   clearSessionIdentity(context);
   __incomingOrders.set(context, Object.keys(context).filter(function(k) { return !isControlKey(k); }));
@@ -654,6 +757,13 @@ function scrubValue(value, patterns, depth) {
 function segmentReply(segmentConfig, context, snapshot) {
   restoreStateBags(context);
   var reply = scrubSecretNames(segmentConfig, utils.segmentReply(segmentConfig, context, snapshot));
+  resealRelayedResults(context, reply);
+  var credentialIds = utils.credentialResultNodeIds(segmentConfig);
+  Object.keys(credentialIds).forEach(function(id) {
+    if (context[id] === undefined) return;
+    var sealed = sealResult(context[id]);
+    if (sealed) reply[id] = sealed;
+  });
   var workflowId = workflowIdOf(segmentConfig);
   var segmentId = segmentIdOf(segmentConfig);
   var run = __claimedRuns.get(context) || openRun(workflowId);
@@ -733,7 +843,25 @@ function trustedBaseUrl(req) {
   return origin;
 }
 
+// The work a segment's not-awaited steps left running (an invoice being
+// rendered and mailed) must still finish, but the visitor need not wait for
+// it: on Vercel it is handed to waitUntil, which keeps the function running
+// after the reply. Anywhere else the route awaits it before replying, since a
+// function frozen after its reply would drop it.
+function handOffPendingNodePromises(context) {
+  var queue = context && context.__pendingNodePromises;
+  if (!queue || queue.length === 0) return Promise.resolve();
+  // Drained through the queue itself: the route deletes it from the context
+  // before replying, and a parallel branch still running pushes onto it.
+  var drained = utils.settlePendingNodePromises({ __pendingNodePromises: queue });
+  var waitUntil = __vercelWaitUntil();
+  if (!waitUntil) return drained;
+  waitUntil(drained);
+  return Promise.resolve();
+}
+
 module.exports = Object.assign({}, utils, {
+  handOffPendingNodePromises: handOffPendingNodePromises,
   claimSegmentContext: claimSegmentContext,
   segmentReply: segmentReply,
   bindSessionIdentity: bindSessionIdentity,

@@ -6,6 +6,7 @@ import {
   generateSearchEscapeHelpersCode,
 } from '../utils'
 import { DataExposure } from '@teleporthq/teleport-shared'
+import { generateSearchSqlHelpersCode, REDSHIFT_SEARCH_SQL } from '../search-relevance'
 
 interface RedshiftConfig {
   host?: string
@@ -63,6 +64,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchSqlHelpersCode(REDSHIFT_SEARCH_SQL)}
 
 ${generateDateFormatterCode()}
 
@@ -78,6 +80,7 @@ export default async function handler(req, res) {
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let search = null
     
     if (query) {
       let columns = []
@@ -103,15 +106,11 @@ export default async function handler(req, res) {
         }
       }
       
-      if (columns.length > 0) {
-        const pattern = '%' + escapeLikePattern(query) + '%'
-        const placeholder = '$' + paramIndex
-        paramIndex++
-        queryParams.push(pattern)
-        const searchConditions = columns.map(
-          (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
-        )
-        conditions.push('(' + searchConditions.join(' OR ') + ')')
+      search = buildSearchSql(query, columns, paramIndex)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
+        paramIndex = search.nextIndex
       }
     }
     
@@ -169,22 +168,24 @@ export default async function handler(req, res) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
     }
     
-    // Handle sorts - new array format
+    // Handle sorts - new array format. A search orders its matches by where
+    // the words are first; the sort orders the rows within each of those groups.
+    const orderClauses = search && search.rank ? [search.rank] : []
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
-        const orderClauses = parsedSorts.map((sort) => {
+        orderClauses.push(...parsedSorts.map((sort) => {
           if (!sort.field) return null
           const order = (sort.order || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
           return \`\${sanitizeIdentifier(sort.field)} \${order}\`
-        }).filter(Boolean)
-
-        if (orderClauses.length > 0) {
-          sql += \` ORDER BY \${orderClauses.join(', ')}\`
-        }
+        }).filter(Boolean))
       }
     } else if (sortBy) {
-      sql += \` ORDER BY \${sanitizeIdentifier(sortBy)} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`
+      orderClauses.push(\`\${sanitizeIdentifier(sortBy)} \${(sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'}\`)
+    }
+    if (orderClauses.length > 0) {
+      sql += \` ORDER BY \${orderClauses.join(', ')}\`
+      if (search && search.rank) queryParams.push(...search.rankParams)
     }
     
     const limitValue = limit || perPage

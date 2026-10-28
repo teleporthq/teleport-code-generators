@@ -25,6 +25,7 @@ import {
 } from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
+import { generateSearchSqlHelpersCode, PG_SEARCH_SQL } from '../search-relevance'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
 
 interface TeleportDBConfig {
@@ -177,6 +178,7 @@ ${generateSafeJSONParseCode()}
 ${generateFilterTreeHelpersCode()}
 
 ${generateSearchEscapeHelpersCode()}
+${generateSearchSqlHelpersCode(PG_SEARCH_SQL)}
 ${generateArrayOverlapSqlCode()}
 ${getTransformationCode(tableName, transformOptions)}
 ${getTransformWrapperCode(tableName, transformOptions)}
@@ -333,7 +335,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     // \`fetchData({ rawQuery })\` and expect it to execute verbatim.
     if (req.query && typeof req.query.rawQuery === 'string' && req.query.rawQuery.length > 0) {
       assertRawQuerySafe(req.query.rawQuery)
-      const rawResult = await client.query(req.query.rawQuery)
+      // A page's own statement, read for a visitor, runs over the rows a
+      // visitor is served of every narrowed table it names.
+      const rawSql = __rowAccess.narrowRaw ? __brpNarrowRawQuery(req.query.rawQuery) : req.query.rawQuery
+      const rawResult = await client.query(rawSql)
       const rawRows = Array.isArray(rawResult?.rows) ? rawResult.rows : []
       const rawPlain = rawRows.map((row) =>
         row && typeof row.toJSON === 'function' ? row.toJSON() : row
@@ -343,7 +348,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
         success: true,
         // Every row here ends up in a browser (a page's props or a client
         // refetch), so no credential column survives, whatever joined it.
-        data: __taWithoutCredentials(rawSafe, null),
+        data: __taWithoutCredentials(
+          __rowAccess.narrowRaw ? __brpStripHiddenOfRaw(req.query.rawQuery, rawSafe) : rawSafe,
+          null
+        ),
         timestamp: Date.now()
       })
     }
@@ -357,6 +365,8 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let searchRank = ''
+    let searchFrom = ''
     
     if (query) {
       let columns = []
@@ -388,22 +398,21 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
       }
       if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
-      if (columns.length > 0) {
-        const pattern = '%' + escapeLikePattern(query) + '%'
-        const placeholder = '$' + paramIndex
-        paramIndex++
-        queryParams.push(pattern)
-        const searchConditions = columns.map(
-          (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
-        )
-        conditions.push('(' + searchConditions.join(' OR ') + ')')
+      const search = buildSearchSql(query, columns, paramIndex)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
+        paramIndex = search.nextIndex
+        searchRank = search.rank
+        searchFrom = search.from
       }
     }
     
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
     
-    let sql = \`SELECT * FROM ${tableName}\`
+    // A search's worked-out texts stay out of the rows: only the table's own columns.
+    let sql = \`SELECT \${searchFrom ? '${tableName}.*' : '*'} FROM ${tableName}\${searchFrom}\`
     
     if (conditions.length > 0) {
       sql += \` WHERE \${conditions.join(' AND ')}\`
@@ -413,8 +422,11 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     // actually used (a translatable column in the request's language, the
     // products table's price rewrites, rows without a value last), and a
     // plain-column twin kept only as the fallback below.
+    // A search orders its matches by where the words are first; the sort
+    // orders the rows within each of those groups.
     let orderBySql = ''
     let plainOrderBySql = ''
+    const searchOrder = searchRank ? searchRank + ', ' : ''
     if (sorts) {
       const parsedSorts = safeJSONParse(sorts)
       if (Array.isArray(parsedSorts) && parsedSorts.length > 0) {
@@ -428,16 +440,19 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
           // The row's own key last, so equal rows can't repeat across pages
           // or vanish between them.
           const tiebreak = rowOrderTiebreak(valid.map((sort) => sort.field), orderOf(valid[valid.length - 1]))
-          orderBySql = \` ORDER BY \${orderClauses.join(', ')}\${tiebreak}\`
-          plainOrderBySql = \` ORDER BY \${plainClauses.join(', ')}\${tiebreak}\`
+          orderBySql = \` ORDER BY \${searchOrder}\${orderClauses.join(', ')}\${tiebreak}\`
+          plainOrderBySql = \` ORDER BY \${searchOrder}\${plainClauses.join(', ')}\${tiebreak}\`
         }
       }
     } else if (sortBy) {
       assertRequestColumn(sortBy, 'sort field')
       const sortByDirection = (sortOrder || '').toUpperCase().startsWith('DESC') ? 'DESC' : 'ASC'
       const tiebreak = rowOrderTiebreak([sortBy], sortByDirection)
-      orderBySql = \` ORDER BY \${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\${tiebreak}\`
-      plainOrderBySql = \` ORDER BY \${sortBy} \${sortByDirection}\${tiebreak}\`
+      orderBySql = \` ORDER BY \${searchOrder}\${localizedSortFieldSql(sortBy, requestLocale) || sortBy} \${sortByDirection}${SORT_NULLS_LAST_SQL}\${tiebreak}\`
+      plainOrderBySql = \` ORDER BY \${searchOrder}\${sortBy} \${sortByDirection}\${tiebreak}\`
+    }
+    if (!orderBySql && searchRank) {
+      orderBySql = plainOrderBySql = ' ORDER BY ' + searchRank + rowOrderTiebreak([], 'ASC')
     }
     const usedRewrittenSort = orderBySql !== plainOrderBySql
 
@@ -550,6 +565,7 @@ ${generateReadGuardCall(tableName, null)}
     const conditions = []
     const queryParams = []
     let paramIndex = 1
+    let searchFrom = ''
 
     if (query) {
       let columns = []
@@ -581,24 +597,19 @@ ${generateReadGuardCall(tableName, null)}
       }
       if (__rowPolicy) columns = __brpVisibleColumns(__rowPolicy, columns)
       
-      if (columns.length > 0) {
-        const pattern = '%' + escapeLikePattern(query) + '%'
-        const placeholder = '$' + paramIndex
-        paramIndex++
-        queryParams.push(pattern)
-        const searchConditions = columns
-          .map(
-            (col) => '"' + sanitizeSearchIdentifier(col) + '"::text ILIKE ' + placeholder + " ESCAPE '|'"
-          )
-          .join(' OR ')
-        conditions.push('(' + searchConditions + ')')
+      const search = buildSearchSql(query, columns, paramIndex)
+      if (search) {
+        conditions.push(search.where)
+        queryParams.push(...search.params)
+        paramIndex = search.nextIndex
+        searchFrom = search.from
       }
     }
 
     paramIndex = processFilters(filters, conditions, queryParams, paramIndex)
     if (__rowPolicy) conditions.push('(' + __rowPolicy.predicate + ')')
 
-    let countSql = \`SELECT COUNT(*) FROM ${tableName}\`
+    let countSql = \`SELECT COUNT(*) FROM ${tableName}\${searchFrom}\`
     if (conditions.length > 0) {
       countSql += \` WHERE \${conditions.join(' AND ')}\`
     }

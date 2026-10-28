@@ -18,10 +18,13 @@ async function account_delete_current(config: any, context: Record<string, unkno
   if (typeof runLocale === 'string' && runLocale) {
     deleteHeaders['x-teleport-locale'] = runLocale
   }
+  // A template that asks for the password passes what the visitor typed; the
+  // route checks it the way sign-in does and deletes nothing when it is wrong.
+  const password = config && typeof config.password === 'string' ? config.password : ''
   const response = await fetch(baseUrl + '/api/account/delete-current', {
     method: 'POST',
     headers: deleteHeaders,
-    body: '{}',
+    body: JSON.stringify(password ? { password } : {}),
   })
 
   let data: any = {}

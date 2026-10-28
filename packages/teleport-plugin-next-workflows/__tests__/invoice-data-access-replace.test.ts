@@ -21,6 +21,8 @@ interface DataAccess {
     invoiceNumber: string,
     pdfUrl: string
   ) => Promise<boolean>
+  recordOrderEvent: (event: Row) => Promise<void>
+  storeInvoicePdf: (id: string, pdf: Buffer, pdfUrl: string) => Promise<Row>
 }
 
 interface Statement {
@@ -153,6 +155,96 @@ describe('invoice data-access — replaceInvoice', () => {
     )
     expect(released()).toBe(2)
   })
+
+  it('tells the regeneration that gave the invoice its first PDF, by writing only a row without one', async () => {
+    const { dataAccess, statements } = loadPostgres()
+    expect(await dataAccess.replaceInvoice('inv-1', INVOICE_DATA, ITEMS)).toEqual({
+      firstPdf: true,
+    })
+
+    const updates = statements.filter((statement) => statement.sql.startsWith('UPDATE'))
+    expect(updates).toHaveLength(1)
+    expect(updates[0].sql).toMatch(/ WHERE id = \$\d+ AND pdf_size_bytes IS NULL$/)
+  })
+
+  it('rewrites an invoice that already had a PDF all the same, and says it was not the first', async () => {
+    const { dataAccess, statements } = loadPostgres((sql) =>
+      sql.endsWith('AND pdf_size_bytes IS NULL') ? { rowCount: 0 } : { rowCount: 1 }
+    )
+    expect(await dataAccess.replaceInvoice('inv-1', INVOICE_DATA, ITEMS)).toEqual({
+      firstPdf: false,
+    })
+
+    const updates = statements.filter((statement) => statement.sql.startsWith('UPDATE'))
+    expect(updates).toHaveLength(2)
+    expect(updates[1].sql).toMatch(/ WHERE id = \$\d+$/)
+    expect(updates[1].values).toEqual(updates[0].values)
+    expect(statements.map((statement) => statement.sql)).toContain('COMMIT')
+  })
+})
+
+/** The emitted MySQL data access over a mysql2 stub; `affected` answers each UPDATE. */
+function loadMysql(affected: (sql: string) => number) {
+  const statements: string[] = []
+  const connection = {
+    beginTransaction: async () => statements.push('BEGIN'),
+    commit: async () => statements.push('COMMIT'),
+    rollback: async () => statements.push('ROLLBACK'),
+    release: (): void => undefined,
+    execute: async (sql: string) => {
+      statements.push(sql)
+      return [{ affectedRows: sql.startsWith('UPDATE') ? affected(sql) : 1, insertId: 1 }]
+    },
+  }
+  const mysqlStub = {
+    createPool: () => ({ getConnection: async () => connection, execute: connection.execute }),
+  }
+  const code = `${generateDataAccessCode(SETTINGS, 'mysql', null)}\n${getRecordMappingCode(
+    'mysql'
+  )}`
+  const moduleObject = { exports: {} as unknown }
+  const dataAccess = new Function(
+    'require',
+    'module',
+    'exports',
+    `${code}; return module.exports;`
+  )(
+    (id: string) => (id === 'mysql2/promise' ? mysqlStub : require(id)),
+    moduleObject,
+    moduleObject.exports
+  ) as DataAccess
+  return { dataAccess, statements }
+}
+
+describe('invoice data-access — replaceInvoice on MySQL', () => {
+  it('tells the regeneration that gave the invoice its first PDF', async () => {
+    const { dataAccess, statements } = loadMysql(() => 1)
+    expect(await dataAccess.replaceInvoice('inv-1', INVOICE_DATA, ITEMS)).toEqual({
+      firstPdf: true,
+    })
+    const updates = statements.filter((sql) => sql.startsWith('UPDATE'))
+    expect(updates).toHaveLength(1)
+    expect(updates[0]).toMatch(/ WHERE id = \? AND pdf_size_bytes IS NULL$/)
+  })
+
+  it('rewrites an invoice that already had a PDF, and says it was not the first', async () => {
+    const { dataAccess, statements } = loadMysql((sql) =>
+      sql.endsWith('AND pdf_size_bytes IS NULL') ? 0 : 1
+    )
+    expect(await dataAccess.replaceInvoice('inv-1', INVOICE_DATA, ITEMS)).toEqual({
+      firstPdf: false,
+    })
+    expect(statements.filter((sql) => sql.startsWith('UPDATE'))).toHaveLength(2)
+    expect(statements).toContain('COMMIT')
+  })
+
+  it('reports an invoice that disappeared', async () => {
+    const { dataAccess, statements } = loadMysql(() => 0)
+    await expect(dataAccess.replaceInvoice('inv-1', INVOICE_DATA, ITEMS)).rejects.toThrow(
+      'Invoice inv-1 no longer exists'
+    )
+    expect(statements).toContain('ROLLBACK')
+  })
 })
 
 type SupabaseResult = { data: unknown; error: { message: string } | null }
@@ -162,9 +254,14 @@ type SupabaseResult = { data: unknown; error: { message: string } | null }
  * `failOn(op, table, nth)` fails the nth (1-based) call of that operation on
  * that table.
  */
-function loadSupabase(failOn: (op: string, table: string, nth: number) => boolean = () => false) {
+function loadSupabase(
+  failOn: (op: string, table: string, nth: number) => boolean = () => false,
+  storedInvoice: Row = {}
+) {
   const store: Record<string, Row[]> = {
-    teleport_invoices: [{ id: 'inv-1', invoice_number: 'INV-0004', total: 90, notes: 'old' }],
+    teleport_invoices: [
+      { id: 'inv-1', invoice_number: 'INV-0004', total: 90, notes: 'old', ...storedInvoice },
+    ],
     teleport_invoice_items: [{ id: 'old-1', invoice_id: 'inv-1', name: 'Old lamp' }],
   }
   const counts: Record<string, number> = {}
@@ -223,6 +320,11 @@ function loadSupabase(failOn: (op: string, table: string, nth: number) => boolea
         },
         in: (column: string, values: unknown[]) => {
           filters.push((row) => values.includes(row[column]))
+          return builder
+        },
+        // `is(column, null)`: SQL NULL, which an absent column also reads as.
+        is: (column: string, value: unknown) => {
+          filters.push((row) => (value === null ? row[column] == null : row[column] === value))
           return builder
         },
         maybeSingle: () => {
@@ -294,6 +396,35 @@ describe('invoice data-access — replaceInvoice on Supabase (no transactions)',
     )
     expect(lineNames()).toEqual(['Old lamp'])
   })
+
+  it('tells the regeneration that gave the invoice its first PDF', async () => {
+    const { dataAccess, invoice } = loadSupabase()
+    expect(
+      await dataAccess.replaceInvoice('inv-1', { ...INVOICE_DATA, pdfSizeBytes: 2048 }, ITEMS)
+    ).toEqual({ firstPdf: true })
+    expect(invoice()).toMatchObject({ total: 105, pdf_size_bytes: 2048 })
+  })
+
+  it('rewrites an invoice that already had a PDF, and says it was not the first', async () => {
+    const { dataAccess, invoice } = loadSupabase(() => false, { pdf_size_bytes: 1024 })
+    expect(
+      await dataAccess.replaceInvoice('inv-1', { ...INVOICE_DATA, pdfSizeBytes: 2048 }, ITEMS)
+    ).toEqual({ firstPdf: false })
+    expect(invoice()).toMatchObject({ total: 105, pdf_size_bytes: 2048 })
+  })
+
+  it('puts the invoice back without its PDF when a later step fails, so the next regeneration is the first', async () => {
+    const { dataAccess, invoice } = loadSupabase(
+      (op, table, nth) => op === 'delete' && table === 'teleport_invoice_items' && nth === 1
+    )
+    await expect(
+      dataAccess.replaceInvoice('inv-1', { ...INVOICE_DATA, pdfSizeBytes: 2048 }, ITEMS)
+    ).rejects.toThrow('delete teleport_invoice_items failed')
+    expect(invoice().pdf_size_bytes == null).toBe(true)
+    expect(
+      await dataAccess.replaceInvoice('inv-1', { ...INVOICE_DATA, pdfSizeBytes: 2048 }, ITEMS)
+    ).toEqual({ firstPdf: true })
+  })
 })
 
 describe('invoice data-access — linkOrderToInvoice', () => {
@@ -327,6 +458,46 @@ describe('invoice data-access — linkOrderToInvoice', () => {
   })
 })
 
+describe('invoice data-access — recordOrderEvent', () => {
+  it("writes the order's history line once per key", async () => {
+    const { dataAccess, statements } = loadPostgres()
+    await dataAccess.recordOrderEvent({
+      type: 'order-email-sent',
+      dedupeKey: 'order-email-sent:inv-1:invoice-email',
+      orderId: 'order-1',
+      payload: { purpose: 'invoice-email', to: 'ana@buyer.test' },
+      actor: 'Store admin',
+      actorType: 'merchant',
+    })
+
+    const [statement] = statements
+    expect(statement.sql).toBe(
+      'INSERT INTO teleport_events (id, event_type, dedupe_key, order_id, payload, actor, actor_type, status) ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (dedupe_key) DO NOTHING'
+    )
+    expect(statement.values.slice(1)).toEqual([
+      'order-email-sent',
+      'order-email-sent:inv-1:invoice-email',
+      'order-1',
+      '{"purpose":"invoice-email","to":"ana@buyer.test"}',
+      'Store admin',
+      'merchant',
+      'recorded',
+    ])
+  })
+
+  it('keeps the key within the column', async () => {
+    const { dataAccess, statements } = loadPostgres()
+    await dataAccess.recordOrderEvent({
+      type: 'order-email-sent',
+      dedupeKey: 'k'.repeat(300),
+      actorType: 'merchant',
+    })
+    expect(String(statements[0].values[2])).toHaveLength(255)
+    expect(statements[0].values[3]).toBeNull()
+  })
+})
+
 describe('invoice data-access — every dialect exports the regeneration helpers', () => {
   it.each(['postgresql', 'mysql', 'supabase'])('%s', (dialect) => {
     const code = generateDataAccessCode(SETTINGS, dialect as never, null)
@@ -334,7 +505,70 @@ describe('invoice data-access — every dialect exports the regeneration helpers
     expect(code).toContain(
       'async function linkOrderToInvoice(orderId, invoiceId, invoiceNumber, pdfUrl)'
     )
+    expect(code).toContain('async function recordOrderEvent(event)')
     expect(code).toContain('replaceInvoice: replaceInvoice,')
     expect(code).toContain('linkOrderToInvoice: linkOrderToInvoice,')
+    expect(code).toContain('recordOrderEvent: recordOrderEvent,')
+  })
+})
+
+/**
+ * `storeInvoicePdf` — the payment's PDF, written only on an invoice that has
+ * none, so the invoice's first PDF (and with it its email) goes to exactly one
+ * of the payment and a regeneration, as `replaceInvoice` claims it.
+ */
+describe('invoice data-access — storeInvoicePdf writes only the first PDF', () => {
+  const PDF = Buffer.from('%PDF-1.4 INV-0004')
+
+  it('Postgres: one statement, on a row without a PDF', async () => {
+    const { dataAccess, statements } = loadPostgres()
+    expect(await dataAccess.storeInvoicePdf('inv-1', PDF, '/api/invoices/inv-1/pdf')).toEqual({
+      firstPdf: true,
+    })
+    expect(statements).toHaveLength(1)
+    expect(statements[0].sql).toBe(
+      'UPDATE teleport_invoices SET pdf_data = $1, pdf_size_bytes = $2, pdf_content_type = $3, ' +
+        'pdf_url = $4, updated_at = $5 WHERE id = $6 AND pdf_size_bytes IS NULL'
+    )
+    expect(statements[0].values).toEqual([
+      PDF,
+      PDF.length,
+      'application/pdf',
+      '/api/invoices/inv-1/pdf',
+      expect.any(String),
+      'inv-1',
+    ])
+  })
+
+  it('Postgres: an invoice that already has a PDF keeps it, and is not the first', async () => {
+    const { dataAccess } = loadPostgres(() => ({ rowCount: 0 }))
+    expect(await dataAccess.storeInvoicePdf('inv-1', PDF, '/api/invoices/inv-1/pdf')).toEqual({
+      firstPdf: false,
+    })
+  })
+
+  it('MySQL: the same condition, and the rows it changed', async () => {
+    const first = loadMysql(() => 1)
+    expect(await first.dataAccess.storeInvoicePdf('inv-1', PDF, '/x')).toEqual({ firstPdf: true })
+    expect(first.statements).toEqual([
+      'UPDATE teleport_invoices SET pdf_data = ?, pdf_size_bytes = ?, pdf_content_type = ?, ' +
+        'pdf_url = ?, updated_at = ? WHERE id = ? AND pdf_size_bytes IS NULL',
+    ])
+    const later = loadMysql(() => 0)
+    expect(await later.dataAccess.storeInvoicePdf('inv-1', PDF, '/x')).toEqual({ firstPdf: false })
+  })
+
+  it('Supabase: one filtered update', async () => {
+    const first = loadSupabase()
+    expect(await first.dataAccess.storeInvoicePdf('inv-1', PDF, '/x')).toEqual({ firstPdf: true })
+    expect(first.invoice()).toMatchObject({
+      pdf_data: PDF.toString('base64'),
+      pdf_size_bytes: PDF.length,
+      pdf_url: '/x',
+    })
+
+    const later = loadSupabase(() => false, { pdf_size_bytes: 1024, pdf_url: '/regenerated' })
+    expect(await later.dataAccess.storeInvoicePdf('inv-1', PDF, '/x')).toEqual({ firstPdf: false })
+    expect(later.invoice()).toMatchObject({ pdf_size_bytes: 1024, pdf_url: '/regenerated' })
   })
 })

@@ -1244,13 +1244,15 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
         // first state's definition is representative of the whole group.
         const fetchParams = buildFetchParams(states[0].definition, localized)
 
-        // Create the fetch expression: fetcherImportName.fetchData(params)
+        // Create the fetch expression: fetcherImportName.fetchData(params, { as: 'visitor' })
+        // — the page renders these values, so they are what a visitor is
+        // served, unless only the store's trusted readers can open the page.
         const fetchCallExpression = types.callExpression(
           types.memberExpression(
             types.identifier(fetcherImportName),
             types.identifier('fetchData')
           ),
-          [fetchParams]
+          [fetchParams, ...RouteUtils.pageDataReadArguments(uidl, options.auth)]
         )
 
         // Wrap with .catch() fallback

@@ -61,7 +61,7 @@ async function run(
     },
     storeInvoicePdf: async (id: string, pdf: Buffer) => {
       stored.push({ id, bytes: pdf.length })
-      return {}
+      return { firstPdf: true }
     },
     updateInvoice: async () => ({}),
   }

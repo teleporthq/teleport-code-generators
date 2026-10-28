@@ -60,6 +60,19 @@ const MANIFEST = [
     ],
   },
   {
+    // Which column makes a row the signed-in visitor's: the generated
+    // account-delete route decides exactly as the AI pipeline's page scoping does.
+    output: 'packages/teleport-shared/src/utils/owner-columns-sources.generated.ts',
+    exportName: 'OWNER_COLUMN_SOURCES',
+    target: 'ES5',
+    sources: [
+      {
+        file: 'packages/teleport-shared/src/utils/owner-columns.ts',
+        names: ['ownerColumnPriority', 'userIdRole', 'attributionKind', 'resolveOwnerColumn'],
+      },
+    ],
+  },
+  {
     output: 'packages/teleport-project-generator-next/src/page-transition/reveal-on-screen-source.generated.ts',
     exportName: 'REVEAL_ON_SCREEN_SOURCES',
     target: 'ES5',

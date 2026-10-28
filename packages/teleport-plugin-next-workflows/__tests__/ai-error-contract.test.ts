@@ -54,6 +54,16 @@ describe('isFatalNodeResult — error contract normalization', () => {
     expect(utils.isFatalNodeResult({ success: false })).toBeTruthy()
   })
 
+  it('lets a result that says success: true through, even one carrying an error note', () => {
+    expect(
+      utils.isFatalNodeResult({
+        id: 're-1',
+        success: true,
+        error: 'refused for blocked@lumen.test (only the owner)',
+      })
+    ).toBeFalsy()
+  })
+
   it('does not flag successful results', () => {
     expect(utils.isFatalNodeResult({ result: 'ok' })).toBeFalsy()
     expect(utils.isFatalNodeResult({ error: false })).toBeFalsy()

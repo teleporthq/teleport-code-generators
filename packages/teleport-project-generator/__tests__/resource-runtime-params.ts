@@ -73,9 +73,11 @@ describe('data source resource params', () => {
   })
 
   it('passes params through untouched when there is no runtime param', () => {
-    // Every table-backed resource takes this path, and its generated code has
-    // to stay exactly what it was.
-    expect(generatedCode(dataSourceResource())).toContain('fetchData(params)')
+    // Every table-backed resource takes this path: params go through as they
+    // came, and so does whom the page reads for (`{ as: 'visitor' }`).
+    const code = generatedCode(dataSourceResource())
+    expect(code).toContain('fetchData(params, options)')
+    expect(code).toContain('async function (params = {}, options = {})')
   })
 
   it('skips a dynamic param, which has no value at generation time', () => {
@@ -85,7 +87,7 @@ describe('data source resource params', () => {
       })
     )
 
-    expect(code).toContain('fetchData(params)')
+    expect(code).toContain('fetchData(params, options)')
   })
 })
 
@@ -108,6 +110,6 @@ describe('structured resource params', () => {
       dataSourceResource({ collectionPath: { type: 'static', content: null } } as never)
     )
 
-    expect(code).toContain('fetchData(params)')
+    expect(code).toContain('fetchData(params, options)')
   })
 })

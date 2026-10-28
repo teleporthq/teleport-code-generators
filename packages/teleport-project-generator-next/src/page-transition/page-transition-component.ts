@@ -10,26 +10,48 @@ import { REVEAL_ON_SCREEN_SOURCES } from './reveal-on-screen-source.generated'
 export type PageTransitionConfig = PageTransition.PageTransitionConfig
 
 const EASING_CURVES = PageTransition.PAGE_TRANSITION_EASING_CURVES
-const { BACK_ATTR, ORIGIN_X, ORIGIN_Y, morphHelpersSource, viewTransitionPlan } = PageTransition
+const LATE_PICTURE_ATTR = 'data-tq-late-picture'
+const {
+  BACK_ATTR,
+  ORIGIN_X,
+  ORIGIN_Y,
+  morphHelpersSource,
+  pageTransitionDissolves,
+  viewTransitionPlan,
+} = PageTransition
 
 /**
  * `components/tq-page-transition.js` — wraps the mounted page in `_app` so a
  * route change plays the site's transition: the leaving page runs `exit`, the
- * arriving one runs `initial → animate` (AnimatePresence, mode "wait").
+ * arriving one runs `initial → animate` (AnimatePresence, mode "wait"), or,
+ * for a dissolve and a reveal, the arriving page comes in over the leaving one
+ * (below).
  *
  * Direction-aware: the browser's back button plays the preset the other way
  * (`reversePageTransitionPreset`), and the Circle reveal grows from the last
  * pointer press. Both are decided at `routeChangeStart`, BEFORE the key
  * changes, so the page about to leave is re-rendered with the right exit.
  *
- * Five things a naive wrapper gets wrong, handled here:
+ * Six things a naive wrapper gets wrong, handled here:
  * - The leaving page is FROZEN in place (position: fixed at its scroll offset)
  *   for its exit, because Next scrolls the window to the top the moment the new
  *   route resolves — otherwise a long page visibly jumps to its own top while
- *   fading out.
+ *   fading out. Frozen, it no longer gives the document a height, so a
+ *   scrollbar that takes room vanished at the click and came back when the
+ *   arriving page mounted; that room is held while the page is frozen
+ *   (`holdScrollbarGutter`).
  * - Only real page changes transition: query-only and hash navigations keep
  *   the same key, so a filter change or an in-page anchor never re-plays it.
  * - `prefers-reduced-motion` renders the page plainly — no wrapper animation.
+ * - A dissolve (Fade, Crossfade) fades the arriving page in OVER the leaving
+ *   one, which holds still and opaque underneath until the arrival is in.
+ *   Played one after the other, the leaving page faded out to the site's bare
+ *   background before the arriving one faded in — an empty screen at every
+ *   change; faded both at once, the background showed through the two (a
+ *   quarter of it half way). The arriving page is laid on the site's ground and
+ *   at least a screen tall (`siteGround`), so nothing of the leaving page shows
+ *   through its transparent parts or below a short page; the leaving page takes
+ *   no input and is hidden from assistive technology meanwhile.
  * - A reveal (Circle, the Wipes) opens the arriving page OVER the leaving one,
  *   which holds still underneath until the reveal has fully opened. Played one
  *   after the other, the leaving page was wiped away to the site's bare
@@ -44,9 +66,13 @@ const { BACK_ATTR, ORIGIN_X, ORIGIN_Y, morphHelpersSource, viewTransitionPlan } 
  *   for nearly all of its run and the new page popped in (a flicker); left on
  *   the whole page, the clip broke the fixed header's blur and the pinned
  *   scenes while scrolling.
- * - The arriving page plays once the pictures on its first screen are decoded
- *   (300 ms at most). Played at once, it showed its text on a bare ground and
- *   its photographs popped in a moment later — a flicker at every change.
+ * - The arriving page plays once the pictures on its first screen are decoded:
+ *   1200 ms at most while the leaving page still holds the screen (a dissolve,
+ *   a reveal, a View Transition), 300 ms once it has gone (a slide plays one
+ *   page after the other, and the screen is bare meanwhile). Played at once, it
+ *   showed its text on a bare ground and its photographs popped in a moment
+ *   later — a flicker at every change. A picture still loading when its page
+ *   plays fades in once it has loaded, instead of snapping in (`fadeInWhenLoaded`).
  *
  * The first load never animates in (`initial={false}`): a site should appear,
  * not perform, on arrival.
@@ -92,6 +118,12 @@ export const generatePageTransitionComponentCode = (config: PageTransitionConfig
   const plan = viewTransitionPlan(config, { crossDocument: false })
   const vtCss = plan && (plan.revealsOver || plan.flies) ? plan.css : ''
   const flies = !!plan && plan.flies
+  const dissolves = pageTransitionDissolves(preset)
+  // A late picture waits unseen, then fades in the way its page did.
+  const fadeIn = `opacity ${duration}s cubic-bezier(${curve.join(', ')})`
+  const latePictureCss =
+    `[${LATE_PICTURE_ATTR}="loading"] { opacity: 0 !important; }\n` +
+    `[${LATE_PICTURE_ATTR}="in"] { transition: ${fadeIn} !important; }`
   return `import React from 'react'
 import { useRouter } from 'next/router'
 import { AnimatePresence, motion, usePresence } from 'framer-motion'
@@ -122,20 +154,30 @@ const PANELS = pageTransitionCover(PRESET)
 const SKIP_ROUTES = ${JSON.stringify(skipRoutes)}
 const INSTANT = { initial: {}, animate: {}, exit: {} }
 // A reveal (Circle, the Wipes): the arriving page opens over the leaving one.
-// Without View Transitions it runs frame by frame, framer writing each
-// clip-path onto the page: run by the browser (framer's default for clip-path),
-// the animation ends one frame before framer writes its last value, and for
-// that frame the page shows its starting clip — the whole page blinks away as
-// the reveal completes. An onUpdate handler, even one that does nothing, keeps
-// the animation in framer's own loop.
 const REVEAL = (() => {
   const variants = pageTransitionVariants(PRESET, SLIDE_PX, CENTER, OPTIONS, CUSTOM || undefined)
   return !!(variants && variants.animate.clipPath)
 })()
+// Every page change plays frame by frame, framer writing each value onto the
+// page. Run by the browser (framer's default for opacity, clip-path and
+// filter), an animation ends one frame before framer writes its last value,
+// and for that frame the page shows where it started: a reveal blinks away as
+// it completes, a page faded in over the leaving one turns clear and the
+// leaving page flashes back, a page that has left shows again. An onUpdate
+// handler, even one that does nothing, keeps the animation in framer's own loop.
 const stepByFrame = () => {}
-// Without View Transitions the two pages overlap for a reveal: the arriving
-// page is laid above the frozen one (a positioned box would paint on top of it).
-const OVER = { position: 'relative', zIndex: 1 }
+// A dissolve (Fade, Crossfade): the arriving page fades in over the leaving
+// one, which has no exit of its own — it holds still until the arrival is in.
+const DISSOLVE = ${dissolves}
+const dissolveOver = (variants) => (DISSOLVE && variants ? Object.assign({}, variants, { exit: {} }) : variants)
+// The two pages overlap for a dissolve, and for a reveal without View
+// Transitions: the arriving page is laid above the frozen one (a positioned box
+// would paint on top of it), at least a screen tall and on the site's ground.
+const OVERLAP = REVEAL || DISSOLVE
+const OVER = { position: 'relative', zIndex: 1, minHeight: '100vh' }
+// Until it plays, the arriving page lies unseen over the leaving one: a click
+// there must not land on it.
+const UNSEEN = { pointerEvents: 'none' }
 const SKIP_PATTERNS = SKIP_ROUTES.map(pageTransitionSkipPattern)
 const isSkippedRoute = (key) => SKIP_PATTERNS.some((pattern) => pattern.test(key))
 // The cover family paints its panels in the theme colour the editor chose.
@@ -154,39 +196,144 @@ const FLIES = ${flies}
 const ARRIVAL_WAIT_MS = 3000
 // An arriving picture still loading is waited for this long, so the flight lands on it.
 const MORPH_DECODE_MS = 300
-// The arriving page waits this long at most for the pictures on its first screen.
-const PICTURE_WAIT_MS = 300
+// The arriving page waits this long at most for the pictures on its first
+// screen while the leaving page still holds the screen (the two overlap, or the
+// browser holds its picture for a View Transition)...
+const PICTURE_WAIT_MS = 1200
+// ...and this long once the leaving page has gone: the screen is bare meanwhile.
+const BARE_PICTURE_WAIT_MS = 300
+// A picture still loading when its page plays fades in once it has loaded
+// (fadeInWhenLoaded); one still loading after this is shown as it is.
+const LATE_PICTURE_WAIT_MS = 5000
+const LATE_PICTURE_ATTR = '${LATE_PICTURE_ATTR}'
+const LATE_PICTURE_CSS = ${JSON.stringify(latePictureCss)}
 const prefersLessMotion = () =>
   !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+// A scrollbar that takes room (Windows, a Mac with a mouse) stays while the
+// leaving page is frozen. Frozen, that page no longer gives the document a
+// height, so its scrollbar vanished at the click and came back when the
+// arriving page mounted: the page jolted sideways by the scrollbar's width, and
+// back. Held with overflow-y: scroll, which keeps the scrollbar's track on
+// screen in every browser. Measured before the freeze; returns what puts <html>
+// back exactly as it was, or null when the scrollbar takes no room.
+const holdScrollbarGutter = () => {
+  const root = document.documentElement
+  if (window.innerWidth - root.clientWidth <= 0) {
+    return null
+  }
+  const own = root.style.getPropertyValue('overflow-y')
+  const ownPriority = root.style.getPropertyPriority('overflow-y')
+  root.style.setProperty('overflow-y', 'scroll', 'important')
+  return () => {
+    if (own) {
+      root.style.setProperty('overflow-y', own, ownPriority)
+    } else {
+      root.style.removeProperty('overflow-y')
+    }
+  }
+}
+// Sets one property of an element's own style; returns what puts it back
+// exactly as it was.
+const holdStyle = (element, name, value) => {
+  const own = element.style.getPropertyValue(name)
+  const ownPriority = element.style.getPropertyPriority(name)
+  element.style.setProperty(name, value, 'important')
+  return () => {
+    if (own) {
+      element.style.setProperty(name, own, ownPriority)
+    } else {
+      element.style.removeProperty(name)
+    }
+  }
+}
+// The colour the site paints behind its pages: <html>'s background, else
+// <body>'s (the browser paints the canvas with it), else the browser's own. A
+// page laid over a leaving one is painted on it, so its transparent parts show
+// what they will show once the page is alone, not the page underneath.
+const siteGround = () => {
+  const painted = (element) => {
+    const color = element ? window.getComputedStyle(element).backgroundColor : ''
+    return color && color !== 'transparent' && color !== 'rgba(0, 0, 0, 0)' ? color : ''
+  }
+  return painted(document.documentElement) || painted(document.body) || 'Canvas'
+}
+// The page in the document for a route key, if any (a leaving page stays in it
+// while the two pages overlap).
+const pageIn = (key) =>
+  Array.prototype.find.call(
+    document.querySelectorAll('[data-tq-page-transition]'),
+    (node) => node.getAttribute('data-tq-page-transition') === key
+  ) || null
+// A page held under the one laid over it takes no input and is hidden from
+// assistive technology: inert, or aria-hidden where the browser has no inert.
+const setLeaving = (node, leaving) => {
+  if (!node) {
+    return
+  }
+  if ('inert' in node) {
+    node.inert = leaving
+  } else if (leaving) {
+    node.setAttribute('aria-hidden', 'true')
+  } else {
+    node.removeAttribute('aria-hidden')
+  }
+}
+// Runs before the browser paints; the server, which paints nothing, gets the
+// ordinary effect (React warns about a layout effect there).
+const useBeforePaintEffect = typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect
 // Settles once the pictures on the arriving page's first screen are decoded, or
-// after PICTURE_WAIT_MS: an image the page asks to decode off the main thread
-// paints a few frames after the rest of the page.
-const picturesReady = (node) => {
+// after waitMs (an image the page asks to decode off the main thread paints a
+// few frames after the rest of the page), with the pictures still loading.
+const picturesReady = (node, waitMs) => {
   const pictures = Array.prototype.filter.call(node.querySelectorAll('img'), (image) => {
     const box = image.getBoundingClientRect()
     return box.bottom > 0 && box.top < window.innerHeight && typeof image.decode === 'function'
   })
   return Promise.race([
     Promise.all(pictures.map((image) => image.decode().catch(() => {}))),
-    new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS)),
-  ])
+    new Promise((resolve) => setTimeout(resolve, waitMs)),
+  ]).then(() => pictures.filter((image) => !image.complete))
+}
+// A picture still loading when its page plays stays unseen until it has
+// loaded, then fades in: shown as it loaded, it snapped in over the page in a
+// single frame. One that fails is shown at once, as it would be anyway, and
+// none stays unseen past LATE_PICTURE_WAIT_MS.
+const fadeInWhenLoaded = (image) => {
+  image.setAttribute(LATE_PICTURE_ATTR, 'loading')
+  const show = (event) => {
+    image.removeEventListener('load', show)
+    image.removeEventListener('error', show)
+    clearTimeout(giveUp)
+    if (event && event.type === 'load') {
+      image.setAttribute(LATE_PICTURE_ATTR, 'in')
+      setTimeout(() => image.removeAttribute(LATE_PICTURE_ATTR), DURATION * 1000 + 100)
+    } else {
+      image.removeAttribute(LATE_PICTURE_ATTR)
+    }
+  }
+  const giveUp = setTimeout(show, LATE_PICTURE_WAIT_MS)
+  image.addEventListener('load', show)
+  image.addEventListener('error', show)
 }
 
 // Keeps the leaving page in the document while it is still needed: until the
-// browser has pictured it (a View Transition), or until the page revealed over
-// it has fully opened (a reveal without View Transitions).
-const HoldPage = ({ pageKey, changeRef, revealRef }) => {
+// browser has pictured it (a View Transition), or until the page laid over it
+// has fully come in (the two pages overlap) — or, should that arrival never
+// complete, a little after its time.
+const HoldPage = ({ pageKey, changeRef, overlapRef }) => {
   const [isPresent, safeToRemove] = usePresence()
   React.useEffect(() => {
     if (isPresent) {
       return
     }
     const change = changeRef.current
-    const reveal = revealRef.current
+    const overlap = overlapRef.current
     if (change && change.leavingKey === pageKey) {
       change.captured.then(safeToRemove)
-    } else if (reveal && reveal.leavingKey === pageKey) {
-      reveal.opened.then(safeToRemove)
+    } else if (overlap && overlap.leavingKey === pageKey) {
+      setLeaving(pageIn(pageKey), true)
+      overlap.opened.then(safeToRemove)
+      setTimeout(overlap.finish, DURATION * 1000 + PICTURE_WAIT_MS + 1000)
     } else {
       safeToRemove()
     }
@@ -202,8 +349,8 @@ const TqPageTransition = ({ children }) => {
   const [frozen, setFrozen] = React.useState(null)
   const [context, setContext] = React.useState(CENTER)
   const [panelPhase, setPanelPhase] = React.useState('idle')
-  // The page being revealed over the leaving one without View Transitions.
-  const [overKey, setOverKey] = React.useState(null)
+  // The page laid over the leaving one while the two overlap, and the ground it is painted on.
+  const [over, setOver] = React.useState(null)
   // The page whose arrival may play: the first page at once, every later one
   // once its first screen's pictures are ready.
   const [readyKey, setReadyKey] = React.useState(routeKey)
@@ -213,12 +360,18 @@ const TqPageTransition = ({ children }) => {
   const pointerRef = React.useRef(null)
   const clickedRef = React.useRef(null)
   const changeRef = React.useRef(null)
-  const revealRef = React.useRef(null)
+  const overlapRef = React.useRef(null)
+  // Puts back the scrollbar room held for the frozen page (holdScrollbarGutter).
+  const gutterRef = React.useRef(null)
+  // Puts back <html>'s scroll-behavior, held instant through a View Transition's page change.
+  const scrollRef = React.useRef(null)
   const variants = React.useMemo(
     () =>
       context.skip || context.morph
         ? INSTANT
-        : revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen),
+        : dissolveOver(
+            revealOnScreen(pageTransitionVariants(PRESET, SLIDE_PX, context, OPTIONS, CUSTOM || undefined), context.screen)
+          ),
     [context]
   )
 
@@ -226,7 +379,9 @@ const TqPageTransition = ({ children }) => {
   // screen (and, in a View Transition, for its twin of the flying picture),
   // then let it play — or let the browser picture the new state.
   const setPage = React.useCallback((node) => {
-    pageRef.current = node
+    // A page that goes after the next one has mounted (the two overlapped)
+    // leaves the ref to the page still in the document, not to nothing.
+    pageRef.current = node || pageIn(routeKeyRef.current)
     const key = node ? node.getAttribute('data-tq-page-transition') : null
     if (key === null || key === readyKeyRef.current) {
       return
@@ -250,9 +405,15 @@ const TqPageTransition = ({ children }) => {
             new Promise((resolve) => setTimeout(resolve, MORPH_DECODE_MS)),
           ])
         : Promise.resolve()
-    Promise.all([picturesReady(node), twinReady]).then(() => {
+    const overlap = overlapRef.current
+    const held = !!landing || !!(overlap && overlap.arrivingKey === key)
+    Promise.all([picturesReady(node, held ? PICTURE_WAIT_MS : BARE_PICTURE_WAIT_MS), twinReady]).then(([loading]) => {
       // A later page may have arrived meanwhile; this one's turn has passed.
       if (readyKeyRef.current === key) {
+        // The flight lands on its twin as it is; a page shown at once shows its pictures at once.
+        if (!prefersLessMotion() && !isSkippedRoute(key)) {
+          loading.filter((image) => image !== twin).forEach(fadeInWhenLoaded)
+        }
         setReadyKey(key)
         setPanelPhase((phase) => (phase === 'covered' ? 'uncovering' : phase))
       }
@@ -290,6 +451,13 @@ const TqPageTransition = ({ children }) => {
         change.arrive()
       }
     }
+    // A change that does not overlap lets a page still held from the last one
+    // go at once, instead of leaving it over the page that appears.
+    const letHeldPageGo = () => {
+      if (overlapRef.current) {
+        overlapRef.current.finish()
+      }
+    }
     // The page change as a View Transition: every reveal, and a picture in the
     // followed link that the next page shows too (going forward only).
     const startViewChange = (url, pointer, reverse) => {
@@ -318,6 +486,13 @@ const TqPageTransition = ({ children }) => {
         root.style.setProperty('${ORIGIN_X}', pointer.x + 'px')
         root.style.setProperty('${ORIGIN_Y}', pointer.y + 'px')
       }
+      // Nothing is frozen here, so Next's scroll to the arriving page's top
+      // follows the site's smooth scrolling (kept for its in-page anchors): the
+      // page arrived at the leaving one's offset and glided up through itself.
+      // A change replacing one still playing finds the scroll already held.
+      if (!scrollRef.current) {
+        scrollRef.current = holdStyle(root, 'scroll-behavior', 'auto')
+      }
       const settle = () => {
         if (changeRef.current === change) {
           changeRef.current = null
@@ -325,6 +500,10 @@ const TqPageTransition = ({ children }) => {
           root.removeAttribute('${BACK_ATTR}')
           root.style.removeProperty('${ORIGIN_X}')
           root.style.removeProperty('${ORIGIN_Y}')
+          if (scrollRef.current) {
+            scrollRef.current()
+            scrollRef.current = null
+          }
         }
       }
       changeRef.current = change
@@ -359,7 +538,17 @@ const TqPageTransition = ({ children }) => {
       const screen = { width: window.innerWidth, height: window.innerHeight }
       const origin = pointer || { x: screen.width / 2, y: screen.height / 2 }
       const next = { reverse, skip, originX: origin.x + 'px', originY: origin.y + 'px', screen }
+      // Back to a page that has not gone yet (the two pages overlapped): it is
+      // still in the document, pictures and all, so it plays at once and takes
+      // input again.
+      const returning = pageIn(routeKeyOf(url))
+      if (returning) {
+        setLeaving(returning, false)
+        readyKeyRef.current = routeKeyOf(url)
+        setReadyKey(readyKeyRef.current)
+      }
       if (!skip && startViewChange(url, pointer, reverse)) {
+        letHeldPageGo()
         setContext(Object.assign({}, next, { morph: true }))
         return
       }
@@ -367,24 +556,30 @@ const TqPageTransition = ({ children }) => {
       if (PANELS && !skip) {
         setPanelPhase('covering')
       }
-      if (REVEAL && !skip) {
-        // Without View Transitions the two pages overlap: the leaving page is
-        // held under the arriving one until that has fully opened (or, should
-        // the arrival never complete, a little after its time).
-        const reveal = { leavingKey: routeKeyRef.current, arrivingKey: routeKeyOf(url) }
-        reveal.opened = new Promise((resolve) => {
-          reveal.open = resolve
+      if (OVERLAP && !skip) {
+        // The two pages overlap: the leaving page is held under the arriving
+        // one until that has fully come in (HoldPage).
+        const overlap = { leavingKey: routeKeyRef.current, arrivingKey: routeKeyOf(url) }
+        overlap.opened = new Promise((resolve) => {
+          overlap.open = resolve
         })
-        reveal.finish = () => {
-          reveal.open()
-          if (revealRef.current === reveal) {
-            revealRef.current = null
-            setOverKey(null)
+        overlap.finish = () => {
+          overlap.open()
+          if (overlapRef.current === overlap) {
+            overlapRef.current = null
+            setOver(null)
           }
         }
-        revealRef.current = reveal
-        setOverKey(reveal.arrivingKey)
-        setTimeout(reveal.finish, DURATION * 1000 + PICTURE_WAIT_MS + 1000)
+        overlapRef.current = overlap
+        setOver({ key: overlap.arrivingKey, ground: siteGround() })
+      } else {
+        letHeldPageGo()
+      }
+      // A change replacing a cancelled one finds the page still frozen and the
+      // room still held: held again, the hold would take the first hold's
+      // overflow-y for the page's own and leave it on <html>.
+      if (!gutterRef.current) {
+        gutterRef.current = holdScrollbarGutter()
       }
       setFrozen({ key: routeKeyRef.current, top: window.scrollY || 0 })
     }
@@ -402,6 +597,24 @@ const TqPageTransition = ({ children }) => {
     }
   }, [router])
 
+  // The room goes back before the paint of the commit that ends the freeze: that
+  // commit mounts the arriving page (when the two overlap, lets the leaving page go), so
+  // the scrollbar passes straight to the page left in the document. A cancelled
+  // change leaves its page frozen until the change replacing it has played, so
+  // the room stays with it: Next starts that change a few awaits after the error.
+  const releaseGutter = () => {
+    if (gutterRef.current) {
+      gutterRef.current()
+      gutterRef.current = null
+    }
+  }
+  useBeforePaintEffect(() => {
+    if (!frozen) {
+      releaseGutter()
+    }
+  }, [frozen])
+  React.useEffect(() => releaseGutter, [])
+
   if (!variants) {
     return children
   }
@@ -410,7 +623,11 @@ const TqPageTransition = ({ children }) => {
     frozen && frozen.key === routeKey
       ? { position: 'fixed', top: -frozen.top, left: 0, right: 0 }
       : undefined
-  const pageStyle = frozenStyle || (overKey === routeKey ? OVER : undefined)
+  const overStyle =
+    over && over.key === routeKey
+      ? Object.assign({ backgroundColor: over.ground }, OVER, readyKey === routeKey ? null : UNSEEN)
+      : undefined
+  const pageStyle = frozenStyle || overStyle
 
   const onExitComplete = () => {
     setFrozen(null)
@@ -419,17 +636,17 @@ const TqPageTransition = ({ children }) => {
       setPanelPhase('covered')
     }
   }
-  // The page revealed over the leaving one has fully opened: let the leaving page go.
+  // The page laid over the leaving one has fully come in: let the leaving page go.
   const onPageAnimationComplete = (definition) => {
-    const reveal = revealRef.current
-    if (definition === 'animate' && reveal && reveal.arrivingKey === routeKey) {
-      reveal.finish()
+    const overlap = overlapRef.current
+    if (definition === 'animate' && overlap && overlap.arrivingKey === routeKey) {
+      overlap.finish()
     }
   }
 
   return (
     <>
-    <AnimatePresence mode={context.morph || !REVEAL ? 'wait' : 'sync'} initial={false} onExitComplete={onExitComplete}>
+    <AnimatePresence mode={context.morph || !OVERLAP ? 'wait' : 'sync'} initial={false} onExitComplete={onExitComplete}>
       <motion.div
         key={routeKey}
         ref={setPage}
@@ -438,13 +655,13 @@ const TqPageTransition = ({ children }) => {
         exit="exit"
         variants={variants}
         transition={{ duration: DURATION, ease: EASE }}
-        onUpdate={REVEAL ? stepByFrame : undefined}
+        onUpdate={stepByFrame}
         onAnimationComplete={onPageAnimationComplete}
         style={pageStyle}
         data-tq-page-transition={routeKey}
       >
         {children}
-        {VT_CSS ? <HoldPage pageKey={routeKey} changeRef={changeRef} revealRef={revealRef} /> : null}
+        {VT_CSS || OVERLAP ? <HoldPage pageKey={routeKey} changeRef={changeRef} overlapRef={overlapRef} /> : null}
       </motion.div>
     </AnimatePresence>
     {PANELS
@@ -466,6 +683,7 @@ const TqPageTransition = ({ children }) => {
         ))
       : null}
     {VT_CSS ? <style dangerouslySetInnerHTML={{ __html: VT_CSS }} /> : null}
+    <style dangerouslySetInnerHTML={{ __html: LATE_PICTURE_CSS }} />
     </>
   )
 }

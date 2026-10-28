@@ -4,6 +4,7 @@ import {
   generateSafeJSONParseCode,
   generateFilterTreeHelpersCode,
 } from '../utils'
+import { generateSearchRankHelperCode } from '../search-relevance'
 import { generateHeaderDetectionCode } from './utils/header-detection'
 
 export const validateCSVConfig = (
@@ -63,22 +64,17 @@ const generateHandlerBody = (): string => {
     let filteredData = [...data]
     
     if (query) {
-      const searchQuery = query.toLowerCase()
-      
       if (queryColumns) {
         const searchColumns = safeJSONParse(queryColumns)
-        filteredData = filteredData.filter((item) => {
-          return searchColumns.some((col) => {
-            const field = labelToIdMap[col] || col
-            const value = getNestedValue(item, field)
-            return value && String(value).toLowerCase().includes(searchQuery)
-          })
-        })
+        filteredData = filteredData.filter((item) =>
+          matchesSearch(item, query, searchColumns, (row, col) => getNestedValue(row, labelToIdMap[col] || col))
+        )
       } else {
+        const terms = searchTerms(query)
         filteredData = filteredData.filter((item) => {
           try {
-            const stringified = JSON.stringify(item).toLowerCase()
-            return stringified.includes(searchQuery)
+            const text = searchText(item)
+            return terms.every((term) => text.indexOf(term) !== -1)
           } catch {
             return false
           }
@@ -169,6 +165,12 @@ const generateHandlerBody = (): string => {
       })
     }
     
+    if (query && queryColumns) {
+      filteredData = rankBySearch(filteredData, query, safeJSONParse(queryColumns), (item, col) =>
+        getNestedValue(item, labelToIdMap[col] || col)
+      )
+    }
+    
     const limitValue = limit || perPage
     const offsetValue = offsetParam !== undefined ? parseInt(offsetParam) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : 0)
     
@@ -210,6 +212,8 @@ const firstRowIsHeader = ${firstRowIsHeader}
 const configColumns = ${JSON.stringify(configColumns)}
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 
@@ -320,6 +324,8 @@ export default async function handler(req, res) {${generateHandlerBody()}
 const columns = ${JSON.stringify(configColumns)}
 
 ${generateSafeJSONParseCode()}
+
+${generateSearchRankHelperCode()}
 
 ${generateDateFormatterCode()}
 
