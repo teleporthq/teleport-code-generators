@@ -32,6 +32,9 @@ const ENV_KEYS = [
   'CONFIGURATION_PAYPAL_CLIENT_SECRET',
   'CONFIGURATION_PAYPAL_WEBHOOK_ID',
   'CONFIGURATION_PAYPAL_WEBHOOK_ID_5F2A',
+  'CONFIGURATION_PAYPAL_CLIENT_ID_OTHERSHOP',
+  'CONFIGURATION_PAYPAL_CLIENT_ID1',
+  'CONFIGURATION_PAYPAL_CLIENT_ID2',
 ]
 
 function load(): Verify {
@@ -164,6 +167,47 @@ describe('generated PayPal webhook verifier', () => {
     expect(ok).toBe(true)
     expect(JSON.parse(calls[1].body).webhook_id).toBe('WH-stored')
     expect(calls[0].url).toBe('https://api-m.sandbox.paypal.com/v1/oauth2/token')
+  })
+
+  // A credential is never "the first variable whose name starts with" the
+  // stored one: only a numbered copy of it (the editor numbers a re-typed
+  // secret), the highest number being the newest.
+  it('reads a numbered copy of a stored credential, the newest one, and nothing else that shares its prefix', async () => {
+    process.env.CONFIGURATION_PAYPAL_CLIENT_SECRET = 'secret'
+    process.env.PAYPAL_WEBHOOK_ID = 'WH-1'
+    process.env.CONFIGURATION_PAYPAL_CLIENT_ID_OTHERSHOP = 'A-other-shop'
+    const auth: string[] = []
+    ;(globalThis as any).fetch = async (url: string, init: { headers: Record<string, string> }) => {
+      if (url.endsWith('/v1/oauth2/token')) {
+        auth.push(Buffer.from(init.headers.Authorization.slice(6), 'base64').toString('utf8'))
+        return { json: async () => ({ access_token: 'tok' }) }
+      }
+      return { json: async () => ({ verification_status: 'SUCCESS' }) }
+    }
+    const verify = () =>
+      load()({ headers: headersFor('api.paypal.com') }, Buffer.from(JSON.stringify(event)), {
+        signatureSecret: 'PAYPAL_WEBHOOK_ID',
+      })
+    // Only an unrelated variable shares the prefix: no client id at all.
+    expect(await verify()).toBe(false)
+    expect(auth).toEqual([])
+
+    process.env.CONFIGURATION_PAYPAL_CLIENT_ID1 = 'A-retyped-once'
+    process.env.CONFIGURATION_PAYPAL_CLIENT_ID2 = 'A-retyped-twice'
+    expect(await verify()).toBe(true)
+    expect(auth).toEqual(['A-retyped-twice:secret'])
+  })
+
+  it('never takes a webhook id from a variable that merely shares the stored name', async () => {
+    process.env.PAYPAL_CLIENT_ID = 'AbC'
+    process.env.PAYPAL_CLIENT_SECRET = 'secret'
+    process.env.CONFIGURATION_PAYPAL_WEBHOOK_ID_5F2A = 'WH-of-something-else'
+    const calls: Call[] = []
+    installFetch('SUCCESS', calls)
+    expect(await load()({ headers: headersFor('api.paypal.com') }, Buffer.from('{}'), {})).toBe(
+      false
+    )
+    expect(calls).toEqual([])
   })
 
   it('refuses without calling PayPal when the credentials or the webhook id are missing, and says which', async () => {

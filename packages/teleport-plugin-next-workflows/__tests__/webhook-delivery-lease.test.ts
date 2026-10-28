@@ -1,7 +1,7 @@
 import { generateWebhookDeliveryLeaseCode } from '../src/webhook-delivery-lease/webhook-delivery-lease-code'
 import { generateWebhookWorkflowAPIRoute } from '../src/api-route-generator'
 import { loadServerRuntime } from './_helpers/load-server-runtime'
-import { withFetch } from './_helpers/fake-fetch'
+import { FETCH_BACKED_NETWORK, withFetch } from './_helpers/fake-fetch'
 
 /**
  * One payment webhook delivery at a time. The lease module and the route that
@@ -225,6 +225,9 @@ const loadRoute = (source: string, claimed: boolean, log: LeaseLog) => {
           }
         },
       }
+    }
+    if (id in FETCH_BACKED_NETWORK) {
+      return FETCH_BACKED_NETWORK[id]
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(id)

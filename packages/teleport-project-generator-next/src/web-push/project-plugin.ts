@@ -1,6 +1,9 @@
 import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { WebPush } from '@teleporthq/teleport-shared'
-import { getDatabaseDriverDependencies } from '@teleporthq/teleport-plugin-next-workflows'
+import {
+  ensureSecurityRuntimeModule,
+  getDatabaseDriverDependencies,
+} from '@teleporthq/teleport-plugin-next-workflows'
 import { resolveWorkerPlan } from '../pwa/worker-plan'
 import {
   buildWebPushServerModule,
@@ -54,7 +57,9 @@ export class NextWebPushProjectPlugin implements ProjectPlugin {
         {
           name: subscriptionsRoute.name,
           fileType: FileType.JS,
-          content: buildSubscriptionsRouteSource(),
+          content: buildSubscriptionsRouteSource({
+            withSessionRevocation: uidl.authentication?.enabled === true,
+          }),
         },
       ],
     })
@@ -62,6 +67,9 @@ export class NextWebPushProjectPlugin implements ProjectPlugin {
       path: sendRoute.path,
       files: [{ name: sendRoute.name, fileType: FileType.JS, content: buildSendRouteSource() }],
     })
+    // The subscriptions route counts its visitors through the shared security
+    // runtime; written here too, for an app whose other server routes do not.
+    ensureSecurityRuntimeModule(structure)
 
     const requiredDependencies = {
       ...getDatabaseDriverDependencies('teleport'),

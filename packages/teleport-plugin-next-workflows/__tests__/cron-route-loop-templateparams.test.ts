@@ -140,9 +140,12 @@ describe('generateCronAPIRoute — loop + templateParams support', () => {
     // workflow's email node runs) without it, shipping literal `{{token}}`s.
     const runtime = generateSharedRuntimeUtilsCode()
     expect(runtime).toContain('applyTemplateParams(resolved.body, resolved.templateParams)')
-    expect(runtime).toContain('applyTemplateParams(resolved.subject, resolved.templateParams)')
-    // …and the route reaches it simply by calling resolveConfig.
-    expect(route).toContain('const resolveConfig = utils.resolveConfig')
+    expect(runtime).toContain(
+      'applyTemplateParams(resolved.subject, resolved.templateParams, true)'
+    )
+    // …and the route reaches it through resolveNodeConfig, which resolves
+    // with it (and keeps code fields as the author wrote them).
+    expect(route).toContain('const resolveNodeConfig = utils.resolveNodeConfig')
     // No stale per-site copy left behind to drift out of sync.
     expect(route).not.toContain('utils.applyTemplateParams(')
   })

@@ -190,13 +190,26 @@ describe('handleRawQuery — wires the auto-fire correctly', () => {
     // No request context: the configured origins, as before.
     expect(resolveWith(shop, null)).toBe('https://shop.example/some/path')
     expect(resolveWith({ VERCEL_URL: 'shop.vercel.app' }, null)).toBe('https://shop.vercel.app')
+
+    // NEXTAUTH_URL as configured, never as the auth route rewrote it from a
+    // request (it keeps the configured value on globalThis first).
+    const scope = globalThis as Record<string, unknown>
+    scope.__tqConfiguredNextAuthUrl = 'https://shop.example'
+    try {
+      const rewritten = { NEXTAUTH_URL: 'https://evil.test' }
+      expect(resolveWith(rewritten, { host: 'evil.test' })).toBe('https://shop.example')
+      expect(resolveWith(rewritten, null)).toBe('https://shop.example')
+    } finally {
+      delete scope.__tqConfiguredNextAuthUrl
+    }
   })
 
-  it('presents the app secret to the alert route, on the store origin', () => {
-    // The alert route emails the merchant only for the store's own server code.
+  // The alert route emails the merchant only for the store's own server code.
+  const fireAlert = (env: Record<string, string>) => {
     const fireFn = [
       'function isLoopbackHost',
       'function resolveSelfBaseUrl',
+      'function __selfCallHeaders',
       'function fireAndForgetLowStockAlert',
     ]
       .map((decl) => extractFn(code, decl))
@@ -214,17 +227,30 @@ describe('handleRawQuery — wires the auto-fire correctly', () => {
       'LOW_STOCK_ALERTS_ENABLED',
       `${fireFn}\nfireAndForgetLowStockAlert({ headers: { host: 'evil.test' } }, [{ id: 'p1', name: 'Mug', quantity: 1 }], 5);`
     )(
-      { env: { NEXTAUTH_SECRET: 'app-secret', NEXTAUTH_URL: 'https://shop.example' } },
+      { env: { NEXTAUTH_SECRET: 'app-secret', NEXTAUTH_URL: 'https://shop.example', ...env } },
       fetchImpl,
       { log: () => undefined, warn: () => undefined, error: () => undefined },
       true
     )
-    expect(calls).toEqual([
+    return calls
+  }
+
+  it('presents the app secret to the alert route, on the store origin', () => {
+    expect(fireAlert({})).toEqual([
       {
         url: 'https://shop.example/api/ecommerce/low-stock-alert',
         headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': 'app-secret' },
       },
     ])
+  })
+
+  it("passes the deployment's password wall when it has one", () => {
+    expect(fireAlert({ VERCEL_AUTOMATION_BYPASS_SECRET: 'bypass-1' })[0].headers).toEqual({
+      'Content-Type': 'application/json',
+      'x-internal-data-secret': 'app-secret',
+      'x-vercel-protection-bypass': 'bypass-1',
+      'x-vercel-set-bypass-cookie': 'false',
+    })
   })
 
   it('skips the auto-fire when LOW_STOCK_ALERTS_ENABLED is false (no flag, no detection cost)', () => {

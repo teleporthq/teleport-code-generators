@@ -7,8 +7,6 @@ async function realtime_join_channel(config: any, context: Record<string, unknow
   }
 
   const rt = typeof window !== 'undefined' ? (window as any).__teleportRealtime : null
-  const userId = rt ? rt.getUserId() : 'anon'
-  const userName = rt ? rt.getUserName() : 'Anonymous'
   const channelData = config.channelData || undefined
   let parsedChannelData
   if (channelData && typeof channelData === 'string') {
@@ -26,14 +24,17 @@ async function realtime_join_channel(config: any, context: Record<string, unknow
     const joinRes = await fetch(baseUrl + '/api/realtime/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // Who joins is the server's call (the site's session, or an opaque id
+      // it issues): the body carries no user.
       body: JSON.stringify({
         channelName,
-        userId,
-        userName,
         userData: parsedChannelData,
       }),
     })
     const joinData = await joinRes.json()
+    const identity = (joinData && joinData.identity) || {}
+    const userId = identity.id || (rt ? rt.getUserId() : '')
+    const userName = identity.name || (rt ? rt.getUserName() : 'Anonymous')
 
     if (!joinRes.ok) {
       return {

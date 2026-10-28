@@ -299,3 +299,96 @@ describe('teleport-plugin-next-static-props: the route reaches the page', () => 
     )
   })
 })
+
+describe('teleport-plugin-next-static-props: a post found by a slug it used to have', () => {
+  const movedPage = () =>
+    makeStructure({
+      redirect: {
+        destinationField: 'redirectUrl',
+        typeField: 'redirectType',
+        previousSlugs: {
+          column: 'previous_slugs',
+          param: 'slug',
+          currentField: 'slug',
+          urlPrefix: '/blog',
+        },
+      },
+      revalidate: 60,
+      resourceParams: {
+        filters: {
+          type: 'expr',
+          content:
+            'JSON.stringify([{ type: "condition", source: "slug", destination: params.slug, operand: "=" }])',
+        },
+        limit: { type: 'static', content: 1 },
+      },
+    })
+
+  it('looks the address up among the former slugs before answering 404, and sends the reader on with a 301', async () => {
+    const code = await generateCode(movedPage())
+    const notFoundBranch = code.slice(code.indexOf('if (!response?.data?.[0])'))
+    // The second read names the former-slugs column with the address in quotes, as the JSON cell stores it.
+    expect(notFoundBranch).toContain(`source: "previous_slugs"`)
+    expect(notFoundBranch).toContain(`operand: "like"`)
+    expect(notFoundBranch).toContain(
+      'destination: "%\\"" + String(context?.params?.slug ?? "").replace('
+    )
+    expect(notFoundBranch).toContain('+ "\\"%"')
+    expect(notFoundBranch).toContain('const movedTo = movedResponse?.data?.[0]?.slug')
+    expect(notFoundBranch).toContain('destination:')
+    expect(notFoundBranch).toContain('"/blog/" + movedTo')
+    expect(notFoundBranch).toContain('statusCode: 301')
+    // Still a 404 when nothing ever had that address, with the same revalidate.
+    expect(notFoundBranch).toContain('notFound: true')
+    expect((notFoundBranch.match(/revalidate: 60/g) || []).length).toBeGreaterThanOrEqual(2)
+    // Never a second top-level return (downstream plugins find the props return by type).
+    const topLevelReturns = code.split('\n').filter((line) => /^  return /.test(line))
+    expect(topLevelReturns).toHaveLength(0)
+  })
+
+  it('keeps the visitor’s locale on the way', async () => {
+    const code = await generateCode(movedPage())
+    expect(code).toContain('context?.locale && context.locale !== context?.defaultLocale')
+    expect(code).toContain(`\`/\${context.locale}\${`)
+  })
+})
+
+describe('the former-slugs lookup, hardened', () => {
+  const movedPage = () =>
+    makeStructure({
+      redirect: {
+        destinationField: 'redirectUrl',
+        typeField: 'redirectType',
+        previousSlugs: {
+          column: 'previous_slugs',
+          param: 'slug',
+          currentField: 'slug',
+          urlPrefix: '/blog',
+        },
+      },
+      revalidate: 60,
+      resourceParams: {
+        filters: {
+          type: 'expr',
+          content:
+            'JSON.stringify([{ type: "condition", source: "slug", destination: params.slug, operand: "=" }, { type: "condition", source: "status", destination: "published", operand: "=" }])',
+        },
+        limit: { type: 'static', content: 1 },
+      },
+    })
+
+  it('escapes the LIKE wildcards in the address, so /blog/%25 matches no renamed post', async () => {
+    const code = await generateCode(movedPage())
+    const notFoundBranch = code.slice(code.indexOf('if (!response?.data?.[0])'))
+    expect(notFoundBranch).toContain('.replace(/[\\\\%_]/g, "\\\\$&")')
+  })
+
+  it("keeps the page's own conditions, so a draft's former address never redirects to it", async () => {
+    const code = await generateCode(movedPage())
+    const notFoundBranch = code.slice(code.indexOf('if (!response?.data?.[0])'))
+    expect(notFoundBranch).toContain('.filter(')
+    expect(notFoundBranch).toContain('!== "slug"')
+    expect(notFoundBranch).toContain('.concat([{')
+    expect(notFoundBranch).toContain('source: "previous_slugs"')
+  })
+})

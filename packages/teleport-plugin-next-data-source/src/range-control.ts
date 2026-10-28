@@ -11,17 +11,20 @@ import {
  * live row range of the mapper it belongs to.
  *
  * The author's words stay theirs — they are read off `data-tq-range-template`
- * with `{from}`, `{to}` and `{total}` standing for the numbers — and the drawn
- * text is kept, verbatim, until the count endpoint has answered: `ds_N_total`
- * is `null` until then, and a range of `NaN` or `undefined` is worse than the
- * placeholder the designer chose.
+ * with `{from}`, `{to}`, `{total}`, `{page}`, `{pages}` and `{perPage}` standing
+ * for the numbers — and the drawn text is kept, verbatim, until the count
+ * endpoint has answered: `ds_N_total` is `null` until then, and a range of
+ * `NaN` or `undefined` is worse than the placeholder the designer chose.
  *
  *   buttons / numbered   from = total === 0 ? 0 : (page − 1) × perPage + 1
  *   infinite scroll      from = total === 0 ? 0 : 1
  *   both                 to   = min(page × perPage, total)
+ *                        pages = total === 0 ? 0 : max(1, maxPages)
  *
  * In an appending list `page` is the number of pages loaded so far, so the
- * same `to` counts the rows on screen. Numbers go through
+ * same `to` counts the rows on screen and `{page}` reads the pages on screen.
+ * `{pages}` is the mapper's `ds_N_maxPages`, counted by the same response as
+ * the total; `{perPage}` the page size. Numbers go through
  * `toLocaleString("en-US")`, the way the canvas prints them.
  *
  * ⛔ The arithmetic must agree with the canvas renderer's
@@ -36,12 +39,14 @@ export interface RangeControlVars {
   totalVar: string
   /** The page the list stands on: `ds_N_page`, or `ds_N_state.page` beside a search. */
   currentPageExpr: types.Expression
+  /** `ds_N_maxPages` — 0 until counted. */
+  maxPagesVar: string
   perPage: number
   /** An appending list always shows from the first row. */
   infiniteScroll: boolean
 }
 
-const PLACEHOLDER = /\{(from|to|total)\}/g
+const PLACEHOLDER = /\{(from|to|total|page|pages|perPage)\}/g
 
 const total = (vars: RangeControlVars): types.Identifier => types.identifier(vars.totalVar)
 
@@ -79,9 +84,36 @@ const buildTo = (vars: RangeControlVars): types.Expression =>
     total(vars),
   ])
 
+/** `total === 0 ? 0 : Math.max(1, maxPages)` — the strip has one page as long as it has rows. */
+const buildPages = (vars: RangeControlVars): types.Expression =>
+  unlessEmpty(
+    vars,
+    types.callExpression(
+      types.memberExpression(types.identifier('Math'), types.identifier('max')),
+      [types.numericLiteral(1), types.identifier(vars.maxPagesVar)]
+    )
+  )
+
+const buildValue = (placeholder: string, vars: RangeControlVars): types.Expression => {
+  switch (placeholder) {
+    case 'from':
+      return buildFrom(vars)
+    case 'to':
+      return buildTo(vars)
+    case 'page':
+      return page(vars)
+    case 'pages':
+      return buildPages(vars)
+    case 'perPage':
+      // Parenthesised, or the printer writes `20 .toLocaleString(…)`.
+      return types.parenthesizedExpression(types.numericLiteral(vars.perPage))
+    default:
+      return total(vars)
+  }
+}
+
 const buildNumber = (placeholder: string, vars: RangeControlVars): types.Expression => {
-  const value =
-    placeholder === 'from' ? buildFrom(vars) : placeholder === 'to' ? buildTo(vars) : total(vars)
+  const value = buildValue(placeholder, vars)
   return types.callExpression(types.memberExpression(value, types.identifier('toLocaleString')), [
     types.stringLiteral('en-US'),
   ])

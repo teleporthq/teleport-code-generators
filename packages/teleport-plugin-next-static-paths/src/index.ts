@@ -7,7 +7,7 @@ import {
   TeleportError,
   UIDLLocalResource,
 } from '@teleporthq/teleport-types'
-import { StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, GenericUtils, PageAccess } from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import { generateInitialPathsAST } from './utils'
 
@@ -38,12 +38,14 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     // params per-request — Next.js does not allow (and does not need) a
     // getStaticPaths alongside getServerSideProps on the same page. A page
     // that seeds a state from a data source renders per request too (see
-    // `pageSeedsStateFromDataSource`).
+    // `pageSeedsStateFromDataSource`). So does a page behind a sign-in: its
+    // getServerSideProps checks the session (`PageAccess`).
     if (
       isDynamicRoute(uidl) &&
       (pageHasSameTableMutationWorkflow(uidl, options.workflows) ||
         pageReadsProtectedTable(uidl) ||
-        pageSeedsStateFromDataSource(uidl, options.dataSources))
+        pageSeedsStateFromDataSource(uidl, options.dataSources) ||
+        PageAccess.resolvePageAccessPolicy(uidl, options.auth) !== null)
     ) {
       return structure
     }

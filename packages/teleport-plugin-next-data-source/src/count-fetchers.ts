@@ -62,7 +62,15 @@ async function getCount(req, res) {
     // handler gets the wrapper object rather than the records, which is not an
     // array — so the count below would report 0 for a list that clearly has rows.
     const { query, queryColumns, filters, collectionPath } = req.query
-    const fakeReq = { query: { query, queryColumns, filters, collectionPath }, method: 'GET' }
+    // The count route already let this request through (see
+    // external-read-guard.ts); counting re-reads every matching row as the
+    // route's own server-side call, never capped to a browser's window.
+    const fakeReq = {
+      query: { query, queryColumns, filters, collectionPath },
+      method: 'GET',
+      headers: req.headers || {},
+      __tqServerCall: true,
+    }
     let result = null
     let statusCode = 200
     
@@ -98,7 +106,7 @@ async function getCount(req, res) {
     console.error('Error getting count:', error)
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get count',
+      error: 'Failed to get count',
       timestamp: Date.now()
     })
   }

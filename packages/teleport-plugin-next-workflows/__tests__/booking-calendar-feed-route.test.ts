@@ -250,9 +250,24 @@ describe('the bookings calendar feed route — behaviour', () => {
     const response = await bootRoute(pg)({})
     expect(response.statusCode).toBe(404)
     expect(response.body).toBe('Not found')
-    expect(pg.calls).toEqual([{ sql: FEED_STATEMENT, params: [KEY] }])
+    expect(pg.calls).toEqual([
+      { sql: "BEGIN; SET LOCAL statement_timeout = '10s'", params: undefined },
+      { sql: FEED_STATEMENT, params: [KEY] },
+      { sql: 'COMMIT', params: undefined },
+    ])
     expect(pg.connections).toBe(1)
     expect(pg.ended).toBe(1)
+  })
+
+  it('cuts the feed statement off after 10 s, for its own transaction only', async () => {
+    const pg = makePgStub([calendarRow()])
+    expect((await bootRoute(pg)({})).statusCode).toBe(200)
+    const sql = pg.calls.map((call) => call.sql)
+    expect(sql[0]).toBe("BEGIN; SET LOCAL statement_timeout = '10s'")
+    expect(sql.indexOf(FEED_STATEMENT)).toBe(1)
+    expect(sql[2]).toBe('COMMIT')
+    // A session-wide SET would outlive the request on a pooled connection.
+    expect(sql.some((text) => /^SET statement_timeout/i.test(text))).toBe(false)
   })
 
   it('writes the calendar with all-day and timed events', async () => {
@@ -275,7 +290,9 @@ describe('the bookings calendar feed route — behaviour', () => {
     expect(response.headers['Content-Length']).toBe(
       String(Buffer.byteLength(response.body as string, 'utf8'))
     )
-    expect(pg.calls).toEqual([{ sql: FEED_STATEMENT, params: [KEY] }])
+    expect(pg.calls.filter((call) => call.sql === FEED_STATEMENT)).toEqual([
+      { sql: FEED_STATEMENT, params: [KEY] },
+    ])
     expect(pg.ended).toBe(1)
     expect(response.body).toBe(
       [
@@ -463,7 +480,7 @@ describe('the bookings calendar feed route — behaviour', () => {
     expect(head.headers).toEqual(get.headers)
     expect(head.body).toBeUndefined()
     expect(head.ended).toBe(1)
-    expect(pg.calls).toHaveLength(1)
+    expect(pg.calls.filter((call) => call.sql === FEED_STATEMENT)).toHaveLength(1)
 
     const missing = await bootRoute(makePgStub([]))({ method: 'HEAD' })
     expect(missing.statusCode).toBe(404)

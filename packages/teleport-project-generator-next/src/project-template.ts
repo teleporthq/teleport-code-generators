@@ -20,13 +20,13 @@ const projectTemplate: GeneratedFolder = {
   "author": "TeleportHQ",
   "license": "MIT",
   "dependencies": {
-    "@teleporthq/react-components": "latest",
-    "next": "^12.1.10",
+    "@teleporthq/react-components": "1.0.13",
+    "next": "^12.3.7",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "engines": {
-      "node": ">=18.x"
+      "node": ">=20.x"
   }
 }`,
       fileType: FileType.JSON,

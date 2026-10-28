@@ -1,5 +1,10 @@
 import * as types from '@babel/types'
-import { ChunkType, ComponentPlugin, ComponentPluginFactory } from '@teleporthq/teleport-types'
+import {
+  ChunkDefinition,
+  ChunkType,
+  ComponentPlugin,
+  ComponentPluginFactory,
+} from '@teleporthq/teleport-types'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const SKIP_WALK_KEYS = new Set([
@@ -58,6 +63,88 @@ function stripRevalidateFromReturns(node: unknown): void {
   }
 }
 
+// The keys getServerSideProps' context has and getStaticProps' never had.
+const REQUEST_ONLY_CONTEXT_KEYS = ['req', 'res', 'query', 'resolvedUrl']
+
+/**
+ * Rewrites every `...context` spread (the data function's own parameter) into
+ * a spread of the context WITHOUT the request: the locale fetcher's
+ * getStaticProps returns `props: { messages, ...context }`, and on a
+ * getServerSideProps context that would hand `req` / `res` to the props
+ * serializer — a page that cannot render. What is left is exactly what
+ * getStaticProps received (params, locale, locales, defaultLocale, preview).
+ */
+function omitRequestFromContextSpreads(node: unknown, contextName: string): void {
+  if (!node || typeof node !== 'object') {
+    return
+  }
+  const anyNode = node as Record<string, unknown> & { type?: string }
+
+  if (
+    anyNode.type === 'SpreadElement' &&
+    (anyNode.argument as types.Node | undefined)?.type === 'Identifier' &&
+    (anyNode.argument as types.Identifier).name === contextName
+  ) {
+    const rest = types.identifier('rest')
+    anyNode.argument = types.callExpression(
+      types.arrowFunctionExpression(
+        [
+          types.objectPattern([
+            ...REQUEST_ONLY_CONTEXT_KEYS.map((key) =>
+              types.objectProperty(types.identifier(key), types.identifier(key), false, true)
+            ),
+            types.restElement(rest),
+          ]),
+        ],
+        rest
+      ),
+      [types.identifier(contextName)]
+    )
+    return
+  }
+
+  for (const key of Object.keys(anyNode)) {
+    if (SKIP_WALK_KEYS.has(key)) continue
+    const value = anyNode[key]
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (child && typeof (child as { type?: string }).type === 'string') {
+          omitRequestFromContextSpreads(child, contextName)
+        }
+      }
+    } else if (value && typeof (value as { type?: string }).type === 'string') {
+      omitRequestFromContextSpreads(value, contextName)
+    }
+  }
+}
+
+/**
+ * Turns a page's `getStaticProps` chunk into `getServerSideProps`: renames the
+ * function and the chunk, strips every `revalidate` (a build error there) and
+ * keeps the request out of the props. False when the chunk is not the
+ * `export async function getStaticProps(context)` shape every page plugin
+ * writes, and nothing was changed.
+ */
+export const convertToServerSideProps = (chunk: ChunkDefinition): boolean => {
+  if (chunk.type !== ChunkType.AST) {
+    return false
+  }
+  const exportDeclaration = chunk.content as types.ExportNamedDeclaration
+  const functionDeclaration = exportDeclaration?.declaration
+  if (!functionDeclaration || functionDeclaration.type !== 'FunctionDeclaration') {
+    return false
+  }
+
+  functionDeclaration.id = types.identifier('getServerSideProps')
+  chunk.name = 'getServerSideProps'
+  stripRevalidateFromReturns(functionDeclaration.body)
+  const contextParam = functionDeclaration.params[0]
+  if (contextParam && contextParam.type === 'Identifier') {
+    omitRequestFromContextSpreads(functionDeclaration.body, contextParam.name)
+  }
+  return true
+}
+
 /**
  * Tail-of-pipeline finalizer for entity-bound pages that
  * `createStaticPropsPlugin` (teleport-plugin-next-static-props) tagged with
@@ -98,19 +185,9 @@ export const createEntityMutationSsrFinalizerPlugin: ComponentPluginFactory<
         chunk.name === 'getStaticProps' &&
         (chunk.meta?.useServerSideProps === true || rendersPerRequest)
     )
-    if (!getStaticPropsChunk || getStaticPropsChunk.type !== ChunkType.AST) {
-      return structure
+    if (getStaticPropsChunk) {
+      convertToServerSideProps(getStaticPropsChunk)
     }
-
-    const exportDeclaration = getStaticPropsChunk.content as types.ExportNamedDeclaration
-    const functionDeclaration = exportDeclaration?.declaration
-    if (!functionDeclaration || functionDeclaration.type !== 'FunctionDeclaration') {
-      return structure
-    }
-
-    functionDeclaration.id = types.identifier('getServerSideProps')
-    getStaticPropsChunk.name = 'getServerSideProps'
-    stripRevalidateFromReturns(functionDeclaration.body)
 
     return structure
   }

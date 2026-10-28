@@ -1,6 +1,18 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from '../email/outbound-message-guard'
+
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 
 async function sms_twilio(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('sms', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageSid: '', skipped: true, reason: refused.skipped }
+      : { messageSid: '', success: false, error: refused.error }
+  }
   const accountSid = config.accountSid
   const authToken = config.authToken
   const from = config.from
@@ -44,7 +56,5 @@ export const smsTwilio: NodeHandlerGenerator = {
   dependencies: {
     twilio: '^5.0.0',
   },
-  generateHandler(): string {
-    return handlerToString(sms_twilio)
-  },
+  ...outboundMessageHandlerSources(sms_twilio),
 }

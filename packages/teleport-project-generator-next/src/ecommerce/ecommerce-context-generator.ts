@@ -651,13 +651,23 @@ function getOrCreateSessionId() {
   try {
     const existing = localStorage.getItem(CART_SESSION_KEY)
     if (existing) return existing
-    const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          const r = (Math.random() * 16) | 0
-          const v = c === 'x' ? r : (r & 0x3) | 0x8
-          return v.toString(16)
-        })
+    // The guest's cart key: from the browser's cryptographic generator only
+    // (randomUUID is missing outside a secure context; getRandomValues is
+    // not). With neither, there is no key and the cart stays in this browser.
+    let id
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      id = crypto.randomUUID()
+    } else if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16))
+      bytes[6] = (bytes[6] & 0x0f) | 0x40
+      bytes[8] = (bytes[8] & 0x3f) | 0x80
+      const hex = Array.prototype.map.call(bytes, function (b) {
+        return (b + 0x100).toString(16).slice(1)
+      }).join('')
+      id = hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20)
+    } else {
+      return null
+    }
     localStorage.setItem(CART_SESSION_KEY, id)
     return id
   } catch (e) {
@@ -1122,6 +1132,19 @@ function resolveCategoryTranslations(categories, locale) {
   })
 }
 
+// Stamp \`productCount\` on every node of the tree from the counts route's
+// answer: \`undefined\` while \`counts\` is null (nothing has answered yet), 0 for
+// a category the answer has no entry for. Recurses into \`children\`.
+function withProductCounts(categories, counts) {
+  if (!Array.isArray(categories) || !categories.length) return categories
+  return categories.map(function (category) {
+    return Object.assign({}, category, {
+      productCount: counts ? counts[category.id] || 0 : undefined,
+      children: withProductCounts(category.children, counts),
+    })
+  })
+}
+
 // Mirrors \`resolveCartDelivery\` in the editor (teleport-gui
 // \`features/e-commerce/utils/delivery-fee.ts\`), which is what the cart
 // simulator and the canvas projection use — a difference between the two is a
@@ -1187,6 +1210,10 @@ export const EcommerceProvider = ({ children }) => {
   const [cartMeta, setCartMeta] = useState({ total: 0, itemCount: 0 })
   const [isHydrated, setIsHydrated] = useState(false)
   const [storeLocations, setStoreLocations] = useState([])
+  // \`{ counts, total }\` from /api/ecommerce/category-counts; \`null\` until it
+  // answers, so every \`productCount\` stays \`undefined\` and a bound text keeps
+  // its drawn number.
+  const [categoryCounts, setCategoryCounts] = useState(null)
   const [appliedVoucher, setAppliedVoucher] = useState(null)
 
   const enrichRef = useRef(false)
@@ -1257,6 +1284,13 @@ ${
 `
     : ''
 }
+  useEffect(() => {
+    fetch('/api/ecommerce/category-counts')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setCategoryCounts(data && data.counts ? data : null))
+      .catch(() => setCategoryCounts(null))
+  }, [])
+
   // First store id, used as the default pickup-location selection on the
   // checkout page. The checkout page picks this up via the
   // \`workflow_pickup_store_default\` localStorage key (the page-load
@@ -1524,9 +1558,16 @@ ${
   )
   const ecommerceCategoriesRaw = useMemo(() => (${ecommerceCategoriesJson}), [])
   const ecommerceCategories = useMemo(
-    () => resolveCategoryTranslations(ecommerceCategoriesRaw, router.locale),
-    [ecommerceCategoriesRaw, router.locale]
+    () => withProductCounts(
+      resolveCategoryTranslations(ecommerceCategoriesRaw, router.locale),
+      categoryCounts ? categoryCounts.counts : null
+    ),
+    [ecommerceCategoriesRaw, router.locale, categoryCounts]
   )
+  // Every active product in the store, or \`null\` until counted (and for a
+  // store without a database).
+  const productsTotal =
+    categoryCounts && typeof categoryCounts.total === 'number' ? categoryCounts.total : null
 
   // The subscription in the basket (at most one) and whether every line is a
   // download. Read BEFORE the pricing below: a digital-only cart ships nothing,
@@ -1692,13 +1733,14 @@ ${giftCardMetaCode}
     storeLocations,
     defaultPickupStoreId,
     ecommerceCategories,
+    productsTotal,
   // \`discountMeta\`, \`pickupDiscountMeta\`, \`giftCardMeta\` and the figures
   // derived from them MUST be listed. Applying or removing a code changes
   // nothing else in this array — the cart items, the cart meta and the shipping
   // meta are all untouched — so without them the memo returned the previous
   // context object, the Provider's value stayed reference-identical, and the
   // summary only caught up on a page reload.
-  }), [displayCartItems, cartMeta, ${valueExtraDeps}shippingMeta, discountMeta, pickupDiscountMeta, giftCardMeta, effectiveShippingPrice, effectiveTotal, pickupTotal, recurringLine, digitalOnly, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, subscriptionPaymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories])
+  }), [displayCartItems, cartMeta, ${valueExtraDeps}shippingMeta, discountMeta, pickupDiscountMeta, giftCardMeta, effectiveShippingPrice, effectiveTotal, pickupTotal, recurringLine, digitalOnly, maxQtyPerProduct, cartCurrencySymbol, addToCart, removeFromCart, updateItemQuantity, clearCart, isHydrated, settings, paymentProviders, subscriptionPaymentProviders, storeLocations, defaultPickupStoreId, ecommerceCategories, productsTotal])
 
   return (
     <EcommerceContext.Provider value={value}>

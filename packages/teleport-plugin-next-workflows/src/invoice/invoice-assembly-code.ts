@@ -1,6 +1,8 @@
 import { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 import { ProductOptions } from '@teleporthq/teleport-shared'
 import { REGIONAL_INVOICE_TAX_CODE } from './regional-invoice-tax-code'
+import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from '../configured-nextauth-url'
+import { generateSelfCallHeadersCode } from '../self-call-headers'
 
 /**
  * `utils/invoices/invoice-assembly.js` — turns an order, and whatever a caller
@@ -105,14 +107,15 @@ function isLoopbackHost(host) {
 // not depend on it: on Vercel the request's host (the domain Vercel routed to
 // this deployment); elsewhere NEXTAUTH_URL's origin when it is set — except
 // that a local server on another port than a local NEXTAUTH_URL keeps its own
-// loopback address.
+// loopback address. NEXTAUTH_URL is read as configured, never as the auth
+// route rewrote it from a request (configured-nextauth-url.ts).
 function requestBaseUrl(req) {
   var headers = (req && req.headers) || {};
   var host = headers.host || '';
   var proto = headers['x-forwarded-proto'] || (isLoopbackHost(host) ? 'http' : 'https');
   var requestOrigin = String(proto).split(',')[0].trim() + '://' + host;
   if (process.env.VERCEL) return requestOrigin;
-  var configured = String(process.env.NEXTAUTH_URL || '').trim();
+  var configured = String(${CONFIGURED_NEXTAUTH_URL_EXPRESSION} || '').trim();
   if (!configured) return requestOrigin;
   var origin;
   try { origin = new URL(configured).origin; } catch (e) { return requestOrigin; }
@@ -141,6 +144,8 @@ function requestBaseUrl(req) {
 // \`baseUrl\` is the live request origin (see \`requestBaseUrl\`). The
 // self-fetch pattern is necessary because the routes run server-side, where
 // Node's undici fetch rejects relative URLs.
+${generateSelfCallHeadersCode()}
+
 async function uploadInvoicePdfToRuntimeStorage(pdfBuffer, fileName, baseUrl) {
   if (!baseUrl) {
     console.error('[invoice] Runtime storage: cannot compute proxy URL (baseUrl missing). Skipping upload.');
@@ -161,7 +166,7 @@ async function uploadInvoicePdfToRuntimeStorage(pdfBuffer, fileName, baseUrl) {
     // it puts on a visitor's upload; only server code can present the secret.
     var res = await fetch(proxyUrl, {
       method: 'POST',
-      headers: { 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({}),
       body: form,
     });
     var data = {};

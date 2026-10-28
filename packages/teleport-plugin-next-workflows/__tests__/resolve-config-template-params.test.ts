@@ -163,9 +163,9 @@ describe('the server-segment route reaches the fill', () => {
     'Submit Withdrawal'
   )
 
-  it('routes the node config through the shared resolveConfig', () => {
-    expect(route).toContain('const resolveConfig = utils.resolveConfig')
-    expect(route).toContain('resolveConfig(node.config, context)')
+  it('routes the node config through the shared resolveConfig (by resolveNodeConfig)', () => {
+    expect(route).toContain('const resolveNodeConfig = utils.resolveNodeConfig')
+    expect(route).toContain('resolveNodeConfig(node, context)')
   })
 
   it('carries no private copy of the fill that could drift', () => {

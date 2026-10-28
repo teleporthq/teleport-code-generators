@@ -1,7 +1,7 @@
 import * as crypto from 'crypto'
 import { generateWebhookWorkflowAPIRoute } from '../src/api-route-generator'
 import { loadServerRuntime } from './_helpers/load-server-runtime'
-import { withEnv, withFetch } from './_helpers/fake-fetch'
+import { FETCH_BACKED_NETWORK, withEnv, withFetch } from './_helpers/fake-fetch'
 import { loadPaymentDrivers } from './_helpers/load-payment-drivers'
 
 /**
@@ -65,6 +65,9 @@ const loadRoute = (source: string, drivers: Record<string, { verifyWebhook: Veri
         throw new Error("Cannot find module '" + id + "'")
       }
       return { get: (providerId: string) => drivers[providerId] || null }
+    }
+    if (id in FETCH_BACKED_NETWORK) {
+      return FETCH_BACKED_NETWORK[id]
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(id)

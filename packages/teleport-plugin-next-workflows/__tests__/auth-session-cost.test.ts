@@ -190,6 +190,31 @@ describe('sanitizeUser allow-list', () => {
     expect(fields).toContain('id')
   })
 
+  // A sign-in snapshot of the Newsletter's columns goes stale the moment the
+  // person confirms or unsubscribes: pages read the row, never the session.
+  it('keeps the Newsletter status columns off the session', () => {
+    const newsletter = [
+      'newsletter_status',
+      'newsletter_subscribed_at',
+      'newsletter_unsubscribed_at',
+      'newsletter_source',
+    ]
+    const fields = buildSessionUserFields(
+      {
+        users: [
+          ...CANONICAL_USERS_COLUMNS,
+          ...newsletter.map((name) => ({ name, type: 'VARCHAR(32)', nullable: true })),
+        ],
+      },
+      CUSTOM_PROPS
+    )
+    for (const name of newsletter) {
+      expect(fields).not.toContain(name)
+    }
+    expect(fields).toContain('email_unsubscribed')
+    expect(fields).toContain('company')
+  })
+
   it('cannot be re-opened by a custom property named after a credential', () => {
     const fields = buildSessionUserFields(buildAuth().tables, [
       {

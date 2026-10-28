@@ -1,5 +1,6 @@
 /* tslint:disable:function-constructor */
 import { generateDataSourceFetcherWithCore } from '../src/data-source-fetchers'
+import { publicExposure } from './_helpers/exposure'
 
 /**
  * A board's "No status" column lists the rows whose status is empty. The GUI
@@ -33,9 +34,25 @@ const bootRoute = (type: 'teleport' | 'postgresql') => {
               team_events: { columns: [{ name: 'id' }, { name: 'priority' }] },
             },
           }
-        : { host: 'h', port: 5432, user: 'u', password: 'p', database: 'd' },
+        : {
+            host: 'h',
+            port: 5432,
+            user: 'u',
+            password: 'p',
+            database: 'd',
+            // The table's schema as the editor exports it: the only columns a
+            // request may name.
+            selectedTables: {
+              team_events: { columns: [{ name: 'id' }, { name: 'priority' }] },
+            },
+          },
   }
-  const code = generateDataSourceFetcherWithCore(dataSource as never, 'team_events', false, {})
+  const code = generateDataSourceFetcherWithCore(
+    dataSource as never,
+    'team_events',
+    false,
+    publicExposure(['team_events'])
+  )
     .replace(
       "import { Client, types as pgTypes } from 'pg'",
       "const { Client, types: pgTypes } = require('pg')"

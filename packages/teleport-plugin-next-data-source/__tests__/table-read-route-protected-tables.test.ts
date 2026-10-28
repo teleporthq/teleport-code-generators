@@ -3,6 +3,14 @@ import type { UIDLAuthentication } from '@teleporthq/teleport-types'
 import { TableAccess } from '@teleporthq/teleport-shared'
 import { generateDataSourceFetcherWithCore } from '../src/data-source-fetchers'
 import { buildProductTransformOptions } from '../src/transformations'
+import { publicExposure } from './_helpers/exposure'
+import {
+  isSecurityRuntimeSpecifier,
+  loadSecurityRuntime,
+} from '../../teleport-plugin-next-workflows/__tests__/_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * Every table a page binds gets a read route (`/api/teleport-<table>-<source>`
@@ -54,11 +62,28 @@ function bootTableRoute(
       user: 'teleporthq.secrets.TELEPORT_DB_USER',
       password: 'teleporthq.secrets.TELEPORT_DB_PASSWORD',
       database: 'teleporthq.secrets.TELEPORT_DB_NAME',
-      selectedTables: { [tableName]: { columns: [{ name: 'id', type: 'uuid' }] } },
+      // The table's schema as the editor exports it: the only columns a request may name.
+      selectedTables: {
+        [tableName]: {
+          columns: [
+            { name: 'id', type: 'uuid' },
+            { name: 'title' },
+            { name: 'name' },
+            { name: 'status' },
+            { name: 'slug' },
+            { name: 'author_email' },
+            { name: 'created_at' },
+            { name: 'price' },
+            { name: 'code' },
+          ],
+        },
+      },
     },
   }
+  // Even a table a public page binds stays behind the protected-table net.
   const esm = generateDataSourceFetcherWithCore(dataSource as never, tableName, false, {
     trustedReaderRoles,
+    ...publicExposure([tableName]),
   })
   // The route is an ES module; run it as a script with the same bindings.
   const code = esm
@@ -101,6 +126,9 @@ function bootTableRoute(
     }
     if (name === 'next-auth/jwt') {
       return { getToken: async () => (session ? { sub: 'u1', role: session.role } : null) }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }
@@ -210,6 +238,27 @@ describe('per-table read routes — money and customer tables are read only by t
     await expect(vouchers.serverCall('fetchCount')).resolves.toBe(0)
   })
 
+  it('A3: refuses the retired reset-token table to every caller, the app secret and its own server calls too', async () => {
+    const resets = bootTableRoute('password_reset_tokens', ADMIN_ROLES)
+    for (const call of [
+      { handler: 'handler' as const, headers: internal },
+      { handler: 'getCount' as const, headers: internal },
+      { handler: 'handler' as const, session: { role: 'admin' } },
+    ]) {
+      const answer = await resets(call)
+      expect(answer.status).toBe(403)
+      expect(answer.queries).toEqual([])
+    }
+    // A raw statement naming it, through any other table's route.
+    const viaRaw = await products({
+      handler: 'handler',
+      headers: internal,
+      query: { rawQuery: 'SELECT * FROM "public"."Password_Reset_Tokens"' },
+    })
+    expect(viaRaw.status).toBe(403)
+    expect(viaRaw.queries).toEqual([])
+  })
+
   it('refuses a browser every raw statement, whatever it names, once the app has a secret', async () => {
     // Generated pages never send one: their raw queries run in getStaticProps
     // (the module's own fetchData) or in server segments. So no statement scan
@@ -244,13 +293,14 @@ describe('per-table read routes — money and customer tables are read only by t
       expect(result.status).toBe(400)
       expect(result.queries).toEqual([])
     }
-    // A row count is a number or nothing: the sub-select never reaches SQL.
+    // A row count is a whole number or nothing: anything else is refused
+    // before the database is touched, so the sub-select never reaches SQL.
     const limited = await products({
       handler: 'handler',
       query: { limit: '(SELECT 1 FROM teleport_vouchers)' },
     })
-    expect(limited.status).toBe(200)
-    expect(limited.queries.join('\n')).not.toMatch(/teleport_vouchers|LIMIT/)
+    expect(limited.status).toBe(400)
+    expect(limited.queries).toEqual([])
     const count = await products({
       handler: 'getCount',
       query: { filters: JSON.stringify([{ source: smuggled, operand: '=', destination: 1 }]) },

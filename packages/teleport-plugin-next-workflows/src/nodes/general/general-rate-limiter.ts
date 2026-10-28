@@ -1,77 +1,17 @@
-import { NodeHandlerGenerator } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions } from '../types'
+import {
+  generateSecurityRuntimeVar,
+  serverHandlerPrefix,
+  VISITOR_KEY_CODE,
+} from './visitor-request'
 
-const RATE_LIMIT_STORE_CODE = `var __rateLimitStore = new Map();
-
-function __rateLimitCleanup(currentWindowKey) {
-  if (__rateLimitStore.size <= 10000) return;
-  var keysToDelete = [];
-  __rateLimitStore.forEach(function(val, key) {
-    var lastColon = key.lastIndexOf(':');
-    if (lastColon === -1) return;
-    var keyWindow = parseInt(key.substring(lastColon + 1), 10);
-    if (isNaN(keyWindow) || keyWindow < currentWindowKey - 1) {
-      keysToDelete.push(key);
-    }
-  });
-  for (var d = 0; d < keysToDelete.length; d++) {
-    __rateLimitStore.delete(keysToDelete[d]);
-  }
-}
-
-function __getClientIp(req) {
-  if (!req) return 'unknown';
-  var forwarded = req.headers && req.headers['x-forwarded-for'];
-  if (forwarded) {
-    var first = (typeof forwarded === 'string' ? forwarded : forwarded[0] || '').split(',')[0].trim();
-    if (first) return __normalizeIp(first);
-  }
-  var realIp = req.headers && req.headers['x-real-ip'];
-  if (realIp) {
-    var val = typeof realIp === 'string' ? realIp : realIp[0] || '';
-    if (val) return __normalizeIp(val.trim());
-  }
-  if (req.socket && req.socket.remoteAddress) {
-    return __normalizeIp(req.socket.remoteAddress);
-  }
-  if (req.connection && req.connection.remoteAddress) {
-    return __normalizeIp(req.connection.remoteAddress);
-  }
-  return 'unknown';
-}
-
-function __normalizeIp(ip) {
-  if (!ip) return 'unknown';
-  var cleaned = ip.replace(/^\\[|\\]$/g, '').toLowerCase();
-  if (cleaned === '::1' || cleaned === '::ffff:127.0.0.1') return '127.0.0.1';
-  if (cleaned.indexOf('::ffff:') === 0) return cleaned.substring(7);
-  return cleaned;
-}
-
-function __checkRateLimit(key, maxRequests, windowMs) {
-  var now = Date.now();
-  var windowKey = Math.floor(now / windowMs);
-  var storeKey = key + ':' + windowKey;
-  var windowExpiresSec = Math.ceil((((windowKey + 1) * windowMs) - now) / 1000);
-
-  var entry = __rateLimitStore.get(storeKey);
-  if (!entry) {
-    entry = { count: 0 };
-  }
-  entry.count += 1;
-  __rateLimitStore.set(storeKey, entry);
-
-  __rateLimitCleanup(windowKey);
-
-  var allowed = entry.count <= maxRequests;
-  var remaining = Math.max(0, maxRequests - entry.count);
-
-  return {
-    allowed: allowed,
-    remaining: remaining,
-    retryAfter: allowed ? 0 : windowExpiresSec
-  };
-}`
-
+/**
+ * Counts in the app's shared, durable limiter (`rateLimit` in
+ * `utils/security-runtime.js`), so every instance of a serverless app counts
+ * together and a redeploy or cold start resets nothing. The 'ip' strategy
+ * reads the visitor's address only where the host guarantees it (an IPv6
+ * visitor counts by its /64). Without the runtime the request is refused.
+ */
 const RATE_LIMIT_HANDLER_CODE = `
 async function general_rate_limiter(config, context) {
   var strategy = config.strategy;
@@ -89,7 +29,7 @@ async function general_rate_limiter(config, context) {
     };
   }
 
-  if (!maxRequests || typeof maxRequests !== 'number' || maxRequests <= 0) {
+  if (!maxRequests || typeof maxRequests !== 'number' || maxRequests < 1) {
     return {
       __earlyResponse: {
         status: 500,
@@ -109,9 +49,21 @@ async function general_rate_limiter(config, context) {
     };
   }
 
+  var security = __rateLimitSecurity;
+  if (!security || typeof security.rateLimit !== 'function' || typeof security.clientIp !== 'function') {
+    console.error('[rate-limiter] request refused: the security runtime is not available');
+    return {
+      __earlyResponse: {
+        status: 500,
+        headers: {},
+        body: { error: 'Internal Server Error', message: 'Rate limiting is not available.' }
+      }
+    };
+  }
+
   var identifier;
   if (strategy === 'ip') {
-    identifier = (context.__request && context.__request.ip) || 'unknown';
+    identifier = __visitorKeyOf(security, context.__request);
   } else {
     identifier = config.key;
     if (identifier === undefined || identifier === null || identifier === '') {
@@ -126,8 +78,23 @@ async function general_rate_limiter(config, context) {
     identifier = String(identifier);
   }
 
-  var fullKey = 'rate_limit:' + config.__nodeId + ':' + identifier;
-  var result = __checkRateLimit(fullKey, maxRequests, windowMs);
+  var result;
+  try {
+    result = await security.rateLimit({
+      key: JSON.stringify(['workflow-rate-limiter', String(config.__nodeId), strategy, identifier]),
+      limit: Math.floor(maxRequests),
+      windowSeconds: Math.max(1, Math.ceil(windowMs / 1000))
+    });
+  } catch (err) {
+    console.error('[rate-limiter] request refused:', err && err.message ? err.message : err);
+    return {
+      __earlyResponse: {
+        status: 500,
+        headers: {},
+        body: { error: 'Internal Server Error', message: 'Rate limiting is not available.' }
+      }
+    };
+  }
 
   if (!result.allowed) {
     return {
@@ -143,7 +110,7 @@ async function general_rate_limiter(config, context) {
     };
   }
 
-  return { allowed: true, remaining: result.remaining };
+  return { allowed: true };
 }`
 
 export const generalRateLimiter: NodeHandlerGenerator = {
@@ -154,7 +121,13 @@ export const generalRateLimiter: NodeHandlerGenerator = {
   throw new Error('general-rate-limiter must run on the server');
 }`
   },
-  generateServerHandler(): string {
-    return RATE_LIMIT_STORE_CODE + '\n' + RATE_LIMIT_HANDLER_CODE
+  generateServerHandler(options?: ServerHandlerOptions): string {
+    return (
+      generateSecurityRuntimeVar('__rateLimitSecurity', serverHandlerPrefix(options)) +
+      '\n' +
+      VISITOR_KEY_CODE +
+      '\n' +
+      RATE_LIMIT_HANDLER_CODE
+    )
   },
 }

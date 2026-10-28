@@ -298,6 +298,12 @@ export interface ProjectUIDL {
   }
   workflows?: UIDLWorkflows
   globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>
+  /**
+   * Company details from Project settings. Present even when invoicing is off,
+   * so a `company` global binding resolves on a site with no store. The invoice
+   * template does not read this: it reads the company baked into invoice data.
+   */
+  companyDetails?: UIDLCompanyDetails
   invoiceSettings?: UIDLInvoiceSettings
   ecommerceSettings?: UIDLEcommerceSettings
   // A site that takes online payments without a store (its bookings): the
@@ -306,10 +312,18 @@ export interface ProjectUIDL {
   blogSettings?: UIDLBlogSettings
   /** The Help Center's — same shape as the Blog's; present for a project that activated it. */
   helpCenterSettings?: UIDLBlogSettings
+  /** The newsletter: how people join and leave it. Absent when Newsletter is off. */
+  newsletterSettings?: UIDLNewsletterSettings
   /** The live llms files; absent when the site serves none, or only the editor's static llms.txt. */
   llms?: UIDLLlmsFiles
   aiAssistantChat?: UIDLAIAssistantChat
   analytics?: UIDLAnalytics
+  /**
+   * The popups the owner switched on, with the rules the published runtime
+   * opens them by. Each is also drawn, hidden, at the end of every page.
+   * Absent when none is on.
+   */
+  popups?: UIDLPopupConfig
   pwa?: UIDLProgressiveWebApp
   webPush?: UIDLWebPush
   // The bookings' calendar links, which Airbnb, Booking.com, Vrbo or Google
@@ -317,7 +331,45 @@ export interface ProjectUIDL {
   bookingCalendars?: UIDLBookingCalendars
   // The booking items' category taxonomy. Absent without Bookings.
   bookingSettings?: UIDLBookingSettings
+  /**
+   * The editor's registry plugins that are on, by key — the age gate & geo
+   * block, instant search, … — each with its settings as the editor stores
+   * them (every field) and the routes of the pages it built. Each plugin's own
+   * project plugin reads its key; absent when none is on.
+   */
+  plugins?: UIDLPlugins
+  /**
+   * Where the automations' tables (the event ledger and the queue) live: the
+   * data source that holds `teleport_automations`. The in-app event bus opens
+   * the same database. Absent without automations, or when the project has no
+   * TeleportHQ database for them — no bus is generated then.
+   */
+  automations?: UIDLAutomationsSettings
 }
+
+/**
+ * The data source the automations' queue runs on: the TeleportHQ-managed
+ * database only (v1) — the one the platform fills `TELEPORT_DB_*` for, and the
+ * one the data API every event writer goes through opens.
+ */
+export type UIDLAutomationsDataSourceType = 'teleport'
+
+export interface UIDLAutomationsSettings {
+  dataSourceId: string
+  dataSourceType: UIDLAutomationsDataSourceType
+}
+
+export type UIDLPluginSettingValue = string | number | boolean | string[]
+
+export interface UIDLPluginRecord {
+  settings: Record<string, UIDLPluginSettingValue>
+  /** The plugin's pages by the role it gave them, as routes: `{ search: '/search' }`. */
+  pages?: Record<string, string>
+  /** What the plugin's runtime needs computed from the document: the search's pages index. */
+  data?: Record<string, unknown>
+}
+
+export type UIDLPlugins = Record<string, UIDLPluginRecord>
 
 export interface UIDLAnalytics {
   enabled: boolean
@@ -328,6 +380,52 @@ export interface UIDLAnalytics {
    * anything else matches exactly. Absent or empty: every page is tracked.
    */
   disabledPaths?: string[]
+}
+
+export type UIDLPopupPurpose = 'newsletter' | 'discount' | 'promote' | 'announcement' | 'custom'
+
+export type UIDLPopupLayout = 'center' | 'corner' | 'bottom'
+
+export interface UIDLPopup {
+  /**
+   * The popup component's id: the runtime opens it with the custom event
+   * `workflow:custom:tq-popup-open-<id>`, and its card carries
+   * `data-tq-popup-root="<id>"`.
+   */
+  id: string
+  /** The component's key in `components`. */
+  componentName: string
+  purpose: UIDLPopupPurpose
+  layout: UIDLPopupLayout
+  trigger: {
+    desktop: 'exit-intent' | 'delay' | 'scroll' | 'load'
+    phone: 'delay' | 'scroll' | 'load'
+    delaySeconds: number
+    scrollPercent: number
+  }
+  /** At most once every `days` days, once ever, or once per browser session. */
+  frequency: { kind: 'days' | 'once' | 'session'; days: number }
+  /**
+   * Where it may open: on every page, only on `paths`, or everywhere but
+   * `paths`. Path patterns as `UIDLAnalytics.disabledPaths` (a trailing `*`
+   * matches by prefix), in every language the site is served in.
+   */
+  pages: { mode: 'all' | 'only' | 'except'; paths: string[] }
+  /** Returning = the visitor's browser has loaded a page of the site before. */
+  audience: 'everyone' | 'new' | 'returning'
+  /** The code a discount popup's "Copy code" button copies. */
+  voucherCode?: string
+}
+
+export interface UIDLPopupConfig {
+  /** Oldest first: of two popups with equally specific page rules, the later one is newer. */
+  popups: UIDLPopup[]
+  /**
+   * Path patterns no popup ever opens on, in every language: the store's cart,
+   * checkout, orders and account pages, a customer's bookings, the sign-in,
+   * sign-up and account pages, and the admin panel.
+   */
+  excludedPaths: string[]
 }
 
 /**
@@ -628,6 +726,9 @@ export interface UIDLWorkflowNode {
   type: string
   label: string
   name?: string
+  // The editor builder's stable key for the step (its `data.label`), exported
+  // only when the step was renamed so it no longer equals `name`.
+  builderLabel?: string
   config: Record<string, unknown>
   executionEnv: 'client' | 'server' | 'universal'
   stepNumber: number
@@ -788,6 +889,18 @@ export interface UIDLCanonicalAsset {
    * `path` remains the fallback for rows without one.
    */
   dynamicOverride?: UIDLDynamicReference
+  /**
+   * Per route parameter, a prop reference to a `{ [locale]: value }` map on
+   * the entity row (a post's slug per language). Each locale's hreflang link
+   * then reads the locale's own value and falls back to the route parameter —
+   * instead of pointing every locale at the current locale's slug.
+   */
+  localizedParams?: Record<string, UIDLDynamicReference>
+  /**
+   * The query parameter that pages a listing (`?page=2`): from the second
+   * page on, the canonical and the og:url carry it, so each page is its own.
+   */
+  pageParam?: string
 }
 
 export interface UIDLIconAsset {
@@ -900,6 +1013,17 @@ export interface UIDLInitialPropsData {
      * permanent redirect forever.
      */
     statusCode?: 301 | 302 | 307 | 308
+    /**
+     * A row the address no longer names (its slug changed) is looked up by
+     * `column`, the JSON list of its former slugs, with the route's `param`,
+     * and answered with a 301 to `urlPrefix/<currentField>` — before the 404.
+     */
+    previousSlugs?: {
+      column: string
+      param: string
+      currentField: string
+      urlPrefix: string
+    }
   }
 }
 
@@ -952,7 +1076,12 @@ export interface UIDLComponentSEO {
 
 export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicReference>
 
-export type UIDLStructuredDataEntry = string | UIDLStructuredDataObject
+/**
+ * One JSON-LD document of the page: pre-serialized JSON, a node tree, or a
+ * computed WHOLE document (`faqPage`, `breadcrumbTrail`) that may resolve to
+ * `undefined` at render time and then leaves the page's array altogether.
+ */
+export type UIDLStructuredDataEntry = string | UIDLStructuredDataObject | UIDLStructuredDataComputed
 
 export interface UIDLStructuredDataObject {
   [key: string]: UIDLStructuredDataNode
@@ -992,6 +1121,14 @@ export type UIDLStructuredDataNode =
  * - `isoDate`: `<entity>.<column>` (milliseconds, an ISO string or a Date; or
  *   `fallbackColumn` when it is empty) as the ISO 8601 string schema.org dates
  *   take, or `undefined` when both are empty.
+ * - `faqPage`: a WHOLE `FAQPage` document from `<entity>.<column>` (an array
+ *   of `{ question, answer }`), or `undefined` with fewer than two pairs — a
+ *   top-level entry that then leaves the page's array.
+ * - `breadcrumbTrail`: a WHOLE `BreadcrumbList`: the static `crumbs`, then the
+ *   entity's category (`categoryNameColumn` / `categorySlugColumn` under
+ *   `categoryUrlPrefix`, skipped when the row has none), then the entity
+ *   itself (`column` as the name, `slugColumn` under `urlPrefix`); positions
+ *   numbered at render time so they stay sequential.
  */
 export interface UIDLStructuredDataComputed {
   type: 'computed'
@@ -1003,9 +1140,19 @@ export interface UIDLStructuredDataComputed {
     | 'namedEntity'
     | 'reviewList'
     | 'isoDate'
+    | 'faqPage'
+    | 'breadcrumbTrail'
   refPath: string[]
   column: string
   urlPrefix?: string
+  /** `breadcrumbTrail` only: the crumbs before the entity's, in order. */
+  crumbs?: Array<{ name: string; item: string }>
+  /** `breadcrumbTrail` only: the field holding the entity's own URL segment; `slug` when absent. */
+  slugColumn?: string
+  /** `breadcrumbTrail` only: the entity's category crumb, when the row names one. */
+  categoryNameColumn?: string
+  categorySlugColumn?: string
+  categoryUrlPrefix?: string
   /** `isoDate` only: the field read when `column` is empty. */
   fallbackColumn?: string
   /** `aggregateRating` only: the field holding the average score. */
@@ -1172,6 +1319,7 @@ export interface UIDLGlobalReference {
     id:
       | 'locale'
       | 'locales'
+      | 'company'
       | 'currentUser'
       | 'userIsLoggedIn'
       | 'ecommerce'
@@ -2183,6 +2331,19 @@ export interface UIDLEcommerceCategory {
   description?: string | null
   /** Per-language overrides for `name`/`description`; missing fields fall back to the main-language values above. */
   translations?: Record<string, UIDLEcommerceCategoryTranslation>
+  /**
+   * Live count of the active products filed under this category — its own and
+   * its descendants', since a product's `category_filter_ids` carries the
+   * ancestors too. Never baked: the generated store fills it at runtime from
+   * `/api/ecommerce/category-counts`, so it is `undefined` until that answers.
+   */
+  productCount?: number
+  /**
+   * The bookings' twin: how many bookable items the category holds (its own
+   * and its descendants'), counted live by the generated site from
+   * `/api/bookings/category-counts` — so `undefined` until that answers.
+   */
+  itemCount?: number
   children: UIDLEcommerceCategory[]
 }
 
@@ -2354,6 +2515,48 @@ export interface UIDLBlogSettings {
   siteIndex?: UIDLContentSiteIndex
 }
 
+/** One newsletter email's copy: the main language's, and the other languages' copies. */
+export interface UIDLNewsletterEmailTemplate {
+  subject: string
+  body: string
+  localized?: Record<string, { subject: string; body: string }>
+}
+
+/**
+ * The newsletter (teleport-plugin-next-workflows `NextNewsletterProjectPlugin`):
+ * a subscriber is a person of the `users` table whose `newsletter_status` is
+ * `subscribed`. The site adds people (`/api/newsletter/subscribe`, the
+ * `newsletter-subscribe` node), confirms them (double opt-in) and lets them
+ * leave, on its own server, with the emails below. The TeleportHQ database only.
+ */
+export interface UIDLNewsletterSettings {
+  dataSourceId: string
+  dataSourceType: 'teleport'
+  /** Double opt-in: a sign-up is `pending` until the emailed link is opened. */
+  confirmation: boolean
+  /** A welcome email when someone joins. */
+  welcome: boolean
+  /** `''` when unset (the site's `EMAIL_FROM` then). */
+  sender: { name: string; email: string }
+  email: {
+    provider: 'resend' | 'sendgrid' | 'postmark' | 'mailgun' | 'mailersend' | null
+    /** The env var holding the provider credential. */
+    apiKeyEnv: string | null
+    /** Mailgun: the env var holding the sending domain. */
+    domainEnv?: string | null
+  }
+  templates: {
+    confirmation: UIDLNewsletterEmailTemplate
+    welcome?: UIDLNewsletterEmailTemplate
+  }
+  /** The site paths of the confirm and unsubscribe pages, e.g. `/newsletter/confirm`. */
+  pages: { confirm: string; unsubscribe: string }
+  /** The sign-up form's "Email me news and offers" box also subscribes. */
+  signUp: { signupCheckbox: boolean }
+  /** The project has an admin panel. The newsletter send route is not emitted. */
+  adminRoutes: boolean
+}
+
 /** Where a preset's live sitemap and llms sections read the posts from, and where they link them. */
 export interface UIDLContentSiteIndex {
   /** The data source holding the preset's posts table. */
@@ -2404,6 +2607,12 @@ export interface UIDLContentCategoryPages {
  */
 export interface UIDLBookingSettings {
   categories?: UIDLEcommerceCategory[]
+  /**
+   * The data source the booking items table (`teleport_booking_items`) lives
+   * in — what the live `itemCount` route reads. Absent when the project has
+   * none: the categories are then baked without counts.
+   */
+  dataSourceId?: string
 }
 
 /** Where the generated `/rss.xml` route reads the posts from, and where it links them. */

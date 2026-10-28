@@ -1,9 +1,11 @@
-import { NodeHandlerGenerator } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions } from '../types'
+import { serverHandlerPrefix } from '../general/visitor-request'
 import { generateAIProviderUtils, AI_PROVIDER_DEPENDENCIES } from './ai-provider-utils'
 import { generateAiSqlSelectGuard } from './ai-sql-select-guard'
 
 declare function __ai_resolveTextField(val: any): string
 declare function __ai_resolveToken(token: any): string
+declare function __ai_publicMessage(err: any, code: string): string
 declare function __ai_resolveProvider(config: any): string
 declare function __ai_callProvider(params: any): Promise<any>
 declare function __ai_parseJSON(text: any): any
@@ -55,6 +57,8 @@ async function ai_select_database_data(config: any, context: any) {
   try {
     token = __ai_resolveToken(config.token)
   } catch (err: any) {
+    // The detail to the server log only; the result names just the code.
+    __ai_publicMessage(err, 'authentication_error')
     return fail('authentication_error')
   }
   const provider = __ai_resolveProvider(config)
@@ -80,6 +84,7 @@ async function ai_select_database_data(config: any, context: any) {
         jsonMode: true,
       })
     } catch (err: any) {
+      __ai_publicMessage(err, 'provider_error')
       providerFailed = true
       break
     }
@@ -159,9 +164,9 @@ export const aiSelectDatabaseData: NodeHandlerGenerator = {
       ai_select_database_data.toString()
     )
   },
-  generateServerHandler(): string {
+  generateServerHandler(options?: ServerHandlerOptions): string {
     return (
-      generateAIProviderUtils() +
+      generateAIProviderUtils(serverHandlerPrefix(options)) +
       '\n\n' +
       generateAiSqlSelectGuard() +
       '\n\n' +

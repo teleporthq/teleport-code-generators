@@ -1,6 +1,18 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from '../email/outbound-message-guard'
+
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 
 async function sms_smsapi(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('sms', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageId: '', skipped: true, reason: refused.skipped }
+      : { messageId: '', success: false, error: refused.error }
+  }
   const accessToken = config.accessToken
   const from = config.from
   const to = config.to
@@ -45,7 +57,5 @@ async function sms_smsapi(config: any, context: Record<string, unknown>) {
 export const smsSmsapi: NodeHandlerGenerator = {
   nodeType: 'sms-smsapi',
   executionEnv: 'server',
-  generateHandler(): string {
-    return handlerToString(sms_smsapi)
-  },
+  ...outboundMessageHandlerSources(sms_smsapi),
 }

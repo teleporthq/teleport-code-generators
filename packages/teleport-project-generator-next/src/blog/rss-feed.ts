@@ -219,6 +219,13 @@ function redirectsElsewhere(post) {
   return typeof target === 'string' && target.trim() !== ''
 }
 
+// A post kept out of search engines stays out of the feed readers index too.
+function keptOutOfSearch(post) {
+  var noIndex = field(post, 'noIndex', 'no_index')
+  // The same truthy set the post page reads (coerceBoolean): a CSV import stores '1'.
+  return noIndex === true || noIndex === 'true' || noIndex === 't' || noIndex === 1 || noIndex === '1'
+}
+
 // The canonical origin; the request's own host only when the pages carry none.
 function siteOrigin(req) {
   if (FEED.siteUrl) return FEED.siteUrl
@@ -232,7 +239,7 @@ function siteOrigin(req) {
 function buildFeed(posts, base, locale) {
   var items = []
   posts.forEach(function (post) {
-    if (!post || typeof post !== 'object' || redirectsElsewhere(post)) return
+    if (!post || typeof post !== 'object' || redirectsElsewhere(post) || keptOutOfSearch(post)) return
     var link = postLink(post, base)
     if (link) items.push({ post: post, link: link, time: publishedTime(post) })
   })

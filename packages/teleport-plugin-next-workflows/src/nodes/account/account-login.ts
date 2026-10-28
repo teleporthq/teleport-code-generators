@@ -1,4 +1,6 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions, handlerToString } from '../types'
+import { serverHandlerPrefix } from '../general/visitor-request'
+import { securityRuntimeSpecifier } from '../../security-runtime/security-runtime-code'
 
 async function account_login(config: any, context: Record<string, unknown>) {
   const email = config.email
@@ -89,12 +91,13 @@ export const accountLogin: NodeHandlerGenerator = {
   nodeType: 'account-login',
   executionEnv: 'client',
   dependencies: {
-    'next-auth': '^4.24.0',
+    'next-auth': '4.24.15',
   },
   generateHandler(): string {
     return handlerToString(account_login)
   },
-  generateServerHandler(): string {
+  generateServerHandler(options: ServerHandlerOptions = {}): string {
+    const prefix = serverHandlerPrefix(options)
     return `async function account_login(config, context) {
   const email = config.email;
   const password = config.password;
@@ -106,13 +109,27 @@ export const accountLogin: NodeHandlerGenerator = {
   const __nodeRequire = (typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require);
   const { verifyPassword } = __nodeRequire('../../../utils/auth/hash-password');
   const authUtils = __nodeRequire('../../../utils/auth/auth-options');
+  const security = __nodeRequire('${securityRuntimeSpecifier(prefix)}');
 
-  const user = await authUtils.findUserByEmail(email);
-  if (!user) {
-    throw new Error('Invalid email or password');
+  // The same failure throttle as the sign-in route, for the visitor this
+  // route serves (every caller shares one count when the route has none).
+  const request = (context && context.__request) || {};
+  const throttle = { headers: {}, body: { email: email } };
+  throttle.headers[authUtils.SIGN_IN_VISITOR_HEADER] = security.clientIp({
+    headers: request.headers || {},
+    socket: { remoteAddress: request.remoteAddress || '' },
+  });
+  const verdict = await authUtils.checkSignInAllowed(throttle);
+  if (!verdict.allowed) {
+    throw new Error('Too many sign-in attempts. Try again later.');
   }
 
-  if (!verifyPassword(password, user.password)) {
+  const user = await authUtils.findUserByEmail(email);
+  // Checked even without an account (against a stand-in hash), so every
+  // failure costs what a wrong password costs.
+  const passwordOk = verifyPassword(password, user ? user.password : null);
+  if (!user || !passwordOk) {
+    await authUtils.countSignInFailure(throttle, email);
     throw new Error('Invalid email or password');
   }
 

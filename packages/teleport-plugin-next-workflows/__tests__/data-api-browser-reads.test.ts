@@ -1,6 +1,10 @@
 /* tslint:disable:function-constructor */
 import { TableAccess } from '@teleporthq/teleport-shared'
 import { BROWSER_READABLE_TABLES, generateDataAPIRoute } from '../src/data-api-route-generator'
+import { isSecurityRuntimeSpecifier, loadSecurityRuntime } from './_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * What a BROWSER may read through `/api/data/<ds>/<op>`, and what it is told
@@ -72,6 +76,9 @@ function bootRoute(secret: string | undefined, options: BootOptions = {}) {
     }
     if (name === 'next-auth/jwt') {
       return { getToken: async () => null }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }

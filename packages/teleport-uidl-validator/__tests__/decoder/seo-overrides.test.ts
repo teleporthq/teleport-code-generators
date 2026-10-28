@@ -97,3 +97,55 @@ describe('dynamic metaTag fallback survives decoding', () => {
     )
   })
 })
+
+describe('the blog SEO fields survive decoding', () => {
+  it("keeps the canonical asset's per-locale params and its page param", () => {
+    const decoded = canonicalAssetDecoder.runWithException({
+      type: 'canonical',
+      path: 'https://example.com/blog/[slug]',
+      pageParam: 'page',
+      localizedParams: {
+        ro: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            id: 'root',
+            refPath: ['blogPost', 'slugByLocale', 'ro'],
+          },
+        },
+      },
+    })
+    expect(decoded.pageParam).toBe('page')
+    expect(decoded.localizedParams).toEqual({
+      ro: {
+        type: 'dynamic',
+        content: { referenceType: 'prop', id: 'root', refPath: ['blogPost', 'slugByLocale', 'ro'] },
+      },
+    })
+  })
+
+  it('keeps the former-slugs lookup on the redirect', () => {
+    const decoded = initialPropsDecoder.runWithException({
+      exposeAs: { name: 'blogPost', valuePath: ['data', '0'] },
+      resource: { id: 'TQ_fetchBlogPostDetail' },
+      redirect: {
+        destinationField: 'redirectUrl',
+        previousSlugs: {
+          column: 'previous_slugs',
+          param: 'slug',
+          currentField: 'slug',
+          urlPrefix: '/blog',
+        },
+      },
+    })
+    expect(decoded.redirect).toEqual({
+      destinationField: 'redirectUrl',
+      previousSlugs: {
+        column: 'previous_slugs',
+        param: 'slug',
+        currentField: 'slug',
+        urlPrefix: '/blog',
+      },
+    })
+  })
+})

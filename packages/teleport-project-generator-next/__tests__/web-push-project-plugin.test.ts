@@ -29,6 +29,12 @@ describe('NextWebPushProjectPlugin', () => {
     expect(fileContent(structure, 'web-push-send-route', 'send')).toContain(
       'var TOKEN_HEADER = "x-teleport-push-token";'
     )
+    // The subscriptions route counts visitors through the shared security
+    // runtime, which ships with it even where no other route needs it.
+    expect(fileContent(structure, 'web-push-subscriptions-route', 'subscriptions')).toContain(
+      'var security = require("../../../utils/security-runtime");'
+    )
+    expect(structure.files.get('security-runtime')?.path).toEqual(['utils'])
     expect(structure.dependencies).toEqual({ pg: '^8.12.0', 'web-push': '^3.6.7' })
     expect(structure.uidl.globals.env).toEqual({
       WEB_PUSH_VAPID_PUBLIC_KEY: 'BPublicKey',
@@ -69,6 +75,7 @@ describe('NextWebPushProjectPlugin', () => {
     const structure = await run(extra)
     expect(structure.files.has('web-push-server')).toBe(false)
     expect(structure.files.has('web-push-subscriptions-route')).toBe(false)
+    expect(structure.files.has('security-runtime')).toBe(false)
     expect(structure.dependencies).toEqual({})
     expect(structure.uidl.globals.env).toBeUndefined()
   })

@@ -1,7 +1,10 @@
-import { NodeHandlerGenerator } from '../types'
+import { NodeHandlerGenerator, ServerHandlerOptions } from '../types'
 import { generateAIProviderUtils, AI_PROVIDER_DEPENDENCIES } from '../ai/ai-provider-utils'
+import { serverHandlerPrefix } from '../general/visitor-request'
 
 declare function __ai_resolveToken(token: any): string
+declare function __ai_enforceCallBudget(prompt?: any): Promise<void>
+declare function __ai_publicMessage(err: any, code: string): string
 
 async function utility_similarity_scoring(config: any, context: Record<string, unknown>) {
   const text1 = config.text1 || ''
@@ -249,19 +252,30 @@ async function utility_similarity_scoring(config: any, context: Record<string, u
         try {
           apiKey = __ai_resolveToken(config.token)
         } catch (tokenErr: any) {
-          return { score: 0, algorithm, error: tokenErr.message }
+          return {
+            score: 0,
+            algorithm,
+            error: __ai_publicMessage(tokenErr, 'authentication_error'),
+          }
         }
 
-        const __nodeRequire =
-          typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
-        const _mod = __nodeRequire('openai')
-        const OpenAI = _mod.default || _mod
-        const client = new OpenAI({ apiKey })
-
-        const response = await client.embeddings.create({
-          model: config.model || 'text-embedding-3-small',
-          input: [String(text1), String(text2)],
-        })
+        // One call against the site's daily AI budget; a provider's detail
+        // stays in the server log (see ai-provider-utils).
+        let response
+        try {
+          await __ai_enforceCallBudget()
+          const __nodeRequire =
+            typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
+          const _mod = __nodeRequire('openai')
+          const OpenAI = _mod.default || _mod
+          const client = new OpenAI({ apiKey })
+          response = await client.embeddings.create({
+            model: config.model || 'text-embedding-3-small',
+            input: [String(text1), String(text2)],
+          })
+        } catch (providerErr: any) {
+          return { score: 0, algorithm, error: __ai_publicMessage(providerErr, 'provider_error') }
+        }
 
         const vectors = (response.data || []).map(function (entry: any) {
           return entry.embedding
@@ -311,5 +325,12 @@ export const utilitySimilarityScoring: NodeHandlerGenerator = {
     // `__ai_resolveToken` turns a secret reference into the real key; it lives
     // in the shared AI utils, so they have to be emitted alongside the handler.
     return generateAIProviderUtils() + '\n\n' + utility_similarity_scoring.toString()
+  },
+  generateServerHandler(options?: ServerHandlerOptions): string {
+    return (
+      generateAIProviderUtils(serverHandlerPrefix(options)) +
+      '\n\n' +
+      utility_similarity_scoring.toString()
+    )
   },
 }

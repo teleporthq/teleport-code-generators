@@ -174,7 +174,8 @@ describe('blog post transform — heading anchors', () => {
       `<${tag}${attrs}><a class="tq-heading-link" href="#${id}">${text}</a>` +
       `<a class="tq-heading-anchor" href="#${id}" aria-hidden="true" tabindex="-1">#</a></${tag}>`
     expect(built.content).toBe(
-      '<h1>Title</h1>' +
+      // The body's h1 is demoted to a section like any other (the page title is the one h1).
+      '<h2 id="title"><a class="tq-heading-link" href="#title">Title</a><a class="tq-heading-anchor" href="#title" aria-hidden="true" tabindex="-1">#</a></h2>' +
         anchored('h2', ' id="getting-started"', 'getting-started', 'Getting Started') +
         anchored('h3', ' class="x" id="custom"', 'custom', 'Café &amp; Crème') +
         anchored('h2', ' id="getting-started-3"', 'getting-started-3', 'Getting started') +

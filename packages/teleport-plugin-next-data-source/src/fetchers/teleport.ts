@@ -17,7 +17,12 @@ import { generateRowOrderTiebreakHelper, rowIdentityColumn } from '../row-order'
 import { generateProductFilterClauseHelper } from '../product-filter-fields'
 import { collectLocalizedColumns, generateLocalizedColumnsHelper } from '../localized-columns'
 import { REQUEST_LOCALE_PARAM } from '../request-locale'
-import { generateReadGuardCall, generateTableAccessPreamble } from './utils/table-access-guard'
+import { DataExposure } from '@teleporthq/teleport-shared'
+import {
+  generateReadGuardCall,
+  generateTableAccessPreamble,
+  sqlRouteFieldPolicy,
+} from './utils/table-access-guard'
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
@@ -106,7 +111,14 @@ export const generateTeleportFetcher = (
 
   return `${PG_CLIENT_IMPORT}
 
-${generateTableAccessPreamble(transformOptions.trustedReaderRoles || [])}
+${generateTableAccessPreamble(
+  transformOptions.trustedReaderRoles || [],
+  transformOptions.routeExposure ||
+    DataExposure.readExposureFor(transformOptions.dataExposure, { tableName }),
+  sqlRouteFieldPolicy(config, tableName),
+  tableName,
+  transformOptions
+)}
 function normalizePostgresConnectionString(connectionString) {
   if (!connectionString || typeof connectionString !== 'string') return connectionString;
   if (/^postgresql:\\/(?!\\/)/i.test(connectionString)) {
@@ -139,9 +151,11 @@ const getClient = () => {
   if (ssl === false && connStr) {
     connStr = stripSslQueryParamsFromConnectionString(connStr);
   }
+  // No query waits on the database longer than this (enforced by the client:
+  // a server-side statement_timeout does not survive a pooler).
   if (connStr) {
     return new Client(Object.assign(
-      { connectionString: connStr },
+      { connectionString: connStr, query_timeout: ${DataExposure.READ_QUERY_TIMEOUT_MS} },
       ssl !== undefined ? { ssl: ssl } : {}
     ));
   }
@@ -152,6 +166,7 @@ const getClient = () => {
       user: ${userRef},
       password: ${passwordRef},
       database: ${databaseRef},
+      query_timeout: ${DataExposure.READ_QUERY_TIMEOUT_MS},
     },
     ssl !== undefined ? { ssl: ssl } : {}
   ));
@@ -231,7 +246,9 @@ const processFilters = (filters, conditions, queryParams, paramIndex) => {
       return null
     }
     
-    const validOps = ['=', '!=', '>', '<', '>=', '<=']
+    // 'like' reads a JSON-list cell for one member (a post's former slugs); the
+    // value is a bound parameter, so a pattern never reaches the SQL text.
+    const validOps = ['=', '!=', '>', '<', '>=', '<=', 'like']
     const sqlOperator = validOps.includes(operand) ? operand : '='
     const clause = \`\${field} \${sqlOperator} $\${paramIndex}\`
     queryParams.push(value)
@@ -363,7 +380,8 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
           }
           
           const schemaResult = await client.query(schemaQuery, schemaParams)
-          columns = schemaResult.rows.map(row => row.column_name)
+          // A credential column is never searched: a search is an oracle for it.
+          columns = schemaResult.rows.map(row => row.column_name).filter((column) => !__taIsCredentialColumn(column))
         } catch (schemaError) {
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
         }
@@ -423,8 +441,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     }
     const usedRewrittenSort = orderBySql !== plainOrderBySql
 
-    const limitValue = requestRowCount(limit || perPage)
-    const offsetValue = offset !== undefined ? parseInt(offset) : (page && perPage ? (parseInt(page) - 1) * parseInt(perPage) : undefined)
+    // Whole numbers only, and a browser's read capped - see __taReadWindow.
+    const __window = __taReadWindow(req)
+    const limitValue = __window.limit || __window.perPage
+    const offsetValue = __window.offset !== undefined ? __window.offset : (__window.page && __window.perPage ? (__window.page - 1) * __window.perPage : undefined)
 
     let sqlTail = ''
     if (limitValue !== undefined) {
@@ -553,7 +573,8 @@ ${generateReadGuardCall(tableName, null)}
           }
           
           const schemaResult = await client.query(schemaQuery, schemaParams)
-          columns = schemaResult.rows.map(row => row.column_name)
+          // A credential column is never searched: a search is an oracle for it.
+          columns = schemaResult.rows.map(row => row.column_name).filter((column) => !__taIsCredentialColumn(column))
         } catch (schemaError) {
           console.warn('Failed to fetch column names from information_schema:', schemaError.message)
         }

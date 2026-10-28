@@ -594,7 +594,7 @@ describe('plugin-jsx-head-config', () => {
     expect(code).toMatch(/\.replace\(\/<\/g/)
   })
 
-  it('Should emit multiple JSON-LD scripts', async () => {
+  it('Should emit every JSON-LD entry in ONE script, as a JSON-LD array', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
     uidlSample.seo = {
@@ -613,13 +613,67 @@ describe('plugin-jsx-head-config', () => {
 
     const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
     const helmetNode = astNode.children[0] as types.JSXElement
-    expect(helmetNode.children.length).toBe(2)
-    expect((helmetNode.children[0] as types.JSXElement).openingElement.name).toMatchObject({
-      name: 'script',
-    })
-    expect((helmetNode.children[1] as types.JSXElement).openingElement.name).toMatchObject({
-      name: 'script',
-    })
+    expect(helmetNode.children.length).toBe(1)
+    const code = codeOf(helmetNode.children[0] as types.JSXElement)
+    // Neighbouring pre-serialized documents are joined into one literal.
+    expect(code).toContain(
+      '__html: "[{\\"@type\\":\\"WebSite\\"},{\\"@type\\":\\"Organization\\"}]"'
+    )
+  })
+
+  it('Should join pre-serialized, route-bound and entity-bound entries into one valid array', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      structuredData: [
+        '{"@type":"WebSite","name":"Acme"}',
+        '{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"item":"https://example.com/events/[id]"}]}',
+        {
+          '@type': 'Product',
+          name: {
+            type: 'dynamic',
+            content: { referenceType: 'prop', id: 'root', refPath: ['product', 'name'] },
+          },
+        },
+      ],
+    }
+
+    const freshChunk = createFreshJsxChunk()
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [freshChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = freshChunk.meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect(helmetNode.children.length).toBe(1)
+    expect(structure.dependencies.useRouter).toBeDefined()
+
+    const script = helmetNode.children[0] as types.JSXElement
+    const attribute = script.openingElement.attributes.find(
+      (attr) => types.isJSXAttribute(attr) && attr.name.name === 'dangerouslySetInnerHTML'
+    ) as types.JSXAttribute
+    const html = (
+      (attribute.value as types.JSXExpressionContainer).expression as types.ObjectExpression
+    ).properties[0] as types.ObjectProperty
+    // tslint:disable-next-line:function-constructor
+    const evaluate = new Function('props', 'router', `return ${codeOf(html.value)}`)
+    const text = evaluate({ product: { name: 'Mug </script>' } }, { query: { id: '42' } })
+    expect(JSON.parse(text)).toEqual([
+      { '@type': 'WebSite', name: 'Acme' },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, item: 'https://example.com/events/42' },
+        ],
+      },
+      { '@type': 'Product', name: 'Mug </script>' },
+    ])
+    expect(text).not.toContain('</script>')
   })
 
   it('Should not change output when no structuredData is present', async () => {

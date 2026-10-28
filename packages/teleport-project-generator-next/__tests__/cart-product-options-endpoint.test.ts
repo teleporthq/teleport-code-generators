@@ -97,6 +97,10 @@ function bootRoute(scenario: Scenario, database?: (sql: string, params: unknown[
     if (name === '../../../utils/email/email-locale') {
       return { normalizeEmailLocale: () => null }
     }
+    // A runtime without a global `crypto` keys its rows from the module's generator.
+    if (name === 'crypto') {
+      return require('crypto')
+    }
     throw new Error('unexpected require: ' + name)
   }
   new Function('require', 'module', 'exports', 'process', code)(
@@ -117,7 +121,10 @@ function bootRoute(scenario: Scenario, database?: (sql: string, params: unknown[
         return this
       },
     }
-    await moduleObj.exports({ method: 'POST', query: { op }, headers: {}, body }, res)
+    // A signed-in local request carries the plain session cookie (the only
+    // name read on http; see teleport-shared session-cookie-resolver).
+    const headers = scenario.signedIn ? { cookie: 'next-auth.session-token=signed' } : {}
+    await moduleObj.exports({ method: 'POST', query: { op }, headers, body }, res)
     return { payload, queries: queries.filter((query) => !/information_schema/.test(query.sql)) }
   }
   return { run, probes: () => probes }

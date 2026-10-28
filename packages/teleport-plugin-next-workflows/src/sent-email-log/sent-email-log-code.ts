@@ -19,7 +19,31 @@ import { generateLazyPgClientCode } from '../pg-client-code'
  * `pgSupported=false` (a MySQL / Mongo / Firestore project) emits a module with
  * the same exports that records nothing, so consumers need no branching.
  */
-export const generateSentEmailLogCode = (options: { pgSupported: boolean }): string => {
+export const generateSentEmailLogCode = (options: {
+  pgSupported: boolean
+  /**
+   * The project has automations: a send made by an automation handler is
+   * filed under the automation (`context.__emailAttribution`: `source`,
+   * `sourceRef`, the event's `orderId`), so the order's email trail lists it.
+   * Without it the module is byte for byte the one every other project gets.
+   */
+  attribution?: boolean
+}): string => {
+  const attributionCode = options.attribution
+    ? `// A send made by an automation is filed under it, and under the event's order.
+function __attribute(entry, context) {
+  var a = context && context.__emailAttribution;
+  if (!entry || !a || typeof a !== 'object') return entry;
+  if (a.source) entry.source = a.source;
+  if (a.sourceRef) entry.sourceRef = a.sourceRef;
+  if (a.orderId && !entry.orderId) entry.orderId = a.orderId;
+  return entry;
+}
+
+`
+    : ''
+  const attributed = (entryExpression: string): string =>
+    options.attribution ? `__attribute(${entryExpression}, context)` : entryExpression
   if (!options.pgSupported) {
     return `/**
  * Sent-email ledger — disabled: the project's data source is not Postgres.
@@ -365,15 +389,19 @@ function wrapEmailNodeHandler(nodeType, handler) {
     try {
       result = await handler.apply(this, arguments);
     } catch (err) {
-      __register(context, recordSentEmail(__entryFromNode(nodeType, config, null, err)));
+      __register(context, recordSentEmail(${attributed(
+        '__entryFromNode(nodeType, config, null, err)'
+      )}));
       throw err;
     }
-    __register(context, recordSentEmail(__entryFromNode(nodeType, config, result, null)));
+    __register(context, recordSentEmail(${attributed(
+      '__entryFromNode(nodeType, config, result, null)'
+    )}));
     return result;
   };
 }
 
-function __register(context, promise) {
+${attributionCode}function __register(context, promise) {
   if (!context || typeof context !== 'object') return;
   if (!Array.isArray(context.__pendingNodePromises)) context.__pendingNodePromises = [];
   context.__pendingNodePromises.push(promise);

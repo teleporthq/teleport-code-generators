@@ -93,19 +93,29 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
 // sandbox verification to the live API, which rejected it.
 export const generatePaypalSignatureVerificationCode = (): string => {
   return `
+// The named variables first, then a NUMBERED copy of the stored name (the
+// editor numbers a re-typed secret: …_CLIENT_ID2), the highest number being
+// the newest. Never any other variable that merely starts with the name.
 function resolvePaypalEnv(candidates, prefix) {
   var env = process.env;
   for (var i = 0; i < candidates.length; i++) {
     var value = candidates[i] ? env[candidates[i]] : '';
     if (value && String(value).length > 0) return String(value);
   }
+  var best = '';
+  var bestNumber = -1;
   var keys = Object.keys(env);
   for (var k = 0; k < keys.length; k++) {
-    if (keys[k].indexOf(prefix) === 0 && env[keys[k]] && String(env[keys[k]]).length > 0) {
-      return String(env[keys[k]]);
+    if (keys[k].indexOf(prefix) !== 0) continue;
+    var suffix = keys[k].slice(prefix.length);
+    if (!/^[0-9]+$/.test(suffix)) continue;
+    var number = parseInt(suffix, 10);
+    if (env[keys[k]] && String(env[keys[k]]).length > 0 && number > bestNumber) {
+      best = String(env[keys[k]]);
+      bestNumber = number;
     }
   }
-  return '';
+  return best;
 }
 
 async function verifyPaypalSignature(req, rawBody, webhookConfig) {

@@ -134,6 +134,7 @@ export const globalValueDecoder: Decoder<UIDLGlobalReference> = object({
       union(
         constant('locale'),
         constant('locales'),
+        constant('company'),
         constant('currentUser'),
         constant('userIsLoggedIn'),
         constant('ecommerce'),
@@ -263,6 +264,10 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
       unlessFieldEquals: optional(object({ field: string(), value: string() })),
       ownRowsFilter: optional(array(anyJson())),
       statusCode: optional(oneOf(constant(301), constant(302), constant(307), constant(308))),
+      // The former-slugs lookup (a renamed post's old address answers 301).
+      previousSlugs: optional(
+        object({ column: string(), param: string(), currentField: string(), urlPrefix: string() })
+      ),
     })
   ),
 })
@@ -422,6 +427,9 @@ export const canonicalAssetDecoder: Decoder<UIDLCanonicalAsset> = object({
   type: constant('canonical' as const),
   path: string(),
   dynamicOverride: optional(dynamicValueDecoder),
+  // The per-locale slugs for hreflang, and the listing's page param for `?page=N`.
+  localizedParams: optional(dict(dynamicValueDecoder)),
+  pageParam: optional(string()),
 })
 
 export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({

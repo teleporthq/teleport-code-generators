@@ -29,7 +29,7 @@ import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
-import { formControlPropertyReads } from './trigger-generator'
+import { TRACK_LEAD_SOURCE, formControlPropertyReads } from './trigger-generator'
 import { elementVisibleObserverCode } from './element-visible-trigger'
 import { restoreControlledSelectValue } from './controlled-select'
 import { resolveScrollPoint } from './scroll-points'
@@ -1816,6 +1816,11 @@ function __createWorkflowHandlers(stateSetters, stateTypes, stateValuesRef) {
 
   function __execWf(config, triggerContext, serverUrls) {
     triggerContext.__stateValues = Object.assign({}, stateValuesRef.current);
+    // The analytics ids of the visit, so a server segment reporting an
+    // outcome (an order, a booking) can attribute it to this session.
+    triggerContext.__tpa = typeof window !== 'undefined' && window.tpAnalytics && typeof window.tpAnalytics.ids === 'function'
+      ? window.tpAnalytics.ids()
+      : null;
     // Route context for {{urlDifferentiator}} / {{Current Page Entity.id}}
     // template tokens in node configs — resolved by the shared runtime's
     // resolveTemplateTokenString. Read at call time (not render time) so the
@@ -1978,7 +1983,12 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
         `    const fd = new FormData(event.target);\n` +
         `    fd.forEach(function(v, k) { formData[k] = v; });\n` +
         `    const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() });\n` +
-        `    return __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});\n` +
+        // Growth analytics: a form whose workflow ran to the end is a lead.
+        // __execWf resolves undefined when the run threw, so only a finished
+        // run reports.
+        `    return __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId}).then(function(ctx) { if (ctx) { ${TRACK_LEAD_SOURCE(
+          elementId
+        )} } return ctx; });\n` +
         `  }`
       )
     }
@@ -2737,7 +2747,7 @@ const generateRealtimeSubscribeCode = (
         `            const pd = presenceMessage.data || {};\n` +
         `            const triggerContext = {\n` +
         `              channelName: '${channelName}',\n` +
-        `              userId: pd.userId || presenceMessage.clientId || '',\n` +
+        `              userId: presenceMessage.clientId || pd.userId || '',\n` +
         `              userName: pd.userName || '',\n` +
         `              userData: pd.userData || null,\n` +
         `              timestamp: presenceMessage.timestamp || Date.now()\n` +
@@ -2752,7 +2762,7 @@ const generateRealtimeSubscribeCode = (
         `            const pd = presenceMessage.data || {};\n` +
         `            const triggerContext = {\n` +
         `              channelName: '${channelName}',\n` +
-        `              userId: pd.userId || presenceMessage.clientId || '',\n` +
+        `              userId: presenceMessage.clientId || pd.userId || '',\n` +
         `              userName: pd.userName || '',\n` +
         `              timestamp: presenceMessage.timestamp || Date.now()\n` +
         `            };\n` +

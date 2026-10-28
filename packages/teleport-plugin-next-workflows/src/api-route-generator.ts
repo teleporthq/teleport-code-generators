@@ -9,21 +9,34 @@ import {
 } from '@teleporthq/teleport-types'
 import { WorkflowSegment } from './types'
 import { SegmentTrust } from './segment-trust'
+import { securityRuntimeSpecifier } from './security-runtime/security-runtime-code'
+import { isCostBearingNodeType } from './nodes/cost-bearing-node-types'
 import { nodeRegistry } from './nodes'
-import { resolveHandlerEntryName } from './nodes/types'
-import { AI_NODE_TYPES } from './graph-utils'
+import { NodeHandlerGenerator, ServerHandlerOptions, resolveHandlerEntryName } from './nodes/types'
+import { generalWait } from './nodes/general/general-wait'
+import { needsVisitorRequest, VISITOR_REQUEST_INJECTION } from './nodes/general/visitor-request'
+import {
+  markVisitorBoundMessageNodes,
+  markWebhookMessageNodes,
+  PUBLIC_CALLER_INJECTION,
+} from './nodes/email/outbound-message-guard'
+import { AI_PUBLIC_REFUSALS } from './nodes/ai/ai-provider-utils'
+import { AUTOMATION_HANDLERS_PATH, automationEventType } from './automations/automations-scope'
+import { AI_NODE_TYPES, collectCalledCustomNodeTypes } from './graph-utils'
 import {
   generateWebhookBodyCode,
   generateAllSignatureVerificationCode,
   generatePaymentWebhookVerificationCode,
 } from './webhook-signature-verification'
 import { buildWorkflowAuthInjection } from './workflow-auth-generator'
+import { buildVisitorStepLimitGuard } from './visitor-step-limits'
 import {
   hasEmailSendingNodeType,
   isEmailSendingNodeType,
 } from './sent-email-log/sent-email-log-scope'
 import { workflowUtilsAliasLine } from './workflow-utils-alias'
 import { adminCustomNodesRequireLine } from './custom-node-modules'
+import { generateServerCustomNodeCallCode } from './server-custom-node-call'
 import {
   generatePaymentDriversPreamble,
   isPaymentWebhookConfig,
@@ -72,12 +85,236 @@ export interface ServerSegmentRouteOptions {
    * emits carries it.
    */
   trust?: SegmentTrust
+  /**
+   * The project's custom nodes: a custom node this segment runs itself (a
+   * server-only one, see server-custom-node-call.ts) is gated like the steps
+   * it runs.
+   */
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
 }
 
-const buildSegmentConfig = (segment: WorkflowSegment, options: ServerSegmentRouteOptions): string =>
-  JSON.stringify(
+export { isCostBearingNodeType }
+
+/** Per visitor address, per route: a minute's and a day's allowance. */
+export const COST_BEARING_STEP_LIMITS = { perMinute: 30, perDay: 300 }
+
+/** What a visitor sees when a step fails; the detail stays in the server log. */
+export const SEGMENT_PUBLIC_ERROR = 'Something went wrong. Please try again.'
+
+/** What a segment route reads about the visitor (SEGMENT_CONFIG.session). */
+interface SegmentRouteSession {
+  identityNodes: Record<string, string>
+  identityReads: Record<string, string[]>
+  bindings?: unknown[]
+}
+
+/**
+ * The visitor's identity a route reads: what the graph says (current-user
+ * readers, identity-filtered reads, {{Current User.*}} tokens — see
+ * segment-trust.ts) plus the route's `userScoped` identity columns, which the
+ * route binds again after the node that produces them has run.
+ */
+const resolveSegmentSession = (
+  options: ServerSegmentRouteOptions,
+  protection: UIDLWorkflowProtection | undefined
+): SegmentRouteSession | undefined => {
+  const needs = options.trust?.session
+  const bindings = (protection?.userScoped?.bindings || []) as unknown[]
+  if (!needs && bindings.length === 0) {
+    return undefined
+  }
+  return {
+    identityNodes: needs?.identityNodes || {},
+    identityReads: needs?.identityReads || {},
+    ...(bindings.length > 0 ? { bindings } : {}),
+  }
+}
+
+/**
+ * The env var names a segment's node configs reference (project-secret
+ * references): a reply never carries one, even inside a node's error result.
+ */
+const collectSecretNames = (segment: WorkflowSegment): string[] => {
+  const names = new Set<string>()
+  const walk = (value: unknown): void => {
+    if (typeof value === 'string') {
+      if (/^WORKFLOW_SECRET_[A-Za-z0-9_]+$/.test(value)) {
+        names.add(value)
+      } else if (value.indexOf('teleporthq.secrets.') === 0 && value.length > 19) {
+        names.add(value.slice(19))
+      }
+      return
+    }
+    if (!value || typeof value !== 'object') {
+      return
+    }
+    const ref = value as { type?: unknown; content?: { referenceType?: unknown; id?: unknown } }
+    if (
+      ref.type === 'dynamic' &&
+      ref.content &&
+      ref.content.referenceType === 'secret' &&
+      typeof ref.content.id === 'string' &&
+      ref.content.id
+    ) {
+      names.add(ref.content.id)
+      return
+    }
+    Object.keys(value as Record<string, unknown>).forEach((key) =>
+      walk((value as Record<string, unknown>)[key])
+    )
+  }
+  segment.nodes.forEach((n) => walk(n.config))
+  return Array.from(names).sort()
+}
+
+/**
+ * Whether `nodes` run a cost-bearing step, themselves or through a custom node
+ * they call (transitively): in-process, a server-only custom node's own
+ * segments are internal calls, which the gate does not count.
+ */
+const runsCostBearingStep = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, UIDLCustomWorkflowNode> | undefined,
+  visited: Set<string> = new Set<string>()
+): boolean =>
+  nodes.some((n) => {
+    if (isCostBearingNodeType(n.type)) {
+      return true
+    }
+    const customNodeId = ((n.config || {}) as Record<string, unknown>).customNodeId
+    if (n.type !== 'general-custom-node' || typeof customNodeId !== 'string') {
+      return false
+    }
+    if (visited.has(customNodeId)) {
+      return false
+    }
+    visited.add(customNodeId)
+    const called = customNodes ? customNodes[customNodeId] : undefined
+    return !!called && runsCostBearingStep(called.nodes || [], customNodes, visited)
+  })
+
+/**
+ * The rate-limit scope of a segment route that runs a cost-bearing step, else
+ * null. Its own prefix: `workflow-step:<nodeId>` is a step's declared visitor
+ * limit (visitor-step-limits.ts).
+ */
+const resolveAbuseScope = (
+  segment: WorkflowSegment,
+  workflowName: string | undefined,
+  options: ServerSegmentRouteOptions
+): string | null => {
+  if (!runsCostBearingStep(segment.nodes, options.customNodes)) {
+    return null
+  }
+  const owner = options.trust?.workflowId || workflowName || 'workflow'
+  return `workflow-route:${owner}:${segment.id}`
+}
+
+const SEGMENT_SECURITY_RUNTIME = securityRuntimeSpecifier('../../..')
+
+/**
+ * Module-level code every segment route carries: the shared security runtime
+ * (required guarded, so a route still loads where it is absent — the abuse
+ * gate then refuses), the generic error a visitor sees, and the log line its
+ * detail goes to under the same opaque id.
+ */
+const SEGMENT_SECURITY_PREAMBLE = `// The shared security runtime: the generic error a visitor is shown (its detail
+// stays in the server log, under the id the visitor sees) and the rate limit of
+// a step that spends the site's money.
+var __security = null;
+try { __security = require('${SEGMENT_SECURITY_RUNTIME}'); } catch (_e) { __security = null; }
+var __PUBLIC_ERROR = ${JSON.stringify(SEGMENT_PUBLIC_ERROR)};
+// The refusals that name nothing secret (an AI step: a prompt too long, the
+// site's daily AI budget spent, AI unavailable) are shown as they are, with
+// their status; any other error is the generic one.
+var __PUBLIC_REFUSALS = ${JSON.stringify(AI_PUBLIC_REFUSALS)};
+function __publicRefusal(error) {
+  var message = error && typeof error.message === 'string' ? error.message : '';
+  return Object.prototype.hasOwnProperty.call(__PUBLIC_REFUSALS, message) ? message : null;
+}
+// Answers the generic error (when \`res\` can still answer) and logs \`error\`;
+// returns the id the log line carries. An error the server runtime raised for
+// the visitor to read (\`__tqPublic\`: a run that expired) keeps its message.
+function __clientError(res, error) {
+  var own = error && error.__tqPublic && typeof error.__tqPublic.message === 'string' ? error.__tqPublic : null;
+  var refusal = own ? own.message : __publicRefusal(error);
+  var status = own ? own.status : refusal ? __PUBLIC_REFUSALS[refusal] : 500;
+  var message = refusal || __PUBLIC_ERROR;
+  if (__security && typeof __security.sendClientError === 'function') {
+    return __security.sendClientError(res, status, message, error);
+  }
+  console.error('Workflow segment error:', error);
+  if (res && !res.headersSent && typeof res.status === 'function') {
+    res.status(status).json({ error: message });
+  }
+  return null;
+}
+// What a parallel branch that failed reports: the generic error and its log id.
+function __branchError(error) {
+  var id = __clientError({ headersSent: true }, error);
+  var message = __publicRefusal(error) || __PUBLIC_ERROR;
+  return id ? message + ' (' + id + ')' : message;
+}
+`
+
+/**
+ * First thing a segment route does when its segment spends the site's money
+ * or reaches outside it: count the visitor against this route, whatever the
+ * page's protection. This deployment's own server code (a webhook or cron
+ * running a custom node) carries the internal-call token and is not counted.
+ */
+const generateAbuseGateCode = (scope: string | null): string => {
+  if (!scope) {
+    return ''
+  }
+  const { perMinute, perDay } = COST_BEARING_STEP_LIMITS
+  const scopeLiteral = JSON.stringify(scope)
+  return `
+    // This step spends the site's money or reaches outside it (an AI model, a
+    // mail, SMS or payment provider, another site): every visitor address is
+    // allowed ${perMinute} calls a minute and ${perDay} a day here, whatever the page's
+    // protection. This deployment's own server code is not a visitor.
+    if (!utils.isInternalCall(req)) {
+      if (!__security) {
+        res.status(503).json({ error: 'This action is unavailable right now.' });
+        return;
+      }
+      var __minute = { scope: ${scopeLiteral}, limit: ${perMinute}, windowSeconds: 60 };
+      if (!(await __security.rateLimitRequest(req, res, __minute))) return;
+      var __day = { scope: ${scopeLiteral}, limit: ${perDay}, windowSeconds: 86400 };
+      if (!(await __security.rateLimitRequest(req, res, __day))) return;
+    }`
+}
+
+/** The session binding a route that reads the visitor runs before its guard and its nodes. */
+const generateSessionBindCode = (session: SegmentRouteSession | undefined): string =>
+  session
+    ? `
+    // Who the visitor is comes from the session cookie, never from the request
+    // (see bindSessionIdentity in the server runtime).
+    await utils.bindSessionIdentity(req, SEGMENT_CONFIG, context);`
+    : ''
+
+/** Module-level: the handlers that read or bind the visitor's identity, wrapped. */
+const generateSessionHandlersCode = (session: SegmentRouteSession | undefined): string =>
+  session && (Object.keys(session.identityReads).length > 0 || (session.bindings || []).length > 0)
+    ? `// Identity-filtered reads and userScoped identity columns (see
+// bindSessionHandlers in the server runtime).
+utils.bindSessionHandlers(SEGMENT_CONFIG, nodeHandlers);
+`
+    : ''
+
+const buildSegmentConfig = (
+  segment: WorkflowSegment,
+  options: ServerSegmentRouteOptions,
+  session?: SegmentRouteSession
+): string => {
+  const secretNames = collectSecretNames(segment)
+  return JSON.stringify(
     {
       ...(options.trust || {}),
+      session,
+      ...(secretNames.length > 0 ? { secretNames } : {}),
       nodes: segment.nodes.map((n) => ({
         id: n.id,
         type: n.type,
@@ -99,6 +336,7 @@ const buildSegmentConfig = (segment: WorkflowSegment, options: ServerSegmentRout
     null,
     2
   )
+}
 
 export const generateServerSegmentAPIRoute = (
   segment: WorkflowSegment,
@@ -108,10 +346,15 @@ export const generateServerSegmentAPIRoute = (
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
-  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
   const auth = buildWorkflowAuthInjection(protection)
+  const session = resolveSegmentSession(options, protection)
+  const abuseScope = resolveAbuseScope(segment, workflowName, options)
 
-  const segmentConfig = buildSegmentConfig(segment, options)
+  const segmentConfig = buildSegmentConfig(
+    markVisitorBoundMessageNodes(segment, options.trust, protection, workflowName),
+    options,
+    session
+  )
 
   const header = workflowName
     ? `/**
@@ -126,24 +369,23 @@ export const generateServerSegmentAPIRoute = (
  */
 `
 
-  const requestInjection = hasRateLimiter
-    ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
-    : ''
+  const requestInjection = needsVisitorRequest(usedNodeTypes) ? VISITOR_REQUEST_INJECTION : ''
 
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
-${auth.requireLine}const resolveConfig = utils.resolveConfig;
+${auth.requireLine}const resolveNodeConfig = utils.resolveNodeConfig;
 ${workflowUtilsAliasLine('utils')}
 ${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogPreamble(
     usedNodeTypes,
     '../../..'
   )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
+${SEGMENT_SECURITY_PREAMBLE}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
-
+${generateServerCustomNodeCallCode(segment, '../../..')}${generateSessionHandlersCode(session)}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -152,7 +394,7 @@ module.exports = async function handler(req, res) {
   // Kept outside the try so the catch below can still drain any fire-and-forget
   // query this segment started before it failed.
   var __wfContext = null;
-  try {
+  try {${generateAbuseGateCode(abuseScope)}
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const incomingContext = body.context || {};
     // What the caller already holds, so the reply below carries only what this
@@ -161,7 +403,7 @@ module.exports = async function handler(req, res) {
 
     const context = Object.assign({}, incomingContext);
     utils.claimSegmentContext(SEGMENT_CONFIG, context);
-    __wfContext = context;
+    __wfContext = context;${generateSessionBindCode(session)}
     // Created eagerly so a custom node invoked from here shares the SAME
     // fire-and-forget queue (it shallow-copies this context) and its queries
     // are drained by the settle below rather than being lost when we reply.
@@ -173,10 +415,20 @@ module.exports = async function handler(req, res) {
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
     context.__internalHeaders = utils.internalRequestHeaders(req);
+    // A server job's hop — a webhook, cron or automation running a custom
+    // node, which calls this route with the internal-call token only this
+    // deployment's server code can mint — stays the job's: its data calls keep
+    // the server-job flag (see __dataIsServerJob). A browser's request never
+    // carries the token, so never the flag.
+    if (utils.isInternalCall(req) && req.headers && req.headers['x-tq-server-job'] === '1') {
+      context.__internalHeaders['x-tq-server-job'] = '1';
+    }
     // The language of the page this run started on — carried by the client
     // context, else read off the request — so a customer email node sends the
     // copy that matches the storefront the visitor is browsing.
-    context.__locale = utils.resolveWorkflowLocale(req, incomingContext);${auth.guardCall}
+    context.__locale = utils.resolveWorkflowLocale(req, incomingContext);${
+      auth.guardCall
+    }${buildVisitorStepLimitGuard(segment)}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
 
     for (let i = 0; i < sortedNodes.length; i++) {
@@ -186,7 +438,7 @@ module.exports = async function handler(req, res) {
       // the caller as if that branch had run (a custom node answers the output
       // of the last node it ran).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
-      const resolved = resolveConfig(node.config, context);
+      const resolved = resolveNodeConfig(node, context);
       // Every data node lives in a SERVER segment, so this guard — which turns an
       // unresolved {{…}} into a validation error instead of letting the literal
       // token reach SQL — was doing nothing at all: it ran only in the CLIENT
@@ -199,7 +451,7 @@ module.exports = async function handler(req, res) {
       // rather than the stub handler, which always returns { result: true }.
       // After evaluating, mark the non-taken branch nodes as skipped.
       if (node.type === 'general-if-statement') {
-        const condResult = utils.evaluateCondition(resolved, context);
+        const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
         var skipHandle = condResult ? 'false' : 'true';
         var segEdgesIf = SEGMENT_CONFIG.edges || [];
@@ -278,10 +530,10 @@ module.exports = async function handler(req, res) {
           context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
-            var bResolved = resolveConfig(bNode.config, context);
+            var bResolved = resolveNodeConfig(bNode, context);
             bResolved.__nodeId = bNode.id;
             if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
+              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
               continue;
             }
             var bHandler = nodeHandlers[bNode.type];
@@ -316,17 +568,9 @@ module.exports = async function handler(req, res) {
 
       // Switch nodes evaluate a value, match a case, execute that branch, skip all others
       if (node.type === 'general-switch') {
-        var switchVal = utils.resolveValue(resolved.switchValue, context);
-        var switchCases = resolved.cases || [];
-        var matchedCase = 'default';
-        for (var swci = 0; swci < switchCases.length; swci++) {
-          var caseVal = utils.resolveValue(switchCases[swci].condition, context);
-          if (resolved.comparisonMode === 'expression') {
-            try { if (new Function('value', 'context', 'return (' + caseVal + ')')(switchVal, context)) { matchedCase = switchCases[swci].id; break; } } catch(e) {}
-          } else {
-            if (switchVal === caseVal) { matchedCase = switchCases[swci].id; break; }
-          }
-        }
+        // Only an authored case expression is compiled; request text is data
+        // (see matchSwitchCase in runtime-utils).
+        var matchedCase = utils.matchSwitchCase(node.config, resolved, context);
         context[node.id] = { matchedCase: matchedCase };
         var segSwitchEdges = SEGMENT_CONFIG.edges || [];
         var allSwitchBranchEdges = segSwitchEdges.filter(function(e) { return e.source === node.id; });
@@ -372,7 +616,7 @@ module.exports = async function handler(req, res) {
           return (async function() {
             for (var pbi = 0; pbi < branchNodes.length; pbi++) {
               var pNode = branchNodes[pbi];
-              var pRes = resolveConfig(pNode.config, branchCtx);
+              var pRes = resolveNodeConfig(pNode, branchCtx);
               pRes.__nodeId = pNode.id;
               var pHandler = nodeHandlers[pNode.type];
               if (!pHandler) continue;
@@ -391,7 +635,8 @@ module.exports = async function handler(req, res) {
             branchNodes.forEach(function(bn) { context[bn.id] = bc[bn.id]; });
             return { success: true };
           }).catch(function(err) {
-            return { success: false, error: err.message || String(err) };
+            // The branch result reaches the browser: the detail stays in the log.
+            return { success: false, error: __branchError(err) };
           });
         });
         var parallelResults;
@@ -468,9 +713,10 @@ module.exports = async function handler(req, res) {
     delete context.__internalHeaders;
     res.status(200).json({ success: true, results: utils.segmentReply(SEGMENT_CONFIG, context, __incomingSnapshot) });
   } catch (error) {
-    console.error('Workflow segment error:', error);
     if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
-    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    // A generic error and an opaque id: a driver, provider or secret-name
+    // detail never reaches the browser (it is logged under the same id).
+    __clientError(res, error);
   }
 };
 `
@@ -488,10 +734,15 @@ export const generateStreamingServerSegmentAPIRoute = (
 ): string => {
   const usedNodeTypes = new Set(segment.nodes.map((n) => n.type))
   const nodeHandlersEntries = generateNodeHandlersForSegment(usedNodeTypes, true)
-  const hasRateLimiter = usedNodeTypes.has('general-rate-limiter')
   const auth = buildWorkflowAuthInjection(protection)
+  const session = resolveSegmentSession(options, protection)
+  const abuseScope = resolveAbuseScope(segment, workflowName, options)
 
-  const segmentConfig = buildSegmentConfig(segment, options)
+  const segmentConfig = buildSegmentConfig(
+    markVisitorBoundMessageNodes(segment, options.trust, protection, workflowName),
+    options,
+    session
+  )
 
   const aiNodeTypes = JSON.stringify(Array.from(AI_NODE_TYPES))
 
@@ -503,24 +754,23 @@ export const generateStreamingServerSegmentAPIRoute = (
         segment.id
       )}\n */\n`
 
-  const requestInjection = hasRateLimiter
-    ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
-    : ''
+  const requestInjection = needsVisitorRequest(usedNodeTypes) ? VISITOR_REQUEST_INJECTION : ''
 
   return `${header}
 const utils = require('../../../utils/workflows/server-runtime');
-${auth.requireLine}const resolveConfig = utils.resolveConfig;
+${auth.requireLine}const resolveNodeConfig = utils.resolveNodeConfig;
 ${workflowUtilsAliasLine('utils')}
 ${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogPreamble(
     usedNodeTypes,
     '../../..'
   )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
+${SEGMENT_SECURITY_PREAMBLE}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
-
+${generateServerCustomNodeCallCode(segment, '../../..')}${generateSessionHandlersCode(session)}
 const __streamingAITypes = ${aiNodeTypes};
 
 function __isStreamingAI(node, config) {
@@ -531,7 +781,7 @@ function __isStreamingAI(node, config) {
 function __streamNodeResult(res, nodeId, result) {
   const kept = SEGMENT_CONFIG.nodes.find(function(nd) { return nd.id === nodeId; });
   if (kept && kept.config && kept.config.keepResultOnServer === true && !utils.isBranchingNodeType(kept.type)) return;
-  res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: result }) + '\\n\\n');
+  res.write('data: ' + JSON.stringify({ type: 'node-result', nodeId: nodeId, result: utils.scrubSecretNames(SEGMENT_CONFIG, result) }) + '\\n\\n');
 }
 
 function __collectSegBranchNodes(startId, excludeId) {
@@ -572,13 +822,13 @@ module.exports = async function handler(req, res) {
   // Kept outside the try so the catch below can still drain any fire-and-forget
   // query this segment started before it failed.
   var __wfContext = null;
-  try {
+  try {${generateAbuseGateCode(abuseScope)}
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const context = Object.assign({}, body.context || {});
     // See the non-streaming segment route: the reply carries only what changed.
     const __incomingSnapshot = utils.snapshotIncomingContext(body.context || {});
     utils.claimSegmentContext(SEGMENT_CONFIG, context);
-    __wfContext = context;
+    __wfContext = context;${generateSessionBindCode(session)}
     // See the non-streaming segment route — shared queue for nested custom nodes.
     context.__pendingNodePromises = [];${requestInjection}
     // Where this deployment calls its own routes — never a host the request
@@ -588,15 +838,25 @@ module.exports = async function handler(req, res) {
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
     context.__internalHeaders = utils.internalRequestHeaders(req);
+    // A server job's hop — a webhook, cron or automation running a custom
+    // node, which calls this route with the internal-call token only this
+    // deployment's server code can mint — stays the job's: its data calls keep
+    // the server-job flag (see __dataIsServerJob). A browser's request never
+    // carries the token, so never the flag.
+    if (utils.isInternalCall(req) && req.headers && req.headers['x-tq-server-job'] === '1') {
+      context.__internalHeaders['x-tq-server-job'] = '1';
+    }
     // See the non-streaming segment route: the run's language.
-    context.__locale = utils.resolveWorkflowLocale(req, body.context);${auth.guardCall}
+    context.__locale = utils.resolveWorkflowLocale(req, body.context);${
+      auth.guardCall
+    }${buildVisitorStepLimitGuard(segment)}
     const sortedNodes = SEGMENT_CONFIG.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
     const executed = {};
 
     for (let i = 0; i < sortedNodes.length; i++) {
       const node = sortedNodes[i];
       if (executed[node.id]) continue;
-      const resolved = resolveConfig(node.config, context);
+      const resolved = resolveNodeConfig(node, context);
       // See the non-streaming segment above — without this the unresolved-token
       // guard never runs on the server, which is where every data node executes.
       const __configError = utils.finalizeResolvedConfig(node.type, resolved);
@@ -605,7 +865,7 @@ module.exports = async function handler(req, res) {
 
       // If-statement nodes must be evaluated using the runtime's evaluateCondition
       if (node.type === 'general-if-statement') {
-        const condResult = utils.evaluateCondition(resolved, context);
+        const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
         executed[node.id] = true;
         if (streamStarted) {
@@ -651,10 +911,10 @@ module.exports = async function handler(req, res) {
           context[node.id] = utils.loopIterationContext(ssLoopCollection, ssli);
           for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
             var ssbNode = ssBodyNodes[ssbi];
-            var ssbRes = resolveConfig(ssbNode.config, context);
+            var ssbRes = resolveNodeConfig(ssbNode, context);
             ssbRes.__nodeId = ssbNode.id;
             if (ssbNode.type === 'general-if-statement') {
-              context[ssbNode.id] = { result: utils.evaluateCondition(ssbRes, context) };
+              context[ssbNode.id] = { result: utils.evaluateCondition(ssbRes, context, ssbNode.config) };
               continue;
             }
             var ssbHandler = nodeHandlers[ssbNode.type];
@@ -683,17 +943,8 @@ module.exports = async function handler(req, res) {
 
       // Switch nodes in streaming segments
       if (node.type === 'general-switch') {
-        var ssSwitchVal = utils.resolveValue(resolved.switchValue, context);
-        var ssSwitchCases = resolved.cases || [];
-        var ssMatchedCase = 'default';
-        for (var ssswci = 0; ssswci < ssSwitchCases.length; ssswci++) {
-          var ssCaseVal = utils.resolveValue(ssSwitchCases[ssswci].condition, context);
-          if (resolved.comparisonMode === 'expression') {
-            try { if (new Function('value', 'context', 'return (' + ssCaseVal + ')')(ssSwitchVal, context)) { ssMatchedCase = ssSwitchCases[ssswci].id; break; } } catch(e) {}
-          } else {
-            if (ssSwitchVal === ssCaseVal) { ssMatchedCase = ssSwitchCases[ssswci].id; break; }
-          }
-        }
+        // See the non-streaming segment route: only authored expressions run.
+        var ssMatchedCase = utils.matchSwitchCase(node.config, resolved, context);
         context[node.id] = { matchedCase: ssMatchedCase };
         executed[node.id] = true;
         var ssSwitchEdges = SEGMENT_CONFIG.edges || [];
@@ -743,7 +994,7 @@ module.exports = async function handler(req, res) {
           return (async function() {
             for (var sspbi = 0; sspbi < ssPBranchNodes.length; sspbi++) {
               var sspNode = ssPBranchNodes[sspbi];
-              var sspRes = resolveConfig(sspNode.config, ssPBranchCtx);
+              var sspRes = resolveNodeConfig(sspNode, ssPBranchCtx);
               sspRes.__nodeId = sspNode.id;
               var sspHandler = nodeHandlers[sspNode.type];
               if (!sspHandler) continue;
@@ -762,7 +1013,8 @@ module.exports = async function handler(req, res) {
             ssPBranchNodes.forEach(function(bn) { context[bn.id] = bc[bn.id]; });
             return { success: true };
           }).catch(function(err) {
-            return { success: false, error: err.message || String(err) };
+            // The branch result reaches the browser: the detail stays in the log.
+            return { success: false, error: __branchError(err) };
           });
         });
         var ssParallelResults;
@@ -825,7 +1077,8 @@ module.exports = async function handler(req, res) {
             const sn = onStreamNodes[si];
             const snHandler = nodeHandlers[sn.type];
             if (!snHandler) continue;
-            const snResolved = resolveConfig(sn.config, context);
+            const snResolved = resolveNodeConfig(sn, context);
+            snResolved.__nodeId = sn.id;
             if (utils.isFireAndForgetNode(sn)) {
               utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(sn, snHandler, snResolved, context));
               context[sn.id] = null;
@@ -849,7 +1102,8 @@ module.exports = async function handler(req, res) {
           const en = onEndNodes[oi];
           const enHandler = nodeHandlers[en.type];
           if (!enHandler) continue;
-          const enResolved = resolveConfig(en.config, context);
+          const enResolved = resolveNodeConfig(en, context);
+          enResolved.__nodeId = en.id;
           if (utils.isFireAndForgetNode(en)) {
             utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(en, enHandler, enResolved, context));
             context[en.id] = null;
@@ -917,19 +1171,59 @@ module.exports = async function handler(req, res) {
       res.status(200).json({ success: true, results: __reply });
     }
   } catch (error) {
-    console.error('Streaming workflow segment error:', error);
     if (__wfContext) { await utils.settlePendingNodePromises(__wfContext); }
+    // See the non-streaming segment route: a generic error and an opaque id.
     if (streamStarted) {
+      var __errorId = __clientError({ headersSent: true }, error);
       try {
-        res.write('data: ' + JSON.stringify({ type: 'error', error: error.message || 'Internal server error' }) + '\\n\\n');
+        res.write('data: ' + JSON.stringify({ type: 'error', error: __publicRefusal(error) || __PUBLIC_ERROR, id: __errorId }) + '\\n\\n');
       } catch(e) {}
       res.end();
     } else {
-      res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+      __clientError(res, error);
     }
   }
 };
 `
+}
+
+/**
+ * A node an automation cannot run: one that only works in a visitor's
+ * browser. The editor refuses them in automations; a handler module that
+ * still meets one fails the run with the reason instead of stubbing it the
+ * way a webhook route does (a stub would report a step that never happened).
+ */
+const isBrowserOnlyNode = (nodeType: string, generator: NodeHandlerGenerator | undefined) =>
+  CLIENT_ONLY_NODES.has(nodeType) ||
+  (!!generator && generator.executionEnv === 'client' && !generator.generateServerHandler)
+
+/**
+ * The step types a cron, webhook or automation route needs handlers for: its
+ * own, and those of every custom node it calls, recursively — it runs them in
+ * process (`utils/workflows/custom-nodes.js`) with this route's handler map. A
+ * custom node's browser-only steps stay without one, as before (the runner
+ * skips a step it has no handler for).
+ */
+const jobRouteNodeTypes = (
+  ownNodes: UIDLWorkflowNode[],
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
+): Set<string> => {
+  const types = new Set<string>(ownNodes.map((n: UIDLWorkflowNode) => n.type))
+  for (const type of collectCalledCustomNodeTypes(ownNodes, customNodes)) {
+    if (!isBrowserOnlyNode(type, nodeRegistry[type])) {
+      types.add(type)
+    }
+  }
+  return types
+}
+
+const generateBrowserOnlyAutomationHandler = (nodeType: string): string => {
+  const fnName = nodeType.replace(/-/g, '_')
+  return `async function ${fnName}(config, context) {
+  throw new Error(${JSON.stringify(
+    `The ${nodeType} step only runs in a visitor's browser, so an automation cannot run it`
+  )});
+}`
 }
 
 const generateClientOnlyServerStub = (nodeType: string): string => {
@@ -992,14 +1286,22 @@ function __wrapEmailHandler(nodeType, handler) {
 `
 }
 
-const generateNodeHandlersForSegment = (usedNodeTypes: Set<string>, forServer = false): string => {
+const generateNodeHandlersForSegment = (
+  usedNodeTypes: Set<string>,
+  forServer = false,
+  automation = false,
+  serverHandlerOptions: ServerHandlerOptions = {}
+): string => {
   return Array.from(usedNodeTypes)
     .map((nodeType) => {
-      const generator = nodeRegistry[nodeType]
+      const generator =
+        automation && nodeType === generalWait.nodeType ? generalWait : nodeRegistry[nodeType]
       let source: string
-      if (generator) {
+      if (automation && isBrowserOnlyNode(nodeType, generator)) {
+        source = generateBrowserOnlyAutomationHandler(nodeType)
+      } else if (generator) {
         if (forServer && generator.generateServerHandler) {
-          source = generator.generateServerHandler()
+          source = generator.generateServerHandler(serverHandlerOptions)
         } else if (forServer && generator.executionEnv === 'client') {
           source = generateClientOnlyServerStub(nodeType)
         } else {
@@ -1024,7 +1326,12 @@ async function ${nodeType.replace(/-/g, '_')}(config, context) {
     .join(',\n')
 }
 
-const CLIENT_ONLY_NODES = new Set([
+/**
+ * The browser-only nodes a server route drops (and an automation refuses).
+ * The editor's copy is `CLIENT_ONLY_NODE_TYPES` in teleport-gui
+ * `packages/workflow-schema`; automations-catalog-drift.test.ts compares them.
+ */
+export const CLIENT_ONLY_NODES = new Set([
   'navigation-go-to-page',
   'navigation-navigate-to-url',
   'navigation-refresh-page',
@@ -1086,14 +1393,43 @@ const CLIENT_ONLY_NODES = new Set([
   'realtime-list-channel-members',
 ])
 
+/** What a cron or webhook route is generated for. */
+export interface ServerWorkflowRouteOptions {
+  /** The project has the in-app event bus (`hasAutomationsBus`). */
+  withAutomations?: boolean
+}
+
+/**
+ * What a cron or webhook route hands its nodes as `context.__request`: the
+ * caller's ip for a rate limiter, and the request's headers for a signup in a
+ * project with automations, which records its event on the origin the request
+ * reached (see account-signup).
+ */
+const serverRouteRequestInjection = (
+  nodeTypes: Set<string>,
+  withAutomations: boolean | undefined
+): string => {
+  if (nodeTypes.has('general-rate-limiter')) {
+    return VISITOR_REQUEST_INJECTION
+  }
+  if (withAutomations && nodeTypes.has('account-signup')) {
+    return `\n    // The signup records its event on the origin this request reached.\n    context.__request = { headers: req.headers || {} };`
+  }
+  return ''
+}
+
 export const generateCronAPIRoute = (
   workflow: UIDLWorkflow,
-  customNodes?: Record<string, UIDLCustomWorkflowNode>
+  customNodes?: Record<string, UIDLCustomWorkflowNode>,
+  options: ServerWorkflowRouteOptions = {}
 ): string => {
   const serverNodes = workflow.nodes.filter((n: UIDLWorkflowNode) => !CLIENT_ONLY_NODES.has(n.type))
-  const allNodeTypes = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.type))
-  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true)
-  const hasRateLimiter = allNodeTypes.has('general-rate-limiter')
+  const allNodeTypes = jobRouteNodeTypes(serverNodes, customNodes)
+  // Cron routes live in pages/api/workflows.
+  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true, false, {
+    withAutomations: options.withAutomations,
+    relativePrefix: '../../..',
+  })
 
   const serverNodeIds = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.id))
   const serverEdges = workflow.edges.filter(
@@ -1120,9 +1456,7 @@ export const generateCronAPIRoute = (
     2
   )
 
-  const requestInjection = hasRateLimiter
-    ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
-    : ''
+  const requestInjection = serverRouteRequestInjection(allNodeTypes, options.withAutomations)
 
   // Cron routes live at pages/api/workflows/<file>.js → three levels up to root.
   const customNodesImport = useCustomNodes
@@ -1148,7 +1482,7 @@ export const generateCronAPIRoute = (
  */
 
 const utils = require('../../../utils/workflows/server-runtime');
-const resolveConfig = utils.resolveConfig;
+const resolveNodeConfig = utils.resolveNodeConfig;
 ${workflowUtilsAliasLine('utils')}
 ${customNodesImport}${generateCartPricingPreamble(
     allNodeTypes,
@@ -1164,7 +1498,6 @@ const WORKFLOW_CONFIG = ${workflowConfig};
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -1195,6 +1528,10 @@ module.exports = async function handler(req, res) {
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
     context.__internalHeaders = utils.internalRequestHeaders(req);
+    // A server job: no visitor's request runs here, so the data API reads the
+    // customer records unscoped (see __dataIsServerJob; the flag counts only
+    // with the app secret, which every data node presents).
+    context.__internalHeaders['x-tq-server-job'] = '1';
     context[WORKFLOW_CONFIG.triggerNodeId] = triggerContext;${requestInjection}
 
 ${executionLoop}
@@ -1264,8 +1601,50 @@ export const getCronRouteFileName = (workflow: UIDLWorkflow): string => {
  */
 const generateNodeExecutionLoop = (
   configVar: string,
-  options?: { hasCustomNodes?: boolean }
+  options?: { hasCustomNodes?: boolean; automation?: boolean }
 ): string => {
+  const automation = options?.automation === true
+  // An automation handler resumes a parked run at `resumeFrom` (the node
+  // after its Wait): the nodes before it ran in the earlier part, and the
+  // restored context carries their results and branch decisions.
+  const resumeBlock = automation
+    ? `
+    var __startIndex = 0;
+    if (resumeFrom) {
+      __startIndex = sortedNodes.findIndex(function(n) { return n.id === resumeFrom; });
+      if (__startIndex === -1) { throw new Error('This automation has no step ' + resumeFrom + ' to resume at'); }
+    }
+`
+    : ''
+  // An automation has no caller to answer, so a response node only ends the
+  // run; a Wait stored the run (see general-wait) and nothing after it runs now.
+  const earlyResponseBlock = automation
+    ? `
+      if (result && result.__earlyResponse) {
+        await utils.settlePendingNodePromises(context);
+        return { waiting: false };
+      }
+      if (result && result.__wait) {
+        await utils.settlePendingNodePromises(context);
+        return { waiting: true, until: result.until, wouldWait: result.wouldWait || null };
+      }`
+    : `
+      if (result && result.__earlyResponse) {
+        var earlyRes = result.__earlyResponse;
+        var hKeys = Object.keys(earlyRes.headers || {});
+        for (var h = 0; h < hKeys.length; h++) {
+          res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
+        }
+        await utils.settlePendingNodePromises(context);
+        res.status(earlyRes.status || 500).json(earlyRes.body || {});
+        return;
+      }`
+  // A branch runs on a copy of the context, so a Wait there could neither
+  // store the run nor stop it.
+  const parallelWaitGuard = automation
+    ? `
+              if (wlpNode.type === 'general-wait') { throw new Error('A Wait cannot run inside a parallel branch'); }`
+    : ''
   const customNodeBlock = options?.hasCustomNodes
     ? `
       if (result && result.__customNode) {
@@ -1289,13 +1668,13 @@ const generateNodeExecutionLoop = (
     : ''
 
   return `    var sortedNodes = ${configVar}.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
-
-    for (var i = 0; i < sortedNodes.length; i++) {
+${resumeBlock}
+    for (var i = ${automation ? '__startIndex' : '0'}; i < sortedNodes.length; i++) {
       var node = sortedNodes[i];
       // Never resolved nor run on a non-taken branch, an if-statement included
       // (see the segment executor above).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
-      var resolved = resolveConfig(node.config, context);
+      var resolved = resolveNodeConfig(node, context);
       // See the other segment executors — the unresolved-token guard must run
       // wherever data nodes execute, and they all execute on the server.
       var __configError = utils.finalizeResolvedConfig(node.type, resolved);
@@ -1303,7 +1682,7 @@ const generateNodeExecutionLoop = (
       resolved.__nodeId = node.id;
 
       if (node.type === 'general-if-statement') {
-        var condResult = utils.evaluateCondition(resolved, context);
+        var condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
         var skipHandle = condResult ? 'false' : 'true';
         var cfgEdges = ${configVar}.edges || [];
@@ -1367,10 +1746,10 @@ const generateNodeExecutionLoop = (
           context[node.id] = utils.loopIterationContext(collection, li);
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
-            var bResolved = resolveConfig(bNode.config, context);
+            var bResolved = resolveNodeConfig(bNode, context);
             bResolved.__nodeId = bNode.id;
             if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context) };
+              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
               continue;
             }
             var bHandler = nodeHandlers[bNode.type];
@@ -1402,17 +1781,8 @@ const generateNodeExecutionLoop = (
       if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
 
       if (node.type === 'general-switch') {
-        var swVal = utils.resolveValue(resolved.switchValue, context);
-        var swCases = resolved.cases || [];
-        var swMatchedCase = 'default';
-        for (var swci = 0; swci < swCases.length; swci++) {
-          var swCaseVal = utils.resolveValue(swCases[swci].condition, context);
-          if (resolved.comparisonMode === 'expression') {
-            try { if (new Function('value', 'context', 'return (' + swCaseVal + ')')(swVal, context)) { swMatchedCase = swCases[swci].id; break; } } catch(e) {}
-          } else {
-            if (swVal === swCaseVal) { swMatchedCase = swCases[swci].id; break; }
-          }
-        }
+        // Only an authored case expression is compiled (see matchSwitchCase).
+        var swMatchedCase = utils.matchSwitchCase(node.config, resolved, context);
         context[node.id] = { matchedCase: swMatchedCase };
         var swEdges = ${configVar}.edges || [];
         var swBranchEdges = swEdges.filter(function(e) { return e.source === node.id; });
@@ -1456,8 +1826,8 @@ const generateNodeExecutionLoop = (
           var wlBranchCtx = Object.assign({}, context);
           return (async function() {
             for (var wlpbi = 0; wlpbi < wlBranchNodes.length; wlpbi++) {
-              var wlpNode = wlBranchNodes[wlpbi];
-              var wlpRes = resolveConfig(wlpNode.config, wlBranchCtx);
+              var wlpNode = wlBranchNodes[wlpbi];${parallelWaitGuard}
+              var wlpRes = resolveNodeConfig(wlpNode, wlBranchCtx);
               wlpRes.__nodeId = wlpNode.id;
               var wlpHandler = nodeHandlers[wlpNode.type];
               if (!wlpHandler) continue;
@@ -1520,17 +1890,7 @@ const generateNodeExecutionLoop = (
         context[node.id] = null;
         continue;
       }
-      var result = await handler(resolved, context);
-      if (result && result.__earlyResponse) {
-        var earlyRes = result.__earlyResponse;
-        var hKeys = Object.keys(earlyRes.headers || {});
-        for (var h = 0; h < hKeys.length; h++) {
-          res.setHeader(hKeys[h], earlyRes.headers[hKeys[h]]);
-        }
-        await utils.settlePendingNodePromises(context);
-        res.status(earlyRes.status || 500).json(earlyRes.body || {});
-        return;
-      }${customNodeBlock}
+      var result = await handler(resolved, context);${earlyResponseBlock}${customNodeBlock}
       if (utils.isFatalNodeResult(result) && !utils.continuesOnError(node)) {
         throw new Error(utils.fatalNodeResultMessage(result));
       }
@@ -1543,15 +1903,25 @@ const generateNodeExecutionLoop = (
     await utils.settlePendingNodePromises(context);`
 }
 
+/** A webhook whose payload a signature vouches for: a payment provider's, or a verified scheme other than `custom`. */
+export const isVerifiedWebhookConfig = (webhookConfig: UIDLWebhookConfig): boolean =>
+  isPaymentWebhookConfig(webhookConfig) ||
+  (!!webhookConfig.verifySignature && webhookConfig.signatureAlgorithm !== 'custom')
+
 export const generateWebhookWorkflowAPIRoute = (
   workflow: UIDLWorkflow,
-  customNodes?: Record<string, UIDLCustomWorkflowNode>
+  customNodes?: Record<string, UIDLCustomWorkflowNode>,
+  options: ServerWorkflowRouteOptions = {}
 ): string => {
   const webhookConfig = workflow.webhookConfig as UIDLWebhookConfig
   const serverNodes = workflow.nodes.filter((n: UIDLWorkflowNode) => !CLIENT_ONLY_NODES.has(n.type))
-  const allNodeTypes = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.type))
-  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true)
-  const hasRateLimiter = allNodeTypes.has('general-rate-limiter')
+  const allNodeTypes = jobRouteNodeTypes(serverNodes, customNodes)
+  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true, false, {
+    withAutomations: options.withAutomations,
+    relativePrefix: getWebhookRoutePath(workflow)
+      .map(() => '..')
+      .join('/'),
+  })
 
   const serverNodeIds = new Set<string>(serverNodes.map((n: UIDLWorkflowNode) => n.id))
   const serverEdges = workflow.edges.filter(
@@ -1561,10 +1931,21 @@ export const generateWebhookWorkflowAPIRoute = (
   const hasCustomNodeUsage = serverNodes.some((n) => n.type === 'general-custom-node')
   const hasCustomNodeDefs = customNodes && Object.keys(customNodes).length > 0
 
+  // Without a verified signature the payload is anyone's: email/SMS nodes are
+  // marked for the send guard as on a page's route, and so are the sends of
+  // the custom nodes it calls (see PUBLIC_CALLER_INJECTION).
+  const webhookVerified = isVerifiedWebhookConfig(webhookConfig)
+  const webhookMessages = markWebhookMessageNodes(
+    workflow,
+    serverNodes,
+    serverEdges,
+    webhookVerified
+  )
+
   const workflowConfig = JSON.stringify(
     {
       triggerNodeId: workflow.trigger.nodeId,
-      nodes: serverNodes.map((n: UIDLWorkflowNode) => ({
+      nodes: webhookMessages.nodes.map((n: UIDLWorkflowNode) => ({
         id: n.id,
         type: n.type,
         config: n.config,
@@ -1656,9 +2037,11 @@ export const generateWebhookWorkflowAPIRoute = (
         )}`
       : ''
 
-  const requestInjection = hasRateLimiter
-    ? `\n    context.__request = { ip: __getClientIp(req), headers: req.headers || {} };`
-    : ''
+  const requestInjection =
+    (webhookMessages.marked
+      ? VISITOR_REQUEST_INJECTION
+      : serverRouteRequestInjection(allNodeTypes, options.withAutomations)) +
+    (!webhookVerified && hasCustomNodeUsage ? PUBLIC_CALLER_INJECTION : '')
 
   const executionLoop = generateNodeExecutionLoop('WORKFLOW_CONFIG', {
     hasCustomNodes: hasCustomNodeUsage && hasCustomNodeDefs,
@@ -1675,7 +2058,7 @@ if (typeof globalThis.fetch === 'undefined') {
 }
 
 const utils = require('${relativePrefix}/utils/workflows/server-runtime');
-const resolveConfig = utils.resolveConfig;
+const resolveNodeConfig = utils.resolveNodeConfig;
 ${workflowUtilsAliasLine('utils')}
 ${customNodesImport}${generateCartPricingPreamble(
     allNodeTypes,
@@ -1697,7 +2080,6 @@ var ERROR_HANDLER_NODES = ${errorHandlerNodesJson};
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
-
 module.exports = async function handler(req, res) {
   if (req.method !== '${webhookConfig.httpMethod}') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -1733,14 +2115,39 @@ ${generateSignatureVerificationBlock(normalisedWebhookConfig)}${deliveryLease.cl
     // Credentials for this deployment's calls to its own /api/data routes —
     // without them a protected deployment 401s itself and every data node
     // returns no rows. See internalRequestHeaders in runtime-utils.
-    context.__internalHeaders = utils.internalRequestHeaders(req);${requestInjection}
+    context.__internalHeaders = utils.internalRequestHeaders(req);
+    // A server job: no visitor's request runs here, so the data API reads the
+    // customer records unscoped (see __dataIsServerJob; the flag counts only
+    // with the app secret, which every data node presents).
+    context.__internalHeaders['x-tq-server-job'] = '1';${requestInjection}
 
 ${executionLoop}
 ${deliveryLease.release}
     res.status(200).json({ received: true });
   } catch (error) {
     console.error('Webhook workflow error:', error);
-    if (ERROR_HANDLER_NODES) {
+${generateErrorHandlerRunBlock('Webhook error handler failed:')}
+    // Land whatever the main run started (an email's ledger row, a
+    // fire-and-forget write) before replying — see the segment routes.
+    if (typeof context !== 'undefined' && context) { await utils.settlePendingNodePromises(context); }${
+      deliveryLease.release
+    }
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+};
+
+module.exports.config = { api: { bodyParser: false } };
+`
+}
+
+/**
+ * Runs the workflow's error-handler branch (`ERROR_HANDLER_NODES`) after the
+ * main run threw `error`, on a copy of `context` that carries the error. A
+ * failure of the branch itself is only logged, with `failureLabel`.
+ */
+const generateErrorHandlerRunBlock = (
+  failureLabel: string
+): string => `    if (ERROR_HANDLER_NODES) {
       try {
         var errCtx = Object.assign({}, context || {});
         if (WORKFLOW_CONFIG.errorHandlerNodeId) {
@@ -1751,7 +2158,7 @@ ${deliveryLease.release}
         }
         for (var ei = 0; ei < ERROR_HANDLER_NODES.length; ei++) {
           var eNode = ERROR_HANDLER_NODES[ei];
-          var eResolved = resolveConfig(eNode.config, errCtx);
+          var eResolved = resolveNodeConfig(eNode, errCtx);
           eResolved.__nodeId = eNode.id;
           var eHandler = nodeHandlers[eNode.type];
           if (eHandler) {
@@ -1766,19 +2173,190 @@ ${deliveryLease.release}
         }
         await utils.settlePendingNodePromises(errCtx);
       } catch (innerErr) {
-        console.error('Webhook error handler failed:', innerErr);
+        console.error('${failureLabel}', innerErr);
       }
-    }
-    // Land whatever the main run started (an email's ledger row, a
-    // fire-and-forget write) before replying — see the segment routes.
-    if (typeof context !== 'undefined' && context) { await utils.settlePendingNodePromises(context); }${
-      deliveryLease.release
-    }
-    res.status(500).json({ error: 'Webhook processing failed' });
-  }
-};
+    }`
 
-module.exports.config = { api: { bodyParser: false } };
+/**
+ * An automation's handler module (`lib/automations/handlers/<file>.js`, see
+ * automations/handler-module-generator.ts): the webhook route's node loop as
+ * an importable function, `module.exports.run = async (event, context,
+ * resumeFrom)`, which the in-app dispatcher awaits.
+ *
+ * - `event` is the event envelope (`{ event, actor, <entity> }`): the trigger
+ *   node's output. A resumed run passes it again, read afresh.
+ * - `context` is `{}` for a new run (plus `__baseUrl` when the dispatcher
+ *   knows the app's origin), or the context a Wait stored.
+ * - `resumeFrom` is the node to resume at; every node before it ran already.
+ *
+ * Every node runs as in a webhook route — server handlers, the same
+ * `__baseUrl` / internal headers, the error-handler branch — except the
+ * browser-only ones, which fail the run, and a Wait (`general-wait`), which
+ * stores the run and resolves `{ waiting: true }` (a test event's Wait stores
+ * nothing and resolves `{ waiting: true, wouldWait }`; a Wait with no step
+ * after it stores nothing and the run ends there). A run that fails rejects,
+ * after the error-handler branch ran, so the dispatcher records the failure.
+ */
+export const generateHandlerFunction = (
+  workflow: UIDLWorkflow,
+  customNodes?: Record<string, UIDLCustomWorkflowNode>
+): string => {
+  const relativePrefix = AUTOMATION_HANDLERS_PATH.map(() => '..').join('/')
+  const nodes = workflow.nodes || []
+  const allNodeTypes = jobRouteNodeTypes(nodes, customNodes)
+  // An automation runs only in a project that has the event bus.
+  const nodeHandlersEntries = generateNodeHandlersForSegment(allNodeTypes, true, true, {
+    withAutomations: true,
+    relativePrefix,
+  })
+
+  const hasCustomNodeUsage = nodes.some((n) => n.type === 'general-custom-node')
+  const useCustomNodes = hasCustomNodeUsage && !!customNodes && Object.keys(customNodes).length > 0
+
+  const workflowConfig = JSON.stringify(
+    {
+      triggerNodeId: workflow.trigger.nodeId,
+      nodes: nodes.map((n: UIDLWorkflowNode) => ({
+        id: n.id,
+        type: n.type,
+        config: n.config,
+        stepNumber: n.stepNumber,
+        label: n.label,
+      })),
+      edges: workflow.edges || [],
+      errorHandlerNodeId: workflow.errorHandler?.nodeId || null,
+    },
+    null,
+    2
+  )
+  const errorHandlerNodes = workflow.errorHandler ? getErrorHandlerNodes(workflow) : null
+  const errorHandlerNodesJson = errorHandlerNodes
+    ? JSON.stringify(errorHandlerNodes, null, 2)
+    : 'null'
+
+  const customNodesImport = useCustomNodes
+    ? `var __customNodes;\ntry { __customNodes = require('${relativePrefix}/utils/workflows/custom-nodes'); } catch (_e) { __customNodes = {}; }\n${adminCustomNodesRequireLine(
+        nodes,
+        customNodes,
+        relativePrefix
+      )}`
+    : ''
+
+  const executionLoop = generateNodeExecutionLoop('WORKFLOW_CONFIG', {
+    hasCustomNodes: useCustomNodes,
+    automation: true,
+  })
+
+  return `/**
+ * Automation handler
+ * Workflow: ${sanitizeForBlockComment(workflow.name || workflow.id)}
+ * Event: ${sanitizeForBlockComment(automationEventType(workflow) || 'none')}
+ */
+if (typeof globalThis.fetch === 'undefined') {
+  globalThis.fetch = require('node-fetch');
+}
+
+const utils = require('${relativePrefix}/utils/workflows/server-runtime');
+const resolveNodeConfig = utils.resolveNodeConfig;
+${workflowUtilsAliasLine('utils')}
+${customNodesImport}${generateCartPricingPreamble(
+    allNodeTypes,
+    relativePrefix
+  )}${generateSentEmailLogPreamble(allNodeTypes, relativePrefix)}${generatePaymentDriversPreamble(
+    usesPaymentDriverNode(allNodeTypes),
+    relativePrefix
+  )}
+var __automationStore = require('../store');
+
+var WORKFLOW_ID = ${JSON.stringify(workflow.id)};
+
+const WORKFLOW_CONFIG = ${workflowConfig};
+
+var ERROR_HANDLER_NODES = ${errorHandlerNodesJson};
+
+const nodeHandlers = {
+${nodeHandlersEntries}
+};
+// Rebuilt by every run, so never stored with a parked one: the queue of
+// fire-and-forget work, where and with which credentials the run calls the
+// app's own routes, and the run itself.
+var RUNTIME_CONTEXT_KEYS = ['__pendingNodePromises', '__baseUrl', '__internalHeaders', '__automation', '__request', '__emailAttribution'];
+
+var SORTED_NODE_IDS = WORKFLOW_CONFIG.nodes
+  .slice()
+  .sort(function(a, b) { return a.stepNumber - b.stepNumber; })
+  .map(function(n) { return n.id; });
+
+// Stores the run at a Wait: the next node, and the context so far.
+async function park(context, nodeId, until) {
+  var at = SORTED_NODE_IDS.indexOf(nodeId);
+  var resumeNodeId = at === -1 ? null : SORTED_NODE_IDS[at + 1] || null;
+  // Nothing after the Wait: the run is over.
+  if (!resumeNodeId) return null;
+  if (!context.__automation.eventId) {
+    throw new Error('A Wait needs the event the automation runs for');
+  }
+  var saved = {};
+  Object.keys(context).forEach(function(key) {
+    if (RUNTIME_CONTEXT_KEYS.indexOf(key) === -1) saved[key] = context[key];
+  });
+  await __automationStore.saveWait({
+    eventId: context.__automation.eventId,
+    workflowId: WORKFLOW_ID,
+    resumeNodeId: resumeNodeId,
+    context: JSON.stringify(saved),
+    runAt: until,
+  });
+  return resumeNodeId;
+}
+
+async function runNodes(context, resumeFrom) {
+${executionLoop}
+    return { waiting: false };
+}
+
+async function run(event, context, resumeFrom) {
+  context = context && typeof context === 'object' ? context : {};
+  // Shared fire-and-forget queue — drained before the run settles.
+  context.__pendingNodePromises = [];
+  // Where this deployment calls its own routes, and with which credentials
+  // (see the webhook routes).
+  if (!context.__baseUrl) {
+    context.__baseUrl = __automationStore.appBaseUrl();
+  }
+  context.__internalHeaders = utils.internalRequestHeaders(null);
+  // A server job: no visitor's request runs here, so the data API reads the
+  // customer records unscoped (see __dataIsServerJob; the flag counts only
+  // with the app secret, which every data node presents).
+  context.__internalHeaders['x-tq-server-job'] = '1';
+  if (event) {
+    context[WORKFLOW_CONFIG.triggerNodeId] = event;
+  }
+  var trigger = context[WORKFLOW_CONFIG.triggerNodeId] || {};
+  context.__automation = {
+    workflowId: WORKFLOW_ID,
+    eventId: trigger.event && trigger.event.id ? String(trigger.event.id) : '',
+    // A test event runs once and never parks at a Wait (see general-wait).
+    test: !!(trigger.event && trigger.event.test === true),
+    park: function(nodeId, until) { return park(context, nodeId, until); },
+  };
+  // The mail this run sends is filed under the automation, and under the
+  // event's order when it has one (the sent-email ledger reads this).
+  context.__emailAttribution = {
+    source: 'automation',
+    sourceRef: WORKFLOW_ID,
+    orderId: trigger.order && trigger.order.id ? String(trigger.order.id) : null,
+  };
+  try {
+    return await runNodes(context, resumeFrom || null);
+  } catch (error) {
+${generateErrorHandlerRunBlock('Automation error handler failed:')}
+    await utils.settlePendingNodePromises(context);
+    throw error;
+  }
+}
+
+module.exports.run = run;
 `
 }
 

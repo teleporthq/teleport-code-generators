@@ -13,7 +13,17 @@
 
 import { generateSqlValidatorCode } from './sql-validator'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
-import { ContentTables, TableAccess } from '@teleporthq/teleport-shared'
+import {
+  AccountFields,
+  ContentTables,
+  DataExposure,
+  TableAccess,
+} from '@teleporthq/teleport-shared'
+import type { DataReadExposure, ProjectDataExposure } from '@teleporthq/teleport-types'
+import { AUTOMATIONS_PATH } from './automations/automations-scope'
+import { APP_EVENTS_FILE_NAME, APP_EVENTS_PATH } from './automations/app-events-source'
+import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
+import { generateSelfCallHeadersCode } from './self-call-headers'
 
 const DATA_NODE_TYPES = new Set([
   'data-select',
@@ -54,7 +64,240 @@ export interface DataAPIRouteOptions {
   // SELECT itself didn't carry a `<= N` filter that the auto-fire could
   // extract. Defaulting to 5 mirrors the GUI's default.
   lowStockThreshold?: number
+  // The project has the in-app event bus (`hasAutomationsBus`): a
+  // successful write to `teleport_events` wakes the automations, each
+  // product a low-stock scan finds is recorded as `product-low-stock`, and
+  // every request starts the due check (automations/activity-kicks.ts).
+  withAutomations?: boolean
+  // The roles the project grants staff access (`TableAccess.resolveStaffRoles`):
+  // the only sessions a server segment reads or changes OTHER customers'
+  // records for. Absent, only the explicit `admin` role.
+  staffRoles?: string[]
+  // Who reads which table from a browser (`DataExposure.resolveDataExposure`):
+  // the data API admits a browser's read of a table outside the storefront's
+  // own the way that table's per-table route does. Absent, none.
+  dataExposure?: ProjectDataExposure
+  // The project's TeleportHQ data sources (`DataExposure.managedDataSourceIds`):
+  // the only ones this route reads (the managed database), so the only ids a
+  // browser's read may name. Absent, none.
+  managedDataSourceIds?: string[]
 }
+
+/** What the data API needs of the exposure: who reads each table, not how many rows. */
+const browserExposureTables = (
+  exposure: ProjectDataExposure | undefined,
+  managedDataSourceIds: string[]
+): Record<
+  string,
+  Pick<DataReadExposure, 'public' | 'anySession' | 'roles' | 'subscriberRules'>
+> => {
+  const out: Record<
+    string,
+    Pick<DataReadExposure, 'public' | 'anySession' | 'roles' | 'subscriberRules'>
+  > = {}
+  Object.entries((exposure && exposure.tables) || {}).forEach(([key, entry]) => {
+    // This route reads the managed database only: another source's table of the
+    // same name is that source's route's to admit.
+    const source = key.slice(0, key.lastIndexOf(':'))
+    if (source !== '*' && managedDataSourceIds.indexOf(source) === -1) {
+      return
+    }
+    const admits =
+      entry.public ||
+      entry.anySession ||
+      entry.roles.length > 0 ||
+      (entry.subscriberRules || []).length > 0
+    if (admits) {
+      out[key] = {
+        public: entry.public,
+        anySession: entry.anySession,
+        roles: entry.roles,
+        ...(entry.subscriberRules && { subscriberRules: entry.subscriberRules }),
+      }
+    }
+  })
+  return out
+}
+
+/** From `pages/api/data/[...params].js` to the project root. */
+const DATA_ROUTE_ROOT = '../../..'
+
+/**
+ * The row window of a BROWSER read through the data API (the storefront's own
+ * reads: products, the discount feed, the regional pricing tables). The largest
+ * count the generated storefront asks for is 1000 (the regional pricing rows),
+ * so that is the most a browser read gets; a read naming no count gets 100.
+ */
+export const DATA_API_BROWSER_DEFAULT_LIMIT = 100
+export const DATA_API_BROWSER_MAX_LIMIT = 1000
+export const DATA_API_BROWSER_MAX_OFFSET = 1000000
+
+/**
+ * The columns that key a GUEST's own rows in a customer table (a favourite, a
+ * cart, a conversation kept by the browser's session id): a read that names
+ * one, for a visitor without a session, finds the rows no account owns.
+ */
+const GUEST_KEY_COLUMNS = [
+  'session_id',
+  'anonymous_id',
+  'anon_id',
+  'visitor_id',
+  'guest_id',
+  'device_id',
+  'browser_id',
+  'cart_id',
+  'cart_token',
+  'basket_id',
+]
+
+/**
+ * Whether the route requires `utils/app-events.js` (`ensureAppEventsModule`):
+ * it records the low-stock events through it.
+ */
+export const dataAPIRouteRecordsLowStock = (options: DataAPIRouteOptions): boolean =>
+  !!options.withAutomations && !!options.lowStockAlertsEnabled
+
+/**
+ * The wake-up and the low-stock events, for a project with automations. The
+ * regex finds an INSERT into the ledger in a raw query, however the table is
+ * written (`public.`, quoted, any case), the order event claims'
+ * `WITH claim AS (INSERT INTO teleport_events (…` included.
+ */
+const generateBusinessEventsCode = (
+  recordsLowStock: boolean
+): string => `// The project has automations. A new teleport_events row wakes their queue
+// (the in-app event bus, lib/automations/event-bus.js) off the request path,
+// once the write has succeeded: a create into the table, or a raw query that
+// inserts into it (the order event claims). A claim row is inserted BEFORE the
+// step it gates, so a dispatch may start while that step is still running;
+// that is harmless, the dispatcher runs off the request and reads every record
+// afresh. A node that writes the ledger straight to the database, not through
+// this route, bypasses the wake-up.
+var BUSINESS_EVENTS_TABLE = 'teleport_events';
+var BUSINESS_EVENT_INSERT_RE = /\\binsert\\s+into\\s+(?:"?public"?\\s*\\.\\s*)?"?teleport_events"?(?![\\w$])/i;
+
+// How many rows each request's raw query touched (handleRawQuery notes it):
+// an insert that wrote none — a row ON CONFLICT DO NOTHING skipped, an error
+// answered as an empty result — wakes nothing.
+var RAW_QUERY_ROW_COUNTS = new WeakMap();
+
+// An order event claim answers whether it took its row (its claimed column); a claim
+// that lost to an earlier one wrote nothing.
+function answersUnclaimed(result) {
+  var rows = result && Array.isArray(result.rows) ? result.rows : [];
+  return rows.length > 0 && rows.every(function (row) {
+    if (!row || !Object.prototype.hasOwnProperty.call(row, 'claimed')) {
+      return false;
+    }
+    var flag = row.claimed;
+    return !(flag === true || flag === 'true' || Number(flag) > 0);
+  });
+}
+
+function wroteBusinessEvent(operation, body, result, req) {
+  if (!body || typeof body !== 'object') {
+    return false;
+  }
+  if (operation === 'create') {
+    return __dataPublicTable(body.tableName) === BUSINESS_EVENTS_TABLE && !!(result && result.item);
+  }
+  if (operation === 'raw-query') {
+    return (
+      typeof body.query === 'string' &&
+      BUSINESS_EVENT_INSERT_RE.test(body.query) &&
+      RAW_QUERY_ROW_COUNTS.get(req) > 0 &&
+      !answersUnclaimed(result)
+    );
+  }
+  return false;
+}
+
+// Site activity: due automation work (a Wait, a retry) starts off the request
+// (lib/automations/due-check.js checks at most once a minute).
+function kickDueAutomations(req) {
+  try {
+    require('${DATA_ROUTE_ROOT}/${AUTOMATIONS_PATH.join('/')}/due-check').kickWhenDue(req);
+  } catch (error) {
+    console.warn('[data-api] could not check for due automations: ' + (error && error.message ? error.message : String(error)));
+  }
+}
+
+function wakeAutomations(req) {
+  try {
+    require('${DATA_ROUTE_ROOT}/${AUTOMATIONS_PATH.join('/')}/event-bus').scheduleDispatch(req);
+  } catch (error) {
+    console.warn('[data-api] could not wake the automations: ' + (error && error.message ? error.message : String(error)));
+  }
+}
+${
+  recordsLowStock
+    ? `
+// Each product a low-stock scan finds is a product-low-stock event: one per
+// product and stock level reached, so a scan that finds the same level again
+// records nothing new. Written on a connection of its own and never awaited by
+// the request, like the alert email; on Vercel the platform keeps it alive
+// until it is done.
+function lowStockLevel(row) {
+  var raw = row.stock !== undefined && row.stock !== null ? row.stock : row.quantity;
+  if (raw === undefined || raw === null || raw === '') {
+    return null;
+  }
+  var level = Number(raw);
+  return isFinite(level) ? level : null;
+}
+
+function recordLowStockEvents(req, rows, threshold) {
+  var work = (async function () {
+    var eventClient = getClient();
+    try {
+      var appEvents = require('${DATA_ROUTE_ROOT}/${APP_EVENTS_PATH.join(
+        '/'
+      )}/${APP_EVENTS_FILE_NAME}');
+      await eventClient.connect();
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        if (row.id === undefined || row.id === null || row.id === '') {
+          continue;
+        }
+        var id = String(row.id);
+        var stock = lowStockLevel(row);
+        var product = {
+          id: id,
+          name: row.name !== undefined && row.name !== null ? String(row.name) : '',
+          stock: stock,
+          threshold: threshold,
+        };
+        if (row.sku !== undefined && row.sku !== null && row.sku !== '') {
+          product.sku = String(row.sku);
+        }
+        await appEvents.recordAppEvent(eventClient, {
+          type: 'product-low-stock',
+          entityType: 'product',
+          entityId: id,
+          payload: { product: product },
+          actorType: 'system',
+          dedupeKey: 'low-stock:' + id + ':' + String(stock),
+        }, req);
+      }
+    } catch (error) {
+      console.error('[data-api] could not record the low-stock events: ' + (error && error.message ? error.message : String(error)));
+    } finally {
+      try { await eventClient.end(); } catch (_e) {}
+    }
+  })();
+  try {
+    var keepAlive = require('${DATA_ROUTE_ROOT}/${AUTOMATIONS_PATH.join(
+        '/'
+      )}/wait-until').waitUntil;
+    if (typeof keepAlive === 'function') {
+      keepAlive(work);
+    }
+  } catch (_e) {}
+}
+`
+    : ''
+}
+`
 
 /**
  * The only tables a BROWSER reads through this route, in an app whose server
@@ -100,6 +343,21 @@ export const generateDataAPIRoute = (options: DataAPIRouteOptions = {}): string 
     typeof options.lowStockThreshold === 'number' && options.lowStockThreshold >= 0
       ? options.lowStockThreshold
       : 5
+  const withAutomations = !!options.withAutomations
+  const managedDataSourceIds = Array.isArray(options.managedDataSourceIds)
+    ? Array.from(
+        new Set(options.managedDataSourceIds.filter((id) => typeof id === 'string'))
+      ).sort()
+    : []
+  const exposureTables = browserExposureTables(options.dataExposure, managedDataSourceIds)
+  const hasSubscriberRules = Object.values(exposureTables).some(
+    (entry) => (entry.subscriberRules || []).length > 0
+  )
+  const staffRoles =
+    Array.isArray(options.staffRoles) && options.staffRoles.length > 0
+      ? Array.from(new Set(options.staffRoles.filter((role) => typeof role === 'string'))).sort()
+      : [TableAccess.ADMIN_ROLE]
+  const recordsLowStock = dataAPIRouteRecordsLowStock(options)
 
   return `const { Client, types: pgTypes } = require('pg');
 // A DATE stays the day it names, whatever the server's time zone: node-pg would read it as
@@ -170,10 +428,12 @@ const getClient = () => {
   if (ssl === false && connStr) {
     connStr = stripSslQueryParamsFromConnectionString(connStr);
   }
+  // No query waits on the database longer than this (enforced by the client:
+  // a server-side statement_timeout does not survive a pooler).
   if (connStr) {
     return new Client(
       Object.assign(
-        { connectionString: connStr },
+        { connectionString: connStr, query_timeout: ${DataExposure.READ_QUERY_TIMEOUT_MS} },
         ssl !== undefined ? { ssl: ssl } : {}
       )
     );
@@ -186,6 +446,7 @@ const getClient = () => {
         user: process.env.TELEPORT_DB_USER,
         password: process.env.TELEPORT_DB_PASSWORD,
         database: process.env.TELEPORT_DB_NAME,
+        query_timeout: ${DataExposure.READ_QUERY_TIMEOUT_MS},
       },
       ssl !== undefined ? { ssl: ssl } : {}
     )
@@ -282,6 +543,11 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   var paramIndex = startIndex;
   var skipOptionalEmpty = !!(options && options.skipOptionalEmpty);
   var strict = !!(options && options.strict);
+  var ownerScope = (options && options.ownerScope) || null;
+  // A read already bound to the visitor — an owner filter that is the
+  // session's own id or email, or a guest's own browser key — may drop a
+  // wildcard on another key: that only widens it within the visitor's own rows.
+  var visitorScoped = !!ownerScope && __dataReadIsBoundToVisitor(ownerScope, filters);
 
   if (!filters || !Array.isArray(filters) || filters.length === 0) {
     return { clause: '', paramIndex: paramIndex };
@@ -298,6 +564,27 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
     }
     var value = f.destination !== undefined ? f.destination : f.value;
     var operand = f.operand || f.operator || '=';
+
+    // A read of a customer table for a visitor: the filter on whose record it
+    // is never widens the read, and names only the visitor's own (see
+    // __dataOwnerScope).
+    if (ownerScope && __dataIsOwnerColumn(ownerScope, field)) {
+      var ownerClause = __dataOwnerClause(ownerScope, field, value, operand, f, filters);
+      if (ownerClause !== null) {
+        conditions.push(ownerClause);
+        continue;
+      }
+    } else if (ownerScope && !visitorScoped && __dataIsWideningValue(value, f)) {
+      // A customer table read for a visitor: an empty, "all" or wildcard value
+      // on ANY key matches nothing — it never drops the condition and widens
+      // the read to every customer's rows.
+      conditions.push('FALSE');
+      continue;
+    } else if (!strict && f.__skippable === true) {
+      // The data-select node keeps every filter it would have left out, for the
+      // scope above; anywhere else it is left out, as the node always did.
+      continue;
+    }
 
     if (strict && isMissingFilterValue(value)) throw refuseUnscopedWrite(field);
     if (value === undefined) continue;
@@ -399,6 +686,9 @@ async function handleSelect(client, body, req) {
     __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
     __taAssertFeedFields(tableName, feed, sorts.map(function(s) { return s && s.field; }));
   }
+  // A browser never filters, sorts or selects by a credential column.
+  __dataAssertNoCredentialFields(req, tableName, filters.map(function(f) { return f && (f.source || f.field); })
+    .concat(sorts.map(function(s) { return s && s.field; }), selectedColumns));
   // A browser reads a published table's public rows, and never names a hidden
   // column — to read it, filter by it or sort by it.
   var rowPolicy = __dataRowPolicy(req, tableName);
@@ -408,12 +698,20 @@ async function handleSelect(client, body, req) {
     __dataAssertVisibleFields(rowPolicy, selectedColumns);
   }
 
+  // A browser reads a bounded page of rows, of whole numbers (see
+  // __dataReadWindow); the app's own server code reads what it names.
+  var rowWindow = __dataReadWindow(req, limit, skip);
+  limit = rowWindow.limit;
+  skip = rowWindow.skip;
+  var ownerScope = await __dataOwnerScope(req, tableName);
+
   var queryParams = [];
   var cols = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
   if (feed) cols = feed.columns.join(', ');
   var sql = 'SELECT ' + cols + ' FROM ' + tableName;
 
-  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
+  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true, ownerScope: ownerScope });
+  if (!rawQueryUserPart) where = await __dataWithPrivateScope(client, ownerScope, filters, queryParams, where);
   sql += where.clause;
   if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
   if (rowPolicy) sql += (where.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
@@ -429,11 +727,11 @@ async function handleSelect(client, body, req) {
     }
   }
 
-  if (limit !== undefined && limit !== null) {
-    sql += ' LIMIT ' + parseInt(limit);
+  if (limit !== undefined) {
+    sql += ' LIMIT ' + limit;
   }
-  if (skip !== undefined && skip !== null) {
-    sql += ' OFFSET ' + parseInt(skip);
+  if (skip !== undefined) {
+    sql += ' OFFSET ' + skip;
   }
 
   if (rawQueryUserPart) {
@@ -452,13 +750,18 @@ async function handleSelect(client, body, req) {
 
   var result = await safeQuery(client, sql, queryParams, 'select');
   var rows = Array.isArray(result.rows) ? result.rows : [];
-  // A browser reads the users table's profile, never its credentials.
-  if (!isInternalDataRequest(req)) rows = __taWithoutCredentials(rows, tableName);
+  // No credential column leaves in a row — a server segment relays its rows
+  // to the browser. Only a server-side caller that names one in its own
+  // projection (a check that compares a hash on the server) gets it.
+  rows = rawQueryUserPart
+    ? __taWithoutCredentials(rows, null, isAuthLayerCall(req) ? __taCredentialsNamedBy(rawQueryUserPart, rows) : [])
+    : __taWithoutCredentials(rows, tableName, isAuthLayerCall(req) ? selectedColumns : []);
   if (rowPolicy) rows = __dataWithoutHidden(rowPolicy, rows);
 
   var countSql = 'SELECT COUNT(*) FROM ' + tableName;
   var countParams = [];
-  var countWhere = buildWhereClause(filters, countParams, 1, { skipOptionalEmpty: true });
+  var countWhere = buildWhereClause(filters, countParams, 1, { skipOptionalEmpty: true, ownerScope: ownerScope });
+  countWhere = await __dataWithPrivateScope(client, ownerScope, filters, countParams, countWhere);
   countSql += countWhere.clause;
   if (feed) countSql += (countWhere.clause ? ' AND ' : ' WHERE ') + feed.predicate;
   if (rowPolicy) countSql += (countWhere.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
@@ -479,13 +782,16 @@ async function handleCount(client, body, req) {
   if (feed) {
     __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
   }
+  __dataAssertNoCredentialFields(req, tableName, filters.map(function(f) { return f && (f.source || f.field); }));
   var rowPolicy = __dataRowPolicy(req, tableName);
   if (rowPolicy) {
     __dataAssertVisibleFields(rowPolicy, filters.map(function(f) { return f && (f.source || f.field); }));
   }
+  var ownerScope = await __dataOwnerScope(req, tableName);
   var queryParams = [];
   var sql = 'SELECT COUNT(*) FROM ' + tableName;
-  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true });
+  var where = buildWhereClause(filters, queryParams, 1, { skipOptionalEmpty: true, ownerScope: ownerScope });
+  where = await __dataWithPrivateScope(client, ownerScope, filters, queryParams, where);
   sql += where.clause;
   if (feed) sql += (where.clause ? ' AND ' : ' WHERE ') + feed.predicate;
   if (rowPolicy) sql += (where.clause || feed ? ' AND ' : ' WHERE ') + '(' + rowPolicy.predicate + ')';
@@ -651,7 +957,8 @@ function stampRequestLocale(tableName, entries, colTypes, requestLocale) {
 }
 
 // Columns a feature added after stores were provisioned: product options
-// (the definitions on the product, the chosen configuration on an order line).
+// (the definitions on the product, the chosen configuration on an order line)
+// and the record an activity-log line is about (its entity).
 // A write naming one on a store whose table never gained it drops that column
 // instead of failing the whole statement — an order must never lose its lines
 // over a column that was not added. Only when the table's columns are known:
@@ -659,6 +966,7 @@ function stampRequestLocale(tableName, entries, colTypes, requestLocale) {
 var OPTIONAL_FEATURE_COLUMNS = {
   teleport_products: ['option_groups', 'product_page'],
   teleport_order_items: ['configuration', 'configuration_label'],
+  teleport_events: ['entity_type', 'entity_id', 'claimed_at'],
 };
 
 function dropMissingOptionalColumns(tableName, entries, colTypes) {
@@ -677,14 +985,14 @@ function dropMissingOptionalColumns(tableName, entries, colTypes) {
   return kept;
 }
 
-async function handleCreate(client, body) {
+async function handleCreate(client, body, req) {
   var tableName = body.tableName;
   var columnMappings = body.columnMappings || {};
   // Optional fallback passed by the data-create-item workflow handler
   // when the workflow context carries a resolve-user output. See
   // coerceUuidColumnValue for why ownership columns get this special
   // treatment instead of being NULL'd outright.
-  var anonymousUserIdFallback = body.__anonymousUserId;
+  var anonymousUserIdFallback = await __dataGuestFallback(client, req, body.__anonymousUserId);
 
   // Validate table name
   assertIdentifierSafe(tableName, 'table name');
@@ -751,14 +1059,15 @@ async function handleCreate(client, body) {
   var item = result.rows && result.rows[0] ? result.rows[0] : null;
   var idIdx = columns.indexOf('id');
   var resolvedId = item ? (item.id || null) : (idIdx >= 0 ? values[idIdx] : null);
-  return { item: item, id: resolvedId };
+  // The written row goes back to a segment that relays it: never its credentials.
+  return { item: __dataWithoutItemCredentials(item, tableName), id: resolvedId };
 }
 
-async function handleUpdate(client, body) {
+async function handleUpdate(client, body, req) {
   var tableName = body.tableName;
   var filters = body.filters || [];
   var columnMappings = body.columnMappings || {};
-  var anonymousUserIdFallback = body.__anonymousUserId;
+  var anonymousUserIdFallback = await __dataGuestFallback(client, req, body.__anonymousUserId);
 
   // Validate table name
   assertIdentifierSafe(tableName, 'table name');
@@ -803,7 +1112,11 @@ async function handleUpdate(client, body) {
   sql += ' RETURNING *';
 
   var result = await safeQuery(client, sql, queryParams, 'update');
-  return { updatedCount: result.rowCount || 0, item: result.rows[0] || null, id: (result.rows[0] && result.rows[0].id) || null };
+  return {
+    updatedCount: result.rowCount || 0,
+    item: __dataWithoutItemCredentials(result.rows[0] || null, tableName),
+    id: (result.rows[0] && result.rows[0].id) || null,
+  };
 }
 
 async function handleDelete(client, body) {
@@ -881,7 +1194,9 @@ function extractThresholdFromQuery(query) {
 // local server on another port than a local NEXTAUTH_URL keeps its own
 // loopback address (NEXTAUTH_URL stuck at :3000 while the dev server runs on
 // :3001). Env vars are tried as fallbacks for the rare serverless
-// background-work case where the request context isn't visible.
+// background-work case where the request context isn't visible. NEXTAUTH_URL
+// is read as configured, never as the auth route rewrote it from a request
+// (configured-nextauth-url.ts).
 function isLoopbackHost(host) {
   var name = String(host || '').replace(/:[0-9]+$/, '').toLowerCase();
   return name === 'localhost' || name === '127.0.0.1' || name === '[::1]';
@@ -893,17 +1208,19 @@ function resolveSelfBaseUrl(req) {
     var proto = (req && req.headers && req.headers['x-forwarded-proto']) || (isLoopbackHost(host) ? 'http' : 'https');
     var requestOrigin = String(proto).split(',')[0].trim() + '://' + host;
     if (process.env.VERCEL) return requestOrigin;
-    var configured = String(process.env.NEXTAUTH_URL || '').trim();
+    var configured = String(${CONFIGURED_NEXTAUTH_URL_EXPRESSION} || '').trim();
     if (!configured) return requestOrigin;
     var origin;
     try { origin = new URL(configured).origin; } catch (e) { return requestOrigin; }
     if (isLoopbackHost(host) && isLoopbackHost(new URL(origin).host)) return requestOrigin;
     return origin;
   }
-  if (process.env.NEXTAUTH_URL) return String(process.env.NEXTAUTH_URL).replace(/\\/+$/, '');
+  if (${CONFIGURED_NEXTAUTH_URL_EXPRESSION}) return String(${CONFIGURED_NEXTAUTH_URL_EXPRESSION}).replace(/\\/+$/, '');
   if (process.env.VERCEL_URL) return 'https://' + String(process.env.VERCEL_URL).replace(/\\/+$/, '');
   return '';
 }
+
+${generateSelfCallHeadersCode()}
 
 // Fire-and-forget POST to /api/ecommerce/low-stock-alert. Errors
 // are swallowed because the merchant must never see a failed alert
@@ -935,7 +1252,7 @@ function fireAndForgetLowStockAlert(req, rows, threshold) {
       method: 'POST',
       // The alert route emails the merchant only for the store's own server
       // code, which presents the app secret.
-      headers: { 'Content-Type': 'application/json', 'x-internal-data-secret': process.env.NEXTAUTH_SECRET || '' },
+      headers: __selfCallHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
     }).catch(function(err) {
       console.error('[data-api] low-stock alert POST failed: ' + (err && err.message ? err.message : String(err)));
@@ -945,7 +1262,9 @@ function fireAndForgetLowStockAlert(req, rows, threshold) {
   }
 }
 
-async function handleRawQuery(client, body, req) {
+${
+  withAutomations ? generateBusinessEventsCode(recordsLowStock) : ''
+}async function handleRawQuery(client, body, req) {
   var query = body.query;
   if (!query || typeof query !== 'string') {
     return { rows: [], error: 'No query provided' };
@@ -969,7 +1288,13 @@ async function handleRawQuery(client, body, req) {
   }
 
   var result = await safeQuery(client, query, params, 'raw-query');
+  // No credential column comes back to a segment a visitor's request runs: its
+  // results are relayed to the browser. A server job (a cron's calendar sync)
+  // and the auth layer get the credential columns the statement names itself
+  // (see __taCredentialsNamedBy); a SELECT * over the users table brings none.
   var rows = Array.isArray(result.rows) ? result.rows : [];
+  var namedCredentials = __dataIsServerJob(req) || isAuthLayerCall(req) ? __taCredentialsNamedBy(query, rows) : [];
+  rows = __taWithoutCredentials(rows, null, namedCredentials);
 
   // Auto-fire the low-stock alert when the workflow runs the post-
   // stock-decrement SELECT and gets back a non-empty list. The
@@ -978,8 +1303,14 @@ async function handleRawQuery(client, body, req) {
   // that gap without requiring the AI to wire an email-send node.
   if (LOW_STOCK_ALERTS_ENABLED && rows.length > 0 && looksLikeLowStockProductSelect(query)) {
     fireAndForgetLowStockAlert(req, rows, extractThresholdFromQuery(query));
-  }
-
+${
+  recordsLowStock ? '    recordLowStockEvents(req, rows, extractThresholdFromQuery(query));\n' : ''
+}  }
+${
+  withAutomations
+    ? "  RAW_QUERY_ROW_COUNTS.set(req, typeof result.rowCount === 'number' ? result.rowCount : rows.length);\n"
+    : ''
+}
   return { rows: rows };
 }
 
@@ -989,6 +1320,342 @@ async function handleRawQuery(client, body, req) {
 // (non-workflow) client calls have no secret and stay guarded.
 function isInternalDataRequest(req) {
   return __taIsInternalRequest(req);
+}
+
+// A server job — a cron, a webhook or an automation run, which runs no
+// visitor's request — flags its data calls (the runners put x-tq-server-job in
+// the run's __internalHeaders) and presents the app secret; the flag counts
+// only with it. Every other internal call is a segment a visitor's request
+// runs: its reads of customer records are the visitor's (__dataOwnerScope), and
+// its raw results carry no credential.
+function __dataIsServerJob(req) {
+  if (!isInternalDataRequest(req)) return false;
+  var flag = req && req.headers && req.headers['x-tq-server-job'];
+  return (Array.isArray(flag) ? flag[0] : flag) === '1';
+}
+
+// The auth layer's own in-process call (a property, never a header, so nothing
+// on the wire can claim it): the only caller a credential column it names in
+// its projection is returned to. Every other caller — every workflow segment —
+// gets the row without its credentials.
+function isAuthLayerCall(req) {
+  return !!(req && req.__tqAuthLayerCall === true && req.__tqServerCall === true);
+}
+
+function __dataAssertNoCredentialFields(req, tableName, fields) {
+  if (isInternalDataRequest(req)) return;
+  for (var i = 0; i < fields.length; i++) {
+    if (!fields[i]) continue;
+    var name = __taNormalizeTable(fields[i]);
+    if (__taIsCredentialColumn(name) || (__taIsCredentialTable(tableName) && __TA_CREDENTIAL_COLUMNS.indexOf(name) !== -1)) {
+      var err = new Error('Invalid field');
+      err.status = 400;
+      throw err;
+    }
+  }
+}
+
+// Who reads which table from a browser beyond the storefront's own tables:
+// the pages that bind it decide (DataExposure in teleport-shared), as on the
+// per-table read routes — anyone for a public page's table, a session the
+// binding pages admit otherwise (with the entitlement on a subscriber-only
+// page). A row-owned page's table is read on its own route, never here.
+var DATA_EXPOSURE_TABLES = ${JSON.stringify(exposureTables)};
+${hasSubscriberRules ? DataExposure.generateEntitlementCheckCode() : ''}
+var MANAGED_DATA_SOURCE_IDS = ${JSON.stringify(managedDataSourceIds)};
+async function __dataBrowserMayRead(req, dataSourceId, tableName) {
+  // This route reads the managed database whatever id the path names: a browser
+  // names one of its sources, never another's whose table has the same name.
+  if (MANAGED_DATA_SOURCE_IDS.indexOf(dataSourceId) === -1) return false;
+  var bare = __dataPublicTable(tableName);
+  if (!bare) return false;
+  var entry = DATA_EXPOSURE_TABLES[dataSourceId + ':' + bare] || DATA_EXPOSURE_TABLES['*:' + bare];
+  if (!entry) return false;
+  if (entry.public) return true;
+  var token = await __dataSession(req);
+  if (!token) return false;
+  if (entry.anySession) return true;
+  var role = __taRoleOf(token);
+  if (role && entry.roles.indexOf(role) !== -1) return true;
+  var rules = entry.subscriberRules || [];
+  var products = null;
+  for (var i = 0; i < rules.length; i++) {
+    if (rules[i].roles.length > 0 && (!role || rules[i].roles.indexOf(role) === -1)) continue;
+    products = rules[i].productIds.length === 0 || (products && products.length === 0)
+      ? []
+      : (products || []).concat(rules[i].productIds);
+  }
+  return !!products && (await __dxEntitled(token, products));
+}
+
+function __dataWithoutItemCredentials(item, tableName) {
+  if (!item || typeof item !== 'object') return item;
+  return __taWithoutCredentials([item], tableName)[0];
+}
+
+// The id a guest's row may be filed under when its owner column got no id of
+// its own (see coerceUuidColumnValue): an ANONYMOUS id only. With a session it
+// must be the session's own id; without one it must not be a registered
+// account's id — any users row but the guest's own anonymous one
+// (<uuid>${TableAccess.ANONYMOUS_GUEST_EMAIL_SUFFIX}, written by "Resolve Current User"
+// before the checkout's insert; see TableAccess.registeredAccountEmailSql) — a
+// request never files a row under someone else's account. Any doubt (no users
+// table, a failed check) drops it.
+async function __dataGuestFallback(client, req, value) {
+  if (typeof value !== 'string' || !UUID_RE.test(value)) return undefined;
+  var token = await __dataSession(req);
+  if (token) {
+    var own = token.id || token.sub;
+    return own && String(own) === value ? value : undefined;
+  }
+  try {
+    var registered = await client.query(
+      'SELECT 1 FROM ' + GUEST_FALLBACK_USERS_TABLE + " WHERE id::text = $1 AND ${TableAccess.registeredAccountEmailSql(
+        'email'
+      )} LIMIT 1",
+      [value]
+    );
+    return registered && registered.rows && registered.rows.length > 0 ? undefined : value;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// How many rows a read gets. A browser (the storefront's own reads) gets
+// BROWSER_DEFAULT_LIMIT rows when it names no count, never more than
+// BROWSER_MAX_LIMIT, starts no further in than BROWSER_MAX_OFFSET, and a count
+// that is not a whole number is refused. The app's own server code reads what
+// it names (a count it cannot read is left out, as before).
+var BROWSER_DEFAULT_LIMIT = ${DATA_API_BROWSER_DEFAULT_LIMIT};
+var BROWSER_MAX_LIMIT = ${DATA_API_BROWSER_MAX_LIMIT};
+var BROWSER_MAX_OFFSET = ${DATA_API_BROWSER_MAX_OFFSET};
+
+function __dataRowCount(value, label, strict) {
+  if (value === undefined || value === null || value === '') return undefined;
+  var text = String(value).trim();
+  if (/^[0-9]{1,15}$/.test(text)) return parseInt(text, 10);
+  if (strict) {
+    var err = new Error('Invalid ' + label);
+    err.status = 400;
+    throw err;
+  }
+  var parsed = parseInt(text, 10);
+  return isNaN(parsed) || parsed < 0 ? undefined : parsed;
+}
+
+function __dataReadWindow(req, limit, skip) {
+  if (isInternalDataRequest(req)) {
+    return { limit: __dataRowCount(limit, 'limit', false), skip: __dataRowCount(skip, 'skip', false) };
+  }
+  var browserLimit = __dataRowCount(limit, 'limit', true);
+  var browserSkip = __dataRowCount(skip, 'skip', true);
+  return {
+    limit: Math.min(browserLimit === undefined ? BROWSER_DEFAULT_LIMIT : browserLimit, BROWSER_MAX_LIMIT),
+    skip: browserSkip === undefined ? undefined : Math.min(browserSkip, BROWSER_MAX_OFFSET),
+  };
+}
+
+// Whose record a customer-table row is (see TableAccess.OWNER_* in
+// teleport-shared). A server segment reads these tables for a visitor with the
+// app secret, so the browser's session reaches here only as the cookie the
+// segment forwards — and the filter values only as the context the browser
+// sent. So for a visitor who is not staff — a guest, an ordinary account, a
+// customer role such as a subscription's member — a filter on an owner column:
+//  - never widens the read: an empty or "all" value, a negation or a pattern
+//    matches nothing — a guest's own rows, found by the guest key the same read
+//    names (session_id …), are the ones no account owns;
+//  - names only the visitor: for a signed-in visitor the value must be the
+//    session's own id (or email), never one the browser chose.
+// A staff role (STAFF_ROLES: the admin panel's roles and admin) reads every
+// customer's records.
+var OWNER_SCOPED_TABLES = ${JSON.stringify(TableAccess.CUSTOMER_RECORD_TABLES)};
+var OWNER_ID_COLUMNS = ${JSON.stringify(TableAccess.OWNER_ID_COLUMNS)};
+var OWNER_EMAIL_COLUMNS = ${JSON.stringify(TableAccess.OWNER_EMAIL_COLUMNS)};
+var OWNER_COLUMNS_BY_TABLE = ${JSON.stringify(TableAccess.OWNER_COLUMNS_BY_TABLE)};
+// The private customer records (TableAccess.PRIVATE_CUSTOMER_RECORD_TABLES): a
+// visitor's read of one is always the visitor's own rows, whatever its filters
+// name (__dataWithPrivateScope).
+var PRIVATE_RECORD_TABLES = ${JSON.stringify(TableAccess.PRIVATE_CUSTOMER_RECORD_TABLES)};
+var PRIVATE_RECORD_PARENTS = ${JSON.stringify(TableAccess.PRIVATE_RECORD_PARENTS)};
+var GUEST_KEY_COLUMNS = ${JSON.stringify(GUEST_KEY_COLUMNS)};
+// The accounts table a guest's fallback id is checked against.
+var GUEST_FALLBACK_USERS_TABLE = ${JSON.stringify(
+    authUsersTable && /^[A-Za-z_][A-Za-z0-9_]*$/.test(authUsersTable) ? authUsersTable : 'users'
+  )};
+var STAFF_ROLES = ${JSON.stringify(staffRoles)};
+
+async function __dataSession(req) {
+  if (typeof __tqSessionToken !== 'function') return null;
+  try {
+    return (await __tqSessionToken(req)) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// The visitor a read of \`tableName\` is scoped to, or null when it is not
+// scoped: not a customer table, a browser (which reads none of them here), or
+// a staff role.
+async function __dataOwnerScope(req, tableName) {
+  if (!isInternalDataRequest(req)) return null;
+  // Every segment a visitor's request runs is scoped; only a server job (a
+  // cron, a webhook, an automation) reads the customer records as before. An
+  // admin server step runs with a staff session (below).
+  if (__dataIsServerJob(req)) return null;
+  var table = __taNormalizeTable(tableName);
+  if (OWNER_SCOPED_TABLES.indexOf(table) === -1) return null;
+  var token = await __dataSession(req);
+  var role = token ? __taRoleOf(token) : null;
+  if (role && STAFF_ROLES.indexOf(role) !== -1) return null;
+  var own = Object.prototype.hasOwnProperty.call(OWNER_COLUMNS_BY_TABLE, table) ? OWNER_COLUMNS_BY_TABLE[table] : null;
+  return {
+    table: table,
+    ids: own ? own.ids : OWNER_ID_COLUMNS,
+    emails: own ? own.emails : OWNER_EMAIL_COLUMNS,
+    signedIn: !!token,
+    sessionId: token && (token.id || token.sub) ? String(token.id || token.sub) : '',
+    sessionEmail: token && token.email ? String(token.email).trim().toLowerCase() : '',
+  };
+}
+
+// A visitor's read of a private record table that its own filters do not bind
+// to the visitor (__dataReadIsBoundToVisitor) gets the owner condition anyway:
+// a list built with no owner filter shows only the visitor's rows. A session's
+// is its id or email on the table's owner columns (or its parent row's, for a
+// table owned through one); a guest's read of one is its guest key's, or
+// nothing.
+async function __dataWithPrivateScope(client, scope, filters, queryParams, where) {
+  if (!scope || PRIVATE_RECORD_TABLES.indexOf(scope.table) === -1) return where;
+  if (__dataReadIsBoundToVisitor(scope, filters)) return where;
+  // A read one of whose conditions is already FALSE finds nothing as it is.
+  if (/(?:^ WHERE | AND )FALSE(?: AND |$)/.test(where.clause || '')) return where;
+  var condition = scope.signedIn
+    ? await __dataPrivateOwnerCondition(client, scope, scope.table, queryParams, 0)
+    : 'FALSE';
+  return {
+    clause: (where.clause ? where.clause + ' AND ' : ' WHERE ') + condition,
+    paramIndex: queryParams.length + 1,
+  };
+}
+
+// The session's own rows of \`table\`, by the owner columns it has (read from
+// the schema), or by its parent row's (PRIVATE_RECORD_PARENTS); 'FALSE' when it
+// has neither, or the session lacks the identity they name.
+async function __dataPrivateOwnerCondition(client, scope, table, queryParams, depth) {
+  var types = await getColumnTypes(client, table);
+  var columns = Object.keys(types).map(function(name) { return String(name).toLowerCase(); });
+  var own = Object.prototype.hasOwnProperty.call(OWNER_COLUMNS_BY_TABLE, table) ? OWNER_COLUMNS_BY_TABLE[table] : null;
+  var present = function(name) { return columns.indexOf(name) !== -1; };
+  var ids = (own ? own.ids : OWNER_ID_COLUMNS).filter(present);
+  var emails = (own ? own.emails : OWNER_EMAIL_COLUMNS).filter(present);
+  if (ids.length > 0 || emails.length > 0) {
+    var parts = [];
+    if (scope.sessionId) {
+      ids.forEach(function(name) {
+        queryParams.push(scope.sessionId);
+        parts.push(name + '::text = $' + queryParams.length);
+      });
+    }
+    if (scope.sessionEmail) {
+      emails.forEach(function(name) {
+        queryParams.push(scope.sessionEmail);
+        parts.push('LOWER(' + name + '::text) = $' + queryParams.length);
+      });
+    }
+    return parts.length > 0 ? '(' + parts.join(' OR ') + ')' : 'FALSE';
+  }
+  var parent = Object.prototype.hasOwnProperty.call(PRIVATE_RECORD_PARENTS, table) ? PRIVATE_RECORD_PARENTS[table] : null;
+  if (!parent || depth >= 3 || !present(parent.column)) return 'FALSE';
+  var inner = await __dataPrivateOwnerCondition(client, scope, parent.parent, queryParams, depth + 1);
+  if (inner === 'FALSE') return 'FALSE';
+  return parent.column + ' IN (SELECT id FROM ' + parent.parent + ' WHERE ' + inner + ')';
+}
+
+function __dataIsOwnerColumn(scope, field) {
+  var column = __taNormalizeTable(field);
+  return scope.ids.indexOf(column) !== -1 || scope.emails.indexOf(column) !== -1;
+}
+
+// Whether a filter binds the read to a guest's own browser key: a guest-key
+// column equal (=, nothing else) to one concrete value. A LIKE, a negation, a
+// "contains", a list or a value that would drop the condition (empty, "all", a
+// bare wildcard) binds nothing.
+function __dataNamesGuestKey(filters) {
+  for (var i = 0; i < filters.length; i++) {
+    var f = filters[i] || {};
+    var column = __taNormalizeTable(f.source || f.field);
+    var value = f.destination !== undefined ? f.destination : f.value;
+    if (
+      GUEST_KEY_COLUMNS.indexOf(column) !== -1 &&
+      typeof value === 'string' &&
+      __dataFilterOperator(f.operand || f.operator || '=', value) === '=' &&
+      !__dataIsWideningValue(value, f)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// The operator buildWhereClause would write for this filter.
+function __dataFilterOperator(operand, value) {
+  var normalized = String(operand || '=').toLowerCase();
+  if (Array.isArray(value)) return operand === '!=' ? '!=' : '=';
+  if (/^(?:not[_-]?)?contains$|^starts[_-]?with$|^ends[_-]?with$/.test(normalized)) return 'like';
+  var validOps = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'ILIKE'];
+  return validOps.indexOf(operand) !== -1 ? operand : '=';
+}
+
+// null when the owner filter may run as written, else the clause it becomes.
+// Whether some filter binds the read to the visitor: for a signed-in visitor an
+// owner filter whose value is the session's own; for a guest a guest-key filter.
+function __dataReadIsBoundToVisitor(scope, filters) {
+  if (!Array.isArray(filters)) return false;
+  if (!scope.signedIn) return __dataNamesGuestKey(filters);
+  for (var i = 0; i < filters.length; i++) {
+    var f = filters[i] || {};
+    var field = f.source || f.field;
+    if (!field || !__dataIsOwnerColumn(scope, field)) continue;
+    var value = f.destination !== undefined ? f.destination : f.value;
+    if (__dataOwnerClause(scope, field, value, f.operand || f.operator || '=', f, filters) === null) return true;
+  }
+  return false;
+}
+
+// A value that would drop its condition: empty, missing, "all"/wildcard, or one
+// the data-select node marked as left out.
+function __dataIsWideningValue(value, filter) {
+  return filter.__skippable === true || isMissingFilterValue(value) || isSkippableFilterValue(value) ||
+    isAllSentinelFilterValue(value, filter) || value === '__TQ_UNRESOLVED_ROUTE_PARAM__' ||
+    (typeof value === 'string' && /^[*%]+$/.test(value.trim()));
+}
+
+function __dataOwnerClause(scope, field, value, operand, filter, filters) {
+  var empty = __dataIsWideningValue(value, filter);
+  if (empty) {
+    return !scope.signedIn && __dataNamesGuestKey(filters) ? field + ' IS NULL' : 'FALSE';
+  }
+  if (__dataFilterOperator(operand, value) !== '=') return 'FALSE';
+  var values = Array.isArray(value) ? value : [value];
+  var isEmailColumn = scope.emails.indexOf(__taNormalizeTable(field)) !== -1;
+  for (var i = 0; i < values.length; i++) {
+    var entry = values[i];
+    if (entry === null || entry === undefined || typeof entry === 'object') return 'FALSE';
+    var text = String(entry).trim();
+    if (text === '' || isAllSentinelFilterValue(text, null)) return 'FALSE';
+    // A guest never names whose record to read: only a read bound to the
+    // guest's own browser key (a guest-key filter with a value) may carry one.
+    if (!scope.signedIn) {
+      if (!__dataNamesGuestKey(filters)) return 'FALSE';
+      continue;
+    }
+    var own = isEmailColumn ? scope.sessionEmail : scope.sessionId;
+    if (!own || (isEmailColumn ? text.toLowerCase() !== own : text !== own)) {
+      console.warn('[data-api] refused a read of ' + scope.table + ' by ' + field + ': it names another account than the session');
+      return 'FALSE';
+    }
+  }
+  return null;
 }
 
 var WRITE_OPERATIONS = { create: 1, update: 1, delete: 1 };
@@ -1076,6 +1743,20 @@ function __forbidBrowserOperation(what) {
   throw err;
 }
 
+// The retired tables (TableAccess.RETIRED_TABLES: the old password_reset_tokens)
+// are refused to EVERY caller, the app's own server code and its jobs included,
+// before anything else runs: by the table a request names, and by any mention
+// in a raw statement's text.
+function assertNoRetiredTable(operation, body) {
+  if (!body || typeof body !== 'object') return;
+  var sql = operation === 'raw-query' ? body.query : body.rawQueryUserPart;
+  if (__taRetiredTableNamed(body.tableName, typeof sql === 'string' ? sql : null)) {
+    var err = new Error('Forbidden');
+    err.status = 403;
+    throw err;
+  }
+}
+
 // Refuses a browser's access to the money tables (see the shared table-access
 // helper above); a trusted internal call passes untouched. Where the app can
 // tell its own server-side calls apart (__taBrowserIsReadOnly), a browser only
@@ -1086,7 +1767,10 @@ function assertTableAccess(req, operation, body) {
   if (__taBrowserIsReadOnly(req)) {
     if (operation !== 'select' && operation !== 'count') __forbidBrowserOperation('the ' + operation + ' operation');
     if (body.rawQueryUserPart) __forbidBrowserOperation('a raw query');
-    if (BROWSER_READABLE_TABLES.indexOf(__dataPublicTable(body.tableName)) === -1) {
+    if (
+      BROWSER_READABLE_TABLES.indexOf(__dataPublicTable(body.tableName)) === -1 &&
+      req.__tqBrowserExposure !== true
+    ) {
       __forbidBrowserOperation('reading ' + String(body.tableName || 'this table'));
     }
   }
@@ -1106,14 +1790,55 @@ function assertTableAccess(req, operation, body) {
 }
 
 // The columns of the auth users table that decide what a session may DO, not
-// who it is. The session token carries role / roleName / roles off the
-// \`users\` row, and the middleware's page gates and the money-table guard
-// both read the role off it — so a browser that could write one of these
-// columns would be handing itself the store administrator's reads. Everything
-// else on the row stays writable: a generated profile form updates whatever
-// columns the merchant put there, and only the server-side segments (which
-// present the app secret) may grant a role.
-var AUTH_ROLE_COLUMNS = { role: 1, roles: 1, rolename: 1, role_name: 1 };
+// who it is: a role, an admin or staff flag, a verified email, credit, a plan,
+// an entitlement, in any spelling (the one shared rule,
+// AccountFields.isPrivilegedAccountField). The session token carries the role
+// off the \`users\` row, and the middleware's page gates and the money-table
+// guard both read it — so a visitor who could write one of these would be
+// handing themselves the store administrator's reads. A browser never writes
+// one; a server segment writes one only for staff (STAFF_ROLES) or as the
+// server's own job (no visitor): a segment acts for the visitor whose cookie
+// it forwards, and a profile form that maps one of these would let a customer
+// make themselves the administrator. Everything else on the row stays
+// writable, and the rule is the ACCOUNT table's only: \`plan\`, \`tier\` or
+// \`credits\` are ordinary columns of any other table.
+${AccountFields.generatePrivilegedAccountFieldCode('__dataIsPrivilegedAccountColumn')}
+
+// The privileged account columns a statement's text names.
+function __dataPrivilegedColumnsNamed(text) {
+  var words = String(text || '').match(/[A-Za-z_][A-Za-z0-9_$]*/g) || [];
+  return words.filter(__dataIsPrivilegedAccountColumn);
+}
+
+function __dataWrittenColumns(body) {
+  var columnMappings = (body && body.columnMappings) || {};
+  return Array.isArray(columnMappings)
+    ? columnMappings.map(function(m) { return m && (m.source || m.column); })
+    : Object.keys(columnMappings);
+}
+
+async function assertNoPrivilegeWriteForCustomer(req, operation, body) {
+  if (ROLE_SOURCE_TABLES.length === 0 || !isInternalDataRequest(req)) return;
+  if (!body || typeof body !== 'object') return;
+  var sql = operation === 'raw-query' ? body.query : null;
+  var written = [];
+  if (typeof sql === 'string' && sql.length > 0) {
+    var cleaned = __taCleanSql(sql);
+    if (cleaned.ok && !__TA_SQL_WRITE_RE.test(cleaned.text)) return;
+    var mentionsAccounts = ROLE_SOURCE_TABLES.some(function(table) { return __taSqlMentionsTable(sql, table); });
+    if (!mentionsAccounts) return;
+    written = __dataPrivilegedColumnsNamed(cleaned.ok ? cleaned.text : sql);
+  } else if (operation === 'create' || operation === 'update') {
+    if (ROLE_SOURCE_TABLES.indexOf(__taNormalizeTable(body.tableName)) === -1) return;
+    written = __dataWrittenColumns(body).filter(function(column) { return __dataIsPrivilegedAccountColumn(column); });
+  }
+  if (written.length === 0) return;
+  var token = await __dataSession(req);
+  if (!token) return;
+  var role = __taRoleOf(token);
+  if (role && STAFF_ROLES.indexOf(role) !== -1) return;
+  __forbidRoleWrite(written[0]);
+}
 
 // The identity table this route guards, and \`users\`, which is where the auth
 // options read the session's role from whatever the identity table is called.
@@ -1151,7 +1876,7 @@ function assertNoBrowserRoleWrite(req, operation, body) {
     ? columnMappings.map(function(m) { return m && (m.source || m.column); })
     : Object.keys(columnMappings);
   for (var i = 0; i < written.length; i++) {
-    if (AUTH_ROLE_COLUMNS[__taNormalizeTable(written[i])]) __forbidRoleWrite(written[i]);
+    if (__dataIsPrivilegedAccountColumn(written[i])) __forbidRoleWrite(written[i]);
   }
 }
 
@@ -1204,7 +1929,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+${withAutomations ? '  kickDueAutomations(req);\n' : ''}
   var params = req.query.params;
   if (!params || params.length < 2) {
     return res.status(400).json({ error: 'Invalid path. Expected /api/data/<dataSourceId>/<operation>' });
@@ -1215,8 +1940,15 @@ module.exports = async function handler(req, res) {
   var client = getClient();
 
   try {
+    assertNoRetiredTable(operation, body);
+    // A browser's read of a table the storefront runtime does not read is
+    // admitted the way its per-table route admits it (DATA_EXPOSURE_TABLES).
+    if (!isInternalDataRequest(req) && (operation === 'select' || operation === 'count') && body && body.tableName) {
+      req.__tqBrowserExposure = await __dataBrowserMayRead(req, String(params[0]), body.tableName);
+    }
     assertTableAccess(req, operation, body);
     assertNoBrowserRoleWrite(req, operation, body);
+    await assertNoPrivilegeWriteForCustomer(req, operation, body);
     await assertSessionOwnsUsersRow(req, operation, body);
     await client.connect();
     var result;
@@ -1229,10 +1961,10 @@ module.exports = async function handler(req, res) {
         result = await handleCount(client, body, req);
         break;
       case 'create':
-        result = await handleCreate(client, body);
+        result = await handleCreate(client, body, req);
         break;
       case 'update':
-        result = await handleUpdate(client, body);
+        result = await handleUpdate(client, body, req);
         break;
       case 'delete':
         result = await handleDelete(client, body);
@@ -1247,7 +1979,16 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Unknown operation: ' + operation });
     }
 
-    return res.status(200).json(result);
+${
+  withAutomations
+    ? `    // The write succeeded: a new business event wakes the automations.
+    if (wroteBusinessEvent(operation, body, result, req)) {
+      wakeAutomations(req);
+    }
+
+`
+    : ''
+}    return res.status(200).json(result);
   } catch (error) {
     // Return proper status codes for validation errors
     var statusCode = error.status || 500;

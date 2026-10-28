@@ -6,6 +6,12 @@ import {
   ProductOptions,
 } from '@teleporthq/teleport-shared'
 import { NodeHandlerGenerator, handlerToString } from '../types'
+import {
+  STALLED_RESERVATION_RELEASE,
+  STOCK_RESERVATION_KEY,
+  buildStalledReservationCandidatesQuery,
+  buildStalledReservationReleaseQueries,
+} from '../../ecommerce/place-order-guards'
 import { cartGetTotal } from './cart-get-total'
 
 // AMBIENT, not imported — see cart-get-total.ts. `__cartPricingSettings` is
@@ -13,6 +19,16 @@ import { cartGetTotal } from './cart-get-total'
 // helpers and `__runCartTotal` are spliced into the handler by
 // `generateHandler` below.
 declare const __cartPricingSettings: any
+// Spliced in by `generateHandler`: the statement that releases the stock of
+// orders whose checkout never reached a payment page (place-order-guards.ts),
+// in the forms tried in turn: logging each order with the ledger's record
+// columns, logging on an older ledger, and for a store with no ledger.
+declare const __stalledReservationReleaseQueries: string[]
+// The orders a pass may release, read first (unlocked) so their metadata is
+// parsed here: a malformed row is skipped and logged, never cast in SQL.
+declare const __stalledReservationCandidatesQuery: string
+declare const __stalledReservationKey: string
+declare const __stalledReservationBatchSize: number
 declare function __clPriceLine(
   item: any,
   product: any,
@@ -53,15 +69,62 @@ declare function __ccMixedCartMessage(codes: string[]): string
  * here, what the order lines record). An order that cannot be priced answers
  * `priced: false` with a `reason` for the buyer — never `error`, which the
  * runtime treats as fatal — and the workflow refuses it.
+ *
+ * The payment method is decided here too, from the store's own methods
+ * (`paymentMethods` in the same settings): cash on delivery only where the
+ * store takes it, otherwise one of its enabled online providers. An empty
+ * method is refused — never read as cash on delivery — and so is a checkout
+ * that does not say which method it chose. The accepted method travels in
+ * the result (`paymentMethod`), so the order is assembled from the method
+ * checked here rather than whatever a later request says.
+ *
+ * `stockDeltas` is what the order takes from stock — the units per product
+ * (variantless lines) and per variant, duplicates summed — read off the lines
+ * priced here, for the statement that reserves them with the order.
+ *
+ * `pricedForm` / `pricedShipToDifferent` are the checkout form and the
+ * ship-to-different flag this step priced shipping and tax for. The assemble
+ * step builds the order's addresses from them, so the address an order
+ * records is always the one it was priced (and its zone decided) for.
  */
 async function cart_price_order(config: any, context: any) {
-  const refuse = (reason: string) => ({ priced: false, reason, lines: [] as unknown[] })
+  const noStock = () => ({
+    productIds: [] as string[],
+    productQtys: [] as number[],
+    variantIds: [] as string[],
+    variantQtys: [] as number[],
+  })
+  const refuse = (reason: string) => ({
+    priced: false,
+    reason,
+    lines: [] as unknown[],
+    stockDeltas: noStock(),
+  })
   const settings =
     typeof __cartPricingSettings !== 'undefined' && __cartPricingSettings
       ? __cartPricingSettings
       : null
   if (!settings || !settings.dataSourceId) {
     return refuse('This store cannot price the order right now. Please try again later.')
+  }
+
+  const methods =
+    settings.paymentMethods && typeof settings.paymentMethods === 'object'
+      ? settings.paymentMethods
+      : null
+  if (!methods || !Object.prototype.hasOwnProperty.call(config, 'paymentMethod')) {
+    return refuse('This store cannot take the order right now. Please try again later.')
+  }
+  const paymentMethod = typeof config.paymentMethod === 'string' ? config.paymentMethod.trim() : ''
+  if (!paymentMethod) {
+    return refuse('Choose a payment method to place your order.')
+  }
+  if (paymentMethod === 'cash_on_delivery') {
+    if (methods.cashOnDelivery !== true) {
+      return refuse("This store doesn't take payment on delivery. Choose another payment method.")
+    }
+  } else if (!Array.isArray(methods.providers) || methods.providers.indexOf(paymentMethod) === -1) {
+    return refuse("This payment method isn't available. Choose another payment method.")
   }
 
   const readRows = (value: any): any[] => {
@@ -119,6 +182,105 @@ async function cart_price_order(config: any, context: any) {
     }
     const body = await response.json()
     return Array.isArray(body && body.rows) ? body.rows : []
+  }
+
+  // Orders that reserved stock but never reached a payment page get no
+  // provider event, and on a store without scheduled workflows nothing else
+  // runs for them: each checkout releases the ones past their hold first, at
+  // most one pass per instance every five minutes, never awaited where the
+  // runtime keeps it alive: a long-running server, or Vercel's waitUntil when
+  // the app has one. A Vercel function without it waits for the pass (one
+  // bounded statement). A pass that releases a full batch lets the next
+  // checkout run another at once, so a backlog drains at least as fast as
+  // checkouts add to it. A failed pass is retried by the first checkout after
+  // those five minutes.
+  if (settings.releaseStalledReservations === true) {
+    const scope = globalThis as any
+    const sweepAt = Date.now()
+    if (!scope.__tqReservationSweepAt || sweepAt - scope.__tqReservationSweepAt > 5 * 60 * 1000) {
+      scope.__tqReservationSweepAt = sweepAt
+      const releaseWith = (query: string, params: unknown[]) =>
+        fetch(baseUrl + '/api/data/' + settings.dataSourceId + '/raw-query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-data-secret': (env && env.NEXTAUTH_SECRET) || '',
+            ...internalHeaders,
+          },
+          body: JSON.stringify({ query, params }),
+        })
+      const pass = (async () => {
+        const listed: any = await releaseWith(__stalledReservationCandidatesQuery, [])
+        const listing = await listed.json().catch(() => null)
+        if (!listed || !listed.ok || !listing || !Array.isArray(listing.rows)) {
+          return
+        }
+        const readable: string[] = []
+        const warned = scope.__tqUnreadableReservations || (scope.__tqUnreadableReservations = {})
+        for (const candidate of listing.rows) {
+          const id = String((candidate && candidate.id) || '')
+          let parsed: any = null
+          try {
+            parsed = JSON.parse(String((candidate && candidate.metadata) || ''))
+          } catch (_error) {
+            // Once per order and instance: its stock stays held for the
+            // merchant, and every other order is still released.
+            if (id && !warned[id]) {
+              warned[id] = true
+              // tslint:disable-next-line:no-console
+              console.warn(
+                '[checkout] order ' +
+                  id +
+                  ' has metadata that is not valid JSON: its reserved stock is not released automatically.'
+              )
+            }
+            continue
+          }
+          if (
+            id &&
+            parsed &&
+            typeof parsed === 'object' &&
+            Array.isArray(parsed[__stalledReservationKey])
+          ) {
+            readable.push(id)
+          }
+          if (readable.length >= __stalledReservationBatchSize) {
+            break
+          }
+        }
+        if (readable.length === 0) {
+          return
+        }
+        for (const query of __stalledReservationReleaseQueries) {
+          const response: any = await releaseWith(query, [readable])
+          const result = await response.json().catch(() => null)
+          if (response && response.ok) {
+            const row = result && Array.isArray(result.rows) ? result.rows[0] : null
+            if (row && Number(row.released) >= __stalledReservationBatchSize) {
+              scope.__tqReservationSweepAt = 0
+            }
+            return
+          }
+          // Only a ledger without the log's columns (42703) or without the
+          // table (42P01) moves on to the next form; anything else waits for
+          // the next pass.
+          const code = String((result && result.code) || '')
+          if (code !== '42703' && code !== '42P01') {
+            return
+          }
+        }
+      })().then(
+        () => undefined,
+        () => undefined
+      )
+      if (env && env.VERCEL) {
+        if (typeof scope.__tqWaitUntil === 'function') {
+          scope.__tqWaitUntil(pass)
+        } else {
+          await pass
+        }
+      }
+    }
   }
 
   const productIds: string[] = []
@@ -319,7 +481,36 @@ async function cart_price_order(config: any, context: any) {
   ) {
     return refuse('The order could not be priced right now. Please try again in a moment.')
   }
-  return { ...total, priced: true, reason: '', lines }
+  // A variant line draws on its variant's stock, never its product's; lines
+  // drawing on the same row add up (two lines of 3 are 6 units).
+  const stockDeltas = noStock()
+  for (const line of lines) {
+    const ids = line.variantId ? stockDeltas.variantIds : stockDeltas.productIds
+    const qtys = line.variantId ? stockDeltas.variantQtys : stockDeltas.productQtys
+    const id = String(line.variantId || line.productId)
+    const units = Math.floor(Number(line.quantity))
+    const qty = isFinite(units) && units >= 1 ? units : 1
+    const at = ids.indexOf(id)
+    if (at === -1) {
+      ids.push(id)
+      qtys.push(qty)
+    } else {
+      qtys[at] += qty
+    }
+  }
+  // The address the order was priced for, exactly as this step read it: the
+  // order records its shipping address from here, never from a form a later
+  // request hands the assemble step (which could name another country).
+  return {
+    ...total,
+    priced: true,
+    reason: '',
+    lines,
+    paymentMethod,
+    stockDeltas,
+    pricedForm: form,
+    pricedShipToDifferent: shipToDifferent ? 'true' : 'false',
+  }
 }
 
 export const cartPriceOrder: NodeHandlerGenerator = {
@@ -333,6 +524,13 @@ export const cartPriceOrder: NodeHandlerGenerator = {
     const bodyStart = source.indexOf('{') + 1
     return (
       source.slice(0, bodyStart) +
+      `\nvar __stalledReservationReleaseQueries = ${JSON.stringify(
+        buildStalledReservationReleaseQueries()
+      )};\nvar __stalledReservationCandidatesQuery = ${JSON.stringify(
+        buildStalledReservationCandidatesQuery()
+      )};\nvar __stalledReservationKey = ${JSON.stringify(
+        STOCK_RESERVATION_KEY
+      )};\nvar __stalledReservationBatchSize = ${STALLED_RESERVATION_RELEASE.batchSize};\n` +
       ProductDiscounts.generateProductDiscountHelperCode() +
       '\n' +
       ProductOptions.generateProductOptionsHelperCode() +

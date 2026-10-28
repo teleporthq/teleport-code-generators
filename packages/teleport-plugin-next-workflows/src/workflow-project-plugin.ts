@@ -5,8 +5,10 @@ import {
   ProjectStrategy,
   FileType,
   UIDLAuthentication,
+  UIDLWorkflowEdge,
+  UIDLWorkflowNode,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { DataExposure, TableAccess, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   splitIntoSegments,
   resolveNodeExecutionEnv,
@@ -27,6 +29,7 @@ import {
   hasStreamingAINode,
 } from './api-route-generator'
 import { generateWorkflowAuthHelperFile } from './workflow-auth-generator'
+import { generatePageAccessGuardModule } from './page-access-guard-generator'
 import {
   generateSubscriberAccessHelperModule,
   generateSubscriberAccessRoute,
@@ -46,6 +49,9 @@ import { resolveHandlerEntryName } from './nodes/types'
 import { generateClientRuntimeCode, generateSharedRuntimeUtilsCode } from './executor-generator'
 import { generateServerRuntimeCode } from './server-runtime-code'
 import { buildSegmentTrust } from './segment-trust'
+import { assertSegmentRouteGates, assertWorkflowPublishGates } from './publish-refusals'
+import { assertProjectCodeIsSecure } from './project-code-scanner'
+import { escapeSlackMessageBindingsInWorkflows } from './slack-message-values'
 import {
   generateRealtimeServerHelperCode,
   generateRealtimeClientCode,
@@ -56,6 +62,7 @@ import {
   generateRealtimeEventRoute,
   generateRealtimeChannelsListRoute,
   generateRealtimeChannelsMembersRoute,
+  projectCallsRealtimeRoute,
 } from './realtime-generator'
 import {
   generateAuthDbHealthFile,
@@ -68,10 +75,19 @@ import {
   generateSessionProviderWrapper,
   generateNextAuthUrlGuardModule,
   getDatabaseDriverDependencies,
+  resolveSignupFields,
 } from './auth-generator'
+import {
+  collectWorkflowNodeConfigs,
+  emitPasswordAuthFiles,
+  resetEmailSenderOf,
+  resetLinkOf,
+} from './password-reset-route-generator'
+import { ensureSessionRevocationModule } from './session-revocation-generator'
 import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
 import { ensureWebhookDeliveryLeaseModule } from './webhook-delivery-lease'
+import { ensureSecurityRuntimeModule } from './security-runtime'
 import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
 import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
 import { generateWebhookFiles } from './webhook-generator'
@@ -82,7 +98,11 @@ import {
   resolveStorePaymentDriverIds,
 } from './payments'
 import type { PaymentDriverId } from './payments/payment-drivers-scope'
-import { needsDataAPIRoute, generateDataAPIRoute } from './data-api-route-generator'
+import {
+  needsDataAPIRoute,
+  generateDataAPIRoute,
+  dataAPIRouteRecordsLowStock,
+} from './data-api-route-generator'
 import {
   generateAccountDeleteRoute,
   accountDeleteRouteDependencies,
@@ -96,9 +116,20 @@ import {
   generateRuntimeStorageUploadRoute,
 } from './runtime-storage-generator'
 import { rewriteLowStockCustomHandlers } from './ecommerce-customhandler-rewriter'
-import { assertWorkflowsAreSecure } from './security-scanner'
-import { parameterizeAllWorkflowRawSql } from './raw-sql-param-binding'
 import { generateBookingCalendarFeedFiles } from './booking-calendar-feed-route-generator'
+import {
+  collectAutomationWorkflows,
+  hasAutomationsBus,
+  isAutomationWorkflow,
+} from './automations/automations-scope'
+import { generateAutomationFiles } from './automations/automations-project-plugin'
+import { declareCronSecretEnv } from './cron-request-verification'
+import { ensureAppEventsModule } from './automations/app-events-source'
+import {
+  DEFAULT_ORDER_DETAILS_PREFIX,
+  resolveOrderDetailsRoutePrefix,
+} from './ecommerce/order-details-route'
+import { newsletterSignupSubscribes } from './newsletter/newsletter-scope'
 
 // Resolves the auth IDENTITY (users) table from the UIDL auth tables. Getting
 // this wrong is a security hole (the /api/data guard only protects this table),
@@ -225,6 +256,146 @@ export const stripEventHandlerAttrs = (uidl: ProjectUIDL): void => {
   Object.values(uidl.components || {}).forEach(scrubComponent)
 }
 
+const workflowContextRef = (nodeId: string, path: string[]) => ({
+  type: 'workflowContext',
+  nodeId,
+  path,
+})
+
+const NEWSLETTER_ACCOUNT_SWITCH_OFF = 'Newsletter · Switch Off From The Account'
+const NEWSLETTER_UNSUBSCRIBE_RECORD = 'Record The Unsubscribe'
+const NEWSLETTER_ACCOUNT_FETCH = 'Fetch The Signed-In Person'
+const NEWSLETTER_UNSUBSCRIBE_UPDATE = 'Unsubscribe The Signed-In Person'
+const NEWSLETTER_TIMESTAMP = 'Note The Time'
+const NEWSLETTER_SWITCH_OFF_STATE = 'Show The Switch Off'
+const NEWSLETTER_EVENT_INPUTS = 'Build The Unsubscribe Event'
+
+const NEWSLETTER_EVENT_INPUTS_CODE = [
+  'function customHandler(params) {',
+  '  var named = params && params.length ? params[params.length - 1] || {} : {};',
+  '  var id = named.id == null ? "" : String(named.id);',
+  '  var email = named.email == null ? "" : String(named.email);',
+  '  var stamp = named.timestamp == null ? "" : String(named.timestamp);',
+  '  var time = stamp ? new Date(stamp).getTime() : Date.now();',
+  '  if (!isFinite(time)) { time = Date.now(); }',
+  '  return {',
+  '    entityId: id,',
+  '    actor: email,',
+  '    dedupe: id + ":" + Math.floor(time / 60000),',
+  '    subscriber: { email: email, consent: false },',
+  '  };',
+  '}',
+].join('\n')
+
+const hasStepLabel = (node: UIDLWorkflowNode, label: string): boolean =>
+  node.label === label || node.name === label || node.builderLabel === label
+
+const edgeId = (source: string, target: string): string => `${source}-${target}`
+
+const ensureEdge = (edges: UIDLWorkflowEdge[], source: string, target: string): void => {
+  if (edges.some((edge) => edge.source === source && edge.target === target)) {
+    return
+  }
+  edges.push({ id: edgeId(source, target), source, target })
+}
+
+const setRecordParam = (
+  record: UIDLWorkflowNode,
+  key: string,
+  value: ReturnType<typeof workflowContextRef>
+): void => {
+  const params = record.config.parameters
+  if (!Array.isArray(params)) {
+    return
+  }
+  const entry = params.find(
+    (item) => item && typeof item === 'object' && (item as { key?: unknown }).key === key
+  ) as { key: string; value?: unknown } | undefined
+  if (entry) {
+    entry.value = value
+  } else {
+    params.push({ key, value })
+  }
+}
+
+const repairNewsletterAccountUnsubscribeEvents = (uidl: ProjectUIDL): void => {
+  const workflows = uidl.workflows?.workflows || {}
+  Object.values(workflows).forEach((workflow) => {
+    if (!workflow || workflow.name !== NEWSLETTER_ACCOUNT_SWITCH_OFF) {
+      return
+    }
+    const nodes = workflow.nodes || []
+    const edges = workflow.edges || []
+    const findNode = (type: string, label: string) =>
+      nodes.find((node) => node.type === type && hasStepLabel(node, label))
+    const account = findNode('account-get-current', NEWSLETTER_ACCOUNT_FETCH)
+    const update = findNode('data-update-item', NEWSLETTER_UNSUBSCRIBE_UPDATE)
+    const record = findNode('general-custom-node', NEWSLETTER_UNSUBSCRIBE_RECORD)
+    if (!account || !update || !record || !Array.isArray(record.config.parameters)) {
+      return
+    }
+    const eventType = record.config.parameters.find(
+      (param) =>
+        param && typeof param === 'object' && (param as { key?: unknown }).key === 'eventType'
+    ) as { value?: unknown } | undefined
+    if (eventType?.value !== 'newsletter-unsubscribed') {
+      return
+    }
+
+    const timestamp = findNode('general-custom-js', NEWSLETTER_TIMESTAMP)
+    if (timestamp) {
+      timestamp.config.params = {}
+    }
+
+    let eventInputs = findNode('general-custom-js', NEWSLETTER_EVENT_INPUTS)
+    if (!eventInputs) {
+      eventInputs = {
+        id: `${record.id}-event-inputs`,
+        type: 'general-custom-js',
+        label: NEWSLETTER_EVENT_INPUTS,
+        config: {},
+        executionEnv: 'server',
+        stepNumber: record.stepNumber,
+      }
+      const recordIndex = nodes.indexOf(record)
+      if (recordIndex >= 0) {
+        nodes.splice(recordIndex, 0, eventInputs)
+      } else {
+        nodes.push(eventInputs)
+      }
+    }
+    eventInputs.config = {
+      code: NEWSLETTER_EVENT_INPUTS_CODE,
+      context: 'server',
+      params: {
+        id: workflowContextRef(update.id, ['id']),
+        email: workflowContextRef(update.id, ['email']),
+        timestamp: timestamp ? workflowContextRef(timestamp.id, ['value']) : '',
+      },
+    }
+
+    const off = findNode('state-update-local-state', NEWSLETTER_SWITCH_OFF_STATE)
+    const redirected = edges.filter(
+      (edge) =>
+        edge.target === record.id &&
+        edge.source !== eventInputs!.id &&
+        (!off || edge.source === off.id)
+    )
+    redirected.forEach((edge) => {
+      edge.target = eventInputs!.id
+    })
+    if (!edges.some((edge) => edge.target === eventInputs!.id) && off) {
+      ensureEdge(edges, off.id, eventInputs.id)
+    }
+    ensureEdge(edges, eventInputs.id, record.id)
+
+    setRecordParam(record, 'entityId', workflowContextRef(eventInputs.id, ['entityId']))
+    setRecordParam(record, 'dedupeSubject', workflowContextRef(eventInputs.id, ['dedupe']))
+    setRecordParam(record, 'actor', workflowContextRef(eventInputs.id, ['actor']))
+    setRecordParam(record, 'subscriber', workflowContextRef(eventInputs.id, ['subscriber']))
+  })
+}
+
 export class NextWorkflowProjectPlugin implements ProjectPlugin {
   private static INLINE_HANDLED_NODE_TYPES = new Set([
     'general-if-statement',
@@ -236,22 +407,27 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     const { uidl, strategy } = structure
 
     stripEventHandlerAttrs(uidl)
+    repairNewsletterAccountUnsubscribeEvents(uidl)
 
-    // SECURITY NET — parameterize raw-SQL interpolations before ANY config is
-    // emitted. Rewrites each `{{ name }}` value token in a data-node's `query` /
-    // `rawQueryUserPart` into a positional `$N` placeholder and moves the bound
-    // value into the sibling params array, so the value binds via
-    // `client.query(sql, params)` and never reaches the SQL text. Throws (aborts
-    // generation) on an interpolation that cannot be safely bound — refusing to
-    // ship injectable SQL. Runs FIRST so the security gate below sees final SQL.
-    parameterizeAllWorkflowRawSql(uidl.workflows)
-
-    // Codegen-time security gate. Throws CodegenSecurityError if any
-    // `general-custom-js` body references a protected platform secret
-    // or uses an obvious sandbox-escape primitive. Backstop for the GUI
-    // and services-worker static checks; surfaces the failure before
-    // any code is emitted.
-    assertWorkflowsAreSecure(uidl.workflows)
+    // The workflow gates, before any code is emitted (publish-refusals.ts, the
+    // one list the editor's AI tools check against too), in order:
+    // - SECURITY NET — parameterize raw-SQL interpolations before ANY config is
+    //   emitted. Rewrites each `{{ name }}` value token in a data-node's `query` /
+    //   `rawQueryUserPart` into a positional `$N` placeholder and moves the bound
+    //   value into the sibling params array, so the value binds via
+    //   `client.query(sql, params)` and never reaches the SQL text. Throws (aborts
+    //   generation) on an interpolation that cannot be safely bound — refusing to
+    //   ship injectable SQL. Runs FIRST so the security gate below sees final SQL.
+    // - Codegen-time security gate. Throws CodegenSecurityError if any
+    //   `general-custom-js` body references a protected platform secret
+    //   or uses an obvious sandbox-escape primitive. Backstop for the GUI
+    //   and services-worker static checks.
+    // - A push to every subscriber, or a step on any stored file, never sits on
+    //   a route any visitor can call (see public-step-guards.ts).
+    assertWorkflowPublishGates(uidl.workflows, uidl.authentication)
+    // The author code a page runs on the server beside its workflows: state
+    // mapping functions and the expressions Next prerenders (project-code-scanner.ts).
+    assertProjectCodeIsSecure(uidl)
 
     if (uidl.workflows) {
       const pageRouteMap = this.buildPageRouteMap(uidl, strategy)
@@ -347,9 +523,25 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
   async runAfter(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl, files, dependencies } = structure
 
+    // Every app with server routes carries the shared security runtime its
+    // routes require (`utils/security-runtime.js`): the visitor's address,
+    // constant-time compare, durable rate limits, generic client errors.
+    if (hasServerRoutes(uidl)) {
+      ensureSecurityRuntimeModule(structure)
+    }
+
+    // Automations (workflows started by a business event), and whether the
+    // in-app event bus is generated for them: the routes that record or wake
+    // business events (signup, account deletion, the data API, a server-side
+    // signup) carry that code only then.
+    const automationWorkflows = collectAutomationWorkflows(uidl.workflows)
+    // Only with a database the queue runs on: without one no bus is generated
+    // (generateAutomationFiles says why).
+    const withAutomations = hasAutomationsBus(uidl)
+
     const hasAuthentication = uidl.authentication && uidl.authentication.enabled
     if (hasAuthentication) {
-      this.generateAuthFiles(uidl.authentication, structure)
+      this.generateAuthFiles(uidl.authentication, structure, withAutomations)
     }
 
     // The bookings' calendar feeds do not depend on any workflow, so they are
@@ -388,9 +580,26 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       return structure
     }
 
+    // A Slack message bound whole to a value is escaped like a chip (slack-message-values.ts).
+    escapeSlackMessageBindingsInWorkflows(uidl.workflows)
     const allWorkflows = uidl.workflows.workflows
     const customNodes = uidl.workflows.customNodes || {}
     const usedNodeTypes = collectUsedNodeTypes(uidl.workflows)
+    // Automations run in their own handler modules, which carry their nodes'
+    // handlers: the shared client and server handler files leave them out.
+    let handlerFileNodeTypes = usedNodeTypes
+    if (automationWorkflows.length > 0) {
+      const browserAndRouteWorkflows: typeof allWorkflows = {}
+      for (const [id, wf] of Object.entries(allWorkflows)) {
+        if (!isAutomationWorkflow(wf)) {
+          browserAndRouteWorkflows[id] = wf
+        }
+      }
+      handlerFileNodeTypes = collectUsedNodeTypes({
+        ...uidl.workflows,
+        workflows: browserAndRouteWorkflows,
+      })
+    }
 
     // Server routes that run a mail-sending node require the sent-email
     // ledger module (see generateNodeHandlersForSegment).
@@ -426,7 +635,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       ],
     })
 
-    const clientHandlerCode = this.generateNodeHandlerFile(usedNodeTypes, 'client')
+    const clientHandlerCode = this.generateNodeHandlerFile(handlerFileNodeTypes, 'client')
     if (clientHandlerCode) {
       files.set('workflow-client-handlers', {
         path: ['utils', 'workflows'],
@@ -461,12 +670,24 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           customNodeServerUrls[cnId] = {}
           // The same list, in the same order, the custom node's runner hands its
           // inner custom-js nodes as `params`.
-          const cnGraph = { nodes: cn.nodes || [], edges: cn.edges || [], segments: cnSegments }
+          const cnGraph = {
+            id: cnId,
+            nodes: cn.nodes || [],
+            edges: cn.edges || [],
+            segments: cnSegments,
+          }
           for (const seg of cnServerSegments) {
             const routeOptions = {
               customNodeIds: (cn.nodes || []).map((n: any) => n.id),
               trust: buildSegmentTrust(seg, cnGraph),
+              customNodes,
             }
+            assertSegmentRouteGates(seg, routeOptions.trust, {
+              owner: cn.name || cnId,
+              graphNodes: cn.nodes || [],
+              protection: cn.protection,
+              staffRoles: TableAccess.resolveStaffRoles(uidl.authentication),
+            })
             const isStreaming = hasStreamingAINode(seg)
             if (routeHasPolicy(cn.protection)) {
               anyGuardedRouteEmitted = true
@@ -538,20 +759,24 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
     const webhookProvidersOwnedByWorkflows = new Set<PaymentDriverId>()
 
     for (const workflow of Object.values(allWorkflows) as any[]) {
+      // An automation runs in a handler module of the in-app event bus
+      // (generateAutomationFiles below), through the server runtime.
+      if (isAutomationWorkflow(workflow)) {
+        if (withAutomations) {
+          hasServerSegments = true
+        }
+        continue
+      }
+
       if (workflow.trigger.type === 'event-cron-triggered') {
         // A cron route runs its whole graph on the server through the same
         // runtime and handler file a server segment uses, so an app whose only
         // server work is a cron still needs them.
         hasServerSegments = true
-        // The route refuses every request not signed with this key; the deploy
-        // fills it in (see cron-request-verification.ts).
-        if (!uidl.globals.env) {
-          uidl.globals.env = {}
-        }
-        if (!uidl.globals.env.TELEPORT_CRON_SECRET) {
-          uidl.globals.env.TELEPORT_CRON_SECRET = ''
-        }
-        const cronContent = generateCronAPIRoute(workflow, customNodes)
+        // The route refuses every request not signed with these keys; the
+        // deploy fills them in (see cron-request-verification.ts).
+        declareCronSecretEnv(uidl)
+        const cronContent = generateCronAPIRoute(workflow, customNodes, { withAutomations })
         const cronFileName = getCronRouteFileName(workflow)
         files.set(`workflow-cron-${workflow.id}`, {
           path: ['pages', 'api', 'workflows'],
@@ -568,7 +793,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
       if (workflow.trigger.type === 'event-webhook-received' && workflow.webhookConfig) {
         hasServerSegments = true
-        const webhookContent = generateWebhookWorkflowAPIRoute(workflow, customNodes)
+        const webhookContent = generateWebhookWorkflowAPIRoute(workflow, customNodes, {
+          withAutomations,
+        })
         const webhookFileName = getWebhookRouteFileName(workflow)
         const webhookPath = getWebhookRoutePath(workflow)
         files.set(`workflow-webhook-${workflow.id}`, {
@@ -630,7 +857,12 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
       const segments = splitIntoSegments(workflow)
       const serverSegments = segments.filter((s) => s.env === 'server')
-      const workflowGraph = { nodes: workflow.nodes || [], edges: workflow.edges || [], segments }
+      const workflowGraph = {
+        id: workflow.id,
+        nodes: workflow.nodes || [],
+        edges: workflow.edges || [],
+        segments,
+      }
 
       for (const serverSeg of serverSegments) {
         hasServerSegments = true
@@ -638,7 +870,13 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         if (routeHasPolicy(workflow.protection)) {
           anyGuardedRouteEmitted = true
         }
-        const routeOptions = { trust: buildSegmentTrust(serverSeg, workflowGraph) }
+        const routeOptions = { trust: buildSegmentTrust(serverSeg, workflowGraph), customNodes }
+        assertSegmentRouteGates(serverSeg, routeOptions.trust, {
+          owner: workflow.name || workflow.id,
+          graphNodes: workflow.nodes || [],
+          protection: workflow.protection,
+          staffRoles: TableAccess.resolveStaffRoles(uidl.authentication),
+        })
         const apiContent = isStreaming
           ? generateStreamingServerSegmentAPIRoute(
               serverSeg,
@@ -667,6 +905,16 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       }
     }
 
+    if (automationWorkflows.length > 0) {
+      // The fallback prefix means the project has no order details page to link.
+      const orderPagePrefix = resolveOrderDetailsRoutePrefix(uidl)
+      generateAutomationFiles(structure, automationWorkflows, {
+        customNodes,
+        usersTable: resolveAuthUsersTableName(uidl.authentication) || 'users',
+        orderPagePrefix: orderPagePrefix === DEFAULT_ORDER_DETAILS_PREFIX ? null : orderPagePrefix,
+      })
+    }
+
     if (hasServerSegments) {
       files.set('workflow-server-runtime', {
         path: ['utils', 'workflows'],
@@ -674,7 +922,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           {
             name: 'server-runtime',
             fileType: FileType.JS,
-            content: generateServerRuntimeCode(),
+            content: generateServerRuntimeCode({
+              withSessionRevocation: uidl.authentication?.enabled === true,
+            }),
           },
         ],
       })
@@ -694,13 +944,15 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
                 withSubscriberAccess:
                   uidl.authentication?.enabled === true &&
                   hasSubscriberOnlyPages(uidl.authentication),
+                // The session reader checks revocation only with authentication.
+                withSessionRevocation: uidl.authentication?.enabled === true,
               }),
             },
           ],
         })
       }
 
-      const serverHandlerCode = this.generateNodeHandlerFile(usedNodeTypes, 'server')
+      const serverHandlerCode = this.generateNodeHandlerFile(handlerFileNodeTypes, 'server')
       if (serverHandlerCode) {
         files.set('workflow-server-handlers', {
           path: ['utils', 'workflows'],
@@ -740,17 +992,28 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         typeof ecom?.stockManagementConfig?.lowStockThreshold === 'number'
           ? ecom.stockManagementConfig.lowStockThreshold
           : 5
+      const dataAPIRouteOptions = {
+        authUsersTableName,
+        lowStockAlertsEnabled,
+        lowStockThreshold,
+        withAutomations,
+        // Who reads and changes other customers' records (Task 1, owner scope).
+        staffRoles: TableAccess.resolveStaffRoles(uidl.authentication),
+        // Who reads which table from a browser (Task 1, exposure).
+        dataExposure: DataExposure.resolveDataExposure(uidl),
+        managedDataSourceIds: DataExposure.managedDataSourceIds(uidl),
+      }
+      // The low-stock events are recorded through utils/app-events.js.
+      if (dataAPIRouteRecordsLowStock(dataAPIRouteOptions)) {
+        ensureAppEventsModule(structure, withAutomations)
+      }
       files.set('workflow-data-api-route', {
         path: ['pages', 'api', 'data'],
         files: [
           {
             name: '[...params]',
             fileType: FileType.JS,
-            content: generateDataAPIRoute({
-              authUsersTableName,
-              lowStockAlertsEnabled,
-              lowStockThreshold,
-            }),
+            content: generateDataAPIRoute(dataAPIRouteOptions),
           },
         ],
       })
@@ -792,6 +1055,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
                 typeof deleteConfig.deletedEmailPattern === 'string'
                   ? deleteConfig.deletedEmailPattern
                   : undefined,
+              withAutomations,
             }),
           },
         ],
@@ -816,7 +1080,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
           {
             name: 'upload',
             fileType: FileType.JS,
-            content: generateRuntimeStorageUploadRoute(),
+            content: generateRuntimeStorageUploadRoute({
+              withSessionRevocation: uidl.authentication?.enabled === true,
+            }),
           },
         ],
       })
@@ -931,7 +1197,8 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       (wf: any) =>
         wf.trigger.scope === 'global' &&
         wf.trigger.type !== 'event-cron-triggered' &&
-        wf.trigger.type !== 'event-webhook-received'
+        wf.trigger.type !== 'event-webhook-received' &&
+        !isAutomationWorkflow(wf)
     )
 
     if (globalWorkflows.length > 0) {
@@ -1045,7 +1312,9 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
         {
           name: 'server',
           fileType: FileType.JS,
-          content: generateRealtimeServerHelperCode(),
+          content: generateRealtimeServerHelperCode(uidl.workflows, {
+            withSessionRevocation: uidl.authentication?.enabled === true,
+          }),
         },
       ],
     })
@@ -1096,7 +1365,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
 
     const usedRealtimeActions = collectUsedRealtimeActionTypes(uidl.workflows)
 
-    if (usedRealtimeActions.has('realtime-send-channel-message')) {
+    if (projectCallsRealtimeRoute(uidl.workflows, 'message')) {
       files.set('realtime-api-message', {
         path: ['pages', 'api', 'realtime'],
         files: [
@@ -1109,7 +1378,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       })
     }
 
-    if (usedRealtimeActions.has('realtime-send-channel-event')) {
+    if (projectCallsRealtimeRoute(uidl.workflows, 'event')) {
       files.set('realtime-api-event', {
         path: ['pages', 'api', 'realtime'],
         files: [
@@ -1236,7 +1505,8 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       }
 
       if (env === 'server' && generator.generateServerHandler) {
-        handlers.push(generator.generateServerHandler())
+        // utils/workflows/node-handlers-server.js: two levels below the project root.
+        handlers.push(generator.generateServerHandler({ relativePrefix: '../..' }))
       } else {
         handlers.push(generator.generateHandler())
       }
@@ -1734,7 +2004,11 @@ module.exports = __customNodeRegistry;
 `
   }
 
-  private generateAuthFiles(auth: UIDLAuthentication, structure: ProjectPluginStructure): void {
+  private generateAuthFiles(
+    auth: UIDLAuthentication,
+    structure: ProjectPluginStructure,
+    withAutomations: boolean
+  ): void {
     const { files, dependencies, uidl } = structure
 
     const dataSourceConfig =
@@ -1804,15 +2078,32 @@ module.exports = __customNodeRegistry;
       // The route reads the signup page's language off the request, so the
       // locale module must exist whether or not a welcome email is configured.
       ensureEmailLocaleModule(structure)
-      const signupRouteCode = generateSignupRouteFile(auth, {
-        emailProvider: welcomeProvider,
-        fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
-        emailSecretEnvName: welcomeSecretEnvName,
-        emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
-        emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',
-        localizedTemplates: readLocalizedEmailTemplates(signupConfig.localizedTemplates),
-        siteName: uidl.name || '',
-      })
+      const signupRouteCode = generateSignupRouteFile(
+        auth,
+        {
+          emailProvider: welcomeProvider,
+          fromEmail: typeof signupConfig.from === 'string' ? signupConfig.from : '',
+          emailSecretEnvName: welcomeSecretEnvName,
+          emailSubject: typeof signupConfig.subject === 'string' ? signupConfig.subject : '',
+          emailBodyHtml: typeof signupConfig.body === 'string' ? signupConfig.body : '',
+          localizedTemplates: readLocalizedEmailTemplates(signupConfig.localizedTemplates),
+          siteName: uidl.name || '',
+        },
+        { withAutomations },
+        // Only the fields this project's sign-up forms collect (never a privileged one).
+        {
+          fields: resolveSignupFields(
+            auth,
+            collectWorkflowNodeConfigs(uidl.workflows, 'account-signup')
+          ),
+          // The set-password link opens the page the reset link opens.
+          ...resetLinkOf(uidl),
+          // Without a sign-up email sender, the known-address emails use the reset one.
+          noticeEmail: resetEmailSenderOf(uidl),
+          // The ticked consent box also joins the newsletter (R-N15).
+          newsletter: newsletterSignupSubscribes(uidl),
+        }
+      )
       files.set('auth-signup-route', {
         path: ['pages', 'api', 'auth'],
         files: [
@@ -1834,9 +2125,19 @@ module.exports = __customNodeRegistry;
       if (Object.keys(welcomeProviderDeps).length > 0) {
         ensureSentEmailLogModule(structure)
       }
+
+      // Forgot / reset password routes, the session revocation check and the
+      // AUTH_PEPPER_SECRET declaration (password-reset-route-generator.ts).
+      emitPasswordAuthFiles(structure, auth)
     }
 
-    const nextAuthRouteCode = generateNextAuthRouteFile()
+    // The shared session reader's revocation check (every server file reads
+    // the session through it).
+    ensureSessionRevocationModule(structure)
+
+    const nextAuthRouteCode = generateNextAuthRouteFile({
+      passwordAuthEnabled: auth.passwordAuthEnabled === true,
+    })
     files.set('auth-nextauth-route', {
       path: ['pages', 'api', 'auth'],
       files: [
@@ -1895,6 +2196,18 @@ module.exports = __customNodeRegistry;
           },
         ],
       })
+      // The server half of the same protection: every page the middleware
+      // gates checks the session again in its getServerSideProps.
+      files.set('auth-page-access', {
+        path: ['utils', 'auth'],
+        files: [
+          {
+            name: 'page-access',
+            fileType: FileType.JS,
+            content: generatePageAccessGuardModule(auth),
+          },
+        ],
+      })
     }
 
     // Emitted BEFORE session-provider so its file lands next to it. session-provider
@@ -1925,7 +2238,7 @@ module.exports = __customNodeRegistry;
       ],
     })
 
-    dependencies['next-auth'] = '^4.24.0'
+    dependencies['next-auth'] = '4.24.15'
     dependencies.bcryptjs = '^2.4.3'
 
     const driverDeps = getDatabaseDriverDependencies(auth.dataSourceType)

@@ -1,5 +1,7 @@
 import crypto from 'crypto'
+import net from 'net'
 import vm from 'vm'
+import { generateSecurityRuntimeCode } from '@teleporthq/teleport-plugin-next-workflows'
 import { buildWebPushServerModule } from '../../src/web-push/server-module-source'
 import {
   buildSendRouteSource,
@@ -243,6 +245,8 @@ export interface RouteRequest {
   method: string
   headers?: Record<string, string>
   body?: unknown
+  /** The connection's own address (what the security runtime keys a visitor by off Vercel). */
+  remoteAddress?: string
 }
 
 export interface RouteOptions {
@@ -260,9 +264,20 @@ export const createRouteCaller = (route: 'subscriptions' | 'send', options: Rout
   const env = options.env || pushEnv()
   const serverRequire = createRequire(fakes)
   const server = evaluate(buildWebPushServerModule(), env, serverRequire, fakes)
+  // The app's shared security runtime, on its no-database path: counts per
+  // instance, keyed by the connection's address.
+  const security = evaluate(
+    generateSecurityRuntimeCode(),
+    {},
+    (name: string) => (name === 'net' ? net : serverRequire(name)),
+    fakes
+  )
   const routeRequire = (name: string) => {
     if (name.endsWith('/utils/push/web-push-server')) {
       return server
+    }
+    if (name.endsWith('/utils/security-runtime')) {
+      return security
     }
     if (name === 'next-auth/jwt') {
       return { getToken: async () => options.session ?? null }
@@ -298,7 +313,13 @@ export const createRouteCaller = (route: 'subscriptions' | 'send', options: Rout
     await handler(
       {
         method: request.method,
-        headers: { host: 'shop.test', ...(request.headers || {}) },
+        // A signed-in visitor of the https site carries its __Host- session cookie.
+        headers: {
+          host: 'shop.test',
+          ...(options.session ? { cookie: '__Host-next-auth.session-token=signed' } : {}),
+          ...(request.headers || {}),
+        },
+        socket: { remoteAddress: request.remoteAddress || '203.0.113.1' },
         cookies: {},
         body: request.body,
       },

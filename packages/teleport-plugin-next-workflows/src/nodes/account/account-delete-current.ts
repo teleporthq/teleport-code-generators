@@ -85,7 +85,7 @@ export const accountDeleteCurrent: NodeHandlerGenerator = {
   executionEnv: 'client',
   isTerminal: true,
   dependencies: {
-    'next-auth': '^4.24.0',
+    'next-auth': '4.24.15',
   },
   generateHandler(): string {
     return handlerToString(account_delete_current)

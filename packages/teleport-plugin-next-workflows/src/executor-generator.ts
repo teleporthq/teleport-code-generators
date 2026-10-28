@@ -4,6 +4,13 @@ import {
   generateWorkflowLocaleHelpersCode,
 } from './email-locale'
 import { generateSignedInDestinationCode } from './auth-return/signed-in-destination-code'
+import {
+  PRODUCTS_LIST_PARAM,
+  PRODUCTS_ROWS_PARAM,
+  TRUSTED_HTML_RUNTIME_CODE,
+} from './nodes/email/trusted-html-code'
+import { escapeHtmlTextJs, escapeHtmlValueJs } from './nodes/email/html-escape-code'
+import { generateProtectionBypassHeaderStatements } from './self-call-headers'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -53,6 +60,22 @@ function resolveValue(value, context) {
 }
 
 function resolveContextRef(ref, context) {
+  // On the server, a read of the page state's currentUser — at any depth, in
+  // any copy of the bag the request carries — is a read of the SESSION's user
+  // (see bindSessionIdentity in the server runtime).
+  if (context && Object.prototype.hasOwnProperty.call(context, '__sessionUserId')) {
+    var walk = [ref.nodeId].concat(ref.path || []);
+    for (var wi = 0; wi < walk.length - 1; wi++) {
+      if (walk[wi] === '__stateValues' && walk[wi + 1] === 'currentUser') {
+        var sessionValue = context.__sessionUser || null;
+        for (var wj = wi + 2; wj < walk.length; wj++) {
+          if (sessionValue === undefined || sessionValue === null) return undefined;
+          sessionValue = sessionValue[walk[wj]];
+        }
+        return sessionValue === null ? undefined : sessionValue;
+      }
+    }
+  }
   const nodeOutput = context[ref.nodeId];
   if (nodeOutput === undefined || nodeOutput === null) return undefined;
   let result = nodeOutput;
@@ -201,27 +224,42 @@ function isSecretRef(value) {
 // of the resolved value. Handles both the raw single-quoted attribute form and
 // the Quill-serialized &quot;-escaped form, plus the nested inner <span> Quill
 // wraps the label in.
-function resolveRichTextContext(html, context) {
+// asText: the text is not HTML (a subject, an SMS or toast message): a value
+// loses its line breaks and gets no HTML entities.
+function resolveRichTextContext(html, context, asText) {
   if (typeof html !== 'string' || html.indexOf('context-value-inline') === -1) {
     return html;
   }
-  var out = '';
+  return splitRichTextChips(html).map(function(part) {
+    if (typeof part === 'string') return part;
+    if (!part.chip) return '';
+    var value = resolveContextRef(part.chip, context);
+    if (value === undefined || value === null) return '';
+    return asText ? plainTextValue(String(value)) : escapeHtmlText(String(value));
+  }).join('');
+}
+
+// The rich text cut into its literal text (strings) and its inline context
+// chips (\`{ chip: <workflowContext ref, or null when the chip names none> }\`),
+// in order. An unrelated <span> stays text; a chip's nested inner spans are
+// part of the chip.
+function splitRichTextChips(html) {
+  var parts = [];
+  var text = '';
   var i = 0;
   while (i < html.length) {
     var spanStart = html.indexOf('<span', i);
-    if (spanStart === -1) { out += html.slice(i); break; }
+    if (spanStart === -1) { text += html.slice(i); break; }
     var openEnd = html.indexOf('>', spanStart);
-    if (openEnd === -1) { out += html.slice(i); break; }
+    if (openEnd === -1) { text += html.slice(i); break; }
     var openTag = html.slice(spanStart, openEnd + 1);
     if (openTag.indexOf('context-value-inline') === -1) {
       // Unrelated <span> — copy it through verbatim and keep scanning.
-      out += html.slice(i, openEnd + 1);
+      text += html.slice(i, openEnd + 1);
       i = openEnd + 1;
       continue;
     }
-    // Copy everything before the embed, then replace the whole embed span
-    // (including any nested inner spans) with the resolved value.
-    out += html.slice(i, spanStart);
+    text += html.slice(i, spanStart);
     var depth = 1;
     var j = openEnd + 1;
     while (j < html.length && depth > 0) {
@@ -237,13 +275,17 @@ function resolveRichTextContext(html, context) {
         depth--;
       }
     }
-    out += resolveRichTextContextSpan(openTag, context);
+    parts.push(text);
+    text = '';
+    parts.push({ chip: richTextChipRef(openTag) });
     i = j;
   }
-  return out;
+  parts.push(text);
+  return parts;
 }
 
-function resolveRichTextContextSpan(openTag, context) {
+// The context value a chip's opening tag names, as a workflowContext ref.
+function richTextChipRef(openTag) {
   var nodeId = extractHtmlAttr(openTag, 'data-ctx-node-id');
   var pathRaw = extractHtmlAttr(openTag, 'data-ctx-path');
   var path = null;
@@ -255,10 +297,7 @@ function resolveRichTextContextSpan(openTag, context) {
     path = nodeId ? [nodeId] : [];
   }
   if (!nodeId && path.length > 0) { nodeId = path[0]; }
-  if (!nodeId) { return ''; }
-  var value = resolveContextRef({ type: 'workflowContext', nodeId: nodeId, path: path }, context);
-  if (value === undefined || value === null) { return ''; }
-  return escapeHtmlText(String(value));
+  return nodeId ? { type: 'workflowContext', nodeId: nodeId, path: path } : null;
 }
 
 // Read a quoted HTML attribute value (double- or single-quoted) without a regex
@@ -275,8 +314,33 @@ function extractHtmlAttr(tag, name) {
   return tag.slice(start, end);
 }
 
+// A value that lands in HTML text (a rich-text placeholder, a list item).
+// Idempotent: an & that already starts a character reference stays as it is,
+// so a value that arrives escaped is not escaped twice.
 function escapeHtmlText(value) {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return ${escapeHtmlTextJs('value')};
+}
+
+// A value filled into an email HTML body, where it may sit inside an attribute
+// (href="{{url}}"): quotes too. Idempotent like escapeHtmlText.
+function escapeHtmlValue(value) {
+  return ${escapeHtmlValueJs('value')};
+}
+
+// A value placed in text that is not HTML (a subject, an SMS or toast
+// message): the character references it arrived with (the lifecycle token
+// scripts escape theirs) are read back as characters, and line breaks are
+// taken out — after the read-back, so an encoded line break goes too.
+function plainTextValue(value) {
+  return value.replace(/&(amp|lt|gt|quot|apos|#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6});/g, function(m, ref) {
+    if (ref === 'amp') return '&';
+    if (ref === 'lt') return '<';
+    if (ref === 'gt') return '>';
+    if (ref === 'quot') return '"';
+    if (ref === 'apos') return "'";
+    var code = ref.charAt(1) === 'x' || ref.charAt(1) === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+  }).replace(/[\\r\\n]+/g, ' ');
 }
 
 // Sentinel for a page-context template token ({{urlDifferentiator}} /
@@ -323,7 +387,16 @@ function resolveTemplateTokenString(value, context) {
     }
     return { matched: true, value: UNRESOLVED_ROUTE_PARAM };
   }
-  if (token === 'Current User.id' || token === 'currentUser.id') {
+  var userField = currentUserTokenField(token);
+  if (userField) {
+    // On the server the visitor is the SESSION's user, never one the request
+    // describes: a server route fills these reserved keys from the session
+    // cookie (empty for a guest) before any node resolves — see
+    // bindSessionIdentity in the server runtime.
+    if (context && Object.prototype.hasOwnProperty.call(context, '__sessionUserId')) {
+      return { matched: true, value: sessionUserField(context, userField) };
+    }
+    if (userField !== 'id') return { matched: false };
     var currentUser = context && context.__stateValues && context.__stateValues.currentUser;
     var userId = currentUser && typeof currentUser === 'object' ? currentUser.id : undefined;
     return { matched: true, value: userId === undefined ? null : userId };
@@ -331,10 +404,31 @@ function resolveTemplateTokenString(value, context) {
   return { matched: false };
 }
 
+// 'id' for {{Current User.id}} / {{currentUser.id}}, the field for any other
+// {{Current User.<field>}}; null for every other token.
+function currentUserTokenField(token) {
+  var m = /^(?:Current User|currentUser)\\.([A-Za-z_$][A-Za-z0-9_$]*)$/.exec(token);
+  return m ? m[1] : null;
+}
+
+function sessionUserField(context, field) {
+  var value;
+  if (field === 'id') value = context.__sessionUserId;
+  else if (field === 'role') value = context.__sessionRole;
+  else {
+    var user = context.__sessionUser;
+    value = user && typeof user === 'object' && Object.prototype.hasOwnProperty.call(user, field) ? user[field] : undefined;
+  }
+  return value === undefined ? null : value;
+}
+
 // Fills flat {{key}} merge tokens in a component-bodied email node's body/subject
 // from its (already-resolved) templateParams. Unknown tokens are left verbatim so
 // unrelated {{...}} (e.g. a campaign CustomerData {{name}}) is never blanked.
-// Values are injected unescaped, matching the e-commerce email fillers.
+// Every value is escaped where it is filled in (it may come from the visitor —
+// a form field, page state — or from a record a visitor once wrote), so only
+// the author's template is HTML; asText (a subject, a header) takes its line
+// breaks out instead. A value that must be markup goes through a list block.
 // Expands each \`<!--tq:each KEY-->…{{field}}…<!--/tq:each-->\` block (emitted by
 // the email serializer for a builder array mapper) by repeating the inner body
 // once per row of lists[KEY], substituting each row's {{field}} with the
@@ -360,7 +454,8 @@ function expandListBlocks(text, lists) {
   });
 }
 
-function applyTemplateParams(text, params) {
+${TRUSTED_HTML_RUNTIME_CODE}
+function applyTemplateParams(text, params, asText) {
   if (typeof text !== 'string' || !Array.isArray(params)) return text;
   var map = {};
   for (var i = 0; i < params.length; i++) {
@@ -371,11 +466,17 @@ function applyTemplateParams(text, params) {
       map[p.key] = p.value;
     }
   }
+  // The products list is built here from its lines, never taken as handed over.
+  if (Array.isArray(map.${PRODUCTS_ROWS_PARAM}) && Object.prototype.hasOwnProperty.call(map, '${PRODUCTS_LIST_PARAM}')) {
+    map.${PRODUCTS_LIST_PARAM} = renderProductsListHtml(map.${PRODUCTS_ROWS_PARAM});
+  }
   var expanded = expandListBlocks(text, map);
   return expanded.replace(/\\{\\{\\s*([\\w.-]+)\\s*\\}\\}/g, function(m, key) {
     if (!Object.prototype.hasOwnProperty.call(map, key)) return m;
     var v = map[key];
-    return (v === null || v === undefined) ? '' : String(v);
+    if (v === null || v === undefined) return '';
+    if (asText) return plainTextValue(String(v));
+    return isTrustedHtml(v) ? String(v) : escapeHtmlValue(String(v));
   });
 }
 
@@ -489,13 +590,13 @@ function finalizeResolvedConfig(nodeType, config) {
 // Scalar config values are normally just secret-resolved. Rich-text strings
 // (email bodies) additionally need their inline context placeholders resolved,
 // and whole-string {{...}} template tokens resolve against the page context.
-function resolveScalarValue(value, context) {
+function resolveScalarValue(value, context, key) {
   var tokenResolution = resolveTemplateTokenString(value, context);
   if (tokenResolution.matched) {
     return tokenResolution.value;
   }
   if (typeof value === 'string' && value.indexOf('context-value-inline') !== -1) {
-    return resolveRichTextContext(value, context);
+    return resolveRichTextContext(value, context, key === 'subject' || key === 'message');
   }
   return resolveSecret(value, context);
 }
@@ -551,7 +652,7 @@ function resolveConfig(config, context) {
     } else if (val && typeof val === 'object' && !Array.isArray(val)) {
       resolved[key] = resolveConfig(val, context);
     } else {
-      resolved[key] = resolveScalarValue(val, context);
+      resolved[key] = resolveScalarValue(val, context, key);
     }
   }
   // Component-bodied email nodes carry their merge values as \`templateParams\`
@@ -585,18 +686,191 @@ function resolveConfig(config, context) {
       resolved.body = applyTemplateParams(resolved.body, resolved.templateParams);
     }
     if (typeof resolved.subject === 'string') {
-      resolved.subject = applyTemplateParams(resolved.subject, resolved.templateParams);
+      resolved.subject = applyTemplateParams(resolved.subject, resolved.templateParams, true);
     }
   }
   return resolved;
 }
 
-function evaluateCondition(config, context) {
-  const condType = config.conditionType || 'simple-comparison';
+// The config fields a node compiles as code, and the mode fields that decide
+// whether an if / switch compiles its condition. Only the text the author
+// wrote may be: a field bound to a value — a {{…}} token, a context value, a
+// secret, an inserted chip — is dropped from the resolved config, so the node
+// runs its default (transform-array hands the item on as it is, a custom-JS
+// step runs nothing, a condition compares as it does by default) and no
+// request, webhook body or stored value ever becomes code. Every path that
+// runs a node resolves its config through resolveNodeConfig: the client
+// executor and the custom nodes it runs (in the browser, or in process inside
+// a cron, webhook or automation route), and every loop of the segment, cron,
+// webhook and automation routes.
+var AUTHORED_ONLY_FIELDS = {
+  'general-custom-js': ['code'],
+  'transform-array': ['expression', 'mapExpression', 'filterExpression', 'reduceExpression', 'findExpression', 'sortExpression', 'includesExpression'],
+  'general-if-statement': ['conditionType'],
+  'general-switch': ['comparisonMode']
+};
+
+// Text the author wrote, taken as it is: no inserted chip, not a whole {{…}}
+// token, not a secret reference.
+function isAuthoredText(value) {
+  return typeof value === 'string' &&
+    value.indexOf('context-value-inline') === -1 &&
+    !/^\\s*\\{\\{[\\s\\S]*\\}\\}\\s*$/.test(value) &&
+    value.indexOf('WORKFLOW_SECRET_') !== 0 &&
+    value.indexOf('teleporthq.secrets.') !== 0;
+}
+
+// A node's config resolved for its handler (resolveConfig), with its code and
+// mode fields only as the author wrote them.
+function resolveNodeConfig(node, context) {
+  var authored = node ? node.config : undefined;
+  var resolved = resolveConfig(authored, context);
+  var fields = node ? AUTHORED_ONLY_FIELDS[node.type] : null;
+  if (!fields || !authored || typeof authored !== 'object' || !resolved || typeof resolved !== 'object') {
+    return resolved;
+  }
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    if (authored[field] === undefined) continue;
+    if (isAuthoredText(authored[field])) {
+      resolved[field] = authored[field];
+    } else {
+      delete resolved[field];
+    }
+  }
+  return resolved;
+}
+
+// Only the expression the AUTHOR wrote is ever compiled, and only once. Every
+// context chip in it (an inline chip of the rich-text input, a reference part
+// of a parts array) is handed to the compiled function as a named argument —
+// \`value > <chip max>\` runs as \`value > __tqv0\` with the chip's value passed
+// in as \`__tqv0\` — so a value from the context is data, never code, and
+// request text cannot run on the server (nor stored data in a visitor's
+// browser). A chip the author wrote inside quotes (\`value === '<chip>'\`) is
+// passed as a string. A condition that IS a reference, a whole {{…}} token or a
+// secret has no code of the author's in it: its value is read as data, by its
+// truth. \`authored\` is the node's config as written.
+var WHOLE_TEMPLATE_TOKEN = /^\\{\\{\\s*[^{}]+?\\s*\\}\\}$/;
+
+function authoredExpressionParts(authored) {
+  if (typeof authored === 'string') {
+    if (WHOLE_TEMPLATE_TOKEN.test(authored.trim())) return null;
+    if (authored.indexOf('WORKFLOW_SECRET_') === 0 || authored.indexOf('teleporthq.secrets.') === 0) return null;
+    return authored.indexOf('context-value-inline') === -1 ? [authored] : splitRichTextChips(authored);
+  }
+  if (Array.isArray(authored)) {
+    return authored.map(function(item) {
+      if (item && typeof item === 'object' && (item.type === 'workflowContext' || item.type === 'ctx')) {
+        return { chip: item };
+      }
+      return item === null || item === undefined ? '' : String(item);
+    });
+  }
+  return null;
+}
+
+var __compiledExpressions = new Map();
+
+function compileExpression(parts, argNames) {
+  var text = '';
+  var chips = [];
+  var pending = parts.slice();
+  for (var i = 0; i < pending.length; i++) {
+    var part = pending[i];
+    if (typeof part === 'string') { text += part; continue; }
+    var quote = text.charAt(text.length - 1);
+    var next = pending[i + 1];
+    var quoted = (quote === '"' || quote === "'" || quote === '\`') && typeof next === 'string' && next.charAt(0) === quote;
+    if (quoted) {
+      text = text.slice(0, -1);
+      pending[i + 1] = next.slice(1);
+    }
+    text += '__tqv' + chips.length;
+    chips.push({ ref: part.chip, quoted: quoted });
+  }
+  var names = argNames.slice();
+  for (var c = 0; c < chips.length; c++) names.push('__tqv' + c);
+  var key = names.join(',') + '\\n' + text;
+  if (!__compiledExpressions.has(key)) {
+    var fn = null;
+    try { fn = Function.apply(null, names.concat(['return (' + text + ')'])); } catch (e) { fn = null; }
+    __compiledExpressions.set(key, fn);
+  }
+  return { fn: __compiledExpressions.get(key), chips: chips };
+}
+
+// The truth of a value read as data: a string reads as the word or number it
+// spells ('false', '0', '' and 'null' are false), anything else by JS truth.
+function truthOf(value) {
+  if (typeof value === 'string') {
+    var text = value.trim().toLowerCase();
+    if (text === '' || text === 'false' || text === 'null' || text === 'undefined' || text === 'nan') return false;
+    if (text === 'true') return true;
+    var number = Number(text);
+    return isNaN(number) ? true : number !== 0;
+  }
+  return !!value;
+}
+
+function chipValue(ref, context) {
+  if (!ref) return undefined;
+  return ref.type === 'ctx' ? resolveCtxRef(ref, context) : resolveContextRef(ref, context);
+}
+
+// The one chip a condition consists of, when the rest of it is only blank
+// text or the editor's markup around it (\`<p>\`, \`&nbsp;\`); null otherwise.
+function soleChip(parts) {
+  var chip = null;
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (typeof part === 'string') {
+      if (part.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== '') return null;
+    } else if (chip) {
+      return null;
+    } else {
+      chip = part;
+    }
+  }
+  return chip;
+}
+
+function runExpression(authored, resolved, argNames, args, context) {
+  var parts = authoredExpressionParts(authored);
+  if (!parts) return truthOf(resolved);
+  // A condition that is only a chip is a value, read by the word it spells
+  // ('false', '0' and '' are false), as a whole {{…}} token is.
+  var only = soleChip(parts);
+  if (only) return truthOf(chipValue(only.chip, context));
+  var compiled = compileExpression(parts, argNames);
+  if (!compiled.fn) return false;
+  var values = args.slice();
+  for (var c = 0; c < compiled.chips.length; c++) {
+    var chip = compiled.chips[c];
+    var value = chipValue(chip.ref, context);
+    values.push(chip.quoted ? (value === null || value === undefined ? '' : String(value)) : value);
+  }
+  try { return !!compiled.fn.apply(null, values); }
+  catch (e) { return false; }
+}
+
+// The mode a condition runs in (an if's conditionType, a switch's
+// comparisonMode), as the author wrote it. A mode bound to a value — a {{…}}
+// token, a context value, a secret, an inserted chip — is no mode: request text
+// can never switch a step into compiling its expression.
+function authoredMode(value) {
+  return isAuthoredText(value) ? value : '';
+}
+
+function evaluateCondition(config, context, authoredConfig) {
+  const written = arguments.length > 2 ? (authoredConfig || {}) : config;
+  const condType = authoredMode(written.conditionType) || 'simple-comparison';
   if (condType === 'expression') {
     const cond = resolveValue(config.condition, context);
-    try { return !!new Function('context', 'return (' + cond + ')')(context); }
-    catch(e) { return false; }
+    // Callers pass the node's config as written; a caller that has only one
+    // config hands that one, whose condition is then its own text.
+    const authored = arguments.length > 2 ? (authoredConfig || {}).condition : config.condition;
+    return runExpression(authored, cond, ['context'], [context], context);
   }
   if (condType === 'multiple-conditions') {
     const conditions = config.conditions || [];
@@ -605,6 +879,26 @@ function evaluateCondition(config, context) {
     return logic === 'AND' ? results.every(Boolean) : results.some(Boolean);
   }
   return evaluateSingleComparison(config, context);
+}
+
+// The id of the case a switch node takes, 'default' when none matches.
+// \`authoredConfig\` is the node's config as written (see runExpression): in
+// expression mode only an authored case condition is compiled, with the switch
+// value handed in as \`value\`.
+function matchSwitchCase(authoredConfig, resolvedConfig, context) {
+  var switchVal = resolveValue(resolvedConfig.switchValue, context);
+  var cases = resolvedConfig.cases || [];
+  var authoredCases = authoredConfig && Array.isArray(authoredConfig.cases) ? authoredConfig.cases : [];
+  for (var i = 0; i < cases.length; i++) {
+    var caseVal = resolveValue(cases[i].condition, context);
+    if (authoredMode((authoredConfig || resolvedConfig).comparisonMode) === 'expression') {
+      var authored = authoredCases[i] && typeof authoredCases[i] === 'object' ? authoredCases[i].condition : undefined;
+      if (runExpression(authored, caseVal, ['value', 'context'], [switchVal, context], context)) return cases[i].id;
+    } else if (switchVal === caseVal) {
+      return cases[i].id;
+    }
+  }
+  return 'default';
 }
 
 function coerceForComparison(a, b) {
@@ -906,7 +1200,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
       continue;
     }
 
-    const resolvedConfig = resolveConfig(node.config, context);
+    const resolvedConfig = resolveNodeConfig(node, context);
 
     try {
       const configError = finalizeResolvedConfig(node.type, resolvedConfig);
@@ -919,7 +1213,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
       // once — see the comment there.
 
       if (node.type === 'general-if-statement') {
-        const condResult = evaluateCondition(resolvedConfig, context);
+        const condResult = evaluateCondition(resolvedConfig, context, node.config);
         context[node.id] = { result: condResult };
         executed[node.id] = true;
 
@@ -936,17 +1230,7 @@ async function executeNodes(nodes, edges, context, nodeHandlers, workflowConfig,
       }
 
       if (node.type === 'general-switch') {
-        const switchVal = resolveValue(resolvedConfig.switchValue, context);
-        const cases = resolvedConfig.cases || [];
-        let matchedCase = 'default';
-        for (let ci = 0; ci < cases.length; ci++) {
-          const caseVal = resolveValue(cases[ci].condition, context);
-          if (resolvedConfig.comparisonMode === 'expression') {
-            try { if (new Function('value', 'context', 'return (' + caseVal + ')')(switchVal, context)) { matchedCase = cases[ci].id; break; } } catch(e) {}
-          } else {
-            if (switchVal === caseVal) { matchedCase = cases[ci].id; break; }
-          }
-        }
+        const matchedCase = matchSwitchCase(node.config, resolvedConfig, context);
         context[node.id] = { matchedCase: matchedCase };
         executed[node.id] = true;
 
@@ -1212,8 +1496,8 @@ async function executeLoop(loopNode, config, allNodes, edges, context, nodeHandl
       const whileCtx = Object.assign({}, context);
       whileCtx[loopNode.id + '_iter'] = { iteration: iter };
       const condStr = resolveValue(config.condition, whileCtx);
-      let condResult;
-      try { condResult = new Function('context', 'return (' + condStr + ')')(whileCtx); } catch(e) { condResult = false; }
+      // Only the authored condition is compiled (see runExpression).
+      const condResult = runExpression(loopNode.config && loopNode.config.condition, condStr, ['context'], [whileCtx], whileCtx);
       if (loopType === 'while' && !condResult) break;
       if (loopType === 'until' && condResult) break;
       await executeNodes(bodyNodes, edges, whileCtx, nodeHandlers, workflowConfig, callServerSegment, executionId);
@@ -1394,12 +1678,17 @@ function snapshotIncomingContext(incoming) {
 }
 
 // Never replied: the caller's own page-state snapshot (the client never merges
-// it back — see mergeServerResults) and the route's private state.
+// it back — see mergeServerResults) and the route's private state, the
+// visitor's session identity included (the server reads it from the cookie on
+// every request).
 var SEGMENT_REPLY_PRIVATE_KEYS = {
   __stateValues: true,
   __internalHeaders: true,
   __request: true,
-  __pendingNodePromises: true
+  __pendingNodePromises: true,
+  __sessionUserId: true,
+  __sessionRole: true,
+  __sessionUser: true
 };
 
 // What a server segment replies with: the result of every node it ran itself
@@ -1476,12 +1765,7 @@ function internalRequestHeaders(req) {
   if (req && req.headers && req.headers.cookie) {
     headers.cookie = req.headers.cookie;
   }
-  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (bypassSecret) {
-    headers['x-vercel-protection-bypass'] = bypassSecret;
-    // Tells Vercel not to hand the bypass back to the caller as a cookie.
-    headers['x-vercel-set-bypass-cookie'] = 'false';
-  }
+${generateProtectionBypassHeaderStatements('headers')}
   return headers;
 }
 
@@ -1498,6 +1782,7 @@ module.exports = {
   resolveValue,
   resolveSecret,
   resolveConfig,
+  resolveNodeConfig,
   resolveContextRef,
   resolveRichTextContext,
   unwrapWorkflowCollection,
@@ -1505,6 +1790,7 @@ module.exports = {
   snapshotIncomingContext,
   segmentReply,
   evaluateCondition,
+  matchSwitchCase,
   evaluateSingleComparison,
   normalizeComparisonOperator,
   resolveTemplateTokenString,
@@ -1683,10 +1969,13 @@ function pruneContext(context, stateKeys) {
     // Credentials for a server-side caller's own requests travel as HEADERS
     // (see segmentRequestHeaders), never in the body.
     if (key === '__internalHeaders') continue;
-    // The signatures of earlier server results and of the key order must
-    // cross whole: a pruned signature no longer matches, and the server then
-    // treats the result it covers as never produced.
-    if (key === '__sig' || key === '__sigOrder') {
+    // The visitor's identity is the server's to read from the session cookie;
+    // a route ignores any it is sent.
+    if (key === '__sessionUserId' || key === '__sessionRole' || key === '__sessionUser') continue;
+    // The signatures of earlier server results, of the key order and of the
+    // run they belong to must cross whole: a pruned signature no longer
+    // matches, and the server then treats the result it covers as never produced.
+    if (key === '__sig' || key === '__sigOrder' || key === '__sigRun') {
       pruned[key] = val;
       continue;
     }
@@ -1798,7 +2087,16 @@ async function callServerSegment(segmentUrl, context, stateKeys) {
     let errorData;
     try { errorData = await response.json(); } catch(e) { errorData = { error: response.statusText }; }
     if (response.status === 429) {
-      var rlErr = new Error(errorData.message || 'Rate limit exceeded');
+      // The sentence the visitor reads. A rate-limiter step answers its
+      // author's own \`message\` beside a generic \`error\` ("Too Many
+      // Requests"), so \`message\` comes first; every other 429 (the shared
+      // security runtime, a step's visitor limit, the route's abuse gate, the
+      // site's AI budget) says only \`error\`. No 429 carries internal text.
+      var rlErr = new Error(
+        (errorData && typeof errorData.message === 'string' && errorData.message) ||
+        (errorData && typeof errorData.error === 'string' && errorData.error) ||
+        'Too many requests. Try again later.'
+      );
       rlErr.__skipErrorHandler = true;
       rlErr.__rateLimited = true;
       rlErr.__earlyResponse = errorData;
@@ -1895,7 +2193,16 @@ async function callStreamingServerSegment(segmentUrl, context, streamingInfo, al
     let errorData;
     try { errorData = await response.json(); } catch(e) { errorData = { error: response.statusText }; }
     if (response.status === 429) {
-      var rlErr = new Error(errorData.message || 'Rate limit exceeded');
+      // The sentence the visitor reads. A rate-limiter step answers its
+      // author's own \`message\` beside a generic \`error\` ("Too Many
+      // Requests"), so \`message\` comes first; every other 429 (the shared
+      // security runtime, a step's visitor limit, the route's abuse gate, the
+      // site's AI budget) says only \`error\`. No 429 carries internal text.
+      var rlErr = new Error(
+        (errorData && typeof errorData.message === 'string' && errorData.message) ||
+        (errorData && typeof errorData.error === 'string' && errorData.error) ||
+        'Too many requests. Try again later.'
+      );
       rlErr.__skipErrorHandler = true;
       rlErr.__rateLimited = true;
       rlErr.__earlyResponse = errorData;
@@ -2164,14 +2471,19 @@ async function executeWorkflowWithSegments(workflowConfig, triggerContext, clien
       }
     }
   } catch (error) {
-    if (error.__skipErrorHandler || error.__rateLimited) {
+    // A step the server refused for its rate limit (429) is a failure the
+    // visitor must see: the workflow's error branch runs with the server's
+    // public sentence and \`rateLimited: true\`, so a busy button is released
+    // and a message shown. Only a workflow without an error branch ends quietly.
+    const errorHandler = findErrorHandlerNodes(workflowConfig);
+    if (error.__rateLimited ? !errorHandler : error.__skipErrorHandler) {
       return context;
     }
-    const errorHandler = findErrorHandlerNodes(workflowConfig);
     if (errorHandler) {
       context[workflowConfig.errorHandlerNodeId] = {
         error: { message: error.message || String(error), stack: error.stack || '' },
-        errorMessage: error.message || String(error)
+        errorMessage: error.message || String(error),
+        rateLimited: error.__rateLimited === true
       };
       try {
         await utils.executeNodes(errorHandler.nodes, errorHandler.edges, context, clientHandlers, workflowConfig, null, executionId);

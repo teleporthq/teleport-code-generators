@@ -27,6 +27,7 @@ import {
   generateEmailLocaleRequire,
   generateLocalizedEmailCopyFn,
 } from './transactional-email-code'
+import { generateAccountEventRecorder, PASSWORD_RESETS_TABLE } from './auth-generator'
 
 export interface AccountDeleteRouteOptions {
   // The auth identity table (resolved by the plugin). Defaults to `users`.
@@ -46,6 +47,9 @@ export interface AccountDeleteRouteOptions {
   siteName?: string
   // Synthetic address written onto detached rows; `{{userId}}` is substituted.
   deletedEmailPattern?: string
+  // The project has the in-app event bus (`hasAutomationsBus`): a committed
+  // deletion is recorded as `user-deleted` for the automations.
+  withAutomations?: boolean
 }
 
 // Kept as a named alias (imported by workflow-project-plugin.ts) so the delete
@@ -60,6 +64,7 @@ export const generateAccountDeleteRoute = (options: AccountDeleteRouteOptions = 
       : null
   const deletedEmailPattern =
     options.deletedEmailPattern || 'deleted-user-{{userId}}@deleted.invalid'
+  const recordsDeletion = options.withAutomations === true
 
   return `${generatePgClientCode()}
 ${generateCommonJsSessionTokenResolverCode()}
@@ -82,6 +87,8 @@ const DELETE_TABLES = [
   'teleport_cart',
   'teleport_ai_chat_messages',
   'teleport_ai_chat_conversations',
+  // The account's password-reset links (user_id is text there).
+  '${PASSWORD_RESETS_TABLE}',
 ];
 // Business / legal records that must survive: the user link is nulled and any
 // stored personal email is replaced with a synthetic, self-describing address.
@@ -192,11 +199,15 @@ async function sendFarewellEmail(toEmail, tokenValues, userId, locale) {
   var from = EMAIL_FROM || process.env.EMAIL_FROM || '';
   if (!from) { console.warn('[account-delete] farewell email skipped: sender not configured'); return; }
   var copy = resolveFarewellEmailCopy(locale);
-  var subject = fillTemplate(copy.subject, tokenValues);
+  var subject = fillSubjectTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
   await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
-
+${
+  recordsDeletion
+    ? generateAccountEventRecorder({ relativePrefix: '../../..', logTag: '[account-delete]' })
+    : ''
+}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -219,7 +230,13 @@ module.exports = async function handler(req, res) {
   var userName = '';
   var userFound = false;
   var failed = false;
-  // try/finally so the pg connection is ALWAYS closed — every early exit
+${
+  recordsDeletion
+    ? `  // The account as it was, for the user-deleted event.
+  var deletedUser = null;
+`
+    : ''
+}  // try/finally so the pg connection is ALWAYS closed — every early exit
   // (not-found, error) leaves via the finally, never leaking a connection.
   try {
     await client.connect();
@@ -230,7 +247,7 @@ module.exports = async function handler(req, res) {
       userFound = true;
       userEmail = userRes.rows[0].email || '';
       userName = userRes.rows[0].name || '';
-
+${recordsDeletion ? '      deletedUser = userRes.rows[0];\n' : ''}
       var syntheticEmail = String(DELETED_EMAIL_PATTERN).split('{{userId}}').join(String(userId));
 
       await client.query('BEGIN');
@@ -291,7 +308,13 @@ ${
   if (typeof __sentEmailLog !== 'undefined') { await __sentEmailLog.settleSentEmailLog(); }
 `
     : ''
-}
+}${
+    recordsDeletion
+      ? `  // The deletion is committed: the last thing the route does is record it.
+  await recordAccountEvent('user-deleted', deletedUser, '', req);
+`
+      : ''
+  }
   return res.status(200).json({ success: true });
 };
 `

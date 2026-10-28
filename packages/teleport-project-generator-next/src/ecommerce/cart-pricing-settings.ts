@@ -33,6 +33,26 @@ export interface CartPricingSettings {
   vouchersEnabled: boolean
   subscriptions: { enabled: boolean; providers: string[] }
   paymentKinds: Record<string, unknown>
+  /**
+   * How a buyer may pay: cash on delivery when the store takes it, otherwise
+   * one of the store's enabled online providers. The checkout's server step
+   * refuses every other method, an empty one included: an order is never
+   * read as cash on delivery because no method was named.
+   *
+   * `codByShippingZone`: delivery is priced by shipping zone, and each zone
+   * decides whether it takes cash on delivery (`teleport_shipping_zones.
+   * cod_enabled`, rows the merchant edits live). The settle write refuses a
+   * cash order delivered to a zone that does not take it (the workflows
+   * plugin's `place-order-guards.ts`, re-baked from the same setting).
+   */
+  paymentMethods: { cashOnDelivery: boolean; providers: string[]; codByShippingZone: boolean }
+  /**
+   * Stock is managed and backorders are off, so the checkout reserves stock
+   * with the order: the server step then also releases the reservations of
+   * orders that never reached a payment page (the workflows plugin's
+   * `place-order-guards.ts`, `buildStalledReservationReleaseQuery`).
+   */
+  releaseStalledReservations: boolean
   regional: {
     store: RegionalPricingStoreDefaults
     currency: string
@@ -77,6 +97,14 @@ export const buildCartPricingSettings = (
     paymentKinds: Object.fromEntries(
       clientPaymentProviders.map((provider) => [provider.type, provider.kinds])
     ),
+    paymentMethods: {
+      cashOnDelivery: ecommerceSettings.cashOnDelivery === true,
+      providers: clientPaymentProviders.map((provider) => provider.type),
+      codByShippingZone: regional !== null,
+    },
+    releaseStalledReservations:
+      ecommerceSettings.stockManagement === true &&
+      ecommerceSettings.stockManagementConfig?.allowBackorders !== true,
     regional: regional
       ? {
           store: {

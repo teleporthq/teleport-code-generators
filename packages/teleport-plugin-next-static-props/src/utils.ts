@@ -230,17 +230,26 @@ const computePropsAST = (
     ...ASTUtils.parseValuePath(initialPropsData.exposeAs.valuePath || []),
   ])
 
+  const notFoundReturnAST = () =>
+    types.returnStatement(
+      types.objectExpression(
+        [
+          types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+          revalidateProperty(),
+        ].filter(Boolean)
+      )
+    )
   const notFoundAST = types.ifStatement(
     types.unaryExpression('!', responseMemberAST),
     types.blockStatement([
-      types.returnStatement(
-        types.objectExpression(
-          [
-            types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
-            revalidateProperty(),
-          ].filter(Boolean)
-        )
+      ...computePreviousSlugRedirectAST(
+        initialPropsData,
+        skipI18n,
+        revalidateProperty,
+        fetchCallAST,
+        funcParams
       ),
+      notFoundReturnAST(),
     ])
   )
 
@@ -403,6 +412,209 @@ const computeOwnRowPreferenceAST = (
       ])
     ),
   ]
+}
+
+/**
+ * `context?.locale && context.locale !== context?.defaultLocale && <url>.startsWith('/')
+ *   ? `/${context.locale}${<url>}` : <url>` — a site-internal destination keeps
+ * the visitor's locale: next.config.js redirects are locale-aware, data-fetching
+ * redirects are not.
+ */
+const localeAwareDestination = (
+  destination: types.Expression,
+  skipI18n: boolean | undefined
+): types.Expression =>
+  skipI18n
+    ? destination
+    : types.conditionalExpression(
+        types.logicalExpression(
+          '&&',
+          types.logicalExpression(
+            '&&',
+            types.optionalMemberExpression(
+              types.identifier('context'),
+              types.identifier('locale'),
+              false,
+              true
+            ),
+            types.binaryExpression(
+              '!==',
+              types.memberExpression(types.identifier('context'), types.identifier('locale')),
+              types.optionalMemberExpression(
+                types.identifier('context'),
+                types.identifier('defaultLocale'),
+                false,
+                true
+              )
+            )
+          ),
+          types.callExpression(
+            types.memberExpression(
+              types.cloneNode(destination, true),
+              types.identifier('startsWith')
+            ),
+            [types.stringLiteral('/')]
+          )
+        ),
+        types.templateLiteral(
+          [
+            types.templateElement({ raw: '/', cooked: '/' }, false),
+            types.templateElement({ raw: '', cooked: '' }, false),
+            types.templateElement({ raw: '', cooked: '' }, true),
+          ],
+          [
+            types.memberExpression(types.identifier('context'), types.identifier('locale')),
+            types.cloneNode(destination, true),
+          ]
+        ),
+        types.cloneNode(destination, true)
+      )
+
+/**
+ * Inside the notFound branch of a details page (`redirect.previousSlugs`): the
+ * address names no row, so look for one that USED to have it — the JSON list
+ * of former slugs holds it in quotes — and send the reader to its current
+ * address with a 301. Nothing found: the 404 that follows stands.
+ *
+ *   const movedResponse = await fetch({ …, filters: JSON.stringify([{ … like … }]) })
+ *   const movedTo = movedResponse?.data?.[0]?.<currentField>
+ *   if (movedTo) { return { redirect: { destination, statusCode: 301 }, revalidate } }
+ */
+const computePreviousSlugRedirectAST = (
+  initialPropsData: UIDLInitialPropsData,
+  skipI18n: boolean | undefined,
+  revalidateProperty: () => types.ObjectProperty | null,
+  fetchCallAST: (filtersOverride?: types.Expression) => types.AwaitExpression,
+  funcParams: types.ObjectProperty[]
+): types.Statement[] => {
+  const previous = initialPropsData.redirect?.previousSlugs
+  if (!previous) {
+    return []
+  }
+  const routeParam = types.logicalExpression(
+    '??',
+    types.optionalMemberExpression(
+      types.optionalMemberExpression(
+        types.identifier('context'),
+        types.identifier('params'),
+        false,
+        true
+      ),
+      types.identifier(previous.param),
+      false,
+      true
+    ),
+    types.stringLiteral('')
+  )
+  // '%"' + String(<param>).replace(/[\\%_]/g, '\\$&') + '"%' — the slug as the
+  // JSON list quotes it, its LIKE wildcards escaped so `/blog/%25` matches
+  // no renamed post.
+  const escapedParam = types.callExpression(
+    types.memberExpression(
+      types.callExpression(types.identifier('String'), [routeParam]),
+      types.identifier('replace')
+    ),
+    [types.regExpLiteral('[\\\\%_]', 'g'), types.stringLiteral('\\$&')]
+  )
+  const pattern = types.binaryExpression(
+    '+',
+    types.binaryExpression('+', types.stringLiteral('%"'), escapedParam),
+    types.stringLiteral('"%')
+  )
+  const likeCondition = types.arrayExpression([
+    types.objectExpression([
+      types.objectProperty(types.identifier('type'), types.stringLiteral('condition')),
+      types.objectProperty(types.identifier('source'), types.stringLiteral(previous.column)),
+      types.objectProperty(types.identifier('destination'), pattern),
+      types.objectProperty(types.identifier('operand'), types.stringLiteral('like')),
+    ]),
+  ])
+  // The page's own conditions stay (a draft's former address never redirects
+  // to it); only the address condition gives way to the former-slugs one:
+  //   JSON.stringify(JSON.parse(<filters>).filter((c) => c.source !== '<currentField>').concat([like]))
+  const pageFilters = funcParams.find(
+    (param) => (param.key as types.StringLiteral).value === 'filters'
+  )
+  const filters = pageFilters
+    ? types.callExpression(
+        types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+        [
+          types.callExpression(
+            types.memberExpression(
+              types.callExpression(
+                types.memberExpression(
+                  types.callExpression(
+                    types.memberExpression(types.identifier('JSON'), types.identifier('parse')),
+                    [types.cloneNode(pageFilters.value as types.Expression, true)]
+                  ),
+                  types.identifier('filter')
+                ),
+                [
+                  types.arrowFunctionExpression(
+                    [types.identifier('condition')],
+                    types.binaryExpression(
+                      '!==',
+                      types.memberExpression(
+                        types.identifier('condition'),
+                        types.identifier('source')
+                      ),
+                      types.stringLiteral(previous.currentField)
+                    )
+                  ),
+                ]
+              ),
+              types.identifier('concat')
+            ),
+            [likeCondition]
+          ),
+        ]
+      )
+    : types.callExpression(
+        types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+        [likeCondition]
+      )
+  const movedResponseAST = types.variableDeclaration('const', [
+    types.variableDeclarator(types.identifier('movedResponse'), fetchCallAST(filters)),
+  ])
+  const movedToAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('movedTo'),
+      ASTUtils.generateMemberExpressionASTFromPath([
+        'movedResponse',
+        ...ASTUtils.parseValuePath(initialPropsData.exposeAs.valuePath || []),
+        previous.currentField,
+      ])
+    ),
+  ])
+  const prefix = previous.urlPrefix.endsWith('/') ? previous.urlPrefix : `${previous.urlPrefix}/`
+  const destination = types.binaryExpression(
+    '+',
+    types.stringLiteral(prefix),
+    types.identifier('movedTo')
+  )
+  const redirectAST = types.ifStatement(
+    types.identifier('movedTo'),
+    types.blockStatement([
+      types.returnStatement(
+        types.objectExpression(
+          [
+            types.objectProperty(
+              types.identifier('redirect'),
+              types.objectExpression([
+                types.objectProperty(
+                  types.identifier('destination'),
+                  localeAwareDestination(destination, skipI18n)
+                ),
+                types.objectProperty(types.identifier('statusCode'), types.numericLiteral(301)),
+              ])
+            ),
+            revalidateProperty(),
+          ].filter(Boolean)
+        )
+      ),
+    ])
+  )
+  return [movedResponseAST, movedToAST, redirectAST]
 }
 
 /**

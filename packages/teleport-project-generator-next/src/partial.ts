@@ -54,6 +54,7 @@ import { createNextInternationalizationPlugin } from './internationalization/loc
 import { createNextLocaleFetcherPlugin } from './internationalization/locale-fetcher-component'
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
+import { companyGlobalObject } from './internationalization/company-global'
 
 const DATA_SOURCE_DEPENDENCIES: Record<string, string> = {
   postgresql: 'pg@^8.11.0',
@@ -394,7 +395,8 @@ class NextPartialGenerator {
    * when internationalization is enabled.
    */
   generateGlobalContext(
-    internationalization?: ProjectUIDL['internationalization']
+    internationalization?: ProjectUIDL['internationalization'],
+    companyDetails?: ProjectUIDL['companyDetails']
   ): PartialGenerationResult {
     const i18n = internationalization || this.sharedOptions.internationalization
     const { languages = { en: 'English' }, main = { locale: 'en', name: 'English' } } = i18n || {}
@@ -405,9 +407,12 @@ class NextPartialGenerator {
     }))
     const currentLocale = localesArray.find((locale) => locale.short === main.locale)
 
+    const company = companyGlobalObject(companyDetails)
     const content = `
 import { createContext, useMemo, useContext, useState, useEffect } from 'react'
 import { useLocale } from "next-intl";
+
+const company = ${JSON.stringify(company)};
 
 const GlobalContext = createContext(null)
 
@@ -429,6 +434,7 @@ export const GlobalProvider = ({ initialLocales, children }) => {
     return {
       locales,
       locale,
+      company,
       setLocales,
       setLocale
     }

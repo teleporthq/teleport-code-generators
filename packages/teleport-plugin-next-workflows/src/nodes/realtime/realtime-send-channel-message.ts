@@ -4,8 +4,19 @@ async function realtime_send_channel_message(config: any, context: Record<string
   const channelName = config.channelName
   const message = config.message != null ? String(config.message) : ''
   const messageData = config.messageData || null
-  const senderId = config.senderId || 'system'
-  const senderName = config.senderName || 'System'
+  // Run for a signed-in visitor, the send goes out as that visitor — the
+  // session the segment route verified, never a value the request carries.
+  // Otherwise (a guest, a cron, an automation) as the author configured, or
+  // "System".
+  const ctx = (context || {}) as any
+  const sessionId =
+    ctx.__sessionUserId != null && ctx.__sessionUserId !== '' ? String(ctx.__sessionUserId) : ''
+  const sessionName =
+    ctx.__sessionUser && typeof ctx.__sessionUser.name === 'string' && ctx.__sessionUser.name
+      ? ctx.__sessionUser.name
+      : 'Member'
+  const senderId = sessionId || config.senderId || 'system'
+  const senderName = sessionId ? sessionName : config.senderName || 'System'
 
   if (!channelName) {
     return { success: false, error: 'channelName is required' }

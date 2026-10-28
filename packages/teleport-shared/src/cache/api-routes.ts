@@ -52,18 +52,24 @@ export default async function handler(req, res) {
 export const generateCacheInvalidateRoute = (): string => `import crypto from 'crypto'
 import { tqBumpVersions, tqPurge } from '../../../utils/tq-cache/server'
 
+// The export's unresolved placeholder: a value anyone can read in the code.
+const UNRESOLVED_SECRET_PREFIX = 'teleporthq.secrets.'
+
+function trimmed(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 function isAuthorized(req) {
-  const secret = process.env.${CACHE_SECRET_ENV}
-  const provided = req.headers['x-tq-cache-secret']
-  if (!secret || typeof provided !== 'string') {
+  const secret = trimmed(process.env.${CACHE_SECRET_ENV})
+  const provided = trimmed(req.headers['x-tq-cache-secret'])
+  // Unset, blank or still the placeholder: nobody is authorised.
+  if (!secret || secret.indexOf(UNRESOLVED_SECRET_PREFIX) === 0 || !provided) {
     return false
   }
-  const a = Buffer.from(provided)
-  const b = Buffer.from(secret)
-  // timingSafeEqual throws on a length mismatch, so the length is compared first.
-  if (a.length !== b.length) {
-    return false
-  }
+  // Digests of both sides: always the same length, so the compare reveals
+  // nothing about the secret — not even how long it is.
+  const a = crypto.createHash('sha256').update(provided).digest()
+  const b = crypto.createHash('sha256').update(secret).digest()
   return crypto.timingSafeEqual(a, b)
 }
 

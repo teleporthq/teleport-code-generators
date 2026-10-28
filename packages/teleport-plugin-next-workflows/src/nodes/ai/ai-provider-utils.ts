@@ -1,4 +1,113 @@
 import { AI_PROVIDER_UTIL_SOURCES } from './ai-provider-utils-sources.generated'
+import { generateSecurityRuntimeVar } from '../general/visitor-request'
+
+declare function __ai_enforceCallBudget(prompt?: any): Promise<void>
+declare function __ai_clampMaxTokens(value: any): any
+
+/**
+ * Every LLM call the site makes counts against ONE per-site daily budget, in
+ * the shared durable limiter — the AI chat counts against the same key — so a
+ * public AI step looped by a visitor stops at the ceiling instead of billing
+ * the owner's key without end. A prompt longer than the cap is refused before
+ * it is counted or sent.
+ */
+export const AI_SITE_CALLS_KEY = 'site:ai-calls'
+export const AI_SITE_CALLS_PER_DAY = 2000
+export const AI_MAX_PROMPT_CHARS = 8000
+export const AI_LIMIT_REACHED_MESSAGE =
+  'This site has reached its AI usage limit for today. Try again tomorrow.'
+export const AI_PROMPT_TOO_LONG_MESSAGE =
+  'The prompt is too long: it can be at most ' + AI_MAX_PROMPT_CHARS + ' characters.'
+export const AI_UNAVAILABLE_MESSAGE = 'AI is not available right now.'
+/** The most output tokens one call may ask for; a larger `maxTokens` is lowered to it (logged). */
+export const AI_MAX_OUTPUT_TOKENS = 4096
+/**
+ * The AI refusals that name nothing secret, and the status a route answers
+ * them with: a segment route shows these exact messages to the visitor instead
+ * of its generic error (see the route's `__publicRefusal`), so a too-long
+ * prompt or a spent daily budget reads as what it is.
+ */
+export const AI_PUBLIC_REFUSALS: Record<string, number> = {
+  [AI_PROMPT_TOO_LONG_MESSAGE]: 400,
+  [AI_LIMIT_REACHED_MESSAGE]: 429,
+  [AI_UNAVAILABLE_MESSAGE]: 503,
+}
+/** What every other AI-node error says outside the server (the detail is logged). */
+export const AI_NOT_CONFIGURED_MESSAGE = 'The AI provider is not configured.'
+export const AI_REFUSED_MESSAGE = 'The AI provider refused the request.'
+
+/**
+ * Emitted ahead of the provider utils: the security runtime (`null` without a
+ * route prefix, which refuses every call) and `__ai_enforceCallBudget(prompt)`,
+ * which `__ai_callProvider` / `__ai_callProviderStreaming` and the embedding
+ * node await before they reach a provider. It throws an Error whose message is
+ * safe to show.
+ *
+ * And `__ai_publicMessage(err, code)`: what a node's `{ error: true, message }`
+ * says. An AI node's error can leave the server (the route's reply, a
+ * `continueOnError` result in the context), and a provider's message can quote
+ * the key it was given — a token set to an env var's name ends up there — or a
+ * secret name. The detail goes to the server log; the message is one of two
+ * fixed sentences, or a refusal of this module's own.
+ */
+function generateAICallBudgetCode(relativePrefix?: string): string {
+  return `${generateSecurityRuntimeVar('__ai_securityRuntime', relativePrefix)}
+
+var __ai_enforceCallBudget = typeof __ai_enforceCallBudget !== 'undefined' ? __ai_enforceCallBudget : async function __ai_enforceCallBudget(prompt) {
+  // An expression, not a declaration: a named two-parameter function here
+  // would be taken for the node's own entry (see resolveHandlerEntryName).
+  var refusal = function (message, code) {
+    var error = new Error(message);
+    error.code = code;
+    return error;
+  };
+  if (typeof prompt === 'string' && prompt.length > ${AI_MAX_PROMPT_CHARS}) {
+    throw refusal(${JSON.stringify(AI_PROMPT_TOO_LONG_MESSAGE)}, 'prompt_too_long');
+  }
+  var security = __ai_securityRuntime;
+  if (!security || typeof security.rateLimit !== 'function') {
+    console.error('[ai] call refused: the security runtime is not available');
+    throw refusal(${JSON.stringify(AI_UNAVAILABLE_MESSAGE)}, 'ai_unavailable');
+  }
+  var verdict = await security.rateLimit({ key: ${JSON.stringify(
+    AI_SITE_CALLS_KEY
+  )}, limit: ${AI_SITE_CALLS_PER_DAY}, windowSeconds: 86400 });
+  if (!verdict || !verdict.allowed) {
+    console.warn('[ai] call refused: the site reached its daily AI call limit');
+    throw refusal(${JSON.stringify(AI_LIMIT_REACHED_MESSAGE)}, 'ai_limit_reached');
+  }
+};
+
+var __ai_publicMessage = typeof __ai_publicMessage !== 'undefined' ? __ai_publicMessage : function __ai_publicMessage(err, code) {
+  console.error('[ai] ' + code + ': ' + (err && err.message ? err.message : String(err)));
+  if (err && (err.code === 'prompt_too_long' || err.code === 'ai_limit_reached' || err.code === 'ai_unavailable')) {
+    return err.message;
+  }
+  return code === 'authentication_error' ? ${JSON.stringify(
+    AI_NOT_CONFIGURED_MESSAGE
+  )} : ${JSON.stringify(AI_REFUSED_MESSAGE)};
+};
+
+// The code a node answers: one of this module's own refusals keeps its code
+// (a workflow can branch on 'ai_limit_reached' / 'prompt_too_long'), any other
+// error the node's own.
+var __ai_publicCode = typeof __ai_publicCode !== 'undefined' ? __ai_publicCode : function __ai_publicCode(err, code) {
+  return err && (err.code === 'prompt_too_long' || err.code === 'ai_limit_reached' || err.code === 'ai_unavailable') ? err.code : code;
+};
+
+// The output budget of one call: a node's maxTokens (it may be bound to the
+// request) above the ceiling is lowered to it, and the reason is logged, so a
+// visitor cannot make each of the site's daily calls cost more.
+var __ai_clampMaxTokens = typeof __ai_clampMaxTokens !== 'undefined' ? __ai_clampMaxTokens : function __ai_clampMaxTokens(value) {
+  var ceiling = ${AI_MAX_OUTPUT_TOKENS};
+  var requested = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  if (typeof requested === 'number' && isFinite(requested) && requested > ceiling) {
+    console.warn('[ai] maxTokens ' + requested + ' is above the per-call ceiling of ' + ceiling + ' and was lowered to it');
+    return ceiling;
+  }
+  return requested;
+};`
+}
 
 export const AI_PROVIDER_DEPENDENCIES: Record<string, string> = {
   openai: '^4.0.0',
@@ -19,8 +128,13 @@ function wrapWithGuard(globalName: string, source: string): string {
   return `var ${globalName} = typeof ${globalName} !== 'undefined' ? ${globalName} : ${source};`
 }
 
-export function generateAIProviderUtils(): string {
+/**
+ * `relativePrefix`: from the route the utils are inlined into to the project
+ * root. Without it no call reaches a provider (see generateAICallBudgetCode).
+ */
+export function generateAIProviderUtils(relativePrefix?: string): string {
   return [
+    generateAICallBudgetCode(relativePrefix),
     wrapWithGuard('__ai_resolveTextField', AI_PROVIDER_UTIL_SOURCES.__ai_resolveTextField),
     wrapWithGuard('__ai_resolveToken', AI_PROVIDER_UTIL_SOURCES.__ai_resolveToken),
     wrapWithGuard('__ai_detectProvider', AI_PROVIDER_UTIL_SOURCES.__ai_detectProvider),
@@ -34,12 +148,13 @@ export function generateAIProviderUtils(): string {
   ].join('\n\n')
 }
 
-export function generateAIStreamingProviderUtils(): string {
-  return generateAIProviderUtils() + '\n\n' + AI_STREAMING_CODE
+export function generateAIStreamingProviderUtils(relativePrefix?: string): string {
+  return generateAIProviderUtils(relativePrefix) + '\n\n' + AI_STREAMING_CODE
 }
 
 const AI_STREAMING_CODE = `
 var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefined' ? __ai_callProviderStreaming : async function __ai_callProviderStreaming(params, onChunk) {
+  await __ai_enforceCallBudget(params.userMessage);
   const provider = params.provider;
   const model = params.model;
   const token = params.token;
@@ -47,7 +162,7 @@ var __ai_callProviderStreaming = typeof __ai_callProviderStreaming !== 'undefine
   const userMessage = params.userMessage;
   const temperature = params.temperature;
   const maxTokens = params.maxTokens;
-  const caps = __ai_modelCapabilities(provider, model, maxTokens);
+  const caps = __ai_modelCapabilities(provider, model, __ai_clampMaxTokens(maxTokens));
   const __nodeRequire = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require;
 
   if (provider === 'anthropic') {
@@ -208,8 +323,15 @@ function __ai_resolveTextField(val: any): string {
 }
 
 function __ai_resolveToken(token: any): string {
+  // The reason (which secret is missing) goes to the server log only: a
+  // node's error can reach the browser, and must never name an env var.
+  function notConfigured(detail: string) {
+    // tslint:disable-next-line:no-console
+    console.error('[ai] the AI provider is not configured: ' + detail)
+    return new Error('The AI provider is not configured.')
+  }
   if (!token) {
-    throw new Error('AI node requires an API token')
+    throw notConfigured('the node has no API token')
   }
 
   const __env = (globalThis as any).process && (globalThis as any).process.env
@@ -218,7 +340,7 @@ function __ai_resolveToken(token: any): string {
     if (token.startsWith('WORKFLOW_SECRET_')) {
       const envVal = __env ? __env[token] : undefined
       if (!envVal) {
-        throw new Error('Secret not found: ' + token)
+        throw notConfigured('secret ' + token + ' is not set')
       }
       return envVal
     }
@@ -226,7 +348,7 @@ function __ai_resolveToken(token: any): string {
       const envKey = token.replace('teleporthq.secrets.', '')
       const envVal2 = __env ? __env[envKey] : undefined
       if (!envVal2) {
-        throw new Error('Secret not found: ' + envKey)
+        throw notConfigured('secret ' + envKey + ' is not set')
       }
       return envVal2
     }
@@ -238,14 +360,14 @@ function __ai_resolveToken(token: any): string {
       const secretId = token.content.id
       const secretVal = __env ? __env[secretId] : undefined
       if (!secretVal) {
-        throw new Error('Secret not found: ' + secretId)
+        throw notConfigured('secret ' + secretId + ' is not set')
       }
       return secretVal
     }
   }
 
   if (typeof token === 'object') {
-    throw new Error('Invalid token format')
+    throw notConfigured('the token is not a string or a secret reference')
   }
 
   return String(token)
@@ -470,6 +592,8 @@ function __ai_parseJSON(text: any): any {
 }
 
 async function __ai_callProvider(params: any): Promise<any> {
+  // The site's daily AI budget and the prompt cap, before any provider is reached.
+  await __ai_enforceCallBudget(params.userMessage)
   const provider = params.provider
   const model = params.model
   const token = params.token
@@ -477,7 +601,8 @@ async function __ai_callProvider(params: any): Promise<any> {
   const userMessage = params.userMessage
   const temperature = params.temperature
   const jsonMode = params.jsonMode || false
-  const caps = __ai_modelCapabilities(provider, model, params.maxTokens)
+  // Lowered to the per-call ceiling first (see __ai_clampMaxTokens).
+  const caps = __ai_modelCapabilities(provider, model, __ai_clampMaxTokens(params.maxTokens))
   const __nodeRequire =
     typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : require
 

@@ -55,7 +55,9 @@ describe('generateMiddlewareFile: home-route ("/") protection', () => {
 
   it('keeps the catch-all matcher for every deeper path', () => {
     const code = withHomeDashboard(['admin'])
-    expect(code).toContain("'/((?!api|_next/static|_next/image|favicon")
+    // Only the API routes ("/api", "/api/...") are left out — never a page
+    // whose path merely starts with "api".
+    expect(code).toContain("'/((?!api(?:/|$)|_next/static|_next/image|favicon")
   })
 
   it('still records "/" as a protected route in the protectedRoutes map', () => {

@@ -82,7 +82,11 @@ describe('NextPageRevalidatePlugin', () => {
       await run(buildStructure({ workflowNodes: [{ type: 'page-revalidate' }] }))
     )
 
-    expect(route).toContain("if (!secret || typeof provided !== 'string')")
+    // Unset, blank and the export's unresolved placeholder all authorise nobody
+    // (behaviour: teleport-shared/__tests__/cache/secret-routes.test.ts).
+    expect(route).toContain("const UNRESOLVED_SECRET_PREFIX = 'teleporthq.secrets.'")
+    expect(route).toContain('secret.indexOf(UNRESOLVED_SECRET_PREFIX) === 0')
+    expect(route).toContain("crypto.createHash('sha256')")
     expect(route).toContain('return false')
     expect(route).toContain('res.status(401)')
     expect(route).toContain('timingSafeEqual')

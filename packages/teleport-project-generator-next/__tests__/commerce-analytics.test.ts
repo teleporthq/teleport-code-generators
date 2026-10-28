@@ -63,9 +63,16 @@ describe('commerce analytics — the emitted tracker', () => {
 
   // Checkout ends in a redirect that can tear the page down before the periodic
   // flush fires.
-  it('flushes immediately on the two events that precede a navigation', () => {
+  it('flushes immediately on the checkout step, which precedes a navigation', () => {
+    expect(TRACKER_SOURCE).toMatch(/if \(name === 'begin_checkout'\) \{\s*flush\(true\)/)
+  })
+
+  it('never reports a purchase from the browser — the server does, with its key', () => {
+    // The dataLayer mirror still runs (the merchant's GA4 is theirs), and the
+    // ledger still claims the order so a refreshed confirmation page cannot
+    // re-push it; only OUR beacon is withheld.
     expect(TRACKER_SOURCE).toMatch(
-      /if \(name === 'purchase' \|\| name === 'begin_checkout'\) \{\s*flush\(true\)/
+      /if \(name === 'purchase'\) \{[\s\S]*?claimPurchase\(detail && detail\.orderId\)\s*return\s*\}/
     )
   })
 

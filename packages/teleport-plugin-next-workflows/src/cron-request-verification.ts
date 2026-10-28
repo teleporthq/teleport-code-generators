@@ -1,3 +1,28 @@
+import type { ProjectUIDL } from '@teleporthq/teleport-types'
+
+/** Where a signer puts the hex SHA-256 of the body it signed. */
+export const CRON_BODY_DIGEST_HEADER = 'x-teleport-body-sha256'
+
+/**
+ * The signing keys a verifying route reads: the current one and the one a
+ * rotation set aside. Declared empty in the generated env so the deploy fills
+ * both (services-worker `injectCronSecretEnv` fills them only when the env
+ * declares `TELEPORT_CRON_SECRET`); every route that verifies a signed request
+ * declares them through here.
+ */
+export const CRON_SECRET_ENV_NAMES = ['TELEPORT_CRON_SECRET', 'TELEPORT_CRON_SECRET_PREVIOUS']
+
+export const declareCronSecretEnv = (uidl: ProjectUIDL): void => {
+  if (!uidl.globals.env) {
+    uidl.globals.env = {}
+  }
+  for (const name of CRON_SECRET_ENV_NAMES) {
+    if (!uidl.globals.env[name]) {
+      uidl.globals.env[name] = ''
+    }
+  }
+}
+
 /**
  * The gate a generated cron route runs before anything else. Without it the
  * route runs its workflow — sends the emails, writes the rows — for whoever
@@ -19,8 +44,32 @@
  *       local run with no crons-worker in front of it.
  * An unset key never verifies: an HMAC keyed with an empty string is one
  * anybody can compute.
+ *
+ * `bodyDigest` (the automations dispatch route, which acts on its body): a
+ * request that carries `x-teleport-body-sha256` (hex SHA-256 of the exact
+ * body) is signed over `…:<pathname>:<bodySha256>`, and the body the route
+ * read must hash to that digest. Without the header the signed string is the
+ * one above, so a plain scheduled run keeps verifying. Every other route gets
+ * the verifier without it, unchanged.
  */
-export const generateCronRequestVerificationCode = (): string => `
+export const generateCronRequestVerificationCode = (
+  options: { bodyDigest?: boolean } = {}
+): string => {
+  const bodyParam = options.bodyDigest ? ', rawBody' : ''
+  const bodyDigestCheck = options.bodyDigest
+    ? `
+  // A signed body: its digest is part of the signed string, and the body the
+  // route read must be exactly the one that was signed.
+  var bodySha256 = __cronHeader(req, '${CRON_BODY_DIGEST_HEADER}');
+  if (bodySha256) {
+    var bodyHash = require('crypto').createHash('sha256').update(rawBody || '').digest('hex');
+    if (!__cronSecretsEqual(bodyHash, bodySha256)) {
+      return false;
+    }
+    signed += ':' + bodySha256;
+  }`
+    : ''
+  return `
 var __CRON_SIGNATURE_TOLERANCE_SECONDS = 300;
 
 function __cronHeader(req, name) {
@@ -42,7 +91,7 @@ function __cronSignatureMatches(secret, signed, signature) {
   return __cronSecretsEqual(expected, signature);
 }
 
-function __verifyCronSignature(req) {
+function __verifyCronSignature(req${bodyParam}) {
   var signature = __cronHeader(req, 'x-teleport-cron-signature');
   var timestamp = __cronHeader(req, 'x-teleport-cron-timestamp');
   var cronId = __cronHeader(req, 'x-teleport-cron-id');
@@ -60,15 +109,15 @@ function __verifyCronSignature(req) {
   } catch (_e) {
     return false;
   }
-  var signed = ['v1', timestamp, projectId, cronId, executionId, path].join(':');
+  var signed = ['v1', timestamp, projectId, cronId, executionId, path].join(':');${bodyDigestCheck}
   return (
     __cronSignatureMatches(process.env.TELEPORT_CRON_SECRET, signed, signature) ||
     __cronSignatureMatches(process.env.TELEPORT_CRON_SECRET_PREVIOUS, signed, signature)
   );
 }
 
-function verifyCronRequest(req) {
-  if (__verifyCronSignature(req)) {
+function verifyCronRequest(req${bodyParam}) {
+  if (__verifyCronSignature(req${bodyParam})) {
     return true;
   }
   var vercelCronSecret = process.env.CRON_SECRET;
@@ -77,3 +126,4 @@ function verifyCronRequest(req) {
   }
   return process.env.TELEPORT_CRON_ALLOW_UNSIGNED === 'true';
 }`
+}

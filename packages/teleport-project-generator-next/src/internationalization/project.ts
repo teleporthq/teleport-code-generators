@@ -6,8 +6,10 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
   ProjectUIDL,
+  UIDLCompanyDetails,
   UIDLCustomUserProperty,
 } from '@teleporthq/teleport-types'
+import { companyGlobalObject } from './company-global'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const findFileInBuild = (
@@ -73,7 +75,8 @@ const generateGlobalContextFileContent = (
     locale: string
   },
   authEnabled?: boolean,
-  customUserProperties?: UIDLCustomUserProperty[]
+  customUserProperties?: UIDLCustomUserProperty[],
+  companyDetails?: Partial<UIDLCompanyDetails> | null
 ) => {
   const localesArray = Object.keys(locales).map((key) => ({ name: locales[key], short: key }))
   const currentLocale = localesArray.find((locale) => locale.short === main.locale)
@@ -115,10 +118,13 @@ const generateGlobalContextFileContent = (
     ? `\n      currentUser,\n      setCurrentUser,\n      userIsLoggedIn: currentUser !== null,`
     : ''
   const authMemoEntries = authEnabled ? ', currentUser' : ''
+  const company = companyGlobalObject(companyDetails)
 
   return `
 import { createContext, useMemo, useContext, useState, useEffect } from 'react'
 import { useLocale } from "next-intl";
+
+const company = ${JSON.stringify(company)};
 
 const GlobalContext = createContext(null)
 
@@ -140,6 +146,7 @@ ${authState}
     return {
       locales,
       locale,
+      company,
       setLocales,
       setLocale,${authValueEntries}
     }
@@ -424,7 +431,8 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
       languages,
       main,
       authEnabled,
-      customUserProperties
+      customUserProperties,
+      uidl.companyDetails ?? uidl.invoiceSettings?.companyDetails
     )
     files.set('global-context.js', {
       path: [],

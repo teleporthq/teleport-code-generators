@@ -84,8 +84,22 @@ export const generateTriggerCode = (workflow: UIDLWorkflow, workflowVarName: str
   }
 }
 
+// Every trigger hands the workflow the analytics ids of the visit (`__tpa`):
+// the session, visitor and page the tracker resolved, so a server segment that
+// reports an outcome can attribute it. Null when the tracker is absent — a
+// project without analytics, or a page it keeps out. A copy, not a mutation:
+// a trigger context may be a custom event's `detail`, which belongs to its
+// dispatcher.
+export const TRACKER_IDS_EXPRESSION =
+  "(typeof window !== 'undefined' && window.tpAnalytics && typeof window.tpAnalytics.ids === 'function' ? window.tpAnalytics.ids() : null)"
+
+// Reports a sent form to Growth analytics as a `lead` outcome, keyed by the
+// form's id. Guarded: the tracker is absent on a project without analytics.
+export const TRACK_LEAD_SOURCE = (formId: string): string =>
+  `if (typeof window !== 'undefined' && window.tpAnalytics && typeof window.tpAnalytics.track === 'function') { window.tpAnalytics.track('lead', { recordId: '${formId}' }); }`
+
 const generateExecutionCall = (workflowVarName: string): string => {
-  return `${workflowVarName}(triggerContext)`
+  return `${workflowVarName}(Object.assign({}, triggerContext, { __tpa: ${TRACKER_IDS_EXPRESSION} }))`
 }
 
 const generateElementClickTrigger = (
@@ -279,7 +293,9 @@ const generateFormSubmittedTrigger = (
         // required" for a name that was filled in. The spread comes first so a
         // field named \`formData\`/\`formId\`/\`timestamp\` cannot shadow them.
         const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${formId}', timestamp: Date.now() });
-        ${executionCall};
+        // Growth analytics: a form whose workflow finished is a lead. A run
+        // that threw never reaches the report.
+        Promise.resolve(${executionCall}).then(function() { ${TRACK_LEAD_SOURCE(formId)} });
       };
       form_${safeId}.addEventListener('submit', handler_${safeId});
       return function() { form_${safeId}.removeEventListener('submit', handler_${safeId}); };
@@ -557,7 +573,7 @@ const generateRealtimePresenceTrigger = (
             const pd = presenceMessage.data || {};
             const triggerContext = {
               channelName: '${channelName}',
-              userId: pd.userId || presenceMessage.clientId || '',
+              userId: presenceMessage.clientId || pd.userId || '',
               userName: pd.userName || '',
               userData: pd.userData || null,
               timestamp: presenceMessage.timestamp || Date.now()

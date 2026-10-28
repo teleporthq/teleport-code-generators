@@ -78,7 +78,7 @@ describe('tracked pages — the emitted tracker', () => {
 describe('click matching — what a funnel step can see', () => {
   it('reports the clicked element’s classes, capped, so ".class" steps match', () => {
     expect(TRACKER_SOURCE).toContain(
-      "Array.prototype.slice.call(target.classList).join(' ').slice(0, 255)"
+      "Array.prototype.slice.call(source.classList).join(' ').slice(0, 255)"
     )
   })
 

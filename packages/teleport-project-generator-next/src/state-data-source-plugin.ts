@@ -9,7 +9,13 @@ import {
   UIDLStateDataSourceBinding,
   UIDLFilterConfigEntry,
 } from '@teleporthq/teleport-types'
-import { GenericUtils, PageArrival, StringUtils } from '@teleporthq/teleport-shared'
+import {
+  GenericUtils,
+  PageAccess,
+  PageArrival,
+  StringUtils,
+  TableAccess,
+} from '@teleporthq/teleport-shared'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -1021,10 +1027,17 @@ const generateRuntimeTokenStateFetches = (
     if (!extractedResources[resourceKey]) {
       let routeContent: string
       try {
+        // The route answers whoever calls it, so it is behind what the page is
+        // behind: its protection, and the protected tables' readers.
         routeContent = generateRawQueryFetcher(
           group.dataSource.config as Record<string, unknown>,
           parameterizedQuery,
-          tokens.map((t) => t.paramName)
+          tokens.map((t) => t.paramName),
+          {
+            pageAccess: PageAccess.resolvePageAccessPolicy(uidl, options.auth),
+            trustedReaderRoles: TableAccess.resolveStaffRoles(options.auth),
+            withRevocation: options.auth?.enabled === true,
+          }
         )
       } catch {
         continue

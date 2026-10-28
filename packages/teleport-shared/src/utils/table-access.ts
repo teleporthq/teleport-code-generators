@@ -15,6 +15,9 @@ import { CONTENT_COMMENTS_TABLES } from './content-tables'
  * balance, its ledger, every voucher code (a generated batch is a list of
  * single-use coupons) and the redemption ledger. A browser reads or writes
  * them only as a signed-in member of a trusted role (the generated admin) —
+ * and, on a per-table read route, only once the route's exposure check
+ * (`__taGuardExposure`, teleport-plugin-next-data-source) admitted the session
+ * for a page that binds the table —
  * the server-side workflow segments that look a card up, debit it or redeem a
  * code identify themselves with the app secret instead.
  *
@@ -34,6 +37,15 @@ import { CONTENT_COMMENTS_TABLES } from './content-tables'
  * summary. A browser that could update `usage_count` or `discount_value` could
  * discount forever, so writes need the same trust.
  */
+/**
+ * Tables no caller reaches any more: not a browser, not the app's own server
+ * code. `password_reset_tokens` kept live reset tokens in clear; the dedicated
+ * reset routes replaced it (`teleport_password_resets`: hashed, single use).
+ * Both data-route families refuse a request that names one, by its table or
+ * anywhere in a statement's text.
+ */
+export const RETIRED_TABLES: ReadonlyArray<string> = ['password_reset_tokens']
+
 export const MONEY_TABLES: ReadonlyArray<string> = [
   'teleport_gift_cards',
   'teleport_gift_card_transactions',
@@ -44,8 +56,10 @@ export const MONEY_TABLES: ReadonlyArray<string> = [
   // codes from the email log would be no protection at all.
   'teleport_sent_emails',
   // A live reset token IS the account: whoever reads one sets the password.
-  // Only the server-side reset workflows ever read or write the table.
+  // Retired (RETIRED_TABLES): no caller reaches the table any more.
   'password_reset_tokens',
+  // The hashed, single-use reset tokens of the dedicated reset routes.
+  'teleport_password_resets',
   // A digital product's files and license keys ARE the product: the order
   // page's server segment mints a download link per paid line, and the
   // download route assigns a key; nothing else reads them.
@@ -104,9 +118,138 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   // Only the sync's server segments and the feed route read them.
   'teleport_booking_calendars',
   'teleport_booking_calendar_blocks',
+  // The automations' queue: which automations are on, what each run did (its
+  // error text quotes the customer's details) and the runs parked at a Wait,
+  // whose stored context carries the event's details. Only the app's own
+  // dispatcher reads them; the editor reads them through the data source.
+  'teleport_automations',
+  'teleport_event_deliveries',
+  'teleport_automation_waits',
+  // Which records each signed-in visitor looked at, keyed by their user id:
+  // the "recently viewed" strips read it in server segments, for the session's
+  // own user only.
+  'teleport_recently_viewed',
+  // The addresses people left to be told when something opens up: an audience
+  // is the merchant's, never a page's.
+  'teleport_waitlist_entries',
+  'teleport_booking_waitlist',
+  // The newsletter's issues: drafts, schedules, what each send reached and why
+  // one failed. The editor and the worker reach them through the data source,
+  // the admin with its session; a page a visitor opens reads none of them
+  // (PRIVATE_CUSTOMER_RECORD_TABLES). Its subscribers are `users` rows.
+  'teleport_newsletter_issues',
 ]
 
-export const PROTECTED_TABLES: ReadonlyArray<string> = [...MONEY_TABLES, ...CUSTOMER_RECORD_TABLES]
+/**
+ * The generated app's own bookkeeping: the request limiter's counters
+ * (`utils/security-runtime.js`) key every visitor's address and email hash, and
+ * the automations dispatcher's replay ledger remembers which signed requests it
+ * has already run.
+ */
+export const RUNTIME_TABLES: ReadonlyArray<string> = [
+  'teleport_rate_limits',
+  'teleport_automation_requests',
+]
+
+export const PROTECTED_TABLES: ReadonlyArray<string> = [
+  ...MONEY_TABLES,
+  ...CUSTOMER_RECORD_TABLES,
+  ...RUNTIME_TABLES,
+]
+
+/**
+ * The customer tables whose every row is ONE customer's private record: an
+ * account, an order and its lines, an invoice, a shipment, a refund request, a
+ * subscription and what it downloaded, a booking, a cart. A read of one that a
+ * server segment runs for a visitor (the data API) is always narrowed to the
+ * visitor's own rows, whatever its filters name — a list built without an
+ * owner filter still shows only them. A staff session and a server job read
+ * them whole, as before.
+ *
+ * `teleport_newsletter_issues` is here too though no visitor owns a row: with
+ * no owner column, a visitor's read of it finds nothing, so a page cannot list
+ * drafts, schedules or send errors. A public archive of sent issues would be a
+ * `PUBLIC_FEED_TABLES` projection (`status = 'sent'`).
+ *
+ * The other customer tables hold content a page shows everyone once approved
+ * (a product review, a comment), or the merchant's own (an audience, the AI
+ * assistant's knowledge, the booking settings): their reads are scoped only by
+ * the owner filters they name.
+ */
+export const PRIVATE_CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
+  'users',
+  'teleport_orders',
+  'teleport_order_items',
+  'teleport_invoices',
+  'teleport_invoice_items',
+  'teleport_shipments',
+  'teleport_shipment_items',
+  'teleport_withdrawal_requests',
+  'teleport_withdrawal_request_items',
+  'teleport_abandoned_carts',
+  'teleport_cart',
+  'teleport_cart_items',
+  'teleport_subscriptions',
+  'teleport_downloads',
+  'teleport_bookings',
+  'teleport_newsletter_issues',
+]
+
+/**
+ * A private record table whose rows name no owner of their own but belong to a
+ * parent row that does (an order's lines are the order's buyer's): the column
+ * that holds the parent's `id`. Used only when the table has no owner column
+ * and does have this one; otherwise a visitor's read of it finds nothing.
+ */
+export const PRIVATE_RECORD_PARENTS: Readonly<Record<string, { column: string; parent: string }>> =
+  {
+    teleport_order_items: { column: 'order_id', parent: 'teleport_orders' },
+    teleport_invoices: { column: 'order_id', parent: 'teleport_orders' },
+    teleport_invoice_items: { column: 'invoice_id', parent: 'teleport_invoices' },
+    teleport_shipments: { column: 'order_id', parent: 'teleport_orders' },
+    teleport_shipment_items: { column: 'shipment_id', parent: 'teleport_shipments' },
+    teleport_withdrawal_requests: { column: 'order_id', parent: 'teleport_orders' },
+    teleport_withdrawal_request_items: {
+      column: 'withdrawal_request_id',
+      parent: 'teleport_withdrawal_requests',
+    },
+    teleport_cart_items: { column: 'cart_id', parent: 'teleport_cart' },
+    teleport_downloads: { column: 'order_id', parent: 'teleport_orders' },
+  }
+
+/**
+ * The columns of a customer record that say WHOSE record it is. A read of a
+ * customer table that a server segment runs for a visitor (the data API) is
+ * scoped to that visitor by these columns: a filter on one never widens to the
+ * whole table (an empty, `all` or `!=` value matches nothing), and for a
+ * signed-in visitor its value must be the session's own id or email — never a
+ * value the browser chose. The `users` row IS its owner, so its own `id` and
+ * `email` are the owner columns there.
+ */
+export const OWNER_ID_COLUMNS: ReadonlyArray<string> = ['user_id', 'customer_id', 'owner_id']
+export const OWNER_EMAIL_COLUMNS: ReadonlyArray<string> = ['customer_email', 'user_email', 'email']
+export const OWNER_COLUMNS_BY_TABLE: Readonly<Record<string, { ids: string[]; emails: string[] }>> =
+  {
+    users: { ids: ['id'], emails: ['email'] },
+  }
+
+/**
+ * The address domain of a GUEST's own `users` row: the "Resolve Current User
+ * Or Guest Session" node files a signed-out visitor as `<uuid>@anonymous.local`
+ * before anything is written under that id. Such a row is no account. The
+ * editor's `ANONYMOUS_GUEST_EMAIL_SUFFIX` (and its `anonymousOwnerSql`) is the
+ * same rule.
+ */
+export const ANONYMOUS_GUEST_EMAIL_SUFFIX = '@anonymous.local'
+
+/**
+ * SQL: the `users` row whose email column is `emailColumn` is a REGISTERED
+ * account — any row but a guest's anonymous one. A row with no address at all
+ * counts as registered (an account signed in some other way), as in the
+ * editor's `anonymousOwnerSql`: a guest id never names it.
+ */
+export const registeredAccountEmailSql = (emailColumn: string): string =>
+  `COALESCE(LOWER(${emailColumn}), '') NOT LIKE '%${ANONYMOUS_GUEST_EMAIL_SUFFIX}'`
 
 export const WRITE_PROTECTED_TABLES: ReadonlyArray<string> = ['teleport_discounts']
 
@@ -139,6 +282,32 @@ export const AUTH_CREDENTIAL_TABLES: ReadonlyArray<string> = ['users']
 const UNAMBIGUOUS_CREDENTIAL_COLUMNS = AUTH_CREDENTIAL_COLUMNS.filter(
   (column) => column !== 'scope' && column !== 'expires_at'
 )
+
+/**
+ * A column of ANY table whose name is a credential's: a password or its hash, a
+ * secret, a token or key of the kinds that ARE an account or an integration —
+ * never a word that merely contains one (`secret_ingredient`, `token_count`,
+ * `design_tokens`). Such a column never leaves the server in a row, whatever
+ * the table, unless the server-side caller named it in its own projection (see
+ * `__taWithoutCredentials`). The auth users table's own credential columns
+ * (`AUTH_CREDENTIAL_COLUMNS`: the OAuth token type, scope and expiry too) are
+ * dropped from its rows on top of these.
+ *
+ *  - exactly `password`, `password_hash` / `hashed_password` / `passwordhash`,
+ *    `secret`, `token`;
+ *  - an access, refresh, reset, verification, session, id, api, auth, bearer
+ *    or csrf token, as `<kind>_token` or `<kind>token`, alone or at the end of
+ *    a longer name (`password_reset_token`, `oauth_access_token`);
+ *  - a client, api, webhook, signing or app secret, the same way;
+ *  - an API key: `api_key`, `apikey`, `<anything>_api_key`;
+ *  - a one-time-password seed (`otp`, `totp`, `totp_secret`), a private key
+ *    (`private_key`, `signing_private_key`) and recovery or backup codes.
+ */
+export const CREDENTIAL_COLUMN_PATTERN =
+  /^(?:password|password_hash|hashed_password|passwordhash|secret|token|otp|totp)$|(?:^|_)(?:access|refresh|reset|verification|session|id|api|auth|bearer|csrf)_?token$|(?:^|_)(?:client|api|webhook|signing|app|otp|totp)_?secret$|(?:^|_)api_?key$|(?:^|_)private_?key$|(?:^|_)(?:recovery|backup)_?codes?$/i
+
+export const isCredentialColumnName = (name: string): boolean =>
+  CREDENTIAL_COLUMN_PATTERN.test(String(name || '').trim())
 
 export interface PublicTableFeed {
   /** The only columns a browser is ever served. */
@@ -245,6 +414,26 @@ export const resolveAdminPanelRoles = (auth?: UIDLAuthentication | null): string
 export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): string[] =>
   resolveAdminPanelRoles(auth)
 
+/** The role a project names its administrators by, whether or not it has the generated admin panel. */
+export const ADMIN_ROLE = 'admin'
+
+/**
+ * The roles the project grants staff access: the admin panel's
+ * (`resolveAdminPanelRoles`) and the explicit `admin` role. Only these read and
+ * change OTHER customers' records through a server segment; every other role
+ * — the one every sign-up gets, and the ones customers get through a sign-up
+ * or a subscription (`member` …) — is scoped to its own rows.
+ */
+export const resolveStaffRoles = (auth?: UIDLAuthentication | null): string[] =>
+  Array.from(new Set([...resolveAdminPanelRoles(auth), ADMIN_ROLE])).sort()
+
+/**
+ * Where the shared security runtime lives in a generated project, from its
+ * root — `securityRuntimeSpecifier` in teleport-plugin-next-workflows, which
+ * writes the module, names the same file.
+ */
+export const SECURITY_RUNTIME_MODULE_PATH = 'utils/security-runtime'
+
 /**
  * ES5 source of the guard, inlined into a generated route. Declares:
  *  - `__taIsInternalRequest(req)` — the caller presented the app secret, or
@@ -268,9 +457,20 @@ export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): str
  *    no feed.
  *  - `__taAssertFeedFields(tableName, feed, fields)` — throws a 403 error when
  *    a filter or sort field is not one of the feed's columns.
- *  - `__taWithoutCredentials(rows, tableName)` — the rows with the auth users
- *    table's credential columns removed: all of them for that table's rows,
- *    the unambiguous ones for a raw statement's (`tableName` null).
+ *  - `__taWithoutCredentials(rows, tableName, keep?)` — the rows with the auth
+ *    users table's credential columns removed (all of them for that table's
+ *    rows, the unambiguous ones for a raw statement's, `tableName` null) and
+ *    every column of any table named like a credential
+ *    (`isCredentialColumnName`), except the ones in `keep`: the columns a
+ *    server-side caller named in its own projection.
+ *  - `__taCredentialsNamedBy(sql, rows)` — the credential-named columns of a
+ *    raw statement's rows that the statement names itself.
+ *  - `__taSafeEqual(given, expected)` — constant-time secret comparison: the
+ *    shared security runtime's `safeEqual` (`utils/security-runtime.js`,
+ *    which every app with data routes carries), required from `projectRoot`
+ *    (`'../../..'` for `pages/api/<folder>/<route>.js`, the default; `'../..'`
+ *    for `utils/<dir>/<file>.js` and `pages/api/<route>.js`). Without it no
+ *    secret matches.
  *  - `__taIsCredentialTable(tableName)` — the table holds those credentials.
  *  - `__taGuardRead(req, tableName, rawQuery)` — for the per-table read routes:
  *    resolves to `null` when the request may proceed, else `{status, message}`.
@@ -280,7 +480,9 @@ export const resolveTrustedReaderRoles = (auth?: UIDLAuthentication | null): str
  */
 export const generateTableAccessHelperCode = (params: {
   trustedReaderRoles: ReadonlyArray<string>
+  projectRoot?: string
 }): string => {
+  const securityRuntime = `${params.projectRoot || '../../..'}/${SECURITY_RUNTIME_MODULE_PATH}`
   return `// GENERATED — see generateTableAccessHelperCode in
 // @teleporthq/teleport-shared/src/utils/table-access.ts.
 //
@@ -296,10 +498,14 @@ var __TA_WRITE_PROTECTED_TABLES = ${JSON.stringify(WRITE_PROTECTED_TABLES)};
 // like a protected table.
 var __TA_PUBLIC_FEED_TABLES = ${JSON.stringify(PUBLIC_FEED_TABLES)};
 var __TA_FEED_TABLES = Object.keys(__TA_PUBLIC_FEED_TABLES);
+// Reached by no caller, the app's own server code included — see RETIRED_TABLES.
+var __TA_RETIRED_TABLES = ${JSON.stringify(RETIRED_TABLES)};
 var __TA_TRUSTED_READER_ROLES = ${JSON.stringify(params.trustedReaderRoles)};
 var __TA_CREDENTIAL_COLUMNS = ${JSON.stringify(AUTH_CREDENTIAL_COLUMNS)};
 var __TA_UNAMBIGUOUS_CREDENTIAL_COLUMNS = ${JSON.stringify(UNAMBIGUOUS_CREDENTIAL_COLUMNS)};
 var __TA_CREDENTIAL_TABLES = ${JSON.stringify(AUTH_CREDENTIAL_TABLES)};
+// A column of any table whose name is a credential's (see CREDENTIAL_COLUMN_PATTERN).
+var __TA_CREDENTIAL_NAME_RE = ${CREDENTIAL_COLUMN_PATTERN.toString()};
 var __TA_SQL_WRITE_RE = /\\b(?:insert|update|delete|merge|truncate)\\b/i;
 // What a statement can reach without spelling a table's name where this scan
 // can see it: a Unicode-escaped identifier (U&"\\0075sers" is \`users\`), the
@@ -315,7 +521,22 @@ var __TA_OPAQUE_SQL_RE = /u&"|\\b(?:query|table|cursor|schema|database)_to_xml\\
 // on the wire can claim it.
 function __taPresentsAppSecret(req) {
   var secret = req && req.headers && req.headers['x-internal-data-secret'];
-  return !!(secret && process.env.NEXTAUTH_SECRET && secret === process.env.NEXTAUTH_SECRET);
+  return __taSafeEqual(secret, process.env.NEXTAUTH_SECRET);
+}
+
+// Constant-time comparison of two secrets: the shared security runtime's
+// safeEqual (false for a missing, empty or differently long value, never a
+// throw). It is loaded only once a value is presented; an app without the
+// runtime matches no secret (fail closed — every app with data routes has it).
+function __taSafeEqual(given, expected) {
+  if (typeof given !== 'string' || !given) return false;
+  var security = null;
+  try {
+    security = require('${securityRuntime}');
+  } catch (e) {
+    return false;
+  }
+  return !!security && typeof security.safeEqual === 'function' && security.safeEqual(given, expected) === true;
 }
 
 function __taIsRestrictedRequest(req) {
@@ -438,21 +659,46 @@ function __taIsCredentialTable(tableName) {
   return __TA_CREDENTIAL_TABLES.indexOf(__taNormalizeTable(tableName)) !== -1;
 }
 
+// A column named like a credential, in any table.
+function __taIsCredentialColumn(name) {
+  var column = String(name == null ? '' : name).toLowerCase();
+  return __TA_CREDENTIAL_NAME_RE.test(column.trim());
+}
+
 // Credentials never travel in a row: a column is dropped by name, however the
-// caller spelled it in its projection.
-function __taWithoutCredentials(rows, tableName) {
+// caller spelled it in its projection — the auth table's credentials, and any
+// column of any table named like one. \`keep\` lists the columns a SERVER-SIDE
+// caller named in its own projection (a sign-in check reading the hash it then
+// compares on the server); nothing else is ever kept.
+function __taWithoutCredentials(rows, tableName, keep) {
   if (!Array.isArray(rows)) return rows;
   var dropped = tableName && __taIsCredentialTable(tableName)
     ? __TA_CREDENTIAL_COLUMNS
     : tableName ? [] : __TA_UNAMBIGUOUS_CREDENTIAL_COLUMNS;
-  if (dropped.length === 0) return rows;
+  var kept = Array.isArray(keep)
+    ? keep.map(function(column) { return __taNormalizeTable(column); })
+    : [];
   return rows.map(function(row) {
     if (!row || typeof row !== 'object') return row;
     var copy = {};
     Object.keys(row).forEach(function(key) {
-      if (dropped.indexOf(String(key).toLowerCase()) === -1) copy[key] = row[key];
+      var column = String(key).toLowerCase();
+      var credential = dropped.indexOf(column) !== -1 || __taIsCredentialColumn(column);
+      if (!credential || kept.indexOf(column) !== -1) copy[key] = row[key];
     });
     return copy;
+  });
+}
+
+// The credential-named columns a raw statement names itself (\`SELECT password
+// FROM …\`, \`WHERE token = $1\`) — the only ones its rows may carry back.
+function __taCredentialsNamedBy(sql, rows) {
+  var cleaned = __taCleanSql(sql);
+  if (!cleaned.ok || !Array.isArray(rows) || !rows[0] || typeof rows[0] !== 'object') return [];
+  return Object.keys(rows[0]).filter(function(key) {
+    if (!__taIsCredentialColumn(key) && __TA_UNAMBIGUOUS_CREDENTIAL_COLUMNS.indexOf(String(key).toLowerCase()) === -1) return false;
+    var escaped = String(key).replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');
+    return new RegExp('(?:^|[^A-Za-z0-9_$])"?' + escaped + '"?(?![A-Za-z0-9_$])', 'i').test(cleaned.text);
   });
 }
 
@@ -531,8 +777,22 @@ function __taAssertFeedFields(tableName, feed, fields) {
   }
 }
 
+// The retired table a request names (__TA_RETIRED_TABLES), or null: its
+// table, or any mention in a statement's text — quoted or not, in any case,
+// schema-qualified, even inside a string or a comment.
+function __taRetiredTableNamed(tableName, sql) {
+  var named = __taNormalizeTable(tableName);
+  for (var i = 0; i < __TA_RETIRED_TABLES.length; i++) {
+    var table = __TA_RETIRED_TABLES[i];
+    if (named === table) return table;
+    if (typeof sql === 'string' && new RegExp('(?:^|[^A-Za-z0-9_$])"?' + table + '"?(?![A-Za-z0-9_$])', 'i').test(sql)) return table;
+  }
+  return null;
+}
+
 // null when the read may proceed, else { status, message }.
 async function __taGuardRead(req, tableName, rawQuery) {
+  if (__taRetiredTableNamed(tableName, rawQuery)) return { status: 403, message: 'Forbidden' };
   if (typeof rawQuery === 'string' && rawQuery.length > 0 && __taBrowserIsReadOnly(req)) {
     return { status: 403, message: 'Forbidden: raw queries are only available to server-side calls' };
   }

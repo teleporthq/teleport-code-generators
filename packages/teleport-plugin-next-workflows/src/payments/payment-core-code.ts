@@ -43,9 +43,10 @@ function usable(value) {
 }
 
 /**
- * The first usable variable among \`names\`, else the first whose name
- * starts with \`prefix\`: the editor stores a credential under a
- * CONFIGURATION_* name that a second save may number (…_KEY2).
+ * The first usable variable among \`names\`, else a NUMBERED copy of
+ * \`prefix\`: the editor stores a credential under a CONFIGURATION_* name that
+ * a second save numbers (…_KEY2); the highest number is the newest. Never a
+ * variable that merely starts with the name (…_KEY_OLDSHOP).
  */
 function env(names, prefix) {
   var values = process.env;
@@ -55,16 +56,20 @@ function env(names, prefix) {
       return value;
     }
   }
+  var best = '';
+  var bestNumber = -1;
   if (prefix) {
     var keys = Object.keys(values);
     for (var k = 0; k < keys.length; k++) {
-      var candidate = keys[k].indexOf(prefix) === 0 ? usable(values[keys[k]]) : '';
-      if (candidate) {
-        return candidate;
+      var suffix = keys[k].indexOf(prefix) === 0 ? keys[k].slice(prefix.length) : '';
+      var candidate = /^[0-9]+$/.test(suffix) ? usable(values[keys[k]]) : '';
+      if (candidate && parseInt(suffix, 10) > bestNumber) {
+        best = candidate;
+        bestNumber = parseInt(suffix, 10);
       }
     }
   }
-  return '';
+  return best;
 }
 
 /** "clientSecret" -> "CLIENT_SECRET", the editor's secret naming. */

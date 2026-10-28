@@ -122,7 +122,7 @@ export class NextRichTextEditorProjectPlugin implements ProjectPlugin {
     dependencies.quill = '^2.0.0'
 
     if (usage.hasFormulaFormat) {
-      dependencies.katex = '^0.16.0'
+      dependencies.katex = '^0.19.1'
     }
 
     // 3. Inject Quill CSS imports into _app.js

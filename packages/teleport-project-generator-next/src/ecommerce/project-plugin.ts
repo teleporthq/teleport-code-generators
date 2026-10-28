@@ -11,6 +11,7 @@ import {
   generateStockCheckApiRoute,
   generateStoreLocationsApiRoute,
   generateProductVariantsApiRoute,
+  generateCategoryCountsApiRoute,
   generateDeliveryPriceApiRoute,
   generateOrderNotificationApiRoute,
   generateLowStockAlertApiRoute,
@@ -81,7 +82,9 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
 
     // The DB-backed cart route only generates for Postgres datasources;
     // when it does, the provider layers DB sync on top of localStorage.
-    const cartRoute = generateCartApiRoute(dataSourceType, dataSourceConfig)
+    const cartRoute = generateCartApiRoute(dataSourceType, dataSourceConfig, {
+      withSessionRevocation: structure.uidl.authentication?.enabled === true,
+    })
     const cartDbEnabled = cartRoute !== null
 
     // Product media stored as a PROJECT-ASSET ID only becomes a URL if the
@@ -372,7 +375,9 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           {
             name: '[fileId]',
             fileType: FileType.JS,
-            content: generateDownloadApiRoute(settings, dataSourceType, dataSourceConfig),
+            content: generateDownloadApiRoute(settings, dataSourceType, dataSourceConfig, {
+              withSessionRevocation: structure.uidl.authentication?.enabled === true,
+            }),
           },
         ],
       })
@@ -401,6 +406,20 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
           name: 'variants',
           fileType: FileType.JS,
           content: generateProductVariantsApiRoute(dataSourceType, dataSourceConfig),
+        },
+      ],
+    })
+
+    // Category product counts — always emitted when e-commerce is on, so a
+    // category list may bind `item.productCount` (see the ecommerce context).
+    // Inert (empty counts) without a database.
+    files.set('ecommerce-api-category-counts', {
+      path: ['pages', 'api', 'ecommerce'],
+      files: [
+        {
+          name: 'category-counts',
+          fileType: FileType.JS,
+          content: generateCategoryCountsApiRoute(dataSourceType, dataSourceConfig),
         },
       ],
     })
@@ -525,7 +544,7 @@ export class NextEcommerceProjectPlugin implements ProjectPlugin {
         default:
           // SMTP fallback covers anything we don't explicitly
           // recognise. Same nodemailer version as before.
-          dependencies.nodemailer = '^7.0.7'
+          dependencies.nodemailer = '^10.2.1'
           break
       }
     }

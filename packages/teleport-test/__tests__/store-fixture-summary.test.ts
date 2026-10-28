@@ -12,9 +12,9 @@ import {
 /**
  * The end-of-run summary that names what a generated store was built from.
  * What is pinned: the three inputs it reads (sidecar, `.env`, UIDL settings),
- * and that every state a merchant can be confused by — no fee saved, zones not
- * exported, a database belonging to another project — is a WARNING line, not
- * silence.
+ * and that every state a merchant can be confused by — no fee saved, a database
+ * belonging to another project — is a WARNING line, not silence. Regional pricing
+ * left off is a valid setup and prints nothing.
  */
 
 const PROJECT_ID = 'e90fcac9-56cf-4438-9c57-82ace5793ee3'
@@ -103,7 +103,7 @@ describe('describeStoreFixture', () => {
     ])
   })
 
-  it('warns when the fee was never saved and the zones were not exported — the "free shipping everywhere" store', () => {
+  it('warns when the fee was never saved — the "free shipping everywhere" store', () => {
     const lines = describeStoreFixture({
       uidl: store({ deliveryEnabled: true, deliveryConfig: null }),
       identity,
@@ -111,8 +111,20 @@ describe('describeStoreFixture', () => {
     })
     expect(texts(lines, 'warning')).toEqual([
       'Delivery: NOT CONFIGURED — Delivery Settings were never saved in this project, so every order ships free',
-      'Shipping zones & tax regions: NOT exported — the store prices from its Delivery Settings only. Turn on "Shipping & Tax Regions" in THIS project (and recreate a checkout built before them) before exporting',
     ])
+  })
+
+  it('says nothing about shipping zones when regional pricing is off', () => {
+    const lines = describeStoreFixture({
+      uidl: store({
+        deliveryEnabled: true,
+        deliveryConfig: { deliveryPrice: 50, freeDeliveryEnabled: false, freeDeliveryThreshold: 0 },
+      }),
+      identity,
+      env: { TELEPORT_DB_CONNECTION_STRING: databaseUrl(PROJECT_ID) },
+    })
+    expect(texts(lines, 'warning')).toEqual([])
+    expect(lines).toHaveLength(3)
   })
 
   it('warns when .env belongs to a different project than the UIDL', () => {

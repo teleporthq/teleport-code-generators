@@ -35,12 +35,23 @@ async function account_compare_passwords(config: any, context: Record<string, un
   const bcrypt = __nodeRequire('bcryptjs')
   const crypto = __nodeRequire('crypto')
 
-  const PEPPER = (globalThis as any).process.env.AUTH_PEPPER || ''
-  const sha = crypto
-    .createHash('sha256')
-    .update(passwordStr + PEPPER)
-    .digest('base64')
-  const isMatch = bcrypt.compareSync(sha, hashStr)
+  // The project's own pepper (AUTH_PEPPER_SECRET) first, then the one every
+  // earlier hash used (AUTH_PEPPER) — as utils/auth/hash-password.
+  const env = (globalThis as any).process.env
+  const secretPepper =
+    typeof env.AUTH_PEPPER_SECRET === 'string' &&
+    env.AUTH_PEPPER_SECRET.indexOf('teleporthq.secrets.') !== 0
+      ? env.AUTH_PEPPER_SECRET
+      : ''
+  const peppers = secretPepper ? [secretPepper, env.AUTH_PEPPER || ''] : [env.AUTH_PEPPER || '']
+  let isMatch = false
+  for (let i = 0; i < peppers.length && !isMatch; i++) {
+    const sha = crypto
+      .createHash('sha256')
+      .update(passwordStr + peppers[i])
+      .digest('base64')
+    isMatch = bcrypt.compareSync(sha, hashStr)
+  }
 
   // `isMatch` is the contract key; `match` is a defensive alias for any
   // workflow that reads `.match` (the delete-account template did).

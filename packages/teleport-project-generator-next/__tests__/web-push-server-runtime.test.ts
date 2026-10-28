@@ -27,6 +27,10 @@ const subscription = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 })
 
+/** The statements a request ran, without the transaction that wraps a visitor's. */
+const statements = (database: { queries: Array<{ text: string; params: unknown[] }> }) =>
+  database.queries.filter((query) => !/^(BEGIN|COMMIT|ROLLBACK)/.test(query.text))
+
 const rows = (count: number, prefix = 'row') =>
   Array.from({ length: count }, (_value, index) => ({
     id: `${prefix}-${String(index).padStart(4, '0')}`,
@@ -147,18 +151,11 @@ describe('push subscription store', () => {
       })
     ).toBe(true)
 
-    expect(database.queries[0].text).toContain('ON CONFLICT (endpoint) DO UPDATE')
-    expect(database.queries[0].text).toContain(
-      'WHERE teleport_push_subscriptions.auth = EXCLUDED.auth'
-    )
-    expect(database.queries[0].params).toEqual([
-      ENDPOINT,
-      P256DH,
-      AUTH,
-      PUBLIC_KEY,
-      '109876543210987654321',
-    ])
-    expect(database.queries[1]).toEqual({
+    const ran = statements(database)
+    expect(ran[0].text).toContain('ON CONFLICT (endpoint) DO UPDATE')
+    expect(ran[0].text).toContain('WHERE teleport_push_subscriptions.auth = EXCLUDED.auth')
+    expect(ran[0].params).toEqual([ENDPOINT, P256DH, AUTH, PUBLIC_KEY, '109876543210987654321'])
+    expect(ran[1]).toEqual({
       text: 'DELETE FROM teleport_push_subscriptions WHERE endpoint = $1 AND auth = $2',
       params: ['https://fcm.googleapis.com/fcm/send/old', 'old-secret'],
     })
@@ -173,7 +170,7 @@ describe('push subscription store', () => {
       previousAuth: 'old-secret',
     })
     expect(saved).toBe(false)
-    expect(database.queries).toHaveLength(1)
+    expect(statements(database)).toHaveLength(1)
   })
 
   it('never deletes a replaced endpoint without its secret, nor an arbitrary URL', async () => {
@@ -189,7 +186,7 @@ describe('push subscription store', () => {
       previousAuth: 'secret',
     })
     expect(database.queries.filter((query) => query.text.startsWith('DELETE'))).toEqual([])
-    expect(database.queries[0].params[4]).toBeNull()
+    expect(statements(database)[0].params[4]).toBeNull()
   })
 
   it('deletes a stored subscription only with its endpoint and secret', async () => {
@@ -198,12 +195,30 @@ describe('push subscription store', () => {
     expect(await server.deleteSubscription(ENDPOINT, AUTH)).toBe(true)
     expect(await server.deleteSubscription(ENDPOINT, undefined)).toBe(false)
     expect(await server.deleteSubscription('javascript:alert(1)', AUTH)).toBe(false)
-    expect(database.queries).toEqual([
+    expect(statements(database)).toEqual([
       {
         text: 'DELETE FROM teleport_push_subscriptions WHERE endpoint = $1 AND auth = $2',
         params: [ENDPOINT, AUTH],
       },
     ])
+  })
+
+  it('cuts a visitor’s statements off after 10 s, for its own transaction only', async () => {
+    const database = fakeDatabase()
+    const server = loadPushServer(pushEnv(), database, fakeWebPush())
+    await server.saveSubscription(server.normalizeSubscription(subscription()), { userId: null })
+    await server.deleteSubscription(ENDPOINT, AUTH)
+    const texts = database.queries.map((query) => query.text)
+    expect(texts[0]).toBe("BEGIN; SET LOCAL statement_timeout = '10s'")
+    expect(texts[1]).toContain('INSERT INTO teleport_push_subscriptions')
+    expect(texts[2]).toBe('COMMIT')
+    expect(texts.slice(3)).toEqual([
+      "BEGIN; SET LOCAL statement_timeout = '10s'",
+      'DELETE FROM teleport_push_subscriptions WHERE endpoint = $1 AND auth = $2',
+      'COMMIT',
+    ])
+    // A session-wide SET would outlive the request on a pooled connection.
+    expect(texts.some((text) => /^SET statement_timeout/i.test(text))).toBe(false)
   })
 })
 
@@ -364,7 +379,7 @@ describe('push sender', () => {
           icon: longUrl,
         },
       },
-      'x'
+      'https://shop.test'
     )
 
     const payload = webPush.sends[0].payload
@@ -381,11 +396,42 @@ describe('push sender', () => {
     const server = loadPushServer(pushEnv(), database, fakeWebPush())
     const result = await server.sendNotification(
       { notification: { title: 'Hi', url: `/${'製品'.repeat(1000)}` } },
-      'x'
+      'https://shop.test'
     )
     expect(result).toMatchObject({ success: false })
     expect(result.error).toContain('too long')
     expect(database.queries).toEqual([])
+  })
+
+  it('opens only a page of this site: an address elsewhere is dropped, one on this host becomes its path', async () => {
+    const opened = async (url: string) => {
+      const webPush = fakeWebPush()
+      const server = loadPushServer(pushEnv(), fakeDatabase({ selectPages: [rows(1)] }), webPush)
+      await server.sendNotification({ notification: { title: 'Hi', url } }, 'https://shop.test')
+      return JSON.parse(webPush.sends[0].payload).url
+    }
+    expect(await opened('/orders/1?tab=items#top')).toBe('/orders/1?tab=items#top')
+    expect(await opened('https://shop.test/orders/2')).toBe('/orders/2')
+    expect(await opened('https://evil.test/login')).toBeUndefined()
+    expect(await opened('//evil.test/login')).toBeUndefined()
+    expect(await opened('/' + String.fromCharCode(92) + 'evil.test/login')).toBeUndefined()
+    expect(await opened('https://shop.test.evil.test/')).toBeUndefined()
+    expect(await opened('javascript:alert(1)')).toBeUndefined()
+    expect(await opened('data:text/html,hi')).toBeUndefined()
+  })
+
+  it('opens a page on the canonical domain too, when the push was sent from another of the site’s hosts', async () => {
+    const webPush = fakeWebPush()
+    const server = loadPushServer(
+      pushEnv({ NEXTAUTH_URL: 'https://shop.example.com' }),
+      fakeDatabase({ selectPages: [rows(1)] }),
+      webPush
+    )
+    await server.sendNotification(
+      { notification: { title: 'Hi', url: 'https://shop.example.com/orders/3' } },
+      'https://shop.teleporthq.app'
+    )
+    expect(JSON.parse(webPush.sends[0].payload).url).toBe('/orders/3')
   })
 
   it('honours a zero time-to-live and ignores an unknown urgency', async () => {
@@ -418,7 +464,7 @@ describe('/api/push/subscriptions', () => {
     })
     expect(response).toMatchObject({ statusCode: 200, body: { saved: true } })
     expect(response.headers['cache-control']).toBe('no-store')
-    expect(database.queries[0].params[4]).toBe(USER_ID)
+    expect(statements(database)[0].params[4]).toBe(USER_ID)
   })
 
   it('links a visitor who signed in with Google by the id the session carries', async () => {
@@ -428,7 +474,7 @@ describe('/api/push/subscriptions', () => {
       database,
       session: { id: '109876543210987654321', email: 'ana@example.com' },
     })
-    expect(database.queries[0].params[4]).toBe('109876543210987654321')
+    expect(statements(database)[0].params[4]).toBe('109876543210987654321')
   })
 
   it('refuses a cross-site request — another site cannot link its device to a visitor', async () => {
@@ -507,16 +553,23 @@ describe('/api/push/subscriptions', () => {
     expect(response).toMatchObject({ statusCode: 200, body: { deleted: true } })
   })
 
-  it('stops one client from filling the table', async () => {
+  it('stops one client from filling the table, whatever forwarded address it writes', async () => {
     const save = createRouteCaller('subscriptions')
-    const request = saveRequest({ 'x-forwarded-for': '203.0.113.9, 10.0.0.1' })
+    const fromVisitor = (forwardedFor: string) => ({
+      ...saveRequest({ 'x-forwarded-for': forwardedFor }),
+      remoteAddress: '203.0.113.9',
+    })
     for (let attempt = 0; attempt < 30; attempt++) {
-      expect((await save(request)).statusCode).toBe(200)
+      expect((await save(fromVisitor(`198.51.100.${attempt}`))).statusCode).toBe(200)
     }
-    const limited = await save(request)
+    const limited = await save(fromVisitor('192.0.2.200'))
     expect(limited.statusCode).toBe(429)
-    expect(limited.headers['retry-after']).toBe('600')
-    expect((await save(saveRequest({ 'x-forwarded-for': '198.51.100.4' }))).statusCode).toBe(200)
+    expect(limited.body).toEqual({ error: 'Too many requests. Try again later.' })
+    const retryAfter = Number(limited.headers['retry-after'])
+    expect(retryAfter).toBeGreaterThan(0)
+    expect(retryAfter).toBeLessThanOrEqual(600)
+    const another = { ...saveRequest(), remoteAddress: '198.51.100.4' }
+    expect((await save(another)).statusCode).toBe(200)
   })
 })
 
@@ -595,6 +648,44 @@ describe('/api/push/send', () => {
       after: `row-${String(sent - 1).padStart(4, '0')}`,
       relay: 1,
     })
+  })
+
+  it('relays to its own origin, never to a forwarded host, with the self-call bypass', async () => {
+    const relayFrom = async (env: Record<string, string>, headers: Record<string, string>) => {
+      const fetch = fakeFetch()
+      await callRoute(
+        'send',
+        {
+          method: 'POST',
+          headers: { ...authorized, ...headers },
+          body: { audience: 'all', notification: { title: 'Sale' } },
+        },
+        {
+          env: pushEnv(env),
+          database: fakeDatabase({ selectPages: [rows(20)] }),
+          clock: fakeClock(1000),
+          fetch,
+        }
+      )
+      expect(fetch.calls).toHaveLength(1)
+      return fetch.calls[0]
+    }
+    const forged = { 'x-forwarded-host': 'evil.example', 'x-forwarded-proto': 'https' }
+
+    // The token and the bypass never follow a header the request carried.
+    const plain = await relayFrom({ VERCEL_AUTOMATION_BYPASS_SECRET: 'bypass-1' }, forged)
+    expect(plain.url).toBe('https://shop.test/api/push/send')
+    expect(plain.init.headers).toMatchObject({
+      'x-vercel-protection-bypass': 'bypass-1',
+      'x-vercel-set-bypass-cookie': 'false',
+    })
+    // Off Vercel the configured address wins over the Host header too.
+    const configured = await relayFrom(
+      { NEXTAUTH_URL: 'https://www.shop.example/' },
+      { ...forged, host: 'attacker.example' }
+    )
+    expect(configured.url).toBe('https://www.shop.example/api/push/send')
+    expect(configured.init.headers).not.toHaveProperty('x-vercel-protection-bypass')
   })
 
   it('stops relaying after a hundred calls', async () => {

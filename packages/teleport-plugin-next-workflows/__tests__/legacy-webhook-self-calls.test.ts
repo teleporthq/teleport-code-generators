@@ -115,7 +115,9 @@ describe('legacy webhook self-calls: the secret, to the store only', () => {
           },
         },
       },
-      'evil.test'
+      'evil.test',
+      // The order the session pays: due exactly what it took.
+      { total_amount: '10.00', gift_card_amount: '0', currency: 'USD' }
     )
     expectStoreCalls(calls, ['/api/invoices/generate', '/api/ecommerce/order-notification'])
   })
@@ -158,6 +160,89 @@ describe('legacy webhook self-calls: the secret, to the store only', () => {
       { status: 'pending', payment_status: 'unpaid', currency: 'USD', total_amount: '30.00' }
     )
     expectStoreCalls(calls, ['/api/invoices/generate', '/api/ecommerce/order-notification'])
+  })
+
+  it("passes the deployment's password wall on every self-call when it has one, and only then", async () => {
+    const paidCheckout = {
+      id: 'evt_5',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_5',
+          payment_status: 'paid',
+          payment_intent: 'pi_5',
+          amount_total: 1000,
+          currency: 'usd',
+          metadata: { orderId: 'order-5' },
+        },
+      },
+    }
+    const capture = {
+      id: 'WH-5',
+      event_type: 'PAYMENT.CAPTURE.COMPLETED',
+      resource: {
+        id: 'CAP-5',
+        status: 'COMPLETED',
+        amount: { value: '30.00', currency_code: 'USD' },
+        custom_id: JSON.stringify({ orderId: 'order-5', orderNumber: 'ORD-5' }),
+      },
+    }
+    const routes: Array<[string, unknown, Record<string, unknown>]> = [
+      [
+        generateStripeWebhookCode(invoices, notifications),
+        paidCheckout,
+        { total_amount: '10.00', gift_card_amount: '0', currency: 'USD' },
+      ],
+      [
+        generatePaypalWebhookCode(invoices, notifications),
+        capture,
+        { status: 'pending', payment_status: 'unpaid', currency: 'USD', total_amount: '30.00' },
+      ],
+    ]
+    for (const [source, event, order] of routes) {
+      const walled = selfCalls(
+        await deliver(source, event, 'evil.test', order, {
+          VERCEL_AUTOMATION_BYPASS_SECRET: 'bypass-1',
+        })
+      )
+      expect(walled).toHaveLength(2)
+      for (const call of walled) {
+        expect(call.headers['x-vercel-protection-bypass']).toBe('bypass-1')
+        expect(call.headers['x-vercel-set-bypass-cookie']).toBe('false')
+        expect(call.headers['x-internal-data-secret']).toBe(APP_SECRET)
+      }
+      const open = selfCalls(
+        await deliver(source, event, 'evil.test', order, {
+          VERCEL_AUTOMATION_BYPASS_SECRET: undefined as unknown as string,
+        })
+      )
+      expect(open).toHaveLength(2)
+      for (const call of open) {
+        expect(call.headers).not.toHaveProperty('x-vercel-protection-bypass')
+      }
+    }
+  })
+
+  it('reads NEXTAUTH_URL as configured, never as the auth route rewrote it from a request', async () => {
+    const scope = globalThis as Record<string, unknown>
+    // /api/auth kept the configured value, then rewrote the live one from X-Forwarded-Host.
+    scope.__tqConfiguredNextAuthUrl = STORE_ORIGIN
+    try {
+      const calls = await deliver(
+        generateStripeWebhookCode(invoices, undefined),
+        {
+          id: 'evt_4',
+          type: 'invoice.payment_succeeded',
+          data: { object: { id: 'in_3', amount_paid: 100, currency: 'usd', lines: { data: [] } } },
+        },
+        'evil.test',
+        {},
+        { NEXTAUTH_URL: 'https://evil.test' }
+      )
+      expectStoreCalls(calls, ['/api/invoices/generate'])
+    } finally {
+      delete scope.__tqConfiguredNextAuthUrl
+    }
   })
 
   it("keeps Vercel's routed host, and a local dev server's own port", async () => {

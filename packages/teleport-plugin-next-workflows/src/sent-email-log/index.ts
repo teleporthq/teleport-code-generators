@@ -55,3 +55,19 @@ export const ensureSentEmailLogModule = (structure: ProjectPluginStructure): voi
     }
   }
 }
+
+/**
+ * In a project with automations, files a send made by an automation handler
+ * under the automation and the event's order (see the `attribution` option of
+ * `generateSentEmailLogCode`). Rewrites the module when something already
+ * required it; a project whose automations send no mail has none to rewrite.
+ */
+export const enableSentEmailAttribution = (structure: ProjectPluginStructure): void => {
+  const entry = structure.files.get(SENT_EMAIL_LOG_FILE_KEY)
+  if (!entry || !entry.files[0]) {
+    return
+  }
+  const { dataSourceType } = resolveInvoiceDataSource(structure)
+  const pgSupported = 'pg' in getDatabaseDriverDependencies(dataSourceType)
+  entry.files[0].content = generateSentEmailLogCode({ pgSupported, attribution: true })
+}

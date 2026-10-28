@@ -251,11 +251,24 @@ export const collectGlobalStateFetchConfigs = (
  * Generates the API route code for a raw SQL query data source.
  * Delegates to the shared raw query fetcher generator.
  */
-export const generateRawQueryApiRoute = (dataSource: UIDLDataSource, query: string): string => {
+export const generateRawQueryApiRoute = (
+  dataSource: UIDLDataSource,
+  query: string,
+  /**
+   * Who reads the protected tables through it: the project's staff roles
+   * (`TableAccess.resolveStaffRoles`). A global state belongs to no page, so no
+   * page protection applies; a statement over a protected table is read by
+   * staff, or by the session it is scoped to.
+   */
+  staffRoles: string[] = [],
+  // The project has authentication: the session reader checks revocation.
+  withRevocation?: boolean
+): string => {
   const { parameterizedQuery, paramFields } = parseQueryTemplateVariables(query)
   return generateRawQueryFetcher(
     dataSource.config as Record<string, unknown>,
     parameterizedQuery,
-    paramFields
+    paramFields,
+    { pageAccess: null, trustedReaderRoles: staffRoles, withRevocation }
   )
 }

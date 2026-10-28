@@ -49,18 +49,30 @@ echo "Changed packages:"
 echo "$changed_packages" | sed 's/^/  - /'
 
 scope_flags=""
-for package_name in $changed_packages; do
-  scope_flags="$scope_flags --scope @teleporthq/$package_name"
+for package_dir in $changed_packages; do
+  # Scope by the package.json name: a folder is not always named after its
+  # package (teleport-project-plugin-next-revalidate-api publishes
+  # @teleporthq/teleport-next-revalidate-api).
+  package_name="$(node -p "require(process.argv[1]).name" "$REPO_ROOT/packages/$package_dir/package.json")"
+  scope_flags="$scope_flags --scope $package_name"
 done
 
 # The packages to copy: the changed ones plus their workspace dependencies,
 # so the GUI runs one consistent branch build.
+# shellcheck disable=SC2086
+packages_json="$(npx lerna list $scope_flags --include-dependencies --json)"
 synced_packages="$(
-  # shellcheck disable=SC2086
-  npx lerna list $scope_flags --include-dependencies --json |
-    sed -n 's|.*"name": "@teleporthq/\([^"]*\)".*|\1|p' |
+  printf '%s' "$packages_json" |
+    node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => { for (const p of JSON.parse(s)) console.log(p.name.replace(/^@teleporthq\//, "")) })' |
     sort -u
 )"
+
+# The folder of a package, by its name without the scope (see above: the two
+# can differ).
+package_location() {
+  printf '%s' "$packages_json" |
+    node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => { const p = JSON.parse(s).find((q) => q.name === "@teleporthq/" + process.argv[1]); console.log(p ? p.location : "") })' "$1"
+}
 
 # The package builds are incremental (`tsconfig.tsbuildinfo` inside each dist
 # folder). A build info that believes a file is already emitted makes tsc skip
@@ -68,8 +80,9 @@ synced_packages="$(
 # the GUI then fails at publish with "X is not a function". Dropping the build
 # info of the packages being synced forces a full emit of exactly what is copied.
 for package_name in $synced_packages; do
-  rm -f "$REPO_ROOT/packages/$package_name/dist/esm/tsconfig.tsbuildinfo" \
-    "$REPO_ROOT/packages/$package_name/dist/cjs/tsconfig.tsbuildinfo"
+  package_dir="$(package_location "$package_name")"
+  rm -f "$package_dir/dist/esm/tsconfig.tsbuildinfo" \
+    "$package_dir/dist/cjs/tsconfig.tsbuildinfo"
 done
 
 echo
@@ -77,11 +90,22 @@ echo "Building (with dependencies)..."
 # shellcheck disable=SC2086
 npx lerna run build $scope_flags --include-dependencies
 
+# Every installed copy of a @teleporthq package, the top-level one and the
+# NESTED ones (node_modules/@teleporthq/<pkg>/node_modules/@teleporthq/<dep>,
+# apps/gui/node_modules/@teleporthq/<dep>). Node resolves a nested copy first,
+# so a stale one makes the synced code call functions its dependency lacks.
+installed_copies="$(
+  find "$GUI_ROOT/node_modules" "$GUI_ROOT/apps/gui/node_modules" \
+    -type f -name package.json -path '*/node_modules/@teleporthq/*/package.json' 2>/dev/null |
+    sed 's|/package.json$||' |
+    awk -F/ '$(NF-1) == "@teleporthq"'
+)"
+
 echo
 for package_name in $synced_packages; do
-  source_dist="$REPO_ROOT/packages/$package_name/dist"
-  target_dist="$GUI_SCOPE_DIR/$package_name/dist"
-  if [ ! -d "$GUI_SCOPE_DIR/$package_name" ]; then
+  source_dist="$(package_location "$package_name")/dist"
+  copies="$(printf '%s\n' "$installed_copies" | awk -F/ -v name="$package_name" '$NF == name')"
+  if [ -z "$copies" ]; then
     echo "skip  $package_name (not installed in the GUI)"
     continue
   fi
@@ -89,8 +113,10 @@ for package_name in $synced_packages; do
     echo "skip  $package_name (no dist/ after build?)" >&2
     continue
   fi
-  rsync -a --delete "$source_dist/" "$target_dist/"
-  echo "sync  $package_name  ->  $target_dist"
+  while IFS= read -r copy; do
+    rsync -a --delete "$source_dist/" "$copy/dist/"
+    echo "sync  $package_name  ->  $copy/dist"
+  done <<< "$copies"
 done
 
 # Next's webpack persistent cache keys node_modules by package VERSION

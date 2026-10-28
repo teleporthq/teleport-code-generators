@@ -57,6 +57,10 @@ import {
   resolveOrderDetailsRoutePrefix,
 } from './ecommerce/order-details-route'
 import {
+  guardPlaceOrderStatementsInNodes,
+  PlaceOrderGuardSummary,
+} from './ecommerce/place-order-guards'
+import {
   rewriteParameterizedStockChainInNodes,
   rewriteVariantPickerStockGate,
   ParameterizedChainRewriteSummary,
@@ -77,11 +81,19 @@ interface RewriteContext {
   // teleport-plugin-next-data-source. FALSE when the project has no
   // e-commerce settings at all (nothing to re-bake there).
   stockNeverBlocks: boolean
+  // Whether the store takes cash on delivery: the place-order settle write
+  // confirms an order with money still due only then (place-order-guards.ts).
+  cashOnDelivery: boolean
+  // Whether delivery is priced by shipping zone, each zone deciding cash on
+  // delivery (the server pricing snapshot's `paymentMethods.codByShippingZone`).
+  codByShippingZone: boolean
 }
 
 const buildContext = (uidl: ProjectUIDL): RewriteContext => {
   const ecom = uidl.ecommerceSettings as
     | {
+        cashOnDelivery?: boolean
+        regionalPricing?: { enabled?: boolean } | null
         stockManagement?: boolean
         stockManagementConfig?: {
           lowStockThreshold?: number
@@ -118,6 +130,8 @@ const buildContext = (uidl: ProjectUIDL): RewriteContext => {
     lowStockAlertsEnabled,
     allowBackorders,
     stockNeverBlocks,
+    cashOnDelivery: !!ecom && ecom.cashOnDelivery === true,
+    codByShippingZone: !!ecom && !!ecom.regionalPricing && ecom.regionalPricing.enabled === true,
   }
 }
 
@@ -431,6 +445,7 @@ interface RewriteSummary {
   orderOwnershipRewrites: number
   variantPickerGateRewrites: number
   parameterizedChain: ParameterizedChainRewriteSummary
+  placeOrderGuards: PlaceOrderGuardSummary
 }
 
 // Walks the project UIDL, locates every workflow node that matches one of
@@ -454,6 +469,13 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
       decrementQueryRewrites: 0,
       lowStockSelectRewrites: 0,
       skippedChains: 0,
+    },
+    placeOrderGuards: {
+      settleGuards: 0,
+      stockReservations: 0,
+      skippedReservations: 0,
+      reservationRestores: 0,
+      restoreLockOrders: 0,
     },
   }
   if (!uidl.workflows || !uidl.workflows.workflows) {
@@ -618,12 +640,39 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
   // stockManagement like the legacy decrement rewrite — when the merchant
   // turned stock management off entirely we leave the workflow alone. See
   // ecommerce/parameterized-stock-chain.ts for the shapes and the contract.
+  //
+  // First the place-order money statements, from the CURRENT settings: the
+  // settle write confirms an order with money still due only on a store that
+  // takes cash on delivery, and with stock managed and no backorders the
+  // redemption statement reserves the order's stock (locked, conditional,
+  // refusing the order when short), so the chain's later decrement takes
+  // nothing. See ecommerce/place-order-guards.ts.
+  const reservedNodeLists = new Set<unknown>()
+  for (const owner of [...Object.values(workflows), ...Object.values(customNodes)]) {
+    const reserved = guardPlaceOrderStatementsInNodes(
+      owner && owner.nodes,
+      (owner && owner.name) || 'workflow',
+      {
+        cashOnDelivery: ctx.cashOnDelivery,
+        codByShippingZone: ctx.codByShippingZone,
+        reserveStock: ctx.stockManagementEnabled && !ctx.allowBackorders,
+      },
+      summary.placeOrderGuards
+    )
+    if (reserved.stockReserved) {
+      reservedNodeLists.add(owner.nodes)
+    }
+  }
   if (ctx.stockManagementEnabled) {
     for (const wf of Object.values(workflows)) {
       rewriteParameterizedStockChainInNodes(
         wf && wf.nodes,
         (wf && wf.name) || 'workflow',
-        { threshold: ctx.threshold, allowBackorders: ctx.allowBackorders },
+        {
+          threshold: ctx.threshold,
+          allowBackorders: ctx.allowBackorders,
+          reservedAtRedemption: !!wf && reservedNodeLists.has(wf.nodes),
+        },
         summary.parameterizedChain
       )
     }
@@ -631,7 +680,11 @@ export const rewriteLowStockCustomHandlers = (uidl: ProjectUIDL): RewriteSummary
       rewriteParameterizedStockChainInNodes(
         cn && cn.nodes,
         (cn && cn.name) || 'customNode',
-        { threshold: ctx.threshold, allowBackorders: ctx.allowBackorders },
+        {
+          threshold: ctx.threshold,
+          allowBackorders: ctx.allowBackorders,
+          reservedAtRedemption: !!cn && reservedNodeLists.has(cn.nodes),
+        },
         summary.parameterizedChain
       )
     }

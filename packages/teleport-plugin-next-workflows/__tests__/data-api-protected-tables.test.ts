@@ -8,8 +8,12 @@ import { dataRawQuery } from '../src/nodes/data/data-raw-query'
 import { dataUpdateItem } from '../src/nodes/data/data-update-item'
 import { dataDeleteItem } from '../src/nodes/data/data-delete-item'
 import { accountSignup } from '../src/nodes/account/account-signup'
-import { generateSignupRouteFile } from '../src/auth-generator'
+import { generateSignupRouteFile, resolveSignupFields } from '../src/auth-generator'
 import { resolveAuthUsersTableName } from '../src/workflow-project-plugin'
+import { isSecurityRuntimeSpecifier, loadSecurityRuntime } from './_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * The generated `/api/data/<ds>/<op>` route is reachable from any browser, so
@@ -69,6 +73,9 @@ function bootRoute(
     // in these tests.
     if (name === 'next-auth/jwt') {
       return { getToken: async () => null }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }
@@ -550,7 +557,7 @@ describe('data API — money tables are server-only', () => {
     ).toBe(200)
   })
 
-  it('keeps password reset tokens server-only — reading one is taking the account', async () => {
+  it('keeps password reset tokens out of reach — reading one is taking the account', async () => {
     expect((await run('select', { tableName: 'password_reset_tokens' })).status).toBe(403)
     for (const headers of [{}, restricted]) {
       expect(
@@ -566,7 +573,8 @@ describe('data API — money tables are server-only', () => {
         ).status
       ).toBe(403)
     }
-    expect((await run('select', { tableName: 'password_reset_tokens' }, internal)).status).toBe(200)
+    // Retired (review fix A3): the app's own server code is refused it too.
+    expect((await run('select', { tableName: 'password_reset_tokens' }, internal)).status).toBe(403)
   })
 
   it('keeps push subscriptions server-only — an endpoint and its keys can notify that device', async () => {
@@ -819,19 +827,31 @@ describe('the other ways a browser could write its own role', () => {
     body: Record<string, unknown>,
     customUserProperties: Array<{ key: string }> = []
   ): Promise<Record<string, unknown>> => {
-    const code = generateSignupRouteFile({
-      enabled: true,
-      dataSourceType: 'postgresql',
-      customUserProperties,
-    } as any)
+    const auth = { enabled: true, dataSourceType: 'postgresql', customUserProperties } as any
+    // The sign-up route writes only what the project's sign-up forms collect.
+    const code = generateSignupRouteFile(
+      auth,
+      {},
+      {},
+      {
+        fields: resolveSignupFields(auth, [
+          Object.fromEntries(customUserProperties.map((p) => [p.key, 1])),
+        ]),
+      }
+    )
     let created: Record<string, unknown> = {}
     const fakeRequire = (name: string): any => {
       if (name.endsWith('/hash-password')) {
-        return (password: string) => 'hashed:' + password
+        return Object.assign((password: string) => 'hashed:' + password, {
+          passwordPolicyError: () => '',
+        })
+      }
+      if (name.endsWith('/security-runtime')) {
+        return { rateLimitRequest: async () => true, sendClientError: () => undefined }
       }
       if (name.endsWith('/auth-options')) {
         return {
-          userExistsByEmail: async () => false,
+          findSignupUserByEmail: async () => null,
           createUser: async (userData: Record<string, unknown>) => {
             created = userData
             return { id: 'u1', ...userData }
@@ -881,9 +901,10 @@ describe('the other ways a browser could write its own role', () => {
 
   it('keeps the server signup node from copying a role-bearing config key onto the new row', () => {
     const source = accountSignup.generateServerHandler!()
-    expect(source).toContain('const roleBearingKey = /^(roles?|role_?name)$/i;')
+    // Any column that grants something (a role in any spelling among them).
+    expect(source).toContain('const privilegedKey = /^(role.*|isadmin|admin|')
     expect(source).toContain(
-      'if (!reservedKeys[configKeys[i]] && !roleBearingKey.test(configKeys[i])) {'
+      'if (!reservedKeys[configKeys[i]] && !privilegedKey.test(normalizedKey)) {'
     )
   })
 
@@ -941,8 +962,20 @@ describe('data API — the users table never serves its credentials to a browser
     }
   })
 
-  it('serves the whole row to a server segment, which checks a password or refreshes a token', async () => {
-    const result = await run('select', { tableName: 'users' }, internal)
-    expect(result.body.rows).toEqual([userRow])
+  // A server segment relays its rows to the browser: a SELECT * gives it the
+  // profile only, and so does a projection that names a credential — only the
+  // auth layer's own in-process call is handed one (see the owner-scope spec).
+  it('serves a server segment the profile, never a credential, even one it names', async () => {
+    const whole = await run('select', { tableName: 'users' }, internal)
+    expect(whole.body.rows).toEqual([
+      { id: 'u1', email: 'ada@shop.test', name: 'Ada', role: 'user' },
+    ])
+    const named = await run(
+      'select',
+      { tableName: 'users', selectedColumns: ['id', 'password', 'refresh_token'] },
+      internal
+    )
+    expect(named.body.rows[0]).not.toHaveProperty('password')
+    expect(named.body.rows[0]).not.toHaveProperty('refresh_token')
   })
 })

@@ -31,6 +31,9 @@ const FROM_BY_PAGE = '(ds_0_total === 0 ? 0 : (ds_0_page - 1) * 20 + 1).toLocale
 const FROM_FIRST_ROW = '(ds_0_total === 0 ? 0 : 1).toLocaleString("en-US")'
 const TO = 'Math.min(ds_0_page * 20, ds_0_total).toLocaleString("en-US")'
 const TOTAL = 'ds_0_total.toLocaleString("en-US")'
+const PAGE = 'ds_0_page.toLocaleString("en-US")'
+const PAGES = '(ds_0_total === 0 ? 0 : Math.max(1, ds_0_maxPages)).toLocaleString("en-US")'
+const PER_PAGE = '(20).toLocaleString("en-US")'
 
 describe('pagination plugin — range control', () => {
   it('fills the authored words with the page window in buttons mode', async () => {
@@ -100,6 +103,32 @@ describe('pagination plugin — range control', () => {
       '(ds_0_total === 0 ? 0 : (ds_0_state.page - 1) * 20 + 1).toLocaleString("en-US")'
     )
     expect(flat).toContain('Math.min(ds_0_state.page * 20, ds_0_total).toLocaleString("en-US")')
+  })
+
+  it('reads the page, the page count and the page size off the mapper', async () => {
+    const flat = collapse(
+      await runPlugin(
+        {},
+        { controls: ['range'], rangeTemplate: 'Page {page} of {pages} · {perPage} per page' }
+      )
+    )
+
+    // The page count is the counted `maxPages`: one page as long as there are
+    // rows, none when there are none — the same words the canvas reads.
+    expect(flat).toContain(
+      `${DRAWN} \`Page \${${PAGE}} of \${${PAGES}} · \${${PER_PAGE}} per page\``
+    )
+  })
+
+  it('reads the pages loaded so far as the page of an appending list', async () => {
+    const flat = collapse(
+      await runPlugin(
+        { infiniteScroll: true, infiniteScrollLoadMore: true },
+        { controls: ['range', 'load-more'], rangeTemplate: '{page} of {pages}' }
+      )
+    )
+
+    expect(flat).toContain(`${DRAWN} \`\${${PAGE}} of \${${PAGES}}\``)
   })
 
   it('reads a template the JSX printer escaped the braces of', async () => {

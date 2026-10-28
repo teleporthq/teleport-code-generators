@@ -24,7 +24,17 @@ export interface BlogPostTransformOptions {
   contents?: boolean
   /** Manual Order: Previous / Next walk the post's category as arranged — see `blog-adjacent-posts.ts`. */
   arranged?: boolean
+  /**
+   * Every site language's code, the main one included: what `slugByLocale`
+   * reads the `<lang>_slug` columns for (the head's hreflang links).
+   */
+  locales?: string[]
 }
+
+/** How much of a body stands in for a missing meta description. */
+const META_DESCRIPTION_LENGTH = 155
+/** An edit this long after publishing is worth an "Updated on" line. */
+const UPDATED_AFTER_MS = 24 * 60 * 60 * 1000
 
 /**
  * Generates JavaScript code for blog post data transformation.
@@ -47,6 +57,67 @@ ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
 var BLOG_CONTENTS = ${options.contents === true}
 var BLOG_PICTURE_STAND_IN = ${tables.pictureStandIn !== false}
+var BLOG_LOCALES = ${JSON.stringify(options.locales ?? [])}
+var BLOG_META_DESCRIPTION_LENGTH = ${META_DESCRIPTION_LENGTH}
+var BLOG_UPDATED_AFTER_MS = ${UPDATED_AFTER_MS}
+
+// The words a reader sees, for a count or a summary.
+function blogPlainText(html) {
+  // A block's end is a word break; an inline tag (<em>, <a>) is not.
+  var text = String(html || '')
+    .replace(/<\\/(p|li|h[1-6]|div|details|summary|section|blockquote|tr|td|th)>|<br\\s*\\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+  return decodeHtmlEntities(text).replace(/\\s+/g, ' ').trim()
+}
+
+// The opening of the body as a meta description: cut at a word, never mid-word.
+function blogSummaryOf(text) {
+  if (!text) return null
+  if (text.length <= BLOG_META_DESCRIPTION_LENGTH) return text
+  var cut = text.slice(0, BLOG_META_DESCRIPTION_LENGTH)
+  var space = cut.lastIndexOf(' ')
+  return (space > 0 ? cut.slice(0, space) : cut).trim()
+}
+
+// A body's own H1 becomes an H2: the page's title is the one H1 a post page has.
+function blogDemoteH1(html) {
+  if (typeof html !== 'string' || !/<h1[\\s>]/i.test(html)) return html
+  return html.replace(/<(\\/?)h1(\\s[^>]*)?>/gi, function(match, closing, attrs) {
+    return '<' + closing + 'h2' + (attrs || '') + '>'
+  })
+}
+
+// The FAQ pairs of a body, text only: each <details> of a .tq-faq section with
+// a question in its <summary> and the rest as the answer. What the page's
+// FAQPage structured data lists.
+function blogFaqOf(html) {
+  var pairs = []
+  if (typeof html !== 'string' || html.indexOf('tq-faq') === -1) return pairs
+  var sections = html.match(/<section[^>]*class="[^"]*\\btq-faq\\b[^"]*"[^>]*>[\\s\\S]*?<\\/section>/gi) || []
+  for (var s = 0; s < sections.length; s++) {
+    var details = sections[s].match(/<details[\\s>][\\s\\S]*?<\\/details>/gi) || []
+    for (var d = 0; d < details.length; d++) {
+      var summary = details[d].match(/<summary[^>]*>([\\s\\S]*?)<\\/summary>/i)
+      var question = summary ? blogPlainText(summary[1]) : ''
+      var answer = blogPlainText(details[d].replace(/<summary[^>]*>[\\s\\S]*?<\\/summary>/i, ' ').replace(/<\\/?details[^>]*>/gi, ' '))
+      if (question && answer) pairs.push({ question: question, answer: answer })
+    }
+  }
+  return pairs
+}
+
+// The post's slug per site language, for the head's hreflang links: the
+// translated column where it holds one, the main slug for the main language.
+function blogSlugByLocale(record, mainLang) {
+  var out = {}
+  for (var l = 0; l < BLOG_LOCALES.length; l++) {
+    var locale = BLOG_LOCALES[l]
+    // The base column holds the main language; a translation its own copy.
+    var value = locale === mainLang ? record.slug : record[locale + '_slug']
+    if (typeof value === 'string' && value.trim()) out[locale] = value.trim()
+  }
+  return out
+}
 
 // A post's reading time from its body, for one that stores none: its words at
 // about 200 a minute, at least one — what the editor's post form computes. A
@@ -71,11 +142,14 @@ function buildBlogPost(record, options) {
   var slug = resolveI18nField(record, 'slug', 'slug', currentLang, mainLang) || ''
   // A body stored before the rich-text contract (the studio's flat list lines,
   // the admin panel's no-break spaces) reads as stored HTML from here on.
-  var content = normalizeLegacyRichTextHtml(
+  var content = blogDemoteH1(normalizeLegacyRichTextHtml(
     resolveI18nField(record, 'content', 'content', currentLang, mainLang) || ''
-  )
+  ))
   // Counted before the heading anchors add their marks.
+  var bodyText = blogPlainText(content)
+  var wordCount = bodyText ? bodyText.split(' ').length : 0
   var bodyReadingTime = blogReadingTimeOf(content)
+  var faq = blogFaqOf(content)
   // The Contents list links to the headings, so they get their ids for it too
   // — the # links only with the heading anchors on. Its sections ride on a
   // post page's own fetch only (options.details): a listing draws no list, and
@@ -100,8 +174,13 @@ function buildBlogPost(record, options) {
     mainLang,
     category
   )
-  var metaTitle = resolveI18nField(record, 'meta_title', 'metaTitle', currentLang, mainLang) || null
-  var metaDescription = resolveI18nField(record, 'meta_description', 'metaDescription', currentLang, mainLang) || null
+  // Never empty on the page: a post with no meta title is titled by its title,
+  // one with no meta description described by its excerpt, else by its opening.
+  var metaTitle = resolveI18nField(record, 'meta_title', 'metaTitle', currentLang, mainLang) || title || null
+  var metaDescription =
+    resolveI18nField(record, 'meta_description', 'metaDescription', currentLang, mainLang) ||
+    blogPlainText(resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang)) ||
+    blogSummaryOf(bodyText)
   var featuredImageAlt = resolveI18nField(record, 'featured_image_alt', 'featuredImageAlt', currentLang, mainLang) || null
   var authorBio = resolveI18nField(record, 'author_bio', 'authorBio', currentLang, mainLang) || null
 
@@ -128,6 +207,10 @@ function buildBlogPost(record, options) {
       : null
   }
 
+  // The picture the head shares and the structured data names: the post's own,
+  // never the stand-in.
+  var socialImageUrl = featuredImageUrl && featuredImageUrl.indexOf('data:') !== 0 ? featuredImageUrl : null
+
   var rawAuthorAvatar = pickFirst(record.author_avatar_url, record.authorAvatarUrl)
   var authorAvatarUrl = resolveAssetUrl(rawAuthorAvatar, assetMap)
 
@@ -143,6 +226,8 @@ function buildBlogPost(record, options) {
   // Tags - i18n-resolved then parsed as JSON array
   var rawTags = resolveI18nField(record, 'tags', 'tags', currentLang, mainLang)
   var tags = parseJsonArray(rawTags)
+  var tagsText = tags.length > 0 ? tags.join(', ') : null
+  var primaryCategory = categories.length > 0 ? categories[0] : null
 
   // Gallery images - parse JSON array then resolve each asset URL
   var rawGalleryImages = pickFirst(record.gallery_images, record.galleryImages)
@@ -236,6 +321,14 @@ function buildBlogPost(record, options) {
 
   // Computed: created = Unix seconds from createdAt milliseconds
   var created = Math.floor(createdAt / 1000)
+  var publishedAtIso = publishedAt != null && status === 'published' ? new Date(publishedAt).toISOString() : null
+  var updatedAtIso = updatedAt != null ? new Date(updatedAt).toISOString() : null
+  // An edit a day or more after publishing is worth telling the reader: the
+  // date of it, else null — what the page's "Updated on" line shows and gates on.
+  var updatedAfterPublishIso =
+    publishedAt != null && updatedAt != null && updatedAt - publishedAt > BLOG_UPDATED_AFTER_MS
+      ? updatedAtIso
+      : null
 
   return {
     id: id,
@@ -261,6 +354,13 @@ function buildBlogPost(record, options) {
     metaTitle: metaTitle,
     metaDescription: metaDescription,
     readingTimeMinutes: readingTimeMinutes,
+    wordCount: wordCount,
+    tagsText: tagsText,
+    categoryName: primaryCategory ? primaryCategory.name : category,
+    categorySlug: primaryCategory ? primaryCategory.slug : null,
+    socialImageUrl: socialImageUrl,
+    slugByLocale: blogSlugByLocale(record, mainLang),
+    faq: faq,
     // The post's sections, what its page's Contents list links to — see
     // blogContentsSectionsOf; empty off a post page or under three sections.
     sections: contentsHeadings ? blogContentsSectionsOf(contentsHeadings) : [],
@@ -278,6 +378,9 @@ function buildBlogPost(record, options) {
     publishedAt: publishedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,
+    publishedAtIso: publishedAtIso,
+    updatedAtIso: updatedAtIso,
+    updatedAfterPublishIso: updatedAfterPublishIso,
     created: created,
     // The post's place among its primary category's posts (Manual Order), or
     // null: what the category pages order by.

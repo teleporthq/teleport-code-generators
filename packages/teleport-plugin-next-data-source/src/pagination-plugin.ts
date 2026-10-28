@@ -3137,6 +3137,7 @@ function wireRangeControlFor(
   wireRangeControl(control, {
     totalVar: vars.totalStateVar,
     currentPageExpr: currentPageExpr(),
+    maxPagesVar: vars.maxPagesStateVar,
     perPage: usage.perPage,
     infiniteScroll: usage.infiniteScroll,
   })

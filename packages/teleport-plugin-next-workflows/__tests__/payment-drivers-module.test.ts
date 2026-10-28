@@ -317,6 +317,29 @@ describe('the shared payment core', () => {
     })
   })
 
+  it('reads only a numbered copy of the stored name, the newest, never a variable that merely shares it', async () => {
+    const names: Record<string, string | undefined> = {
+      MOLLIE_API_KEY: undefined,
+      CONFIGURATION_MOLLIE_API_KEY: undefined,
+      CONFIGURATION_MOLLIE_API_KEY_OLDSHOP: 'unrelated',
+      CONFIGURATION_MOLLIE_API_KEY1: undefined,
+      CONFIGURATION_MOLLIE_API_KEY12: undefined,
+    }
+    await withEnv(names, async () => {
+      expect(core.credential('mollie', 'apiKey')).toBe('')
+    })
+    await withEnv(
+      {
+        ...names,
+        CONFIGURATION_MOLLIE_API_KEY1: 'first',
+        CONFIGURATION_MOLLIE_API_KEY12: 'newest',
+      },
+      async () => {
+        expect(core.credential('mollie', 'apiKey')).toBe('newest')
+      }
+    )
+  })
+
   it('reads the secret the editor declared, never the older unnumbered one it replaced', async () => {
     const declared = evaluateEmittedModule<any>(
       generatePaymentCoreCode({

@@ -1,6 +1,18 @@
-import { NodeHandlerGenerator, handlerToString } from '../types'
+import { NodeHandlerGenerator } from '../types'
+import { outboundMessageHandlerSources } from './outbound-message-guard'
+
+declare function __outboundMessageGuard(channel: string, config: any, context: any): Promise<any>
 
 async function email_mailgun(config: any, context: Record<string, unknown>) {
+  // Line breaks out of every header; a visitor-supplied recipient counted
+  // (see outbound-message-guard).
+  const refused = await __outboundMessageGuard('email', config, context)
+  if (refused) {
+    // Over a limit: skipped, not failed, so the visitor's action goes on.
+    return refused.skipped
+      ? { messageId: '', skipped: true, reason: refused.skipped }
+      : { messageId: '', success: false, error: refused.error }
+  }
   const apiKey = config.apiKey
   const domain = config.domain
   const from = config.from
@@ -60,7 +72,5 @@ export const emailMailgun: NodeHandlerGenerator = {
     'mailgun.js': '^10.0.0',
     'form-data': '^4.0.0',
   },
-  generateHandler(): string {
-    return handlerToString(email_mailgun)
-  },
+  ...outboundMessageHandlerSources(email_mailgun),
 }

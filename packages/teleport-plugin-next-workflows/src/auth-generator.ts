@@ -1,4 +1,4 @@
-import {
+import type {
   UIDLAuthentication,
   UIDLAuthTableColumn,
   UIDLCustomUserProperty,
@@ -11,10 +11,39 @@ import {
   generateFillTemplateFn,
   generateEmailLocaleRequire,
   generateLocalizedEmailCopyFn,
+  EXISTING_ACCOUNT_EMAIL,
+  SET_PASSWORD_EMAIL,
   WELCOME_EMAIL_CONFIG_KEYS,
 } from './transactional-email-code'
-import { TableAccess } from '@teleporthq/teleport-shared'
+import {
+  PASSWORD_RESET_TOKEN_TTL_SECONDS,
+  TRUSTED_ORIGIN_CODE,
+  resolveResetPagePath,
+} from './password-reset-route-generator'
+import { AccountFields, SessionCookieResolver, TableAccess } from '@teleporthq/teleport-shared'
 import { generateSessionTokenResolverCode } from './session-cookie-resolver'
+import { AUTOMATIONS_PATH } from './automations/automations-scope'
+import { SESSION_REVOCATION_FILE_NAME, SESSION_STAMP_KEY } from './session-revocation-generator'
+import { securityRuntimeSpecifier } from './security-runtime/security-runtime-code'
+
+/**
+ * Credentials sign-in throttle: a visitor's next sign-in for an email is
+ * refused (429) once this many failures for it are in the window, or once it
+ * was tried SIGN_IN_ATTEMPT_LIMIT times in the window whatever the outcome.
+ */
+export const SIGN_IN_FAILURE_LIMIT = 10
+export const SIGN_IN_ATTEMPT_LIMIT = 30
+export const SIGN_IN_WINDOW_SECONDS = 900
+/** Failed sign-ins one visitor may make across every email in the window. */
+export const SIGN_IN_VISITOR_FAILURE_LIMIT = 50
+/** Sign-ups per visitor per hour. */
+export const SIGN_UP_LIMIT = 10
+/**
+ * "You already have an account" (or, for an address without a password,
+ * "Set your password") emails one address can be sent per hour.
+ */
+export const EXISTING_ACCOUNT_EMAIL_LIMIT = 3
+export const SIGN_UP_WINDOW_SECONDS = 3600
 
 // GUI provider id → the actual next-auth v4 provider MODULE name, for the few
 // cases where they differ. Everything else uses the id as the module name.
@@ -218,9 +247,6 @@ export const SESSION_SAFE_USER_FIELDS: readonly string[] = [
   'roles',
 ]
 
-/** A `users` key the session derives the visitor's role from, in any case. */
-const ROLE_BEARING_USER_KEY = /^(roles?|role_?name)$/i
-
 /**
  * Credentials that must never leave the server, whatever the `users` table
  * happens to declare: the OAuth single-table adapter's provider tokens plus the
@@ -258,6 +284,13 @@ export const SENSITIVE_USER_FIELDS: readonly string[] = [
 const ID_ALIAS_FIELD = '_id'
 
 /**
+ * The Newsletter's own `users` columns (`newsletter_status`, …). A sign-in
+ * snapshot of them goes stale the moment the person confirms or unsubscribes,
+ * so they never reach the session: a page reads the row.
+ */
+const NEWSLETTER_COLUMN_PREFIX = 'newsletter_'
+
+/**
  * The exact set of `users` columns this project allows into the session.
  *
  * Derived from the DECLARED schema (`auth.tables.users`), which the GUI
@@ -272,7 +305,9 @@ export const buildSessionUserFields = (
   tables: Record<string, UIDLAuthTableColumn[]> | undefined,
   customProps: UIDLCustomUserProperty[]
 ): string[] => {
-  const declared = (tables?.users || []).map((column) => column.name)
+  const declared = (tables?.users || [])
+    .map((column) => column.name)
+    .filter((name) => !name.startsWith(NEWSLETTER_COLUMN_PREFIX))
   const custom = customProps.map((prop) => prop.key)
   const denied = new Set<string>(SENSITIVE_USER_FIELDS)
 
@@ -373,6 +408,47 @@ const generateCustomPropAirtableEntries = (props: UIDLCustomUserProperty[]): str
   )
 }
 
+/**
+ * The `users` columns a sign-up writes itself, never from its form: where the
+ * person came from (`source = 'signup'`) and their consent as given
+ * (`marketing_consent`, from the "Email me news and offers" box). On the
+ * Postgres family `createUser` writes each one it is given, and creates the
+ * account without them on a users table made before they existed.
+ */
+export const SIGNUP_OWN_COLUMNS: readonly string[] = ['source', 'marketing_consent']
+
+/**
+ * `findSignupUserByEmail(email)`: the sign-up's own existence check, blind to
+ * letter case, so `Ava@site.test` signing up reaches the `ava@site.test` row
+ * (a subscriber, a guest, an account) instead of making a second one. The
+ * exact address first; else the one row equal to it in any case, none when
+ * that is ambiguous. Sign-in keeps its exact `findUserByEmail`. On the other
+ * stores it is that exact lookup.
+ */
+const generateSignupLookupFunction = (dataSourceType: DataSourceType | null): string => {
+  switch (dataSourceType) {
+    case 'teleport':
+    case 'postgresql':
+    case 'cockroachdb':
+      return `async function findSignupUserByEmail(email) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const exact = await client.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [email]);
+    if (exact.rows && exact.rows.length > 0) return exact.rows[0];
+    const anyCase = await client.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 2', [email]);
+    return anyCase.rows && anyCase.rows.length === 1 ? anyCase.rows[0] : null;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}`
+    default:
+      return `async function findSignupUserByEmail(email) {
+  return findUserByEmail(email);
+}`
+  }
+}
+
 const generateFindUserFunction = (
   dataSourceType: DataSourceType | null,
   customProps: UIDLCustomUserProperty[]
@@ -390,6 +466,9 @@ async function userExistsByEmail() { return false; }`
   const customValues = generateCustomPropValues(customProps)
   const docEntries = generateCustomPropDocEntries(customProps)
   const airtableEntries = generateCustomPropAirtableEntries(customProps)
+  // A declared account property of the same name is already one of the columns.
+  const customKeys = new Set(customProps.map((prop) => prop.key))
+  const signupOwnColumns = SIGNUP_OWN_COLUMNS.filter((column) => !customKeys.has(column))
 
   switch (dataSourceType) {
     case 'teleport':
@@ -406,14 +485,44 @@ async function userExistsByEmail() { return false; }`
   }
 }
 
+// What a sign-up writes besides its form (where the person came from, their
+// consent as given), each when it is given. A users table made before one of
+// them lacks it (the column is added when a feature that reads it is switched
+// on): the account is then created without them.
+const SIGNUP_OWN_COLUMNS = ${JSON.stringify(signupOwnColumns)};
+
 async function createUser(userData) {
   const client = getClient();
   try {
     await client.connect();
-    const result = await client.query(
-      'INSERT INTO users (name, email, password, role, image${sqlCols}) VALUES ($1, $2, $3, $4, $5${pgPlaceholders}) RETURNING *',
-      [userData.name || null, userData.email, userData.password, userData.role || 'user', userData.image || null${customValues}]
-    );
+    const values = [userData.name || null, userData.email, userData.password, userData.role || 'user', userData.image || null${customValues}];
+    const insert = function (extra) {
+      let columns = '';
+      let placeholders = '';
+      for (let i = 0; i < extra.length; i++) {
+        columns += ', ' + extra[i];
+        placeholders += ', $' + (values.length + i + 1);
+      }
+      return client.query(
+        'INSERT INTO users (name, email, password, role, image${sqlCols}' + columns + ') VALUES ($1, $2, $3, $4, $5${pgPlaceholders}' + placeholders + ') RETURNING *',
+        values.concat(extra.map(function (column) { return userData[column]; }))
+      );
+    };
+    let extra = SIGNUP_OWN_COLUMNS.filter(function (column) { return userData[column] !== undefined; });
+    let result = null;
+    while (!result) {
+      try {
+        result = await insert(extra);
+      } catch (err) {
+        // 42703 names a column the table does not have. Only that one is left
+        // out, and only when it is one of these: the others are still written.
+        const named = err && err.code === '42703' ? /column "([^"]+)"/.exec(String(err.message || '')) : null;
+        const missing = named ? named[1] : '';
+        if (!missing || extra.indexOf(missing) === -1) { throw err; }
+        console.warn('[auth] the users table has no ' + missing + ' column yet: the account is created without it');
+        extra = extra.filter(function (column) { return column !== missing; });
+      }
+    }
     return result.rows && result.rows.length > 0 ? result.rows[0] : null;
   } finally {
     try { await client.end(); } catch (_e) {}
@@ -615,6 +724,279 @@ async function userExistsByEmail() { return false; }`
   }
 }
 
+/** Where the password-reset links live: hashed, single-use, per account id. */
+export const PASSWORD_RESETS_TABLE = 'teleport_password_resets'
+
+const PG_PASSWORD_RESET_FUNCTIONS = `
+// Password-reset links (pages/api/auth/forgot-password + reset-password). Only
+// the SHA-256 of a link's token is stored, bound to the account id, with its
+// expiry; the table is created on first use. The earlier password_reset_tokens
+// table and its rows are never read.
+var PASSWORD_RESETS_TABLE = '${PASSWORD_RESETS_TABLE}';
+var __passwordResetsTableReady = false;
+
+async function ensurePasswordResetsTable(client) {
+  if (__passwordResetsTableReady) return;
+  await client.query('BEGIN');
+  try {
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [PASSWORD_RESETS_TABLE]);
+    await client.query(
+      'CREATE TABLE IF NOT EXISTS ' + PASSWORD_RESETS_TABLE + ' (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, ' +
+        'expires_at TIMESTAMPTZ NOT NULL, used_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())'
+    );
+    await client.query('CREATE INDEX IF NOT EXISTS ' + PASSWORD_RESETS_TABLE + '_user_id_idx ON ' + PASSWORD_RESETS_TABLE + ' (user_id)');
+    await client.query('COMMIT');
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_e) {}
+    throw err;
+  }
+  __passwordResetsTableReady = true;
+}
+
+// One live link per account: a new one ends the ones sent before it.
+async function storePasswordReset(userId, tokenHash, ttlSeconds) {
+  const client = getClient();
+  try {
+    await client.connect();
+    await ensurePasswordResetsTable(client);
+    await client.query(
+      'UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+      [String(userId)]
+    );
+    await client.query(
+      'INSERT INTO ' + PASSWORD_RESETS_TABLE + " (token_hash, user_id, expires_at) VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 second'))",
+      [tokenHash, String(userId), ttlSeconds]
+    );
+    await client.query(
+      'DELETE FROM ' + PASSWORD_RESETS_TABLE + " WHERE expires_at < NOW() - INTERVAL '1 day'"
+    );
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+// Spends the link and sets the password in ONE statement: the link must be
+// unspent and unexpired, and is spent by this call alone (a second call with the
+// same token finds it used). Returns the account it was for, or null.
+async function consumePasswordReset(tokenHash, passwordHash) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'WITH consumed AS (' +
+        ' UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW()' +
+        ' WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()' +
+        ' RETURNING user_id' +
+        '), changed AS (' +
+        ' UPDATE users SET password = $2 FROM consumed WHERE users.id::text = consumed.user_id' +
+        ' RETURNING users.id, users.email' +
+        ') SELECT id, email FROM changed',
+      [tokenHash, passwordHash]
+    );
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } catch (err) {
+    // 42P01: no link was ever sent, so the table is not there yet.
+    if (err && err.code === '42P01') return null;
+    throw err;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function passwordResetIsLive(tokenHash) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'SELECT 1 FROM ' + PASSWORD_RESETS_TABLE + ' WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW() LIMIT 1',
+      [tokenHash]
+    );
+    return !!(result.rows && result.rows.length > 0);
+  } catch (err) {
+    if (err && err.code === '42P01') return false;
+    throw err;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+const PASSWORD_RESET_SUPPORTED = true;`
+
+const UNSUPPORTED_PASSWORD_RESET_FUNCTIONS = `
+// Password-reset links need a Postgres database; this project's user store is
+// not one, so the reset routes answer without ever sending a link.
+async function storePasswordReset() { throw new Error('Password reset needs a Postgres database'); }
+async function consumePasswordReset() { return null; }
+async function passwordResetIsLive() { return false; }
+const PASSWORD_RESET_SUPPORTED = false;`
+
+/**
+ * `updateUserPasswordHash(user, newHash, oldHash)` — the sign-in moving a hash
+ * onto the project's own pepper. It writes only over the hash it verified, so a
+ * reset that landed in between is never undone. Plus the password-reset link
+ * store (Postgres family only).
+ */
+const generatePasswordStoreFunctions = (dataSourceType: DataSourceType | null): string => {
+  switch (dataSourceType) {
+    case 'teleport':
+    case 'postgresql':
+    case 'cockroachdb':
+      return `// The account a stamped session was issued for (session-revocation). A value
+// that is not an id of this table's type (22P02) is no account; any other
+// error is thrown, so the session check fails closed.
+async function findUserById(id) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
+    return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+  } catch (err) {
+    if (err && err.code === '22P02') return null;
+    throw err;
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const client = getClient();
+  try {
+    await client.connect();
+    const result = await client.query('UPDATE users SET password = $1 WHERE id = $2 AND password = $3', [newHash, user.id, oldHash]);
+    return !!(result && result.rowCount > 0);
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+}
+${PG_PASSWORD_RESET_FUNCTIONS}`
+    case 'supabase':
+      return `async function findUserById(id) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').select('*').eq('id', id).maybeSingle();
+  if (result.error) throw new Error(result.error.message || 'users lookup failed');
+  return result.data || null;
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').update({ password: newHash }).eq('id', user.id).eq('password', oldHash).select('id');
+  return !!(result.data && result.data.length > 0);
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    case 'mysql':
+    case 'mariadb':
+    case 'tidb':
+      return `async function findUserById(id) {
+  const conn = await getConnection();
+  try {
+    const [rows] = await conn.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows && rows.length > 0 ? rows[0] : null;
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const conn = await getConnection();
+  try {
+    const [result] = await conn.execute('UPDATE users SET password = ? WHERE id = ? AND password = ?', [newHash, user.id, oldHash]);
+    return !!(result && result.affectedRows > 0);
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    case 'mongodb':
+      return `async function findUserById(id) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const ObjectId = require('mongodb').ObjectId;
+  if (!ObjectId.isValid(String(id))) return null;
+  return await db.collection('users').findOne({ _id: new ObjectId(String(id)) });
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  const result = await db.collection('users').updateOne({ _id: user._id, password: oldHash }, { $set: { password: newHash } });
+  return !!(result && result.modifiedCount > 0);
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    case 'firestore':
+      return `async function findUserById(id) {
+  const snap = await firestoreDb.collection('users').doc(String(id)).get();
+  return snap.exists ? Object.assign({ id: snap.id }, snap.data()) : null;
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const ref = firestoreDb.collection('users').doc(String(user.id));
+  return firestoreDb.runTransaction(async function (tx) {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data().password !== oldHash) return false;
+    tx.update(ref, { password: newHash });
+    return true;
+  });
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    case 'turso':
+      return `async function findUserById(id) {
+  const result = await tursoClient.execute({ sql: 'SELECT * FROM users WHERE id = ? LIMIT 1', args: [id] });
+  return result.rows && result.rows.length > 0 ? result.rows[0] : null;
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const result = await tursoClient.execute({ sql: 'UPDATE users SET password = ? WHERE id = ? AND password = ?', args: [newHash, user.id, oldHash] });
+  return !!(result && result.rowsAffected > 0);
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    case 'airtable':
+      return `async function findUserById(id) {
+  return new Promise(function(resolve, reject) {
+    airtableBase('users').find(String(id), function(err, rec) {
+      if (err && (err.statusCode === 404 || err.error === 'NOT_FOUND')) { resolve(null); return; }
+      if (err) { reject(err); return; }
+      resolve(rec ? Object.assign({ id: rec.id }, rec.fields) : null);
+    });
+  });
+}
+
+async function updateUserPasswordHash(user, newHash, oldHash) {
+  const current = await findUserByEmail(user.email);
+  if (!current || current.password !== oldHash) return false;
+  await new Promise(function(resolve, reject) {
+    airtableBase('users').update(String(user.id), { password: newHash }, function(err) { if (err) { reject(err); } else { resolve(); } });
+  });
+  return true;
+}
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+    default:
+      return `async function findUserById() { return null; }
+async function updateUserPasswordHash() { return false; }
+${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
+  }
+}
+
+/** Microsoft provider ids whose email claim is only trusted for one tenant. */
+const MICROSOFT_PROVIDER_IDS = new Set(['azure-ad', 'microsoft-entra-id'])
+
+/** The credential key naming a Microsoft provider's tenant (`*_TENANT_ID`, or Entra's `*_ISSUER`). */
+const microsoftTenantKeyOf = (provider: { id: string; credentials: Record<string, string> }) =>
+  Object.keys(provider.credentials || {}).find(
+    (key) => key.endsWith('_TENANT_ID') || key.endsWith('_ISSUER')
+  )
+
+/** provider id → env var of its configured tenant, for each Microsoft provider. */
+const microsoftTenantEnvKeys = (auth: UIDLAuthentication): Record<string, string> => {
+  const keys: Record<string, string> = {}
+  for (const provider of auth.providers || []) {
+    const key = MICROSOFT_PROVIDER_IDS.has(provider.id) ? microsoftTenantKeyOf(provider) : undefined
+    if (key) {
+      keys[provider.id] = key
+    }
+  }
+  return keys
+}
+
 // Only the CredentialsProvider is imported at module scope (it always exists).
 // OAuth providers are required lazily inside generateProvidersSetup.
 const generateProviderImports = (auth: UIDLAuthentication): string => {
@@ -654,11 +1036,11 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
   //
   // Unknown email and wrong password deliberately share one code: telling them
   // apart is a user-enumeration oracle.
-  async authorize(credentials) {
+  async authorize(credentials, req) {
     if (!credentials || !credentials.email || !credentials.password) {
       throw new Error('MissingCredentials');
     }
-    const { verifyPassword } = require('./hash-password');
+    const { checkPassword, hashPassword } = require('./hash-password');
     const { classifyAuthInfrastructureError } = require('./db-health');
     let user;
     try {
@@ -668,20 +1050,35 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
       console.error('[auth] Could not reach the user store (' + kind + '):', err && err.message ? err.message : err);
       throw new Error('ServiceUnavailable');
     }
+    let verdict;
     try {
-      if (!user) throw new Error('InvalidCredentials');
-      if (!verifyPassword(String(credentials.password), user.password)) {
-        throw new Error('InvalidCredentials');
-      }
-      return sanitizeUser(user);
+      // No account, or one without a password, is checked too (against a
+      // stand-in hash): every failure costs what a wrong password costs.
+      verdict = checkPassword(String(credentials.password), user ? user.password : null);
     } catch (err) {
-      if (err && err.message === 'InvalidCredentials') throw err;
       // A hashing/serialisation fault is an infrastructure problem, not a
       // wrong password — saying "check your details" would send the user
       // round in circles.
       console.error('[auth] Credential check failed:', err && err.message ? err.message : err);
       throw new Error('ServiceUnavailable');
     }
+    if (!verdict.ok) {
+      await countSignInFailure(req, credentials.email);
+      throw new Error('InvalidCredentials');
+    }
+    // A hash still made with the old pepper moves onto the project's own.
+    let storedHash = user.password;
+    if (verdict.needsRehash) {
+      try {
+        const rehashed = hashPassword(String(credentials.password));
+        if (await updateUserPasswordHash(user, rehashed, storedHash)) {
+          storedHash = rehashed;
+        }
+      } catch (err) {
+        console.error('[auth] Could not move the password onto the current pepper:', err && err.message ? err.message : err);
+      }
+    }
+    return withSessionStamp(sanitizeUser(user), Object.assign({}, user, { password: storedHash }));
   }
 }));`)
   }
@@ -700,7 +1097,11 @@ const generateProvidersSetup = (auth: UIDLAuthentication): string => {
       `      clientId: process.env.${idKey}`,
       `      clientSecret: process.env.${secretKey}`,
     ]
-    if (issuerKey) {
+    if (provider.id === 'azure-ad' && issuerKey && issuerKey.endsWith('_TENANT_ID')) {
+      // next-auth's Azure AD provider takes the tenant as tenantId ("common",
+      // every tenant, when absent).
+      cfg.push(`      tenantId: process.env.${issuerKey} || undefined`)
+    } else if (issuerKey) {
       cfg.push(`      issuer: process.env.${issuerKey}`)
     }
 
@@ -728,17 +1129,35 @@ export const generateAuthOptionsFile = (
   const providerImports = generateProviderImports(auth)
   const providersSetup = generateProvidersSetup(auth)
   const findUserCode = auth.passwordAuthEnabled
-    ? generateFindUserFunction(auth.dataSourceType, customProps)
+    ? `${generateFindUserFunction(auth.dataSourceType, customProps)}
+
+${generateSignupLookupFunction(auth.dataSourceType)}`
     : ''
   const sanitizeUserCode = generateSanitizeUserFunction(auth.tables, customProps)
   const signInRoute = auth.authPages.signIn?.route || '/auth/sign-in'
+  // Password sign-in brings the local account a session can be revoked from;
+  // with an OAuth provider beside it, an OAuth sign-in may become that account.
+  const withPassword = !!auth.passwordAuthEnabled
+  // Every OAuth project checks whether the provider vouches for the email: an
+  // unvouched email never is the visitor's identity, whether or not a local
+  // account could be adopted (R15).
+  const withOAuthBinding = (auth.providers || []).length > 0
+  const passwordSessionCode = withPassword
+    ? `${generatePasswordStoreFunctions(auth.dataSourceType)}
+
+${CREDENTIAL_SESSION_HELPERS}
+`
+    : ''
+  const oauthBindingCode = withOAuthBinding
+    ? `${generateOAuthEmailVerificationHelpers(auth)}\n`
+    : ''
 
   return `${providerImports}
 ${dbSetupCode}
 ${sanitizeUserCode}
 
 ${findUserCode}
-
+${passwordSessionCode}${oauthBindingCode}
 ${providersSetup}
 
 // How long a JWT may serve profile fields before the next /api/auth/session
@@ -773,7 +1192,29 @@ const authOptions = {
         for (let i = 0; i < keys.length; i++) {
           token[keys[i]] = user[keys[i]];
         }
-        // Deliberately NOT stamped. An OAuth \`user\` is the PROVIDER's profile
+${
+  withOAuthBinding
+    ? `        // An OAuth sign-in becomes the local account with its email only when
+        // the provider vouches for that email; otherwise it stays a session of
+        // its own, without the account's id or role.
+        if (params.account && params.account.type !== 'credentials') {
+          if (!(await oauthEmailIsVerified(params.account, params.profile, token))) {
+            asDistinctOAuthIdentity(token, params.account);
+          }${
+            withPassword
+              ? ` else {
+            // Vouched for: the next refresh adopts the local account with that
+            // email (its id and role). Until then — and for good when there is
+            // none — the id is the provider's, namespaced where it could equal
+            // a local id.
+            namespaceOAuthId(token, params.account);
+          }`
+              : ''
+          }
+        }
+`
+    : ''
+}        // Deliberately NOT stamped. An OAuth \`user\` is the PROVIDER's profile
         // (id/name/email/image) — it carries no \`role\`, which only exists on
         // the \`users\` row. Stamping here would make the first session request
         // after an OAuth sign-in skip the database and leave the visitor
@@ -782,7 +1223,15 @@ const authOptions = {
         // exactly as it does today, and the interval applies from there on.
         return token;
       }
-      // Subsequent calls (every /api/auth/session): re-read the user from the
+${
+  withOAuthBinding
+    ? `      // A session the provider did not vouch for never takes a local account.
+      if (token && token[OAUTH_UNVERIFIED]) {
+        return token;
+      }
+`
+    : ''
+}      // Subsequent calls (every /api/auth/session): re-read the user from the
       // database so profile edits — name, image, role, etc. — propagate into the
       // session. The JWT is otherwise a snapshot captured at login, which is why
       // the navbar avatar/name reverted to the old value after a refresh: the
@@ -803,21 +1252,19 @@ const authOptions = {
       if (params.trigger !== 'update' && isFresh) {
         return token;
       }
-      try {
-        if (token && token.email && typeof findUserByEmail === 'function') {
-          const fresh = await findUserByEmail(String(token.email));
-          const safe = fresh && typeof sanitizeUser === 'function' ? sanitizeUser(fresh) : null;
-          if (safe && typeof safe === 'object') {
-            const fk = Object.keys(safe);
-            for (let i = 0; i < fk.length; i++) {
-              token[fk[i]] = safe[fk[i]];
-            }
-          }
-        }
-      } catch (e) {
+${withPassword ? PASSWORD_REFRESH_CODE : PLAIN_REFRESH_CODE}      } catch (e) {
         // Keep the existing token on any DB hiccup — never sign the user out.
       }
-      // Stamped even when the read threw, so an unreachable database costs one
+${
+  withPassword
+    ? `      if (revoked) {
+        // NextAuth answers a jwt callback that throws by clearing the session
+        // cookie: the visitor is signed out.
+        throw new Error('SessionRevoked');
+      }
+`
+    : ''
+}      // Stamped even when the read threw, so an unreachable database costs one
       // attempt per interval instead of one per request.
       if (token) {
         token[TOKEN_REFRESH_STAMP] = now;
@@ -830,7 +1277,9 @@ const authOptions = {
       if (token && session.user) {
         const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
         skip[TOKEN_REFRESH_STAMP] = 1;
-        const keys = Object.keys(token);
+${withPassword ? `        skip['${SESSION_STAMP_KEY}'] = 1;\n` : ''}${
+    withOAuthBinding ? '        skip[OAUTH_UNVERIFIED] = 1;\n' : ''
+  }        const keys = Object.keys(token);
         for (let i = 0; i < keys.length; i++) {
           if (!skip[keys[i]]) {
             session.user[keys[i]] = token[keys[i]];
@@ -846,14 +1295,393 @@ const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
+// On https the session token and the callback-url cookie are "__Host-" cookies
+// (Path=/, Secure, HttpOnly, SameSite=Lax, no Domain): only this site can set
+// them. Published sites share a parent domain that is not a public suffix, so a
+// sibling site could otherwise plant a session cookie this site reads (cookie
+// tossing: the visitor silently signed in to someone else's account). Every
+// reader in the app reads this one name (session-cookie-resolver). NextAuth
+// reads the option on every request, after the auth route has set
+// NEXTAUTH_URL to the request's origin; on http (a local server) its defaults stay.
+var SECURE_SESSION_COOKIES = {
+  sessionToken: {
+    name: '${SessionCookieResolver.SECURE_SESSION_COOKIE_NAME}',
+    options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true },
+  },
+  callbackUrl: {
+    name: '${SessionCookieResolver.SECURE_CALLBACK_URL_COOKIE_NAME}',
+    options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true },
+  },
+};
+Object.defineProperty(authOptions, 'cookies', {
+  enumerable: true,
+  get: function () {
+    return String(process.env.NEXTAUTH_URL || '').indexOf('https://') === 0 ? SECURE_SESSION_COOKIES : undefined;
+  },
+});
+
 module.exports = authOptions;
 module.exports.sanitizeUser = sanitizeUser;
 ${
   auth.passwordAuthEnabled
-    ? `module.exports.findUserByEmail = findUserByEmail;\nmodule.exports.createUser = createUser;\nmodule.exports.userExistsByEmail = userExistsByEmail;\n`
+    ? `module.exports.findUserByEmail = findUserByEmail;\nmodule.exports.findSignupUserByEmail = findSignupUserByEmail;\nmodule.exports.createUser = createUser;\nmodule.exports.userExistsByEmail = userExistsByEmail;\n`
     : ''
-}
+}${
+    withPassword
+      ? `module.exports.findUserById = findUserById;
+module.exports.checkSignInAllowed = checkSignInAllowed;
+module.exports.countSignInFailure = countSignInFailure;
+module.exports.SIGN_IN_VISITOR_HEADER = SIGN_IN_VISITOR_HEADER;
+module.exports.storePasswordReset = storePasswordReset;
+module.exports.consumePasswordReset = consumePasswordReset;
+module.exports.passwordResetIsLive = passwordResetIsLive;
+module.exports.PASSWORD_RESET_SUPPORTED = PASSWORD_RESET_SUPPORTED;
 `
+      : ''
+  }
+`
+}
+
+// The jwt callback's refresh without password sign-in (no local lookup exists).
+const PLAIN_REFRESH_CODE = `      try {
+        if (token && token.email && typeof findUserByEmail === 'function') {
+          const fresh = await findUserByEmail(String(token.email));
+          const safe = fresh && typeof sanitizeUser === 'function' ? sanitizeUser(fresh) : null;
+          if (safe && typeof safe === 'object') {
+            const fk = Object.keys(safe);
+            for (let i = 0; i < fk.length; i++) {
+              token[fk[i]] = safe[fk[i]];
+            }
+          }
+        }
+`
+
+// With password sign-in: a stamped session follows its account BY ID (the key
+// every consumer acts on), so a deleted account or a changed password ends it
+// even after an email change; an unstamped one (an OAuth sign-in, a token from
+// before stamps) adopts the local account by its email.
+const PASSWORD_REFRESH_CODE = `      let revoked = false;
+      try {
+        const stamped = !!token && typeof token['${SESSION_STAMP_KEY}'] === 'string';
+        const accountId = token && (token.id != null ? token.id : token.sub);
+        let fresh = null;
+        let looked = false;
+        if (stamped && typeof findUserById === 'function') {
+          fresh = accountId != null ? await findUserById(String(accountId)) : null;
+          looked = true;
+        } else if (token && token.email && typeof findUserByEmail === 'function') {
+          fresh = await findUserByEmail(String(token.email));
+          looked = true;
+        }
+        if (looked) {
+          // The account's password (or session_version) changed since this
+          // token was stamped, or the account is gone: the session is over.
+          // Otherwise the token takes the stamp of the account as it is now.
+          revoked = sessionStampCheck(token, fresh) === 'revoked';
+          const safe = !revoked && fresh && typeof sanitizeUser === 'function' ? sanitizeUser(fresh) : null;
+          if (safe && typeof safe === 'object') {
+            const fk = Object.keys(safe);
+            for (let i = 0; i < fk.length; i++) {
+              token[fk[i]] = safe[fk[i]];
+            }
+          }
+        }
+`
+
+/**
+ * auth-options helpers for password sign-in: the sign-in throttle (failures
+ * per visitor and email, counted after a wrong password, checked by the
+ * NextAuth route before the next attempt) and the session stamp
+ * (`utils/auth/session-revocation.js`).
+ */
+const CREDENTIAL_SESSION_HELPERS = `// Sign-in throttle. The NextAuth route refuses a visitor's next sign-in for an
+// email once SIGN_IN_FAILURE_LIMIT failures for it are in the window, once the
+// visitor has SIGN_IN_VISITOR_FAILURE_LIMIT failures across all emails, or once
+// they tried it SIGN_IN_ATTEMPT_LIMIT times (so a burst of parallel guesses
+// cannot all start before the first failure is counted). The route writes who
+// the visitor is on the request (SIGN_IN_VISITOR_HEADER, replacing whatever the
+// request carried), because NextAuth hands authorize() the headers only.
+var SIGN_IN_VISITOR_HEADER = 'x-teleport-signin-visitor';
+var SIGN_IN_FAILURE_SCOPE = 'auth-signin-failures';
+var SIGN_IN_FAILURE_LIMIT = ${SIGN_IN_FAILURE_LIMIT};
+var SIGN_IN_ATTEMPT_SCOPE = 'auth-signin-attempts';
+var SIGN_IN_ATTEMPT_LIMIT = ${SIGN_IN_ATTEMPT_LIMIT};
+var SIGN_IN_WINDOW_SECONDS = ${SIGN_IN_WINDOW_SECONDS};
+// Failures one visitor may make across every email (credential stuffing tries
+// many addresses once each), counted the same way: after a failure only.
+var SIGN_IN_VISITOR_FAILURE_SCOPE = 'auth-signin-visitor-failures';
+var SIGN_IN_VISITOR_FAILURE_LIMIT = ${SIGN_IN_VISITOR_FAILURE_LIMIT};
+
+function signInVisitorRequest(req) {
+  var headers = (req && req.headers) || {};
+  var visitor = headers[SIGN_IN_VISITOR_HEADER];
+  return { headers: {}, socket: { remoteAddress: typeof visitor === 'string' ? visitor : '' } };
+}
+
+function signInEmailKey(email) {
+  return String(email == null ? '' : email).trim().toLowerCase();
+}
+
+// { allowed, retryAfter } for the sign-in the request is about to make.
+async function checkSignInAllowed(req) {
+  var security = require('../security-runtime');
+  var visitor = signInVisitorRequest(req);
+  var email = signInEmailKey(req && req.body ? req.body.email : '');
+  var failures = await security.peekRateLimitRequest(visitor, {
+    scope: SIGN_IN_FAILURE_SCOPE,
+    limit: SIGN_IN_FAILURE_LIMIT,
+    windowSeconds: SIGN_IN_WINDOW_SECONDS,
+    keyParts: [email],
+  });
+  if (!failures.allowed) {
+    return failures;
+  }
+  var visitorFailures = await security.peekRateLimitRequest(visitor, {
+    scope: SIGN_IN_VISITOR_FAILURE_SCOPE,
+    limit: SIGN_IN_VISITOR_FAILURE_LIMIT,
+    windowSeconds: SIGN_IN_WINDOW_SECONDS,
+  });
+  if (!visitorFailures.allowed) {
+    return visitorFailures;
+  }
+  var attemptAllowed = await security.rateLimitRequest(visitor, null, {
+    scope: SIGN_IN_ATTEMPT_SCOPE,
+    limit: SIGN_IN_ATTEMPT_LIMIT,
+    windowSeconds: SIGN_IN_WINDOW_SECONDS,
+    keyParts: [email],
+  });
+  if (!attemptAllowed) {
+    var nowSec = Math.floor(Date.now() / 1000);
+    return { allowed: false, retryAfter: Math.max(1, SIGN_IN_WINDOW_SECONDS - (nowSec % SIGN_IN_WINDOW_SECONDS)) };
+  }
+  return { allowed: true, retryAfter: 0 };
+}
+
+async function countSignInFailure(req, email) {
+  try {
+    var security = require('../security-runtime');
+    var visitor = signInVisitorRequest(req);
+    await security.rateLimitRequest(visitor, null, {
+      scope: SIGN_IN_FAILURE_SCOPE,
+      limit: SIGN_IN_FAILURE_LIMIT,
+      windowSeconds: SIGN_IN_WINDOW_SECONDS,
+      keyParts: [signInEmailKey(email)],
+    });
+    await security.rateLimitRequest(visitor, null, {
+      scope: SIGN_IN_VISITOR_FAILURE_SCOPE,
+      limit: SIGN_IN_VISITOR_FAILURE_LIMIT,
+      windowSeconds: SIGN_IN_WINDOW_SECONDS,
+    });
+  } catch (err) {
+    console.error('[auth] Could not count a failed sign-in:', err && err.message ? err.message : err);
+  }
+}
+
+// The shared session-stamp check (utils/auth/session-revocation.js).
+function sessionRevocationModule() {
+  try {
+    var revocation = require('./${SESSION_REVOCATION_FILE_NAME}');
+    return revocation && typeof revocation.stampVerdict === 'function' ? revocation : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// A signed-in user's session carries the stamp of the account it was issued for.
+function withSessionStamp(safeUser, row) {
+  var revocation = sessionRevocationModule();
+  var stamp = revocation ? revocation.credentialStamp(row) : null;
+  if (safeUser && stamp) {
+    safeUser[revocation.SESSION_STAMP_KEY] = stamp;
+  }
+  return safeUser;
+}
+
+// 'revoked' when the stored account no longer matches the token's stamp;
+// otherwise the token takes the account's current stamp.
+function sessionStampCheck(token, row) {
+  var revocation = sessionRevocationModule();
+  if (!revocation) {
+    return 'unchecked';
+  }
+  var verdict = revocation.stampVerdict(token, row || null);
+  if (verdict !== 'revoked' && row) {
+    var stamp = revocation.credentialStamp(row);
+    if (stamp) {
+      token[revocation.SESSION_STAMP_KEY] = stamp;
+    }
+  }
+  return verdict;
+}`
+
+/**
+ * The user stores whose own account ids can never equal an OAuth provider's id:
+ * MongoDB (`_id`, a 24-hex ObjectId), Airtable (`rec…` record ids) and
+ * Firestore (20-character auto ids). Read from `auth.dataSourceType`, the same
+ * value that picks the auth driver.
+ */
+const STORES_WITH_DISJOINT_IDS = new Set(['mongodb', 'airtable', 'firestore'])
+
+/**
+ * Whether an OAuth session's id must be namespaced (`oauth:<provider>:<id>`)
+ * because the provider's raw account id could equal another account's id:
+ * - the project has more than one OAuth provider: two providers' id spaces
+ *   can collide, whatever the store;
+ * - otherwise a store whose ids are its own (STORES_WITH_DISJOINT_IDS) keeps
+ *   the raw id;
+ * - any other store (SQL or not) is decided by the declared `users` id type:
+ *   a UUID keeps the raw id; any other type (a provider's integer id can equal
+ *   a local integer id on every owner rule), or none declared, namespaces.
+ * The editor declares the type the database reported for its `users` table
+ * (teleport-gui `liveUsersIdType`), and no type when none was recorded.
+ * Where the raw id stays it never equals a local id, and every record a
+ * published site wrote under it (entitlements, cart, favourites, chats,
+ * downloads) stays the visitor's. Wherever a collision cannot be ruled out the
+ * id is namespaced: a collision hands one person another's records, which no
+ * later fix undoes; lost continuity leaves the records in place under the old
+ * id.
+ */
+export const oauthIdsNeedNamespace = (auth: UIDLAuthentication): boolean => {
+  if ((auth.providers || []).length > 1) {
+    return true
+  }
+  if (auth.dataSourceType && STORES_WITH_DISJOINT_IDS.has(auth.dataSourceType)) {
+    return false
+  }
+  const idColumn = ((auth.tables && auth.tables.users) || []).find(
+    (column) => !!column && String(column.name || '').toLowerCase() === 'id'
+  )
+  return !(idColumn && /^\s*uuid\b/i.test(String(idColumn.type || '')))
+}
+
+/**
+ * auth-options helpers for a project with password sign-in AND an OAuth
+ * provider: whether the provider vouches for the email an OAuth sign-in
+ * presents. Only then may that sign-in become the local account with the same
+ * email (its id and role); otherwise it is a session of its own.
+ */
+const generateOAuthEmailVerificationHelpers = (auth: UIDLAuthentication): string => {
+  const tenants = microsoftTenantEnvKeys(auth)
+  const tenantEntries = Object.keys(tenants)
+    .map((id) => `${JSON.stringify(id)}: process.env.${tenants[id]}`)
+    .join(', ')
+  return `// Providers that only ever hand out an email its owner proved. Any other
+// provider must say so in the profile (email_verified); an explicit "not
+// verified" outweighs the list.
+var VERIFIED_EMAIL_PROVIDERS = { google: true, apple: true };
+var OAUTH_UNVERIFIED = '__oauthUnverified';
+// A provider's raw account id could equal another account's id here (see
+// oauthIdsNeedNamespace in the code generator): sessions without a local
+// account take the provider's id as "oauth:<provider>:<id>".
+var OAUTH_IDS_NAMESPACED = ${JSON.stringify(oauthIdsNeedNamespace(auth))};
+
+// Microsoft (Azure AD / Entra ID) tokens carry no email_verified, and on the
+// multi-tenant endpoint the email claim is whatever the signing-in tenant's
+// administrator set (the "nOAuth" class). An email counts only when the token
+// says its domain is verified (xms_edov), or when the provider is configured
+// for one specific tenant (an id or a domain, never common / organizations /
+// consumers): the site owner's own directory.
+var MICROSOFT_PROVIDERS = { 'azure-ad': true, 'microsoft-entra-id': true };
+var MICROSOFT_TENANTS = { ${tenantEntries} };
+var MICROSOFT_TENANT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+// The one tenant a Microsoft provider is configured for, or '' (multi-tenant).
+function microsoftTenantOf(value) {
+  var raw = String(value == null ? '' : value).trim().toLowerCase();
+  if (!raw || raw.indexOf('teleporthq.secrets.') === 0) {
+    return '';
+  }
+  var fromIssuer = /^https:\\/\\/login\\.microsoftonline\\.com\\/([^\\/?#]+)/.exec(raw);
+  var tenant = fromIssuer ? fromIssuer[1] : raw;
+  if (tenant === 'common' || tenant === 'organizations' || tenant === 'consumers') {
+    return '';
+  }
+  return MICROSOFT_TENANT_ID.test(tenant) || /^[a-z0-9-]+(\\.[a-z0-9-]+)+$/.test(tenant) ? tenant : '';
+}
+
+function microsoftEmailIsVerified(provider, claims) {
+  if (claims.xms_edov === true || claims.xms_edov === 'true' || claims.xms_edov === 1) {
+    return true;
+  }
+  var tenant = microsoftTenantOf(MICROSOFT_TENANTS[provider]);
+  if (!tenant) {
+    return false;
+  }
+  // A tenant given by id must be the one the token was issued in.
+  if (MICROSOFT_TENANT_ID.test(tenant) && claims.tid != null && String(claims.tid).toLowerCase() !== tenant) {
+    return false;
+  }
+  return true;
+}
+
+// GitHub's profile email is not always a verified one: ask GitHub (the
+// provider requests the user:email scope) whether this address is.
+async function githubEmailIsVerified(account, email) {
+  if (!account || !account.access_token || !email) {
+    return false;
+  }
+  try {
+    var res = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        Authorization: 'Bearer ' + account.access_token,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'teleporthq-auth',
+      },
+    });
+    if (!res.ok) {
+      return false;
+    }
+    var list = await res.json();
+    var wanted = String(email).toLowerCase();
+    return Array.isArray(list) && list.some(function (entry) {
+      return !!entry && entry.verified === true && String(entry.email || '').toLowerCase() === wanted;
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+async function oauthEmailIsVerified(account, profile, token) {
+  var claims = profile || {};
+  if (claims.email_verified === false || claims.email_verified === 'false') {
+    return false;
+  }
+  if (claims.email_verified === true || claims.email_verified === 'true') {
+    return true;
+  }
+  var provider = String((account && account.provider) || '');
+  if (provider === 'github') {
+    return githubEmailIsVerified(account, token && token.email);
+  }
+  if (MICROSOFT_PROVIDERS[provider] === true) {
+    return microsoftEmailIsVerified(provider, claims);
+  }
+  return VERIFIED_EMAIL_PROVIDERS[provider] === true;
+}
+
+// The provider's own account id as "oauth:<provider>:<id>": a namespace no
+// local account id can share (a provider's integer ids would otherwise match
+// local integer ids on owner rules). Where no id can collide, the raw id stays.
+function namespaceOAuthId(token, account) {
+  if (!OAUTH_IDS_NAMESPACED) {
+    return;
+  }
+  var accountId = String((account && account.providerAccountId) || token.sub || token.id || '');
+  var id = 'oauth:' + String((account && account.provider) || 'provider') + ':' + accountId;
+  token.id = id;
+  token.sub = id;
+}
+
+// Not vouched for: the visitor keeps a session under an id no local account can
+// have (namespaced where one could), with no email to be matched by and no role.
+function asDistinctOAuthIdentity(token, account) {
+  namespaceOAuthId(token, account);
+  delete token.email;
+  delete token.role;
+  delete token.roleName;
+  delete token.roles;
+  token[OAUTH_UNVERIFIED] = true;
+}`
 }
 
 /**
@@ -876,6 +1704,7 @@ const AUTH_ERROR_MESSAGES = {
   InvalidCredentials: 'That email and password do not match an account.',
   ServiceUnavailable:
     'We could not reach the account service. Please try again in a moment — if it keeps happening, the site owner needs to check its database configuration.',
+  TooManyAttempts: 'Too many sign-in attempts. Please wait a few minutes and try again.',
 
   // NextAuth's own.
   CredentialsSignin: 'That email and password do not match an account.',
@@ -975,37 +1804,163 @@ module.exports = {
 `
 }
 
+/** The password a site accepts when one is set (sign-up, reset, a change). */
+export const MIN_PASSWORD_LENGTH = 8
+export const MAX_PASSWORD_BYTES = 128
+
 export const generateHashPasswordFile = (): string => {
   return `const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const PEPPER = process.env.AUTH_PEPPER || '';
 const COST_FACTOR = 12;
+const MIN_PASSWORD_LENGTH = ${MIN_PASSWORD_LENGTH};
+const MAX_PASSWORD_BYTES = ${MAX_PASSWORD_BYTES};
 
-function prepare(password) {
+// Two peppers. AUTH_PEPPER_SECRET is the project's own random secret, which the
+// deploy step provisions; every new hash uses it. AUTH_PEPPER (the project id,
+// no secret) is the one every hash was made with before it existed: such a hash
+// still verifies, and the sign-in replaces it. Without the secret, hashing and
+// verifying stay on the old pepper — never on none.
+function pepperSecret() {
+  var value = process.env.AUTH_PEPPER_SECRET;
+  return typeof value === 'string' && value && value.indexOf('teleporthq.secrets.') !== 0 ? value : '';
+}
+
+function legacyPepper() {
+  return process.env.AUTH_PEPPER || '';
+}
+
+// SHA-256 first, so bcrypt (which reads at most 72 bytes) sees all of it.
+function prepare(password, pepper) {
   const str = String(password);
   if (str.length > 1000) {
     throw new Error('Password exceeds maximum length');
   }
-  const sha = crypto.createHash('sha256').update(str + PEPPER).digest('base64');
-  return sha;
+  return crypto.createHash('sha256').update(str + pepper).digest('base64');
 }
 
 function hashPassword(password) {
-  return bcrypt.hashSync(prepare(password), COST_FACTOR);
+  return bcrypt.hashSync(prepare(password, pepperSecret() || legacyPepper()), COST_FACTOR);
+}
+
+// A hash no password matches, made once per process with the project pepper
+// at the same cost. An address without an account, or a row without a
+// password (a subscriber, a guest), is checked against it, so every failed
+// sign-in does the bcrypt work a wrong password does: the time never tells
+// them apart.
+var __standInHash = null;
+function standInHash() {
+  if (!__standInHash) {
+    __standInHash = bcrypt.hashSync(prepare(crypto.randomBytes(32).toString('hex'), pepperSecret() || legacyPepper()), COST_FACTOR);
+  }
+  return __standInHash;
+}
+
+// { ok, needsRehash }: ok when the password matches; needsRehash when it
+// matched through the old pepper while the project has its own.
+function checkPassword(password, hash) {
+  var known = typeof hash === 'string' && hash !== '';
+  var against = known ? hash : standInHash();
+  var secret = pepperSecret();
+  if (secret && bcrypt.compareSync(prepare(password, secret), against) && known) {
+    return { ok: true, needsRehash: false };
+  }
+  // Run on every miss, whatever the hash was.
+  if (bcrypt.compareSync(prepare(password, legacyPepper()), against) && known) {
+    return { ok: true, needsRehash: !!secret };
+  }
+  return { ok: false, needsRehash: false };
 }
 
 function verifyPassword(password, hash) {
-  return bcrypt.compareSync(prepare(password), hash);
+  return checkPassword(password, hash).ok;
+}
+
+// Why a password may not be set, or '' when it may.
+function passwordPolicyError(password) {
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    return 'Password must be at least ' + MIN_PASSWORD_LENGTH + ' characters';
+  }
+  if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES) {
+    return 'Password is too long (at most ' + MAX_PASSWORD_BYTES + ' bytes)';
+  }
+  return '';
 }
 
 module.exports = hashPassword;
 module.exports.hashPassword = hashPassword;
 module.exports.verifyPassword = verifyPassword;
+module.exports.checkPassword = checkPassword;
+module.exports.passwordPolicyError = passwordPolicyError;
 `
 }
 
-export const generateNextAuthRouteFile = (): string => {
+export interface NextAuthRouteOptions {
+  /** Credentials sign-in is on: the route throttles it (see checkSignInAllowed). */
+  passwordAuthEnabled?: boolean
+}
+
+// Answered to a credentials sign-in the throttle refuses, in the shape
+// next-auth/react's signIn() reads (it parses \`url\` for the error code, which
+// describeAuthError turns into copy).
+const SIGN_IN_THROTTLE_CODE = `var __security = require('${securityRuntimeSpecifier('../../..')}');
+
+function isCredentialsSignIn(req) {
+  var parts = req && req.query ? req.query.nextauth : null;
+  return (
+    req && req.method === 'POST' && Array.isArray(parts) && parts[0] === 'callback' && parts[1] === 'credentials'
+  );
+}
+
+function refuseSignIn(res, status, code, message, retryAfter) {
+  var origin = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  var url;
+  try {
+    url = new URL('/api/auth/error?error=' + code, origin).toString();
+  } catch (e) {
+    url = 'http://localhost:3000/api/auth/error?error=' + code;
+  }
+  if (retryAfter) {
+    res.setHeader('Retry-After', String(retryAfter));
+  }
+  res.status(status).json({ url: url, error: message });
+}
+
+// Too many failed (or attempted) sign-ins for this email from this visitor:
+// refused before the password is even looked at.
+async function throttleCredentialsSignIn(req, res) {
+  if (req && req.headers) {
+    delete req.headers[authOptions.SIGN_IN_VISITOR_HEADER];
+  }
+  if (!isCredentialsSignIn(req)) {
+    return false;
+  }
+  req.headers[authOptions.SIGN_IN_VISITOR_HEADER] = __security.clientIp(req);
+  var verdict;
+  try {
+    verdict = await authOptions.checkSignInAllowed(req);
+  } catch (err) {
+    console.error('[auth] The sign-in throttle failed:', err && err.message ? err.message : err);
+    refuseSignIn(res, 503, 'ServiceUnavailable', 'Sign-in is unavailable right now. Please try again in a moment.', 0);
+    return true;
+  }
+  if (verdict && verdict.allowed) {
+    return false;
+  }
+  refuseSignIn(
+    res,
+    429,
+    'TooManyAttempts',
+    'Too many sign-in attempts. Try again later.',
+    verdict && verdict.retryAfter ? verdict.retryAfter : ${SIGN_IN_WINDOW_SECONDS}
+  );
+  return true;
+}
+
+`
+
+export const generateNextAuthRouteFile = (options: NextAuthRouteOptions = {}): string => {
+  const throttled = options.passwordAuthEnabled === true
   return `let NextAuth = require('next-auth');
 if (NextAuth.default) NextAuth = NextAuth.default;
 const authOptions = require('../../../utils/auth/auth-options');
@@ -1100,13 +2055,22 @@ function resolveRequestOrigin(req) {
   return proto + '://' + host;
 }
 
-module.exports = function nextAuthRoute(req, res) {
+${throttled ? SIGN_IN_THROTTLE_CODE : ''}module.exports = ${
+    throttled ? 'async ' : ''
+  }function nextAuthRoute(req, res) {
   try {
     process.env.NEXTAUTH_URL = resolveRequestOrigin(req);
   } catch (e) {
     /* fall back to whatever NEXTAUTH_URL holds */
   }
-  return authHandler(req, res);
+${
+  throttled
+    ? `  if (await throttleCredentialsSignIn(req, res)) {
+    return;
+  }
+`
+    : ''
+}  return authHandler(req, res);
 };
 `
 }
@@ -1127,31 +2091,333 @@ export interface WelcomeEmailOptions {
   siteName?: string
 }
 
+/** The business events an account route records (spec §5.1). */
+export interface AccountEventOptions {
+  /** The project has the in-app event bus (`hasAutomationsBus`). */
+  withAutomations?: boolean
+}
+
+/**
+ * `recordAccountEvent(type, user, source, req)`, for the account routes of a
+ * project with automations: records `user-signed-up` / `user-deleted` on the
+ * in-app event bus, which writes the `teleport_events` row and wakes the
+ * automations off the request path, on the app's own origin as `req` reached
+ * it. Only the profile fields go into the event, never a credential. It never
+ * throws, so the event cannot fail the request it records. `relativePrefix`
+ * leads from the route to the project root.
+ */
+export const generateAccountEventRecorder = (options: {
+  relativePrefix: string
+  logTag: string
+}): string => `
+// The project has automations: the account event wakes them. Best effort,
+// like the emails: recording it can never fail the request.
+function accountEventTime(value) {
+  var date = value ? new Date(value) : new Date();
+  return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+async function recordAccountEvent(type, user, source, req) {
+  try {
+    var userId = user ? user.id || user._id : null;
+    if (!userId) { return; }
+    var id = String(userId);
+    var email = user.email ? String(user.email) : '';
+    var bus = require('${options.relativePrefix}/${AUTOMATIONS_PATH.join('/')}/event-bus');
+    await bus.emitBusinessEvent({
+      type: type,
+      entityType: 'user',
+      entityId: id,
+      payload: {
+        user: {
+          id: id,
+          email: email || null,
+          name: user.name || null,
+          role: user.role || null,
+          source: source || user.source || null,
+          createdAt: accountEventTime(user.created_at || user.createdAt),
+        },
+      },
+      actor: email,
+      actorType: 'customer',
+      dedupeKey: type + ':' + id,
+    }, req);
+  } catch (eventErr) {
+    var reason = eventErr && eventErr.message ? eventErr.message : eventErr;
+    console.error('${options.logTag} could not record the ' + type + ' event:', reason);
+  }
+}
+`
+
+/**
+ * A user column that grants something — a role, an admin or staff flag, a
+ * verified email, credit, a plan or an entitlement — in any spelling
+ * (`is_admin`, `isAdmin`, `Email-Verified`). Only the server sets these; a
+ * sign-up never takes them from the visitor. The one shared rule
+ * (`AccountFields.isPrivilegedAccountField`).
+ */
+export const isPrivilegedUserField = (key: string): boolean =>
+  AccountFields.isPrivilegedAccountField(key)
+
+/** Config keys of an `account-signup` node that are not user fields. */
+const SIGNUP_NODE_NON_FIELD_KEYS = new Set<string>([
+  'email',
+  'password',
+  'name',
+  'image',
+  'role',
+  ...WELCOME_EMAIL_CONFIG_KEYS,
+])
+
+/**
+ * The fields a sign-up may write besides email, password and name: the avatar
+ * (`image`) and each declared custom account property that a sign-up form of
+ * the project collects (a key of an `account-signup` node), never a
+ * privileged one.
+ */
+export const resolveSignupFields = (
+  auth: UIDLAuthentication,
+  signupNodeConfigs: Array<Record<string, unknown>>
+): string[] => {
+  const declared = new Set((auth.customUserProperties || []).map((prop) => prop.key))
+  const collected = new Set<string>()
+  for (const config of signupNodeConfigs) {
+    for (const key of Object.keys(config || {})) {
+      if (
+        !SIGNUP_NODE_NON_FIELD_KEYS.has(key) &&
+        declared.has(key) &&
+        !isPrivilegedUserField(key)
+      ) {
+        collected.add(key)
+      }
+    }
+  }
+  return ['image', ...Array.from(collected).sort()]
+}
+
+export interface SignupRouteOptions {
+  /** `resolveSignupFields` — what a sign-up may write besides email, password, name. */
+  fields?: string[]
+  /**
+   * The page the set-password link opens and where it carries its token: the
+   * project's reset link (`resetLinkOf`). Default: `/reset-password`, `?token=`.
+   */
+  resetPagePath?: string
+  tokenInFragment?: boolean
+  /**
+   * The forgot-password node's sender (`resetEmailSenderOf`): the emails to an
+   * address the site already knows go through it when the sign-up node has no
+   * email provider.
+   */
+  noticeEmail?: KnownAddressEmailSender
+  /**
+   * The project has the newsletter, and the sign-up form's box joins it: a
+   * ticked box (consent) also subscribes the new account through the
+   * newsletter helper (`subscribeNewsletterPerson`, sign-up point `signup`).
+   */
+  newsletter?: boolean
+}
+
+/**
+ * After a new account with a ticked consent box: the newsletter helper adds it
+ * (double opt-in, the `newsletter-subscribed` event, the newsletter's welcome
+ * unless the account's own went out). Best effort, like the welcome email.
+ */
+const SIGNUP_NEWSLETTER_CODE = `    // The ticked box also subscribes the person to the newsletter.
+    if (userData.marketing_consent) {
+      try {
+        const __newsletter = require('../../../utils/newsletter/newsletter');
+        await __newsletter.withNewsletterDb(function (db) {
+          return __newsletter.subscribeNewsletterPerson({ db: db, email: email, signUpPoint: 'signup', req: req });
+        });
+      } catch (newsletterErr) {
+        console.error('[account-signup] newsletter sign-up failed:', newsletterErr && newsletterErr.message ? newsletterErr.message : newsletterErr);
+      }
+    }
+`
+
+/** An email sender baked into a route: provider id without `email-`, sender, credential env var. */
+export interface KnownAddressEmailSender {
+  emailProvider?: string | null
+  fromEmail?: string
+  emailSecretEnvName?: string | null
+}
+
+/**
+ * The answer to a sign-up for an address the site already knows (an account,
+ * or a row without a password) takes at least this long, as the
+ * forgot-password answer does: the two are answered alike, and the time must
+ * not tell them apart either.
+ */
+export const KNOWN_ADDRESS_MIN_RESPONSE_MS = 1200
+
+/**
+ * The sign-up route's emails to an address the site already knows, sent
+ * through `sender` (the sign-up node's, else the forgot-password node's):
+ * `sendAccountNotice(emailType, msg, logged)`, which sends and records the
+ * email under its own purpose (with what the log may keep), and
+ * `sendSetPasswordEmail(user, siteName, req)`, the link for an address without
+ * a password, built on the forgot-password token flow (a CSPRNG token whose
+ * SHA-256 alone is stored against the account, the same lifetime, origin rule
+ * and reset page).
+ */
+const generateKnownAddressEmailCode = (options: {
+  sender: { provider: string | null; from: string; secretEnv: string }
+  pagePath: string
+  tokenInFragment: boolean
+}): string => {
+  const { sender } = options
+  const senderConstants = `
+// Who sends the emails to an address the site already knows: the sign-up
+// node's email settings, else the forgot-password node's.
+const NOTICE_EMAIL_PROVIDER = ${JSON.stringify(sender.provider)};
+const NOTICE_EMAIL_FROM = ${JSON.stringify(sender.from)};
+const NOTICE_EMAIL_SECRET_ENV_NAME = ${JSON.stringify(sender.secretEnv)};`
+  if (!sender.provider) {
+    return `${senderConstants}
+
+// No email provider: nothing is sent to an address the site already knows.
+async function sendAccountNotice() {}
+
+// A sign-up for an address the site knows without a password mails its owner
+// a link to set one; this project has no email provider, so none is sent.
+async function sendSetPasswordEmail() {
+  console.warn('[account-signup] set-password link not sent: no email provider is configured');
+}`
+  }
+  const ttlMinutes = Math.round(PASSWORD_RESET_TOKEN_TTL_SECONDS / 60)
+  // Where the link carries the token, as the forgot-password link does.
+  const tokenLinkPrefix = options.tokenInFragment ? '#token=' : '?token='
+  const noticeSend = generateProviderSendFunction(sender.provider).replace(
+    'async function __sendProviderEmail(',
+    'async function __sendNoticeEmail('
+  )
+  return `${senderConstants}
+
+${noticeSend}
+
+var __noticeEmailLog = require('../../../utils/email/sent-email-log');
+
+// Sends one of these emails and records it under its own purpose, with what
+// the log may keep of it (\`logged\`: a link's token hidden).
+async function sendAccountNotice(emailType, msg, logged) {
+  var failure = null;
+  try {
+    await __sendNoticeEmail(msg);
+  } catch (err) {
+    failure = err;
+  }
+  __noticeEmailLog.recordSentEmail({
+    emailType: emailType,
+    audience: 'customer',
+    to: msg.to,
+    from: msg.from,
+    subject: logged.subject,
+    html: logged.html,
+    payload: logged.payload,
+    provider: NOTICE_EMAIL_PROVIDER,
+    status: failure ? 'failed' : 'sent',
+    error: failure ? (failure.message || String(failure)) : null,
+    source: 'signup',
+    sourceRef: 'api/auth/signup',
+    userId: msg.userId,
+  });
+  if (failure) { throw failure; }
+}
+
+// A sign-up for an address the site knows without a password (a newsletter
+// subscriber, a checkout or booking guest, a contact the owner added) never
+// takes that row: whoever typed the address may not own it. Its owner is mailed
+// a link to set a password instead, a password-reset link minted and stored as
+// the forgot-password route mints it, at most ${EXISTING_ACCOUNT_EMAIL_LIMIT} an hour per address
+// (counted with the "already have an account" email).
+var SET_PASSWORD_SUBJECT = 'Set your password to finish creating your account';
+var SET_PASSWORD_BODY_HTML =
+  '<p>Someone, hopefully you, tried to create an account{{siteNameSuffix}} with this email address.</p>' +
+  '<p>This address is already known here (from a newsletter sign-up or an order, for example), but it has no password yet. Set one to finish creating your account:</p>' +
+  '<p><a href="{{resetUrl}}">Set your password</a></p>' +
+  '<p>The link works for ${ttlMinutes} minutes. If this was not you, you can ignore this email: nothing has changed.</p>';
+var SET_PASSWORD_PAGE_PATH = ${JSON.stringify(options.pagePath)};
+var SET_PASSWORD_TOKEN_LINK_PREFIX = ${JSON.stringify(tokenLinkPrefix)};
+var SET_PASSWORD_TOKEN_TTL_SECONDS = ${PASSWORD_RESET_TOKEN_TTL_SECONDS};
+
+${TRUSTED_ORIGIN_CODE}
+
+// The token, wherever it appears, for what the sent-email log keeps: whoever
+// can read the log must not be able to set the password with it.
+function hideToken(text, token) {
+  return String(text == null ? '' : text).split(token).join('[hidden]');
+}
+
+async function sendSetPasswordEmail(user, siteName, req) {
+  var toEmail = String(user.email || '');
+  var userId = user.id != null ? user.id : user._id;
+  var apiKey = NOTICE_EMAIL_SECRET_ENV_NAME ? process.env[NOTICE_EMAIL_SECRET_ENV_NAME] : '';
+  if (apiKey && String(apiKey).indexOf('teleporthq.secrets.') === 0) { apiKey = ''; }
+  var from = NOTICE_EMAIL_FROM || process.env.EMAIL_FROM || '';
+  if (!apiKey || !from) { console.warn('[account-signup] set-password link not sent: the email credential or sender is not set'); return; }
+  if (!toEmail || userId == null) { return; }
+  var allowed = await __security.rateLimit({
+    key: 'auth-signup-existing:' + toEmail.trim().toLowerCase(),
+    limit: ${EXISTING_ACCOUNT_EMAIL_LIMIT},
+    windowSeconds: 3600,
+  });
+  if (!allowed.allowed) { return; }
+  var crypto = require('crypto');
+  var token = crypto.randomBytes(32).toString('hex');
+  await authUtils.storePasswordReset(userId, crypto.createHash('sha256').update(token).digest('hex'), SET_PASSWORD_TOKEN_TTL_SECONDS);
+  var resetUrl = trustedOrigin(req) + SET_PASSWORD_PAGE_PATH + SET_PASSWORD_TOKEN_LINK_PREFIX + token;
+  var html = fillTemplate(SET_PASSWORD_BODY_HTML, { siteNameSuffix: siteName ? ' on ' + siteName : '', resetUrl: resetUrl });
+  await sendAccountNotice(
+    ${JSON.stringify(SET_PASSWORD_EMAIL)},
+    { from: from, to: toEmail, subject: SET_PASSWORD_SUBJECT, html: html, apiKey: apiKey, userId: userId },
+    {
+      subject: SET_PASSWORD_SUBJECT,
+      html: hideToken(html, token),
+      payload: { resetUrl: hideToken(resetUrl, token), recipientEmail: toEmail },
+    }
+  );
+}`
+}
+
 export const generateSignupRouteFile = (
   auth: UIDLAuthentication,
-  welcome: WelcomeEmailOptions = {}
+  welcome: WelcomeEmailOptions = {},
+  events: AccountEventOptions = {},
+  signup: SignupRouteOptions = {}
 ): string => {
   const needsDb = !!auth.dataSourceType
+  const recordsSignup = needsDb && events.withAutomations === true
   const welcomeProvider =
     welcome.emailProvider && SUPPORTED_EMAIL_PROVIDERS.has(welcome.emailProvider)
       ? welcome.emailProvider
       : null
-  // Reserved keys that must NOT be copied from the request body onto the new
-  // user row — the auth fields plus every welcome-email config key (a stale
-  // client could otherwise inject them as bogus user columns).
-  const reservedKeysObj: Record<string, number> = { email: 1, password: 1, name: 1, role: 1 }
-  for (const key of WELCOME_EMAIL_CONFIG_KEYS) {
-    reservedKeysObj[key] = 1
-  }
-  // A custom account property the session reads a role from (`roles`,
-  // `roleName`, or `role` in another case, which Postgres folds onto the same
-  // column) is set by the server alone — a signup body naming it would pick
-  // its own role.
-  for (const prop of auth.customUserProperties || []) {
-    if (ROLE_BEARING_USER_KEY.test(prop.key)) {
-      reservedKeysObj[prop.key] = 1
-    }
-  }
+  // An ALLOW-list: the only body keys copied onto the new user row. Whatever
+  // else the body carries (a role, `is_admin`, `email_verified`, credits, a
+  // plan, a welcome-email config key) never reaches createUser. The columns
+  // the route sets itself (source, consent) are never copied from it either.
+  const signupFields = (signup.fields || ['image']).filter(
+    (field) => field && !isPrivilegedUserField(field) && SIGNUP_OWN_COLUMNS.indexOf(field) === -1
+  )
+  const setPasswordPagePath = resolveResetPagePath(signup.resetPagePath)
+  // The emails to an address the site already knows go through the sign-up
+  // node's sender, else the forgot-password node's.
+  const fallbackSender = signup.noticeEmail || {}
+  const noticeSender = welcomeProvider
+    ? {
+        provider: welcomeProvider,
+        from: welcome.fromEmail || '',
+        secretEnv: welcome.emailSecretEnvName || '',
+      }
+    : {
+        provider:
+          fallbackSender.emailProvider &&
+          SUPPORTED_EMAIL_PROVIDERS.has(fallbackSender.emailProvider)
+            ? fallbackSender.emailProvider
+            : null,
+        from: fallbackSender.fromEmail || '',
+        secretEnv: fallbackSender.emailSecretEnvName || '',
+      }
   let dbImport = ''
   let createUserCall = ''
   let welcomeHelpers = ''
@@ -1159,8 +2425,7 @@ export const generateSignupRouteFile = (
   if (needsDb) {
     dbImport = `const authUtils = require('../../../utils/auth/auth-options');
 const createUser = authUtils.createUser;
-const userExistsByEmail = authUtils.userExistsByEmail;
-const sanitizeUser = authUtils.sanitizeUser;`
+const findSignupUserByEmail = authUtils.findSignupUserByEmail;`
 
     // Baked welcome-email helpers + config (no-op send when no provider set).
     welcomeHelpers = `
@@ -1199,19 +2464,95 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
   var from = WELCOME_EMAIL_FROM || process.env.EMAIL_FROM || '';
   if (!from) { console.warn('[account-signup] welcome email skipped: sender not configured'); return; }
   var copy = resolveWelcomeEmailCopy(locale);
-  var subject = fillTemplate(copy.subject, tokenValues);
+  var subject = fillSubjectTemplate(copy.subject, tokenValues);
   var html = fillTemplate(copy.body, tokenValues);
   await __sendProviderEmail({ from: from, to: toEmail, subject: subject, html: html, apiKey: apiKey, tokenValues: tokenValues, userId: userId });
 }
-`
 
-    createUserCall = `    const exists = await userExistsByEmail(email);
-    if (exists) {
-      // A newsletter subscriber or a contact the owner added has a row but no
-      // password. Signing up must not hand that row — and what the site knows
-      // about the person — to whoever types the address first; the password
-      // reset proves the mailbox is theirs.
-      res.status(409).json({ error: 'An account with this email already exists. Sign in, or use "Forgot password" to set a password.' });
+// A sign-up for an address that already has an account gets the same status,
+// body and headers as a new one; its time differs from a new address's, which
+// the account a new sign-up makes reveals anyway. The address's owner is told
+// by email instead (only the mailbox owner reads it), at most
+// ${EXISTING_ACCOUNT_EMAIL_LIMIT} times an hour per address, through the known-address sender.
+var EXISTING_ACCOUNT_SUBJECT = 'You already have an account';
+var EXISTING_ACCOUNT_BODY_HTML =
+  '<p>Someone, hopefully you, tried to create an account{{siteNameSuffix}} with this email address.</p>' +
+  '<p>You already have one. Sign in with your password, or use "Forgot password" on the sign-in page to choose a new one.</p>' +
+  '<p>If this was not you, you can ignore this email: nothing has changed.</p>';
+
+async function sendExistingAccountEmail(toEmail, siteName, userId) {
+  if (!NOTICE_EMAIL_PROVIDER || !toEmail) { return; }
+  var apiKey = NOTICE_EMAIL_SECRET_ENV_NAME ? process.env[NOTICE_EMAIL_SECRET_ENV_NAME] : '';
+  if (apiKey && String(apiKey).indexOf('teleporthq.secrets.') === 0) { apiKey = ''; }
+  var from = NOTICE_EMAIL_FROM || process.env.EMAIL_FROM || '';
+  if (!apiKey || !from) { return; }
+  var allowed = await __security.rateLimit({
+    key: 'auth-signup-existing:' + String(toEmail).trim().toLowerCase(),
+    limit: ${EXISTING_ACCOUNT_EMAIL_LIMIT},
+    windowSeconds: 3600,
+  });
+  if (!allowed.allowed) { return; }
+  var tokenValues = { siteNameSuffix: siteName ? ' on ' + siteName : '' };
+  var html = fillTemplate(EXISTING_ACCOUNT_BODY_HTML, tokenValues);
+  await sendAccountNotice(
+    ${JSON.stringify(EXISTING_ACCOUNT_EMAIL)},
+    { from: from, to: toEmail, subject: EXISTING_ACCOUNT_SUBJECT, html: html, apiKey: apiKey, userId: userId },
+    { subject: EXISTING_ACCOUNT_SUBJECT, html: html, payload: tokenValues }
+  );
+}
+${generateKnownAddressEmailCode({
+  sender: noticeSender,
+  pagePath: setPasswordPagePath,
+  tokenInFragment: signup.tokenInFragment === true,
+})}
+
+function waitUntilElapsed(startedAt, ms) {
+  var left = ms - (Date.now() - startedAt);
+  return left > 0 ? new Promise(function (resolve) { setTimeout(resolve, left); }) : Promise.resolve();
+}
+${
+  recordsSignup
+    ? generateAccountEventRecorder({ relativePrefix: '../../..', logTag: '[account-signup]' })
+    : ''
+}`
+
+    createUserCall = `    // The answer is the same for a new account and for an address that already
+    // has one (see sendExistingAccountEmail): built from what the visitor sent.
+    const answer = { user: { email: email, name: name || null } };
+    const __siteName = WELCOME_EMAIL_SITE_NAME ||
+      (req.headers && req.headers.host ? String(req.headers.host).replace(/^www\\./, '').split(':')[0] : '');
+    // In any letter case: \`Ava@site.test\` is the \`ava@site.test\` row.
+    const existing = await findSignupUserByEmail(email);
+    if (existing) {
+      // A newsletter subscriber, a checkout or booking guest or a contact the
+      // owner added has a row but no password (and no OAuth sign-in). Signing
+      // up must not hand that row — and what the site knows about the person —
+      // to whoever types the address first: its owner is mailed a link to set
+      // a password, which proves the mailbox is theirs. An account's owner is
+      // told it already has one. Either way the page is answered alike, so it
+      // never tells a subscriber or a guest from an account.
+      const knownEmail = String(existing.email || email);
+      const existingId = existing.id != null ? existing.id : existing._id;
+      try {
+        if (!existing.password && !existing.provider && authUtils.PASSWORD_RESET_SUPPORTED) {
+          await sendSetPasswordEmail(existing, __siteName, req);
+        } else {
+          // An account; or a row without a password where the store cannot
+          // keep reset links (not Postgres): told it is already known here.
+          await sendExistingAccountEmail(knownEmail, __siteName, existingId);
+        }
+      } catch (existingErr) {
+        console.error('[account-signup] existing-account email failed:', existingErr && existingErr.message ? existingErr.message : existingErr);
+      }
+${
+  noticeSender.provider
+    ? `      await __noticeEmailLog.settleSentEmailLog();
+`
+    : ''
+}      // At least ${KNOWN_ADDRESS_MIN_RESPONSE_MS} ms, like the forgot-password answer: the time tells
+      // neither which email went out nor whether one did.
+      await waitUntilElapsed(startedAt, ${KNOWN_ADDRESS_MIN_RESPONSE_MS});
+      res.status(201).json(answer);
       return;
     }
 
@@ -1220,12 +2561,16 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
       email: email,
       password: hashedPassword,
       role: 'user',
+      // Where the person came from, and their consent as they gave it: the
+      // "Email me news and offers" box ticked ('true') or not. Never assumed.
+      source: 'signup',
+      marketing_consent: body.marketing_consent === 'true',
     };
-    const reservedKeys = ${JSON.stringify(reservedKeysObj)};
-    const bodyKeys = Object.keys(body);
-    for (let i = 0; i < bodyKeys.length; i++) {
-      if (!reservedKeys[bodyKeys[i]]) {
-        userData[bodyKeys[i]] = body[bodyKeys[i]];
+    // Only the fields this project's sign-up forms collect.
+    const signupFields = ${JSON.stringify(signupFields)};
+    for (let i = 0; i < signupFields.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(body, signupFields[i])) {
+        userData[signupFields[i]] = body[signupFields[i]];
       }
     }
 
@@ -1238,12 +2583,10 @@ async function sendWelcomeEmail(toEmail, tokenValues, userId, locale) {
 
     // Best-effort welcome email — a failed send must never fail the signup.
     try {
-      const __welcomeSiteName = WELCOME_EMAIL_SITE_NAME ||
-        (req.headers && req.headers.host ? String(req.headers.host).replace(/^www\\./, '').split(':')[0] : '');
       await sendWelcomeEmail(email, {
         userName: name || (newUser && newUser.name) || 'there',
         userEmail: email,
-        siteName: __welcomeSiteName,
+        siteName: __siteName,
       }, newUser && newUser.id, __emailLocale.resolveRequestLocale(req));
     } catch (welcomeErr) {
       console.error('[account-signup] welcome email failed:', welcomeErr && welcomeErr.message ? welcomeErr.message : welcomeErr);
@@ -1254,13 +2597,20 @@ ${
     if (typeof __sentEmailLog !== 'undefined') { await __sentEmailLog.settleSentEmailLog(); }
 `
     : ''
-}
-    res.status(201).json({ user: sanitizeUser(newUser) });`
+}${
+      recordsSignup
+        ? `    // The account exists: the last thing the signup does is record it.
+    await recordAccountEvent('user-signed-up', newUser, 'signup', req);
+`
+        : ''
+    }${signup.newsletter === true ? SIGNUP_NEWSLETTER_CODE : ''}
+    res.status(201).json(answer);`
   } else {
     createUserCall = `    res.status(501).json({ error: 'No data source configured for user storage' });`
   }
 
   return `const hashPassword = require('../../../utils/auth/hash-password');
+const __security = require('${securityRuntimeSpecifier('../../..')}');
 ${dbImport}
 ${welcomeHelpers}
 
@@ -1270,11 +2620,16 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // ${SIGN_UP_LIMIT} sign-ups per visitor per hour.
+  if (!(await __security.rateLimitRequest(req, res, { scope: 'auth-signup', limit: ${SIGN_UP_LIMIT}, windowSeconds: ${SIGN_UP_WINDOW_SECONDS} }))) {
+    return;
+  }
+${needsDb ? '  const startedAt = Date.now();\n' : ''}
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const email = body.email;
-    const password = body.password;
-    const name = body.name;
+    const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) || {};
+    const email = typeof body.email === 'string' ? body.email : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const name = typeof body.name === 'string' ? body.name : '';
 
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required' });
@@ -1287,13 +2642,9 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password must be at least 6 characters' });
-      return;
-    }
-
-    if (password.length > 128) {
-      res.status(400).json({ error: 'Password must not exceed 128 characters' });
+    const policyError = hashPassword.passwordPolicyError(password);
+    if (policyError) {
+      res.status(400).json({ error: policyError });
       return;
     }
 
@@ -1301,8 +2652,7 @@ module.exports = async function handler(req, res) {
 
 ${createUserCall}
   } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    __security.sendClientError(res, 500, 'Sign-up failed. Please try again.', error);
   }
 };
 `
@@ -1624,40 +2974,19 @@ function getUserRoleFromToken(token) {
   return null;
 }
 
-// Reads a single cookie value, tolerating both the Next 12 string shape and the
-// newer { name, value } object shape returned by request.cookies.get().
-function readCookie(request, name) {
-  try {
-    var c = request.cookies.get(name);
-    if (!c) return null;
-    return typeof c === 'string' ? c : (c.value || null);
-  } catch (e) {
-    return null;
-  }
-}
-
-// next-auth stores the session token under a secure-prefixed cookie on https
-// and a plain one on http, and splits large JWTs into ".0"/".1" chunks. The
+// The session token lives in the "__Host-" cookie on https and the plain one on
+// http (see the auth options), split into ".0"/".1" chunks when large. The
 // Edge runtime's getToken() can return null for a session the Node runtime
 // considers valid (e.g. NEXTAUTH_SECRET not identical in the Edge runtime, or
 // the JWE simply failing to decode at the edge), which previously redirected
 // logged-in users to sign-in. So cookie PRESENCE is the source of truth for
 // "is there a session"; getToken is only trusted for the optional role check.
-// Server-side (getServerSideProps / API routes) remain the authoritative
-// validators of the session and role.
+// Only the cookie the request's protocol allows counts — the same one
+// __tqSessionTokenCandidates names: a cookie a sibling site planted under
+// another name is never a session. Server-side (getServerSideProps / API
+// routes) remain the authoritative validators of the session and role.
 function hasSessionCookie(request) {
-  var names = [
-    '__Secure-next-auth.session-token',
-    'next-auth.session-token',
-    '__Secure-authjs.session-token',
-    'authjs.session-token'
-  ];
-  for (var i = 0; i < names.length; i++) {
-    if (readCookie(request, names[i]) || readCookie(request, names[i] + '.0')) {
-      return true;
-    }
-  }
-  return false;
+  return __tqSessionTokenCandidates(request).length > 0;
 }
 
 // Turns a Next.js route pattern into an anchored matcher: "[param]" matches a
@@ -1920,8 +3249,10 @@ export const config = {
   // Next.js does NOT run the second (negative-lookahead) matcher for the root
   // path, which would leave a page published at "/" (e.g. a protected dashboard)
   // publicly reachable. '/' compiles to ^/$ and covers exactly the home route;
-  // the second entry covers every deeper path.
-  matcher: ['/', '/((?!api|_next/static|_next/image|favicon\\\\.ico).*)'],
+  // the second entry covers every deeper path. Only the API routes are left
+  // out — "/api" and "/api/..." — never a page whose path merely starts with
+  // "api" (a protected "/api-keys" page).
+  matcher: ['/', '/((?!api(?:/|$)|_next/static|_next/image|favicon\\\\.ico).*)'],
 };
 `
 }

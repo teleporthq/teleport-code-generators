@@ -25,11 +25,15 @@ export const generatePdfServiceClientCode = (): string => {
 // reservation for the next request for the order to finish.
 //
 // Contract:
-//   - Config via \`process.env.PDF_SERVICE_URL\` and
-//     \`process.env.PDF_SERVICE_API_KEY\` (read at call time, not module
+//   - Config via \`process.env.PDF_SERVICE_URL\`,
+//     \`process.env.PDF_SERVICE_API_KEY\` and
+//     \`process.env.PDF_SERVICE_PROJECT_ID\` (read at call time, not module
 //     load, so dev misconfiguration fails loud at render rather than
 //     at \`require()\`).
-//   - Auth header: \`X-Pdf-Service-Key: <key>\` (shared static key).
+//   - Auth headers: \`X-Pdf-Service-Key: <key>\` (this project's own key,
+//     derived by the platform at deploy time) and
+//     \`X-Pdf-Service-Project: <project id>\`, which the service checks the
+//     key against. A deploy without a project id sends the key alone.
 //   - 60 s client-side abort. The service's default per-attempt timeout
 //     is 45 s; operators who tune the service down to ~15 s/attempt can
 //     fit 3 full retries inside this window.
@@ -50,6 +54,7 @@ function sanitizePdfFilename(raw) {
 async function callPdfService(html, invoiceData) {
   var pdfServiceUrl = process.env.PDF_SERVICE_URL;
   var pdfServiceKey = process.env.PDF_SERVICE_API_KEY;
+  var pdfServiceProjectId = process.env.PDF_SERVICE_PROJECT_ID;
 
   if (!pdfServiceUrl) {
     throw new Error('PDF_SERVICE_URL is not configured. Set it in the project env vars (the Vercel controller injects it at deploy time from the services-worker env).');
@@ -79,15 +84,18 @@ async function callPdfService(html, invoiceData) {
   var abortCtrl = new AbortController();
   var timer = setTimeout(function () { abortCtrl.abort(); }, timeoutMs);
 
+  var requestHeaders = {
+    'Content-Type': 'application/json',
+    'X-Pdf-Service-Key': pdfServiceKey,
+  };
+  if (pdfServiceProjectId) requestHeaders['X-Pdf-Service-Project'] = pdfServiceProjectId;
+
   var response;
   try {
     console.info('[invoice-pdf] POST ' + endpoint + ' htmlBytes=' + (html ? html.length : 0) + ' filename=' + filename + ' timeoutMs=' + timeoutMs);
     response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Pdf-Service-Key': pdfServiceKey,
-      },
+      headers: requestHeaders,
       body: JSON.stringify(requestBody),
       signal: abortCtrl.signal,
     });

@@ -3,6 +3,7 @@ import { splitIntoSegments } from '../src/segment-splitter'
 import { buildSegmentTrust } from '../src/segment-trust'
 import type { WorkflowSegment } from '../src/types'
 import { loadServerRuntime } from './_helpers/load-server-runtime'
+import { STEP_EXPIRED_MESSAGE } from '../src/server-runtime-code'
 
 // The results of every server segment reach the next one through the caller
 // (the browser relays them), so each segment signs what it produced and the
@@ -90,9 +91,14 @@ const workflow = {
 const segments = splitIntoSegments(workflow)
 const serverSegments = segments.filter((s) => s.env === 'server')
 
-function bootRoute(segment: WorkflowSegment) {
+function bootRoute(segment: WorkflowSegment, graphId?: string) {
   const source = generateServerSegmentAPIRoute(segment, 'Signing', undefined, {
-    trust: buildSegmentTrust(segment, { nodes: workflow.nodes, edges: workflow.edges, segments }),
+    trust: buildSegmentTrust(segment, {
+      id: graphId,
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+      segments,
+    }),
   })
   const routeModule: { exports: unknown } = { exports: {} }
   const requireStub = (id: string) => (id.endsWith('server-runtime') ? runtime : {})
@@ -212,12 +218,93 @@ describe('signed hand-off between server segments', () => {
   })
 })
 
+describe('signatures belong to one run of one workflow, for ten minutes', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('opens a new run at the first server segment, whatever run the request names', async () => {
+    const { afterGuard } = await honestRun('good')
+    const again = await guardRoute(afterGuard)
+    expect((again.body.results?.__sigRun as { id: string }).id).not.toBe(
+      (afterGuard.__sigRun as { id: string }).id
+    )
+  })
+
+  it('refuses the results of one run handed on under another run', async () => {
+    const { afterGuard: runA } = await honestRun('good')
+    const { afterGuard: runB } = await honestRun('bad')
+    // A's passed guard, presented as part of run B.
+    const reply = await writeRoute({ ...runA, __sigRun: runB.__sigRun, ui: {} })
+    expect(reply.body.results?.write).toBeUndefined()
+    // B's own run, with A's verdict and signatures spliced in.
+    const spliced = await writeRoute({
+      ...runB,
+      check: runA.check,
+      gate: runA.gate,
+      __sig: runA.__sig,
+      ui: {},
+    })
+    expect(spliced.body.results?.write).toBeUndefined()
+  })
+
+  it('refuses a run the request made up', async () => {
+    const { afterGuard } = await honestRun('good')
+    const forgedRun = { id: 'a'.repeat(32), mac: (afterGuard.__sigRun as { mac: string }).mac }
+    const reply = await writeRoute({ ...afterGuard, __sigRun: forgedRun, ui: {} })
+    expect(reply.body.results?.write).toBeUndefined()
+  })
+
+  it('takes a result up to ten minutes old and refuses it after', async () => {
+    const start = Date.now()
+    const { afterGuard } = await honestRun('good')
+    const later = (ms: number) => jest.spyOn(Date, 'now').mockReturnValue(start + ms)
+
+    later(9 * 60 * 1000)
+    const fresh = await writeRoute({ ...afterGuard, ui: {} })
+    expect(fresh.body.results?.write).toEqual({ wrote: 'owner@shop.test' })
+
+    later(10 * 60 * 1000 + 1000)
+    const stale = await writeRoute({ ...afterGuard, ui: {} })
+    expect(stale.body.results?.write).toBeUndefined()
+    // Said, not silent: the visitor is told to start again.
+    expect(stale.status).toBe(409)
+    expect(stale.body).toMatchObject({ error: STEP_EXPIRED_MESSAGE })
+  })
+
+  it('refuses a signature dated more than a minute ahead of the route, and takes clock skew below it', async () => {
+    const start = Date.now()
+    const { afterGuard } = await honestRun('good')
+    jest.spyOn(Date, 'now').mockReturnValue(start - 30 * 1000)
+    expect((await writeRoute({ ...afterGuard, ui: {} })).body.results?.write).toEqual({
+      wrote: 'owner@shop.test',
+    })
+    jest.spyOn(Date, 'now').mockReturnValue(start - 2 * 60 * 1000)
+    const ahead = await writeRoute({ ...afterGuard, ui: {} })
+    expect(ahead.status).toBe(409)
+    expect(ahead.body.results?.write).toBeUndefined()
+  })
+
+  it('refuses a result another workflow signed for the same node ids', async () => {
+    const { afterGuard } = await honestRun('good')
+    const otherWorkflowWrite = bootRoute(serverSegments[1], 'another-workflow')
+    const reply = await otherWorkflowWrite({ ...afterGuard, ui: {} })
+    expect(reply.body.results?.write).toBeUndefined()
+  })
+})
+
 describe('claimSegmentContext — what a request cannot carry', () => {
   const plainConfig = {
     nodes: [{ id: 'n', type: 'general-custom-js' }],
     edges: [],
     entryNodeIds: ['n'],
   }
+
+  it('drops a request-supplied __request (the route sets its own)', () => {
+    const context: Context = { __request: { ip: '10.0.0.1', headers: { 'x-forged': '1' } } }
+    runtime.claimSegmentContext(plainConfig, context)
+    expect(context.__request).toBeUndefined()
+  })
 
   it('drops custom-node bookkeeping outside a custom node segment', () => {
     const context: Context = {
@@ -344,6 +431,24 @@ describe('trustedBaseUrl', () => {
   const env = process.env
   afterEach(() => {
     process.env = env
+    delete (globalThis as Record<string, unknown>).__tqConfiguredNextAuthUrl
+  })
+
+  it('reads NEXTAUTH_URL as configured, never as the auth route rewrote it from a request', () => {
+    const scope = globalThis as Record<string, unknown>
+    // /api/auth keeps the configured value, then rewrites the live one from X-Forwarded-Host.
+    process.env = { ...env, NEXTAUTH_URL: 'https://evil.example', VERCEL: '' }
+    scope.__tqConfiguredNextAuthUrl = 'https://shop.example'
+    expect(runtime.trustedBaseUrl({ headers: { host: 'evil.example' } })).toBe(
+      'https://shop.example'
+    )
+    scope.__tqConfiguredNextAuthUrl = 'http://localhost:3000'
+    expect(runtime.trustedBaseUrl({ headers: { host: 'evil.example' } })).toBe(
+      'http://localhost:3000'
+    )
+    expect(runtime.trustedBaseUrl({ headers: { host: 'localhost:3001' } })).toBe(
+      'http://localhost:3001'
+    )
   })
 
   it('never calls a host the request named when the canonical origin is configured', () => {

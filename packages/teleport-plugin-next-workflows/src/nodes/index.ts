@@ -8,6 +8,8 @@ import { accountHashPassword } from './account/account-hash-password'
 import { accountLogin } from './account/account-login'
 import { accountLogout } from './account/account-logout'
 import { accountRefreshSession } from './account/account-refresh-session'
+import { accountRequestPasswordReset } from './account/account-request-password-reset'
+import { accountResetPassword } from './account/account-reset-password'
 import { accountSignup } from './account/account-signup'
 import { accountSocialLogin } from './account/account-social-login'
 import { audioPlay } from './audio/audio-play'
@@ -20,6 +22,7 @@ import { aiSentimentAnalysis } from './ai/ai-sentiment-analysis'
 import { aiSummarization } from './ai/ai-summarization'
 import { aiTextClassifier } from './ai/ai-text-classifier'
 import { aiTextTransform } from './ai/ai-text-transform'
+import { analyticsTrackOutcome } from './analytics/analytics-track-outcome'
 import { browserAskPermission } from './browser/browser-ask-permission'
 import { browserFullscreen } from './browser/browser-fullscreen'
 import { browserGetDeviceInfo } from './browser/browser-get-device-info'
@@ -99,6 +102,9 @@ import { navigationGoBack } from './navigation/navigation-go-back'
 import { navigationGoToPage } from './navigation/navigation-go-to-page'
 import { navigationNavigateToUrl } from './navigation/navigation-navigate-to-url'
 import { navigationRefreshPage } from './navigation/navigation-refresh-page'
+import { newsletterConfirm } from './newsletter/newsletter-confirm'
+import { newsletterSubscribe } from './newsletter/newsletter-subscribe'
+import { newsletterUnsubscribe } from './newsletter/newsletter-unsubscribe'
 import { pushSendNotification } from './push/push-send-notification'
 import { paymentChargeUser } from './payment/payment-charge-user'
 import { paymentCreateCustomer } from './payment/payment-create-customer'
@@ -185,6 +191,8 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'account-login': accountLogin,
   'account-logout': accountLogout,
   'account-refresh-session': accountRefreshSession,
+  'account-request-password-reset': accountRequestPasswordReset,
+  'account-reset-password': accountResetPassword,
   'account-signup': accountSignup,
   'account-social-login': accountSocialLogin,
   'audio-play': audioPlay,
@@ -197,6 +205,7 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'ai-summarization': aiSummarization,
   'ai-text-classifier': aiTextClassifier,
   'ai-text-transform': aiTextTransform,
+  'analytics-track-outcome': analyticsTrackOutcome,
   'browser-ask-permission': browserAskPermission,
   'browser-fullscreen': browserFullscreen,
   'browser-get-device-info': browserGetDeviceInfo,
@@ -272,6 +281,9 @@ export const nodeRegistry: Record<string, NodeHandlerGenerator> = {
   'navigation-go-to-page': navigationGoToPage,
   'navigation-navigate-to-url': navigationNavigateToUrl,
   'navigation-refresh-page': navigationRefreshPage,
+  'newsletter-confirm': newsletterConfirm,
+  'newsletter-subscribe': newsletterSubscribe,
+  'newsletter-unsubscribe': newsletterUnsubscribe,
   'push-send-notification': pushSendNotification,
   'payment-charge-user': paymentChargeUser,
   'payment-refund': paymentRefund,

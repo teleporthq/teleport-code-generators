@@ -32,6 +32,7 @@ import {
 } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 import { progressiveWebAppDecoder, webPushDecoder } from './web-app-decoder'
+import { popupConfigDecoder } from './popups-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
   short_name: optional(string()),
@@ -143,6 +144,10 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // invoice templates, and the global-state store. Passing them through as
   // anyJson keeps validation permissive while letting the plugins see them.
   globalStateDefinitions: optional(anyJson()),
+  // Company details from Project settings. The `company` global is baked from
+  // this even when invoicing is off. Undeclared, the decoder strips it and a
+  // published `company.companyName` binding reads an empty object.
+  companyDetails: optional(anyJson()),
   invoiceSettings: optional(anyJson()),
   ecommerceSettings: optional(anyJson()),
   // The payment providers of a site that takes online payments without a
@@ -155,6 +160,9 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // taxonomy and category pages. Undeclared, it was stripped here and the
   // generated help pages baked an empty category tree.
   helpCenterSettings: optional(anyJson()),
+  // The newsletter (sign-up, confirm and unsubscribe routes, their emails) —
+  // consumed by NextNewsletterProjectPlugin.
+  newsletterSettings: optional(anyJson()),
   // The live llms files (`/llms.txt`, `/llms-full.txt`); the blog project plugin
   // emits their routes, and nothing would if this were stripped here.
   llms: optional(anyJson()),
@@ -163,6 +171,11 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // NextAnalyticsProjectPlugin to inject the first-party tracker; must be
   // declared here or the decoder strips it and the tracker is never injected.
   analytics: optional(anyJson()),
+  // The popups switched on and their rules — consumed by NextPopupsProjectPlugin.
+  popups: optional(popupConfigDecoder),
+  // The editor's registry plugins that are on (the age gate & geo block, …),
+  // each with its settings — consumed by its own project plugin.
+  plugins: optional(anyJson()),
   // The installable app (manifest, icons, service worker) and Web Push —
   // consumed by NextPwaProjectPlugin and NextWebPushProjectPlugin.
   pwa: optional(progressiveWebAppDecoder),
@@ -170,4 +183,13 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   // The statement behind the bookings' calendar feeds — consumed by
   // NextWorkflowProjectPlugin, which emits /api/bookings/ical/[file].js.
   bookingCalendars: optional(object({ feedStatement: string() })),
+  // The data source the automations' tables live in — consumed by the
+  // automations' event bus (NextWorkflowProjectPlugin), which opens it.
+  // The TeleportHQ database only (v1).
+  automations: optional(
+    object({
+      dataSourceId: string(),
+      dataSourceType: constant('teleport' as const),
+    })
+  ),
 }) as Decoder<VProjectUIDL>

@@ -1,6 +1,14 @@
 /* tslint:disable:function-constructor max-classes-per-file */
 import { generateDataSourceFetcherWithCore } from '../src/data-source-fetchers'
+import { publicExposure } from './_helpers/exposure'
 import { generateRawQueryFetcher } from '../src/fetchers/raw-query'
+import {
+  isSecurityRuntimeSpecifier,
+  loadSecurityRuntime,
+} from '../../teleport-plugin-next-workflows/__tests__/_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * The per-table read routes served whole tables to anyone: every draft,
@@ -55,15 +63,52 @@ function bootTableRoute(tableName: string, options: BootOptions = {}) {
             user: 'teleporthq.secrets.TELEPORT_DB_USER',
             password: 'teleporthq.secrets.TELEPORT_DB_PASSWORD',
             database: 'teleporthq.secrets.TELEPORT_DB_NAME',
-            selectedTables: { [tableName]: { columns: [{ name: 'id', type: 'uuid' }] } },
+            // The table's schema as the editor exports it: the only columns a request may name.
+            selectedTables: {
+              [tableName]: {
+                columns: [
+                  { name: 'id', type: 'uuid' },
+                  { name: 'title' },
+                  { name: 'name' },
+                  { name: 'status' },
+                  { name: 'slug' },
+                  { name: 'author_email' },
+                  { name: 'created_at' },
+                  { name: 'price' },
+                  { name: 'code' },
+                ],
+              },
+            },
           }
-        : { host: 'h', port: 5432, user: 'u', password: 'p', database: 'd' },
+        : {
+            host: 'h',
+            port: 5432,
+            user: 'u',
+            password: 'p',
+            database: 'd',
+            selectedTables: {
+              [tableName]: {
+                columns: [
+                  { name: 'id', type: 'uuid' },
+                  { name: 'title' },
+                  { name: 'name' },
+                  { name: 'status' },
+                  { name: 'slug' },
+                  { name: 'author_email' },
+                  { name: 'created_at' },
+                  { name: 'price' },
+                  { name: 'code' },
+                ],
+              },
+            },
+          },
   }
   const esm = generateDataSourceFetcherWithCore(
     dataSource as never,
     tableName,
     false,
-    { trustedReaderRoles: ADMIN_ROLES },
+    // Bound by a public page: what is left to decide is the row policy.
+    { trustedReaderRoles: ADMIN_ROLES, ...publicExposure([tableName]) },
     options.cache
   )
   const code = esm
@@ -132,6 +177,9 @@ function bootTableRoute(tableName: string, options: BootOptions = {}) {
       return {
         getToken: async () => (session ? { sub: session.sub || 'u1', role: session.role } : null),
       }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }
@@ -385,9 +433,11 @@ describe('the response cache never hands one view to the other', () => {
     await posts.run({})
     expect(posts.cacheCalls).toEqual([{ scope: 'ds-1:teleport_blog_posts', sMaxAge: 30 }])
 
+    // The store's own server code reads whole tables (a browser's read is
+    // capped), so it keeps a cache of its own as well.
     posts.cacheCalls.length = 0
     await posts.serverFetch()
-    expect(posts.cacheCalls).toEqual([{ scope: 'ds-1:teleport_blog_posts:trusted', sMaxAge: 0 }])
+    expect(posts.cacheCalls).toEqual([{ scope: 'ds-1:teleport_blog_posts:server', sMaxAge: 0 }])
 
     posts.cacheCalls.length = 0
     await posts.run({ session: { role: 'admin' } })
@@ -398,14 +448,17 @@ describe('the response cache never hands one view to the other', () => {
     expect(posts.cacheCalls).toEqual([{ scope: 'ds-1:teleport_blog_posts:count', sMaxAge: 30 }])
   })
 
-  it('lets every caller share one view of a table that answers everyone alike', async () => {
+  it('lets every visitor share one view of a table that answers everyone alike', async () => {
     const members = bootTableRoute('team_members', {
       cache: { scope: 'ds-1:team_members', ttlSeconds: 60 },
     })
     members.cacheCalls.length = 0
     await members.serverFetch()
     await members.run({})
+    await members.run({ session: { role: 'member' } })
+    // The server's whole-table read keeps its own entry; every browser shares one.
     expect(members.cacheCalls.map((call) => call.scope)).toEqual([
+      'ds-1:team_members:server',
       'ds-1:team_members',
       'ds-1:team_members',
     ])
@@ -450,6 +503,9 @@ describe('raw-query state routes bind {{Current User.*}} to the session', () => 
       }
       if (name === 'next-auth/jwt') {
         return { getToken: async () => session }
+      }
+      if (isSecurityRuntimeSpecifier(name)) {
+        return securityRuntime
       }
       throw new Error('unexpected require: ' + name)
     }

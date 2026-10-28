@@ -282,6 +282,7 @@ const trackGlobalRefsInExpression = (expression: string, params: JSXGenerationPa
 const KNOWN_GLOBAL_REF_IDS = new Set([
   'locale',
   'locales',
+  'company',
   'currentUser',
   'userIsLoggedIn',
   'ecommerce',
@@ -356,6 +357,55 @@ const isReactChartjs2Chart = (
     return false
   }
   return REACT_CHARTJS2_CHART_TAGS.has(elementType)
+}
+
+/**
+ * A chart whose data did not arrive — a query the data source refused, a
+ * state still holding an empty fallback — draws an empty chart instead of
+ * taking the page down: react-chartjs-2 reads `data.labels` on its first
+ * render, and on the server that throw fails the render of the whole page.
+ * Rewrites `data={X}` into
+ *   data={Array.isArray(X?.datasets) ? X : { labels: [], datasets: [] }}
+ * A data object written out in place, or hoisted to a constant of the
+ * module, needs no guard and is left as is.
+ */
+const guardReactChartJs2DataAttr = (
+  chartElement: types.JSXElement,
+  hoistedConstants: JSXGenerationParams['hoistedConstants']
+): void => {
+  const attr = chartElement.openingElement.attributes.find(
+    (a): a is types.JSXAttribute =>
+      a.type === 'JSXAttribute' && a.name.type === 'JSXIdentifier' && a.name.name === 'data'
+  )
+  if (!attr || attr.value?.type !== 'JSXExpressionContainer') {
+    return
+  }
+  const source = attr.value.expression
+  const hoisted =
+    types.isIdentifier(source) && hoistedConstants.some((constant) => constant.name === source.name)
+  if (!types.isExpression(source) || types.isObjectExpression(source) || hoisted) {
+    return
+  }
+  attr.value = types.jsxExpressionContainer(
+    types.conditionalExpression(
+      types.callExpression(
+        types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+        [
+          types.optionalMemberExpression(
+            types.cloneNode(source),
+            types.identifier('datasets'),
+            false,
+            true
+          ),
+        ]
+      ),
+      types.cloneNode(source),
+      types.objectExpression([
+        types.objectProperty(types.identifier('labels'), types.arrayExpression([])),
+        types.objectProperty(types.identifier('datasets'), types.arrayExpression([])),
+      ])
+    )
+  )
 }
 
 /**
@@ -1034,6 +1084,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   }
 
   if (dependency && isReactChartjs2Chart(dependency, originalElementName)) {
+    guardReactChartJs2DataAttr(elementTag, params.hoistedConstants)
     const wrapped = wrapReactChartJs2Element(elementTag, node)
     nodesLookup[key] = wrapped
     return wrapped

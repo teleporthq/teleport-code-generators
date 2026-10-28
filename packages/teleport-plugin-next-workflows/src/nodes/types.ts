@@ -110,13 +110,21 @@ export function resolveHandlerEntryName(source: string, nodeType: string): strin
   )
 }
 
+/** What a route's server handlers are generated for. */
+export interface ServerHandlerOptions {
+  /** The project has the in-app event bus (`hasAutomationsBus`). */
+  withAutomations?: boolean
+  /** From the file the handler is inlined into to the project root. */
+  relativePrefix?: string
+}
+
 export interface NodeHandlerGenerator {
   nodeType: string
   executionEnv: 'client' | 'server' | 'universal'
   isTerminal?: boolean
   dependencies?: Record<string, string>
   generateHandler(): string
-  generateServerHandler?(): string
+  generateServerHandler?(options?: ServerHandlerOptions): string
 }
 
 export interface IntegrationHandlerGenerator extends NodeHandlerGenerator {

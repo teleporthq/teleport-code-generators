@@ -245,6 +245,39 @@ export const collectUsedNodeTypes = (workflows: UIDLWorkflows): Set<string> => {
   return types
 }
 
+/**
+ * The step types of every custom node `nodes` call, and of the custom nodes
+ * those call, recursively. A cron, webhook or automation route runs them in
+ * process (`utils/workflows/custom-nodes.js`) with its own handler map, which
+ * holds a handler only for the types it is generated with.
+ */
+export const collectCalledCustomNodeTypes = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, { nodes?: UIDLWorkflowNode[] }> | undefined
+): Set<string> => {
+  const types = new Set<string>()
+  const visited = new Set<string>()
+  const pending = [...nodes]
+  while (pending.length > 0) {
+    const node = pending.pop()
+    if (!node || node.type !== 'general-custom-node') {
+      continue
+    }
+    const customNodeId = (node.config as { customNodeId?: unknown } | undefined)?.customNodeId
+    if (typeof customNodeId !== 'string' || visited.has(customNodeId)) {
+      continue
+    }
+    visited.add(customNodeId)
+    for (const step of (customNodes && customNodes[customNodeId]?.nodes) || []) {
+      if (step) {
+        types.add(step.type)
+        pending.push(step)
+      }
+    }
+  }
+  return types
+}
+
 export const AI_NODE_TYPES = new Set([
   'ai-custom-prompt',
   'ai-sentiment-analysis',

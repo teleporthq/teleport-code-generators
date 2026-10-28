@@ -1,4 +1,4 @@
-import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { DataExposure, GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -317,6 +317,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ...(uidl.authentication && {
         auth: uidl.authentication,
       }),
+      // Read after createPageUIDLs, which writes every page's served route into
+      // its route definition: who may read each table is decided from the pages
+      // that bind it (see DataExposure.resolveDataExposure) — whether or not the
+      // UIDL lists its data sources (a managed database may not be listed).
+      dataExposure: DataExposure.resolveDataExposure(uidl),
       ...(uidl.ecommerceSettings && {
         ecommerceSettings: uidl.ecommerceSettings,
       }),

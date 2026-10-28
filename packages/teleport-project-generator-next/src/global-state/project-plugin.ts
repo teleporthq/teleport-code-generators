@@ -9,7 +9,7 @@ import {
   generateDataSourceFetcherWithCore,
   buildProductTransformOptions,
 } from '@teleporthq/teleport-plugin-next-data-source'
-import { JSIdentifiers, StringUtils } from '@teleporthq/teleport-shared'
+import { JSIdentifiers, StringUtils, TableAccess } from '@teleporthq/teleport-shared'
 import {
   collectGlobalStateFetchConfigs,
   buildRefPathAccessCode,
@@ -449,14 +449,20 @@ export class NextGlobalStateProjectPlugin implements ProjectPlugin {
       let apiRouteContent: string
 
       if (config.hasQuery) {
-        apiRouteContent = generateRawQueryApiRoute(config.dataSource, config.definition.query)
+        apiRouteContent = generateRawQueryApiRoute(
+          config.dataSource,
+          config.definition.query,
+          TableAccess.resolveStaffRoles(structure.uidl.authentication),
+          structure.uidl.authentication?.enabled === true
+        )
       } else {
         try {
           apiRouteContent = generateDataSourceFetcherWithCore(
             config.dataSource,
             config.tableName,
             true, // isApiRoute
-            buildProductTransformOptions(structure.uidl)
+            // The route sits in pages/api/global-state/: three folders below the root.
+            { ...buildProductTransformOptions(structure.uidl), routeProjectRoot: '../../..' }
           )
         } catch {
           continue

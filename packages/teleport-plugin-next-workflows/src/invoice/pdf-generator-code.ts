@@ -38,7 +38,8 @@ export const generatePdfGeneratorCode = (
  * Invoice PDF Generator
  * Walks the user-authored \`invoice-template\` UIDL component → HTML,
  * then delegates rendering to a shared external PDF microservice over
- * HTTP (configured via \`PDF_SERVICE_URL\` + \`PDF_SERVICE_API_KEY\`).
+ * HTTP (configured via \`PDF_SERVICE_URL\`, \`PDF_SERVICE_API_KEY\` and
+ * \`PDF_SERVICE_PROJECT_ID\`).
  * Used to launch Puppeteer locally; that renderer was moved out of
  * every deployed project to trim the serverless bundle by ~48 MB.
  */
