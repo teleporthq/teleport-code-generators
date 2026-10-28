@@ -41,6 +41,7 @@ const MANIFEST = [
         names: ['scenePointList', 'passedScenePoints', 'scenePointRank'],
       },
       { file: 'packages/teleport-shared/src/scroll-scene/unclip.ts', names: ['unclipStickyAncestors'] },
+      { file: 'packages/teleport-shared/src/scroll-scene/overflow.ts', names: ['laneOverflowDistance'] },
     ],
   },
   {

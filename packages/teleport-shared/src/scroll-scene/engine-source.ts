@@ -54,6 +54,12 @@ const COUNT_CSS =
   '[data-scroll-count]::before { counter-reset: tq-count var(--tq-count, 0); content: counter(tq-count); }'
 const clampPercent = (value) => Math.min(100, Math.max(0, Math.round(value * 100) / 100))
 
+// x / y units: px (the default), % of the element, vw of the viewport, and
+// overflow: percent of how far the element reaches past the stage edge, so
+// 0 to -100 slides a row exactly to its last card (laneOverflowDistance).
+// Mirrors SCROLL_LANE_UNITS in the editor's lane contract.
+const LANE_UNITS = ['px', '%', 'vw', 'overflow']
+
 const LANE_PRESETS = {
   'depth-1': [{ prop: 'y', at: [0, 1], values: [40, -40] }],
   'depth-2': [{ prop: 'y', at: [0, 1], values: [80, -80] }],
@@ -110,7 +116,7 @@ const isValidLane = (lane) => {
       return false
     }
   }
-  return lane.unit === undefined || lane.unit === 'px' || lane.unit === '%' || lane.unit === 'vw'
+  return lane.unit === undefined || LANE_UNITS.includes(lane.unit)
 }
 
 ${SCROLL_SCENE_HELPER_SOURCES.settledMomentForLanes}
@@ -124,6 +130,42 @@ ${SCROLL_SCENE_HELPER_SOURCES.passedScenePoints}
 ${SCROLL_SCENE_HELPER_SOURCES.scenePointRank}
 
 ${SCROLL_SCENE_HELPER_SOURCES.unclipStickyAncestors}
+
+${SCROLL_SCENE_HELPER_SOURCES.laneOverflowDistance}
+
+const laneLength = (element, lane, value, axis) =>
+  lane.unit === 'overflow'
+    ? (value / 100) * laneOverflowDistance(element, axis) + 'px'
+    : value + (lane.unit || 'px')
+
+// An overflow lane's distance comes from the layout, so the frame is repainted
+// when a size changes with no scroll: a phone turned, rows arriving, a font or
+// a picture loading. Watches the stage and every element carrying such a lane;
+// watch again after re-collecting the bound elements. Mirrors the editor.
+const overflowSizeWatch = (repaint) => {
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => repaint()) : null
+  return {
+    watch: (bound, stage) => {
+      if (!observer) {
+        return
+      }
+      observer.disconnect()
+      const riders = bound.filter((child) => child.lanes.some((lane) => lane.unit === 'overflow'))
+      if (riders.length === 0) {
+        return
+      }
+      if (stage) {
+        observer.observe(stage)
+      }
+      riders.forEach((child) => observer.observe(child.element))
+    },
+    stop: () => {
+      if (observer) {
+        observer.disconnect()
+      }
+    },
+  }
+}
 
 const parseScrollBind = (value) => {
   const raw = String(value || '').trim()
@@ -181,10 +223,10 @@ const applyLanesAt = (element, lanes, p) => {
     const value = laneValueAt(lane, p)
     switch (lane.prop) {
       case 'x':
-        translateX = value + (lane.unit || 'px')
+        translateX = laneLength(element, lane, value, 'x')
         break
       case 'y':
-        translateY = value + (lane.unit || 'px')
+        translateY = laneLength(element, lane, value, 'y')
         break
       case 'scale':
         scale = String(value)

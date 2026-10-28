@@ -178,10 +178,14 @@ ${ScrollSceneRuntime.restackBodySource()}
     followProgress(measure, scrubSeconds, applyAll)
   }
 
+  const sizeWatch = overflowSizeWatch(() => applyAll(progressRef.current))
+  sizeWatch.watch(boundRef.current, stageElement)
+
   // Items can arrive after the first pass and bindings can be rewritten in
   // place; the attributeFilter keeps the runtime's own style writes out.
   const observer = new MutationObserver(() => {
     boundRef.current = collectBound(track)
+    sizeWatch.watch(boundRef.current, stageElement)
     if (story) {
       letRowsSwipe(boundRef.current, stageElement)
     }

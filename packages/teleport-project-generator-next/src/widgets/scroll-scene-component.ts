@@ -161,12 +161,16 @@ ${ScrollSceneRuntime.restackBodySource()}
         : progress.get()
     )
 
+    const sizeWatch = overflowSizeWatch(() => applyAll(progressRef.current))
+    sizeWatch.watch(boundRef.current, stage)
+
     // Repeater items render after mount, and bindings may be rewritten in
     // place on existing elements (attribute-only mutations) — watch both,
     // mirroring the editor runtime. The attributeFilter keeps our own style
     // writes from feeding back into the observer.
     const observer = new MutationObserver(() => {
       boundRef.current = collectBound(track)
+      sizeWatch.watch(boundRef.current, stage)
       if (storyRef.current) {
         letRowsSwipe(boundRef.current, stage)
       }
@@ -221,6 +225,7 @@ ${ScrollSceneRuntime.restackBodySource()}
 
     return () => {
       observer.disconnect()
+      sizeWatch.stop()
       if (visibility) {
         visibility.disconnect()
       }
