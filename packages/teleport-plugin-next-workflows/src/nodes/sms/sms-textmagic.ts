@@ -50,5 +50,5 @@ async function sms_textmagic(config: any, context: Record<string, unknown>) {
 export const smsTextmagic: NodeHandlerGenerator = {
   nodeType: 'sms-textmagic',
   executionEnv: 'server',
-  ...outboundMessageHandlerSources(sms_textmagic),
+  ...outboundMessageHandlerSources(sms_textmagic, { nodeType: 'sms-textmagic' }),
 }

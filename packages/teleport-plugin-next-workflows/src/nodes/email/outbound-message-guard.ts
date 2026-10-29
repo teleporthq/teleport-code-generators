@@ -547,25 +547,31 @@ var __outboundMessageGuard = typeof __outboundMessageGuard !== 'undefined' ? __o
 export interface OutboundHandlerSourceOptions {
   /** Helper source appended after the handler (the sender, the recipients). */
   extraSource?: string
-  /** When set, the serialized source is refused if it names a module. */
-  nodeType?: string
+  /**
+   * The node's type. Names the handler (see below), and the serialized source
+   * is refused if it names a module.
+   */
+  nodeType: string
 }
 
 export const outboundMessageHandlerSources = (
   handler: HandlerFn,
-  options: OutboundHandlerSourceOptions = {}
+  options: OutboundHandlerSourceOptions
 ): Pick<NodeHandlerGenerator, 'generateHandler' | 'generateServerHandler'> => {
   const extra = options.extraSource ? '\n' + options.extraSource : ''
-  const finish = (source: string): string =>
-    options.nodeType ? assertHandlerHasNoModuleRefs(source, options.nodeType) : source
+  const finish = (source: string): string => assertHandlerHasNoModuleRefs(source, options.nodeType)
+  // The handler arrives by value from its node's module level, where a
+  // consumer's minifier inlines it anonymous; it gets the name the emitters
+  // look for (see resolveHandlerEntryName).
+  const handlerSource = () => handlerToString(handler, options.nodeType.replace(/-/g, '_'))
   return {
     generateHandler: () =>
-      finish(generateOutboundMessageGuardCode() + '\n\n' + handlerToString(handler) + extra),
+      finish(generateOutboundMessageGuardCode() + '\n\n' + handlerSource() + extra),
     generateServerHandler: (serverOptions?: ServerHandlerOptions) =>
       finish(
         generateOutboundMessageGuardCode(serverHandlerPrefix(serverOptions)) +
           '\n\n' +
-          handlerToString(handler) +
+          handlerSource() +
           extra
       ),
   }

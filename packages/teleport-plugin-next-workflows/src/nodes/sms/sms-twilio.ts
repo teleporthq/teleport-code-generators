@@ -56,5 +56,5 @@ export const smsTwilio: NodeHandlerGenerator = {
   dependencies: {
     twilio: '^5.0.0',
   },
-  ...outboundMessageHandlerSources(sms_twilio),
+  ...outboundMessageHandlerSources(sms_twilio, { nodeType: 'sms-twilio' }),
 }

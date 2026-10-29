@@ -1,7 +1,12 @@
 export type HandlerFn = (config: unknown, context: Record<string, unknown>) => Promise<unknown>
 
-export function handlerToString(fn: HandlerFn): string {
-  return fn.toString()
+// `name` gives the handler its name back when a consumer's minifier inlined
+// it, as an anonymous expression, into the one call that reads it (a handler
+// passed by value at module level): `async function(e,t){…}` cannot stand as
+// a statement, `async function email_resend(e,t){…}` can.
+export function handlerToString(fn: HandlerFn, name?: string): string {
+  const source = fn.toString()
+  return name ? source.replace(/^(async\s+)?function\s*\(/, `$1function ${name}(`) : source
 }
 
 // A `function` keyword opening a line with no name after it: an anonymous

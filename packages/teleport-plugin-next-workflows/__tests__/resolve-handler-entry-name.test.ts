@@ -1,5 +1,6 @@
 import { resolveHandlerEntryName } from '../src/nodes/types'
 import { nodeRegistry } from '../src/nodes'
+import { outboundMessageHandlerSources } from '../src/nodes/email/outbound-message-guard'
 
 /**
  * Regression coverage for resolveHandlerEntryName, which exists because a
@@ -95,6 +96,26 @@ function(e){try{const t=globalThis.tpTrackCommerce;"function"==typeof t&&t(e.nam
     expect(() => resolveHandlerEntryName(source, 'cart-add-item')).toThrow(
       /anonymous function where a statement is expected/
     )
+  })
+
+  /**
+   * An email/SMS node hands its handler by value to
+   * `outboundMessageHandlerSources` at module level; the editor's production
+   * bundle (Terser, Next 12 options) inlines that single-use function into the
+   * call as an anonymous expression, so publishing failed with the error above
+   * for "email-postmark" and "email-resend".
+   */
+  it('names an email/SMS handler a minifier inlined anonymous into its sources call', () => {
+    const inlined = outboundMessageHandlerSources(
+      async function (e: unknown, t: Record<string, unknown>) {
+        return { e, t }
+      },
+      { nodeType: 'email-resend' }
+    )
+    for (const source of [inlined.generateHandler(), inlined.generateServerHandler!()]) {
+      expect(resolveHandlerEntryName(source.trim(), 'email-resend')).toBe('email_resend')
+      expect(typeof evalEntryWrapper(source.trim(), 'email_resend')).toBe('function')
+    }
   })
 
   it('accepts an anonymous function that is an expression, not a statement', () => {

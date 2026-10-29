@@ -72,5 +72,5 @@ async function sms_infobip(config: any, context: Record<string, unknown>) {
 export const smsInfobip: NodeHandlerGenerator = {
   nodeType: 'sms-infobip',
   executionEnv: 'server',
-  ...outboundMessageHandlerSources(sms_infobip),
+  ...outboundMessageHandlerSources(sms_infobip, { nodeType: 'sms-infobip' }),
 }

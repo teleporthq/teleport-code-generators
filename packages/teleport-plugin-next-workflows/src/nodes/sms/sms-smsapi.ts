@@ -57,5 +57,5 @@ async function sms_smsapi(config: any, context: Record<string, unknown>) {
 export const smsSmsapi: NodeHandlerGenerator = {
   nodeType: 'sms-smsapi',
   executionEnv: 'server',
-  ...outboundMessageHandlerSources(sms_smsapi),
+  ...outboundMessageHandlerSources(sms_smsapi, { nodeType: 'sms-smsapi' }),
 }
