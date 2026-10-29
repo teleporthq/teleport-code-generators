@@ -142,6 +142,12 @@ ${subscriberRules.length > 0 ? DataExposure.generateEntitlementCheckCode() : ''}
 async function __taGuardExposure(req) {
   if (__TA_ROUTE_EXPOSURE.public === true) return null;
   if (__taIsInternalRequest(req)) return null;
+  // A page's own data, read in-process to render it (\`fetchData(params, { as:
+  // 'visitor' })\`): the page's access guard already admitted whoever opened it,
+  // and the read is served as an anonymous visitor's (__taGuardRead, the row
+  // policy). It carries no session to check here — a protected page would
+  // otherwise render nothing.
+  if (__taIsVisitorView(req)) return null;
   // No page binds the table: no session could read it from a browser.
   if (
     __TA_ROUTE_EXPOSURE.anySession !== true &&
