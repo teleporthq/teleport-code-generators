@@ -52,9 +52,11 @@ const SERVER_BODY = `async function analytics_track_outcome(config, context) {
   if (!name) {
     return { sent: false, reason: 'no-name' };
   }
-  var baseUrl = process.env.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL || '';
-  var publicKey = process.env.NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY || '';
-  var serverKey = process.env.TELEPORT_ANALYTICS_SERVER_KEY || '';
+  // \`globalThis.process\` (member access): webpack rewrites a bare \`process\`.
+  var env = globalThis.process && globalThis.process.env;
+  var baseUrl = (env && env.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL) || '';
+  var publicKey = (env && env.NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY) || '';
+  var serverKey = (env && env.TELEPORT_ANALYTICS_SERVER_KEY) || '';
   if (baseUrl.indexOf('http') !== 0 || !publicKey || !serverKey) {
     return { sent: false, reason: 'not-configured' };
   }

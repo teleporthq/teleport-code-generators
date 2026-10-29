@@ -67,11 +67,13 @@ describe('analytics-track-outcome node', () => {
     const calls: Array<{ url: string; init: { headers: Record<string, string>; body: string } }> =
       []
     const handler = evalHandler(generator.generateServerHandler?.() ?? '', {
-      process: {
-        env: {
-          NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example/',
-          NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
-          TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+      globalThis: {
+        process: {
+          env: {
+            NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example/',
+            NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
+            TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+          },
         },
       },
       fetch: (url: string, init: { headers: Record<string, string>; body: string }) => {
@@ -108,7 +110,7 @@ describe('analytics-track-outcome node', () => {
 
   it('server: answers not-configured without the key and never throws on a network failure', async () => {
     const unconfigured = evalHandler(generator.generateServerHandler?.() ?? '', {
-      process: { env: {} },
+      globalThis: { process: { env: {} } },
       fetch: () => Promise.reject(new Error('unreachable')),
       AbortController: undefined,
     })
@@ -117,11 +119,13 @@ describe('analytics-track-outcome node', () => {
       reason: 'not-configured',
     })
     const offline = evalHandler(generator.generateServerHandler?.() ?? '', {
-      process: {
-        env: {
-          NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
-          NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'k',
-          TELEPORT_ANALYTICS_SERVER_KEY: 's',
+      globalThis: {
+        process: {
+          env: {
+            NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
+            NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'k',
+            TELEPORT_ANALYTICS_SERVER_KEY: 's',
+          },
         },
       },
       fetch: () => Promise.reject(new Error('unreachable')),

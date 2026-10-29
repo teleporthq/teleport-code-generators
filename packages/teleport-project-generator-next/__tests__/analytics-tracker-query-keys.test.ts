@@ -219,12 +219,22 @@ describe('the tracker file a published site ships', () => {
     const program = parse(await emittedTracker(), { sourceType: 'module' }).program
     const exported = program.body
       .filter((node) => node.type === 'ExportNamedDeclaration')
-      .map((node) => (node as { declaration?: { id?: { name: string } } }).declaration?.id?.name)
+      .flatMap((node) => {
+        const { declaration, specifiers } = node as {
+          declaration?: { id?: { name: string } }
+          specifiers: Array<{ exported: { name: string } }>
+        }
+        return declaration ? [declaration.id?.name] : specifiers.map((s) => s.exported.name)
+      })
 
     expect(exported).toEqual([
+      'showOwnerHeatmap',
       'initTeleportAnalytics',
       'trackRouteLeave',
       'trackRouteChange',
+      'trackNotFound',
+      'trackOutcome',
+      'analyticsIds',
       'trackCommerceEvent',
       'trackCommerceView',
       'resetCommerceView',

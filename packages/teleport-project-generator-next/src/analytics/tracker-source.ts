@@ -1766,13 +1766,13 @@ export function trackRouteLeave(url) {
 }
 
 export function trackRouteChange(url) {
+  if (samePathAsCurrent(url)) {
+    return
+  }
   if (ownerHeatmapToken) {
     // Owner mode follows the owner from page to page: the map of the page
     // they just opened, with the same token while it lasts.
     showOwnerHeatmap(ownerHeatmapToken)
-    return
-  }
-  if (samePathAsCurrent(url)) {
     return
   }
   trackPageview(false)

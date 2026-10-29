@@ -1,4 +1,5 @@
 /* tslint:disable:no-eval */
+import * as crypto from 'crypto'
 import {
   generateAuthOptionsFile,
   generateSessionProviderWrapper,
@@ -111,6 +112,11 @@ const bootAuthOptions = (auth: UIDLAuthentication) => {
   const fakeRequire = (name: string): any => {
     if (name === 'pg') {
       return { Client: FakeClient }
+    }
+    // The refresh fingerprints the stored password hash before it copies the
+    // row onto the token; a stubbed crypto would throw there and drop the role.
+    if (name === 'crypto') {
+      return crypto
     }
     const provider = (config: unknown) => config
     ;(provider as any).default = provider

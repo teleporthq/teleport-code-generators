@@ -185,7 +185,9 @@ const runRoute = async (schema: FixtureSchema, refuse: Refuse = () => null): Pro
       return res
     },
   }
-  await handler({ method: 'POST', headers: {} }, res)
+  // No host: the request is local http, so the plain session cookie is the one
+  // the reader accepts. getToken is stubbed and ignores its value.
+  await handler({ method: 'POST', headers: { cookie: 'next-auth.session-token=signed' } }, res)
   return run
 }
 

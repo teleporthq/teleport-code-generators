@@ -1,5 +1,9 @@
 /* tslint:disable:function-constructor */
 import { generateDataAPIRoute } from '../src/data-api-route-generator'
+import { isSecurityRuntimeSpecifier, loadSecurityRuntime } from './_helpers/load-security-runtime'
+
+// The data routes compare the app secret with the shared runtime's safeEqual.
+const securityRuntime = loadSecurityRuntime()
 
 /**
  * The generated `/api/data/<ds>/<op>` route answers a request whose body is
@@ -41,6 +45,9 @@ function bootRoute() {
     }
     if (name === 'next-auth/jwt') {
       return { getToken: async () => null }
+    }
+    if (isSecurityRuntimeSpecifier(name)) {
+      return securityRuntime
     }
     throw new Error('unexpected require: ' + name)
   }

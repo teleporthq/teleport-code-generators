@@ -2,6 +2,7 @@
 import * as types from '@babel/types'
 import generator from '@babel/generator'
 import { generateDataSourceFetcherWithCore } from '../../src/data-source-fetchers'
+import { publicExposure } from './exposure'
 
 /**
  * Runs what a generated page asks its data module for: the arguments its
@@ -113,10 +114,19 @@ export const bootProductsRoute = () => {
       user: 'teleporthq.secrets.TELEPORT_DB_USER',
       password: 'teleporthq.secrets.TELEPORT_DB_PASSWORD',
       database: 'teleporthq.secrets.TELEPORT_DB_NAME',
-      selectedTables: { teleport_products: { columns: [{ name: 'id', type: 'uuid' }] } },
+      // The table's schema as the editor exports it: the only columns a request may name.
+      selectedTables: {
+        teleport_products: { columns: [{ name: 'id', type: 'uuid' }, { name: 'name' }] },
+      },
     },
   }
-  const code = generateDataSourceFetcherWithCore(dataSource as never, 'teleport_products')
+  const code = generateDataSourceFetcherWithCore(
+    dataSource as never,
+    'teleport_products',
+    false,
+    // Bound by the store's public listing page: any visitor may read it.
+    publicExposure(['teleport_products'])
+  )
     .replace(
       "import { Client, types as pgTypes } from 'pg'",
       "const { Client, types: pgTypes } = require('pg')"

@@ -208,20 +208,20 @@ const MAILGUN_DOMAIN_READ = "var domain = process.env.MAILGUN_DOMAIN || '';"
  */
 const PROVIDER_HEADER_CALLS: Record<string, [string, string]> = {
   resend: [
-    'resend.emails.send({ from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html })',
-    'resend.emails.send({ from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html, headers: msg.headers || undefined })',
+    'resend.emails.send({ from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html })',
+    'resend.emails.send({ from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html, headers: msg.headers || undefined })',
   ],
   sendgrid: [
-    'sgMail.send({ to: msg.to, from: msg.from, subject: msg.subject, html: msg.html })',
-    'sgMail.send({ to: msg.to, from: msg.from, subject: msg.subject, html: msg.html, headers: msg.headers || undefined })',
+    'sgMail.send({ to: msg.to, from: from, subject: msg.subject, html: msg.html })',
+    'sgMail.send({ to: msg.to, from: from, subject: msg.subject, html: msg.html, headers: msg.headers || undefined })',
   ],
   postmark: [
-    'client.sendEmail({ From: msg.from, To: msg.to, Subject: msg.subject, HtmlBody: msg.html })',
-    'client.sendEmail({ From: msg.from, To: msg.to, Subject: msg.subject, HtmlBody: msg.html, Headers: msg.headers ? Object.keys(msg.headers).map(function (name) { return { Name: name, Value: msg.headers[name] }; }) : undefined })',
+    'client.sendEmail({ From: sender.header, To: msg.to, Subject: msg.subject, HtmlBody: msg.html })',
+    'client.sendEmail({ From: sender.header, To: msg.to, Subject: msg.subject, HtmlBody: msg.html, Headers: msg.headers ? Object.keys(msg.headers).map(function (name) { return { Name: name, Value: msg.headers[name] }; }) : undefined })',
   ],
   mailgun: [
-    'mg.messages.create(domain, { from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html })',
-    "mg.messages.create(domain, Object.keys(msg.headers || {}).reduce(function (message, name) { message['h:' + name] = msg.headers[name]; return message; }, { from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html }))",
+    'mg.messages.create(domain, { from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html })',
+    "mg.messages.create(domain, Object.keys(msg.headers || {}).reduce(function (message, name) { message['h:' + name] = msg.headers[name]; return message; }, { from: sender.header, to: [msg.to], subject: msg.subject, html: msg.html }))",
   ],
 }
 

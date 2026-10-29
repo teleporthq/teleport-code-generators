@@ -665,7 +665,7 @@ describe('fix round 1: every field a request names is a known column (C1, I2)', 
     const searched = await call(m, { query: '$2b$10$ab' })
     expect(searched.status).toBe(200)
     const read = sqls.filter((sql) => /FROM "?members"?/i.test(sql)).pop() as string
-    expect(read).toContain('"name"::text ILIKE')
+    expect(read).toContain('lower("name"::text)')
     expect(read).not.toContain('password')
     expect(searched.body.data[0]).not.toHaveProperty('password')
   })

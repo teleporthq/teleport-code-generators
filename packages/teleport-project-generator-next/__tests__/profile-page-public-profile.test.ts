@@ -183,10 +183,14 @@ describe('/profile/[id]: a member’s public profile, never their account', () =
         .replace(/^import .*$/gm, '')
         .replace('export default async function', 'return async function')
     )(usersModule)
+    // The page's access guard (utils/auth/page-access) admits the visitor here;
+    // what a guest is refused is the middleware's and the guard's own tests.
+    const pageAccess = { guardPageAccess: async () => null }
     const getServerSideProps = new Function(
       'fetchUsersDetailResource',
+      '__tqPageAccess',
       `${topLevelFunction(page, 'getServerSideProps')}\nreturn getServerSideProps`
-    )(resource)
+    )(resource, pageAccess)
     pageData = (params) => getServerSideProps({ params })
   }, 120000)
 
