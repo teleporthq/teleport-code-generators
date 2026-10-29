@@ -2297,6 +2297,8 @@ const generateKnownAddressEmailCode = (options: {
   sender: { provider: string | null; from: string; secretEnv: string }
   pagePath: string
   tokenInFragment: boolean
+  /** The route already declares `__emailSender` (the welcome send brings it). */
+  senderHelperDeclared: boolean
 }): string => {
   const { sender } = options
   const senderConstants = `
@@ -2320,10 +2322,11 @@ async function sendSetPasswordEmail() {
   const ttlMinutes = Math.round(PASSWORD_RESET_TOKEN_TTL_SECONDS / 60)
   // Where the link carries the token, as the forgot-password link does.
   const tokenLinkPrefix = options.tokenInFragment ? '#token=' : '?token='
-  const noticeSend = generateProviderSendFunction(sender.provider).replace(
-    'async function __sendProviderEmail(',
-    'async function __sendNoticeEmail('
-  )
+  const noticeSend = generateProviderSendFunction(
+    sender.provider,
+    undefined,
+    !options.senderHelperDeclared
+  ).replace('async function __sendProviderEmail(', 'async function __sendNoticeEmail(')
   return `${senderConstants}
 
 ${noticeSend}
@@ -2537,6 +2540,7 @@ ${generateKnownAddressEmailCode({
   sender: noticeSender,
   pagePath: setPasswordPagePath,
   tokenInFragment: signup.tokenInFragment === true,
+  senderHelperDeclared: !!welcomeProvider,
 })}
 
 function waitUntilElapsed(startedAt, ms) {

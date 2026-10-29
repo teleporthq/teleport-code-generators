@@ -13,7 +13,12 @@ import {
 import { generateResetPasswordRoute } from '../src/password-reset-route-generator'
 import { generateSessionRevocationFile } from '../src/session-revocation-generator'
 import { generateSecurityRuntimeCode } from '../src/security-runtime/security-runtime-code'
-import { EXISTING_ACCOUNT_EMAIL, SET_PASSWORD_EMAIL } from '../src/transactional-email-code'
+import { parse } from '@babel/parser'
+import {
+  EXISTING_ACCOUNT_EMAIL,
+  SET_PASSWORD_EMAIL,
+  SUPPORTED_EMAIL_PROVIDERS,
+} from '../src/transactional-email-code'
 import { accountLogin } from '../src/nodes/account/account-login'
 import { accountSignup } from '../src/nodes/account/account-signup'
 import { NextWorkflowProjectPlugin } from '../src/workflow-project-plugin'
@@ -876,7 +881,7 @@ describe('project wiring', () => {
   }
 
   /** The project plugin's files for a sign-up node with `signupEmail` and a reset node with a sender. */
-  const runPlugin = async (signupEmail: Row) => {
+  const runPluginFiles = async (signupEmail: Row) => {
     const files = new Map<string, any>()
     const node = (id: string, type: string, config: Row) => ({ id, type, config })
     const structure = {
@@ -929,6 +934,11 @@ describe('project wiring', () => {
       strategy: {},
     }
     await new NextWorkflowProjectPlugin().runAfter(structure as never)
+    return files
+  }
+
+  const runPlugin = async (signupEmail: Row) => {
+    const files = await runPluginFiles(signupEmail)
     return (key: string) => files.get(key)?.files?.[0]?.content as string
   }
 
@@ -957,4 +967,31 @@ describe('project wiring', () => {
       'const NOTICE_EMAIL_SECRET_ENV_NAME = "RESEND_KEY";'
     )
   })
+
+  // Next compiles a route as a module, where a function declared twice fails
+  // the build: the welcome send and the known-address send once both brought
+  // `__emailSender`.
+  it.each(Array.from(SUPPORTED_EMAIL_PROVIDERS))(
+    'every file compiles as a module, with and without a sign-up sender (%s)',
+    async (provider) => {
+      for (const signupEmail of [
+        { ...SIGNUP_NODE_EMAIL, emailProvider: `email-${provider}` },
+        {},
+      ]) {
+        const files = await runPluginFiles(signupEmail)
+        expect(files.has('auth-signup-route')).toBe(true)
+        const failures: string[] = []
+        files.forEach((file, key) => {
+          for (const emitted of file.files || []) {
+            try {
+              parse(emitted.content, { sourceType: 'module', plugins: ['jsx'] })
+            } catch (err) {
+              failures.push(`${key}: ${(err as Error).message}`)
+            }
+          }
+        })
+        expect(failures).toEqual([])
+      }
+    }
+  )
 })

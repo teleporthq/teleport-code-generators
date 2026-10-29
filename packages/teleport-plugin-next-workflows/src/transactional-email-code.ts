@@ -67,16 +67,20 @@ export const EXISTING_ACCOUNT_EMAIL = 'existing-account'
 // is configured the function is a no-op so the route stays self-contained and
 // never throws. With `ledger`, the provider function is emitted as
 // `__sendProviderEmailRaw` and `__sendProviderEmail` records every attempt
-// (success or throw) before returning / rethrowing.
+// (success or throw) before returning / rethrowing. `withSenderHelper: false`
+// leaves the helper out, for a second send in a file that already declares it:
+// Next compiles a route as a module, where a function declared twice fails the
+// build ("the name `__emailSender` is defined multiple times").
 export const generateProviderSendFunction = (
   provider?: string | null,
-  ledger?: TransactionalEmailLedger
+  ledger?: TransactionalEmailLedger,
+  withSenderHelper = true
 ): string => {
   const raw = generateRawProviderSendFunction(provider)
   if (!provider || !SUPPORTED_EMAIL_PROVIDERS.has(provider)) {
     return raw
   }
-  const senderHelper = EmailSender.generateEmailSenderHelperCode()
+  const senderHelper = withSenderHelper ? EmailSender.generateEmailSenderHelperCode() : ''
   if (!ledger) {
     return `${senderHelper}
 ${raw}`
