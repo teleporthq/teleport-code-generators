@@ -4,6 +4,7 @@ import { generateCategoryTaxonomyCode } from './category-taxonomy'
 import { generateAdjacentPostsCode } from './blog-adjacent-posts'
 import { generateBlogCommentsCode } from './blog-comments'
 import { generateHeadingAnchorsCode } from './heading-anchors'
+import { generateCodeCopyButtonsCode } from './code-copy'
 
 /** What the blog-post transform bakes in at export time beyond the row itself. */
 export interface BlogPostTransformOptions {
@@ -53,6 +54,7 @@ ${generateCategoryTaxonomyCode('BLOG_CATEGORIES_BY_ID', options.categories)}
 ${generateBlogCommentsCode(tables.comments ?? `${tables.posts}_comments`)}
 ${generateAdjacentPostsCode(tables.posts, options.arranged === true)}
 ${generateHeadingAnchorsCode()}
+${generateCodeCopyButtonsCode()}
 ${RichTextContentCodegen.generateLegacyRichTextNormalizerCode()}
 var BLOG_HEADING_ANCHORS = ${options.headingAnchors === true}
 var BLOG_CONTENTS = ${options.contents === true}
@@ -158,6 +160,8 @@ function buildBlogPost(record, options) {
   if (BLOG_HEADING_ANCHORS || BLOG_CONTENTS) {
     content = addHeadingAnchors(content, { links: BLOG_HEADING_ANCHORS, sections: contentsHeadings })
   }
+  // After the word count: the button's label is not a word of the post.
+  content = addCodeCopyButtons(content)
   var excerpt = resolveI18nField(record, 'excerpt', 'excerpt', currentLang, mainLang) || ''
   var category = resolveI18nField(record, 'category', 'category', currentLang, mainLang) || null
 
