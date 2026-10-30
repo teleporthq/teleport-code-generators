@@ -46,6 +46,7 @@ import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin
 import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextBlogProjectPlugin } from './blog/project-plugin'
+import { NextCodeCopyProjectPlugin } from './blog/code-copy-project-plugin'
 import { NextBookingProjectPlugin } from './bookings/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
@@ -111,6 +112,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
   new NextBlogProjectPlugin(),
+  new NextCodeCopyProjectPlugin(),
   new NextNewsletterProjectPlugin(),
   new NextBookingProjectPlugin(),
   new NextGlobalStateProjectPlugin(),
@@ -326,6 +328,7 @@ export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 export { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
+export { NextCodeCopyProjectPlugin } from './blog/code-copy-project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
