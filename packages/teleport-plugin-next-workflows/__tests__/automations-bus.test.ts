@@ -359,6 +359,10 @@ class FakeDatabase {
   signedRequests = new Map<string, number>()
   /** Fails every statement on the signed-request table. */
   signedRequestsDown = false
+  /** The editor did not make the signed-request table. */
+  signedRequestsMissing = false
+  /** As the site's role connects: it may read and write tables, and create none, whether or not one exists. */
+  mayCreateTables = false
   private serial = 0
 
   query(sql: string, values: unknown[] = []): { rows: Row[]; rowCount?: number } {
@@ -381,7 +385,16 @@ class FakeDatabase {
         text ===
           'CREATE INDEX IF NOT EXISTS teleport_automation_requests_expires_at ON teleport_automation_requests (expires_at)'
       ) {
+        if (!this.mayCreateTables) {
+          throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+        }
+        this.signedRequestsMissing = false
         return { rows: [] }
+      }
+      if (this.signedRequestsMissing) {
+        throw Object.assign(new Error('relation "teleport_automation_requests" does not exist'), {
+          code: '42P01',
+        })
       }
       if (
         text ===
@@ -3055,7 +3068,12 @@ describe('in-app event bus — emitting and the dispatch route', () => {
   })
 
   // A request sent exactly as it was captured: the same headers, the same body.
-  const resend = async (db: FakeDatabase, headers: Record<string, string>, rawBody: string) => {
+  const resend = async (
+    db: FakeDatabase,
+    headers: Record<string, string>,
+    rawBody: string,
+    logging: typeof silenced = silenced
+  ) => {
     const reply = { status: 0, body: null as unknown }
     const res = {
       setHeader: () => undefined,
@@ -3082,7 +3100,7 @@ describe('in-app event bus — emitting and the dispatch route', () => {
     const calls = await withEcho(
       async (recorded) => {
         const handler = createApp(files, db)('pages/api/automations/dispatch.js') as RouteHandler
-        await silenced(() => handler(req, res))
+        await logging(() => handler(req, res))
         return recorded
       },
       { TELEPORT_CRON_SECRET: CRON_KEY }
@@ -3143,6 +3161,71 @@ describe('in-app event bus — emitting and the dispatch route', () => {
     })
     expect(refused.calls).toEqual([])
     expect(down.deliveries).toEqual([])
+  })
+
+  const asksToCreate = (db: FakeDatabase) =>
+    db.statements.filter((statement) => /\bCREATE\b|pg_advisory_xact_lock/.test(statement))
+
+  it('takes a signed request in the table the editor made, never asking to create it', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+
+    const { reply } = await resend(db, signedHeaders('{}', false), '{}')
+
+    expect(reply.status).toBe(200)
+    expect(db.signedRequests.size).toBe(1)
+    expect(asksToCreate(db)).toEqual([])
+  })
+
+  it('creates the table only when it is really missing, then takes the request in it', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+    db.signedRequestsMissing = true
+    db.mayCreateTables = true
+    const headers = signedHeaders('{}', false)
+
+    expect((await resend(db, headers, '{}')).reply.status).toBe(200)
+    expect(asksToCreate(db)).toEqual([
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'CREATE TABLE IF NOT EXISTS teleport_automation_requests (request_key TEXT PRIMARY KEY, expires_at BIGINT NOT NULL)',
+      'CREATE INDEX IF NOT EXISTS teleport_automation_requests_expires_at ON teleport_automation_requests (expires_at)',
+    ])
+    expect(db.signedRequests.size).toBe(1)
+
+    // Replays are still refused, and the table is not asked for again.
+    db.statements.length = 0
+    expect((await resend(db, headers, '{}')).reply.status).toBe(409)
+    expect(asksToCreate(db)).toEqual([])
+  })
+
+  it('refuses a request when its table is missing and cannot be made, naming the table in the log', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+    db.signedRequestsMissing = true
+    const logged: unknown[][] = []
+    const capturingErrors = async <T>(run: () => Promise<T>): Promise<T> => {
+      const sink = jest.spyOn(console, 'error').mockImplementation((...args) => {
+        logged.push(args)
+      })
+      try {
+        return await run()
+      } finally {
+        sink.mockRestore()
+      }
+    }
+
+    const { reply } = await resend(db, signedHeaders('{}', false), '{}', capturingErrors)
+
+    expect(reply).toEqual({
+      status: 503,
+      body: { error: 'The request could not be checked. Try again.' },
+    })
+    expect(db.deliveries).toEqual([])
+    expect(db.signedRequests.size).toBe(0)
+    expect(db.statements).toContain('ROLLBACK')
+    const said = logged.map((args) => args.map(String).join(' ')).join('\n')
+    expect(said).toContain('teleport_automation_requests')
+    expect(said).toContain('permission denied for schema public')
   })
 
   it('refuses a caller without the app secret or a cron signature', async () => {

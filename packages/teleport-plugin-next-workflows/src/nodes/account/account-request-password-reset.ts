@@ -5,8 +5,9 @@ import { NodeHandlerGenerator, handlerToString } from '../types'
 // server: whether the address has an account, the link's token (minted there,
 // stored hashed), the page it opens and the email itself (provider, sender and
 // template baked from this node's config at generation). The route answers the
-// same whether the address has an account or not, so this node always reports
-// success for a well-formed request.
+// same whether the address has an account or not, so this node reports success
+// for a well-formed request unless the site could not keep a link, for any
+// address.
 async function account_request_password_reset(config: any, context: Record<string, unknown>) {
   const email = config && typeof config.email === 'string' ? config.email.trim() : ''
   if (!email) {
