@@ -61,7 +61,9 @@ class FakeDatabase {
   /** `connect`: connect() never settles; `query`: no query settles; `cleanup`: the DELETE never settles. */
   hang: 'connect' | 'query' | 'cleanup' | null = null
   connectDelayMs = 0
-  tableExists = false
+  tableExists = true
+  /** Off, as the site's role connects: it may read and write tables, and create none, whether or not one exists. */
+  mayCreateTables = true
 
   rowKey(key: unknown, windowStart: unknown): string {
     return `${key} @ ${windowStart}`
@@ -93,6 +95,9 @@ class FakeDatabase {
       return none
     }
     if (sql === CREATE_SQL) {
+      if (!this.mayCreateTables) {
+        throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+      }
       this.tableExists = true
       return none
     }
@@ -287,44 +292,56 @@ describe('rateLimit — Postgres-backed', () => {
     expect(wire).not.toContain('203.0.113.7')
   })
 
-  it('creates its table and index once per instance, under an advisory lock', async () => {
+  it('counts in the table the editor made, never asking to create it', async () => {
     const db = new FakeDatabase()
-    const clock = { now: MIDNIGHT + 5000 }
-    const { runtime } = loadRuntime({ db, clock })
+    db.mayCreateTables = false
+    const { runtime, log } = loadRuntime({ db, clock: { now: MIDNIGHT + 5000 } })
     await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })
     await settle()
     await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })
-    expect(db.queries.map((query) => query.sql)).toEqual([
+    expect(db.queries.map((query) => query.sql)).toEqual([HIT_SQL, CLEANUP_SQL, HIT_SQL])
+    expect(Array.from(db.rows.values()).map((row) => row.count)).toEqual([2])
+    expect(log.error).not.toHaveBeenCalled()
+  })
+
+  it('creates the table when it is really missing, under an advisory lock, within the same request', async () => {
+    const db = new FakeDatabase()
+    const { runtime, log } = loadRuntime({ db, clock: { now: MIDNIGHT + 5000 } })
+    await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })
+    // Dropped, or the database restored from a backup taken before it existed.
+    db.dropTable()
+    db.queries.length = 0
+    expect(await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })).toEqual({
+      allowed: true,
+      retryAfter: 0,
+    })
+    expect(db.queries.map((query) => query.sql).slice(0, 7)).toEqual([
+      HIT_SQL,
       'BEGIN',
       LOCK_SQL,
       CREATE_SQL,
       INDEX_SQL,
       'COMMIT',
       HIT_SQL,
-      CLEANUP_SQL,
-      HIT_SQL,
     ])
-    // A second instance creates them again (IF NOT EXISTS), under the same lock.
-    await loadRuntime({ db, clock }).runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })
-    expect(db.statements(CREATE_SQL)).toHaveLength(2)
-    expect(db.statements(INDEX_SQL)).toHaveLength(2)
-    expect(db.statements(LOCK_SQL)).toHaveLength(2)
+    // Counted in the database, not in memory.
+    expect(Array.from(db.rows.values()).map((row) => row.count)).toEqual([1])
+    expect(log.error).not.toHaveBeenCalled()
   })
 
-  it('creates the table again, within the same request, when it went missing', async () => {
+  it('counts in memory, naming the table in the log, when it is missing and cannot be made', async () => {
     const db = new FakeDatabase()
-    const { runtime, log } = loadRuntime({ db, clock: { now: MIDNIGHT + 5000 } })
-    await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })
-    // Dropped, or the database restored from a backup taken before it existed.
     db.dropTable()
+    db.mayCreateTables = false
+    const { runtime, log } = loadRuntime({ db, clock: { now: MIDNIGHT + 5000 } })
     expect(await runtime.rateLimit({ key: 'k', limit: 5, windowSeconds: 60 })).toEqual({
       allowed: true,
       retryAfter: 0,
     })
-    expect(db.statements(CREATE_SQL)).toHaveLength(2)
-    // Counted in the database, not in memory.
-    expect(Array.from(db.rows.values()).map((row) => row.count)).toEqual([1])
-    expect(log.error).not.toHaveBeenCalled()
+    expect(log.error).toHaveBeenCalledTimes(1)
+    expect(String(log.error.mock.calls[0][0])).toContain(
+      'the table teleport_rate_limits is missing and could not be created: permission denied for schema public'
+    )
   })
 
   it('keeps one counter per window length, so a minute and a day limit never share a row', async () => {

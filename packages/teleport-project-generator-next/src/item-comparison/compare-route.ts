@@ -85,6 +85,7 @@ ${kindLiterals}
 }
 const MAX_ITEMS = ${config.maxItems}
 const MAX_IDS = ${MAX_IDS}
+const PRICE_SYMBOL_SIDE = ${toJsLiteral(config.priceSymbolSide)}
 
 function text(value) {
   if (value === undefined || value === null) return ''
@@ -110,11 +111,15 @@ function list(value) {
   return raw.split(',').map((item) => item.trim()).filter(Boolean)
 }
 
+// The price a visitor is quoted on the item's card: the default variant's, else
+// the item's own, discounted and with the store's tax. Booking items carry only
+// their stored price.
 function priceCell(row) {
-  const amount = number(row.price)
+  const amount = number(text(row.defaultVariantDisplayPrice) || text(row.displayPrice) || row.price)
   if (amount === null) return null
   const symbol = text(row.currency_symbol || row.currencySymbol) || text(row.currency) || ''
-  return { text: symbol + amount.toFixed(2), number: amount }
+  const parts = PRICE_SYMBOL_SIDE === 'after' ? [amount.toFixed(2), symbol] : [symbol, amount.toFixed(2)]
+  return { text: parts.filter(Boolean).join(' '), number: amount }
 }
 
 function minutes(value) {

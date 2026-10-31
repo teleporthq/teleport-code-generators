@@ -30,6 +30,9 @@ export const BOOKING_ATTRIBUTE_KEYS = ['price', 'unit', 'capacity', 'duration', 
 export const CUSTOM_PROPERTY_ROWS = ['all', 'chosen', 'none'] as const
 export type CustomPropertyRows = (typeof CUSTOM_PROPERTY_ROWS)[number]
 
+export const PRICE_SYMBOL_SIDES = ['before', 'after'] as const
+export type PriceSymbolSide = (typeof PRICE_SYMBOL_SIDES)[number]
+
 const MAX_PROPERTY_NAMES = 50
 const MAX_PROPERTY_NAME_LENGTH = 100
 
@@ -45,6 +48,8 @@ export interface ItemComparisonConfig {
   bookingProperties: string[]
   highlightBest: boolean
   onlyDifferences: boolean
+  /** Which side of an amount the site writes its currency symbol on. */
+  priceSymbolSide: PriceSymbolSide
   /** The comparison page, when the plugin has one. */
   compareRoute: string | null
 }
@@ -124,6 +129,7 @@ export const resolveItemComparisonConfig = (uidl: ProjectUIDL): ItemComparisonCo
     bookingProperties: propertyNames(stored.bookingProperties),
     highlightBest: bool(stored.highlightBest, true),
     onlyDifferences: bool(stored.onlyDifferences, false),
+    priceSymbolSide: oneOf(record.data?.priceSymbolSide, PRICE_SYMBOL_SIDES, 'before'),
     compareRoute:
       typeof compareRoute === 'string' && compareRoute.startsWith('/') ? compareRoute : null,
   }

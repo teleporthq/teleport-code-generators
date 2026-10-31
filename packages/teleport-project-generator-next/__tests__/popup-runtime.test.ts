@@ -299,6 +299,86 @@ describeInDom('popup runtime — where a popup may open', () => {
   })
 })
 
+describeInDom('popup runtime — the cookie banner comes first', () => {
+  const BANNER = '<div data-thq="thq-cookie-consent"><button>Accept</button></div>'
+  const answerBanner = async (page: { document: Document }) => {
+    page.document.querySelector('[data-thq="thq-cookie-consent"]').remove()
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+
+  it('holds a popup while the visitor has not answered, and opens it once they do', async () => {
+    const page = await loadPage({ popups: [popup({ layout: 'corner' })], body: BANNER })
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual([])
+    expect(page.card('welcome')).toBeNull()
+    expect(page.storage()['tq_popup:welcome']).toBeUndefined()
+    expect(page.tracked).toEqual([])
+    // Waiting costs nothing: no timer ticks while the banner is up.
+    expect(page.clock.pending()).toBe(0)
+
+    await answerBanner(page)
+    expect(page.dispatched).toEqual(['welcome'])
+    expect(page.card('welcome')).not.toBeNull()
+    expect(page.storage()['tq_popup:welcome']).toBeTruthy()
+    expect(page.tracked).toEqual([{ name: 'popup_shown', detail: { recordId: 'welcome' } }])
+  })
+
+  it('spends no opening attempts on the wait, however long it takes', async () => {
+    const page = await loadPage({
+      popups: [popup({ layout: 'bottom' })],
+      body: BANNER,
+      listenAfterMs: 10 * 60 * 1000 + 3000,
+    })
+    page.clock.advance(10 * 60 * 1000)
+    expect(page.dispatched).toEqual([])
+
+    await answerBanner(page)
+    expect(page.dispatched).toEqual(['welcome'])
+    expect(page.card('welcome')).toBeNull()
+    page.clock.advance(4000)
+    expect(page.card('welcome')).not.toBeNull()
+  })
+
+  it('holds for a banner that appears after the page loaded', async () => {
+    const page = await loadPage({ popups: [popup()] })
+    page.clock.advance(4000)
+    page.document.body.insertAdjacentHTML('beforeend', BANNER)
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual([])
+
+    await answerBanner(page)
+    expect(page.dispatched).toEqual(['welcome'])
+  })
+
+  it('is not released by anything else changing on the page', async () => {
+    const page = await loadPage({ popups: [popup()], body: BANNER })
+    page.clock.advance(60000)
+    page.document.body.insertAdjacentHTML('beforeend', '<p>Something else</p>')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(page.dispatched).toEqual([])
+  })
+
+  it('does not open on another page the visitor moved to meanwhile, and starts over there', async () => {
+    const shop = popup({ pages: { mode: 'only', paths: ['/shop'] } })
+    const page = await loadPage({ path: '/shop', popups: [shop], body: BANNER })
+    page.clock.advance(60000)
+    page.window.history.pushState({}, '', '/about')
+    page.clock.advance(1000)
+
+    await answerBanner(page)
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual([])
+  })
+
+  it('opens as ever on a site with no banner', async () => {
+    const page = await loadPage({ popups: [popup()], body: '<main></main>' })
+    page.clock.advance(5000)
+    expect(page.dispatched).toEqual(['welcome'])
+  })
+})
+
 describeInDom('popup runtime — when it opens', () => {
   it('opens a delay popup after its timer, then remembers it was shown', async () => {
     const page = await loadPage({ popups: [popup()] })

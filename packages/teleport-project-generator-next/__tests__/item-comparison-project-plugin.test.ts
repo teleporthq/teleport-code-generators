@@ -72,6 +72,35 @@ function makeStructure(
 
 const parses = (source: string) => parse(source, { sourceType: 'module', plugins: ['jsx'] })
 
+/** The route's cell helpers, as the generated file holds them. */
+const routeCells = (source: string) =>
+  // eslint-disable-next-line no-new-func
+  new Function(
+    `${source.slice(
+      source.indexOf('const MAX_ITEMS'),
+      source.indexOf('function itemUrl(')
+    )}; return { priceCell, cell }`
+  )()
+
+/** A product with variants, as the storefront's product transform hands it to the route. */
+const VARIANT_PRODUCT = {
+  price: 199,
+  displayPrice: '199.00',
+  defaultVariantPrice: '129.00',
+  defaultVariantDisplayPrice: '129.00',
+  currencySymbol: 'lei',
+  currency: 'RON',
+}
+
+const FLAT_PRODUCT = {
+  price: 149,
+  displayPrice: '149.00',
+  defaultVariantPrice: '',
+  defaultVariantDisplayPrice: '',
+  currencySymbol: 'lei',
+  currency: 'RON',
+}
+
 describe('NextItemComparisonProjectPlugin', () => {
   it('leaves a project without the plugin exactly as it was', async () => {
     const structure = makeStructure(null, { store: true })
@@ -290,5 +319,56 @@ describe('NextItemComparisonProjectPlugin', () => {
     const source = structure.files.get('item-comparison-route').files[0].content as string
     expect(source).toContain('"staticBase":"/book","column":"slug"')
     expect(source).not.toContain('/admin/booking-items')
+  })
+
+  describe('the price cell', () => {
+    const routeWith = async (data?: Record<string, unknown>) => {
+      const structure = makeStructure(
+        { settings: { kinds: ['products'] }, ...(data ? { data } : {}) },
+        { store: true }
+      )
+      await new NextItemComparisonProjectPlugin().runAfter(structure)
+      return routeCells(structure.files.get('item-comparison-route').files[0].content as string)
+    }
+
+    it('quotes the price the item card shows: the default variant before the stored price', async () => {
+      const { priceCell } = await routeWith({ priceSymbolSide: 'before' })
+      expect(priceCell(VARIANT_PRODUCT)).toEqual({ text: 'lei 129.00', number: 129 })
+      expect(priceCell(FLAT_PRODUCT)).toEqual({ text: 'lei 149.00', number: 149 })
+    })
+
+    it('makes the cheaper default variant the number the best value is read from', async () => {
+      const { cell } = await routeWith({ priceSymbolSide: 'before' })
+      const prices = [VARIANT_PRODUCT, FLAT_PRODUCT].map((row) =>
+        cell('products', 'price', row)
+      ) as Array<{ number: number }>
+      expect(Math.min(...prices.map((price) => price.number))).toBe(129)
+    })
+
+    it('quotes the discounted, tax-inclusive price, never the stored net one', async () => {
+      const { priceCell } = await routeWith()
+      expect(
+        priceCell({ ...FLAT_PRODUCT, price: 100, displayPrice: '107.10', currencySymbol: '$' })
+      ).toEqual({ text: '$ 107.10', number: 107.1 })
+    })
+
+    it('writes the symbol on the side the site writes it', async () => {
+      const { priceCell } = await routeWith({ priceSymbolSide: 'after' })
+      expect(priceCell({ ...FLAT_PRODUCT, currencySymbol: 'kr' }).text).toBe('149.00 kr')
+    })
+
+    it('reads a bookable item, which has only its stored price', async () => {
+      const { priceCell } = await routeWith({ priceSymbolSide: 'before' })
+      expect(priceCell({ price: '80', currency: 'EUR' })).toEqual({
+        text: 'EUR 80.00',
+        number: 80,
+      })
+      expect(priceCell({ currency: 'EUR' })).toBeNull()
+    })
+
+    it('leaves out a symbol the row does not have', async () => {
+      const { priceCell } = await routeWith()
+      expect(priceCell({ price: 5 }).text).toBe('5.00')
+    })
   })
 })

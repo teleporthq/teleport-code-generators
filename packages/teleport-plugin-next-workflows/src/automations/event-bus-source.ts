@@ -89,10 +89,15 @@ async function saveWait(wait) {
 
 // The signed requests the dispatch route has taken, each kept until its
 // signature can no longer verify: the same request again is refused. The
-// table (and its expiry index) is made on first use, two instances taking
-// turns under the lock. The rows that are over are deleted at most once per
-// instance every SIGNED_REQUESTS_CLEANUP_MS, a bounded batch at a time.
+// editor makes the table with the other automation tables, and a site's
+// database role may read and write it without being allowed to create one
+// (CREATE ... IF NOT EXISTS asks for that permission even when the table is
+// there), so a create is attempted only for a table that really is missing,
+// two instances taking turns under the lock. The rows that are over are
+// deleted at most once per instance every SIGNED_REQUESTS_CLEANUP_MS, a
+// bounded batch at a time.
 var SIGNED_REQUESTS_TABLE = '${SIGNED_REQUESTS_TABLE}';
+var UNDEFINED_TABLE_CODE = '42P01';
 var LOCK_SIGNED_REQUESTS_SQL = 'SELECT pg_advisory_xact_lock(hashtext($1))';
 var CREATE_SIGNED_REQUESTS_SQL = 'CREATE TABLE IF NOT EXISTS ' + SIGNED_REQUESTS_TABLE +
   ' (request_key TEXT PRIMARY KEY, expires_at BIGINT NOT NULL)';
@@ -103,34 +108,43 @@ var FORGET_SIGNED_REQUESTS_SQL = 'DELETE FROM ' + SIGNED_REQUESTS_TABLE + ' WHER
 var TAKE_SIGNED_REQUEST_SQL = 'INSERT INTO ' + SIGNED_REQUESTS_TABLE + ' (request_key, expires_at) VALUES ($1, $2) ' +
   'ON CONFLICT (request_key) DO NOTHING RETURNING request_key';
 var SIGNED_REQUESTS_CLEANUP_MS = 600000;
-var __signedRequestsReady = false;
 var __signedRequestsCleanedAt = 0;
+
+async function createSignedRequestsTable(client) {
+  await client.query('BEGIN');
+  try {
+    await client.query(LOCK_SIGNED_REQUESTS_SQL, [SIGNED_REQUESTS_TABLE]);
+    await client.query(CREATE_SIGNED_REQUESTS_SQL);
+    await client.query(INDEX_SIGNED_REQUESTS_SQL);
+    await client.query('COMMIT');
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_e) {}
+    throw new Error('[automations] the table ' + SIGNED_REQUESTS_TABLE + ' is missing and could not be created: ' + errorMessage(error));
+  }
+}
+
+async function recordSignedRequest(client, key, expiresAt) {
+  var nowMs = Date.now();
+  if (nowMs - __signedRequestsCleanedAt >= SIGNED_REQUESTS_CLEANUP_MS) {
+    __signedRequestsCleanedAt = nowMs;
+    await client.query(FORGET_SIGNED_REQUESTS_SQL, [Math.floor(nowMs / 1000)]);
+  }
+  var taken = await client.query(TAKE_SIGNED_REQUEST_SQL, [key, expiresAt]);
+  return !!(taken && taken.rows && taken.rows[0]);
+}
 
 // true the first time a signed request (its key) is taken, false every time
 // after while it is kept (until expiresAt, unix seconds). Throws when the
 // database cannot say: the route then refuses.
 async function takeSignedRequest(key, expiresAt) {
   return withClient(async function (client) {
-    if (!__signedRequestsReady) {
-      await client.query('BEGIN');
-      try {
-        await client.query(LOCK_SIGNED_REQUESTS_SQL, [SIGNED_REQUESTS_TABLE]);
-        await client.query(CREATE_SIGNED_REQUESTS_SQL);
-        await client.query(INDEX_SIGNED_REQUESTS_SQL);
-        await client.query('COMMIT');
-      } catch (error) {
-        try { await client.query('ROLLBACK'); } catch (_e) {}
-        throw error;
-      }
-      __signedRequestsReady = true;
+    try {
+      return await recordSignedRequest(client, key, expiresAt);
+    } catch (error) {
+      if (!error || error.code !== UNDEFINED_TABLE_CODE) throw error;
+      await createSignedRequestsTable(client);
+      return recordSignedRequest(client, key, expiresAt);
     }
-    var nowMs = Date.now();
-    if (nowMs - __signedRequestsCleanedAt >= SIGNED_REQUESTS_CLEANUP_MS) {
-      __signedRequestsCleanedAt = nowMs;
-      await client.query(FORGET_SIGNED_REQUESTS_SQL, [Math.floor(nowMs / 1000)]);
-    }
-    var taken = await client.query(TAKE_SIGNED_REQUEST_SQL, [key, expiresAt]);
-    return !!(taken && taken.rows && taken.rows[0]);
   });
 }
 
