@@ -88,7 +88,7 @@ describe('analytics-track-outcome node', () => {
         value: '49.90',
         currency: 'EUR',
         outcomeId: 'ord-1',
-        attribution: { utm_source: 'facebook', visitor_id: 'aid-1' },
+        attribution: { utm_source: 'facebook', utm_content: 'hero', visitor_id: 'stale-aid' },
       },
       { __tpa: { sessionId: 'sid-1', visitorId: null, path: '/checkout' } }
     )
@@ -102,9 +102,77 @@ describe('analytics-track-outcome node', () => {
       currency: 'EUR',
       outcomeId: 'ord-1',
       sessionId: 'sid-1',
-      visitorId: 'aid-1',
+      visitorId: null,
       path: '/checkout',
-      attribution: { utmSource: 'facebook' },
+      attribution: { utmSource: 'facebook', utmContent: 'hero' },
+    })
+  })
+
+  describe('server: an order read back outside the visit that placed it', () => {
+    const configured = (calls: Array<{ body: string }>) =>
+      evalHandler(generator.generateServerHandler?.() ?? '', {
+        globalThis: {
+          process: {
+            env: {
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
+              TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+            },
+          },
+        },
+        fetch: (_url: string, init: { body: string }) => {
+          calls.push(init)
+          return Promise.resolve({ status: 202 })
+        },
+        AbortController: undefined,
+      })
+
+    it('credits the visit the order names, with no ids on the context', async () => {
+      const calls: Array<{ body: string }> = []
+      await configured(calls)(
+        {
+          name: 'purchase',
+          value: '20.00',
+          currency: 'EUR',
+          outcomeId: 'ord-2',
+          attribution: {
+            session_id: 'sid-shopper',
+            visitor_id: 'aid-shopper',
+            exp: 'hero:b',
+            landing_path: '/sale',
+          },
+        },
+        {}
+      )
+      expect(JSON.parse(calls[0].body).outcomes[0]).toMatchObject({
+        outcomeId: 'ord-2',
+        sessionId: 'sid-shopper',
+        visitorId: 'aid-shopper',
+        exp: 'hero:b',
+        attribution: { landingPath: '/sale' },
+      })
+    })
+
+    it('never credits the visit of whoever runs the step', async () => {
+      const calls: Array<{ body: string }> = []
+      await configured(calls)(
+        { name: 'purchase', outcomeId: 'ord-3', attribution: { session_id: 'sid-shopper' } },
+        { __tpa: { sessionId: 'sid-merchant', visitorId: 'aid-merchant', exp: 'hero:a' } }
+      )
+      expect(JSON.parse(calls[0].body).outcomes[0]).toMatchObject({
+        sessionId: 'sid-shopper',
+        visitorId: null,
+        exp: null,
+      })
+    })
+
+    it('sends nothing for an order that resolved to no id', async () => {
+      const calls: Array<{ body: string }> = []
+      expect(await configured(calls)({ name: 'purchase', value: '20.00' }, {})).toEqual({
+        sent: false,
+        reason: 'no-outcome-id',
+      })
+      expect(calls).toEqual([])
     })
   })
 
