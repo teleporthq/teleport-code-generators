@@ -28,7 +28,9 @@
  * until the card is on the page — the component's listener is attached only
  * once the page has hydrated, which a head script cannot wait for. Only then
  * is the popup counted shown: the frequency is written and `popup_shown`
- * tracked.
+ * tracked. While the cookie banner is on the page nothing is sent: a popup
+ * would stand between the visitor and that answer, so it waits, and opens the
+ * moment the banner goes.
  *
  * While a card is open: a click on a `[data-tq-popup-convert]` control or a
  * form submit inside it tracks `popup_converted` (once per opening); a
@@ -58,6 +60,7 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
   var CONVERT_SELECTOR = '[data-tq-popup-convert]';
   var CLOSE_SELECTOR = '[data-thq="thq-modal-close-button"]';
   var CHECKOUT_SELECTOR = '[data-tq-commerce-view="begin_checkout"],[data-tq-commerce-view="purchase"]';
+  var COOKIE_BANNER_SELECTOR = '[data-thq="thq-cookie-consent"]';
   var FREQUENCY_PREFIX = 'tq_popup:';
   var VISITED_KEY = 'tq_popup_visited';
   var DESKTOP_QUERY = '(min-width: 1024px)';
@@ -250,6 +253,10 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
     return !!document.querySelector(CHECKOUT_SELECTOR);
   }
 
+  function cookieBannerOnScreen() {
+    return !!document.querySelector(COOKIE_BANNER_SELECTOR);
+  }
+
   function isComputer() {
     try {
       if (typeof window.matchMedia === 'function') {
@@ -300,6 +307,7 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
   function openPopup(popup) {
     var attempts = 0;
     var settled = false;
+    var waitingForBanner = false;
     var observer = null;
     function settle() {
       settled = true;
@@ -309,9 +317,15 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
       }
     }
     function checkCard() {
-      if (!settled && cardOf(popup.id)) {
+      if (settled) {
+        return;
+      }
+      if (cardOf(popup.id)) {
         settle();
         markShown(popup);
+      } else if (waitingForBanner && !cookieBannerOnScreen()) {
+        waitingForBanner = false;
+        send();
       }
     }
     function send() {
@@ -320,6 +334,10 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
       }
       if (checkoutOnScreen()) {
         settle();
+        return;
+      }
+      if (observer && cookieBannerOnScreen()) {
+        waitingForBanner = true;
         return;
       }
       attempts++;
