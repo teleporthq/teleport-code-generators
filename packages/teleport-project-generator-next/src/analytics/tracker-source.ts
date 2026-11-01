@@ -1246,7 +1246,9 @@ function trackOutcome(name, detail) {
 // The ids a workflow stamps on its trigger context, so a server segment that
 // reports an order can attribute it to this very visit.
 function analyticsIds() {
-  if (!initialized || !isTrackingPossible()) {
+  // No pageLoadId: a page kept out of analytics, like the store's admin. Its
+  // visitor is the merchant, who must never be credited with the sale.
+  if (!initialized || !isTrackingPossible() || !pageLoadId) {
     return null
   }
   syncConsentIdentity()
