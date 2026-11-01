@@ -361,6 +361,14 @@ function runStatus(error, value) {
   return value && value.waiting === true ? 'waiting' : 'delivered';
 }
 
+// What a run leaves in its delivery's error column: its error, or, for a run
+// that finished, the send steps that did not send. Its status says nothing of
+// them: such a run is delivered, and is neither retried nor counted as failed.
+function runNote(error, value) {
+  if (error) return store.errorMessage(error);
+  return value && value.sentNothing ? JSON.stringify({ sentNothing: value.sentNothing }) : null;
+}
+
 // Whether a guarded write found its row (the claim it names still held it).
 function wrote(result) {
   return !!result && result.rowCount > 0;
@@ -368,7 +376,7 @@ function wrote(result) {
 
 function lateDeliveryWriter(delivery, testRun, resumePoint) {
   return function (error, value) {
-    var message = error ? store.errorMessage(error) : null;
+    var message = runNote(error, value);
     var status = testRun ? 'test' : runStatus(error, value);
     store.withClient(async function (client) {
       var finished = await client.query(FINISH_DELIVERY_SQL, [delivery.id, status, message, delivery.attempts]);
@@ -386,7 +394,7 @@ function lateWaitWriter(wait, resumedAt) {
     // Nothing is written once another dispatcher took the stale resume over:
     // that run records the outcome.
     store.withClient(function (client) {
-      return finishResume(client, wait, runStatus(error, value), error ? store.errorMessage(error) : null, resumedAt);
+      return finishResume(client, wait, runStatus(error, value), runNote(error, value), resumedAt);
     }).catch(function (writeError) {
       console.error('[automations] could not record a late resume: ' + store.errorMessage(writeError));
     });
@@ -624,7 +632,7 @@ async function deliverEvent(client, row, context) {
     var error = ran.error ? store.errorMessage(ran.error) : null;
     if (error) console.error('[automations] ' + entry.name + ' failed for event ' + row.id + ': ' + error);
     // A run that stopped at a Wait is not finished: its delivery waits too.
-    var finished = await client.query(FINISH_DELIVERY_SQL, [delivery.id, runStatus(ran.error, ran.value), error, delivery.attempts]);
+    var finished = await client.query(FINISH_DELIVERY_SQL, [delivery.id, runStatus(ran.error, ran.value), runNote(ran.error, ran.value), delivery.attempts]);
     if (resumePoint && !error && wrote(finished)) await client.query(SETTLE_FAILED_WAIT_SQL, [resumePoint.id]);
     if (error) outcome.failed += 1;
     else outcome.delivered += 1;
@@ -690,7 +698,7 @@ async function resumeWaits(client, context) {
       wait,
       eventRow,
       runStatus(ran.error, ran.value),
-      ran.error ? store.errorMessage(ran.error) : null,
+      runNote(ran.error, ran.value),
       resumedAt
     );
   }
@@ -834,7 +842,7 @@ async function runTest(input, options) {
     }, timeoutMs, lateDeliveryWriter(delivery, true));
     if (ran.timedOut) return totals;
     var wouldWait = ran.value && ran.value.wouldWait ? ran.value.wouldWait : null;
-    var note = ran.error ? store.errorMessage(ran.error) : wouldWait ? JSON.stringify({ wouldWait: wouldWait }) : null;
+    var note = wouldWait ? JSON.stringify({ wouldWait: wouldWait }) : runNote(ran.error, ran.value);
     await client.query(FINISH_DELIVERY_SQL, [delivery.id, 'test', note, delivery.attempts]);
     if (ran.error) totals.failed = 1;
     else totals.delivered = 1;
