@@ -14,7 +14,12 @@ import { isCostBearingNodeType } from './nodes/cost-bearing-node-types'
 import { nodeRegistry } from './nodes'
 import { NodeHandlerGenerator, ServerHandlerOptions, resolveHandlerEntryName } from './nodes/types'
 import { generalWait } from './nodes/general/general-wait'
-import { needsVisitorRequest, VISITOR_REQUEST_INJECTION } from './nodes/general/visitor-request'
+import {
+  isOutboundMessageNodeType,
+  needsVisitorRequest,
+  VISITOR_REQUEST_INJECTION,
+} from './nodes/general/visitor-request'
+import { stepNameOf } from './nodes/email/message-trust'
 import {
   markVisitorBoundMessageNodes,
   markWebhookMessageNodes,
@@ -2181,6 +2186,33 @@ const generateErrorHandlerRunBlock = (
     }`
 
 /**
+ * The email and SMS steps a run of this automation can report as not having
+ * sent. None when it could not tell: a custom node may send by itself, and a
+ * parallel branch the run does not wait for has no result when the run ends.
+ * Steps on the error branch do not count: a run that ends well never reaches them.
+ */
+const reportableSendSteps = (
+  workflow: UIDLWorkflow,
+  errorHandlerNodes: Array<{ id: string }> | null
+): Array<{ id: string; label: string }> => {
+  const nodes = workflow.nodes || []
+  const couldNotTell = nodes.some(
+    (node) =>
+      node.type === 'general-custom-node' ||
+      (node.type === 'general-parallel' &&
+        node.config?.waitForAll !== undefined &&
+        node.config.waitForAll !== true)
+  )
+  if (couldNotTell) {
+    return []
+  }
+  const errorBranch = new Set((errorHandlerNodes || []).map((node) => node.id))
+  return nodes
+    .filter((node) => isOutboundMessageNodeType(node.type) && !errorBranch.has(node.id))
+    .map((node) => ({ id: node.id, label: stepNameOf(node) }))
+}
+
+/**
  * An automation's handler module (`lib/automations/handlers/<file>.js`, see
  * automations/handler-module-generator.ts): the webhook route's node loop as
  * an importable function, `module.exports.run = async (event, context,
@@ -2199,6 +2231,8 @@ const generateErrorHandlerRunBlock = (
  * nothing and resolves `{ waiting: true, wouldWait }`; a Wait with no step
  * after it stores nothing and the run ends there). A run that fails rejects,
  * after the error-handler branch ran, so the dispatcher records the failure.
+ * A run that ends with its email and SMS steps all unsent resolves with their
+ * names under `sentNothing`, so the History can say so instead of Done.
  */
 export const generateHandlerFunction = (
   workflow: UIDLWorkflow,
@@ -2277,6 +2311,8 @@ const WORKFLOW_CONFIG = ${workflowConfig};
 
 var ERROR_HANDLER_NODES = ${errorHandlerNodesJson};
 
+var SEND_STEPS = ${JSON.stringify(reportableSendSteps(workflow, errorHandlerNodes))};
+
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
@@ -2318,6 +2354,17 @@ ${executionLoop}
     return { waiting: false };
 }
 
+// The names of the send steps when the run has some and none of them sent: a
+// step a condition skipped has no result, one that failed and went on says so.
+function unsentSendSteps(context) {
+  if (SEND_STEPS.length === 0) return null;
+  var sent = SEND_STEPS.some(function(step) {
+    var result = context[step.id];
+    return !!result && !utils.isFatalNodeResult(result);
+  });
+  return sent ? null : SEND_STEPS.map(function(step) { return step.label; });
+}
+
 async function run(event, context, resumeFrom) {
   context = context && typeof context === 'object' ? context : {};
   // Shared fire-and-forget queue — drained before the run settles.
@@ -2350,13 +2397,16 @@ async function run(event, context, resumeFrom) {
     sourceRef: WORKFLOW_ID,
     orderId: trigger.order && trigger.order.id ? String(trigger.order.id) : null,
   };
+  var outcome;
   try {
-    return await runNodes(context, resumeFrom || null);
+    outcome = await runNodes(context, resumeFrom || null);
   } catch (error) {
 ${generateErrorHandlerRunBlock('Automation error handler failed:')}
     await utils.settlePendingNodePromises(context);
     throw error;
   }
+  var unsent = outcome.waiting ? null : unsentSendSteps(context);
+  return unsent ? Object.assign({}, outcome, { sentNothing: unsent }) : outcome;
 }
 
 module.exports.run = run;
