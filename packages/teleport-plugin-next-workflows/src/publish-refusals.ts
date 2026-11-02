@@ -168,7 +168,7 @@ const publicStepRefusals = (
     ownerId: refusal.ownerId,
     ownerKind: refusal.ownerKind,
     nodeId: refusal.nodeId,
-    message: describePublicStepRefusals([refusal], staffRoles),
+    message: describePublicStepRefusals([refusal], staffRoles, authentication?.enabled === true),
   }))
 }
 
