@@ -335,19 +335,28 @@ function readRequestPassword(req) {
   return String(body.password);
 }
 
-// The sign-in check (utils/auth/hash-password.js verifyPassword): bcrypt over
-// the SHA-256 of the password and AUTH_PEPPER. An account without a stored
-// password (a social sign-in) matches no password.
+// The sign-in check (utils/auth/hash-password.js checkPassword): bcrypt over
+// the SHA-256 of the password and a pepper, the project's own
+// (AUTH_PEPPER_SECRET) first, then the one every earlier hash used
+// (AUTH_PEPPER). An account without a stored password (a social sign-in)
+// matches no password.
 function passwordMatches(password, storedHash) {
   if (!storedHash || password.length > 1000) { return false; }
   var bcrypt = require('bcryptjs');
   var crypto = require('crypto');
-  var prepared = crypto.createHash('sha256').update(password + (process.env.AUTH_PEPPER || '')).digest('base64');
-  try {
-    return bcrypt.compareSync(prepared, String(storedHash));
-  } catch (e) {
-    return false;
+  var secret = process.env.AUTH_PEPPER_SECRET;
+  var peppers = typeof secret === 'string' && secret && secret.indexOf('teleporthq.secrets.') !== 0
+    ? [secret, process.env.AUTH_PEPPER || '']
+    : [process.env.AUTH_PEPPER || ''];
+  for (var i = 0; i < peppers.length; i++) {
+    var prepared = crypto.createHash('sha256').update(password + peppers[i]).digest('base64');
+    try {
+      if (bcrypt.compareSync(prepared, String(storedHash))) { return true; }
+    } catch (e) {
+      return false;
+    }
   }
+  return false;
 }
 
 ${generateFillTemplateFn()}

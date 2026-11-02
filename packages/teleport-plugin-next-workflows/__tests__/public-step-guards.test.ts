@@ -3,6 +3,7 @@ import adminFileWorkflows from './fixtures/admin-file-workflows.json'
 import {
   PUBLIC_STEP_REFUSAL_CODE,
   PublicStepRefusalError,
+  assertNoPublicRestrictedSteps,
   findPublicRestrictedSteps,
 } from '../src/public-step-guards'
 
@@ -232,6 +233,31 @@ describe('restricted steps on a public route', () => {
     expect(sentence).not.toMatch(/[\r\n]/)
     expect(sentence.length).toBeLessThanOrEqual(400)
     expect(error).toBeInstanceOf(PublicStepRefusalError)
+  })
+
+  it('on a site without sign-in, says to enable authentication before any role can be asked', () => {
+    const workflows = {
+      workflows: { w1: pageWorkflow([node('n1', 'file-storage-delete', 'Delete Upload')]) },
+    }
+    const refusedWith = (authentication: unknown): string => {
+      try {
+        assertNoPublicRestrictedSteps(workflows, authentication as never)
+      } catch (error) {
+        return shownSentence(error as Error)
+      }
+      throw new Error('not refused')
+    }
+
+    for (const withoutSignIn of [refusedWith(null), refusedWith({ enabled: false, roles: [] })]) {
+      expect(withoutSignIn).toContain('"Delete Upload"')
+      expect(withoutSignIn).toContain('has no sign-in')
+      expect(withoutSignIn).toContain('enable authentication')
+      expect(withoutSignIn).not.toContain('let only the role')
+      expect(withoutSignIn.length).toBeLessThanOrEqual(400)
+    }
+    const withSignIn = refusedWith({ enabled: true, roles: ['admin', 'user'] })
+    expect(withSignIn).toContain('let only the role "admin" start it')
+    expect(withSignIn).not.toContain('has no sign-in')
   })
 
   it('stays one short sentence for many steps', () => {

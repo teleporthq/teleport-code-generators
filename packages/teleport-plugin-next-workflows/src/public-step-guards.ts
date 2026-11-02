@@ -103,12 +103,18 @@ const adviceFor = (staffRoles: string[]): string =>
 const SHORT_ADVICE =
   'Let only an admin role start it (a role your admin-panel pages admit), or move it into a scheduled, signed webhook or automation workflow, then publish again.'
 
+/** What to change on a site without accounts: no role can be required until it has them. */
+const NO_ACCOUNTS_ADVICE =
+  'Your site has no sign-in, so no role can be required yet: enable authentication and let only an admin role start it, or move it into a scheduled, signed webhook or automation workflow, then publish again.'
+
 /** One line of plain prose, for the person publishing. */
 export const describePublicStepRefusals = (
   refusals: PublicStepRefusal[],
-  staffRoles: string[] = [TableAccess.ADMIN_ROLE]
+  staffRoles: string[] = [TableAccess.ADMIN_ROLE],
+  hasAccounts = true
 ): string => {
-  const advice = adviceFor(staffRoles)
+  const advice = hasAccounts ? adviceFor(staffRoles) : NO_ACCOUNTS_ADVICE
+  const shortAdvice = hasAccounts ? SHORT_ADVICE : NO_ACCOUNTS_ADVICE
   const listed = refusals.slice(0, LISTED_STEPS).map(describe)
   const more = refusals.length - listed.length
   const subject =
@@ -121,10 +127,10 @@ export const describePublicStepRefusals = (
         )}${more > 0 ? `; and ${more} more` : ''}.`
   for (const candidate of [
     `${subject} ${advice}`,
-    `${subject} ${SHORT_ADVICE}`,
+    `${subject} ${shortAdvice}`,
     `On your site the step ${describe(refusals[0])}${
       refusals.length > 1 ? `, and ${refusals.length - 1} more` : ''
-    }. ${SHORT_ADVICE}`,
+    }. ${shortAdvice}`,
   ]) {
     if (candidate.length <= MAX_SENTENCE_LENGTH) {
       return candidate
@@ -132,7 +138,7 @@ export const describePublicStepRefusals = (
   }
   return `On your site ${
     refusals.length === 1 ? 'a step' : `${refusals.length} steps`
-  } meant only for an admin or your own server (a push notification or a stored-file step) can be started by others. ${SHORT_ADVICE}`
+  } meant only for an admin or your own server (a push notification or a stored-file step) can be started by others. ${shortAdvice}`
 }
 
 /**
@@ -147,11 +153,11 @@ export class PublicStepRefusalError extends Error {
   readonly code = PUBLIC_STEP_REFUSAL_CODE
   readonly refusals: PublicStepRefusal[]
 
-  constructor(refusals: PublicStepRefusal[], staffRoles?: string[]) {
+  constructor(refusals: PublicStepRefusal[], staffRoles?: string[], hasAccounts?: boolean) {
     super(
       `Publishing refused: ${JSON.stringify({
         code: PUBLIC_STEP_REFUSAL_CODE,
-        message: describePublicStepRefusals(refusals, staffRoles),
+        message: describePublicStepRefusals(refusals, staffRoles, hasAccounts),
         steps: refusals.map((r) => ({ owner: r.ownerId, node: r.nodeId, type: r.nodeType })),
       })}`
     )
@@ -443,6 +449,6 @@ export const assertNoPublicRestrictedSteps = (
   const staffRoles = TableAccess.resolveStaffRoles(authentication)
   const refusals = findPublicRestrictedSteps(workflows, { staffRoles })
   if (refusals.length > 0) {
-    throw new PublicStepRefusalError(refusals, staffRoles)
+    throw new PublicStepRefusalError(refusals, staffRoles, authentication?.enabled === true)
   }
 }
