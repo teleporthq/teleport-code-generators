@@ -1008,6 +1008,9 @@ async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, opt
   if (triggerContext && triggerContext.__dynamicRouteParam) {
     context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
   }
+  if (triggerContext && triggerContext.__tpa) {
+    context.__tpa = triggerContext.__tpa;
+  }
   if (triggerContext && triggerContext.triggerElement) {
     context.triggerElement = triggerContext.triggerElement;
   }
@@ -2151,6 +2154,7 @@ function buildContext(workflowConfig, triggerContext) {
     if (triggerContext.__stateValues) context.__stateValues = triggerContext.__stateValues;
     if (triggerContext.__routeParams) context.__routeParams = triggerContext.__routeParams;
     if (triggerContext.__dynamicRouteParam) context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
+    if (triggerContext.__tpa) context.__tpa = triggerContext.__tpa;
     if (triggerContext.triggerElement) context.triggerElement = triggerContext.triggerElement;
   }
   // See executeWorkflow: the page's language travels with the run.

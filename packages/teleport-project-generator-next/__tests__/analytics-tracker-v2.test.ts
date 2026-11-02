@@ -501,6 +501,14 @@ describe('tracker v2 — forms, outcomes, leaves', () => {
     expect(ids.visitorId).toBeNull()
   })
 
+  it('hands a page kept out of analytics no ids, so its visitor is never credited', () => {
+    const page = bootTracker()
+    page.fakeWindow.location.pathname = '/admin-panel/orders'
+    page.tracker.initTeleportAnalytics({ excludedPaths: ['/admin-panel/*'] })
+
+    expect(page.tracker.analyticsIds()).toBeNull()
+  })
+
   it('keeps commerce steps but no longer sends the purchase itself', () => {
     const page = bootTracker()
     page.tracker.initTeleportAnalytics({})
