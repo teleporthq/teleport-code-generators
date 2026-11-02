@@ -226,6 +226,37 @@ describe('Validate UIDL', () => {
       //   `\nUIDL Project Content Validation Error. Please check the following: Route is not defined in stateDefinitions`
       // )
     })
+
+    describe('fallback routes', () => {
+      const withFallbackRoutes = (fallbackRoutes: string[]) => {
+        const project = JSON.parse(JSON.stringify(projectUidlSample))
+        project.root.stateDefinitions.route.values.forEach(
+          (route: { value: string; pageOptions: Record<string, unknown> }) => {
+            if (fallbackRoutes.includes(route.value)) {
+              route.pageOptions.fallback = true
+            }
+          }
+        )
+        return project
+      }
+
+      it('accepts a project with a single fallback route', () => {
+        const validator = new Validator()
+        const validationResult = validator.validateProjectContent(withFallbackRoutes(['about']))
+
+        expect(validationResult.valid).toEqual(true)
+      })
+
+      it('throws if more than one route is marked as fallback', () => {
+        const validator = new Validator()
+
+        expect(() =>
+          validator.validateProjectContent(withFallbackRoutes(['about', 'contact-us']))
+        ).toThrow(
+          'A project can have only a single fallback route, found 2: "about", "contact-us".'
+        )
+      })
+    })
   })
 })
 
