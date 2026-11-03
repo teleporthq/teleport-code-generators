@@ -371,4 +371,61 @@ describe('NextItemComparisonProjectPlugin', () => {
       expect(priceCell({ price: 5 }).text).toBe('5.00')
     })
   })
+
+  describe('a bookable item’s price', () => {
+    // A `teleport_booking_items` row: a price, no currency column.
+    const ROOM = { price: '80.00' }
+
+    const bookingRouteWith = async (data?: Record<string, unknown>) => {
+      const structure = makeStructure(
+        { settings: { kinds: ['products', 'bookingItems'] }, ...(data ? { data } : {}) },
+        { store: true, bookings: true }
+      )
+      await new NextItemComparisonProjectPlugin().runAfter(structure)
+      return routeCells(structure.files.get('item-comparison-route').files[0].content as string)
+    }
+
+    it('is quoted in the bookings’ currency, the way the editor’s comparison prints it', async () => {
+      const { cell } = await bookingRouteWith({
+        priceSymbolSide: 'before',
+        bookingPrice: { symbol: '€', side: 'before' },
+      })
+      expect(cell('bookingItems', 'price', ROOM)).toEqual({ text: '€ 80.00', number: 80 })
+    })
+
+    it('writes the symbol on the side the editor says for the bookings’ currency', async () => {
+      const { cell } = await bookingRouteWith({ bookingPrice: { symbol: 'lei', side: 'after' } })
+      expect(cell('bookingItems', 'price', ROOM)).toEqual({ text: '80.00 lei', number: 80 })
+    })
+
+    it('leaves a product’s price exactly as before', async () => {
+      const { cell } = await bookingRouteWith({
+        priceSymbolSide: 'before',
+        bookingPrice: { symbol: 'lei', side: 'after' },
+      })
+      expect(cell('products', 'price', FLAT_PRODUCT)).toEqual({ text: 'lei 149.00', number: 149 })
+      expect(cell('products', 'price', { price: 5 })).toEqual({ text: '5.00', number: 5 })
+    })
+
+    it('stays a bare amount for a project exported before the editor sent the currency', async () => {
+      const { cell } = await bookingRouteWith({ priceSymbolSide: 'before' })
+      expect(cell('bookingItems', 'price', ROOM)).toEqual({ text: '80.00', number: 80 })
+    })
+
+    it('ignores a currency the editor did not send in a usable shape', () => {
+      const config = (bookingPrice: unknown) =>
+        resolveItemComparisonConfig(
+          makeStructure(
+            { settings: { kinds: ['bookingItems'] }, data: { bookingPrice } },
+            { bookings: true }
+          ).uidl
+        )!.bookingPrice
+      expect(config({ symbol: ' € ', side: 'after' })).toEqual({ symbol: '€', side: 'after' })
+      expect(config({ symbol: '€', side: 'sideways' })).toEqual({ symbol: '€', side: 'before' })
+      expect(config({ symbol: '' })).toBeNull()
+      expect(config({ symbol: 'A'.repeat(11) })).toBeNull()
+      expect(config('EUR')).toBeNull()
+      expect(config(undefined)).toBeNull()
+    })
+  })
 })
