@@ -808,10 +808,9 @@ var PUBLISHED_ONLY = JSON.stringify([
 // Public pages: the posts as a visitor is served them (published, no author
 // email), never as the store reads its own table.
 var PAGE_READ = { as: 'visitor' }
-var NEWEST_FIRST = JSON.stringify([
-  { field: 'created_at', order: 'desc' },
-  { field: 'id', order: 'asc' },
-])
+// One sort only: a visitor read refuses more than one, and a post that moves
+// between pages is already dropped by id below.
+var NEWEST_FIRST = JSON.stringify([{ field: 'created_at', order: 'desc' }])
 ${presets.length ? '' : 'var localizeCategoryTree = function (tree) { return tree }\n'}
 ${ARRANGED_ORDER_RUNTIME}
 

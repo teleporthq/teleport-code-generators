@@ -352,18 +352,18 @@ describe('the live sitemap', () => {
     expect(res.body).toContain('<lastmod>2026-01-02T00:00:00.000Z</lastmod>')
     expect(res.body).not.toContain('xhtml')
 
-    // Published rows only, newest first with the id as tiebreak, a page at a time.
+    // Published rows only, newest first, a page at a time. ONE sort: a visitor
+    // read with more than one is refused, which left every sitemap without posts
+    // ("The posts could not be read: Invalid sorts" on the published store).
     expect(calls[0]).toMatchObject({
       limit: SITE_INDEX_PAGE_SIZE,
       offset: 0,
       filters: JSON.stringify([
         { type: 'condition', source: 'status', destination: 'published', operand: '=' },
       ]),
-      sorts: JSON.stringify([
-        { field: 'created_at', order: 'desc' },
-        { field: 'id', order: 'asc' },
-      ]),
+      sorts: JSON.stringify([{ field: 'created_at', order: 'desc' }]),
     })
+    expect(JSON.parse(calls[0].sorts as string)).toHaveLength(1)
   })
 
   it('reads page after page until one comes back short, listing a post once', async () => {
