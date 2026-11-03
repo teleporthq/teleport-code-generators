@@ -45,6 +45,8 @@ const describeInDom = jsdom ? describe : describe.skip
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const OPEN_PREFIX = 'workflow:custom:tq-popup-open-'
+/** A visitor who accepted the cookie banner on an earlier visit. */
+const ACCEPTED = { cookieConsent: 'accepted' }
 
 const popup = (overrides: Partial<UIDLPopup> = {}): UIDLPopup => ({
   id: 'welcome',
@@ -212,17 +214,39 @@ async function loadPage(options: LoadOptions) {
   window.eval(script)
   await parsed
 
-  const storage = () => {
+  const contentsOf = (area: Storage) => {
     const values: Record<string, string> = {}
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i)
-      values[key] = window.localStorage.getItem(key)
+    for (let i = 0; i < area.length; i++) {
+      const key = area.key(i)
+      values[key] = area.getItem(key)
     }
     return values
   }
+  const storage = () => contentsOf(window.localStorage)
+  const session = () => contentsOf(window.sessionStorage)
   const card = (id: string) => document.querySelector(`[data-tq-popup-root="${id}"]`)
+  // What the cookie banner's button does: the workflow step writes the answer
+  // and announces the write in this tab.
+  const answer = (value: 'accepted' | 'declined') => {
+    window.localStorage.setItem('cookieConsent', value)
+    window.dispatchEvent(
+      new window.CustomEvent('teleport:local-storage', { detail: { key: 'cookieConsent', value } })
+    )
+  }
 
-  return { window, document, clock, dispatched, closed, tracked, errors, storage, card }
+  return {
+    window,
+    document,
+    clock,
+    dispatched,
+    closed,
+    tracked,
+    errors,
+    storage,
+    session,
+    card,
+    answer,
+  }
 }
 
 describeInDom('popup runtime — the emitted head script', () => {
@@ -301,7 +325,11 @@ describeInDom('popup runtime — where a popup may open', () => {
 
 describeInDom('popup runtime — the cookie banner comes first', () => {
   const BANNER = '<div data-thq="thq-cookie-consent"><button>Accept</button></div>'
-  const answerBanner = async (page: { document: Document }) => {
+  const answerBanner = async (
+    page: { document: Document; answer: (value: 'accepted' | 'declined') => void },
+    value: 'accepted' | 'declined' = 'accepted'
+  ) => {
+    page.answer(value)
     page.document.querySelector('[data-thq="thq-cookie-consent"]').remove()
     await Promise.resolve()
     await Promise.resolve()
@@ -322,6 +350,18 @@ describeInDom('popup runtime — the cookie banner comes first', () => {
     expect(page.card('welcome')).not.toBeNull()
     expect(page.storage()['tq_popup:welcome']).toBeTruthy()
     expect(page.tracked).toEqual([{ name: 'popup_shown', detail: { recordId: 'welcome' } }])
+  })
+
+  it('opens it after a Decline too, and stores nothing on the device', async () => {
+    const page = await loadPage({ popups: [popup()], body: BANNER })
+    page.clock.advance(60000)
+
+    await answerBanner(page, 'declined')
+    expect(page.dispatched).toEqual(['welcome'])
+    expect(page.card('welcome')).not.toBeNull()
+    expect(page.tracked).toEqual([{ name: 'popup_shown', detail: { recordId: 'welcome' } }])
+    expect(page.storage()).toEqual({ cookieConsent: 'declined' })
+    expect(page.session()).toEqual({})
   })
 
   it('spends no opening attempts on the wait, however long it takes', async () => {
@@ -379,9 +419,11 @@ describeInDom('popup runtime — the cookie banner comes first', () => {
   })
 })
 
+// The visitors in this block accepted the cookie banner earlier, so what the
+// runtime remembers is stored; see the block after it for everyone else.
 describeInDom('popup runtime — when it opens', () => {
   it('opens a delay popup after its timer, then remembers it was shown', async () => {
-    const page = await loadPage({ popups: [popup()] })
+    const page = await loadPage({ popups: [popup()], storage: ACCEPTED })
     page.clock.advance(4999)
     expect(page.dispatched).toEqual([])
 
@@ -394,7 +436,7 @@ describeInDom('popup runtime — when it opens', () => {
   })
 
   it('does not open again on a load within 7 days, and does after them', async () => {
-    const first = await loadPage({ popups: [popup()] })
+    const first = await loadPage({ popups: [popup()], storage: ACCEPTED })
     first.clock.advance(60000)
     expect(first.dispatched).toEqual(['welcome'])
 
@@ -404,7 +446,7 @@ describeInDom('popup runtime — when it opens', () => {
 
     const later = await loadPage({
       popups: [popup()],
-      storage: { 'tq_popup:welcome': String(Date.now() - 8 * DAY_MS) },
+      storage: { ...ACCEPTED, 'tq_popup:welcome': String(Date.now() - 8 * DAY_MS) },
     })
     later.clock.advance(60000)
     expect(later.dispatched).toEqual(['welcome'])
@@ -413,12 +455,15 @@ describeInDom('popup runtime — when it opens', () => {
   it('keeps "once" forever and "session" in the session', async () => {
     const once = popup({ frequency: { kind: 'once', days: 0 } })
     const old = String(Date.now() - 365 * DAY_MS)
-    const onceAgain = await loadPage({ popups: [once], storage: { 'tq_popup:welcome': old } })
+    const onceAgain = await loadPage({
+      popups: [once],
+      storage: { ...ACCEPTED, 'tq_popup:welcome': old },
+    })
     onceAgain.clock.advance(60000)
     expect(onceAgain.dispatched).toEqual([])
 
     const session = popup({ frequency: { kind: 'session', days: 0 } })
-    const first = await loadPage({ popups: [session] })
+    const first = await loadPage({ popups: [session], storage: ACCEPTED })
     first.clock.advance(60000)
     expect(first.dispatched).toEqual(['welcome'])
     expect(first.window.sessionStorage.getItem('tq_popup:welcome')).not.toBeNull()
@@ -426,6 +471,7 @@ describeInDom('popup runtime — when it opens', () => {
 
     const sameSession = await loadPage({
       popups: [session],
+      storage: ACCEPTED,
       session: { 'tq_popup:welcome': first.window.sessionStorage.getItem('tq_popup:welcome') },
     })
     sameSession.clock.advance(60000)
@@ -436,7 +482,7 @@ describeInDom('popup runtime — when it opens', () => {
     const forNew = popup({ id: 'new', audience: 'new' })
     const forReturning = popup({ id: 'returning', audience: 'returning' })
 
-    const first = await loadPage({ popups: [forNew, forReturning] })
+    const first = await loadPage({ popups: [forNew, forReturning], storage: ACCEPTED })
     first.clock.advance(60000)
     expect(first.dispatched).toEqual(['new'])
     expect(first.storage().tq_popup_visited).toBeTruthy()
@@ -488,6 +534,7 @@ describeInDom('popup runtime — when it opens', () => {
       popups: [
         popup({ trigger: { desktop: 'load', phone: 'load', delaySeconds: 0, scrollPercent: 0 } }),
       ],
+      storage: ACCEPTED,
       listenAfterMs: 1200,
     })
     page.clock.advance(100)
@@ -540,9 +587,102 @@ describeInDom('popup runtime — when it opens', () => {
   })
 })
 
+describeInDom('popup runtime — nothing stored before the cookie banner is accepted', () => {
+  it('holds what was shown in memory while the visitor browses, and stores nothing', async () => {
+    const weekly = popup({ id: 'weekly' })
+    const perSession = popup({ id: 'per-session', frequency: { kind: 'session', days: 0 } })
+    const page = await loadPage({ popups: [weekly, perSession] })
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['per-session'])
+
+    page.window.history.pushState({}, '', '/shop')
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['per-session', 'weekly'])
+
+    page.window.history.pushState({}, '', '/about')
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['per-session', 'weekly'])
+    expect(page.storage()).toEqual({})
+    expect(page.session()).toEqual({})
+  })
+
+  it('treats a full page load as a new visit: a "once" popup shows again', async () => {
+    const once = popup({ frequency: { kind: 'once', days: 0 } })
+    const first = await loadPage({ popups: [once] })
+    first.clock.advance(60000)
+    expect(first.dispatched).toEqual(['welcome'])
+
+    const reloaded = await loadPage({ popups: [once], storage: first.storage() })
+    reloaded.clock.advance(60000)
+    expect(reloaded.dispatched).toEqual(['welcome'])
+  })
+
+  it('removes what an earlier build stored, and does not go by it', async () => {
+    const page = await loadPage({
+      popups: [popup()],
+      storage: {
+        cookieConsent: 'declined',
+        'tq_popup:welcome': String(Date.now()),
+        'tq_popup:retired': String(Date.now()),
+        tq_popup_visited: '1',
+        workflow_cart: '[]',
+      },
+      session: { 'tq_popup:welcome': String(Date.now()) },
+    })
+    expect(page.storage()).toEqual({ cookieConsent: 'declined', workflow_cart: '[]' })
+    expect(page.session()).toEqual({})
+
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['welcome'])
+  })
+
+  it('counts no visitor as returning without consent', async () => {
+    const forNew = popup({ id: 'new', audience: 'new' })
+    const forReturning = popup({ id: 'returning', audience: 'returning' })
+    const page = await loadPage({
+      popups: [forNew, forReturning],
+      storage: { tq_popup_visited: '1' },
+    })
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['new'])
+  })
+
+  it('stores what the visit held once the visitor accepts on the page, and goes by it after', async () => {
+    const page = await loadPage({ popups: [popup()] })
+    page.clock.advance(60000)
+    expect(page.dispatched).toEqual(['welcome'])
+    expect(page.storage()).toEqual({})
+
+    page.answer('accepted')
+    const stored = page.storage()
+    expect(stored.tq_popup_visited).toBe('1')
+    expect(Math.abs(Date.now() - Number(stored['tq_popup:welcome']))).toBeLessThan(5000)
+
+    const nextVisit = await loadPage({ popups: [popup()], storage: stored })
+    nextVisit.clock.advance(60000)
+    expect(nextVisit.dispatched).toEqual([])
+
+    const forReturning = popup({ id: 'returning', audience: 'returning' })
+    const returning = await loadPage({ popups: [forReturning], storage: stored })
+    returning.clock.advance(60000)
+    expect(returning.dispatched).toEqual(['returning'])
+  })
+
+  it('stores a "once per session" popup in the session when the visitor accepts', async () => {
+    const perSession = popup({ frequency: { kind: 'session', days: 0 } })
+    const page = await loadPage({ popups: [perSession] })
+    page.clock.advance(60000)
+    expect(page.session()).toEqual({})
+
+    page.answer('accepted')
+    expect(page.session()['tq_popup:welcome']).toBeTruthy()
+    expect(page.storage()['tq_popup:welcome']).toBeUndefined()
+  })
+})
+
 describeInDom('popup runtime — what the visitor does with it', () => {
   it('runs without analytics on the page', async () => {
-    const page = await loadPage({ popups: [popup()], analytics: false })
+    const page = await loadPage({ popups: [popup()], analytics: false, storage: ACCEPTED })
     page.clock.advance(60000)
     expect(page.dispatched).toEqual(['welcome'])
     page.card('welcome').querySelector('[data-tq-popup-convert]').click()
