@@ -1969,6 +1969,11 @@ export function trackCommerceEvent(name, detail) {
     if (COMMERCE_EVENTS.indexOf(name) === -1) {
       return
     }
+    // An order already counted is not mirrored again: a refreshed confirmation
+    // page must not report a second sale to the merchant's Google tags.
+    if (name === 'purchase' && !claimPurchase(detail && detail.orderId)) {
+      return
+    }
     // The dataLayer mirror runs even when our own tracker is off: the merchant's
     // GA4 property is theirs, and it should not depend on our analytics being
     // enabled.
@@ -1980,9 +1985,7 @@ export function trackCommerceEvent(name, detail) {
     }
     if (name === 'purchase') {
       // Money is reported by the site's server (analytics-track-outcome in the
-      // checkout workflow), never by the browser. The ledger still runs so a
-      // refreshed confirmation page cannot re-push to the merchant's dataLayer.
-      claimPurchase(detail && detail.orderId)
+      // checkout workflow), never by the browser.
       return
     }
 

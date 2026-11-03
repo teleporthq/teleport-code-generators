@@ -68,12 +68,13 @@ describe('commerce analytics — the emitted tracker', () => {
   })
 
   it('never reports a purchase from the browser — the server does, with its key', () => {
-    // The dataLayer mirror still runs (the merchant's GA4 is theirs), and the
-    // ledger still claims the order so a refreshed confirmation page cannot
-    // re-push it; only OUR beacon is withheld.
+    // The ledger claims the order before the dataLayer mirror (the merchant's
+    // GA4 is theirs), so a refreshed confirmation page cannot re-push it; only
+    // OUR beacon is withheld.
     expect(TRACKER_SOURCE).toMatch(
-      /if \(name === 'purchase'\) \{[\s\S]*?claimPurchase\(detail && detail\.orderId\)\s*return\s*\}/
+      /if \(name === 'purchase' && !claimPurchase\(detail && detail\.orderId\)\) \{\s*return\s*\}\s*(\/\/[^\n]*\s*)*pushToDataLayer\(name, detail\)/
     )
+    expect(TRACKER_SOURCE).toMatch(/if \(name === 'purchase'\) \{\s*(\/\/[^\n]*\s*)*return\s*\}/)
   })
 
   it('mirrors to the GA4 dataLayer independently of our own tracker', () => {

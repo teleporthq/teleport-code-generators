@@ -58,6 +58,8 @@ function bootTracker(
     scrollY: 0,
     addEventListener: () => undefined,
     __tpExp: options.experiments,
+    // The merchant's Google tag, as a fresh page load starts it.
+    dataLayer: [] as Array<Record<string, unknown>>,
   }
   const fakeFetch = (url: string, init: { body: string }) => {
     const payload = JSON.parse(init.body)
@@ -112,6 +114,10 @@ function bootTracker(
   const showExperiments = (experiments: string[]) => {
     experimentsOnPage = experiments
   }
+  const purchasesSentToGoogle = () =>
+    fakeWindow.dataLayer
+      .filter((entry) => entry.event === 'purchase')
+      .map((entry) => entry.transaction_id)
 
   return {
     tracker,
@@ -122,6 +128,7 @@ function bootTracker(
     show,
     navigate,
     showExperiments,
+    purchasesSentToGoogle,
   }
 }
 
@@ -275,5 +282,36 @@ describe('tracker — the order numbers it has counted', () => {
     reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
     reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-2' })
     expect(ledger(reloaded)).toEqual(['order-1', 'order-2'])
+  })
+})
+
+describe("tracker — a purchase reaches the store's Google tags once", () => {
+  it('with consent, a reloaded confirmation page does not send it again', () => {
+    const localStorage = memoryStorage()
+    localStorage.setItem('cookieConsent', 'accepted')
+    const confirmation = bootTracker({ localStorage })
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(confirmation.purchasesSentToGoogle()).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(reloaded.purchasesSentToGoogle()).toEqual([])
+  })
+
+  it('without consent, once while the visitor browses, and again after a full reload', () => {
+    const confirmation = bootTracker()
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    // Back to the confirmation page by client-side navigation.
+    confirmation.navigate('/thank-you')
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(confirmation.purchasesSentToGoogle()).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage: confirmation.localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(reloaded.purchasesSentToGoogle()).toEqual(['order-1'])
   })
 })
