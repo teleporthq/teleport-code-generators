@@ -78,6 +78,14 @@ const gatedSite = (): ProjectUIDL => {
   uidl.components.WelcomePopup = POPUP
   uidl.root.node.content.children.forEach((page: any) => {
     page.content.node.content.children.push(
+      el('container', {
+        attrs: { 'data-tq-exp': s('hero-1'), 'data-tq-exp-variant': s('a') },
+        children: [s('Original hero')],
+      }),
+      el('container', {
+        attrs: { 'data-tq-exp': s('hero-1'), 'data-tq-exp-variant': s('b') },
+        children: [s('Variation hero')],
+      }),
       el('component', { semanticType: 'WelcomePopup', dependency: { type: 'local' } }),
       el('component', { semanticType: 'AgeGate', dependency: { type: 'local' } })
     )
@@ -140,5 +148,19 @@ describe('packProject, a download other than Next.js: the age gate and popups', 
     const home = readFileSync(join(root, 'src', 'views', 'home.js'), 'utf8')
     expect(home).toContain('<AgeGate')
     expect(home).not.toContain('WelcomePopup')
+  })
+
+  it('shows an A/B test’s original alone: a download counts no result', async () => {
+    const html = readFileSync(
+      join(await download(ProjectType.HTML, 'ab-html-site'), 'index.html'),
+      'utf8'
+    )
+    expect(html).toContain('Original hero')
+    expect(html).not.toContain('Variation hero')
+
+    const react = await download(ProjectType.REACT, 'ab-react-site')
+    const home = readFileSync(join(react, 'src', 'views', 'home.js'), 'utf8')
+    expect(home).toContain('Original hero')
+    expect(home).not.toContain('Variation hero')
   })
 })

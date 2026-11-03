@@ -212,8 +212,9 @@ export const packProject: PackProjectFunction = async (
   }
 
   if (projectType !== ProjectType.NEXT) {
-    // The age gate and popups the published site runs with head scripts and
-    // workflows, which no other export has: done without them, or left out.
+    // The age gate, popups and A/B tests the published site runs with head
+    // scripts and workflows, which no other export has: done without them, or
+    // left out.
     projectGeneratorFactory.addPlugin(new StaticExportProjectPlugin())
   }
 

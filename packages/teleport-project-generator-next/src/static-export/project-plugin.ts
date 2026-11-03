@@ -10,6 +10,11 @@ import {
   resolveAccessRulesSettings,
 } from '../access-rules/settings'
 import { buildGateHeadSnippet } from '../access-rules/gate-runtime-source'
+import {
+  collectExperimentIds,
+  EXPERIMENT_ATTR,
+  EXPERIMENT_VARIANT_ATTR,
+} from '../analytics/experiments'
 import { traverseProjectElements } from '../uidl-element-traversal'
 
 type ProjectUIDL = ProjectPluginStructure['uidl']
@@ -74,6 +79,38 @@ const removePopups = (uidl: ProjectUIDL) => {
   })
 }
 
+const staticAttr = (element: UIDLElement, name: string): unknown => {
+  const attr = element.attrs?.[name]
+  return attr?.type === 'static' ? attr.content : undefined
+}
+
+/**
+ * Both versions of an A/B test are on the page; the published site's head
+ * script shows a visitor one of them and its tracker counts the result. A
+ * download counts nothing, so it shows the original alone.
+ */
+const keepOriginalVersions = (uidl: ProjectUIDL) => {
+  const experiments = new Set(collectExperimentIds(uidl))
+  if (experiments.size === 0) {
+    return
+  }
+  const isVariation = (node: UIDLNode) => {
+    if (node?.type !== 'element') {
+      return false
+    }
+    const element = node.content as UIDLElement
+    return (
+      experiments.has(staticAttr(element, EXPERIMENT_ATTR) as string) &&
+      staticAttr(element, EXPERIMENT_VARIANT_ATTR) === 'b'
+    )
+  }
+  traverseProjectElements(uidl, (element) => {
+    if (element.children?.length) {
+      element.children = element.children.filter((child) => !isVariation(child))
+    }
+  })
+}
+
 /**
  * A download other than the Next.js app (HTML, React, Vue, Nuxt, Angular)
  * runs none of the project's workflows, and none of the head scripts the Next
@@ -81,14 +118,16 @@ const removePopups = (uidl: ProjectUIDL) => {
  * here, or the feature is left out with nothing broken:
  *  - the age gate: its head snippet, answering the gate's controls by their
  *    marks;
- *  - popups: left out.
- * A project with neither comes out exactly as before.
+ *  - popups: left out;
+ *  - A/B tests: the original version alone.
+ * A project with none of them comes out exactly as before.
  */
 export class StaticExportProjectPlugin implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure): Promise<ProjectPluginStructure> {
     const { uidl } = structure
     addAgeGate(uidl)
     removePopups(uidl)
+    keepOriginalVersions(uidl)
     return structure
   }
 

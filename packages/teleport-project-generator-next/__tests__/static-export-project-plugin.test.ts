@@ -206,7 +206,31 @@ describe('StaticExportProjectPlugin', () => {
     expect(head.endsWith('<meta name="x">')).toBe(true)
   })
 
-  it('changes nothing in a project with neither', async () => {
+  it('keeps an A/B test’s original and leaves out its variation', async () => {
+    const version = (id: string, variant: string, label: string) => ({
+      type: 'element',
+      content: {
+        elementType: 'container',
+        attrs: { 'data-tq-exp': s(id), 'data-tq-exp-variant': s(variant) },
+        children: [s(label)],
+      },
+    })
+    const structure = structureWith({})
+    const page = structure.uidl.root.node.content as { children: unknown[] }
+    page.children = [
+      version('hero-1', 'a', 'Original'),
+      version('hero-1', 'b', 'Variation'),
+      // Not an id the generator acts on: left as it is.
+      version('NOT AN ID', 'b', 'Unmarked'),
+    ]
+    await new StaticExportProjectPlugin().runBefore(structure)
+    expect(page.children).toEqual([
+      version('hero-1', 'a', 'Original'),
+      version('NOT AN ID', 'b', 'Unmarked'),
+    ])
+  })
+
+  it('changes nothing in a project with none of them', async () => {
     const structure = structureWith({})
     const before = JSON.stringify(structure.uidl)
     await new StaticExportProjectPlugin().runBefore(structure)
