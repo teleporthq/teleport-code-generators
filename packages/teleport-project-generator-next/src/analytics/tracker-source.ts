@@ -362,10 +362,14 @@ function enqueue(event) {
 // saw would dilute the result, so the stamp is only experiments whose element
 // is on this page, plus ones they saw earlier — a checkout page still carries
 // the arm of the hero that led there. "id:a,id2:b", tests on this page first.
+// Like the visitor id, the arms seen are stored only with consent; until then
+// they are held in memory, which client-side navigation keeps, and a map an
+// earlier build stored is removed. Accepting stores what is held.
 const EXPERIMENT_SEEN_KEY = 'tq_exp_seen'
 const EXPERIMENT_ID_PATTERN = /^[a-z0-9_-]{1,32}$/
+let heldSeenExperiments = {}
 
-function readSeenExperiments() {
+function readStoredSeenExperiments() {
   try {
     const raw = window.localStorage.getItem(EXPERIMENT_SEEN_KEY)
     const parsed = raw ? JSON.parse(raw) : null
@@ -376,6 +380,27 @@ function readSeenExperiments() {
   } catch (e) {
     return {}
   }
+}
+
+function removeStoredSeenExperiments() {
+  try {
+    window.localStorage.removeItem(EXPERIMENT_SEEN_KEY)
+  } catch (e) {
+    /* no storage access: nothing is stored either */
+  }
+}
+
+function sameSeenExperiments(left, right) {
+  const keys = Object.keys(left)
+  if (keys.length !== Object.keys(right).length) {
+    return false
+  }
+  for (let i = 0; i < keys.length; i++) {
+    if (left[keys[i]] !== right[keys[i]]) {
+      return false
+    }
+  }
+  return true
 }
 
 function experimentIsOnPage(id) {
@@ -392,12 +417,16 @@ function experimentStamp() {
     if (!assigned || typeof assigned !== 'object') {
       return ''
     }
-    const seen = readSeenExperiments()
+    const consented = hasConsent()
+    const stored = consented ? readStoredSeenExperiments() : {}
+    if (!consented) {
+      removeStoredSeenExperiments()
+    }
+    const seen = Object.assign({}, heldSeenExperiments, stored)
     const ids = Object.keys(assigned).sort()
     const onPage = []
     const earlier = []
     const nextSeen = {}
-    let changed = false
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i]
       if (!EXPERIMENT_ID_PATTERN.test(id)) {
@@ -409,16 +438,14 @@ function experimentStamp() {
       }
       if (experimentIsOnPage(id)) {
         nextSeen[id] = arm
-        if (seen[id] !== arm) {
-          changed = true
-        }
         onPage.push(id + ':' + arm)
       } else if (seen[id] === 'a' || seen[id] === 'b') {
         nextSeen[id] = seen[id]
         earlier.push(id + ':' + seen[id])
       }
     }
-    if (changed || Object.keys(seen).length !== Object.keys(nextSeen).length) {
+    heldSeenExperiments = nextSeen
+    if (consented && !sameSeenExperiments(stored, nextSeen)) {
       try {
         window.localStorage.setItem(EXPERIMENT_SEEN_KEY, JSON.stringify(nextSeen))
       } catch (e) {

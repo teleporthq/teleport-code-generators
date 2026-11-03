@@ -24,12 +24,14 @@ function memoryStorage() {
   }
 }
 
-function bootTracker() {
+function bootTracker(options: { experiments?: Record<string, string> } = {}) {
   const localStorage = memoryStorage()
   const sessionStorage = memoryStorage()
   const batches: Sent[][] = []
   const heartbeats: Sent[] = []
   const documentListeners: Record<string, () => void> = {}
+  // The A/B tests whose element is on the current page.
+  let experimentsOnPage: string[] = []
 
   const fakeDocument = {
     visibilityState: 'visible',
@@ -38,7 +40,8 @@ function bootTracker() {
     addEventListener: (type: string, listener: () => void) => {
       documentListeners[type] = listener
     },
-    querySelector: () => null,
+    querySelector: (selector: string) =>
+      experimentsOnPage.some((id) => selector === `[data-tq-exp="${id}"]`) ? {} : null,
   }
   const fakeWindow = {
     location: { hostname: 'shop.example.com', pathname: '/', search: '' },
@@ -48,6 +51,7 @@ function bootTracker() {
     innerHeight: 900,
     scrollY: 0,
     addEventListener: () => undefined,
+    __tpExp: options.experiments,
   }
   const fakeFetch = (url: string, init: { body: string }) => {
     const payload = JSON.parse(init.body)
@@ -94,12 +98,25 @@ function bootTracker() {
     fakeDocument.visibilityState = 'visible'
     documentListeners.visibilitychange()
   }
-  const navigate = (path: string) => {
+  const navigate = (path: string, experiments: string[] = []) => {
     fakeWindow.location.pathname = path
+    experimentsOnPage = experiments
     tracker.trackRouteChange(path)
   }
+  const showExperiments = (experiments: string[]) => {
+    experimentsOnPage = experiments
+  }
 
-  return { tracker, localStorage, sessionStorage, heartbeats, flush, show, navigate }
+  return {
+    tracker,
+    localStorage,
+    sessionStorage,
+    heartbeats,
+    flush,
+    show,
+    navigate,
+    showExperiments,
+  }
 }
 
 describe('tracker — consent given or withdrawn mid-visit', () => {
@@ -161,5 +178,57 @@ describe('tracker — consent given or withdrawn mid-visit', () => {
     expect(next.visitorId).toBeNull()
     expect(next.sessionId).toMatch(UUID)
     expect(next.sessionId).not.toBe(landing.sessionId)
+  })
+})
+
+describe('tracker — the A/B test versions a visitor has seen', () => {
+  const SEEN_KEY = 'tq_exp_seen'
+
+  it('keeps them in memory until the banner is accepted, then stores them', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'b' } })
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:b')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+
+    // A page without the test still counts for the version that led there.
+    page.navigate('/checkout')
+    const [checkout] = page.flush()
+    expect(checkout.exp).toBe('hero-1:b')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.navigate('/thanks')
+    const [thanks] = page.flush()
+    expect(thanks.exp).toBe('hero-1:b')
+    expect(JSON.parse(page.localStorage.getItem(SEEN_KEY) as string)).toEqual({ 'hero-1': 'b' })
+  })
+
+  it('removes the versions an earlier build stored for a visitor who has not accepted', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'a' } })
+    page.localStorage.setItem(SEEN_KEY, JSON.stringify({ 'cta-2': 'b' }))
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:a')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+  })
+
+  it('reads and stores them as before for a visitor who accepted earlier', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'a', 'cta-2': 'b' } })
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.localStorage.setItem(SEEN_KEY, JSON.stringify({ 'cta-2': 'b' }))
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:a,cta-2:b')
+    expect(JSON.parse(page.localStorage.getItem(SEEN_KEY) as string)).toEqual({
+      'hero-1': 'a',
+      'cta-2': 'b',
+    })
   })
 })
