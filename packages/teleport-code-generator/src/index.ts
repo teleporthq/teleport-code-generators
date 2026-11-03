@@ -30,6 +30,7 @@ import {
   NextTemplate,
   NextProjectPlugini18nConfig,
   createNextProjectPlugins,
+  StaticExportProjectPlugin,
 } from '@teleporthq/teleport-project-generator-next'
 import {
   VueTemplate,
@@ -208,6 +209,12 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.NUXT) {
     projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
+  }
+
+  if (projectType !== ProjectType.NEXT) {
+    // The age gate and popups the published site runs with head scripts and
+    // workflows, which no other export has: done without them, or left out.
+    projectGeneratorFactory.addPlugin(new StaticExportProjectPlugin())
   }
 
   if (plugins?.length > 0) {
