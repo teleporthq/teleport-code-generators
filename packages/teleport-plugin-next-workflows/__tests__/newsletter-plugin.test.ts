@@ -723,6 +723,171 @@ describe('the newsletter routes', () => {
     expect(ok.body).toEqual({ ok: true, email: 'wait@site.test' })
     const bad = await route(app, 'confirm', { method: 'POST', body: { token: 'x.y' } })
     expect(bad.body).toEqual({ ok: false })
+    const queriesBefore = app.db.queries.length
+    const none = await route(app, 'confirm', { method: 'POST', body: {} })
+    expect(none.statusCode).toBe(200)
+    expect(none.body).toEqual({ ok: false })
+    expect(app.db.queries).toHaveLength(queriesBefore)
+    app.db.failWith = { message: 'connection refused', code: 'ECONNREFUSED' }
+    const down = await route(app, 'confirm', { method: 'POST', body: { token } })
+    expect(down.statusCode).toBe(503)
+    expect(down.body).toEqual({
+      error: 'We could not confirm the subscription. Please try again in a moment.',
+    })
+    const put = await route(app, 'confirm', { method: 'PUT', body: { token } })
+    expect(put.statusCode).toBe(405)
+  })
+
+  it("confirm: the emailed link to the site's confirm route shows a button; only its POST confirms", async () => {
+    const app = loadApp({
+      settings: {
+        pages: { confirm: '/api/newsletter/confirm', unsubscribe: '/api/newsletter/unsubscribe' },
+      },
+    })
+    await app.helper.subscribeNewsletterPerson({
+      db: app.db,
+      email: 'click@reader.test',
+      signUpPoint: 'block',
+      req: REQ,
+    })
+    expect(app.sent[0].html).toContain('https://studio.example/api/newsletter/confirm?t=')
+    const token = linkToken(app.sent[0].html)
+    // The person's click, and a mail client's link scanner opening the same
+    // link first, subscribe nobody.
+    for (let opened = 0; opened < 2; opened++) {
+      const page = await route(app, 'confirm', { method: 'GET', query: { t: token } })
+      expect(page.statusCode).toBe(200)
+      expect(page.headers['Content-Type']).toBe('text/html; charset=utf-8')
+      expect(page.headers['Cache-Control']).toBe('no-store')
+      expect(page.body).toContain('<h1>Confirm your subscription</h1>')
+      expect(page.body).toContain(
+        '<form method="post" action="/api/newsletter/confirm"><input type="hidden" name="t" value="' +
+          token +
+          '"><button type="submit">Confirm subscription</button></form>'
+      )
+    }
+    expect(app.db.rows[0].newsletter_status).toBe('pending')
+    expect(app.db.writes().map((query) => query.sql)).toEqual([NEWSLETTER_SQL.insertPending])
+    expect(app.sent).toHaveLength(1)
+
+    const pressButton = () =>
+      route(app, 'confirm', {
+        method: 'POST',
+        headers: { host: 'studio.example', 'content-type': 'application/x-www-form-urlencoded' },
+        body: { t: token },
+      })
+    const done = await pressButton()
+    expect(done.statusCode).toBe(200)
+    expect(done.headers['Content-Type']).toBe('text/html; charset=utf-8')
+    expect(done.body).toContain('<h1>You&#39;re subscribed</h1>')
+    expect(app.db.rows[0]).toMatchObject({
+      newsletter_status: 'subscribed',
+      marketing_consent: true,
+    })
+    expect(app.events.map((event) => event.type)).toEqual(['newsletter-subscribed'])
+    expect(app.sent).toHaveLength(2)
+    expect(app.sent[1].html).toContain('https://studio.example/api/newsletter/unsubscribe?t=')
+    // The same link used again: the same answer, nothing happens twice.
+    const again = await pressButton()
+    expect(again.body).toContain('<h1>You&#39;re subscribed</h1>')
+    expect(app.events).toHaveLength(1)
+    expect(app.sent).toHaveLength(2)
+  })
+
+  it('confirm: a bad, expired or wrong link answers a plain page and confirms nothing', async () => {
+    const app = loadApp()
+    app.db.rows.push({ id: 'u-p', email: 'wait@site.test', newsletter_status: 'pending' })
+    const eightDaysAgo = Math.floor(Date.now() / 1000) - 8 * 24 * 3600
+    const notALink =
+      'This confirmation link does not work. A link works for 7 days: sign up again to get a new one.'
+    const badLinks = [
+      '',
+      'x.y',
+      '"><script>alert(1)</script>',
+      app.helper.signNewsletterToken('wait@site.test', 'confirm', eightDaysAgo),
+      app.helper.signNewsletterToken('wait@site.test', 'unsubscribe'),
+      loadApp({ env: { NEXTAUTH_SECRET: 'another-site' } }).helper.signNewsletterToken(
+        'wait@site.test',
+        'confirm'
+      ),
+    ]
+    const expectNotALinkPage = (res: Row) => {
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['Content-Type']).toBe('text/html; charset=utf-8')
+      expect(res.body).toContain('<h1>Link not valid</h1>')
+      expect(res.body).toContain(notALink)
+      expect(res.body).not.toContain('<form')
+      expect(res.body).not.toContain('<script>')
+    }
+    expectNotALinkPage(await route(app, 'confirm', { method: 'GET' }))
+    for (const t of badLinks) {
+      expectNotALinkPage(await route(app, 'confirm', { method: 'GET', query: { t } }))
+      expectNotALinkPage(
+        await route(app, 'confirm', {
+          method: 'POST',
+          headers: { host: 'studio.example', 'content-type': 'application/x-www-form-urlencoded' },
+          body: { t },
+        })
+      )
+    }
+    expect(app.db.writes()).toEqual([])
+    expect(app.db.rows[0].newsletter_status).toBe('pending')
+    expect(app.sent).toEqual([])
+
+    // The database down while the button is pressed: a plain page, not the error.
+    app.db.failWith = { message: 'connection refused', code: 'ECONNREFUSED' }
+    const down = await route(app, 'confirm', {
+      method: 'POST',
+      headers: { host: 'studio.example', 'content-type': 'application/x-www-form-urlencoded' },
+      body: { t: app.helper.signNewsletterToken('wait@site.test', 'confirm') },
+    })
+    expect(down.statusCode).toBe(503)
+    expect(down.body).toContain('<h1>Please try again</h1>')
+    expect(down.body).not.toContain('connection refused')
+    expect(down.body).not.toContain('ECONNREFUSED')
+  })
+
+  it('confirm: a project that still has its own confirm page keeps linking to it, and its step confirms', async () => {
+    const app = loadApp()
+    await app.helper.subscribeNewsletterPerson({
+      db: app.db,
+      email: 'page@reader.test',
+      signUpPoint: 'footer',
+      req: REQ,
+    })
+    expect(app.sent[0].html).toContain('https://studio.example/newsletter/confirm#t=')
+    expect(app.sent[0].html).not.toContain('/api/newsletter/confirm')
+    const realFetch = (global as any).fetch
+    ;(global as any).fetch = async (
+      url: string,
+      init: { method: string; headers: Row; body: string }
+    ) => {
+      expect(url).toBe('https://studio.example/api/newsletter/confirm')
+      const res = await route(app, 'confirm', {
+        method: init.method,
+        headers: { host: 'studio.example', 'content-type': init.headers['Content-Type'] },
+        body: JSON.parse(init.body),
+      })
+      return {
+        ok: res.statusCode < 400,
+        json: async () => {
+          expect(typeof res.body).toBe('object')
+          return res.body
+        },
+      }
+    }
+    try {
+      const confirmStep = loadHandler('newsletter-confirm')
+      expect(
+        await confirmStep(
+          { token: linkToken(app.sent[0].html) },
+          { __baseUrl: 'https://studio.example' }
+        )
+      ).toEqual({ ok: true, email: 'page@reader.test' })
+    } finally {
+      ;(global as any).fetch = realFetch
+    }
+    expect(app.db.rows[0].newsletter_status).toBe('subscribed')
   })
 })
 

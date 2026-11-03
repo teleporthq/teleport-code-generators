@@ -8,13 +8,15 @@
  *   `footer`, `popup`, `form`), else `block`; errors are logged by code and
  *   message only (never a database row); every answer is `{ ok: true, pending }`, after at least
  *   `NEWSLETTER_MIN_RESPONSE_MS`, whatever happened to the address.
- * - `confirm` — POST `{ token }` → `{ ok, email? }`.
- * - `unsubscribe` — POST `{ token }` → `{ ok, email? }`; a GET with `?t=`
- *   (a click in a mail client) answers a small page whose button POSTs it, so a
- *   link scanner that opens every link unsubscribes nobody.
+ * - `confirm` and `unsubscribe` — POST `{ token }` → `{ ok, email? }`; a GET
+ *   with `?t=` (a click in a mail client) answers a small page whose button
+ *   POSTs it, so a link scanner that opens every link confirms and
+ *   unsubscribes nobody.
  */
 import { securityRuntimeSpecifier } from '../security-runtime/security-runtime-code'
+import { newsletterTokenSpec } from './helper-code'
 import {
+  NEWSLETTER_CONFIRM_URL,
   NEWSLETTER_UNSUBSCRIBE_URL,
   NEWSLETTER_VISITOR_LIMIT,
   NEWSLETTER_VISITOR_SCOPE,
@@ -86,32 +88,7 @@ ${methodGuard(['POST'])}
 };
 `
 
-export const generateNewsletterConfirmRoute = (): string => `${ROUTE_PREAMBLE}
-
-module.exports = async function handler(req, res) {
-${methodGuard(['POST'])}
-  if (!(await __security.rateLimitRequest(req, res, { scope: 'newsletter-confirm', limit: ${NEWSLETTER_LINK_VISITOR_LIMIT}, windowSeconds: 3600 }))) {
-    return;
-  }
-  var body = readBody(req);
-  var token = typeof body.token === 'string' ? body.token : '';
-  if (!token) {
-    return res.status(200).json({ ok: false });
-  }
-  try {
-    var result = await __newsletter.withNewsletterDb(function (db) {
-      return __newsletter.confirmNewsletter({ db: db, token: token, req: req });
-    });
-    return res.status(200).json(result.ok ? { ok: true, email: result.email } : { ok: false });
-  } catch (err) {
-    return __security.sendClientError(res, 503, 'We could not confirm the subscription. Please try again in a moment.', __newsletter.safeError(err));
-  }
-};
-`
-
-export const generateNewsletterUnsubscribeRoute = (): string => `${ROUTE_PREAMBLE}
-
-function escapeHtml(value) {
+const LINK_PAGE_CODE = `function escapeHtml(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -135,7 +112,66 @@ function sendPage(res, status, title, message, form) {
     'button{font:inherit;padding:10px 18px;border:0;border-radius:6px;background:#111;color:#fff;cursor:pointer}</style>' +
     '</head><body><h1>' + escapeHtml(title) + '</h1><p>' + escapeHtml(message) + '</p>' + (form || '') + '</body></html>'
   );
-}
+}`
+
+const CONFIRM_LINK_DAYS = newsletterTokenSpec.confirmMaxAgeSeconds / 86400
+
+export const generateNewsletterConfirmRoute = (): string => `${ROUTE_PREAMBLE}
+
+${LINK_PAGE_CODE}
+
+var NOT_A_LINK = 'This confirmation link does not work. A link works for ${CONFIRM_LINK_DAYS} days: sign up again to get a new one.';
+
+module.exports = async function handler(req, res) {
+${methodGuard(['GET', 'POST'])}
+  if (!(await __security.rateLimitRequest(req, res, { scope: 'newsletter-confirm', limit: ${NEWSLETTER_LINK_VISITOR_LIMIT}, windowSeconds: 3600 }))) {
+    return;
+  }
+  if (req.method === 'GET') {
+    // Opening the link changes nothing (a mail client's link scanner opens it
+    // too, and double opt-in means the person's own action): the button does.
+    var linkToken = req.query && typeof req.query.t === 'string' ? req.query.t : '';
+    if (!__newsletter.verifyNewsletterToken(linkToken, 'confirm')) {
+      return sendPage(res, 200, 'Link not valid', NOT_A_LINK, '');
+    }
+    return sendPage(
+      res,
+      200,
+      'Confirm your subscription',
+      'Receive the newsletter at this address?',
+      '<form method="post" action="${NEWSLETTER_CONFIRM_URL}"><input type="hidden" name="t" value="' +
+        escapeHtml(linkToken) + '"><button type="submit">Confirm subscription</button></form>'
+    );
+  }
+  var body = readBody(req);
+  var fromForm = String((req.headers && req.headers['content-type']) || '').indexOf('application/x-www-form-urlencoded') !== -1;
+  var token = typeof body.token === 'string' ? body.token : typeof body.t === 'string' ? body.t : '';
+  var result = { ok: false };
+  try {
+    if (token) {
+      result = await __newsletter.withNewsletterDb(function (db) {
+        return __newsletter.confirmNewsletter({ db: db, token: token, req: req });
+      });
+    }
+  } catch (err) {
+    if (fromForm) {
+      console.error('[newsletter] confirm failed:', __newsletter.safeError(err));
+      return sendPage(res, 503, 'Please try again', 'We could not confirm your subscription just now. Please try again in a moment.', '');
+    }
+    return __security.sendClientError(res, 503, 'We could not confirm the subscription. Please try again in a moment.', __newsletter.safeError(err));
+  }
+  if (fromForm) {
+    return result.ok
+      ? sendPage(res, 200, "You're subscribed", 'Thank you for confirming. You will receive the newsletter at this address.', '')
+      : sendPage(res, 200, 'Link not valid', NOT_A_LINK, '');
+  }
+  return res.status(200).json(result.ok ? { ok: true, email: result.email } : { ok: false });
+};
+`
+
+export const generateNewsletterUnsubscribeRoute = (): string => `${ROUTE_PREAMBLE}
+
+${LINK_PAGE_CODE}
 
 var NOT_A_LINK = 'This unsubscribe link does not work. Use the link in a newer email from us.';
 
