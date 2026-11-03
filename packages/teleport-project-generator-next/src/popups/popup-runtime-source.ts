@@ -1,3 +1,9 @@
+import {
+  COOKIE_CONSENT_ACCEPTED,
+  COOKIE_CONSENT_KEY,
+  LOCAL_STORAGE_WRITE_EVENT,
+} from '../analytics/google-consent-mode'
+
 /**
  * The published site's popup runtime: an inline script in `_document`'s
  * `<head>`, right after `window.__tqPopups = <UIDLPopupConfig>` (see
@@ -17,8 +23,8 @@
  *    `except` rule beats `all`, then the newer (later in the list); eligible =
  *    not shown within its frequency (`tq_popup:<id>` in localStorage, or
  *    sessionStorage for once per session) and the right audience (returning =
- *    `tq_popup_visited` was already set when this document loaded; it is set
- *    at the end of every evaluation);
+ *    `tq_popup_visited` was already stored when this document loaded; it is
+ *    recorded at the end of every evaluation);
  *  - its trigger armed: exit intent on computers (>= 1024px), the delay, the
  *    scroll depth, or the next frame — the phone trigger below 1024px;
  *  - one popup per page view: once it has been shown nothing else opens until
@@ -27,7 +33,7 @@
  * Opening: the event is sent again every half second (for up to ten seconds)
  * until the card is on the page — the component's listener is attached only
  * once the page has hydrated, which a head script cannot wait for. Only then
- * is the popup counted shown: the frequency is written and `popup_shown`
+ * is the popup counted shown: the frequency is recorded and `popup_shown`
  * tracked. While the cookie banner is on the page nothing is sent: a popup
  * would stand between the visitor and that answer, so it waits, and opens the
  * moment the banner goes.
@@ -44,8 +50,19 @@
  * Analytics go through `window.tpAnalytics.track(name, { recordId })` when the
  * tracker is on the page; nothing here throws without it.
  *
+ * Nothing is stored before the visitor accepts the cookie banner
+ * (`cookieConsent` exactly 'accepted', the analytics tracker's own test, as for
+ * A/B tests): until then the frequency and the visited mark are held in
+ * memory, which client-side navigation keeps, so a popup seen on this page
+ * view stays seen while the visitor browses, and a full page load is a new
+ * visitor. Keys an earlier build stored are removed, and only a visitor with
+ * consent can be a returning one. Accepting the banner (the workflow step
+ * announces its write with `teleport:local-storage`; another tab's with
+ * `storage`) stores what the visit has held, never over a value another tab
+ * stored first.
+ *
  * ⛔ Shipped as the body of a template literal: no backticks, no dollar-brace,
- * and no closing-tag sequence anywhere in it.
+ * and no closing-tag sequence anywhere in the emitted script.
  */
 export const POPUP_RUNTIME_SOURCE = `(function () {
   var config = window.__tqPopups;
@@ -63,6 +80,9 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
   var COOKIE_BANNER_SELECTOR = '[data-thq="thq-cookie-consent"]';
   var FREQUENCY_PREFIX = 'tq_popup:';
   var VISITED_KEY = 'tq_popup_visited';
+  var CONSENT_KEY = '${COOKIE_CONSENT_KEY}';
+  var CONSENT_ACCEPTED = '${COOKIE_CONSENT_ACCEPTED}';
+  var STORAGE_AREAS = ['localStorage', 'sessionStorage'];
   var DESKTOP_QUERY = '(min-width: 1024px)';
   var DESKTOP_MIN_WIDTH = 1024;
   var DAY_MS = 86400000;
@@ -76,26 +96,86 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
   var cleanups = [];
   var currentPath = null;
   var openings = {};
+  var held = { localStorage: {}, sessionStorage: {} };
 
-  function read(area, key) {
+  function stored(area, key) {
     try {
-      var store = window[area];
-      return store ? store.getItem(key) : null;
+      var storage = window[area];
+      return storage ? storage.getItem(key) : null;
     } catch (e) {
       return null;
     }
   }
 
-  function write(area, key, value) {
+  function store(area, key, value) {
     try {
-      var store = window[area];
-      if (store) {
-        store.setItem(key, value);
+      var storage = window[area];
+      if (storage) {
+        storage.setItem(key, value);
       }
     } catch (e) {}
   }
 
-  var returning = read('localStorage', VISITED_KEY) !== null;
+  function consented() {
+    return stored('localStorage', CONSENT_KEY) === CONSENT_ACCEPTED;
+  }
+
+  function isPopupKey(key) {
+    return key === VISITED_KEY || (typeof key === 'string' && key.indexOf(FREQUENCY_PREFIX) === 0);
+  }
+
+  function forgetStored() {
+    for (var a = 0; a < STORAGE_AREAS.length; a++) {
+      try {
+        var storage = window[STORAGE_AREAS[a]];
+        var stale = [];
+        for (var i = 0; storage && i < storage.length; i++) {
+          if (isPopupKey(storage.key(i))) {
+            stale.push(storage.key(i));
+          }
+        }
+        for (var j = 0; j < stale.length; j++) {
+          storage.removeItem(stale[j]);
+        }
+      } catch (e) {}
+    }
+  }
+
+  function recalled(area, key) {
+    var value = consented() ? stored(area, key) : null;
+    if (value !== null) {
+      return value;
+    }
+    return held[area].hasOwnProperty(key) ? held[area][key] : null;
+  }
+
+  function record(area, key, value) {
+    held[area][key] = value;
+    if (consented()) {
+      store(area, key, value);
+    }
+  }
+
+  function storeHeld() {
+    if (!consented()) {
+      return;
+    }
+    for (var a = 0; a < STORAGE_AREAS.length; a++) {
+      var area = STORAGE_AREAS[a];
+      for (var key in held[area]) {
+        if (held[area].hasOwnProperty(key) && stored(area, key) === null) {
+          store(area, key, held[area][key]);
+        }
+      }
+    }
+  }
+
+  var returning = false;
+  if (consented()) {
+    returning = stored('localStorage', VISITED_KEY) !== null;
+  } else {
+    forgetStored();
+  }
 
   function track(name, id) {
     try {
@@ -197,7 +277,7 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
 
   function shownRecently(popup) {
     var frequency = popup.frequency || {};
-    var last = read(storageAreaFor(popup), FREQUENCY_PREFIX + popup.id);
+    var last = recalled(storageAreaFor(popup), FREQUENCY_PREFIX + popup.id);
     if (last === null) {
       return false;
     }
@@ -299,7 +379,7 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
   }
 
   function markShown(popup) {
-    write(storageAreaFor(popup), FREQUENCY_PREFIX + popup.id, String(Date.now()));
+    record(storageAreaFor(popup), FREQUENCY_PREFIX + popup.id, String(Date.now()));
     openings[popup.id] = { converted: false };
     track('popup_shown', popup.id);
   }
@@ -409,7 +489,7 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
         }
       }
     } catch (e) {}
-    write('localStorage', VISITED_KEY, '1');
+    record('localStorage', VISITED_KEY, '1');
   }
 
   function onRouteChange() {
@@ -587,6 +667,8 @@ export const POPUP_RUNTIME_SOURCE = `(function () {
     patchHistory('pushState');
     patchHistory('replaceState');
     window.addEventListener('popstate', onRouteChange);
+    window.addEventListener('${LOCAL_STORAGE_WRITE_EVENT}', storeHeld);
+    window.addEventListener('storage', storeHeld);
     currentPath = normalizePath(window.location.pathname);
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', evaluate);
