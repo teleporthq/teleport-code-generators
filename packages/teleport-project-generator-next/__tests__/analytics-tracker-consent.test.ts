@@ -24,8 +24,14 @@ function memoryStorage() {
   }
 }
 
-function bootTracker(options: { experiments?: Record<string, string> } = {}) {
-  const localStorage = memoryStorage()
+function bootTracker(
+  options: {
+    experiments?: Record<string, string>
+    /** localStorage carried over from an earlier page load. */
+    localStorage?: ReturnType<typeof memoryStorage>
+  } = {}
+) {
+  const localStorage = options.localStorage || memoryStorage()
   const sessionStorage = memoryStorage()
   const batches: Sent[][] = []
   const heartbeats: Sent[] = []
@@ -71,7 +77,7 @@ function bootTracker(options: { experiments?: Record<string, string> } = {}) {
     'navigator',
     'fetch',
     'setInterval',
-    `${body}\nreturn { initTeleportAnalytics, trackRouteChange }`
+    `${body}\nreturn { initTeleportAnalytics, trackRouteChange, trackCommerceEvent }`
   )(
     {
       env: {
@@ -230,5 +236,44 @@ describe('tracker — the A/B test versions a visitor has seen', () => {
       'hero-1': 'a',
       'cta-2': 'b',
     })
+  })
+})
+
+describe('tracker — the order numbers it has counted', () => {
+  const LEDGER_KEY = 'tp_purchases'
+  const ledger = (page: { localStorage: ReturnType<typeof memoryStorage> }) =>
+    JSON.parse(page.localStorage.getItem(LEDGER_KEY) || 'null')
+
+  it('keeps them in memory until the banner is accepted, then stores them', () => {
+    const page = bootTracker()
+    page.tracker.initTeleportAnalytics({})
+    page.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    expect(ledger(page)).toBeNull()
+
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.navigate('/account')
+    expect(ledger(page)).toEqual(['order-1'])
+  })
+
+  it('removes the ones an earlier build stored for a visitor who has not accepted', () => {
+    const page = bootTracker()
+    page.localStorage.setItem(LEDGER_KEY, JSON.stringify(['order-0']))
+    page.tracker.initTeleportAnalytics({})
+    expect(ledger(page)).toBeNull()
+  })
+
+  it('with consent, stores each order once, also when the confirmation page is reloaded', () => {
+    const localStorage = memoryStorage()
+    localStorage.setItem('cookieConsent', 'accepted')
+    const confirmation = bootTracker({ localStorage })
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    expect(ledger(confirmation)).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-2' })
+    expect(ledger(reloaded)).toEqual(['order-1', 'order-2'])
   })
 })

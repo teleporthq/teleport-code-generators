@@ -195,6 +195,7 @@ function syncConsentIdentity() {
   if (consented === (visitorId !== null)) {
     return
   }
+  syncPurchaseLedgerConsent()
 
   if (!consented) {
     sessionId = uuid()
@@ -1725,6 +1726,7 @@ export function initTeleportAnalytics(options) {
   }
 
   setupIdentity()
+  syncPurchaseLedgerConsent()
   utm = parseUtm()
   observeVitals()
   startMutationObserver()
@@ -1844,11 +1846,15 @@ const COMMERCE_EVENTS = [
 // Orders already counted, so a shopper refreshing the confirmation page (or
 // coming back to it from their history) cannot inflate the conversion number.
 // Kept in localStorage because the whole point is to survive a reload; capped
-// so a busy device cannot grow it without bound.
+// so a busy device cannot grow it without bound. Like the visitor id, it is
+// stored only with consent: until then the order ids are held in memory, which
+// client-side navigation keeps, and a ledger an earlier build stored is
+// removed. Accepting stores what is held.
 const PURCHASE_LEDGER_KEY = 'tp_purchases'
 const PURCHASE_LEDGER_MAX = 50
+let heldPurchases = []
 
-function readPurchaseLedger() {
+function readStoredPurchaseLedger() {
   try {
     const raw = window.localStorage.getItem(PURCHASE_LEDGER_KEY)
     const parsed = raw ? JSON.parse(raw) : []
@@ -1861,6 +1867,38 @@ function readPurchaseLedger() {
   }
 }
 
+function storeHeldPurchases() {
+  if (!hasConsent()) {
+    return
+  }
+  const stored = readStoredPurchaseLedger()
+  const added = heldPurchases.filter((orderId) => stored.indexOf(orderId) === -1)
+  if (added.length === 0) {
+    return
+  }
+  try {
+    window.localStorage.setItem(
+      PURCHASE_LEDGER_KEY,
+      JSON.stringify(stored.concat(added).slice(-PURCHASE_LEDGER_MAX))
+    )
+  } catch (e) {
+    /* the held copy still dedupes this page load */
+  }
+}
+
+// Called at boot and whenever the consent answer changes.
+function syncPurchaseLedgerConsent() {
+  if (hasConsent()) {
+    storeHeldPurchases()
+    return
+  }
+  try {
+    window.localStorage.removeItem(PURCHASE_LEDGER_KEY)
+  } catch (e) {
+    /* no storage access: nothing is stored either */
+  }
+}
+
 // True when this order has been counted before. Recording and checking are one
 // function so no caller can test without also marking.
 function claimPurchase(orderId) {
@@ -1870,19 +1908,12 @@ function claimPurchase(orderId) {
     // than the occasional refresh over-reports.
     return true
   }
-  const ledger = readPurchaseLedger()
-  if (ledger.indexOf(orderId) !== -1) {
+  const stored = hasConsent() ? readStoredPurchaseLedger() : []
+  if (heldPurchases.indexOf(orderId) !== -1 || stored.indexOf(orderId) !== -1) {
     return false
   }
-  ledger.push(orderId)
-  try {
-    window.localStorage.setItem(
-      PURCHASE_LEDGER_KEY,
-      JSON.stringify(ledger.slice(-PURCHASE_LEDGER_MAX))
-    )
-  } catch (e) {
-    /* the event still goes out; only the dedupe is lost */
-  }
+  heldPurchases = heldPurchases.concat([orderId]).slice(-PURCHASE_LEDGER_MAX)
+  storeHeldPurchases()
   return true
 }
 
