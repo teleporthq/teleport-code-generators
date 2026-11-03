@@ -12,6 +12,24 @@ const EVENTS = {
   tooYoung: 'tq-age-gate-too-young',
 }
 
+/** The editor's marks on the gate's own controls (`access-rules-markers.ts` there). */
+const CONTROLS = {
+  confirm: 'data-tq-age-gate-confirm',
+  birthdate: 'data-tq-age-gate-birthdate',
+  submit: 'data-tq-age-gate-submit',
+  error: 'data-tq-age-gate-error',
+}
+
+export interface GateHeadSnippetOptions {
+  /**
+   * For a download that runs none of the project's workflows (HTML, React,
+   * Vue, Nuxt, Angular): the snippet answers the gate's controls itself, by
+   * their marks, and the style alone hides the gate — nothing tells the
+   * component to close. A page's `.html` is read as its path.
+   */
+  withoutWorkflows?: boolean
+}
+
 /**
  * The age gate's head snippet, for a project whose gate is the editor's Age
  * Gate component: drawn open on every published page, so a visitor who must
@@ -30,8 +48,55 @@ const EVENTS = {
  */
 export const buildGateHeadSnippet = (
   settings: AccessRulesSettings,
-  runtime: { gatedPaths: string[]; unavailablePaths: string[] }
+  runtime: { gatedPaths: string[]; unavailablePaths: string[] },
+  options: GateHeadSnippetOptions = {}
 ): string => {
+  const { withoutWorkflows = false } = options
+  const staticPath = withoutWorkflows
+    ? `
+    p = p.replace(/\\/index\\.html$/, '/').replace(/\\.html$/, '');`
+    : ''
+  const settleBody = withoutWorkflows
+    ? `
+    return;`
+    : `
+    var tries = 0;
+    (function tick() {
+      var shown = !!(document.body && document.body.querySelector(ROOT));
+      if (shown === open) return;
+      tell(open ? EVENTS.open : EVENTS.close);
+      if (++tries < 40) setTimeout(tick, 250);
+    })();`
+  const controls = withoutWorkflows
+    ? `
+  // No workflow runs here: the gate's own controls are answered by their marks.
+  var CONTROLS = ${toJsLiteral(CONTROLS)};
+  function control(event, mark) {
+    var target = event.target;
+    return target && target.closest ? target.closest('[' + mark + ']') : null;
+  }
+  document.addEventListener('click', function (event) {
+    if (control(event, CONTROLS.confirm)) {
+      confirmed();
+      return;
+    }
+    var submit = control(event, CONTROLS.submit);
+    if (!submit) return;
+    var gate = submit.closest(ROOT) || document;
+    var field = gate.querySelector('[' + CONTROLS.birthdate + ']');
+    var text = field && typeof field.value === 'string' ? field.value : '';
+    if (!text) {
+      if (field && field.reportValidity) field.reportValidity();
+      return;
+    }
+    if (years(text) >= S.minimumAge) {
+      confirmed();
+      return;
+    }
+    var error = gate.querySelector('[' + CONTROLS.error + ']');
+    if (error) error.removeAttribute('hidden');
+  });`
+    : ''
   const client = {
     enabled: settings.ageGateEnabled,
     minimumAge: settings.minimumAge,
@@ -68,7 +133,7 @@ export const buildGateHeadSnippet = (
     document.cookie = value;
   }
   function path() {
-    var p = location.pathname;
+    var p = location.pathname;${staticPath}
     return p.length > 1 ? p.replace(/\\/+$/, '').toLowerCase() : p;
   }
   function matches(p, patterns) {
@@ -99,14 +164,7 @@ export const buildGateHeadSnippet = (
   }
   // The component answers only once hydrated: ask until the gate matches.
   // Looked for inside the body: <html> carries the same attribute as its mark.
-  function settle(open) {
-    var tries = 0;
-    (function tick() {
-      var shown = !!(document.body && document.body.querySelector(ROOT));
-      if (shown === open) return;
-      tell(open ? EVENTS.open : EVENTS.close);
-      if (++tries < 40) setTimeout(tick, 250);
-    })();
+  function settle(open) {${settleBody}
   }
   function noindex() {
     if (!S.noindex || !gated(path()) || document.querySelector('meta[name="robots"][' + ATTR + ']')) return;
@@ -142,7 +200,7 @@ export const buildGateHeadSnippet = (
     if (!text) return;
     if (years(text) >= S.minimumAge) confirmed();
     else tell(EVENTS.tooYoung);
-  });
+  });${controls}
   html.setAttribute(ATTR, wanted() ? 'open' : 'hidden');
   function onRoute() {
     setTimeout(apply, 0);

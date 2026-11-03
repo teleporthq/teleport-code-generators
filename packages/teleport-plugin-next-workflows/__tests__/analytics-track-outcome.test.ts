@@ -176,6 +176,62 @@ describe('analytics-track-outcome node', () => {
     })
   })
 
+  describe('server: an outcome the analytics service takes only from a browser', () => {
+    // The service's server endpoint counts `purchase` and `booking_made` alone;
+    // a lead, sign-up, newsletter, search or custom outcome comes from the page.
+    const configured = (calls: Array<{ body: string }>) =>
+      evalHandler(generator.generateServerHandler?.() ?? '', {
+        globalThis: {
+          process: {
+            env: {
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
+              TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+            },
+          },
+        },
+        fetch: (_url: string, init: { body: string }) => {
+          calls.push(init)
+          return Promise.resolve({ status: 202 })
+        },
+        AbortController: undefined,
+      })
+
+    let warn: jest.SpyInstance
+    beforeEach(() => {
+      warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    })
+    afterEach(() => warn.mockRestore())
+
+    it('is refused as browser-only, with the reason in the logs, and never sent', async () => {
+      const calls: Array<{ body: string }> = []
+      const report = configured(calls)
+      for (const name of ['lead', 'signup', 'newsletter', 'search', 'custom:demo_booked']) {
+        expect(await report({ name }, {})).toEqual({ sent: false, reason: 'browser-only' })
+        expect(await report({ name, outcomeId: 'row-1' }, {})).toEqual({
+          sent: false,
+          reason: 'browser-only',
+        })
+      }
+      expect(calls).toEqual([])
+      expect(warn).toHaveBeenCalledWith(
+        '[analytics] the "lead" outcome was not reported: only a visitor\'s browser can report it, never a server step'
+      )
+    })
+
+    it('says so in the logs when a money outcome has no id to report', async () => {
+      const calls: Array<{ body: string }> = []
+      expect(await configured(calls)({ name: 'booking_made', value: '40' }, {})).toEqual({
+        sent: false,
+        reason: 'no-outcome-id',
+      })
+      expect(calls).toEqual([])
+      expect(warn).toHaveBeenCalledWith(
+        '[analytics] the "booking_made" outcome was not reported: it has no order or booking id'
+      )
+    })
+  })
+
   it('server: answers not-configured without the key and never throws on a network failure', async () => {
     const unconfigured = evalHandler(generator.generateServerHandler?.() ?? '', {
       globalThis: { process: { env: {} } },
