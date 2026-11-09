@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator",
-  "version": "0.45.0",
+  "version": "0.45.12",
   "description": "Generic project generator that requires a specific strategy to run on custom configurations",
   "author": "teleportHQ",
   "license": "MIT",
