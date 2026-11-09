@@ -1,5 +1,6 @@
 import { DataExposure, GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+import { applyFontFallbacks } from './font-fallbacks'
 import {
   GeneratorOptions,
   GeneratedFolder,
@@ -181,6 +182,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
+
+    applyFontFallbacks(uidl)
 
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
