@@ -78,15 +78,23 @@ export const googleFamiliesInStylesheetUrl = (url: string): string[] => {
  * The Google families this project loads and has measurements for, by key,
  * each with its name as the project wrote it.
  */
+/** The Google Fonts stylesheets a pasted head snippet links (`<link href="https://fonts.googleapis.com/…">`). */
+export const googleStylesheetUrlsInHtml = (html: string): string[] =>
+  Array.from(
+    html.matchAll(/<link\b[^>]*\bhref\s*=\s*["']([^"']*fonts\.googleapis\.com[^"']*)["']/gi)
+  ).map((match) => match[1].replace(/&amp;/g, '&'))
+
 export const googleFamiliesWithFallbacks = (
-  assets: ReadonlyArray<UIDLGlobalAsset>
+  assets: ReadonlyArray<UIDLGlobalAsset>,
+  customHeadHtml = ''
 ): Map<string, string> => {
+  const stylesheetUrls = assets
+    .filter((asset) => (asset.type === 'font' || asset.type === 'style') && 'path' in asset)
+    .map((asset) => (asset as { path: string }).path)
+    .concat(googleStylesheetUrlsInHtml(customHeadHtml))
   const families = new Map<string, string>()
-  for (const asset of assets) {
-    if ((asset.type !== 'font' && asset.type !== 'style') || !('path' in asset)) {
-      continue
-    }
-    for (const family of googleFamiliesInStylesheetUrl(asset.path)) {
+  for (const url of stylesheetUrls) {
+    for (const family of googleFamiliesInStylesheetUrl(url)) {
       const key = familyKey(family)
       if (GOOGLE_FONT_FALLBACK_METRICS[key] && !families.has(key)) {
         families.set(key, family)
@@ -254,7 +262,7 @@ export const FONT_FALLBACKS_STYLE_TAG = 'font-fallbacks'
  */
 export const applyFontFallbacks = (uidl: ProjectUIDL): void => {
   const assets = uidl.globals?.assets || []
-  const families = googleFamiliesWithFallbacks(assets)
+  const families = googleFamiliesWithFallbacks(assets, uidl.globals?.customCode?.head)
   if (families.size === 0) {
     return
   }
@@ -278,9 +286,20 @@ export const applyFontFallbacks = (uidl: ProjectUIDL): void => {
     customCode.body = withFontFallbacksInHtml(customCode.body, families)
   }
 
+  const faces = fontFallbackFaces(families)
+  const existing = assets.find(
+    (asset) =>
+      asset.type === 'style' &&
+      'attrs' in asset &&
+      asset.attrs?.['data-tag']?.content === FONT_FALLBACKS_STYLE_TAG
+  )
+  if (existing && 'content' in existing) {
+    existing.content = faces
+    return
+  }
   assets.push({
     type: 'style',
-    content: fontFallbackFaces(families),
+    content: faces,
     attrs: { 'data-tag': { type: 'static', content: FONT_FALLBACKS_STYLE_TAG } },
   })
 }

@@ -202,3 +202,44 @@ describe('font fallbacks', () => {
     })
   })
 })
+
+describe('font fallbacks, beyond the font assets', () => {
+  const minimalProject = (head: string, fontPath?: string): ProjectUIDL =>
+    ({
+      name: 'blog',
+      globals: {
+        settings: { title: 'Blog', language: 'en' },
+        meta: [],
+        assets: [
+          { type: 'style', content: 'body { font-family: "DM Sans", sans-serif; }' },
+          ...(fontPath ? [{ type: 'font', path: fontPath }] : []),
+        ],
+        customCode: { head },
+      },
+      root: { name: 'App', node: { type: 'element', content: { elementType: 'container' } } },
+    } as unknown as ProjectUIDL)
+
+  it('reads the Google fonts a pasted head snippet links', () => {
+    const uidl = minimalProject(
+      '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&amp;display=swap" rel="stylesheet">'
+    )
+    applyFontFallbacks(uidl)
+    expect((uidl.globals.assets[0] as { content: string }).content).toBe(
+      'body { font-family: "DM Sans", DM Sans Fallback, sans-serif; }'
+    )
+  })
+
+  it('gives the same project the same result when it is generated twice', () => {
+    const uidl = minimalProject('', 'https://fonts.googleapis.com/css2?family=DM+Sans&display=swap')
+    applyFontFallbacks(uidl)
+    const once = JSON.stringify(uidl)
+    applyFontFallbacks(uidl)
+    expect(JSON.stringify(uidl)).toBe(once)
+    expect(
+      uidl.globals.assets.filter(
+        (asset) =>
+          'attrs' in asset && asset.attrs?.['data-tag']?.content === FONT_FALLBACKS_STYLE_TAG
+      )
+    ).toHaveLength(1)
+  })
+})
