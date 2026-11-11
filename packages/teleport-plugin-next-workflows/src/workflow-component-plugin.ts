@@ -1912,7 +1912,20 @@ ${globalStateChangeHandlerLines.join('\n')}
 `
 }
 
-const generateElementHandler = (et: ElementTriggerInfo): string => {
+/* The bound element's `data-*` attributes, as trigger fields a workflow reads
+   by name: `data-tab-index` is `dataTabIndex`, the name the static HTML export
+   resolves from the same attribute. Values are the attribute strings. The
+   result is the object the trigger's own fields are then assigned onto, so no
+   attribute can replace one of them. */
+const datasetTriggerFieldsSource = (element: string): string =>
+  `Object.keys((${element} && ${element}.dataset) || {}).reduce(function(fields, key) { fields['data' + key.charAt(0).toUpperCase() + key.slice(1)] = ${element}.dataset[key]; return fields; }, {})`
+
+/* The submitted fields are spread FIRST so a field literally named `formData`,
+   `formId`, `element` or `timestamp` can never shadow the reserved keys. */
+const formTriggerContextSource = (elementId: string): string =>
+  `Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() })`
+
+export const generateElementHandler = (et: ElementTriggerInfo): string => {
   const safeId = et.workflow.id.replace(/[^a-zA-Z0-9]/g, '_')
   const config = et.triggerConfig
   const elementId = et.elementId
@@ -1936,9 +1949,17 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
       // the bound element when the user clicks a child — e.g. the payment
       // provider row sets `data-provider-name` on the row div, but a click
       // on the inner label span would otherwise resolve to an empty dataset.
+      // A debounced run starts after the event has finished dispatching, when
+      // `currentTarget` is already null, so the bound element is read before
+      // the timer is set.
+      const boundElement = debounce
+        ? '__bound || event.target'
+        : 'event.currentTarget || event.target'
       body +=
-        `    const __te = event.currentTarget || event.target;\n` +
-        `    const triggerContext = { elementId: '${elementId}', triggerElement: __te, element: __te, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY };\n` +
+        `    const __te = ${boundElement};\n` +
+        `    const triggerContext = Object.assign(${datasetTriggerFieldsSource(
+          '__te'
+        )}, { elementId: '${elementId}', triggerElement: __te, element: __te, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY });\n` +
         `    return __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});`
 
       if (debounce) {
@@ -1946,6 +1967,7 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
           `(function() {\n` +
           `      let timer = null;\n` +
           `      return function(event) {\n` +
+          `        const __bound = event.currentTarget;\n` +
           `        clearTimeout(timer);\n` +
           `        timer = setTimeout(async function() {\n` +
           `    ${body}\n` +
@@ -1972,17 +1994,15 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
       // name as missing. `general-extract-form-data` already returns its fields
       // flat for exactly this reason; the trigger now matches it, so both
       // `params[0].name` and `params[0].formData.name` resolve.
-      //
-      // The spread comes FIRST so a field literally named `formData`, `formId`,
-      // `element` or `timestamp` can never shadow the reserved keys the runtime
-      // and the workflow editor depend on.
+      // The context is built by `formTriggerContextSource`, shared with the
+      // native-listener fallback.
       return (
         `async function(event) {\n` +
         (preventDefault ? '    event.preventDefault();\n' : '') +
         `    const formData = {};\n` +
         `    const fd = new FormData(event.target);\n` +
         `    fd.forEach(function(v, k) { formData[k] = v; });\n` +
-        `    const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() });\n` +
+        `    const triggerContext = ${formTriggerContextSource(elementId)};\n` +
         // Growth analytics: a form whose workflow ran to the end is a lead.
         // __execWf resolves undefined when the run threw, so only a finished
         // run reports.
@@ -2081,7 +2101,10 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
   }
 }
 
-const generateUnmatchedElementFallback = (et: ElementTriggerInfo, safeId: string): string => {
+export const generateUnmatchedElementFallback = (
+  et: ElementTriggerInfo,
+  safeId: string
+): string => {
   const config = et.triggerConfig
   const elementId = et.elementId
   const domEvent = getDOMEventName(et.workflow.trigger.type, config)
@@ -2104,20 +2127,24 @@ const generateUnmatchedElementFallback = (et: ElementTriggerInfo, safeId: string
       `        const formData = {};\n` +
       `        const fd = new FormData(event.target);\n` +
       `        fd.forEach(function(v, k) { formData[k] = v; });\n` +
-      `        const triggerContext = { formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n`
+      `        const triggerContext = ${formTriggerContextSource(elementId)};\n`
   } else if (isInput) {
     handlerBody += `        const triggerContext = { value: event.target.value, elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n`
   } else if (et.workflow.trigger.type === 'event-element-event') {
     // See `event-element-event` in `generateElementHandler` for why we
     // include `value`/`checked`/`files` unconditionally.
-    handlerBody += `        const triggerContext = { elementId: '${elementId}', eventType: '${domEvent}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY, offsetX: event.offsetX, offsetY: event.offsetY, button: event.button, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, key: event.key, ${formControlPropertyReads(
+    handlerBody += `        const triggerContext = { elementId: '${elementId}', eventType: '${domEvent}', triggerElement: event.target, element: event.target, target: event.target, currentTarget: __el_${safeId}, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY, offsetX: event.offsetX, offsetY: event.offsetY, button: event.button, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, key: event.key, ${formControlPropertyReads(
       'event.target'
     )} };\n`
     if (domEvent === 'drop') {
       handlerBody += `        if (event.dataTransfer && event.dataTransfer.files) { triggerContext.files = Array.from(event.dataTransfer.files); }\n`
     }
   } else {
-    handlerBody += `        const triggerContext = { elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY };\n`
+    // The listener sits on `__el_<id>`, so that is the element whose
+    // attributes are delivered, whichever child was clicked.
+    handlerBody += `        const triggerContext = Object.assign(${datasetTriggerFieldsSource(
+      `__el_${safeId}`
+    )}, { elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY });\n`
   }
 
   handlerBody += `        __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});`
