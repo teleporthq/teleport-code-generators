@@ -19,7 +19,7 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
-import { collectSegmentStateKeys } from './segment-context-needs'
+import { ALL_STATE_KEYS, collectSegmentStateKeys } from './segment-context-needs'
 import {
   ADMIN_CUSTOM_NODES_MODULE,
   callsCustomNodeTransitively,
@@ -160,6 +160,58 @@ const hasNodeTypeTransitively = (
     }
   }
   return false
+}
+
+const reachableNodes = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, UIDLCustomWorkflowNode> | undefined,
+  visited: Set<string>
+): UIDLWorkflowNode[] =>
+  nodes.reduce((reached: UIDLWorkflowNode[], node) => {
+    reached.push(node)
+    const customNodeId = ((node.config || {}) as Record<string, unknown>).customNodeId
+    if (
+      node.type === 'general-custom-node' &&
+      customNodes &&
+      typeof customNodeId === 'string' &&
+      !visited.has(customNodeId)
+    ) {
+      visited.add(customNodeId)
+      const customNode = customNodes[customNodeId]
+      if (customNode && Array.isArray(customNode.nodes)) {
+        reached.push(...reachableNodes(customNode.nodes, customNodes, visited))
+      }
+    }
+    return reached
+  }, [])
+
+/* Whether the nodes, or a custom node they call, read a global state. There
+   are four ways to: a `state-get-global-state` node; a `{{state.<name>}}`
+   token; a context reference that walks into the state values by name; and an
+   expression that names the state values as a whole, which counts when it
+   also names one of the global states. The last three read by name, so they
+   only count for a name the project declares as a global state. */
+const readsGlobalStateTransitively = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, UIDLCustomWorkflowNode> | undefined,
+  globalStateNames: string[]
+): boolean => {
+  if (hasNodeTypeTransitively(nodes, 'state-get-global-state', customNodes, new Set<string>())) {
+    return true
+  }
+  if (globalStateNames.length === 0) {
+    return false
+  }
+  const stateKeys = collectSegmentStateKeys(nodes, customNodes)
+  if (stateKeys !== ALL_STATE_KEYS) {
+    return stateKeys.some((key) => globalStateNames.includes(key))
+  }
+  const configs = JSON.stringify(
+    reachableNodes(nodes, customNodes, new Set<string>()).map((node) => node.config || {})
+  )
+  return globalStateNames.some((name) =>
+    new RegExp(`(^|[^\\w$])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\w$])`).test(configs)
+  )
 }
 
 // State names that live in GlobalContext (useGlobalContext) rather than in the
@@ -437,11 +489,21 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       )
     )
     const hasGlobalStateChangeTriggers = globalStateChangeWorkflows.length > 0
-    const needsGlobalState = hasGlobalStateUpdateNodes || hasGlobalStateChangeTriggers
     const globalStateDefs = (options.globalStateDefinitions || {}) as Record<
       string,
       UIDLGlobalStateDefinition
     >
+    // A workflow that only READS a global state needs the same wiring as one
+    // that writes it: every read resolves against the state values this file
+    // hands the workflow runtime, and a global state is among them only when
+    // the file takes it from `useGlobalState()`. Without it the read is
+    // undefined, so a condition on a global switch never holds.
+    const globalStateNames = Object.values(globalStateDefs).map((def) => def.name)
+    const hasGlobalStateReads = activeWorkflows.some((wf) =>
+      readsGlobalStateTransitively(wf.nodes, workflows.customNodes, globalStateNames)
+    )
+    const needsGlobalState =
+      hasGlobalStateUpdateNodes || hasGlobalStateChangeTriggers || hasGlobalStateReads
 
     const hasRealtimeUsage = activeWorkflows.some(
       (wf) =>
