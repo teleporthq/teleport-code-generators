@@ -29,7 +29,12 @@ import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
-import { TRACK_LEAD_SOURCE, formControlPropertyReads } from './trigger-generator'
+import {
+  TRACK_LEAD_SOURCE,
+  formControlPropertyReads,
+  intervalControlListenerSource,
+  intervalControlTeardownSource,
+} from './trigger-generator'
 import { elementVisibleObserverCode } from './element-visible-trigger'
 import { restoreControlledSelectValue } from './controlled-select'
 import { resolveScrollPoint } from './scroll-points'
@@ -2196,7 +2201,7 @@ const generateLoadedTriggerRun = (
       `      cleanups.push(function() { clearTimeout(__delay_${safeId}); });\n`
     : `      ${execCall};\n`
 
-const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
+export const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
   const trigger = wf.trigger
   const config = (trigger.config || {}) as Record<string, unknown>
   const execCall = `__execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId})`
@@ -2566,12 +2571,7 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
       }
 
       if (controlEventName) {
-        intervalCode +=
-          `    var __iv_ctrlHandler_${safeId} = function() {\n` +
-          `      if (__iv_running_${safeId}) { __iv_stop_${safeId}(); }\n` +
-          `      else { __iv_start_${safeId}(); }\n` +
-          `    };\n` +
-          `    window.addEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});\n`
+        intervalCode += intervalControlListenerSource(safeId, controlEventName)
       }
 
       if (autoStart) {
@@ -2585,9 +2585,7 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
         (!runWhileHidden
           ? `      document.removeEventListener('visibilitychange', __iv_visHandler_${safeId});\n`
           : '') +
-        (controlEventName
-          ? `      window.removeEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});\n`
-          : '') +
+        (controlEventName ? intervalControlTeardownSource(safeId, controlEventName) : '') +
         `    });`
 
       return intervalCode

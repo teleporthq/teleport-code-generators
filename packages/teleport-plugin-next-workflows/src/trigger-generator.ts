@@ -24,6 +24,45 @@ import { elementVisibleObserverCode } from './element-visible-trigger'
 export const formControlPropertyReads = (elementRef: string): string =>
   `value: ${elementRef}.value, checked: ${elementRef}.checked, files: ${elementRef}.files`
 
+/* The channel the "Emit Custom Event" node dispatches on. */
+const CUSTOM_EVENT_CHANNEL = 'workflow:custom:'
+
+const intervalControlEventNames = (controlEventName: string): string[] => [
+  CUSTOM_EVENT_CHANNEL + controlEventName,
+  controlEventName,
+]
+
+/* A timer's control event is heard on the channel the emit node dispatches on,
+   and under its bare name for a page that dispatches it by hand. The two names
+   differ, so one dispatch reaches the handler once.
+   The event may say what it wants: a detail of 'start' or 'stop', or an object
+   whose `action` or `command` is one of them, does exactly that, and asking
+   for the state the timer is already in changes nothing. Any other event
+   toggles the timer. */
+export const intervalControlListenerSource = (safeId: string, controlEventName: string): string =>
+  `    var __iv_ctrlHandler_${safeId} = function(event) {\n` +
+  `      var detail = event && event.detail;\n` +
+  `      var command = typeof detail === 'string' ? detail : detail && (detail.action || detail.command);\n` +
+  `      if (command === 'start') { __iv_start_${safeId}(); }\n` +
+  `      else if (command === 'stop') { __iv_stop_${safeId}(); }\n` +
+  `      else if (__iv_running_${safeId}) { __iv_stop_${safeId}(); }\n` +
+  `      else { __iv_start_${safeId}(); }\n` +
+  `    };\n` +
+  intervalControlEventNames(controlEventName)
+    .map(
+      (name) =>
+        `    window.addEventListener(${JSON.stringify(name)}, __iv_ctrlHandler_${safeId});\n`
+    )
+    .join('')
+
+export const intervalControlTeardownSource = (safeId: string, controlEventName: string): string =>
+  intervalControlEventNames(controlEventName)
+    .map(
+      (name) =>
+        `      window.removeEventListener(${JSON.stringify(name)}, __iv_ctrlHandler_${safeId});\n`
+    )
+    .join('')
+
 export const generateTriggerCode = (workflow: UIDLWorkflow, workflowVarName: string): string => {
   const trigger = workflow.trigger
   const triggerType = trigger.type
@@ -733,11 +772,7 @@ const generateIntervalTrigger = (
     ${
       controlEventName
         ? `
-    var __iv_ctrlHandler_${safeId} = function() {
-      if (__iv_running_${safeId}) { __iv_stop_${safeId}(); }
-      else { __iv_start_${safeId}(); }
-    };
-    window.addEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});`
+${intervalControlListenerSource(safeId, controlEventName)}`
         : ''
     }
 
@@ -751,11 +786,7 @@ const generateIntervalTrigger = (
           ? `document.removeEventListener('visibilitychange', __iv_visHandler_${safeId});`
           : ''
       }
-      ${
-        controlEventName
-          ? `window.removeEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});`
-          : ''
-      }
+      ${controlEventName ? intervalControlTeardownSource(safeId, controlEventName) : ''}
     };`
 }
 
