@@ -111,4 +111,31 @@ describe('plugin-css-modules-style-sheet', () => {
     expect(cssMap.length).toBe(4)
     expect(Object.keys(mediaStylesMap).length).toBe(1)
   })
+
+  it('keeps a comma inside brackets as authored, in the base rule and in a state', () => {
+    const cssMap: string[] = []
+    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    generateStylesFromStyleSetDefinitions({
+      styleSetDefinitions: {
+        links: {
+          type: 'reusable-project-style-map',
+          className: 'links',
+          subselectors: ' > a:is(.a, .b)',
+          content: { color: { type: 'static', content: 'red' } },
+          conditions: [
+            {
+              type: 'element-state',
+              meta: { state: 'hover' },
+              content: { color: { type: 'static', content: 'blue' } },
+            },
+          ],
+        },
+      },
+      cssMap,
+      mediaStylesMap,
+    })
+
+    expect(cssMap[0]).toContain('.links > a:is(.a, .b) {')
+    expect(cssMap[1]).toContain('.links > a:is(.a, .b):hover {')
+  })
 })
