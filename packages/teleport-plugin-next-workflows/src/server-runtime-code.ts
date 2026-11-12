@@ -860,7 +860,74 @@ function handOffPendingNodePromises(context) {
   return Promise.resolve();
 }
 
+// One loop of a server route, a loop inside its body included: every route
+// kind runs its loops through here and differs only in runBodyNode(node,
+// resolvedConfig), which runs one ordinary body node and stores its result.
+// The body is walked in step order, once per pass of the loop type (see
+// createLoopSteps). An if-statement skips the branch it does not take for
+// that pass only; a loop found in the body runs all of its own passes on
+// every pass of this one, and its body nodes belong to it alone.
+// Returns every node id between the loop and its loop-back edge (the bodies
+// of inner loops included), which the route must not run again.
+async function runServerLoop(loopNode, config, sortedNodes, edges, context, runBodyNode) {
+  var bodyNodeIds = {};
+  utils.getLoopBodyNodeIds(loopNode.id, edges).forEach(function(id) { bodyNodeIds[id] = true; });
+  var innerLoopBodyIds = {};
+  sortedNodes.forEach(function(n) {
+    if (!bodyNodeIds[n.id] || n.type !== 'general-loop') return;
+    utils.getLoopBodyNodeIds(n.id, edges).forEach(function(id) { innerLoopBodyIds[id] = true; });
+  });
+  var bodyNodes = sortedNodes.filter(function(n) { return bodyNodeIds[n.id] && !innerLoopBodyIds[n.id]; });
+  // A map loop publishes the output of its last body node per pass, as
+  // Array.prototype.map does (general-loop in node-context-schemas.json).
+  var isMap = (config.loopType || 'forEach') === 'map';
+  var lastBodyNode = bodyNodes[bodyNodes.length - 1];
+  // A helper node's envelope ({ result }, { records }, { matches }) is
+  // unwrapped to the one array it holds.
+  var collection = utils.unwrapWorkflowCollection(config.collection);
+  var results = [];
+
+  // The scope stack lets custom JavaScript tell the nodes before the outermost
+  // loop (params) from those inside a loop at each depth (innerParams); the
+  // registry keeps a finished inner loop recognisable as scaffolding.
+  if (!context.__loopScopeStack) context.__loopScopeStack = [];
+  context.__loopScopeStack.push({ loopNodeId: loopNode.id, bodyNodeIds: bodyNodeIds });
+  if (!context.__loopNodeIds) context.__loopNodeIds = {};
+  context.__loopNodeIds[loopNode.id] = true;
+
+  var steps = utils.createLoopSteps(loopNode, config, context, collection);
+  for (var pass = steps.next(context); pass; pass = steps.next(context)) {
+    context[pass.key] = pass.value;
+    var skippedThisPass = {};
+    for (var i = 0; i < bodyNodes.length; i++) {
+      var bodyNode = bodyNodes[i];
+      if (skippedThisPass[bodyNode.id]) continue;
+      var resolved = utils.resolveNodeConfig(bodyNode, context);
+      resolved.__nodeId = bodyNode.id;
+      if (bodyNode.type === 'general-if-statement') {
+        var held = utils.evaluateCondition(resolved, context, bodyNode.config);
+        context[bodyNode.id] = { result: held };
+        Object.assign(skippedThisPass, utils.nonTakenBranchNodeIds(edges, bodyNode.id, held, loopNode.id));
+        continue;
+      }
+      if (bodyNode.type === 'general-loop') {
+        await runServerLoop(bodyNode, resolved, sortedNodes, edges, context, runBodyNode);
+        continue;
+      }
+      await runBodyNode(bodyNode, resolved);
+    }
+    if (isMap) {
+      results.push(lastBodyNode ? context[lastBodyNode.id] : context[loopNode.id]);
+    }
+  }
+
+  context.__loopScopeStack.pop();
+  context[loopNode.id] = { completed: true, iterations: steps.iterations(), results: results };
+  return bodyNodeIds;
+}
+
 module.exports = Object.assign({}, utils, {
+  runServerLoop: runServerLoop,
   handOffPendingNodePromises: handOffPendingNodePromises,
   claimSegmentContext: claimSegmentContext,
   segmentReply: segmentReply,

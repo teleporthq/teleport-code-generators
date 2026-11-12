@@ -6,6 +6,7 @@
 // fields and its loop body would never run.
 import { generateSharedRuntimeUtilsCode } from '../src/executor-generator'
 import { generateCronAPIRoute } from '../src/api-route-generator'
+import { generateServerRuntimeCode } from '../src/server-runtime-code'
 
 const TRIGGER_ID = 'cron-1'
 const SCAN_ID = 'scan-1'
@@ -124,10 +125,10 @@ describe('generateCronAPIRoute — loop + templateParams support', () => {
   })
 
   it('uses the loop-capable executor (handles general-loop body discovery)', () => {
-    // The shared execution loop keys the loop body off the 'loop' sourceHandle
-    // and walks 'loop-body-out' edges — markers absent from the old naive loop.
-    expect(route).toContain("e.sourceHandle === 'loop'")
-    expect(route).toContain('loop-body-out')
+    // The route runs a loop through the server runtime, which finds its body
+    // by walking from the 'loop' edge up to the loop-back edge.
+    expect(route).toContain('utils.runServerLoop(node, resolved, sortedNodes, ')
+    expect(generateServerRuntimeCode()).toContain('utils.getLoopBodyNodeIds(loopNode.id, edges)')
   })
 
   it('merges templateParams into email body + subject', () => {
