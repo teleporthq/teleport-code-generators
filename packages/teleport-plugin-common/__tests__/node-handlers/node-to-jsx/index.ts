@@ -594,6 +594,189 @@ describe('generateJSXSyntax', () => {
     })
   })
 
+  describe('a rendering condition whose right side is a global state', () => {
+    const SELECTED_ID = 'f3a1c2d4-selected'
+    const PROFILE_ID = 'b7e9d0a2-profile'
+    const globalStateDefinitions = {
+      [SELECTED_ID]: { id: SELECTED_ID, name: 'selectedRow', type: 'string', defaultValue: '' },
+      [PROFILE_ID]: { id: PROFILE_ID, name: 'profile', type: 'object', defaultValue: {} },
+    } as unknown as JSXGenerationParams['globalStateDefinitions']
+
+    const globalState = (id: string, refPath?: string[]) => ({
+      type: 'dynamic',
+      content: { referenceType: 'globalState', id, ...(refPath ? { refPath } : {}) },
+    })
+
+    const generateCondition = (renderingConditions: unknown) => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = renderingConditions as never
+      const conditionParams: JSXGenerationParams = {
+        ...params,
+        stateDefinitions: { count: { type: 'number', defaultValue: 0 } },
+        globalStateDefinitions,
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(
+        elementNode('container', {}, [ownerContainer]),
+        conditionParams,
+        { ...options, localIdentifier: 'row' }
+      )
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      return {
+        code: generate((expressionChild.expression as types.LogicalExpression).left).code,
+        references: conditionParams.globalStateReferences,
+      }
+    }
+
+    const listItemField = { type: 'dynamic', content: { referenceType: 'local', refPath: ['id'] } }
+
+    it('reads the state by its declared name and registers it on the file', () => {
+      const { code, references } = generateCondition({
+        reference: listItemField,
+        condition: { conditions: [{ operation: '===', operand: globalState(SELECTED_ID) }] },
+      })
+
+      expect(code).toBe('row.id === selectedRow')
+      expect(references).toEqual([{ id: SELECTED_ID, name: 'selectedRow' }])
+    })
+
+    it('follows a field path into an object state', () => {
+      const { code, references } = generateCondition({
+        reference: listItemField,
+        condition: {
+          conditions: [{ operation: '!==', operand: globalState(PROFILE_ID, ['team', 'id']) }],
+        },
+      })
+
+      expect(code).toBe('row.id !== profile?.team?.id')
+      expect(references).toEqual([{ id: PROFILE_ID, name: 'profile' }])
+    })
+
+    it('compares a global state against a global state', () => {
+      const { code, references } = generateCondition({
+        reference: globalState(SELECTED_ID),
+        condition: {
+          conditions: [{ operation: '===', operand: globalState(PROFILE_ID, ['id']) }],
+        },
+      })
+
+      expect(code).toBe('selectedRow === profile?.id')
+      expect(references).toEqual([
+        { id: SELECTED_ID, name: 'selectedRow' },
+        { id: PROFILE_ID, name: 'profile' },
+      ])
+    })
+
+    it('resolves the right side of collection and length operators the same way', () => {
+      const stateCount = { type: 'dynamic', content: { referenceType: 'state', id: 'count' } }
+      const operandOf = (operation: string) =>
+        generateCondition({
+          reference: stateCount,
+          condition: { conditions: [{ operation, operand: globalState(SELECTED_ID) }] },
+        })
+
+      expect(operandOf('contains').code).toBe('(count || []).includes(selectedRow)')
+      expect(operandOf('lengthEquals').code).toBe('(count || []).length === selectedRow')
+      expect(operandOf('hasKey').code).toBe(
+        'Object.prototype.hasOwnProperty.call(count || [], selectedRow)'
+      )
+      expect(operandOf('contains').references).toEqual([{ id: SELECTED_ID, name: 'selectedRow' }])
+    })
+
+    it('resolves a right side on a per-entry reference nested inside a group', () => {
+      const { code, references } = generateCondition({
+        reference: listItemField,
+        condition: {
+          conditions: [
+            { operation: '===', operand: 'a' },
+            {
+              conditions: [
+                {
+                  operation: '===',
+                  operand: globalState(PROFILE_ID, ['id']),
+                  reference: globalState(SELECTED_ID),
+                },
+              ],
+            },
+          ],
+          matchingCriteria: 'all',
+        },
+      })
+
+      expect(code).toBe('row.id === "a" && selectedRow === profile?.id')
+      expect(references).toEqual([
+        { id: SELECTED_ID, name: 'selectedRow' },
+        { id: PROFILE_ID, name: 'profile' },
+      ])
+    })
+  })
+
+  describe('a rendering condition whose right side is a built-in global', () => {
+    const builtInGlobal = (id: string | undefined, refPath: string[]) => ({
+      type: 'dynamic',
+      content: { referenceType: 'global', ...(id ? { id } : {}), refPath },
+    })
+    const listItemField = { type: 'dynamic', content: { referenceType: 'local', refPath: ['id'] } }
+
+    const generateCondition = (reference: unknown, operand: unknown) => {
+      const ownerContainer = elementNode('container', {}, [])
+      ownerContainer.content.renderingConditions = {
+        reference,
+        condition: { conditions: [{ operation: '===', operand }] },
+      } as never
+      const conditionParams: JSXGenerationParams = {
+        ...params,
+        globalReferences: [],
+        globalStateReferences: [],
+      }
+      const result = generateJSXSyntax(
+        elementNode('container', {}, [ownerContainer]),
+        conditionParams,
+        { ...options, localIdentifier: 'row' }
+      )
+      const expressionChild = result.children[0] as types.JSXExpressionContainer
+      return {
+        code: generate((expressionChild.expression as types.LogicalExpression).left).code,
+        references: conditionParams.globalReferences,
+      }
+    }
+
+    it('registers a global named by its runtime identifier', () => {
+      const { code, references } = generateCondition(
+        listItemField,
+        builtInGlobal('currentUser', ['id'])
+      )
+
+      expect(code).toBe("row.id === currentUser?.['id']")
+      expect(references).toEqual(['currentUser'])
+    })
+
+    it('derives the runtime identifier of a global named only by its display path', () => {
+      const withoutId = generateCondition(
+        listItemField,
+        builtInGlobal(undefined, ['Current User', 'id'])
+      )
+      const withOpaqueId = generateCondition(
+        listItemField,
+        builtInGlobal('TQ_opaque', ['Current User', 'id'])
+      )
+
+      expect(withoutId.code).toBe("row.id === currentUser?.['id']")
+      expect(withoutId.references).toEqual(['currentUser'])
+      expect(withOpaqueId.code).toBe("row.id === currentUser?.['id']")
+      expect(withOpaqueId.references).toEqual(['currentUser'])
+    })
+
+    it('reads the same global the same way on either side', () => {
+      const company = builtInGlobal(undefined, ['Company', 'ownerId'])
+      const { code, references } = generateCondition(company, builtInGlobal('currentUser', ['id']))
+
+      expect(code).toBe("company?.['ownerId'] === currentUser?.['id']")
+      expect(references).toEqual(['company', 'currentUser'])
+    })
+  })
+
   describe('navlink href via differentiatorValue', () => {
     // The navlink attribute flow is exercised end-to-end in the resolver tests;
     // here we only confirm that an `expr`-typed attribute which mentions

@@ -7,6 +7,10 @@ import {
   HASTBuilders,
   ASTUtils,
   createClassConditionExpression,
+  ConditionReferenceRegistry,
+  createConditionOperandResolver,
+  createGlobalStateClassConditionIdentifier,
+  isGlobalStateReference,
 } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -135,6 +139,17 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
     const propsPrefix: string = templateChunk.meta.dynamicRefPrefix
       ? ((templateChunk.meta.dynamicRefPrefix as Record<string, unknown>).prop as string)
       : ('' as string)
+
+    const conditionReferences: ConditionReferenceRegistry = {
+      globalStateDefinitions,
+      globalStateReferences: (templateChunk.meta.globalStateReferences ||
+        []) as ConditionReferenceRegistry['globalStateReferences'],
+      globalReferences: (templateChunk.meta.globalReferences ||
+        []) as ConditionReferenceRegistry['globalReferences'],
+    }
+    const classConditionOptions = {
+      resolveOperandReference: createConditionOperandResolver(conditionReferences),
+    }
 
     const cssMap: string[] = []
     // A doubled element class nests its rule one level down (see `doubleElementClass`).
@@ -526,14 +541,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                     break
                   }
                   default: {
-                    if ((referenceType as string) === 'globalState') {
-                      const gsDef = findGlobalStateDefinitionById(
-                        nameToAppend,
-                        globalStateDefinitions
-                      )
-                      if (gsDef) {
-                        binaryExpressionType = gsDef.type
-                      }
+                    if (isGlobalStateReference(condition.reference)) {
                       break
                     }
                     throw new PluginCSS(
@@ -542,18 +550,19 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   }
                 }
 
-                let binaryKey = nameToAppend
-                if (referenceType === 'prop') {
-                  binaryKey = 'props?.' + nameToAppend
-                } else if ((referenceType as string) === 'globalState') {
-                  const gsDef = findGlobalStateDefinitionById(nameToAppend, globalStateDefinitions)
-                  binaryKey = gsDef ? gsDef.name : nameToAppend
-                }
-
-                const classCondition = createClassConditionExpression(condition, {
-                  key: binaryKey,
-                  type: binaryExpressionType,
-                })
+                const classCondition = createClassConditionExpression(
+                  condition,
+                  isGlobalStateReference(condition.reference)
+                    ? createGlobalStateClassConditionIdentifier(
+                        condition.reference,
+                        conditionReferences
+                      )
+                    : {
+                        key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                        type: binaryExpressionType,
+                      },
+                  classConditionOptions
+                )
                 if (!classCondition) {
                   return
                 }

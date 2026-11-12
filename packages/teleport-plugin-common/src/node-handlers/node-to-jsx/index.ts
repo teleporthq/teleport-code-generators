@@ -36,6 +36,12 @@ import {
   resolveGlobalStateName,
   createGlobalStateExpression,
   resolveAndRegisterGlobalStateSource,
+  isGlobalStateReference,
+  registerGlobalStateReference,
+  isGlobalReference,
+  registerGlobalReference,
+  normalizeGlobalRef,
+  createConditionOperandResolver,
   makeControlUncontrolledWhenNoChangeHandler,
 } from './utils'
 import {
@@ -52,7 +58,6 @@ import {
   parseJSExpressionAsAST,
   resolveAttributeNameForTag,
   convertValueToLiteral,
-  GLOBAL_REF_ID_MAP,
   sanitizeExprContent,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
@@ -271,43 +276,6 @@ const trackGlobalRefsInExpression = (expression: string, params: JSXGenerationPa
     if (new RegExp(`\\b${escaped}\\b`).test(expression)) {
       params.globalStateReferences.push({ id: def.id, name })
     }
-  }
-}
-
-// The recognised runtime identifiers a `global` reference's `id` can legitimately
-// already hold (Shape A). Anything else — notably the opaque `TQ_...` node id every
-// dynamic UIDL reference carries for editor bookkeeping — is not a real identifier
-// and must be re-derived from `refPath` (Shape B/C), or code generation would emit
-// an undeclared variable that throws at runtime.
-const KNOWN_GLOBAL_REF_IDS = new Set([
-  'locale',
-  'locales',
-  'company',
-  'currentUser',
-  'userIsLoggedIn',
-  'ecommerce',
-  'cart',
-])
-
-const normalizeGlobalRef = <
-  T extends { content: { id: string; refPath?: string[]; referenceType: string } }
->(
-  node: T
-): T => {
-  if (!node.content.refPath || node.content.refPath.length === 0) {
-    return node
-  }
-  if (node.content.id && KNOWN_GLOBAL_REF_IDS.has(node.content.id)) {
-    return node
-  }
-  const firstSeg = node.content.refPath[0]
-  const mappedId = GLOBAL_REF_ID_MAP[firstSeg]
-  if (!mappedId) {
-    return node
-  }
-  return {
-    ...node,
-    content: { ...node.content, id: mappedId, refPath: node.content.refPath.slice(1) },
   }
 }
 
@@ -2125,32 +2093,13 @@ const trackAndResolveConditionIdentifier = (
   params: JSXGenerationParams,
   options: JSXGenerationOptions
 ): ConditionalIdentifier => {
-  if (
-    reference.type === 'dynamic' &&
-    'referenceType' in reference.content &&
-    reference.content.referenceType === 'global'
-  ) {
-    const normCondRef = normalizeGlobalRef(reference as any)
-    params.globalReferences.push(
-      normCondRef.content.id as Parameters<typeof params.globalReferences.push>[0]
-    )
+  if (isGlobalStateReference(reference)) {
+    registerGlobalStateReference(reference, params)
   }
 
-  if (
-    reference.type === 'dynamic' &&
-    'referenceType' in reference.content &&
-    (reference.content.referenceType as string) === 'globalState'
-  ) {
-    const gsName = resolveGlobalStateName(reference.content.id, params.globalStateDefinitions)
-    params.globalStateReferences.push({ id: reference.content.id, name: gsName })
-  }
-
-  const effectiveRef =
-    reference.type === 'dynamic' &&
-    'referenceType' in reference.content &&
-    reference.content.referenceType === 'global'
-      ? (normalizeGlobalRef(reference as any) as typeof reference)
-      : reference
+  const effectiveRef = isGlobalReference(reference)
+    ? (registerGlobalReference(reference, params) as typeof reference)
+    : reference
   return createConditionIdentifier(effectiveRef, params, options)
 }
 
@@ -2176,6 +2125,7 @@ const wrapWithConditional = (
       conditionEntry.reference
         ? trackAndResolveConditionIdentifier(conditionEntry.reference, params, options)
         : undefined,
+    resolveOperandReference: createConditionOperandResolver(params),
   })
 }
 

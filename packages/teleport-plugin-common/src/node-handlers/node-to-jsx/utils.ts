@@ -6,6 +6,7 @@ import {
   convertToUnaryOperator,
   convertValueToLiteral,
   getExpressionFromUIDLExpressionNode,
+  GLOBAL_REF_ID_MAP,
 } from '../../utils/ast-utils'
 import { JSIdentifiers, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
@@ -605,6 +606,103 @@ export const createGlobalStateExpression = (
   return expr
 }
 
+export const isGlobalStateReference = (
+  reference: unknown
+): reference is UIDLGlobalStateReference => {
+  const { type, content } = (reference || {}) as Partial<UIDLGlobalStateReference>
+  return type === 'dynamic' && content?.referenceType === 'globalState'
+}
+
+export type ConditionReferenceRegistry = Pick<
+  JSXGenerationParams,
+  'globalStateDefinitions' | 'globalStateReferences' | 'globalReferences'
+>
+
+export const registerGlobalStateReference = (
+  reference: UIDLGlobalStateReference,
+  params: Pick<ConditionReferenceRegistry, 'globalStateDefinitions' | 'globalStateReferences'>
+): void => {
+  params.globalStateReferences.push({
+    id: reference.content.id,
+    name: resolveGlobalStateName(reference.content.id, params.globalStateDefinitions),
+  })
+}
+
+export const createRegisteredGlobalStateExpression = (
+  reference: UIDLGlobalStateReference,
+  params: Pick<ConditionReferenceRegistry, 'globalStateDefinitions' | 'globalStateReferences'>
+): types.Identifier | types.OptionalMemberExpression => {
+  registerGlobalStateReference(reference, params)
+  return createGlobalStateExpression(reference, params.globalStateDefinitions)
+}
+
+// The left side of a conditionally-bound class that reads a global state: the
+// declared name, typed by the definition, registered on the file.
+export const createGlobalStateClassConditionIdentifier = (
+  reference: UIDLGlobalStateReference,
+  params: Pick<ConditionReferenceRegistry, 'globalStateDefinitions' | 'globalStateReferences'>
+): ConditionalIdentifier => {
+  registerGlobalStateReference(reference, params)
+  const definition = Object.values(params.globalStateDefinitions || {}).find(
+    (candidate) => candidate.id === reference.content.id
+  )
+  return {
+    key: definition ? definition.name : reference.content.id,
+    type: definition ? definition.type : '',
+  }
+}
+
+// The recognised runtime identifiers a `global` reference's `id` can legitimately
+// already hold (Shape A). Anything else — notably the opaque `TQ_...` node id every
+// dynamic UIDL reference carries for editor bookkeeping — is not a real identifier
+// and must be re-derived from `refPath` (Shape B/C), or code generation would emit
+// an undeclared variable that throws at runtime.
+const KNOWN_GLOBAL_REF_IDS = new Set([
+  'locale',
+  'locales',
+  'company',
+  'currentUser',
+  'userIsLoggedIn',
+  'ecommerce',
+  'cart',
+])
+
+export const normalizeGlobalRef = <
+  T extends { content: { id: string; refPath?: string[]; referenceType: string } }
+>(
+  node: T
+): T => {
+  if (!node.content.refPath || node.content.refPath.length === 0) {
+    return node
+  }
+  if (node.content.id && KNOWN_GLOBAL_REF_IDS.has(node.content.id)) {
+    return node
+  }
+  const firstSeg = node.content.refPath[0]
+  const mappedId = GLOBAL_REF_ID_MAP[firstSeg]
+  if (!mappedId) {
+    return node
+  }
+  return {
+    ...node,
+    content: { ...node.content, id: mappedId, refPath: node.content.refPath.slice(1) },
+  }
+}
+
+export const isGlobalReference = (reference: unknown): reference is UIDLGlobalReference => {
+  const { type, content } = (reference || {}) as Partial<UIDLGlobalReference>
+  return type === 'dynamic' && content?.referenceType === 'global'
+}
+
+export const registerGlobalReference = <T extends UIDLGlobalReference>(
+  reference: T,
+  params: Pick<ConditionReferenceRegistry, 'globalReferences'>
+): T => {
+  const normalized = normalizeGlobalRef(reference)
+  params.globalReferences.push(normalized.content.id)
+  return normalized
+}
+
 export const createDynamicValueExpression = (
   identifier: UIDLDynamicReference | UIDLGlobalReference,
   options: JSXGenerationOptions,
@@ -951,9 +1049,17 @@ export const createConditionIdentifier = (
   }
 }
 
-interface ConditionalJSXExpressionOptions {
+export interface ConditionOperandOptions {
   localIdentifier?: string
   detailsPageExposeAsName?: string
+  // Resolves a right-side reference that needs more than the reference itself
+  // (a global state is named by its definition and must be registered on the
+  // file); returning undefined (or omitting the hook) reads it as a plain
+  // prop / state / list-item binding.
+  resolveOperandReference?: (operand: UIDLDynamicReference) => types.Expression | undefined
+}
+
+interface ConditionalJSXExpressionOptions extends ConditionOperandOptions {
   // Resolves the identifier for a leaf entry carrying its own `reference`;
   // returning undefined (or omitting the hook) inherits the chain's
   // top-level identifier.
@@ -1042,19 +1148,51 @@ const createConditionChainExpression = (
  */
 export const createClassConditionExpression = (
   condition: UIDLDynamicCondition,
-  conditionalIdentifier: ConditionalIdentifier
+  conditionalIdentifier: ConditionalIdentifier,
+  options: ConditionOperandOptions = {}
 ): types.Expression | null => {
   if (condition.expression?.conditions?.length) {
-    return createConditionChainExpression(condition.expression, conditionalIdentifier, {})
+    return createConditionChainExpression(condition.expression, conditionalIdentifier, options)
   }
   if (condition.value !== undefined) {
     return createBinaryExpression(
       { operation: '===', operand: condition.value },
-      conditionalIdentifier
+      conditionalIdentifier,
+      options
     )
   }
   return null
 }
+
+const OPERAND_REFERENCE_PREFIXES = { prop: 'props', state: '', local: '' }
+
+// The `resolveOperandReference` hook for a file whose references are collected
+// on `params`: a global state reads by its declared name, a built-in global by
+// its runtime identifier, and both are registered so the file receives them.
+export const createConditionOperandResolver =
+  (params: ConditionReferenceRegistry) =>
+  (operand: UIDLDynamicReference): types.Expression | undefined => {
+    if (isGlobalStateReference(operand)) {
+      return createRegisteredGlobalStateExpression(operand, params)
+    }
+    if (isGlobalReference(operand)) {
+      return createDynamicValueExpression(registerGlobalReference(operand, params), {
+        dynamicReferencePrefixMap: OPERAND_REFERENCE_PREFIXES,
+      })
+    }
+    return undefined
+  }
+
+const resolveOperandReferenceExpression = (
+  operand: UIDLDynamicReference,
+  options: ConditionOperandOptions
+): types.Expression =>
+  options.resolveOperandReference?.(operand) ??
+  createDynamicValueExpression(operand, {
+    dynamicReferencePrefixMap: OPERAND_REFERENCE_PREFIXES,
+    localIdentifier: options.localIdentifier,
+    detailsPageExposeAsName: options.detailsPageExposeAsName,
+  })
 
 /**
  * Resolves an operand value to an AST expression, handling dynamic refs, expressions, and static values.
@@ -1062,22 +1200,14 @@ export const createClassConditionExpression = (
 const resolveOperandExpression = (
   operand: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue,
   conditionalIdentifier: ConditionalIdentifier,
-  options: { localIdentifier?: string; detailsPageExposeAsName?: string }
+  options: ConditionOperandOptions
 ): types.Expression => {
   if (typeof operand === 'object' && 'type' in operand && operand.type === 'expr') {
     return getExpressionFromUIDLExpressionNode(operand)
   }
 
   if (typeof operand === 'object' && 'type' in operand && operand.type === 'dynamic') {
-    return createDynamicValueExpression(operand, {
-      dynamicReferencePrefixMap: {
-        prop: 'props',
-        state: '',
-        local: '',
-      },
-      localIdentifier: options.localIdentifier,
-      detailsPageExposeAsName: options.detailsPageExposeAsName,
-    })
+    return resolveOperandReferenceExpression(operand, options)
   }
 
   return convertValueToLiteral(operand, conditionalIdentifier.type)
@@ -1099,7 +1229,7 @@ const resolveOperandExpression = (
 const resolveElementOperandExpression = (
   operand: string | number | boolean | UIDLDynamicReference | UIDLExpressionValue,
   conditionalIdentifier: ConditionalIdentifier,
-  options: { localIdentifier?: string; detailsPageExposeAsName?: string }
+  options: ConditionOperandOptions
 ): types.Expression =>
   resolveOperandExpression(operand, { ...conditionalIdentifier, type: '' }, options)
 
@@ -1209,7 +1339,7 @@ export const createBinaryExpression = (
     containsField?: string
   },
   conditionalIdentifier: ConditionalIdentifier,
-  options: { localIdentifier?: string; detailsPageExposeAsName?: string } = {},
+  options: ConditionOperandOptions = {},
   t = types
 ) => {
   const { operand, operation, containsField } = condition
@@ -1354,13 +1484,9 @@ export const createBinaryExpression = (
     }
 
     if (typeof operand === 'object' && 'type' in operand && operand.type === 'dynamic') {
-      const dynamicValueIdentifier = createDynamicValueExpression(operand, {
-        dynamicReferencePrefixMap: {
-          prop: 'props',
-          state: '',
-          local: '',
-        },
+      const dynamicValueIdentifier = resolveOperandReferenceExpression(operand, {
         localIdentifier: options.localIdentifier,
+        resolveOperandReference: options.resolveOperandReference,
       })
 
       return t.binaryExpression(

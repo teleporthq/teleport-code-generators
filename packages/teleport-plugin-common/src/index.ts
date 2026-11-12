@@ -13,6 +13,9 @@ import ParsedASTNode from './utils/parsed-ast'
 import {
   createBinaryExpression,
   createClassConditionExpression,
+  createConditionOperandResolver,
+  createGlobalStateClassConditionIdentifier,
+  isGlobalStateReference,
 } from './node-handlers/node-to-jsx/utils'
 
 export {
@@ -28,8 +31,12 @@ export {
   ParsedASTNode,
   createBinaryExpression,
   createClassConditionExpression,
+  createConditionOperandResolver,
+  createGlobalStateClassConditionIdentifier,
+  isGlobalStateReference,
 }
 
+export type { ConditionReferenceRegistry } from './node-handlers/node-to-jsx/utils'
 export { default as createHTMLTemplateSyntax } from './node-handlers/node-to-html'
 export { default as createJSXSyntax } from './node-handlers/node-to-jsx'
 
