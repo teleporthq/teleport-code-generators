@@ -215,6 +215,27 @@ function createLoopSteps(loopNode, config, context, collection) {
   };
 }
 
+// The nodes of the branch an if-statement did NOT take: everything reachable
+// from that branch's edge, never walking back through the if itself nor past
+// stopAtId (the loop a body belongs to, whose loop-back edge leads out of it).
+function nonTakenBranchNodeIds(edges, ifNodeId, conditionHeld, stopAtId) {
+  var skipHandle = conditionHeld ? 'false' : 'true';
+  var all = edges || [];
+  var skipEdge = all.find(function(e) { return e.source === ifNodeId && e.sourceHandle === skipHandle; });
+  var skipIds = {};
+  if (!skipEdge) return skipIds;
+  var queue = [skipEdge.target];
+  while (queue.length > 0) {
+    var id = queue.shift();
+    if (skipIds[id] || id === ifNodeId || id === stopAtId) continue;
+    skipIds[id] = true;
+    all.forEach(function(e) {
+      if (e.source === id && !skipIds[e.target]) queue.push(e.target);
+    });
+  }
+  return skipIds;
+}
+
 function resolveCtxRef(ref, context) {
   var elem = context.triggerElement;
   if (!elem || typeof elem.getAttribute !== 'function') return undefined;
@@ -1855,6 +1876,7 @@ module.exports = {
   unwrapWorkflowCollection,
   loopIterationContext,
   createLoopSteps,
+  nonTakenBranchNodeIds,
   snapshotIncomingContext,
   segmentReply,
   withoutCredentialColumns,

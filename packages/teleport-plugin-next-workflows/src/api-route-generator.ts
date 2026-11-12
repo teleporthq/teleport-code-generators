@@ -443,6 +443,8 @@ module.exports = async function handler(req, res) {
       // the caller as if that branch had run (a custom node answers the output
       // of the last node it ran).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
+      // A node of a loop body ran inside its loop, an if-statement included.
+      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
       const resolved = resolveNodeConfig(node, context);
       // Every data node lives in a SERVER segment, so this guard — which turns an
       // unresolved {{…}} into a validation error instead of letting the literal
@@ -458,49 +460,18 @@ module.exports = async function handler(req, res) {
       if (node.type === 'general-if-statement') {
         const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
-        var skipHandle = condResult ? 'false' : 'true';
-        var segEdgesIf = SEGMENT_CONFIG.edges || [];
-        var skipEdge = segEdgesIf.find(function(e) { return e.source === node.id && e.sourceHandle === skipHandle; });
-        if (skipEdge) {
-          // BFS to collect all nodes in the non-taken branch
-          var skipIds = {};
-          var skipQueue = [skipEdge.target];
-          while (skipQueue.length > 0) {
-            var sid = skipQueue.shift();
-            if (skipIds[sid] || sid === node.id) continue;
-            skipIds[sid] = true;
-            segEdgesIf.forEach(function(e) {
-              if (e.source === sid && !skipIds[e.target] && e.target !== node.id) skipQueue.push(e.target);
-            });
-          }
-          if (!context.__skippedNodes) context.__skippedNodes = {};
-          Object.assign(context.__skippedNodes, skipIds);
-        }
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, node.id, condResult));
         continue;
       }
 
       // Loop nodes must be handled specially: run the loop body nodes once per
       // pass of the loop type (see createLoopSteps), then continue after the loop.
       if (node.type === 'general-loop') {
-        const loopEdges = SEGMENT_CONFIG.edges.filter(function(e) { return e.source === node.id; });
-        const loopBodyEdge = loopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
-        const exitEdge = loopEdges.find(function(e) { return e.sourceHandle === 'exit'; });
-
-        // Collect loop body node IDs by following loop-body edges
+        // The body is every node between the loop's body edge and its
+        // loop-back edge, the branches of an if-statement or a switch included.
         const bodyNodeIds = {};
-        if (loopBodyEdge) {
-          const queue = [loopBodyEdge.target];
-          while (queue.length > 0) {
-            const nid = queue.shift();
-            if (bodyNodeIds[nid] || nid === node.id) continue;
-            bodyNodeIds[nid] = true;
-            SEGMENT_CONFIG.edges.forEach(function(e) {
-              if (e.source === nid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) queue.push(e.target);
-              }
-            });
-          }
-        }
+        utils.getLoopBodyNodeIds(node.id, SEGMENT_CONFIG.edges).forEach(function(nid) { bodyNodeIds[nid] = true; });
         const bodyNodes = sortedNodes.filter(function(n) { return bodyNodeIds[n.id]; });
         // For loopType=map, the schema (general-loop in node-context-schemas.json)
         // defines results as the array of last body node outputs (same as
@@ -534,12 +505,17 @@ module.exports = async function handler(req, res) {
         var loopSteps = utils.createLoopSteps(node, resolved, context, collection);
         for (var loopPass = loopSteps.next(context); loopPass; loopPass = loopSteps.next(context)) {
           context[loopPass.key] = loopPass.value;
+          // The branch an if-statement of the body does not take is skipped for this pass only.
+          var bPassSkipped = {};
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
+            if (bPassSkipped[bNode.id]) continue;
             var bResolved = resolveNodeConfig(bNode, context);
             bResolved.__nodeId = bNode.id;
             if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
+              var bHeld = utils.evaluateCondition(bResolved, context, bNode.config);
+              context[bNode.id] = { result: bHeld };
+              Object.assign(bPassSkipped, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, bNode.id, bHeld, node.id));
               continue;
             }
             var bHandler = nodeHandlers[bNode.type];
@@ -569,8 +545,6 @@ module.exports = async function handler(req, res) {
         continue;
       }
 
-      // Skip nodes that were part of a loop body (already executed inside the loop)
-      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
 
       // Switch nodes evaluate a value, match a case, execute that branch, skip all others
       if (node.type === 'general-switch') {
@@ -866,6 +840,8 @@ module.exports = async function handler(req, res) {
     for (let i = 0; i < sortedNodes.length; i++) {
       const node = sortedNodes[i];
       if (executed[node.id]) continue;
+      // The branch an if-statement or a switch did not take never runs.
+      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
       const resolved = resolveNodeConfig(node, context);
       // See the non-streaming segment above — without this the unresolved-token
       // guard never runs on the server, which is where every data node executes.
@@ -878,6 +854,8 @@ module.exports = async function handler(req, res) {
         const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
         executed[node.id] = true;
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, node.id, condResult));
         if (streamStarted) {
           __streamNodeResult(res, node.id, context[node.id]);
         }
@@ -886,22 +864,8 @@ module.exports = async function handler(req, res) {
 
       // Loop nodes in streaming segments
       if (node.type === 'general-loop') {
-        var ssLoopEdges = SEGMENT_CONFIG.edges.filter(function(e) { return e.source === node.id; });
-        var ssLoopBodyEdge = ssLoopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
         var ssBodyNodeIds = {};
-        if (ssLoopBodyEdge) {
-          var sslq = [ssLoopBodyEdge.target];
-          while (sslq.length > 0) {
-            var sslnid = sslq.shift();
-            if (ssBodyNodeIds[sslnid] || sslnid === node.id) continue;
-            ssBodyNodeIds[sslnid] = true;
-            SEGMENT_CONFIG.edges.forEach(function(e) {
-              if (e.source === sslnid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) sslq.push(e.target);
-              }
-            });
-          }
-        }
+        utils.getLoopBodyNodeIds(node.id, SEGMENT_CONFIG.edges).forEach(function(nid) { ssBodyNodeIds[nid] = true; });
         var ssBodyNodes = sortedNodes.filter(function(n) { return ssBodyNodeIds[n.id]; });
         // See the regular-segment loop above: loopType=map must publish the
         // last body node output as results[i] so the schema contract holds.
@@ -920,12 +884,17 @@ module.exports = async function handler(req, res) {
         var ssLoopSteps = utils.createLoopSteps(node, resolved, context, ssLoopCollection);
         for (var ssLoopPass = ssLoopSteps.next(context); ssLoopPass; ssLoopPass = ssLoopSteps.next(context)) {
           context[ssLoopPass.key] = ssLoopPass.value;
+          // The branch an if-statement of the body does not take is skipped for this pass only.
+          var ssbPassSkipped = {};
           for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
             var ssbNode = ssBodyNodes[ssbi];
+            if (ssbPassSkipped[ssbNode.id]) continue;
             var ssbRes = resolveNodeConfig(ssbNode, context);
             ssbRes.__nodeId = ssbNode.id;
             if (ssbNode.type === 'general-if-statement') {
-              context[ssbNode.id] = { result: utils.evaluateCondition(ssbRes, context, ssbNode.config) };
+              var ssbHeld = utils.evaluateCondition(ssbRes, context, ssbNode.config);
+              context[ssbNode.id] = { result: ssbHeld };
+              Object.assign(ssbPassSkipped, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, ssbNode.id, ssbHeld, node.id));
               continue;
             }
             var ssbHandler = nodeHandlers[ssbNode.type];
@@ -1684,6 +1653,8 @@ ${resumeBlock}
       // Never resolved nor run on a non-taken branch, an if-statement included
       // (see the segment executor above).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
+      // A node of a loop body ran inside its loop, an if-statement included.
+      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
       var resolved = resolveNodeConfig(node, context);
       // See the other segment executors — the unresolved-token guard must run
       // wherever data nodes execute, and they all execute on the server.
@@ -1694,44 +1665,14 @@ ${resumeBlock}
       if (node.type === 'general-if-statement') {
         var condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
-        var skipHandle = condResult ? 'false' : 'true';
-        var cfgEdges = ${configVar}.edges || [];
-        var skipEdge = cfgEdges.find(function(e) { return e.source === node.id && e.sourceHandle === skipHandle; });
-        if (skipEdge) {
-          var skipIds = {};
-          var skipQueue = [skipEdge.target];
-          while (skipQueue.length > 0) {
-            var sid = skipQueue.shift();
-            if (skipIds[sid] || sid === node.id) continue;
-            skipIds[sid] = true;
-            cfgEdges.forEach(function(e) {
-              if (e.source === sid && !skipIds[e.target] && e.target !== node.id) skipQueue.push(e.target);
-            });
-          }
-          if (!context.__skippedNodes) context.__skippedNodes = {};
-          Object.assign(context.__skippedNodes, skipIds);
-        }
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(${configVar}.edges, node.id, condResult));
         continue;
       }
 
       if (node.type === 'general-loop') {
-        var loopEdges = ${configVar}.edges.filter(function(e) { return e.source === node.id; });
-        var loopBodyEdge = loopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
-
         var bodyNodeIds = {};
-        if (loopBodyEdge) {
-          var lQueue = [loopBodyEdge.target];
-          while (lQueue.length > 0) {
-            var nid = lQueue.shift();
-            if (bodyNodeIds[nid] || nid === node.id) continue;
-            bodyNodeIds[nid] = true;
-            ${configVar}.edges.forEach(function(e) {
-              if (e.source === nid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) lQueue.push(e.target);
-              }
-            });
-          }
-        }
+        utils.getLoopBodyNodeIds(node.id, ${configVar}.edges).forEach(function(nid) { bodyNodeIds[nid] = true; });
         var bodyNodes = sortedNodes.filter(function(n) { return bodyNodeIds[n.id]; });
         // For loopType=map, the schema (general-loop in node-context-schemas.json)
         // defines results as the array of last body node outputs (same as
@@ -1755,12 +1696,17 @@ ${resumeBlock}
         var loopSteps = utils.createLoopSteps(node, resolved, context, collection);
         for (var loopPass = loopSteps.next(context); loopPass; loopPass = loopSteps.next(context)) {
           context[loopPass.key] = loopPass.value;
+          // The branch an if-statement of the body does not take is skipped for this pass only.
+          var bPassSkipped = {};
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
+            if (bPassSkipped[bNode.id]) continue;
             var bResolved = resolveNodeConfig(bNode, context);
             bResolved.__nodeId = bNode.id;
             if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
+              var bHeld = utils.evaluateCondition(bResolved, context, bNode.config);
+              context[bNode.id] = { result: bHeld };
+              Object.assign(bPassSkipped, utils.nonTakenBranchNodeIds(${configVar}.edges, bNode.id, bHeld, node.id));
               continue;
             }
             var bHandler = nodeHandlers[bNode.type];
@@ -1788,8 +1734,6 @@ ${resumeBlock}
         Object.assign(context.__loopBodyNodeIds, bodyNodeIds);
         continue;
       }
-
-      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
 
       if (node.type === 'general-switch') {
         // Only an authored case expression is compiled (see matchSwitchCase).

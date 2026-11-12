@@ -124,10 +124,9 @@ describe('generateCronAPIRoute — loop + templateParams support', () => {
   })
 
   it('uses the loop-capable executor (handles general-loop body discovery)', () => {
-    // The shared execution loop keys the loop body off the 'loop' sourceHandle
-    // and walks 'loop-body-out' edges — markers absent from the old naive loop.
-    expect(route).toContain("e.sourceHandle === 'loop'")
-    expect(route).toContain('loop-body-out')
+    // The route finds a loop's body through the shared runtime, which walks
+    // from the 'loop' edge up to the loop-back edge.
+    expect(route).toContain('utils.getLoopBodyNodeIds(node.id, ')
   })
 
   it('merges templateParams into email body + subject', () => {
