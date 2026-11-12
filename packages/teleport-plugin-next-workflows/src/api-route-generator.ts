@@ -479,8 +479,8 @@ module.exports = async function handler(req, res) {
         continue;
       }
 
-      // Loop nodes must be handled specially: iterate over the collection,
-      // execute loop body nodes for each item, then continue after the loop.
+      // Loop nodes must be handled specially: run the loop body nodes once per
+      // pass of the loop type (see createLoopSteps), then continue after the loop.
       if (node.type === 'general-loop') {
         const loopEdges = SEGMENT_CONFIG.edges.filter(function(e) { return e.source === node.id; });
         const loopBodyEdge = loopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
@@ -531,8 +531,9 @@ module.exports = async function handler(req, res) {
         if (!context.__loopNodeIds) context.__loopNodeIds = {};
         context.__loopNodeIds[node.id] = true;
 
-        for (var li = 0; li < collection.length; li++) {
-          context[node.id] = utils.loopIterationContext(collection, li);
+        var loopSteps = utils.createLoopSteps(node, resolved, context, collection);
+        for (var loopPass = loopSteps.next(context); loopPass; loopPass = loopSteps.next(context)) {
+          context[loopPass.key] = loopPass.value;
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveNodeConfig(bNode, context);
@@ -561,7 +562,7 @@ module.exports = async function handler(req, res) {
 
         context.__loopScopeStack.pop();
 
-        context[node.id] = { completed: true, iterations: collection.length, results: loopResults };
+        context[node.id] = { completed: true, iterations: loopSteps.iterations(), results: loopResults };
         // Store body node IDs so the outer loop can skip them
         if (!context.__loopBodyNodeIds) context.__loopBodyNodeIds = {};
         Object.assign(context.__loopBodyNodeIds, bodyNodeIds);
@@ -916,8 +917,9 @@ module.exports = async function handler(req, res) {
         context.__loopScopeStack.push({ loopNodeId: node.id, bodyNodeIds: ssBodyNodeIds });
         if (!context.__loopNodeIds) context.__loopNodeIds = {};
         context.__loopNodeIds[node.id] = true;
-        for (var ssli = 0; ssli < ssLoopCollection.length; ssli++) {
-          context[node.id] = utils.loopIterationContext(ssLoopCollection, ssli);
+        var ssLoopSteps = utils.createLoopSteps(node, resolved, context, ssLoopCollection);
+        for (var ssLoopPass = ssLoopSteps.next(context); ssLoopPass; ssLoopPass = ssLoopSteps.next(context)) {
+          context[ssLoopPass.key] = ssLoopPass.value;
           for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
             var ssbNode = ssBodyNodes[ssbi];
             var ssbRes = resolveNodeConfig(ssbNode, context);
@@ -941,7 +943,7 @@ module.exports = async function handler(req, res) {
           }
         }
         context.__loopScopeStack.pop();
-        context[node.id] = { completed: true, iterations: ssLoopCollection.length, results: ssLoopResults };
+        context[node.id] = { completed: true, iterations: ssLoopSteps.iterations(), results: ssLoopResults };
         Object.keys(ssBodyNodeIds).forEach(function(k) { executed[k] = true; });
         executed[node.id] = true;
         if (streamStarted) {
@@ -1750,8 +1752,9 @@ ${resumeBlock}
         if (!context.__loopNodeIds) context.__loopNodeIds = {};
         context.__loopNodeIds[node.id] = true;
 
-        for (var li = 0; li < collection.length; li++) {
-          context[node.id] = utils.loopIterationContext(collection, li);
+        var loopSteps = utils.createLoopSteps(node, resolved, context, collection);
+        for (var loopPass = loopSteps.next(context); loopPass; loopPass = loopSteps.next(context)) {
+          context[loopPass.key] = loopPass.value;
           for (var bi = 0; bi < bodyNodes.length; bi++) {
             var bNode = bodyNodes[bi];
             var bResolved = resolveNodeConfig(bNode, context);
@@ -1780,7 +1783,7 @@ ${resumeBlock}
 
         context.__loopScopeStack.pop();
 
-        context[node.id] = { completed: true, iterations: collection.length, results: loopResults };
+        context[node.id] = { completed: true, iterations: loopSteps.iterations(), results: loopResults };
         if (!context.__loopBodyNodeIds) context.__loopBodyNodeIds = {};
         Object.assign(context.__loopBodyNodeIds, bodyNodeIds);
         continue;
