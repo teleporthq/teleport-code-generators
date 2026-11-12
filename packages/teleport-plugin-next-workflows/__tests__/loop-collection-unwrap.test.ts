@@ -1,5 +1,6 @@
 import { generateSharedRuntimeUtilsCode, generateServerSegmentAPIRoute } from '../src'
 import type { WorkflowSegment } from '../src/types'
+import { generateServerRuntimeCode } from '../src/server-runtime-code'
 
 // Regression guard for the "loop iterates 0 times even though the
 // upstream node returned data" bug.
@@ -317,8 +318,12 @@ describe('every loop emit site routes through unwrapWorkflowCollection', () => {
   })
 
   it('regular server segment uses utils.unwrapWorkflowCollection for the loop collection', () => {
+    // Every server route runs its loops through runServerLoop, which unwraps.
     const src = generateServerSegmentAPIRoute(buildLoopSegment(), 'T')
-    expect(src).toContain('utils.unwrapWorkflowCollection(resolved.collection)')
+    expect(src).toContain('utils.runServerLoop(node, resolved, sortedNodes, ')
+    expect(generateServerRuntimeCode()).toContain(
+      'utils.unwrapWorkflowCollection(config.collection)'
+    )
   })
 
   it('client-side runtime uses unwrapWorkflowCollection in executeLoop', () => {
