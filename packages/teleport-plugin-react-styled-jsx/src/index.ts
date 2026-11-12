@@ -5,6 +5,10 @@ import {
   ASTBuilders,
   ParsedASTNode,
   createClassConditionExpression,
+  ConditionReferenceRegistry,
+  createConditionOperandResolver,
+  createGlobalStateClassConditionIdentifier,
+  isGlobalStateReference,
 } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
@@ -56,6 +60,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
+    const conditionReferences: ConditionReferenceRegistry = {
+      globalStateDefinitions: options.globalStateDefinitions || {},
+      globalStateReferences: (componentChunk.meta.globalStateReferences ||
+        []) as ConditionReferenceRegistry['globalStateReferences'],
+      globalReferences: (componentChunk.meta.globalReferences ||
+        []) as ConditionReferenceRegistry['globalReferences'],
+    }
+    const classConditionOptions = {
+      resolveOperandReference: createConditionOperandResolver(conditionReferences),
+    }
     const mediaStylesMap: Record<
       string,
       Array<{ [x: string]: Record<string, string | number> }>
@@ -299,6 +313,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   break
                 }
                 default: {
+                  if (isGlobalStateReference(condition.reference)) {
+                    break
+                  }
                   throw new PluginStyledJSX(
                     `Un-supported reference type ${referenceType} for style reference ${JSON.stringify(
                       styleRef.content,
@@ -308,10 +325,19 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   )
                 }
               }
-              const classCondition = createClassConditionExpression(condition, {
-                key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
-                type: binaryExpressionType,
-              })
+              const classCondition = createClassConditionExpression(
+                condition,
+                isGlobalStateReference(condition.reference)
+                  ? createGlobalStateClassConditionIdentifier(
+                      condition.reference,
+                      conditionReferences
+                    )
+                  : {
+                      key: (referenceType === 'prop' ? 'props?.' : '') + nameToAppend,
+                      type: binaryExpressionType,
+                    },
+                classConditionOptions
+              )
               if (!classCondition) {
                 return
               }
