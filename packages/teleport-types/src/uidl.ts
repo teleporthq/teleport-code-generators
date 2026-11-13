@@ -278,6 +278,16 @@ export interface UIDLGlobalStateDefinition {
   query?: string
 }
 
+/** What a language switcher can show of a language, besides its code and English name. */
+export interface UIDLLanguageDetails {
+  /** The language's name in itself: "Français". */
+  nativeName?: string
+  /** The language's name in each of the project's languages, by language code. */
+  names?: Record<string, string>
+  /** The URL of a flag image for the language. */
+  flag?: string
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
@@ -295,6 +305,8 @@ export interface ProjectUIDL {
     languages: Record<string, string>
     translations: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
     ignoreBrowserLanguage?: boolean
+    /** More about each language of `languages`, by language code. */
+    languageDetails?: Record<string, UIDLLanguageDetails>
   }
   workflows?: UIDLWorkflows
   globalStateDefinitions?: Record<string, UIDLGlobalStateDefinition>

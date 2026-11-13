@@ -25,6 +25,7 @@ import {
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
   UIDLAIAssistantChat,
+  UIDLLanguageDetails,
 } from './uidl'
 import type { JSXAttribute, JSXElement } from '@babel/types'
 
@@ -179,6 +180,7 @@ export interface GeneratorOptions {
     languages: Record<string, string>
     translations?: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
     targetLocale?: string
+    languageDetails?: Record<string, UIDLLanguageDetails>
   }
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
