@@ -8,8 +8,10 @@ import {
   ProjectUIDL,
   UIDLCompanyDetails,
   UIDLCustomUserProperty,
+  UIDLLanguageDetails,
 } from '@teleporthq/teleport-types'
 import { companyGlobalObject } from './company-global'
+import { localeStateSource } from './locale-state'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const findFileInBuild = (
@@ -76,10 +78,10 @@ const generateGlobalContextFileContent = (
   },
   authEnabled?: boolean,
   customUserProperties?: UIDLCustomUserProperty[],
-  companyDetails?: Partial<UIDLCompanyDetails> | null
+  companyDetails?: Partial<UIDLCompanyDetails> | null,
+  languageDetails?: Record<string, UIDLLanguageDetails>
 ) => {
-  const localesArray = Object.keys(locales).map((key) => ({ name: locales[key], short: key }))
-  const currentLocale = localesArray.find((locale) => locale.short === main.locale)
+  const localeState = localeStateSource(locales, main, languageDetails)
   const customEntries = generatePickUserEntries(customUserProperties || [])
 
   const authState = authEnabled
@@ -125,32 +127,22 @@ import { createContext, useMemo, useContext, useState, useEffect } from 'react'
 import { useLocale } from "next-intl";
 
 const company = ${JSON.stringify(company)};
+${localeState.moduleSource}
 
 const GlobalContext = createContext(null)
 
 export const GlobalProvider = ({ initialLocales, children }) => {
-  const localeValue = useLocale()
-  const [locales, setLocales] = useState(initialLocales ?? ${JSON.stringify(localesArray)})
-  const [locale, setLocale] = useState(${JSON.stringify(currentLocale)})
-  
-  useEffect(() => {
-    if (!locales) {
-      return
-    }
-
-    const currentLangValue = locales.find((el) => el.short === localeValue)
-    setLocale(currentLangValue)
-  }, [locales, localeValue])
+${localeState.hooksSource}
 ${authState}
   const value = useMemo(() => {
     return {
-      locales,
+      locales: localizedLocales,
       locale,
       company,
       setLocales,
       setLocale,${authValueEntries}
     }
-  }, [locales, locale${authMemoEntries}])
+  }, [localizedLocales, locale${authMemoEntries}])
 
   return (
     <GlobalContext.Provider value={value}>
@@ -328,6 +320,7 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
       languages = { en: 'English' },
       main = { locale: 'en', name: 'English' },
       ignoreBrowserLanguage = false,
+      languageDetails,
     } = uidl.internationalization || {}
 
     if (languages !== undefined && Object.keys(languages).length > 0) {
@@ -432,7 +425,8 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
       main,
       authEnabled,
       customUserProperties,
-      uidl.companyDetails ?? uidl.invoiceSettings?.companyDetails
+      uidl.companyDetails ?? uidl.invoiceSettings?.companyDetails,
+      languageDetails
     )
     files.set('global-context.js', {
       path: [],
