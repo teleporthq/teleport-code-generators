@@ -816,9 +816,9 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     // If no dependency was provided but this is a fragment, add Fragment dependency
     if (options.dependencyHandling === 'import') {
       dependencies.Fragment = {
-        type: 'package',
+        type: 'library',
         path: 'react',
-        version: 'latest',
+        version: '^17.0.2',
         meta: {
           namedImport: true,
         },

@@ -40,8 +40,9 @@ import {
   createPageModule,
   createEnvFiles,
   createGitIgnoreFile,
+  createMaintenanceNoteFile,
 } from './file-handlers'
-import { DEFAULT_TEMPLATE } from './constants'
+import { DEFAULT_TEMPLATE, MAINTENANCE_NOTE_FILE_NAME } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 import { join } from 'path'
 import { resourceGenerator } from './resource'
@@ -814,6 +815,13 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
+
+    const projectBringsItsOwnMaintenanceNote = rootFolder.files.some(
+      (file) => file.name === MAINTENANCE_NOTE_FILE_NAME
+    )
+    if (!projectBringsItsOwnMaintenanceNote) {
+      rootFolder.files.push(createMaintenanceNoteFile(uidl.name))
+    }
 
     reportUnresolvedLocalImports(rootFolder)
 

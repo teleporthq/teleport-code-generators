@@ -17,8 +17,6 @@ const projectTemplate: GeneratedFolder = {
     "start": "next start",
     "export": "next export"
   },
-  "author": "TeleportHQ",
-  "license": "MIT",
   "dependencies": {
     "@teleporthq/react-components": "1.0.13",
     "next": "^12.3.7",

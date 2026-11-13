@@ -63,7 +63,7 @@ export const HTMLMapping: Mapping = {
       elementType: 'date-time-primitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
+        version: 'github:teleporthq/date-time-primitive#3712fd590bd2bb63c5b95228a2f876c809d90349',
         path: '@teleporthq/date-time-primitive',
         meta: { importJustPath: true },
       },
