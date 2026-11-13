@@ -9,6 +9,7 @@ const projectTemplate: GeneratedFolder = {
 {
   "name": "teleport-project-next",
   "version": "1.0.0",
+  "private": true,
   "description": "A next project generated based on a UIDL document",
   "main": "index.js",
   "scripts": {

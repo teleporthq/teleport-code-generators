@@ -52,6 +52,9 @@ describe('root files of a packed project', () => {
       const packageJSON = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf8'))
       expect(packageJSON.author).toBeUndefined()
       expect(packageJSON.license).toBeUndefined()
+      // An app is not an npm package: without `private`, Yarn warns about the
+      // missing licence on every command and a stray `npm publish` would go out.
+      expect(packageJSON.private).toBe(true)
 
       const requested: Record<string, string> = {
         ...packageJSON.dependencies,
