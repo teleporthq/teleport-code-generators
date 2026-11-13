@@ -1,4 +1,9 @@
-import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../src/file-handlers'
+import {
+  handlePackageJSON,
+  createEntryFile,
+  createManifestJSONFile,
+  createMaintenanceNoteFile,
+} from '../src/file-handlers'
 import { PackageJSON } from '../src/types'
 import {
   GeneratedFolder,
@@ -87,6 +92,18 @@ describe('createManifestJSONFile', () => {
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
     expect(result.content).toContain('"src": "/playground_assets/')
+  })
+})
+
+describe('createMaintenanceNoteFile', () => {
+  it('names the project and tells its owner how to check what it installs', () => {
+    const note = createMaintenanceNoteFile('My Shop')
+
+    expect(`${note.name}.${note.fileType}`).toBe('MAINTENANCE.md')
+    expect(note.content).toContain('# Maintaining My Shop')
+    expect(note.content).toContain('does not change after it is generated')
+    expect(note.content).toContain('`npm audit`')
+    expect(note.content).toContain('`npm sbom --sbom-format cyclonedx`')
   })
 })
 

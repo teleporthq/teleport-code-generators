@@ -9,6 +9,7 @@ const projectTemplate: GeneratedFolder = {
 {
   "name": "teleport-project-next",
   "version": "1.0.0",
+  "private": true,
   "description": "A next project generated based on a UIDL document",
   "main": "index.js",
   "scripts": {
@@ -17,8 +18,6 @@ const projectTemplate: GeneratedFolder = {
     "start": "next start",
     "export": "next export"
   },
-  "author": "TeleportHQ",
-  "license": "MIT",
   "dependencies": {
     "@teleporthq/react-components": "1.0.13",
     "next": "^12.3.7",

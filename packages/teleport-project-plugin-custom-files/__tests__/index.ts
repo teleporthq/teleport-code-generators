@@ -82,11 +82,18 @@ export default Welcome`,
 
     // package.json (template) + next.config.js (security headers) + the two
     // custom root files the plugin injects (config.json, package.json) + the
-    // password wall's middleware.js with the .env / .env.example its values bring.
+    // password wall's middleware.js with the .env / .env.example its values bring
+    // + MAINTENANCE.md.
     expect(files.map((file) => `${file.name}.${file.fileType || ''}`)).toEqual(
-      expect.arrayContaining(['package.json', 'next.config.js', 'config.json', 'middleware.js'])
+      expect.arrayContaining([
+        'package.json',
+        'next.config.js',
+        'config.json',
+        'middleware.js',
+        'MAINTENANCE.md',
+      ])
     )
-    expect(files.length).toBe(7)
+    expect(files.length).toBe(8)
     expect(pagesFolder).toBeDefined()
     expect(customFolder).toBeDefined()
     expect(customFolder.files.length).toBe(1)
