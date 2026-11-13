@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-custom-files",
-  "version": "0.45.18",
+  "version": "0.45.19",
   "description": "A plugin for injecting custom files and dependencies into a generated project",
   "author": "teleportHQ",
   "license": "MIT",
