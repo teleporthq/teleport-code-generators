@@ -91,7 +91,7 @@ describe('Next generator page transition', () => {
 
     expect(wrapper).not.toContain('useReducedMotion')
     expect(wrapper).toContain('if (!variants) {\n    return children\n  }')
-    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))')
+    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(arrivingKey)')
   })
 
   it('ignores a transition it does not know and a preset of none', async () => {
@@ -340,7 +340,7 @@ describe('Next generator per-page skip', () => {
     )
     const wrapper = findFile(output, 'components', 'tq-page-transition')?.content || ''
     expect(wrapper).toContain('const SKIP_ROUTES = ["/checkout","/products/[slug]"]')
-    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))')
+    expect(wrapper).toContain('const skip = prefersLessMotion() || isSkippedRoute(arrivingKey)')
     expect(wrapper).not.toContain('isSkippedRoute(routeKeyRef.current)')
   })
 
@@ -872,7 +872,7 @@ describe('Next generator dissolve presets (Fade, Crossfade)', () => {
     expect(() => setLeaving(null, true)).not.toThrow()
     // back to a page that has not gone yet: it takes input again and plays at once
     expect(wrapper).toContain(
-      '      const returning = pageIn(routeKeyOf(url))\n      if (returning) {\n        setLeaving(returning, false)\n        readyKeyRef.current = routeKeyOf(url)\n        setReadyKey(readyKeyRef.current)\n      }'
+      '      const returning = pageIn(arrivingKey)\n      if (returning) {\n        setLeaving(returning, false)\n        readyKeyRef.current = arrivingKey\n        setReadyKey(readyKeyRef.current)\n      }'
     )
     const pageIn = new Function('document', `${declarationOf(wrapper, 'pageIn')}\nreturn pageIn`)({
       querySelectorAll: (selector: string) =>
