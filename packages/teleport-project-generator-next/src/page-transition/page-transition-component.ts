@@ -187,6 +187,19 @@ const panelBounds = (panel) =>
   panel.side === 'left' ? { left: 0, right: '50%' } : panel.side === 'right' ? { left: '50%', right: 0 } : { left: 0, right: 0 }
 
 const routeKeyOf = (url) => String(url || '').split(/[?#]/)[0]
+// A route event names its address with the language in front (/es/classes); a
+// page's key, made from router.asPath, never carries it. Read without it, the
+// two meet. Compared as they came, a language switch looked like a move to
+// another page: the page was frozen to let the next one in, and no next one
+// ever arrived, so it stayed frozen and could not be scrolled.
+const arrivingKeyOf = (url, locales) => {
+  const key = routeKeyOf(url)
+  const segments = key.split('/')
+  if (locales && segments.length > 1 && locales.indexOf(segments[1]) !== -1) {
+    return '/' + segments.slice(2).join('/')
+  }
+  return key
+}
 
 // The page changes played as a View Transition (a reveal; a flying picture), as
 // the static export plays them.
@@ -522,7 +535,8 @@ const TqPageTransition = ({ children }) => {
       return true
     }
     const onRouteChangeStart = (url) => {
-      if (routeKeyOf(url) === routeKeyRef.current) {
+      const arrivingKey = arrivingKeyOf(url, router.locales)
+      if (arrivingKey === routeKeyRef.current) {
         return
       }
       const reverse = popRef.current
@@ -531,7 +545,7 @@ const TqPageTransition = ({ children }) => {
       // A visitor who asks for less motion gets every page that way. It is read
       // here, never while rendering: the server cannot know it, and a first render
       // that differs from the server's makes React throw the page away.
-      const skip = prefersLessMotion() || isSkippedRoute(routeKeyOf(url))
+      const skip = prefersLessMotion() || isSkippedRoute(arrivingKey)
       const pointer = reverse || !ORIGIN_FROM_POINTER ? null : pointerRef.current
       // A reveal is measured on this screen (revealOnScreen); without a press it
       // grows from the screen's centre, not the page's.
@@ -541,10 +555,10 @@ const TqPageTransition = ({ children }) => {
       // Back to a page that has not gone yet (the two pages overlapped): it is
       // still in the document, pictures and all, so it plays at once and takes
       // input again.
-      const returning = pageIn(routeKeyOf(url))
+      const returning = pageIn(arrivingKey)
       if (returning) {
         setLeaving(returning, false)
-        readyKeyRef.current = routeKeyOf(url)
+        readyKeyRef.current = arrivingKey
         setReadyKey(readyKeyRef.current)
       }
       if (!skip && startViewChange(url, pointer, reverse)) {
@@ -559,7 +573,7 @@ const TqPageTransition = ({ children }) => {
       if (OVERLAP && !skip) {
         // The two pages overlap: the leaving page is held under the arriving
         // one until that has fully come in (HoldPage).
-        const overlap = { leavingKey: routeKeyRef.current, arrivingKey: routeKeyOf(url) }
+        const overlap = { leavingKey: routeKeyRef.current, arrivingKey }
         overlap.opened = new Promise((resolve) => {
           overlap.open = resolve
         })
