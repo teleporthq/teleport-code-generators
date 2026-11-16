@@ -443,47 +443,83 @@ export const extractDataSourceIntoNextAPIFolder = (
       return true
     }
 
-    // Check if a utils file already exists for this data source (from getStaticProps)
-    // If so, create an API route that re-exports handler from it to avoid code duplication
-    if (extractedResources[`utils/${fileName}`]) {
-      const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
-
-export default dataSourceModule.handler
-`
-
-      extractedResources[`api/${fileName}`] = {
-        fileName,
-        fileType: FileType.JS,
-        path: ['pages', 'api'],
-        content: apiRouteCode,
-      }
-      return true
-    }
-
-    // Generate fetcher code for API route (exports just the handler)
-    let fetcherCode: string
-    try {
-      fetcherCode = generateDataSourceFetcherWithCore(
-        dataSource,
-        tableName || '',
-        true,
-        transformOptions
-      )
-    } catch (error) {
-      return true
-    }
-
-    extractedResources[`api/${fileName}`] = {
-      fileName,
-      fileType: FileType.JS,
-      path: ['pages', 'api'],
-      content: fetcherCode,
-    }
+    writeReadRoute(fileName, dataSource, tableName || '', extractedResources, transformOptions)
     return true
   } catch (error) {
     // Catch any unexpected errors to prevent plugin from crashing
     return false
   }
+}
+
+/**
+ * Writes a table's read route (`pages/api/<fileName>.js`) into the generated
+ * files: a re-export of the handler when the table's module already exists
+ * (`utils/data-sources/<fileName>.js`, written for a server-side read), else the
+ * handler itself. `false` when the source's route could not be generated.
+ */
+const writeReadRoute = (
+  fileName: string,
+  dataSource: UIDLDataSource,
+  tableName: string,
+  extractedResources: NonNullable<GeneratorOptions['extractedResources']>,
+  transformOptions: EntityTransformOptions
+): boolean => {
+  if (extractedResources[`utils/${fileName}`]) {
+    const apiRouteCode = `import dataSourceModule from '../../utils/data-sources/${fileName}'
+
+export default dataSourceModule.handler
+`
+
+    extractedResources[`api/${fileName}`] = {
+      fileName,
+      fileType: FileType.JS,
+      path: ['pages', 'api'],
+      content: apiRouteCode,
+    }
+    return true
+  }
+
+  // Generate fetcher code for API route (exports just the handler)
+  let fetcherCode: string
+  try {
+    fetcherCode = generateDataSourceFetcherWithCore(dataSource, tableName, true, transformOptions)
+  } catch (error) {
+    return false
+  }
+
+  extractedResources[`api/${fileName}`] = {
+    fileName,
+    fileType: FileType.JS,
+    path: ['pages', 'api'],
+    content: fetcherCode,
+  }
+  return true
+}
+
+/**
+ * Makes sure the read route a browser fetches `tableName` from —
+ * `/api/<fileName>`, `fileName` from `generateSafeFileName` — is among the
+ * generated files, for a reader that is not a `DataProvider` (a component's
+ * state filled from the table). A route another reader of the table already
+ * wrote is left as it is. `false` when the source has no route to offer.
+ */
+export const ensureDataSourceReadRoute = (
+  fileName: string,
+  dataSource: UIDLDataSource,
+  tableName: string,
+  extractedResources: GeneratorOptions['extractedResources'],
+  transformOptions: EntityTransformOptions = {}
+): boolean => {
+  if (!extractedResources || !fileName || fileName === 'unknown') {
+    return false
+  }
+  if (!validateDataSourceConfig(dataSource).isValid) {
+    return false
+  }
+  if (extractedResources[`api/${fileName}`]) {
+    return true
+  }
+  return writeReadRoute(fileName, dataSource, tableName || '', extractedResources, transformOptions)
 }
 
 /**
