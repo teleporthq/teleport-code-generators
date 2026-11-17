@@ -322,29 +322,9 @@ export interface RouteReply {
   params: unknown[][]
 }
 
-/**
- * The read route a generated page fetches its table from, booted from the
- * generated files: `pages/api/<file>.js` (inline, or re-exporting the
- * `utils/data-sources/<file>.js` module), run against a fake `pg` that answers
- * every SELECT with `rows`, and a fake session.
- */
-export const bootReadRoute = (
-  root: GeneratedFolder,
-  fileName: string,
-  rows: any[] = [{ id: 'r1', name: 'Row', status: 'active', password: 'hash-x' }]
-): ((call?: RouteCall) => Promise<RouteReply>) => {
-  const apiSource = fileText(root, ['pages', 'api'], fileName)
-  if (apiSource === null) {
-    throw new Error('no route pages/api/' + fileName)
-  }
-  const reExport = /import dataSourceModule from '\.\.\/\.\.\/utils\/data-sources\/([^']+)'/.exec(
-    apiSource
-  )
-  const moduleSource = reExport ? fileText(root, ['utils', 'data-sources'], reExport[1]) : apiSource
-  if (moduleSource === null) {
-    throw new Error('no module for ' + fileName)
-  }
-  const code = moduleSource
+/** A generated data-source module, as CommonJS that exports what it defines. */
+const moduleAsCommonJs = (moduleSource: string): string =>
+  moduleSource
     .replace(
       "import { Client, types as pgTypes } from 'pg'",
       "const { Client, types: pgTypes } = require('pg')"
@@ -357,13 +337,16 @@ export const bootReadRoute = (
     .concat(
       '\nmodule.exports = {' +
         ' handler: typeof cachedHandler !== "undefined" ? cachedHandler : handler,' +
-        ' getCount: typeof cachedGetCount !== "undefined" ? cachedGetCount : (typeof getCount !== "undefined" ? getCount : null)' +
+        ' getCount: typeof cachedGetCount !== "undefined" ? cachedGetCount : (typeof getCount !== "undefined" ? getCount : null),' +
+        ' fetchData: typeof fetchData !== "undefined" ? fetchData : null' +
         ' }'
     )
-  const exported = /export default dataSourceModule\.getCount/.test(apiSource)
-    ? 'getCount'
-    : 'handler'
 
+/**
+ * What a booted route runs against: a fake `pg` that answers every SELECT with
+ * `rows`, and a fake session.
+ */
+const createFakeRuntime = (rows: any[]) => {
   const queries: string[] = []
   const params: unknown[][] = []
   let session: RouteCall['session'] = null
@@ -408,24 +391,35 @@ export const bootReadRoute = (
     }
     throw new Error('unexpected require: ' + name)
   }
-  const moduleObj: { exports: any } = { exports: {} }
-  new Function('require', 'module', 'exports', 'process', 'console', code)(
-    fakeRequire,
-    moduleObj,
-    moduleObj.exports,
-    {
-      env: {
-        NEXTAUTH_SECRET: 'server-secret',
-        TELEPORT_DB_HOST: 'h',
-        TELEPORT_DB_USER: 'u',
-        TELEPORT_DB_PASSWORD: 'p',
-        TELEPORT_DB_NAME: 'd',
-      },
-    },
-    { log: (): void => undefined, warn: (): void => undefined, error: (): void => undefined }
-  )
 
-  return async (call: RouteCall = {}) => {
+  /** Runs CommonJS `code` and answers what it exports. `globals` are in its scope. */
+  const load = (code: string, globals: Record<string, unknown> = {}): any => {
+    const moduleObj: { exports: any } = { exports: {} }
+    const names = Object.keys(globals)
+    new Function('require', 'module', 'exports', 'process', 'console', ...names, code)(
+      fakeRequire,
+      moduleObj,
+      moduleObj.exports,
+      {
+        env: {
+          NEXTAUTH_SECRET: 'server-secret',
+          TELEPORT_DB_HOST: 'h',
+          TELEPORT_DB_USER: 'u',
+          TELEPORT_DB_PASSWORD: 'p',
+          TELEPORT_DB_NAME: 'd',
+        },
+      },
+      { log: (): void => undefined, warn: (): void => undefined, error: (): void => undefined },
+      ...names.map((name) => globals[name])
+    )
+    return moduleObj.exports
+  }
+
+  /** Sends `call` to `handler` and answers what it replied, and what it asked the database. */
+  const send = async (
+    handler: (req: any, res: any) => Promise<unknown>,
+    call: RouteCall = {}
+  ): Promise<RouteReply> => {
     session = call.session || null
     entitled = call.entitled === true
     queries.length = 0
@@ -448,7 +442,83 @@ export const bootReadRoute = (
       ...(session ? { cookie: 'next-auth.session-token=signed' } : {}),
       ...(call.headers || {}),
     }
-    await moduleObj.exports[exported]({ method: 'GET', query: call.query || {}, headers }, res)
+    await handler({ method: 'GET', query: call.query || {}, headers }, res)
     return { ...reply, queries: [...queries], params: [...params] }
   }
+
+  return { load, send }
+}
+
+const DEFAULT_ROWS = [{ id: 'r1', name: 'Row', status: 'active', password: 'hash-x' }]
+
+/**
+ * The read route a generated page fetches its table from, booted from the
+ * generated files: `pages/api/<file>.js` (inline, or re-exporting the
+ * `utils/data-sources/<file>.js` module), run against a fake `pg` that answers
+ * every SELECT with `rows`, and a fake session.
+ */
+export const bootReadRoute = (
+  root: GeneratedFolder,
+  fileName: string,
+  rows: any[] = DEFAULT_ROWS
+): ((call?: RouteCall) => Promise<RouteReply>) => {
+  const apiSource = fileText(root, ['pages', 'api'], fileName)
+  if (apiSource === null) {
+    throw new Error('no route pages/api/' + fileName)
+  }
+  const reExport = /import dataSourceModule from '\.\.\/\.\.\/utils\/data-sources\/([^']+)'/.exec(
+    apiSource
+  )
+  const moduleSource = reExport ? fileText(root, ['utils', 'data-sources'], reExport[1]) : apiSource
+  if (moduleSource === null) {
+    throw new Error('no module for ' + fileName)
+  }
+  const exported = /export default dataSourceModule\.getCount/.test(apiSource)
+    ? 'getCount'
+    : 'handler'
+
+  const runtime = createFakeRuntime(rows)
+  const booted = runtime.load(moduleAsCommonJs(moduleSource))
+  return (call: RouteCall = {}) => runtime.send(booted[exported], call)
+}
+
+export const COMPONENT_STATE_FOLDER = ['pages', 'api', 'component-state']
+
+/** The routes a project's components read their own statements from, by file name. */
+export const componentStateRoutesOf = (root: GeneratedFolder): string[] =>
+  (folderAt(root, COMPONENT_STATE_FOLDER)?.files || []).map((file) => file.name)
+
+/**
+ * The route a component reads a statement-filled state from
+ * (`pages/api/component-state/<file>.js`), booted with the data-source module
+ * it imports, against the same fake `pg` and session.
+ */
+export const bootComponentStateRoute = (
+  root: GeneratedFolder,
+  fileName: string,
+  rows: any[] = DEFAULT_ROWS
+): ((call?: RouteCall) => Promise<RouteReply>) => {
+  const routeSource = fileText(root, COMPONENT_STATE_FOLDER, fileName)
+  if (routeSource === null) {
+    throw new Error('no route pages/api/component-state/' + fileName)
+  }
+  const imported =
+    /import dataSourceModule from '\.\.\/\.\.\/\.\.\/utils\/data-sources\/([^']+)'/.exec(
+      routeSource
+    )
+  const moduleSource = imported ? fileText(root, ['utils', 'data-sources'], imported[1]) : null
+  if (moduleSource === null) {
+    throw new Error('no data-source module for ' + fileName)
+  }
+
+  const runtime = createFakeRuntime(rows)
+  const dataSourceModule = runtime.load(moduleAsCommonJs(moduleSource))
+  const booted = runtime.load(
+    routeSource
+      .replace(/^import .*$/gm, '')
+      .replace(/^export default async function handler/m, 'async function handler')
+      .concat('\nmodule.exports = { handler }'),
+    { dataSourceModule }
+  )
+  return (call: RouteCall = {}) => runtime.send(booted.handler, call)
 }

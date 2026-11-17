@@ -497,6 +497,44 @@ export default dataSourceModule.handler
 }
 
 /**
+ * Makes sure the module the app's own server code reads `tableName` through —
+ * `utils/data-sources/<fileName>`, whose `fetchData` a page's server-side fetch
+ * calls — is among the generated files, for a reader that is not a page. A
+ * module another reader of the table already wrote is left as it is. `false`
+ * when the source has no module to offer.
+ */
+export const ensureDataSourceModule = (
+  fileName: string,
+  dataSource: UIDLDataSource,
+  tableName: string,
+  extractedResources: GeneratorOptions['extractedResources'],
+  transformOptions: EntityTransformOptions = {}
+): boolean => {
+  if (!extractedResources || !fileName || fileName === 'unknown') {
+    return false
+  }
+  if (!validateDataSourceConfig(dataSource).isValid) {
+    return false
+  }
+  if (extractedResources[`utils/${fileName}`]) {
+    return true
+  }
+  let moduleCode: string
+  try {
+    moduleCode = generateDataSourceFetcherWithCore(dataSource, tableName, false, transformOptions)
+  } catch (error) {
+    return false
+  }
+  extractedResources[`utils/${fileName}`] = {
+    fileName,
+    fileType: FileType.JS,
+    path: ['utils', 'data-sources'],
+    content: moduleCode,
+  }
+  return true
+}
+
+/**
  * Makes sure the read route a browser fetches `tableName` from —
  * `/api/<fileName>`, `fileName` from `generateSafeFileName` — is among the
  * generated files, for a reader that is not a `DataProvider` (a component's
