@@ -10,6 +10,7 @@ import {
   UIDLFilterConfigEntry,
 } from '@teleporthq/teleport-types'
 import {
+  DataExposure,
   GenericUtils,
   PageAccess,
   PageArrival,
@@ -19,6 +20,8 @@ import {
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
+  COMPONENT_STATE_ROUTE_FOLDER,
+  generateComponentStateRoute,
   generateDataSourceFetcherWithCore,
   generateRawQueryFetcher,
   generateSafeFileName,
@@ -26,7 +29,12 @@ import {
   validateDataSourceConfig,
   buildProductTransformOptions,
   buildServerLocaleParam,
+  buildClientLocaleExpression,
+  ensureDataSourceModule,
+  ensureDataSourceReadRoute,
+  ensureRouterDeclaration,
   isLocalizedProject,
+  REQUEST_LOCALE_PARAM,
 } from '@teleporthq/teleport-plugin-next-data-source'
 import {
   CsvColumnLabel,
@@ -73,14 +81,11 @@ const createSafeFetchExpressionWithFallback = (
 }
 
 /**
- * `<fetch>.then((__rows) => Array.isArray(__rows) ? __rows.map((__row) => ({ <label>: __row?.[<id>] })) : __rows)`
+ * `(__rows) => Array.isArray(__rows) ? __rows.map((__row) => ({ <label>: __row?.[<id>] })) : __rows`
  * — a CSV source's rows re-keyed by column label, the keys the editor showed
  * while the state was bound (see `getCsvColumnLabels`).
  */
-const relabelCsvRows = (
-  fetchCallExpression: types.CallExpression,
-  columns: CsvColumnLabel[]
-): types.CallExpression => {
+const csvRowsRelabeller = (columns: CsvColumnLabel[]): types.ArrowFunctionExpression => {
   const rows = types.identifier('__rows')
   const row = types.identifier('__row')
   const relabelledRow = types.objectExpression(
@@ -102,11 +107,17 @@ const relabelCsvRows = (
     rows
   )
 
-  return types.callExpression(
-    types.memberExpression(fetchCallExpression, types.identifier('then')),
-    [types.arrowFunctionExpression([rows], relabelledRows)]
-  )
+  return types.arrowFunctionExpression([rows], relabelledRows)
 }
+
+/** `<fetch>.then(<csvRowsRelabeller>)` — the rows of a server-side fetch, re-keyed. */
+const relabelCsvRows = (
+  fetchCallExpression: types.CallExpression,
+  columns: CsvColumnLabel[]
+): types.CallExpression =>
+  types.callExpression(types.memberExpression(fetchCallExpression, types.identifier('then')), [
+    csvRowsRelabeller(columns),
+  ])
 
 /**
  * Builds the AST for extracting a value from fetched data using a refPath.
@@ -1317,4 +1328,417 @@ export const createStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
   }
 
   return stateDataSourcePlugin
+}
+
+/** A state filled by its own SQL statement, not by the rows of its table. */
+const hasOwnQuery = (state: BoundState): boolean =>
+  !!state.definition.query && state.definition.query.trim().length > 0
+
+/**
+ * The value a component's state takes from the rows its table's read route
+ * answered (`__data`), held to the state's type: a list never takes anything
+ * but a list, and a single value never takes one.
+ */
+const buildComponentStateValue = (data: types.Identifier, state: BoundState): types.Expression => {
+  const { definition, binding } = state
+  const extracted = buildRefPathExtraction(data, binding.refPath)
+  const fallback = getTypeFallbackExpression(definition)
+  const isList = types.callExpression(
+    types.memberExpression(types.identifier('Array'), types.identifier('isArray')),
+    [extracted]
+  )
+
+  let value: types.Expression
+  if (binding.refPath.length > 1) {
+    value = types.logicalExpression('??', extracted, fallback)
+  } else if (SINGLE_VALUE_STATE_TYPES.has(definition.type)) {
+    value = types.conditionalExpression(isList, fallback, extracted)
+  } else {
+    value = types.conditionalExpression(isList, extracted, types.arrayExpression([]))
+  }
+
+  return wrapWithMappingFunction(value, definition)
+}
+
+/** Where a component reads one fetch group of its states from, and what the read depends on. */
+interface ComponentStateRead {
+  /** What the effect prepares before it fetches. */
+  setup: types.Statement[]
+  /** The address it fetches. */
+  url: types.Expression
+  /** What it fetches again for. */
+  deps: types.Expression[]
+  /** A CSV source's rows, re-keyed by column label. */
+  csvColumns: CsvColumnLabel[] | null
+}
+
+/**
+ * The table's own read route, asked for the rows in the state's order and
+ * filter, and in the page's language:
+ *
+ *   const __query = new URLSearchParams({ sorts: '…', filters: '…' })
+ *   if (router?.locale) { __query.set('locale', router?.locale) }
+ *   fetch(`/api/<route>?${__query}`)          … again when router?.locale changes
+ */
+const tableReadOf = (group: FetchGroup, localized: boolean): ComponentStateRead => {
+  const query = types.identifier('__query')
+  const setup: types.Statement[] = [
+    types.variableDeclaration('const', [
+      types.variableDeclarator(
+        query,
+        types.newExpression(types.identifier('URLSearchParams'), [
+          buildFetchParams(group.states[0].definition, false),
+        ])
+      ),
+    ]),
+  ]
+  if (localized) {
+    setup.push(
+      types.ifStatement(
+        buildClientLocaleExpression(),
+        types.blockStatement([
+          types.expressionStatement(
+            types.callExpression(types.memberExpression(query, types.identifier('set')), [
+              types.stringLiteral(REQUEST_LOCALE_PARAM),
+              buildClientLocaleExpression(),
+            ])
+          ),
+        ])
+      )
+    )
+  }
+
+  return {
+    setup,
+    url: types.templateLiteral(
+      [
+        types.templateElement({
+          raw: `/api/${group.fileName}?`,
+          cooked: `/api/${group.fileName}?`,
+        }),
+        types.templateElement({ raw: '', cooked: '' }, true),
+      ],
+      [query]
+    ),
+    deps: localized ? [buildClientLocaleExpression()] : [],
+    csvColumns: getCsvColumnLabels(group.dataSource),
+  }
+}
+
+/**
+ * The component's own statement route. The request carries nothing: the
+ * statement is the route's, and runs verbatim, so it has no language either.
+ */
+const statementReadOf = (routeName: string): ComponentStateRead => ({
+  setup: [],
+  url: types.stringLiteral(`/api/${COMPONENT_STATE_ROUTE_FOLDER.slice(2).join('/')}/${routeName}`),
+  deps: [],
+  csvColumns: null,
+})
+
+/**
+ * The effect that fills the states of one fetch group once the component is on
+ * screen:
+ *
+ *   useEffect(() => {
+ *     let __active = true
+ *     <read.setup>
+ *     fetch(<read.url>)
+ *       .then((__res) => __res.json())
+ *       .then((__result) => {
+ *         if (!__active || !__result || __result.success !== true) return
+ *         const __data = __result.data
+ *         set<State>(…)
+ *       })
+ *       .catch((__err) => console.error(…))
+ *     return () => { __active = false }
+ *   }, [<read.deps>])
+ */
+const buildComponentStateFetchEffect = (
+  group: FetchGroup,
+  read: ComponentStateRead
+): types.ExpressionStatement => {
+  const active = types.identifier('__active')
+  const result = types.identifier('__result')
+  const data = types.identifier('__data')
+  const resultData = types.memberExpression(result, types.identifier('data'))
+
+  const received = types.arrowFunctionExpression(
+    [result],
+    types.blockStatement([
+      types.ifStatement(
+        types.logicalExpression(
+          '||',
+          types.logicalExpression(
+            '||',
+            types.unaryExpression('!', active),
+            types.unaryExpression('!', result)
+          ),
+          types.binaryExpression(
+            '!==',
+            types.memberExpression(result, types.identifier('success')),
+            types.booleanLiteral(true)
+          )
+        ),
+        types.returnStatement()
+      ),
+      types.variableDeclaration('const', [
+        types.variableDeclarator(
+          data,
+          read.csvColumns
+            ? types.callExpression(csvRowsRelabeller(read.csvColumns), [resultData])
+            : resultData
+        ),
+      ]),
+      ...group.states.map((state) =>
+        types.expressionStatement(
+          types.callExpression(
+            types.identifier(
+              `set${state.stateKey.charAt(0).toUpperCase()}${state.stateKey.slice(1)}`
+            ),
+            [buildComponentStateValue(data, state)]
+          )
+        )
+      ),
+    ])
+  )
+
+  const then = (chain: types.Expression, handler: types.Expression): types.CallExpression =>
+    types.callExpression(types.memberExpression(chain, types.identifier('then')), [handler])
+  const fetchChain = types.callExpression(
+    types.memberExpression(
+      then(
+        then(
+          types.callExpression(types.identifier('fetch'), [read.url]),
+          types.arrowFunctionExpression(
+            [types.identifier('__res')],
+            types.callExpression(
+              types.memberExpression(types.identifier('__res'), types.identifier('json')),
+              []
+            )
+          )
+        ),
+        received
+      ),
+      types.identifier('catch')
+    ),
+    [
+      types.arrowFunctionExpression(
+        [types.identifier('__err')],
+        types.callExpression(
+          types.memberExpression(types.identifier('console'), types.identifier('error')),
+          [
+            types.stringLiteral(
+              `Error fetching component state (${group.states
+                .map((state) => state.stateKey)
+                .join(', ')}):`
+            ),
+            types.identifier('__err'),
+          ]
+        )
+      ),
+    ]
+  )
+
+  return types.expressionStatement(
+    types.callExpression(types.identifier('useEffect'), [
+      types.arrowFunctionExpression(
+        [],
+        types.blockStatement([
+          types.variableDeclaration('let', [
+            types.variableDeclarator(active, types.booleanLiteral(true)),
+          ]),
+          ...read.setup,
+          types.expressionStatement(fetchChain),
+          types.returnStatement(
+            types.arrowFunctionExpression(
+              [],
+              types.blockStatement([
+                types.expressionStatement(
+                  types.assignmentExpression('=', active, types.booleanLiteral(false))
+                ),
+              ])
+            )
+          ),
+        ])
+      ),
+      types.arrayExpression(read.deps),
+    ])
+  )
+}
+
+/** The only source whose module runs a statement: the TeleportHQ database. */
+const STATEMENT_SOURCE_TYPE = 'teleport'
+
+/**
+ * Writes the route a component reads one statement-filled fetch group from
+ * (`generateComponentStateRoute`) and answers its name — or null when the
+ * generated site has nothing to run the statement with.
+ */
+const writeComponentStatementRoute = (
+  structure: Parameters<ComponentPlugin>[0],
+  group: FetchGroup
+): string | null => {
+  const { uidl, options } = structure
+  const extractedResources = options.extractedResources
+  const statement = group.states[0].definition.query
+  if (
+    !extractedResources ||
+    group.dataSource.type !== STATEMENT_SOURCE_TYPE ||
+    !isSelectOnlyQuery(statement)
+  ) {
+    return null
+  }
+  if (
+    !ensureDataSourceModule(
+      group.fileName,
+      group.dataSource,
+      group.tableName,
+      extractedResources,
+      buildProductTransformOptions(options)
+    )
+  ) {
+    return null
+  }
+
+  const componentSlug = StringUtils.camelCaseToDashCase(sanitizeFileName(uidl.name || 'component'))
+  const routeName = `${componentSlug}-${sanitizeFileName(group.tableName)}-${
+    group.fetchDiscriminator
+  }`
+  const resourceKey = `${COMPONENT_STATE_ROUTE_FOLDER.join('/')}/${routeName}`
+  if (!extractedResources[resourceKey]) {
+    extractedResources[resourceKey] = {
+      fileName: routeName,
+      fileType: FileType.JS,
+      path: [...COMPONENT_STATE_ROUTE_FOLDER],
+      content: generateComponentStateRoute({
+        moduleFileName: group.fileName,
+        statement,
+        // A component has no protection of its own: the route admits whoever
+        // may open a page that renders it.
+        exposure: DataExposure.componentExposureFor(options.dataExposure, uidl.name),
+        trustedReaderRoles: TableAccess.resolveTrustedReaderRoles(options.auth),
+        withRevocation: options.auth?.enabled === true,
+      }),
+    }
+  }
+  return routeName
+}
+
+/**
+ * Fills a COMPONENT's states bound to a data source.
+ *
+ * A page's bound states arrive as props from its own server-side fetch (the
+ * plugin above). A component has no such fetch, and the page that renders it
+ * knows nothing of its states — so every state of a component declared as
+ * `useState(props.<state> !== undefined ? props.<state> : <default>)` kept its
+ * default on the generated site, and a list over it stayed empty.
+ *
+ * The component now reads for itself once it is on screen:
+ *
+ *  - a state filled from a TABLE, through the table's own read route
+ *    (`/api/<source>-<table>-<id>`) — the route a list bound straight to the
+ *    table reads inside a component. That route already counts a state filled
+ *    from the table among the table's readers
+ *    (`DataExposure.resolveDataExposure`), answers the rows a page's state is
+ *    given, and is asked for them in the page's language;
+ *  - a state filled by an SQL STATEMENT of its own, through a route of the
+ *    component's (`/api/component-state/<route>`) that holds the statement — a
+ *    browser may hand a read route none — and admits whoever may open a page
+ *    that renders the component (`generateComponentStateRoute`).
+ *
+ * A statement that names the signed-in visitor or the page's row
+ * (`{{Current User.…}}`, `{{Current Page Entity.id}}`) is left to a workflow:
+ * it is resolved for a page's states only.
+ */
+export const createComponentStateDataSourcePlugin: ComponentPluginFactory<{}> = () => {
+  const componentStateDataSourcePlugin: ComponentPlugin = async (structure) => {
+    const { uidl, chunks, dependencies, options } = structure
+    const { stateDefinitions = {} } = uidl
+
+    const dataSources = options.dataSources
+    if (!dataSources || Object.keys(dataSources).length === 0) {
+      return structure
+    }
+    if (!Object.values(stateDefinitions).some((definition) => !!definition.dataSourceBinding)) {
+      return structure
+    }
+
+    const componentBody = findComponentBody(chunks)
+    const extractedResources = options.extractedResources
+    if (!componentBody || !extractedResources) {
+      return structure
+    }
+
+    const { buildTime, runtimeUser } = collectBoundStates(stateDefinitions)
+    const localized = isLocalizedProject(options)
+    const transformOptions = buildProductTransformOptions(options)
+    const effects: types.Statement[] = []
+    let readsATable = false
+
+    groupByDataSourceAndTable(
+      buildTime.filter((state) => !hasOwnQuery(state)),
+      dataSources
+    ).forEach((group) => {
+      if (
+        ensureDataSourceReadRoute(
+          group.fileName,
+          group.dataSource,
+          group.tableName,
+          extractedResources,
+          transformOptions
+        )
+      ) {
+        effects.push(buildComponentStateFetchEffect(group, tableReadOf(group, localized)))
+        readsATable = true
+      }
+    })
+
+    const leftToAWorkflow: BoundState[] = [...runtimeUser]
+    groupByDataSourceAndTable(buildTime.filter(hasOwnQuery), dataSources).forEach((group) => {
+      const routeName = writeComponentStatementRoute(structure, group)
+      if (routeName) {
+        effects.push(buildComponentStateFetchEffect(group, statementReadOf(routeName)))
+      } else {
+        leftToAWorkflow.push(...group.states)
+      }
+    })
+    if (leftToAWorkflow.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[state-data-source-plugin] Component "${uidl.name}": ${leftToAWorkflow
+          .map((state) => `"${state.stateKey}"`)
+          .join(
+            ', '
+          )} is filled by an SQL statement the generated site does not run for a component (one that names the signed-in visitor or the page's row, or one that is not a SELECT over the TeleportHQ database). Fill it from a workflow that runs when the component loads.`
+      )
+    }
+
+    if (effects.length === 0) {
+      return structure
+    }
+
+    const returnIndex = componentBody.body.findIndex((statement) =>
+      types.isReturnStatement(statement)
+    )
+    componentBody.body.splice(
+      returnIndex === -1 ? componentBody.body.length : returnIndex,
+      0,
+      ...effects
+    )
+
+    dependencies.useEffect = {
+      type: 'library',
+      path: 'react',
+      version: '>=16.8.0',
+      meta: { namedImport: true },
+    }
+    if (localized && readsATable) {
+      ensureRouterDeclaration(componentBody.body, dependencies)
+    }
+
+    return structure
+  }
+
+  return componentStateDataSourcePlugin
 }

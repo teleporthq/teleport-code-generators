@@ -31,3 +31,4 @@ export {
   validateTeleportConfig,
 } from './teleport'
 export { generateRawQueryFetcher, parseQueryTemplateVariables } from './raw-query'
+export { generateComponentStateRoute, COMPONENT_STATE_ROUTE_FOLDER } from './component-state'

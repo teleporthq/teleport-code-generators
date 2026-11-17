@@ -1,4 +1,5 @@
 import type {
+  ComponentReadExposure,
   DataReadExposure,
   ProjectDataExposure,
   ProjectUIDL,
@@ -12,6 +13,7 @@ import {
   selfGuardedOwnerColumnAt,
 } from './page-access'
 import { camelCaseToDashCase, removeIllegalCharacters } from './string-utils'
+import { pageReadsAsStore } from './table-access'
 import { SUBSCRIPTION_ENTITLED_STATUSES, SUBSCRIPTION_ENTITLEMENT_SQL } from './subscription-access'
 
 /**
@@ -58,6 +60,13 @@ export const CLOSED_READ_EXPOSURE: DataReadExposure = Object.freeze({
   defaultLimit: BROWSER_READ_DEFAULT_LIMIT,
   maxLimit: BROWSER_READ_MAX_LIMIT,
 }) as DataReadExposure
+
+/** What a component no page renders gets: the app's own server code only. */
+export const CLOSED_COMPONENT_EXPOSURE: ComponentReadExposure = Object.freeze({
+  public: false,
+  pages: [],
+  readsAsStore: false,
+}) as ComponentReadExposure
 
 /** The data sources whose reads have no table: their exposure is the source's. */
 const SOURCES_WITHOUT_TABLES = new Set([
@@ -206,6 +215,109 @@ const bindingFields = (...values: unknown[]): string[] => {
 }
 
 /**
+ * How an element names the component it renders: by the component's key, as
+ * the UIDL is written — or by its class name, which the project generator
+ * writes over the element's `semanticType` when it resolves the local
+ * dependencies (`product-card` becomes `ProductCard`). The exposure is read
+ * from a project in either state.
+ */
+interface ComponentNames {
+  keys: Set<string>
+  keyByClassName: Map<string, string>
+}
+
+const componentNamesOf = (uidl: ProjectUIDL): ComponentNames => {
+  const components = (uidl.components || {}) as Record<string, unknown>
+  const keyByClassName = new Map<string, string>()
+  Object.keys(components).forEach((key) => {
+    const component = components[key]
+    const outputOptions =
+      isRecord(component) && isRecord(component.outputOptions) ? component.outputOptions : null
+    const className = outputOptions ? outputOptions.componentClassName : null
+    if (typeof className === 'string' && className.length > 0 && !keyByClassName.has(className)) {
+      keyByClassName.set(className, key)
+    }
+  })
+  return { keys: new Set(Object.keys(components)), keyByClassName }
+}
+
+/**
+ * The key of the project component a node renders — a local dependency — or
+ * null. A dependency that carries its import path was resolved, so the element
+ * names the class first; one that does not names the key first.
+ */
+const renderedComponentOf = (node: AnyRecord, names: ComponentNames): string | null => {
+  const content = isRecord(node.content) ? node.content : null
+  if (
+    node.type !== 'element' ||
+    !content ||
+    !isRecord(content.dependency) ||
+    content.dependency.type !== 'local'
+  ) {
+    return null
+  }
+  const resolved = typeof content.dependency.path === 'string'
+  const keyOf = (name: unknown): string | null => {
+    if (typeof name !== 'string') {
+      return null
+    }
+    const asKey = names.keys.has(name) ? name : null
+    const asClassName = names.keyByClassName.get(name) || null
+    return resolved ? asClassName || asKey : asKey || asClassName
+  }
+  return keyOf(content.semanticType) || keyOf(content.elementType)
+}
+
+/**
+ * Every component `root` renders, and every component those render in turn.
+ * `rendersDirectly` remembers what each component's own tree renders.
+ */
+const collectRenderedComponents = (
+  root: unknown,
+  uidl: ProjectUIDL,
+  componentNames: ComponentNames,
+  rendersDirectly: Map<string, string[]>
+): Set<string> => {
+  const components = (uidl.components || {}) as Record<string, unknown>
+  const directlyIn = (tree: unknown): string[] => {
+    const found = new Set<string>()
+    const visit = (node: unknown) => {
+      if (Array.isArray(node)) {
+        node.forEach(visit)
+        return
+      }
+      if (!isRecord(node)) {
+        return
+      }
+      const name = renderedComponentOf(node, componentNames)
+      if (name) {
+        found.add(name)
+      }
+      Object.keys(node).forEach((key) => visit(node[key]))
+    }
+    visit(tree)
+    return Array.from(found)
+  }
+
+  const rendered = new Set<string>()
+  const pending = directlyIn(root)
+  while (pending.length > 0) {
+    const name = pending.pop() as string
+    if (rendered.has(name)) {
+      continue
+    }
+    rendered.add(name)
+    let inner = rendersDirectly.get(name)
+    if (!inner) {
+      inner = directlyIn(components[name])
+      rendersDirectly.set(name, inner)
+    }
+    pending.push(...inner)
+  }
+  return rendered
+}
+
+/**
  * Every table `root` binds, following the components it renders. A walk over
  * the whole JSON rather than over known node shapes: a binding kind added later
  * is still found as long as it names its source and table the way every one
@@ -214,6 +326,7 @@ const bindingFields = (...values: unknown[]): string[] => {
 const collectBindings = (
   root: unknown,
   uidl: ProjectUIDL,
+  componentNames: ComponentNames,
   componentBindings: Map<string, Binding[]>,
   componentsInProgress: Set<string>
 ): Binding[] => {
@@ -321,18 +434,9 @@ const collectBindings = (
     }
 
     // A component the page renders binds what the component binds.
-    if (node.type === 'element' && content && isRecord(content.dependency)) {
-      const name =
-        content.dependency.type === 'local'
-          ? [content.semanticType, content.elementType].find(
-              (candidate): candidate is string =>
-                typeof candidate === 'string' &&
-                Object.prototype.hasOwnProperty.call(components, candidate)
-            )
-          : undefined
-      if (name) {
-        bindings.push(...componentBindingsOf(name))
-      }
+    const componentName = renderedComponentOf(node, componentNames)
+    if (componentName) {
+      bindings.push(...componentBindingsOf(componentName))
     }
 
     Object.keys(node).forEach((key) => visit(node[key]))
@@ -350,6 +454,7 @@ const collectBindings = (
     const found = collectBindings(
       (components as Record<string, unknown>)[name],
       uidl,
+      componentNames,
       componentBindings,
       componentsInProgress
     )
@@ -472,6 +577,47 @@ const finish = (map: Map<string, Accumulator>): Record<string, DataReadExposure>
   return out
 }
 
+type PageDemand = ComponentReadExposure['pages'][number]
+
+interface ComponentAccumulator {
+  public: boolean
+  /** By what they demand, so two pages alike count once. */
+  pages: Map<string, PageDemand>
+  everyPageReadsAsStore: boolean
+}
+
+/** What a page demands of a session, in one spelling whatever order its settings came in. */
+const pageDemandOf = (policy: PageAccessPolicy): PageDemand => ({
+  allowedRoles: Array.from(new Set(policy.allowedRoles || [])).sort(),
+  ...(policy.requiresSubscription && {
+    requiresSubscription: true,
+    subscriptionProductIds: Array.from(
+      new Set((policy.subscriptionProductIds || []).filter((id) => !!id))
+    ).sort(),
+  }),
+})
+
+const finishComponents = (
+  map: Map<string, ComponentAccumulator>
+): Record<string, ComponentReadExposure> => {
+  const out: Record<string, ComponentReadExposure> = {}
+  Array.from(map.keys())
+    .sort()
+    .forEach((name) => {
+      const entry = map.get(name) as ComponentAccumulator
+      out[name] = {
+        public: entry.public,
+        pages: entry.public
+          ? []
+          : Array.from(entry.pages.keys())
+              .sort()
+              .map((key) => entry.pages.get(key) as PageDemand),
+        readsAsStore: !entry.public && entry.everyPageReadsAsStore,
+      }
+    })
+  return out
+}
+
 const computed = new WeakMap<object, ProjectDataExposure>()
 
 /** A binding that names no data source is recorded under every source's name for its table. */
@@ -510,11 +656,15 @@ export const resolveDataExposure = (uidl: ProjectUIDL): ProjectDataExposure => {
   const auth = uidl.authentication as UIDLAuthentication | undefined
   const routeTable: ProtectedRouteTable | null =
     auth && auth.enabled === true ? buildProtectedRouteTable(auth) : null
+  // What the middleware demands to open the page served at `route`, or null
+  // when it lets every visitor through.
+  const pageGateOf = (route: string): PageAccessPolicy | null =>
+    routeTable ? resolveRouteAccessPolicy(routeTable, route) : null
   const policyOf = (route: string): BindingPolicy | null => {
     if (!routeTable) {
       return null
     }
-    const policy = resolveRouteAccessPolicy(routeTable, route)
+    const policy = pageGateOf(route)
     if (policy) {
       return policy
     }
@@ -524,16 +674,42 @@ export const resolveDataExposure = (uidl: ProjectUIDL): ProjectDataExposure => {
 
   const tables = new Map<string, Accumulator>()
   const dataSources = new Map<string, Accumulator>()
+  const componentNames = componentNamesOf(uidl)
   const componentBindings = new Map<string, Binding[]>()
   const bind = (subtree: unknown, policy: BindingPolicy | null) => {
-    collectBindings(subtree, uidl, componentBindings, new Set()).forEach((binding) => {
-      record(
-        tables,
-        binding.table ? tableExposureKey(binding.dataSourceId, binding.table) : null,
-        policy,
-        binding
-      )
-      record(dataSources, binding.dataSourceId, policy, binding)
+    collectBindings(subtree, uidl, componentNames, componentBindings, new Set()).forEach(
+      (binding) => {
+        record(
+          tables,
+          binding.table ? tableExposureKey(binding.dataSourceId, binding.table) : null,
+          policy,
+          binding
+        )
+        record(dataSources, binding.dataSourceId, policy, binding)
+      }
+    )
+  }
+
+  // Every component `subtree` renders is in front of whoever opens the page:
+  // `gate` is what the middleware demands of them (null: every visitor — a
+  // row-owned page too, which it lets through to the page's own statement).
+  const components = new Map<string, ComponentAccumulator>()
+  const rendersDirectly = new Map<string, string[]>()
+  const place = (subtree: unknown, gate: PageAccessPolicy | null, readsAsStore: boolean) => {
+    collectRenderedComponents(subtree, uidl, componentNames, rendersDirectly).forEach((name) => {
+      const entry = components.get(name) || {
+        public: false,
+        pages: new Map<string, PageDemand>(),
+        everyPageReadsAsStore: true,
+      }
+      if (gate) {
+        const demand = pageDemandOf(gate)
+        entry.pages.set(JSON.stringify(demand), demand)
+      } else {
+        entry.public = true
+      }
+      entry.everyPageReadsAsStore = entry.everyPageReadsAsStore && readsAsStore
+      components.set(name, entry)
     })
   }
 
@@ -572,16 +748,30 @@ export const resolveDataExposure = (uidl: ProjectUIDL): ProjectDataExposure => {
     const definition = routeValues.find((entry) => entry && entry.value === pageValue) || {}
     const pageOptions = isRecord(definition.pageOptions) ? definition.pageOptions : {}
     const isHomePage = !!routeDefinition && routeDefinition.defaultValue === pageValue
-    const policy = policyOf(pageRouteOf(String(pageValue), pageOptions, isHomePage))
+    const route = pageRouteOf(String(pageValue), pageOptions, isHomePage)
+    const policy = policyOf(route)
+    const gate = pageGateOf(route)
+    const readsAsStore = pageReadsAsStore(
+      { route, pageId: typeof definition.pageId === 'string' ? definition.pageId : undefined },
+      auth
+    )
     routeNodes
       .filter((content) => content.value === pageValue)
-      .forEach((content) => bind(content.node, policy))
+      .forEach((content) => {
+        bind(content.node, policy)
+        place(content.node, gate, readsAsStore)
+      })
     bind(pageOptions, policy)
   })
 
   // The layout every page shares, the root's own states and the app-wide
   // global states: in front of every visitor.
-  children.filter((child) => !isRouteNode(child)).forEach((child) => bind(child, null))
+  children
+    .filter((child) => !isRouteNode(child))
+    .forEach((child) => {
+      bind(child, null)
+      place(child, null, false)
+    })
   if (root && root.stateDefinitions) {
     Object.keys(root.stateDefinitions)
       .filter((key) => key !== 'route')
@@ -589,7 +779,11 @@ export const resolveDataExposure = (uidl: ProjectUIDL): ProjectDataExposure => {
   }
   bind(uidl.globalStateDefinitions, null)
 
-  const exposure: ProjectDataExposure = { tables: finish(tables), dataSources: finish(dataSources) }
+  const exposure: ProjectDataExposure = {
+    tables: finish(tables),
+    dataSources: finish(dataSources),
+    components: finishComponents(components),
+  }
   computed.set(uidl, exposure)
   return exposure
 }
@@ -623,6 +817,21 @@ export const readExposureFor = (
   const suffix = ':' + bareTableName(params.tableName)
   const matches = Object.keys(tables).filter((key) => key.slice(-suffix.length) === suffix)
   return matches.length === 1 ? tables[matches[0]] : CLOSED_READ_EXPOSURE
+}
+
+/**
+ * Who may read what the component named `name` fetches for itself —
+ * `CLOSED_COMPONENT_EXPOSURE` when nothing decided it (no project around the
+ * component, or no page renders it).
+ */
+export const componentExposureFor = (
+  exposure: ProjectDataExposure | undefined | null,
+  name: string | undefined | null
+): ComponentReadExposure => {
+  const components = (exposure && exposure.components) || {}
+  return name && Object.prototype.hasOwnProperty.call(components, name)
+    ? components[name]
+    : CLOSED_COMPONENT_EXPOSURE
 }
 
 /**

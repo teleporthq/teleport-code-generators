@@ -26,7 +26,7 @@ const PROJECT_REQUIRE =
   /require\(\s*['"]([^'"]*utils\/(?:security-runtime|auth\/session-revocation))['"]\s*\)/g
 const TABLE_ACCESS_GUARD = 'function __taSafeEqual('
 
-/** The data exposure store, with a workflow data step, a page state and a global state read per visitor. */
+/** The data exposure store, with a workflow data step, a page state and a global state read per visitor, and a component state read by its own statement. */
 const everyRouteFamily = () => {
   const uidl = buildDataExposureUidl() as any
   uidl.workflows = {
@@ -47,6 +47,33 @@ const everyRouteFamily = () => {
     },
     customNodes: {},
   }
+  // A component state filled by a statement of its own: its route under
+  // pages/api/component-state.
+  uidl.components['team-roster'] = {
+    name: 'team-roster',
+    stateDefinitions: {
+      roster: {
+        type: 'array',
+        defaultValue: [],
+        dataSourceBinding: { dataSourceId: DATA_SOURCE_ID, refPath: ['team_members'] },
+        query: 'SELECT id, name FROM team_members ORDER BY name',
+      },
+    },
+    node: {
+      type: 'element',
+      content: { elementType: 'container', children: [{ type: 'static', content: 'Roster' }] },
+    },
+  }
+  uidl.root.node.content.children
+    .find((child: any) => child.content.value === 'team')
+    .content.node.content.children.push({
+      type: 'element',
+      content: {
+        elementType: 'component',
+        semanticType: 'team-roster',
+        dependency: { type: 'local' },
+      },
+    })
   uidl.globalStateDefinitions = {
     favourites: {
       name: 'favourites',
@@ -132,6 +159,7 @@ describe('every emitted require of the security runtime names it from its own fo
       /^pages\/api\/data\//,
       /^pages\/api\/page-state\//,
       /^pages\/api\/global-state\//,
+      /^pages\/api\/component-state\//,
       /^utils\/data-sources\//,
       /^pages\/api\/[^/]+\.js$/,
     ]) {

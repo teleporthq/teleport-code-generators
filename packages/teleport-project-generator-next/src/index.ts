@@ -18,7 +18,10 @@ import {
 import { ReactStyleVariation, FileType, ProjectPlugin } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
-import { createStateDataSourcePlugin } from './state-data-source-plugin'
+import {
+  createComponentStateDataSourcePlugin,
+  createStateDataSourcePlugin,
+} from './state-data-source-plugin'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
@@ -169,6 +172,7 @@ const createNextProjectGenerator = () => {
   const nextComponentDataSourcePlugin = createNextComponentDataSourcePlugin()
   const nextPagesDataSourcePlugin = createNextPagesDataSourcePlugin()
   const stateDataSourcePlugin = createStateDataSourcePlugin()
+  const componentStateDataSourcePlugin = createComponentStateDataSourcePlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
   const aiChatSessionPersistencePlugin = createAIChatSessionPersistencePlugin({
     basePath: ['components'],
@@ -207,6 +211,7 @@ const createNextProjectGenerator = () => {
         nextImagePlugin,
         nextComponentInlineFetchPlugin,
         nextComponentDataSourcePlugin,
+        componentStateDataSourcePlugin,
         nextInternationalizationPlugin,
         // Chat-only: keeps the transcript alive across client-side
         // navigation. MUST run before the welcome plugin, so a restored

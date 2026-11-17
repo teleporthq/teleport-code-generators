@@ -26,7 +26,7 @@ export interface RawQueryRouteAccess {
 const MAX_REQUEST_PARAM_LENGTH = 256
 
 /** The largest row count the baked statement asks for itself (`LIMIT n` at its end), or 0. */
-const statementLimit = (query: string): number => {
+export const statementRowLimit = (query: string): number => {
   const match = /\blimit\s+(\d+)\s*(?:offset\s+\d+\s*)?;?\s*$/i.exec(query)
   return match ? parseInt(match[1], 10) : 0
 }
@@ -81,7 +81,7 @@ export const generateRawQueryFetcher = (
   const userParams = paramFields.filter(isCurrentUserParam)
   const requestParams = paramFields.filter((param) => !isCurrentUserParam(param))
   const pageAccess = access.pageAccess || null
-  const rowCap = Math.max(DataExposure.BROWSER_READ_MAX_LIMIT, statementLimit(query))
+  const rowCap = Math.max(DataExposure.BROWSER_READ_MAX_LIMIT, statementRowLimit(query))
 
   const paramDestructure = [
     requestParams.length > 0
