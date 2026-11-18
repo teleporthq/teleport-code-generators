@@ -1,5 +1,5 @@
 import type { UIDLAuthentication } from '@teleporthq/teleport-types'
-import { CONTENT_COMMENTS_TABLES } from './content-tables'
+import { CONTENT_COMMENTS_TABLES, FORUM_PRIVATE_TABLES } from './content-tables'
 
 /**
  * Which store tables a browser may touch through the generated data routes.
@@ -138,6 +138,10 @@ export const CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   // the admin with its session; a page a visitor opens reads none of them
   // (PRIVATE_CUSTOMER_RECORD_TABLES). Its subscribers are `users` rows.
   'teleport_newsletter_issues',
+  // A forum member's own rows: what they joined, voted, reacted to, reported,
+  // follow, were notified of and viewed. The forum data module and the write
+  // statements read them for the session's own user; a browser lists none.
+  ...FORUM_PRIVATE_TABLES,
 ]
 
 /**
@@ -193,6 +197,7 @@ export const PRIVATE_CUSTOMER_RECORD_TABLES: ReadonlyArray<string> = [
   'teleport_downloads',
   'teleport_bookings',
   'teleport_newsletter_issues',
+  ...FORUM_PRIVATE_TABLES,
 ]
 
 /**

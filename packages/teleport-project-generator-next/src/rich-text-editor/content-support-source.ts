@@ -31,12 +31,24 @@ const PROTECTED_BLOCK_STYLES = `
 `
 
 /**
+ * The writing area fills the box the page gave the editor (its `min-height`),
+ * instead of staying one line tall inside it. An editor whose box sets no
+ * height keeps its natural size: `inherit` then inherits nothing.
+ */
+const EDITOR_FRAME_STYLES = `
+.quill { display: flex; flex-direction: column; min-height: inherit; }
+.quill > .ql-container { display: flex; flex: 1 1 auto; flex-direction: column; }
+.quill > .ql-container > .ql-editor { flex: 1 1 auto; }
+`
+
+/**
  * What the generated editor needs beside the runtime module: the protected
  * block registered as a Quill block embed, the format list widened so inline
- * code and the block are never stripped on load, and the block's styles.
+ * code and the block are never stripped on load, and the styles of the block
+ * and of the editor's frame.
  */
 export const CONTENT_SUPPORT_SOURCE = `const RICH_TEXT_CONTENT_STYLES = ${JSON.stringify(
-  PROTECTED_BLOCK_STYLES
+  PROTECTED_BLOCK_STYLES + EDITOR_FRAME_STYLES
 )}
 
 let protectedBlockBlotRegistered = false

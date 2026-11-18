@@ -46,6 +46,7 @@ import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin
 import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextBlogProjectPlugin } from './blog/project-plugin'
+import { NextForumProjectPlugin } from './forum/project-plugin'
 import { NextBookingProjectPlugin } from './bookings/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
@@ -111,6 +112,10 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
   new NextBlogProjectPlugin(),
+  // The forum's read side: its data module, routes and per-request pages.
+  // After the blog (the same site-index pattern), before Instant search, which
+  // reads the forum's section through the same tables.
+  new NextForumProjectPlugin(),
   new NextNewsletterProjectPlugin(),
   new NextBookingProjectPlugin(),
   new NextGlobalStateProjectPlugin(),
@@ -326,6 +331,7 @@ export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 export { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
+export { NextForumProjectPlugin } from './forum/project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
 export { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
