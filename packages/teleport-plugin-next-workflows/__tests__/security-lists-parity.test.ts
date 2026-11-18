@@ -176,7 +176,7 @@ describe('the runtime process shadow in general-custom-js', () => {
 describeCopiesOf('teleport-gui', GUI)('the editor copies (teleport-gui)', () => {
   it('protect the same env names and credential pattern', () => {
     const copy = loadTs(GUI_FILES.protectedNames)
-    expect([...copy.PROTECTED_ENV_NAMES]).toEqual(CODEGEN.names)
+    expect([...copy.PROTECTED_ENV_NAMES].sort()).toEqual([...CODEGEN.names].sort())
     expect(patternOf(copy.PROTECTED_ENV_NAME_PATTERN)).toEqual(CODEGEN.pattern)
     expect(patternOf(copy.PLATFORM_ENV_NAME_PATTERN)).toEqual(CODEGEN.platformPattern)
     expect(patternOf(copy.INTEGRATION_ENV_NAME_PATTERN)).toEqual(CODEGEN.integrationPattern)
@@ -212,7 +212,7 @@ describeCopiesOf('teleport-services-worker', WORKER)(
   () => {
     it('protect the same env names and credential pattern', () => {
       const copy = loadTs(WORKER_FILES.protectedNames)
-      expect([...copy.PROTECTED_ENV_NAMES]).toEqual(CODEGEN.names)
+      expect([...copy.PROTECTED_ENV_NAMES].sort()).toEqual([...CODEGEN.names].sort())
       expect(patternOf(copy.PROTECTED_ENV_NAME_PATTERN)).toEqual(CODEGEN.pattern)
       expect(patternOf(copy.PLATFORM_ENV_NAME_PATTERN)).toEqual(CODEGEN.platformPattern)
       expect(patternOf(copy.INTEGRATION_ENV_NAME_PATTERN)).toEqual(CODEGEN.integrationPattern)

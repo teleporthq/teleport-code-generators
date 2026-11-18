@@ -70,7 +70,7 @@ describe('insertLink', () => {
     expect(anchor.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
   })
 
-  it('still wraps an element that has a box of its own: a style, a class, an event or a runtime attribute', () => {
+  it('a plain container with a box of its own becomes the anchor in a known parent: a style, a class or a runtime attribute', () => {
     const link = urlMockedDefinition() as UIDLURLLinkNode
     const styled = elementNode('container')
     styled.content.style = { padding: { type: 'static', content: '8px' } }
@@ -80,16 +80,32 @@ describe('insertLink', () => {
     } as never
     const bound = elementNode('container')
     bound.content.attrs = { 'data-scroll-bind': { type: 'static', content: '[]' } }
-    const clickable = elementNode('container')
-    clickable.content.events = { click: [] }
 
-    for (const node of [styled, classed, bound, clickable]) {
+    for (const node of [styled, classed, bound]) {
       node.content.abilities = { link }
       const result = insertLinks(elementNode('container', {}, [node]), {}, false)
-      const wrapper = result.content.children[0] as UIDLElementNode
-      expect(wrapper.content.elementType).toBe('link')
-      expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe('container')
+      const anchor = result.content.children[0] as UIDLElementNode
+      expect(anchor.content.elementType).toBe('link')
+      expect(anchor.content.attrs.url).toBeDefined()
+      expect(anchor.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
+      expect(anchor.content.children ?? []).toHaveLength(0)
     }
+    expect(styled.content.style.padding).toEqual({ type: 'static', content: '8px' })
+    expect(classed.content.referencedStyles.card).toBeDefined()
+    expect(bound.content.attrs['data-scroll-bind']).toBeDefined()
+  })
+
+  it('still wraps a container that listens to events', () => {
+    const clickable = elementNode('container')
+    clickable.content.events = { click: [] }
+    clickable.content.abilities = { link: urlMockedDefinition() as UIDLURLLinkNode }
+
+    const result = insertLinks(elementNode('container', {}, [clickable]), {}, false)
+    const wrapper = result.content.children[0] as UIDLElementNode
+
+    expect(wrapper.content.elementType).toBe('link')
+    expect(wrapper.content.attrs['data-thq-link-box']).toBeUndefined()
+    expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe('container')
   })
 
   it('replaces a child', () => {
@@ -625,7 +641,7 @@ describe('link rules that generated sites depend on', () => {
   })
 
   it('a wrapper, and an element that is not a box, never say they are one', () => {
-    const wrapped = insertLinks(withDisplay('block', styledCard()), {}, false).content
+    const wrapped = insertLinks(withDisplay('block', linkedHeading()), {}, false).content
       .children[0] as UIDLElementNode
     const heading = insertLinks(withDisplay('flex', linkedHeading()), {}, false).content
       .children[0] as UIDLElementNode
@@ -677,16 +693,27 @@ describe('link rules that generated sites depend on', () => {
   })
 
   it('a div stays wrapped when it listens to events, carries an attribute an anchor may not, or its parent is not known', () => {
-    const clickable = styledCard()
-    clickable.content.events = { click: [] }
-    const named = styledCard()
-    named.content.attrs = { name: { type: 'static', content: 'card' } }
-
-    for (const node of [clickable, named]) {
-      const wrapper = insertLinks(withDisplay('flex', node), {}, false).content
-        .children[0] as UIDLElementNode
-      expect(wrapper.content.elementType).toBe('link')
-      expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe('container')
+    for (const display of ['flex', 'block']) {
+      for (const makeNode of [
+        () => {
+          const clickable = styledCard()
+          clickable.content.events = { click: [] }
+          return clickable
+        },
+        () => {
+          const named = styledCard()
+          named.content.attrs = { name: { type: 'static', content: 'card' } }
+          return named
+        },
+      ]) {
+        const wrapper = insertLinks(withDisplay(display, makeNode()), {}, false).content
+          .children[0] as UIDLElementNode
+        expect(wrapper.content.elementType).toBe('link')
+        expect(wrapper.content.attrs['data-thq-link-box']).toBeUndefined()
+        expect((wrapper.content.children[0] as UIDLElementNode).content.elementType).toBe(
+          'container'
+        )
+      }
     }
     const rootWrapper = insertLinks(styledCard(), {}, false)
     expect((rootWrapper.content.children[0] as UIDLElementNode).content.elementType).toBe(
@@ -694,11 +721,63 @@ describe('link rules that generated sites depend on', () => {
     )
   })
 
+  it.each(['block', 'inline-block', 'table-cell'])(
+    'a plain div with a class of its own becomes the link itself inside a %s parent, so a rule written against the canvas tree matches it',
+    (display) => {
+      const card = linked(elementNode('container', {}, [elementNode('text')]))
+      card.content.referencedStyles = {
+        card: {
+          type: 'style-map',
+          content: { mapType: 'project-referenced', referenceId: 'card' },
+        },
+      }
+
+      const result = insertLinks(withDisplay(display, card), {}, false)
+      const anchor = result.content.children[0] as UIDLElementNode
+
+      expect(result.content.children).toHaveLength(1)
+      expect(anchor.content.elementType).toBe('link')
+      expect(anchor.content.attrs.url).toBeDefined()
+      expect(anchor.content.referencedStyles.card).toBeDefined()
+      expect(anchor.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
+      expect(anchor.content.attrs['data-thq-link-wrapper']).toBeUndefined()
+      expect(anchor.content.style?.display).toBeUndefined()
+      // its own child, with no element in between
+      expect((anchor.content.children[0] as UIDLElementNode).content.elementType).toBe('text')
+    }
+  )
+
+  it('a parent with no display of its own counts as known: the classed div inside it becomes the link', () => {
+    const card = styledCard()
+    const anchor = insertLinks(elementNode('container', {}, [card]), {}, false).content
+      .children[0] as UIDLElementNode
+
+    expect(anchor.content.elementType).toBe('link')
+    expect(anchor.content.style?.padding).toEqual({ type: 'static', content: '24px' })
+    expect(anchor.content.attrs['data-thq-link-box']).toEqual({ type: 'static', content: 'true' })
+  })
+
+  it('a link inside a link is still refused, whatever the parent', () => {
+    const inner = styledCard()
+    const outer = linked(elementNode('container', {}, [inner]))
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    const result = insertLinks(withDisplay('block', outer), {}, false)
+    warn.mockRestore()
+    const anchor = result.content.children[0] as UIDLElementNode
+    const untouched = anchor.content.children[0] as UIDLElementNode
+
+    expect(anchor.content.elementType).toBe('link')
+    expect(untouched.content.elementType).toBe('container')
+    expect(untouched.content.attrs?.url).toBeUndefined()
+  })
+
   it('the wrapper keeps its own box inside a block parent', () => {
-    const result = insertLinks(withDisplay('block', styledCard()), {}, false)
+    const result = insertLinks(withDisplay('block', linkedHeading()), {}, false)
     const wrapper = result.content.children[0] as UIDLElementNode
 
     expect(wrapper.content.elementType).toBe('link')
+    expect((wrapper.content.children[0] as UIDLElementNode).content.semanticType).toBe('h3')
     expect(wrapper.content.style?.display).toBeUndefined()
     // a wrapper with a box draws its own focus ring and is not marked
     expect(wrapper.content.attrs['data-thq-link-wrapper']).toBeUndefined()

@@ -24,12 +24,20 @@ function memoryStorage() {
   }
 }
 
-function bootTracker() {
-  const localStorage = memoryStorage()
+function bootTracker(
+  options: {
+    experiments?: Record<string, string>
+    /** localStorage carried over from an earlier page load. */
+    localStorage?: ReturnType<typeof memoryStorage>
+  } = {}
+) {
+  const localStorage = options.localStorage || memoryStorage()
   const sessionStorage = memoryStorage()
   const batches: Sent[][] = []
   const heartbeats: Sent[] = []
   const documentListeners: Record<string, () => void> = {}
+  // The A/B tests whose element is on the current page.
+  let experimentsOnPage: string[] = []
 
   const fakeDocument = {
     visibilityState: 'visible',
@@ -38,7 +46,8 @@ function bootTracker() {
     addEventListener: (type: string, listener: () => void) => {
       documentListeners[type] = listener
     },
-    querySelector: () => null,
+    querySelector: (selector: string) =>
+      experimentsOnPage.some((id) => selector === `[data-tq-exp="${id}"]`) ? {} : null,
   }
   const fakeWindow = {
     location: { hostname: 'shop.example.com', pathname: '/', search: '' },
@@ -48,6 +57,9 @@ function bootTracker() {
     innerHeight: 900,
     scrollY: 0,
     addEventListener: () => undefined,
+    __tpExp: options.experiments,
+    // The merchant's Google tag, as a fresh page load starts it.
+    dataLayer: [] as Array<Record<string, unknown>>,
   }
   const fakeFetch = (url: string, init: { body: string }) => {
     const payload = JSON.parse(init.body)
@@ -67,7 +79,7 @@ function bootTracker() {
     'navigator',
     'fetch',
     'setInterval',
-    `${body}\nreturn { initTeleportAnalytics, trackRouteChange }`
+    `${body}\nreturn { initTeleportAnalytics, trackRouteChange, trackCommerceEvent }`
   )(
     {
       env: {
@@ -94,12 +106,30 @@ function bootTracker() {
     fakeDocument.visibilityState = 'visible'
     documentListeners.visibilitychange()
   }
-  const navigate = (path: string) => {
+  const navigate = (path: string, experiments: string[] = []) => {
     fakeWindow.location.pathname = path
+    experimentsOnPage = experiments
     tracker.trackRouteChange(path)
   }
+  const showExperiments = (experiments: string[]) => {
+    experimentsOnPage = experiments
+  }
+  const purchasesSentToGoogle = () =>
+    fakeWindow.dataLayer
+      .filter((entry) => entry.event === 'purchase')
+      .map((entry) => entry.transaction_id)
 
-  return { tracker, localStorage, sessionStorage, heartbeats, flush, show, navigate }
+  return {
+    tracker,
+    localStorage,
+    sessionStorage,
+    heartbeats,
+    flush,
+    show,
+    navigate,
+    showExperiments,
+    purchasesSentToGoogle,
+  }
 }
 
 describe('tracker — consent given or withdrawn mid-visit', () => {
@@ -161,5 +191,127 @@ describe('tracker — consent given or withdrawn mid-visit', () => {
     expect(next.visitorId).toBeNull()
     expect(next.sessionId).toMatch(UUID)
     expect(next.sessionId).not.toBe(landing.sessionId)
+  })
+})
+
+describe('tracker — the A/B test versions a visitor has seen', () => {
+  const SEEN_KEY = 'tq_exp_seen'
+
+  it('keeps them in memory until the banner is accepted, then stores them', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'b' } })
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:b')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+
+    // A page without the test still counts for the version that led there.
+    page.navigate('/checkout')
+    const [checkout] = page.flush()
+    expect(checkout.exp).toBe('hero-1:b')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.navigate('/thanks')
+    const [thanks] = page.flush()
+    expect(thanks.exp).toBe('hero-1:b')
+    expect(JSON.parse(page.localStorage.getItem(SEEN_KEY) as string)).toEqual({ 'hero-1': 'b' })
+  })
+
+  it('removes the versions an earlier build stored for a visitor who has not accepted', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'a' } })
+    page.localStorage.setItem(SEEN_KEY, JSON.stringify({ 'cta-2': 'b' }))
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:a')
+    expect(page.localStorage.getItem(SEEN_KEY)).toBeNull()
+  })
+
+  it('reads and stores them as before for a visitor who accepted earlier', () => {
+    const page = bootTracker({ experiments: { 'hero-1': 'a', 'cta-2': 'b' } })
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.localStorage.setItem(SEEN_KEY, JSON.stringify({ 'cta-2': 'b' }))
+    page.showExperiments(['hero-1'])
+    page.tracker.initTeleportAnalytics({})
+    const [landing] = page.flush()
+
+    expect(landing.exp).toBe('hero-1:a,cta-2:b')
+    expect(JSON.parse(page.localStorage.getItem(SEEN_KEY) as string)).toEqual({
+      'hero-1': 'a',
+      'cta-2': 'b',
+    })
+  })
+})
+
+describe('tracker — the order numbers it has counted', () => {
+  const LEDGER_KEY = 'tp_purchases'
+  const ledger = (page: { localStorage: ReturnType<typeof memoryStorage> }) =>
+    JSON.parse(page.localStorage.getItem(LEDGER_KEY) || 'null')
+
+  it('keeps them in memory until the banner is accepted, then stores them', () => {
+    const page = bootTracker()
+    page.tracker.initTeleportAnalytics({})
+    page.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    expect(ledger(page)).toBeNull()
+
+    page.localStorage.setItem('cookieConsent', 'accepted')
+    page.navigate('/account')
+    expect(ledger(page)).toEqual(['order-1'])
+  })
+
+  it('removes the ones an earlier build stored for a visitor who has not accepted', () => {
+    const page = bootTracker()
+    page.localStorage.setItem(LEDGER_KEY, JSON.stringify(['order-0']))
+    page.tracker.initTeleportAnalytics({})
+    expect(ledger(page)).toBeNull()
+  })
+
+  it('with consent, stores each order once, also when the confirmation page is reloaded', () => {
+    const localStorage = memoryStorage()
+    localStorage.setItem('cookieConsent', 'accepted')
+    const confirmation = bootTracker({ localStorage })
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    expect(ledger(confirmation)).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1' })
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-2' })
+    expect(ledger(reloaded)).toEqual(['order-1', 'order-2'])
+  })
+})
+
+describe("tracker — a purchase reaches the store's Google tags once", () => {
+  it('with consent, a reloaded confirmation page does not send it again', () => {
+    const localStorage = memoryStorage()
+    localStorage.setItem('cookieConsent', 'accepted')
+    const confirmation = bootTracker({ localStorage })
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(confirmation.purchasesSentToGoogle()).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(reloaded.purchasesSentToGoogle()).toEqual([])
+  })
+
+  it('without consent, once while the visitor browses, and again after a full reload', () => {
+    const confirmation = bootTracker()
+    confirmation.tracker.initTeleportAnalytics({})
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    // Back to the confirmation page by client-side navigation.
+    confirmation.navigate('/thank-you')
+    confirmation.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(confirmation.purchasesSentToGoogle()).toEqual(['order-1'])
+
+    const reloaded = bootTracker({ localStorage: confirmation.localStorage })
+    reloaded.tracker.initTeleportAnalytics({})
+    reloaded.tracker.trackCommerceEvent('purchase', { orderId: 'order-1', value: 50 })
+    expect(reloaded.purchasesSentToGoogle()).toEqual(['order-1'])
   })
 })

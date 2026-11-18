@@ -19,7 +19,7 @@ import {
   redactServerNodeConfig,
 } from './segment-splitter'
 import { isFireAndForgetSegment } from './await-result'
-import { collectSegmentStateKeys } from './segment-context-needs'
+import { ALL_STATE_KEYS, collectSegmentStateKeys } from './segment-context-needs'
 import {
   ADMIN_CUSTOM_NODES_MODULE,
   callsCustomNodeTransitively,
@@ -29,7 +29,12 @@ import { WorkflowExecutionEnv } from './types'
 import { getAPIRouteFileName, hasStreamingAINode } from './api-route-generator'
 import { REALTIME_TRIGGER_TYPES, REALTIME_NODE_TYPES } from './graph-utils'
 import { neutraliseIsLoggedInGates } from './is-logged-in-gate'
-import { TRACK_LEAD_SOURCE, formControlPropertyReads } from './trigger-generator'
+import {
+  TRACK_LEAD_SOURCE,
+  formControlPropertyReads,
+  intervalControlListenerSource,
+  intervalControlTeardownSource,
+} from './trigger-generator'
 import { elementVisibleObserverCode } from './element-visible-trigger'
 import { restoreControlledSelectValue } from './controlled-select'
 import { resolveScrollPoint } from './scroll-points'
@@ -155,6 +160,58 @@ const hasNodeTypeTransitively = (
     }
   }
   return false
+}
+
+const reachableNodes = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, UIDLCustomWorkflowNode> | undefined,
+  visited: Set<string>
+): UIDLWorkflowNode[] =>
+  nodes.reduce((reached: UIDLWorkflowNode[], node) => {
+    reached.push(node)
+    const customNodeId = ((node.config || {}) as Record<string, unknown>).customNodeId
+    if (
+      node.type === 'general-custom-node' &&
+      customNodes &&
+      typeof customNodeId === 'string' &&
+      !visited.has(customNodeId)
+    ) {
+      visited.add(customNodeId)
+      const customNode = customNodes[customNodeId]
+      if (customNode && Array.isArray(customNode.nodes)) {
+        reached.push(...reachableNodes(customNode.nodes, customNodes, visited))
+      }
+    }
+    return reached
+  }, [])
+
+/* Whether the nodes, or a custom node they call, read a global state. There
+   are four ways to: a `state-get-global-state` node; a `{{state.<name>}}`
+   token; a context reference that walks into the state values by name; and an
+   expression that names the state values as a whole, which counts when it
+   also names one of the global states. The last three read by name, so they
+   only count for a name the project declares as a global state. */
+const readsGlobalStateTransitively = (
+  nodes: UIDLWorkflowNode[],
+  customNodes: Record<string, UIDLCustomWorkflowNode> | undefined,
+  globalStateNames: string[]
+): boolean => {
+  if (hasNodeTypeTransitively(nodes, 'state-get-global-state', customNodes, new Set<string>())) {
+    return true
+  }
+  if (globalStateNames.length === 0) {
+    return false
+  }
+  const stateKeys = collectSegmentStateKeys(nodes, customNodes)
+  if (stateKeys !== ALL_STATE_KEYS) {
+    return stateKeys.some((key) => globalStateNames.includes(key))
+  }
+  const configs = JSON.stringify(
+    reachableNodes(nodes, customNodes, new Set<string>()).map((node) => node.config || {})
+  )
+  return globalStateNames.some((name) =>
+    new RegExp(`(^|[^\\w$])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\w$])`).test(configs)
+  )
 }
 
 // State names that live in GlobalContext (useGlobalContext) rather than in the
@@ -432,11 +489,21 @@ export const createNextWorkflowPlugin: ComponentPluginFactory<WorkflowPluginConf
       )
     )
     const hasGlobalStateChangeTriggers = globalStateChangeWorkflows.length > 0
-    const needsGlobalState = hasGlobalStateUpdateNodes || hasGlobalStateChangeTriggers
     const globalStateDefs = (options.globalStateDefinitions || {}) as Record<
       string,
       UIDLGlobalStateDefinition
     >
+    // A workflow that only READS a global state needs the same wiring as one
+    // that writes it: every read resolves against the state values this file
+    // hands the workflow runtime, and a global state is among them only when
+    // the file takes it from `useGlobalState()`. Without it the read is
+    // undefined, so a condition on a global switch never holds.
+    const globalStateNames = Object.values(globalStateDefs).map((def) => def.name)
+    const hasGlobalStateReads = activeWorkflows.some((wf) =>
+      readsGlobalStateTransitively(wf.nodes, workflows.customNodes, globalStateNames)
+    )
+    const needsGlobalState =
+      hasGlobalStateUpdateNodes || hasGlobalStateChangeTriggers || hasGlobalStateReads
 
     const hasRealtimeUsage = activeWorkflows.some(
       (wf) =>
@@ -1912,7 +1979,20 @@ ${globalStateChangeHandlerLines.join('\n')}
 `
 }
 
-const generateElementHandler = (et: ElementTriggerInfo): string => {
+/* The bound element's `data-*` attributes, as trigger fields a workflow reads
+   by name: `data-tab-index` is `dataTabIndex`, the name the static HTML export
+   resolves from the same attribute. Values are the attribute strings. The
+   result is the object the trigger's own fields are then assigned onto, so no
+   attribute can replace one of them. */
+const datasetTriggerFieldsSource = (element: string): string =>
+  `Object.keys((${element} && ${element}.dataset) || {}).reduce(function(fields, key) { fields['data' + key.charAt(0).toUpperCase() + key.slice(1)] = ${element}.dataset[key]; return fields; }, {})`
+
+/* The submitted fields are spread FIRST so a field literally named `formData`,
+   `formId`, `element` or `timestamp` can never shadow the reserved keys. */
+const formTriggerContextSource = (elementId: string): string =>
+  `Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() })`
+
+export const generateElementHandler = (et: ElementTriggerInfo): string => {
   const safeId = et.workflow.id.replace(/[^a-zA-Z0-9]/g, '_')
   const config = et.triggerConfig
   const elementId = et.elementId
@@ -1936,9 +2016,17 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
       // the bound element when the user clicks a child — e.g. the payment
       // provider row sets `data-provider-name` on the row div, but a click
       // on the inner label span would otherwise resolve to an empty dataset.
+      // A debounced run starts after the event has finished dispatching, when
+      // `currentTarget` is already null, so the bound element is read before
+      // the timer is set.
+      const boundElement = debounce
+        ? '__bound || event.target'
+        : 'event.currentTarget || event.target'
       body +=
-        `    const __te = event.currentTarget || event.target;\n` +
-        `    const triggerContext = { elementId: '${elementId}', triggerElement: __te, element: __te, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY };\n` +
+        `    const __te = ${boundElement};\n` +
+        `    const triggerContext = Object.assign(${datasetTriggerFieldsSource(
+          '__te'
+        )}, { elementId: '${elementId}', triggerElement: __te, element: __te, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY });\n` +
         `    return __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});`
 
       if (debounce) {
@@ -1946,6 +2034,7 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
           `(function() {\n` +
           `      let timer = null;\n` +
           `      return function(event) {\n` +
+          `        const __bound = event.currentTarget;\n` +
           `        clearTimeout(timer);\n` +
           `        timer = setTimeout(async function() {\n` +
           `    ${body}\n` +
@@ -1972,17 +2061,15 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
       // name as missing. `general-extract-form-data` already returns its fields
       // flat for exactly this reason; the trigger now matches it, so both
       // `params[0].name` and `params[0].formData.name` resolve.
-      //
-      // The spread comes FIRST so a field literally named `formData`, `formId`,
-      // `element` or `timestamp` can never shadow the reserved keys the runtime
-      // and the workflow editor depend on.
+      // The context is built by `formTriggerContextSource`, shared with the
+      // native-listener fallback.
       return (
         `async function(event) {\n` +
         (preventDefault ? '    event.preventDefault();\n' : '') +
         `    const formData = {};\n` +
         `    const fd = new FormData(event.target);\n` +
         `    fd.forEach(function(v, k) { formData[k] = v; });\n` +
-        `    const triggerContext = Object.assign({}, formData, { fields: formData, formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() });\n` +
+        `    const triggerContext = ${formTriggerContextSource(elementId)};\n` +
         // Growth analytics: a form whose workflow ran to the end is a lead.
         // __execWf resolves undefined when the run threw, so only a finished
         // run reports.
@@ -2081,7 +2168,10 @@ const generateElementHandler = (et: ElementTriggerInfo): string => {
   }
 }
 
-const generateUnmatchedElementFallback = (et: ElementTriggerInfo, safeId: string): string => {
+export const generateUnmatchedElementFallback = (
+  et: ElementTriggerInfo,
+  safeId: string
+): string => {
   const config = et.triggerConfig
   const elementId = et.elementId
   const domEvent = getDOMEventName(et.workflow.trigger.type, config)
@@ -2104,20 +2194,24 @@ const generateUnmatchedElementFallback = (et: ElementTriggerInfo, safeId: string
       `        const formData = {};\n` +
       `        const fd = new FormData(event.target);\n` +
       `        fd.forEach(function(v, k) { formData[k] = v; });\n` +
-      `        const triggerContext = { formData: formData, formId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n`
+      `        const triggerContext = ${formTriggerContextSource(elementId)};\n`
   } else if (isInput) {
     handlerBody += `        const triggerContext = { value: event.target.value, elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now() };\n`
   } else if (et.workflow.trigger.type === 'event-element-event') {
     // See `event-element-event` in `generateElementHandler` for why we
     // include `value`/`checked`/`files` unconditionally.
-    handlerBody += `        const triggerContext = { elementId: '${elementId}', eventType: '${domEvent}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY, offsetX: event.offsetX, offsetY: event.offsetY, button: event.button, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, key: event.key, ${formControlPropertyReads(
+    handlerBody += `        const triggerContext = { elementId: '${elementId}', eventType: '${domEvent}', triggerElement: event.target, element: event.target, target: event.target, currentTarget: __el_${safeId}, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY, offsetX: event.offsetX, offsetY: event.offsetY, button: event.button, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, key: event.key, ${formControlPropertyReads(
       'event.target'
     )} };\n`
     if (domEvent === 'drop') {
       handlerBody += `        if (event.dataTransfer && event.dataTransfer.files) { triggerContext.files = Array.from(event.dataTransfer.files); }\n`
     }
   } else {
-    handlerBody += `        const triggerContext = { elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY };\n`
+    // The listener sits on `__el_<id>`, so that is the element whose
+    // attributes are delivered, whichever child was clicked.
+    handlerBody += `        const triggerContext = Object.assign(${datasetTriggerFieldsSource(
+      `__el_${safeId}`
+    )}, { elementId: '${elementId}', triggerElement: event.target, element: event.target, timestamp: Date.now(), clientX: event.clientX, clientY: event.clientY });\n`
   }
 
   handlerBody += `        __execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId});`
@@ -2169,7 +2263,7 @@ const generateLoadedTriggerRun = (
       `      cleanups.push(function() { clearTimeout(__delay_${safeId}); });\n`
     : `      ${execCall};\n`
 
-const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
+export const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
   const trigger = wf.trigger
   const config = (trigger.config || {}) as Record<string, unknown>
   const execCall = `__execWf(__wfConfig_${safeId}, triggerContext, __wfServerUrls_${safeId})`
@@ -2539,12 +2633,7 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
       }
 
       if (controlEventName) {
-        intervalCode +=
-          `    var __iv_ctrlHandler_${safeId} = function() {\n` +
-          `      if (__iv_running_${safeId}) { __iv_stop_${safeId}(); }\n` +
-          `      else { __iv_start_${safeId}(); }\n` +
-          `    };\n` +
-          `    window.addEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});\n`
+        intervalCode += intervalControlListenerSource(safeId, controlEventName)
       }
 
       if (autoStart) {
@@ -2558,9 +2647,7 @@ const generateLifecycleTrigger = (wf: UIDLWorkflow, safeId: string): string => {
         (!runWhileHidden
           ? `      document.removeEventListener('visibilitychange', __iv_visHandler_${safeId});\n`
           : '') +
-        (controlEventName
-          ? `      window.removeEventListener('${controlEventName}', __iv_ctrlHandler_${safeId});\n`
-          : '') +
+        (controlEventName ? intervalControlTeardownSource(safeId, controlEventName) : '') +
         `    });`
 
       return intervalCode

@@ -139,6 +139,16 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
       ignoreBrowserLanguage: optional(boolean()),
       languages: dict(string()),
       translations: dict(dict(union(elementNodeDecoder, staticValueDecoder))),
+      // Read by the Next.js language switcher; an older generator drops it unread.
+      languageDetails: optional(
+        dict(
+          object({
+            nativeName: optional(string()),
+            names: optional(dict(string())),
+            flag: optional(string()),
+          })
+        )
+      ),
     })
   ),
   workflows: optional(anyJson()),

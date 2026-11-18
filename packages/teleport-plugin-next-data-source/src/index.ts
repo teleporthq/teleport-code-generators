@@ -1478,4 +1478,9 @@ export type { EcommerceProductTransformOptions, EntityTransformOptions } from '.
 // shared with every other package that emits a data-source fetch.
 export { isLocalizedProject, resolveContentLocalization } from './content-localization'
 export type { ContentLocalization } from './content-localization'
-export { REQUEST_LOCALE_PARAM, buildServerLocaleParam } from './request-locale'
+export {
+  REQUEST_LOCALE_PARAM,
+  buildServerLocaleParam,
+  buildClientLocaleExpression,
+  ensureRouterDeclaration,
+} from './request-locale'

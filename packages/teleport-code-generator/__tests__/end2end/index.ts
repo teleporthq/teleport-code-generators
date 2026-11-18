@@ -26,9 +26,10 @@ describe('Generates NEXT-JS project with plugins', () => {
     const appRoot = pages.files.find((file) => file.name === '_app')
     const middleware = result.files.find((file) => file.name === 'middleware')
 
-    // package.json, next.config.js, the password wall's middleware, and the
-    // .env / .env.example the wall's five empty values bring with them.
-    expect(result.files.length).toBe(5)
+    // package.json, next.config.js, the password wall's middleware, the
+    // .env / .env.example the wall's five empty values bring with them, and
+    // MAINTENANCE.md.
+    expect(result.files.length).toBe(6)
     expect(packageJSON).toBeDefined()
     expect(nextConfig).toBeDefined()
     expect(middleware?.content).toContain('__tqWallGate')

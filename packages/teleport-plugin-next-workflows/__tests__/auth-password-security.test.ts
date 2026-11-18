@@ -74,6 +74,10 @@ class FakePostgres {
   users: Row[] = []
   resets: Reset[] = []
   resetsTableExists = false
+  /** Off, as the site's role connects: it may read and write tables, and create none, whether or not one exists. */
+  mayCreateTables = true
+  /** Fails the statement that stores a link: the database went away between two calls. */
+  failResetWrites = false
   now = Date.UTC(2026, 9, 25, 12)
   statements: string[] = []
   // The account store cannot be read (a connection refused) for lookups by id.
@@ -85,6 +89,9 @@ class FakePostgres {
       return { rows: [] }
     }
     if (sql.startsWith('CREATE TABLE IF NOT EXISTS teleport_password_resets')) {
+      if (!this.mayCreateTables) {
+        throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+      }
       this.resetsTableExists = true
       return { rows: [] }
     }
@@ -133,6 +140,12 @@ class FakePostgres {
       throw Object.assign(new Error('relation "teleport_password_resets" does not exist'), {
         code: '42P01',
       })
+    }
+    if (sql === 'SELECT 1 FROM teleport_password_resets LIMIT 1') {
+      return { rows: [] }
+    }
+    if (this.failResetWrites && sql.startsWith('INSERT INTO teleport_password_resets')) {
+      throw Object.assign(new Error('Connection terminated unexpectedly'), { code: '57P01' })
     }
     if (sql.startsWith('UPDATE teleport_password_resets SET used_at = NOW() WHERE user_id = $1')) {
       for (const reset of this.resets) {
@@ -428,6 +441,7 @@ const loadApp = (
 }
 
 const VICTIM = { id: 'u-victim', email: 'victim@site.test', name: 'Vic', role: 'admin' }
+const FORGOT_PASSWORD_NOT_SENT = 'We could not send the reset link. Please try again in a moment.'
 
 const tokenFromEmail = (sent: Row[]): string => {
   const mail = sent.find((entry) => entry.to)
@@ -573,6 +587,93 @@ describe('A3-C1: forgot / reset password are decided on the server', () => {
     expect(app.sent.filter((entry) => entry.to)).toHaveLength(1)
     // Both wait out the same minimum response time.
     expect(delaysForKnown.length).toBeGreaterThan(0)
+    expect(app.delays.length).toBeGreaterThan(0)
+  })
+
+  const asksToCreate = (db: FakePostgres) =>
+    db.statements.filter((sql) => /\bCREATE\b|pg_advisory_xact_lock/.test(sql))
+
+  it('stores a link in the table the editor made, never asking to create it', async () => {
+    const db = victimDb()
+    db.resetsTableExists = true
+    db.mayCreateTables = false
+    const app = loadApp({ db })
+    const res = fakeResponse()
+
+    await app.load('forgot')(request({ email: VICTIM.email }), res)
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ success: true, message: FORGOT_PASSWORD_ANSWER })
+    expect(db.resets).toHaveLength(1)
+    expect(app.sent.filter((entry) => entry.to)).toHaveLength(1)
+    expect(asksToCreate(db)).toEqual([])
+  })
+
+  it('creates the table only when it is really missing, then stores the link in it', async () => {
+    const db = victimDb()
+    const app = loadApp({ db })
+    await app.load('forgot')(request({ email: VICTIM.email }), fakeResponse())
+
+    expect(asksToCreate(db).map((sql) => sql.split(' (')[0])).toEqual([
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'CREATE TABLE IF NOT EXISTS teleport_password_resets',
+      'CREATE INDEX IF NOT EXISTS teleport_password_resets_user_id_idx ON teleport_password_resets',
+    ])
+    expect(db.resets).toHaveLength(1)
+    expect(app.sent.filter((entry) => entry.to)).toHaveLength(1)
+  })
+
+  it('stores a sign-up set-password link the same way when the table went missing', async () => {
+    const db = victimDb()
+    const app = loadApp({ db })
+    await app.load('options').storePasswordReset(VICTIM.id, 'hash', 1800)
+    expect(db.resets).toHaveLength(1)
+
+    const refused = victimDb()
+    refused.mayCreateTables = false
+    const refusedApp = loadApp({ db: refused })
+    await expect(
+      refusedApp.load('options').storePasswordReset(VICTIM.id, 'hash', 1800)
+    ).rejects.toThrow(
+      'the table teleport_password_resets is missing and could not be created: permission denied for schema public'
+    )
+    expect(refused.statements).toContain('ROLLBACK')
+  })
+
+  it('tells no one a link was sent when the table is missing and cannot be made, naming it in the log', async () => {
+    const db = victimDb()
+    db.mayCreateTables = false
+    const app = loadApp({ db })
+    const known = fakeResponse()
+    await app.load('forgot')(request({ email: VICTIM.email }), known)
+    const unknown = fakeResponse()
+    await app.load('forgot')(request({ email: 'nobody@site.test' }), unknown)
+
+    for (const res of [known, unknown]) {
+      expect(res.statusCode).toBe(503)
+      expect(res.body.error).toBe(FORGOT_PASSWORD_NOT_SENT)
+      expect(res.body).not.toHaveProperty('success')
+    }
+    expect(db.resets).toEqual([])
+    expect(app.sent).toEqual([])
+    const logged = app.logs.map((args) => args.map(String).join(' ')).join('\n')
+    expect(logged).toContain('teleport_password_resets')
+    expect(logged).toContain('permission denied for schema public')
+  })
+
+  it('tells no one a link was sent when storing it fails', async () => {
+    const db = victimDb()
+    db.resetsTableExists = true
+    db.failResetWrites = true
+    const app = loadApp({ db })
+    const res = fakeResponse()
+
+    await app.load('forgot')(request({ email: VICTIM.email }), res)
+
+    expect(res.statusCode).toBe(503)
+    expect(res.body.error).toBe(FORGOT_PASSWORD_NOT_SENT)
+    expect(app.sent).toEqual([])
+    // Waits out the same minimum, so the time tells nothing either.
     expect(app.delays.length).toBeGreaterThan(0)
   })
 

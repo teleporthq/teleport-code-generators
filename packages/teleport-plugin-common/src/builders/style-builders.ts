@@ -15,6 +15,7 @@ import {
 } from '../utils/style-utils'
 import { isJSXElement } from '../utils/ast-utils'
 import { isHastElement } from '../utils/hast-utils'
+import { buildWithBracketedCommasKept } from '../utils/nested-selector-commas'
 
 jss.setup(preset())
 
@@ -36,18 +37,13 @@ export const createCSSClassWithSelector = (
   selector: string,
   styleObject: Record<string, string | number>
 ) => {
-  return jss
-    .createStyleSheet(
-      {
-        [key]: {
-          [selector]: styleObject,
-        },
-      },
-      {
+  return buildWithBracketedCommasKept({ [key]: { [selector]: styleObject } }, (rules) =>
+    jss
+      .createStyleSheet(rules, {
         generateId: () => key,
-      }
-    )
-    .toString()
+      })
+      .toString()
+  )
 }
 
 export const createFontDecleration = (styleObject: Record<string, string | number>) => {
@@ -62,11 +58,13 @@ export const createCSSClassWithMediaQuery = (
   mediaOffset: string,
   styleObject: Record<string, string | number | Record<string, string | number>>
 ) => {
-  return jss
-    .createRule(`@media(${mediaOffset})`, styleObject, {
-      generateId: (data) => data.key,
-    })
-    .toString()
+  return buildWithBracketedCommasKept(styleObject, (rules) =>
+    jss
+      .createRule(`@media(${mediaOffset})`, rules, {
+        generateId: (data) => data.key,
+      })
+      .toString()
+  )
 }
 
 export const createDynamicStyleExpression = (

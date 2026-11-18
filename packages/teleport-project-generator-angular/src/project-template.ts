@@ -8,7 +8,6 @@ export const template: GeneratedFolder = {
       content: `
 {
   "name": "teleport-project-angular",
-  "author": "teleportHQ",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",

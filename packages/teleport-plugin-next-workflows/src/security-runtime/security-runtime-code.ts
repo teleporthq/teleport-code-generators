@@ -38,8 +38,9 @@ export const securityRuntimeSpecifier = (relativePrefix: string): string =>
  *   itself, an IPv6 one its /64 (an IPv4 tail counted as the two groups it
  *   fills). Every rate limit keyed by visitor uses it.
  * - `rateLimit` counts fixed windows in the app's Postgres database (table
- *   `teleport_rate_limits`, created on first use under an advisory lock), so
- *   every instance of a serverless app counts together. Only an app with no
+ *   `teleport_rate_limits`, which the editor makes, created here under an
+ *   advisory lock only when it is really missing), so every instance of a
+ *   serverless app counts together. Only an app with no
  *   database (or no `pg` driver) counts in a bounded per-instance map; a
  *   database error counts in that map for a short while and is logged once.
  *   A request waits on the database at most 1.5 s; after a failure one
@@ -102,6 +103,9 @@ var CLEANUP_MAX_BATCHES = 3;
 var CLEANUP_QUERY_TIMEOUT_MS = 5000;
 var MEMORY_MAX_WINDOWS = 10000;
 
+// A site's database role may read and write its tables without being allowed
+// to create one, and CREATE ... IF NOT EXISTS asks for that permission even when
+// the table is there: these run only for a table that really is missing.
 var CREATE_SQL = 'CREATE TABLE IF NOT EXISTS "' + RATE_LIMITS_TABLE + '" (' +
   '"key" TEXT NOT NULL, "window_start" BIGINT NOT NULL, "count" INTEGER NOT NULL DEFAULT 0, ' +
   '"expires_at" BIGINT NOT NULL, PRIMARY KEY ("key", "window_start"))';
@@ -298,7 +302,6 @@ function __memoryHit(storageKey, windowStart, windowSeconds, nowSec) {
   return entry.count;
 }
 
-var __tableReady = false;
 // Healthy, every request asks the database. After a failure, requests count in
 // memory until __databaseRetryAt; then ONE request probes (it pushes the retry
 // time back before it asks), so the requests beside it never wait on a
@@ -377,12 +380,15 @@ async function __databaseHit(storageKey, windowStart, expiresAt, nowSec) {
     return within(client.query(sql, values || []), QUERY_TIMEOUT_MS);
   };
   var createTable = async function () {
-    await run('BEGIN');
-    await run(LOCK_SQL, [RATE_LIMITS_TABLE]);
-    await run(CREATE_SQL);
-    await run(INDEX_SQL);
-    await run('COMMIT');
-    __tableReady = true;
+    try {
+      await run('BEGIN');
+      await run(LOCK_SQL, [RATE_LIMITS_TABLE]);
+      await run(CREATE_SQL);
+      await run(INDEX_SQL);
+      await run('COMMIT');
+    } catch (err) {
+      throw new Error('the table ' + RATE_LIMITS_TABLE + ' is missing and could not be created: ' + __errorText(err));
+    }
   };
   var hit = function () {
     return run(HIT_SQL, [storageKey, windowStart, expiresAt]);
@@ -390,15 +396,13 @@ async function __databaseHit(storageKey, windowStart, expiresAt, nowSec) {
   var handedToCleanup = false;
   try {
     await within(client.connect(), CONNECT_TIMEOUT_MS);
-    if (!__tableReady) await createTable();
     var result;
     try {
       result = await hit();
     } catch (err) {
-      // The table went away (dropped, or the database restored from an
-      // older backup): create it again and count this request in it.
+      // The table is not there (dropped, or the database restored from an
+      // older backup): create it and count this request in it.
       if (!err || err.code !== '42P01') throw err;
-      __tableReady = false;
       await createTable();
       result = await hit();
     }

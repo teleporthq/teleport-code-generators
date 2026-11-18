@@ -30,8 +30,23 @@ export const BOOKING_ATTRIBUTE_KEYS = ['price', 'unit', 'capacity', 'duration', 
 export const CUSTOM_PROPERTY_ROWS = ['all', 'chosen', 'none'] as const
 export type CustomPropertyRows = (typeof CUSTOM_PROPERTY_ROWS)[number]
 
+export const PRICE_SYMBOL_SIDES = ['before', 'after'] as const
+export type PriceSymbolSide = (typeof PRICE_SYMBOL_SIDES)[number]
+
+/**
+ * How a bookable item's price is written: its rows name no currency, so the
+ * editor sends the bookings' currency symbol and the side it goes on, as its
+ * own comparison prints them.
+ */
+export interface BookingPriceFormat {
+  symbol: string
+  side: PriceSymbolSide
+}
+
 const MAX_PROPERTY_NAMES = 50
 const MAX_PROPERTY_NAME_LENGTH = 100
+/** As long as the store's `currency_symbol` column. */
+const MAX_PRICE_SYMBOL_LENGTH = 10
 
 export interface ItemComparisonConfig {
   kinds: CompareKind[]
@@ -45,6 +60,10 @@ export interface ItemComparisonConfig {
   bookingProperties: string[]
   highlightBest: boolean
   onlyDifferences: boolean
+  /** Which side of an amount the site writes its currency symbol on. */
+  priceSymbolSide: PriceSymbolSide
+  /** A bookable item's currency; null from an editor that did not send it. */
+  bookingPrice: BookingPriceFormat | null
   /** The comparison page, when the plugin has one. */
   compareRoute: string | null
 }
@@ -90,6 +109,18 @@ const propertyNames = (value: unknown): string[] => {
   return names.slice(0, MAX_PROPERTY_NAMES)
 }
 
+const bookingPriceFormat = (value: unknown): BookingPriceFormat | null => {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const { symbol, side } = value as Record<string, unknown>
+  const trimmed = typeof symbol === 'string' ? symbol.trim() : ''
+  if (!trimmed || trimmed.length > MAX_PRICE_SYMBOL_LENGTH) {
+    return null
+  }
+  return { symbol: trimmed, side: oneOf(side, PRICE_SYMBOL_SIDES, 'before') }
+}
+
 /** The plugin's configuration when the project has it on; null otherwise. */
 export const resolveItemComparisonConfig = (uidl: ProjectUIDL): ItemComparisonConfig | null => {
   const record = uidl.plugins?.[ITEM_COMPARISON_PLUGIN_KEY]
@@ -124,6 +155,8 @@ export const resolveItemComparisonConfig = (uidl: ProjectUIDL): ItemComparisonCo
     bookingProperties: propertyNames(stored.bookingProperties),
     highlightBest: bool(stored.highlightBest, true),
     onlyDifferences: bool(stored.onlyDifferences, false),
+    priceSymbolSide: oneOf(record.data?.priceSymbolSide, PRICE_SYMBOL_SIDES, 'before'),
+    bookingPrice: bookingPriceFormat(record.data?.bookingPrice),
     compareRoute:
       typeof compareRoute === 'string' && compareRoute.startsWith('/') ? compareRoute : null,
   }

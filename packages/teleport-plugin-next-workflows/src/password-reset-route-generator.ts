@@ -55,6 +55,10 @@ export const DEFAULT_RESET_PAGE_PATH = '/reset-password'
 export const FORGOT_PASSWORD_ANSWER =
   'If an account exists for that email, we sent it a link to reset the password.'
 
+/** What the route answers, to every address, when a link could not be kept. */
+export const FORGOT_PASSWORD_NOT_SENT =
+  'We could not send the reset link. Please try again in a moment.'
+
 /**
  * The sessionStorage key the reset page reads the link's token from (mirrored
  * in teleport-gui `RESET_TOKEN_STORAGE_KEY`). The published site's first head
@@ -333,7 +337,9 @@ module.exports = async function handler(req, res) {
     return __security.sendClientError(res, 503, 'We could not reach the account service. Please try again in a moment.', err);
   }
 
+  var link = null;
   try {
+    await authUtils.ensurePasswordResetsUsable();
     // Counted for every address, with an account or without, so neither the
     // answer nor its timing differs.
     var recipient = await __security.rateLimit({
@@ -345,17 +351,20 @@ module.exports = async function handler(req, res) {
     if (user && userId != null && user.email && !recipient.allowed) {
       console.warn('[forgot-password] reset link not sent: this address was sent ${FORGOT_PASSWORD_RECIPIENT_LIMIT} in the last hour');
     } else if (user && userId != null && user.email) {
-      if (!authUtils.PASSWORD_RESET_SUPPORTED) {
-        console.warn('[forgot-password] reset link not sent: password reset needs a Postgres user store');
-      } else {
-        var token = crypto.randomBytes(32).toString('hex');
-        await authUtils.storePasswordReset(userId, sha256(token), TOKEN_TTL_SECONDS);
-        var resetUrl = trustedOrigin(req) + RESET_PAGE_PATH + TOKEN_LINK_PREFIX + token;
-        await sendResetEmail(user, resetUrl, token, __emailLocale.resolveRequestLocale(req));
-      }
+      var token = crypto.randomBytes(32).toString('hex');
+      await authUtils.storePasswordReset(userId, sha256(token), TOKEN_TTL_SECONDS);
+      link = { token: token, url: trustedOrigin(req) + RESET_PAGE_PATH + TOKEN_LINK_PREFIX + token };
     }
   } catch (err) {
-    console.error('[forgot-password] could not send a reset link:', err && err.message ? err.message : err);
+    await waitUntilElapsed(startedAt, MIN_RESPONSE_MS);
+    return __security.sendClientError(res, 503, ${JSON.stringify(FORGOT_PASSWORD_NOT_SENT)}, err);
+  }
+  if (link) {
+    try {
+      await sendResetEmail(user, link.url, link.token, __emailLocale.resolveRequestLocale(req));
+    } catch (err) {
+      console.error('[forgot-password] could not send a reset link:', err && err.message ? err.message : err);
+    }
   }
 
   await waitUntilElapsed(startedAt, MIN_RESPONSE_MS);

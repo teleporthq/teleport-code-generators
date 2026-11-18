@@ -55,6 +55,7 @@ import { createNextLocaleFetcherPlugin } from './internationalization/locale-fet
 import { createNextFormSubmissionPlugin } from './forms/form-submission-handler'
 import { createEntityMutationSsrFinalizerPlugin } from './entity-mutation-ssr-finalize-plugin'
 import { companyGlobalObject } from './internationalization/company-global'
+import { localeStateSource } from './internationalization/locale-state'
 
 const DATA_SOURCE_DEPENDENCIES: Record<string, string> = {
   postgresql: 'pg@^8.11.0',
@@ -399,13 +400,12 @@ class NextPartialGenerator {
     companyDetails?: ProjectUIDL['companyDetails']
   ): PartialGenerationResult {
     const i18n = internationalization || this.sharedOptions.internationalization
-    const { languages = { en: 'English' }, main = { locale: 'en', name: 'English' } } = i18n || {}
-
-    const localesArray = Object.keys(languages).map((key) => ({
-      name: languages[key],
-      short: key,
-    }))
-    const currentLocale = localesArray.find((locale) => locale.short === main.locale)
+    const {
+      languages = { en: 'English' },
+      main = { locale: 'en', name: 'English' },
+      languageDetails,
+    } = i18n || {}
+    const localeState = localeStateSource(languages, main, languageDetails)
 
     const company = companyGlobalObject(companyDetails)
     const content = `
@@ -413,32 +413,22 @@ import { createContext, useMemo, useContext, useState, useEffect } from 'react'
 import { useLocale } from "next-intl";
 
 const company = ${JSON.stringify(company)};
+${localeState.moduleSource}
 
 const GlobalContext = createContext(null)
 
 export const GlobalProvider = ({ initialLocales, children }) => {
-  const localeValue = useLocale()
-  const [locales, setLocales] = useState(initialLocales ?? ${JSON.stringify(localesArray)})
-  const [locale, setLocale] = useState(${JSON.stringify(currentLocale)})
-
-  useEffect(() => {
-    if (!locales) {
-      return
-    }
-
-    const currentLangValue = locales.find((el) => el.short === localeValue)
-    setLocale(currentLangValue)
-  }, [locales, localeValue])
+${localeState.hooksSource}
 
   const value = useMemo(() => {
     return {
-      locales,
+      locales: localizedLocales,
       locale,
       company,
       setLocales,
       setLocale
     }
-  }, [locales, locale])
+  }, [localizedLocales, locale])
 
   return (
     <GlobalContext.Provider value={value}>

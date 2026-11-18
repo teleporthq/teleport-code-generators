@@ -7,7 +7,6 @@ export default {
   "name": "teleport-project-nuxt",
   "version": "1.0.0",
   "description": "A nuxt project generated based on a UIDL document",
-  "author": "teleporthq.io",
   "private": true,
   "scripts": {
     "dev": "nuxt",

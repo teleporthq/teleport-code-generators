@@ -1,6 +1,7 @@
 import { generateServerSegmentAPIRoute, generateSharedRuntimeUtilsCode } from '../src'
 import type { WorkflowSegment } from '../src/types'
 import { loadHandler, HandlerFn } from './_helpers/load-handler'
+import { generateServerRuntimeCode } from '../src/server-runtime-code'
 
 // Regression guard for the "loop body custom-js sees the wrong innerParams"
 // bug.
@@ -500,16 +501,20 @@ describe('runtime emission — loop scope stack is pushed and popped', () => {
   })
 
   it('pushes a loop scope before iterating and pops after', () => {
+    // The route hands its loops to runServerLoop, which manages the stack.
     const route = generateServerSegmentAPIRoute(buildSegment())
-    expect(route).toMatch(
-      /context\.__loopScopeStack\.push\(\{\s*loopNodeId:\s*node\.id,\s*bodyNodeIds:\s*bodyNodeIds\s*\}\)/
+    expect(route).toContain('utils.runServerLoop(node, resolved, sortedNodes, ')
+    const runtime = generateServerRuntimeCode()
+    expect(runtime).toMatch(
+      /context\.__loopScopeStack\.push\(\{\s*loopNodeId:\s*loopNode\.id,\s*bodyNodeIds:\s*bodyNodeIds\s*\}\)/
     )
-    expect(route).toContain('context.__loopScopeStack.pop();')
+    expect(runtime).toContain('context.__loopScopeStack.pop();')
   })
 
   it('initialises __loopScopeStack lazily (does not assume caller seeded it)', () => {
-    const route = generateServerSegmentAPIRoute(buildSegment())
-    expect(route).toMatch(/if \(!context\.__loopScopeStack\) context\.__loopScopeStack = \[\];/)
+    expect(generateServerRuntimeCode()).toMatch(
+      /if \(!context\.__loopScopeStack\) context\.__loopScopeStack = \[\];/
+    )
   })
 })
 

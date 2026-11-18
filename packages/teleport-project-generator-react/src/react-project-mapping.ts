@@ -21,7 +21,7 @@ export const ReactProjectMapping: Mapping = {
       dependency: {
         type: 'package',
         path: '@teleporthq/react-components',
-        version: 'latest',
+        version: '1.0.13',
         meta: {
           namedImport: true,
         },

@@ -22,7 +22,13 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import { DEFAULT_GITIGNORE, DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
+import {
+  DEFAULT_GITIGNORE,
+  DEFAULT_PACKAGE_JSON,
+  DEFAULT_ROUTER_FILE_NAME,
+  MAINTENANCE_NOTE_FILE_NAME,
+  maintenanceNote,
+} from './constants'
 import { PackageJSON } from './types'
 import { bootstrapGenerator } from './utils'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -416,6 +422,14 @@ export const createGitIgnoreFile = () => {
     name: '.gitignore',
     fileType: '',
     content: DEFAULT_GITIGNORE,
+  }
+}
+
+export const createMaintenanceNoteFile = (projectName: string) => {
+  return {
+    name: MAINTENANCE_NOTE_FILE_NAME,
+    fileType: 'md',
+    content: maintenanceNote(projectName),
   }
 }
 

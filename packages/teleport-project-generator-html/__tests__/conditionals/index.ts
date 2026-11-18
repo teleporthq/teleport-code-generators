@@ -169,8 +169,8 @@ describe('Conditions in a static HTML page', () => {
       [
         // a list is not a value `===` can be written against
         when(state('lines'), [{ operation: '===', operand: 'x' }], 'list-equals'),
-        // the other side is read while the page runs
-        when(state('picked'), [{ operation: 'contains', operand: state('choice') }], 'by-choice'),
+        // the other side has no starting value to read
+        when(state('picked'), [{ operation: 'contains', operand: state('missing') }], 'by-choice'),
         when(state('filters'), [{ operation: '!' }], 'no-filters'),
         when(state('open'), [{ operation: '===', operand: true }], 'panel'),
       ],
@@ -178,7 +178,6 @@ describe('Conditions in a static HTML page', () => {
         lines: { type: 'array', defaultValue: [] },
         picked: { type: 'array', defaultValue: ['a'] },
         filters: { type: 'object', defaultValue: {} },
-        choice: { type: 'string', defaultValue: 'a' },
         open: { type: 'boolean', defaultValue: true },
       }
     )
@@ -195,6 +194,106 @@ describe('Conditions in a static HTML page', () => {
     )
 
     expect(shows(page, 'quoted')).toBe(true)
+  })
+
+  it('the other side of a comparison is read at its starting value too', async () => {
+    const page = await homePage(
+      [
+        when(
+          state('card', ['id']),
+          [{ operation: '===', operand: state('picked', ['id']) }],
+          'same'
+        ),
+        when(
+          state('card', ['id']),
+          [{ operation: '!==', operand: state('picked', ['id']) }],
+          'other'
+        ),
+        when(state('card', ['tags']), [{ operation: 'contains', operand: state('tag') }], 'tagged'),
+        when(state('card', ['price']), [{ operation: '>', operand: prop('budget') }], 'too-dear'),
+      ],
+      {
+        card: { type: 'object', defaultValue: { id: 'c1', tags: ['new', 'sale'], price: 40 } },
+        picked: { type: 'object', defaultValue: { id: 'c1' } },
+        tag: { type: 'string', defaultValue: 'sale' },
+      },
+      { budget: { type: 'number', defaultValue: 50 } }
+    )
+
+    expect(['same', 'tagged'].filter((id) => !shows(page, id))).toEqual([])
+    expect(['other', 'too-dear'].filter((id) => inPage(page, id))).toEqual([])
+  })
+
+  it('rules that each read their own value, and groups of rules, are answered together', async () => {
+    const isOpen = { reference: state('panel', ['open']), operation: '===', operand: true }
+    const isAdmin = { reference: state('user', ['role']), operation: '===', operand: 'admin' }
+    const isGuest = { reference: state('user', ['role']), operation: '===', operand: 'guest' }
+    const either = (...conditions: unknown[]) => ({ conditions, matchingCriteria: 'any' })
+    const page = await homePage(
+      [
+        when(state('panel', ['open']), [isOpen, isAdmin], 'open-for-admin'),
+        when(state('panel', ['open']), [isOpen, isGuest], 'open-for-guest'),
+        when(state('panel', ['open']), [isOpen, either(isGuest, isAdmin)], 'open-for-either'),
+        when(state('panel', ['open']), [either(isGuest, { ...isOpen, operand: false })], 'neither'),
+      ],
+      {
+        panel: { type: 'object', defaultValue: { open: true } },
+        user: { type: 'object', defaultValue: { role: 'admin' } },
+      }
+    )
+
+    expect(['open-for-admin', 'open-for-either'].filter((id) => !shows(page, id))).toEqual([])
+    expect(['open-for-guest', 'neither'].filter((id) => inPage(page, id))).toEqual([])
+  })
+
+  it('a rule on a value of the list item is answered for each item', async () => {
+    const item = (path: string) => ({ type: 'expr', content: `product${path}` })
+    const page = await homePage(
+      [
+        {
+          type: 'cms-list-repeater',
+          content: {
+            elementType: 'cms-list-repeater',
+            name: 'products',
+            key: 'products',
+            renderPropIdentifier: 'product',
+            source: JSON.stringify([
+              { name: 'A', featured: true, stock: 0, 'sale-price': 5, price: 5 },
+              { name: 'B', featured: false, stock: 3, 'sale-price': 7, price: 9 },
+              { name: 'C', featured: true, stock: 2, 'sale-price': 4, price: 4 },
+            ]),
+            nodes: {
+              list: {
+                type: 'element',
+                content: {
+                  elementType: 'container',
+                  semanticType: 'div',
+                  children: [
+                    when(item('?.featured'), [{ operation: '===', operand: true }], 'featured'),
+                    when(item('?.stock'), [{ operation: '>', operand: 0 }], 'in-stock'),
+                    when(
+                      item('?.["sale-price"]'),
+                      [{ operation: '<', operand: item('?.price') }],
+                      'on-sale'
+                    ),
+                    when(item('?.missing'), [{ operation: '===', operand: true }], 'unknown'),
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
+      {}
+    )
+
+    const count = (id: string) => page.split(`id="${id}"`).length - 1
+    expect({
+      featured: count('featured'),
+      inStock: count('in-stock'),
+      onSale: count('on-sale'),
+      unknown: count('unknown'),
+    }).toEqual({ featured: 2, inStock: 2, onSale: 1, unknown: 0 })
   })
 
   it('a state with no starting value shows nothing that depends on it', async () => {

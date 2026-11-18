@@ -83,6 +83,43 @@ describe('Generic Project Generator', () => {
     })
   })
 
+  describe('maintenance note', () => {
+    const maintenanceNotesOf = (folder: { files: Array<{ name: string; content: string }> }) =>
+      folder.files.filter((file) => file.name === 'MAINTENANCE')
+
+    it('puts one note at the root of every generated project, after package.json', async () => {
+      const generator = createProjectGenerator(createStrategyWithCommonGenerator())
+      const result = await generator.generateProject(projectUIDL)
+
+      const notes = maintenanceNotesOf(result)
+      expect(notes.length).toBe(1)
+      expect(notes[0].content).toContain(
+        `# Maintaining ${(projectUIDL as unknown as ProjectUIDL).name}`
+      )
+      expect(result.files[result.files.length - 1].name).toBe('MAINTENANCE')
+    })
+
+    it('keeps the note a template already has', async () => {
+      const generator = createProjectGenerator(createStrategyWithCommonGenerator())
+      const result = await generator.generateProject(projectUIDL, {
+        name: 'template',
+        files: [{ name: 'MAINTENANCE', fileType: 'md', content: 'written by the template author' }],
+        subFolders: [],
+      })
+
+      const notes = maintenanceNotesOf(result)
+      expect(notes.length).toBe(1)
+      expect(notes[0].content).toBe('written by the template author')
+    })
+
+    it('leaves a README alone, so an export never replaces the one in a repository', async () => {
+      const generator = createProjectGenerator(createStrategyWithCommonGenerator())
+      const result = await generator.generateProject(projectUIDL)
+
+      expect(result.files.some((file) => file.name === 'README')).toBe(false)
+    })
+  })
+
   describe('with the different component generators', () => {
     const strategy = createStrategyWithSeparateGenerators()
     const generator = createProjectGenerator(strategy)

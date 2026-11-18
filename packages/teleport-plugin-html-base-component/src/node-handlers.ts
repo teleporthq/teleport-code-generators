@@ -5,6 +5,9 @@ import {
   HTMLComponentGeneratorError,
   UIDLAttributeValue,
   UIDLConditionExpressionEntry,
+  UIDLConditionExpressionGroup,
+  UIDLConditionalExpression,
+  UIDLExpressionValue,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLDynamicReference,
@@ -233,144 +236,31 @@ export const generateHtmlSyntax: NodeToHTML<
       }
 
       const conditionalNodeComment = HASTBuilders.createTextNode('')
-      const {
-        value: staticValue,
-        reference,
-        condition: { conditions, matchingCriteria },
-      } = node.content
 
-      if (reference.type !== 'dynamic') {
+      // Anything the state runtime cannot run is resolved here, once, against
+      // the values its references START with: the page shows what a visitor
+      // sees on first load of the Next.js export. (State conditions used to
+      // render nothing at all, true or not — the burger of a closed menu, the
+      // first tab — and a download lost that content.) A condition that reads
+      // a value with no starting value renders nothing.
+      const passing = answerAtStartingValues(node.content, {
+        propDefinitions,
+        stateDefinitions,
+        resolvedExpressions,
+      })
+      if (!passing) {
         return conditionalNodeComment
       }
-
-      // Anything the state runtime cannot run is resolved here, once. This
-      // evaluator resolves ONE reference to its default value and checks
-      // a FLAT condition chain against it. Entries carrying their own
-      // per-entry `reference` and nested groups cannot be answered that way —
-      // bail out (render nothing) instead of evaluating them wrong.
-      if (
-        conditions.some(
-          (conditionEntry) =>
-            UIDLUtils.isUIDLConditionGroup(conditionEntry) || conditionEntry.reference
-        )
-      ) {
-        return conditionalNodeComment
-      }
-
-      // The guard above ensured every remaining entry is a flat leaf.
-      const leafConditions = conditions as UIDLConditionExpressionEntry[]
-
-      // Such a condition is resolved against the value its reference STARTS
-      // with: the page shows what a visitor sees on first load of the Next.js
-      // export. (State conditions used to render nothing at all, true or not —
-      // the burger of a closed menu, the first tab — and a download lost that
-      // content.)
-      const renderWhenPassing = async (
-        currentValue: UIDLPropDefinition['defaultValue'],
-        currentValueType?: string
-      ) => {
-        const joiner = matchingCriteria && matchingCriteria === 'all' ? '&&' : '||'
-        try {
-          // Inside the guard: a value this evaluator cannot write as code (a
-          // list compared with `===`) is a condition it cannot answer, and an
-          // unanswered condition renders nothing. Thrown from here it failed
-          // the export of the whole project.
-          const statements = createConditionalStatement(
-            staticValue !== undefined
-              ? [{ operand: staticValue, operation: '===' }]
-              : leafConditions,
-            currentValue,
-            currentValueType
-          )
-          // tslint:disable-next-line function-constructor
-          const passing = new Function(`return ${statements.join(` ${joiner} `)}`)()
-          if (!passing) {
-            return conditionalNodeComment
-          }
-        } catch (error) {
-          return conditionalNodeComment
-        }
-        return generateHtmlSyntax(
-          node.content.node,
-          compName,
-          nodesLookup,
-          propDefinitions,
-          stateDefinitions,
-          subComponentOptions,
-          structure,
-          resolvedExpressions
-        )
-      }
-
-      const {
-        content: { referenceType, id, refPath = [] },
-      } = reference
-
-      switch (referenceType) {
-        case 'prop': {
-          const usedProp = propDefinitions[id]
-          if (usedProp === undefined || usedProp.defaultValue === undefined) {
-            return conditionalNodeComment
-          }
-          let defaultValue = usedProp.defaultValue
-          for (const path of refPath) {
-            defaultValue = (defaultValue as Record<string, unknown[]>)?.[path]
-          }
-
-          // If defaultValue is undefined or null after path traversal, use original default
-          defaultValue = defaultValue ?? usedProp.defaultValue
-
-          // A field read from an object prop has the type of its value, as in
-          // the JSX exports' `createConditionIdentifier`.
-          return renderWhenPassing(
-            defaultValue,
-            refPath.length > 0 ? typeof defaultValue : usedProp.type
-          )
-        }
-
-        case 'local': {
-          if (!resolvedExpressions || resolvedExpressions.currentIndex === undefined) {
-            return conditionalNodeComment
-          }
-
-          // Find the matching expression context for this local reference
-          const expressionEntries = Object.values(resolvedExpressions.expressions || {})
-          let localValue: unknown
-          for (const expr of expressionEntries) {
-            if (expr && Array.isArray(expr.defaultValue)) {
-              const currentItem = expr.defaultValue[resolvedExpressions.currentIndex]
-              if (currentItem !== undefined) {
-                localValue = currentItem
-                for (const path of refPath) {
-                  localValue = (localValue as Record<string, unknown>)?.[path]
-                }
-                break
-              }
-            }
-          }
-
-          if (localValue === undefined) {
-            return conditionalNodeComment
-          }
-
-          return renderWhenPassing(localValue as UIDLPropDefinition['defaultValue'])
-        }
-
-        case 'state': {
-          const usedState = stateDefinitions?.[id]
-          if (usedState === undefined || usedState.defaultValue === undefined) {
-            return conditionalNodeComment
-          }
-          let startValue = usedState.defaultValue as UIDLPropDefinition['defaultValue']
-          for (const path of refPath) {
-            startValue = (startValue as Record<string, UIDLPropDefinition['defaultValue']>)?.[path]
-          }
-          return renderWhenPassing(startValue, refPath.length > 0 ? undefined : usedState.type)
-        }
-
-        default:
-          return conditionalNodeComment
-      }
+      return generateHtmlSyntax(
+        node.content.node,
+        compName,
+        nodesLookup,
+        propDefinitions,
+        stateDefinitions,
+        subComponentOptions,
+        structure,
+        resolvedExpressions
+      )
 
     case 'expr':
       const content = node.content.split('?.')
@@ -468,6 +358,200 @@ export const generateHtmlSyntax: NodeToHTML<
 /** Another value of the page, read while the page runs: not known here. */
 const isReference = (operand: unknown): boolean =>
   typeof operand === 'object' && operand !== null && 'type' in operand
+
+type ConditionReference = UIDLDynamicReference | UIDLExpressionValue
+
+interface StartingValues {
+  propDefinitions: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
+  resolvedExpressions?: {
+    expressions: Record<string, UIDLPropDefinition>
+    currentIndex: number
+  }
+}
+
+interface StartingValue {
+  value: UIDLPropDefinition['defaultValue']
+  type?: string
+}
+
+type DefaultValue = UIDLPropDefinition['defaultValue']
+
+const valueAtPath = (value: DefaultValue, path: string[]): DefaultValue =>
+  path.reduce(
+    (current: DefaultValue, key) => (current as Record<string, DefaultValue>)?.[key],
+    value
+  )
+
+const EXPRESSION_STEP = /\??\.(?:([\w$]+)|\[(?:"([^"]*)"|(\d+))\])/g
+const EXPRESSION_READ = new RegExp(`^([A-Za-z_$][\\w$]*)((?:${EXPRESSION_STEP.source})*)$`)
+
+/** `product?.price`, `product?.["sale-price"]`: the value a read is named by, and the path into it. */
+const readOfExpression = (source: string): { head: string; path: string[] } | null => {
+  const read = EXPRESSION_READ.exec(source.trim())
+  if (!read) {
+    return null
+  }
+  const path = Array.from(read[2].matchAll(EXPRESSION_STEP)).map(
+    (step) => step[1] ?? step[2] ?? step[3]
+  )
+  return { head: read[1], path }
+}
+
+/** The list item the page is being written for, read by the name its list gives it. */
+const startingValueOfExpression = (
+  source: string,
+  { propDefinitions, stateDefinitions, resolvedExpressions }: StartingValues
+): StartingValue | null => {
+  const read = readOfExpression(source)
+  if (!read) {
+    return null
+  }
+  const list = resolvedExpressions?.expressions?.[read.head]
+  if (list && Array.isArray(list.defaultValue)) {
+    const item = list.defaultValue[resolvedExpressions.currentIndex] as DefaultValue
+    const itemValue = valueAtPath(item, read.path)
+    return itemValue === undefined ? null : { value: itemValue }
+  }
+  const definition = propDefinitions?.[read.head] ?? stateDefinitions?.[read.head]
+  if (!definition || definition.defaultValue === undefined) {
+    return null
+  }
+  const value = valueAtPath(definition.defaultValue as DefaultValue, read.path)
+  return value === undefined ? null : { value }
+}
+
+/** What a condition's reference holds as the page first loads, or null when nothing says. */
+const startingValueOf = (
+  reference: ConditionReference | undefined,
+  values: StartingValues
+): StartingValue | null => {
+  if (!reference) {
+    return null
+  }
+  if (reference.type === 'expr') {
+    return startingValueOfExpression(reference.content, values)
+  }
+  if (reference.type !== 'dynamic') {
+    return null
+  }
+  const { propDefinitions, stateDefinitions, resolvedExpressions } = values
+  const { referenceType, id, refPath = [] } = reference.content
+
+  switch (referenceType) {
+    case 'prop': {
+      const usedProp = propDefinitions[id]
+      if (usedProp === undefined || usedProp.defaultValue === undefined) {
+        return null
+      }
+      // A path that leads nowhere reads the prop's own default.
+      const value = valueAtPath(usedProp.defaultValue, refPath) ?? usedProp.defaultValue
+      // A field read from an object prop has the type of its value, as in
+      // the JSX exports' `createConditionIdentifier`.
+      return { value, type: refPath.length > 0 ? typeof value : usedProp.type }
+    }
+
+    case 'local': {
+      if (!resolvedExpressions || resolvedExpressions.currentIndex === undefined) {
+        return null
+      }
+      const item = Object.values(resolvedExpressions.expressions || {})
+        .map((expression) =>
+          expression && Array.isArray(expression.defaultValue)
+            ? (expression.defaultValue[resolvedExpressions.currentIndex] as DefaultValue)
+            : undefined
+        )
+        .find((candidate) => candidate !== undefined)
+      const value = item === undefined ? undefined : valueAtPath(item, refPath)
+      return value === undefined ? null : { value }
+    }
+
+    case 'state': {
+      const usedState = stateDefinitions?.[id]
+      if (usedState === undefined || usedState.defaultValue === undefined) {
+        return null
+      }
+      return {
+        value: valueAtPath(usedState.defaultValue as DefaultValue, refPath),
+        type: refPath.length > 0 ? undefined : usedState.type,
+      }
+    }
+
+    default:
+      return null
+  }
+}
+
+/** One rule, on its own reference when it names one. Null: it reads a value nothing starts. */
+const answerRule = (
+  rule: UIDLConditionExpressionEntry,
+  chainReference: ConditionReference | undefined,
+  values: StartingValues
+): boolean | null => {
+  const left = startingValueOf(
+    (rule.reference as ConditionReference | undefined) ?? chainReference,
+    values
+  )
+  if (!left) {
+    return null
+  }
+  let operand = rule.operand
+  if (isReference(operand)) {
+    const right = startingValueOf(operand as unknown as ConditionReference, values)
+    if (!right) {
+      return null
+    }
+    operand = right.value as UIDLConditionExpressionEntry['operand']
+  }
+  try {
+    // Inside the guard: a value this evaluator cannot write as code (a list
+    // compared with `===`) is a condition it cannot answer. Thrown from here
+    // it failed the export of the whole project.
+    const [statement] = createConditionalStatement([{ ...rule, operand }], left.value, left.type)
+    // tslint:disable-next-line function-constructor
+    return Boolean(new Function(`return ${statement}`)())
+  } catch (error) {
+    return null
+  }
+}
+
+const answerChain = (
+  chain: UIDLConditionalExpression | UIDLConditionExpressionGroup,
+  chainReference: ConditionReference | undefined,
+  values: StartingValues
+): boolean | null => {
+  const answers = (chain.conditions || []).map((entry) =>
+    UIDLUtils.isUIDLConditionGroup(entry)
+      ? answerChain(entry, chainReference, values)
+      : answerRule(entry, chainReference, values)
+  )
+  // One rule left unanswered leaves the whole condition unanswered.
+  if (answers.length === 0 || answers.some((answer) => answer === null)) {
+    return null
+  }
+  return chain.matchingCriteria === 'all' ? answers.every(Boolean) : answers.some(Boolean)
+}
+
+/**
+ * Whether a conditional node shows as the page first loads. Every reference —
+ * the condition's own, a rule's, the other side of a comparison — is read at
+ * its starting value: a prop's or a state's default, or the list item the page
+ * is being written for.
+ */
+const answerAtStartingValues = (
+  content: {
+    reference: ConditionReference
+    value?: string | number | boolean
+    condition?: UIDLConditionalExpression
+  },
+  values: StartingValues
+): boolean => {
+  const chain: UIDLConditionalExpression | undefined =
+    content.value !== undefined
+      ? { conditions: [{ operation: '===', operand: content.value }], matchingCriteria: 'all' }
+      : content.condition
+  return chain ? answerChain(chain, content.reference, values) === true : false
+}
 
 const createConditionalStatement = (
   conditions: UIDLConditionExpressionEntry[],

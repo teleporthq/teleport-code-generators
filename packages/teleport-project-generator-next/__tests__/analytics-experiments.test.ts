@@ -31,12 +31,22 @@ const uidlWith = (rootChildren: any[], componentChildren: any[] = []) =>
 
 function runScript(ids: string[], storage: Record<string, string>, random = 0.2) {
   const styles: string[] = []
+  const listeners: Record<string, Array<() => void>> = {}
   const fakeWindow = {
     localStorage: {
       getItem: (key: string) => (key in storage ? storage[key] : null),
       setItem: (key: string, value: string) => {
         storage[key] = value
       },
+      removeItem: (key: string) => {
+        delete storage[key]
+      },
+    },
+    addEventListener: (type: string, listener: () => void) => {
+      listeners[type] = (listeners[type] || []).concat(listener)
+    },
+    removeEventListener: (type: string, listener: () => void) => {
+      listeners[type] = (listeners[type] || []).filter((known) => known !== listener)
     },
   } as any
   const fakeDocument = {
@@ -48,7 +58,13 @@ function runScript(ids: string[], storage: Record<string, string>, random = 0.2)
     fakeDocument,
     Object.assign(Object.create(Math), { random: () => random })
   )
-  return { assigned: fakeWindow.__tpExp as Record<string, string>, styles }
+  // What the cookie banner's Accept does: the workflow step writes the key and
+  // announces the write in this tab.
+  const accept = () => {
+    storage.cookieConsent = 'accepted'
+    ;(listeners['teleport:local-storage'] || []).forEach((listener) => listener())
+  }
+  return { assigned: fakeWindow.__tpExp as Record<string, string>, styles, accept }
 }
 
 describe('experiments — finding them in the project', () => {
@@ -87,21 +103,43 @@ describe('experiments — finding them in the project', () => {
 })
 
 describe('experiments — the head script', () => {
-  it('flips a coin without consent, keeps the arm, and hides the other variant', () => {
+  it('flips a coin without consent, hides the other variant, and stores nothing on the device', () => {
     const storage: Record<string, string> = {}
     const first = runScript(['hero-1'], storage, 0.2)
     expect(first.assigned).toEqual({ 'hero-1': 'a' })
-    expect(storage['tq_exp:hero-1']).toBe('a')
     expect(first.styles).toEqual([
       '[data-tq-exp="hero-1"][data-tq-exp-variant="b"],[data-tq-exp="hero-1"][data-tq-exp-variant="b"] *{display:none!important}',
     ])
-    // A later visit with a different coin keeps the stored arm.
-    const again = runScript(['hero-1'], storage, 0.9)
-    expect(again.assigned).toEqual({ 'hero-1': 'a' })
+    expect(storage).toEqual({})
 
     const other = runScript(['hero-1'], {}, 0.9)
     expect(other.assigned).toEqual({ 'hero-1': 'b' })
     expect(other.styles[0]).toContain('[data-tq-exp-variant="a"]')
+  })
+
+  it('without consent, removes an arm an earlier build stored instead of reading it', () => {
+    const storage: Record<string, string> = { 'tq_exp:hero-1': 'b', cookieConsent: 'declined' }
+    expect(runScript(['hero-1'], storage, 0.2).assigned).toEqual({ 'hero-1': 'a' })
+    expect(storage).toEqual({ cookieConsent: 'declined' })
+  })
+
+  it('stores the arm the visitor is seeing once they accept on this page, and keeps it after', () => {
+    const storage: Record<string, string> = {}
+    const page = runScript(['hero-1'], storage, 0.9)
+    expect(page.assigned).toEqual({ 'hero-1': 'b' })
+    expect(storage['tq_exp:hero-1']).toBeUndefined()
+
+    page.accept()
+    expect(storage['tq_exp:hero-1']).toBe('b')
+    // The next page load keeps the version they saw, whatever the coin says.
+    expect(runScript(['hero-1'], storage, 0.2).assigned).toEqual({ 'hero-1': 'b' })
+  })
+
+  it('with consent, flips a coin once, stores the arm and reuses it', () => {
+    const storage: Record<string, string> = { cookieConsent: 'accepted' }
+    expect(runScript(['hero-1'], storage, 0.2).assigned).toEqual({ 'hero-1': 'a' })
+    expect(storage['tq_exp:hero-1']).toBe('a')
+    expect(runScript(['hero-1'], storage, 0.9).assigned).toEqual({ 'hero-1': 'a' })
   })
 
   it('derives the arm from the visitor id with consent — stable per visitor, not per site', () => {
@@ -126,6 +164,7 @@ describe('experiments — the head script', () => {
           throw new Error('blocked')
         },
       },
+      addEventListener: () => undefined,
     } as any
     const fakeDocument = {
       createElement: () => ({ textContent: '' }),

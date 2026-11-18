@@ -19,7 +19,7 @@ export const PlainHTMLMapping: Mapping = {
         version: '0.1.13',
         meta: {
           importJustPath: true,
-          importAlias: 'https://unpkg.com/dangerous-html/dist/default/lib.umd.js',
+          importAlias: 'https://unpkg.com/dangerous-html@0.1.13/dist/default/lib.umd.js',
         },
       },
     },
@@ -32,7 +32,7 @@ export const PlainHTMLMapping: Mapping = {
         meta: {
           importJustPath: true,
           importAlias:
-            'https://github.com/teleporthq/date-time-primitive/blob/main/dist/default/lib.umd.js',
+            'https://cdn.jsdelivr.net/gh/teleporthq/date-time-primitive@3712fd590bd2bb63c5b95228a2f876c809d90349/dist/default/lib.umd.js',
         },
       },
     },

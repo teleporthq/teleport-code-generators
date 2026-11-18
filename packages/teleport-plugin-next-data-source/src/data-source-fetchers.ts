@@ -30,6 +30,8 @@ import {
   validateTeleportConfig,
   generateRawQueryFetcher,
   parseQueryTemplateVariables,
+  generateComponentStateRoute,
+  COMPONENT_STATE_ROUTE_FOLDER,
 } from './fetchers'
 import { validateDatabaseConfig } from './validation'
 import { generateCountFetcher } from './count-fetchers'
@@ -54,6 +56,7 @@ const bareTableName = (tableName: string): string =>
   ).replace(/"/g, '')
 
 export { generateRawQueryFetcher, parseQueryTemplateVariables }
+export { generateComponentStateRoute, COMPONENT_STATE_ROUTE_FOLDER }
 
 interface DataSourceFetcherDependencies {
   packages: string[]

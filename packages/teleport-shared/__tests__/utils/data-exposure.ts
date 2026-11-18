@@ -2,7 +2,9 @@ import { ProjectUIDL } from '@teleporthq/teleport-types'
 import {
   BROWSER_READ_DEFAULT_LIMIT,
   BROWSER_READ_MAX_LIMIT,
+  CLOSED_COMPONENT_EXPOSURE,
   CLOSED_READ_EXPOSURE,
+  componentExposureFor,
   managedDataSourceIds,
   readExposureFor,
   resolveDataExposure,
@@ -652,5 +654,307 @@ describe("fix round 3: row-owned pages by the middleware's own patterns (N10), m
       })
     ).toEqual(['ds-tq', 'ds-tq-2'])
     expect(managedDataSourceIds({})).toEqual([])
+  })
+})
+
+/**
+ * A component is not a page: what it fetches for itself has no protection of
+ * its own, so it takes the protection of the pages it is placed on. Whoever may
+ * open one of them may read it; nobody else.
+ */
+describe('who may read what a component fetches for itself', () => {
+  const DB = 'ds'
+  const pageNode = (value: string, children: unknown[]) => ({
+    type: 'conditional',
+    content: {
+      reference: { type: 'dynamic', content: { referenceType: 'state', id: 'route' } },
+      value,
+      node: { type: 'element', content: { elementType: 'container', children } },
+    },
+  })
+  // A component as the UIDL names it: by its key.
+  const placed = (key: string) => ({
+    type: 'element',
+    content: { elementType: 'component', semanticType: key, dependency: { type: 'local' } },
+  })
+  const component = (name: string, children: unknown[] = []) => ({
+    name,
+    node: { type: 'element', content: { elementType: 'container', children } },
+  })
+  const tableList = (table: string) => ({
+    type: 'data-source-list',
+    content: {
+      renderPropIdentifier: `${table}Items`,
+      resourceDefinition: { type: 'external-data-source', dataSourceId: DB, tableName: table },
+      resource: { params: {} },
+      nodes: { success: { type: 'cms-list-repeater', content: { paginated: true, perPage: 10 } } },
+    },
+  })
+
+  const PAGES: Array<[string, string]> = [
+    ['home', '/'],
+    ['account', '/account'],
+    ['staff', '/staff'],
+    ['lessons', '/lessons'],
+    ['application', '/applications/[id]'],
+    ['admin/orders', '/admin/orders'],
+    ['admin/stock', '/admin/stock'],
+  ]
+
+  const buildProject = (
+    placements: Record<string, unknown[]>,
+    components: Record<string, unknown>,
+    layout: unknown[] = []
+  ): ProjectUIDL =>
+    ({
+      name: 'p',
+      root: {
+        name: 'App',
+        stateDefinitions: {
+          route: {
+            type: 'string',
+            defaultValue: 'home',
+            values: PAGES.map(([value, navLink]) => ({
+              value,
+              pageId: `id-${value}`,
+              pageOptions: { navLink },
+            })),
+          },
+        },
+        node: {
+          type: 'element',
+          content: {
+            elementType: 'container',
+            children: [
+              ...PAGES.map(([value]) => pageNode(value, placements[value] || [])),
+              ...layout,
+            ],
+          },
+        },
+      },
+      components,
+      authentication: {
+        enabled: true,
+        roles: ['admin', 'staff', 'user'],
+        pageProtection: {
+          'id-account': { requiresAuth: true, allowedRoles: [], route: '/account' },
+          'id-staff': { requiresAuth: true, allowedRoles: ['staff'], route: '/staff' },
+          'id-lessons': {
+            requiresAuth: true,
+            allowedRoles: [],
+            route: '/lessons',
+            requiresSubscription: true,
+            subscriptionProductIds: ['plan-pro'],
+          },
+          'id-application': {
+            requiresAuth: true,
+            allowedRoles: [],
+            route: '/applications',
+            rowOwnerColumn: 'user_id',
+            rowOwnerTable: 'job_applications',
+            rowOwnerDataSourceId: DB,
+            rowOwnerDifferentiator: 'id',
+          },
+          'id-admin/orders': {
+            requiresAuth: true,
+            allowedRoles: ['admin'],
+            route: '/admin/orders',
+          },
+          'id-admin/stock': { requiresAuth: true, allowedRoles: ['admin'], route: '/admin/stock' },
+        },
+        folderProtection: {},
+        authPages: {},
+      },
+    } as unknown as ProjectUIDL)
+
+  const readersOf = (uidl: ProjectUIDL, name: string) =>
+    componentExposureFor(resolveDataExposure(uidl), name)
+
+  it('every visitor, when a page every visitor may open renders it', () => {
+    const uidl = buildProject({ home: [placed('hero')] }, { hero: component('hero') })
+
+    expect(readersOf(uidl, 'hero')).toEqual({ public: true, pages: [], readsAsStore: false })
+  })
+
+  it('only the sessions of the protected page that renders it', () => {
+    const uidl = buildProject(
+      { account: [placed('notes')], staff: [placed('rota')], lessons: [placed('lesson-list')] },
+      {
+        notes: component('notes'),
+        rota: component('rota'),
+        'lesson-list': component('lesson-list'),
+      }
+    )
+
+    expect(readersOf(uidl, 'notes')).toEqual({
+      public: false,
+      pages: [{ allowedRoles: [] }],
+      readsAsStore: false,
+    })
+    expect(readersOf(uidl, 'rota')).toEqual({
+      public: false,
+      pages: [{ allowedRoles: ['staff'] }],
+      readsAsStore: false,
+    })
+    expect(readersOf(uidl, 'lesson-list')).toEqual({
+      public: false,
+      pages: [
+        { allowedRoles: [], requiresSubscription: true, subscriptionProductIds: ['plan-pro'] },
+      ],
+      readsAsStore: false,
+    })
+  })
+
+  it('whoever one of its pages admits, when several render it — and every visitor once one of them is open to all', () => {
+    const onTwoProtected = buildProject(
+      { account: [placed('badge')], staff: [placed('badge')] },
+      { badge: component('badge') }
+    )
+    expect(readersOf(onTwoProtected, 'badge').pages).toEqual([
+      { allowedRoles: ['staff'] },
+      { allowedRoles: [] },
+    ])
+
+    const alsoOnHome = buildProject(
+      { home: [placed('badge')], staff: [placed('badge')] },
+      { badge: component('badge') }
+    )
+    expect(readersOf(alsoOnHome, 'badge')).toEqual({ public: true, pages: [], readsAsStore: false })
+  })
+
+  it('counts two pages that demand the same once', () => {
+    const uidl = buildProject(
+      { 'admin/orders': [placed('totals')], 'admin/stock': [placed('totals')] },
+      { totals: component('totals') }
+    )
+
+    expect(readersOf(uidl, 'totals').pages).toEqual([{ allowedRoles: ['admin'] }])
+  })
+
+  it('follows a component into the components it renders', () => {
+    const uidl = buildProject(
+      { staff: [placed('board')] },
+      { board: component('board', [placed('card')]), card: component('card', [placed('board')]) }
+    )
+
+    expect(readersOf(uidl, 'card').pages).toEqual([{ allowedRoles: ['staff'] }])
+  })
+
+  it('every visitor for the layout every page shares, and for a row-owned page the middleware lets through', () => {
+    const uidl = buildProject(
+      { staff: [placed('footer')], application: [placed('steps')] },
+      { footer: component('footer'), steps: component('steps') },
+      [{ type: 'element', content: { elementType: 'container', children: [placed('footer')] } }]
+    )
+
+    expect(readersOf(uidl, 'footer').public).toBe(true)
+    expect(readersOf(uidl, 'steps').public).toBe(true)
+  })
+
+  it('no browser at all for a component no page renders, or one nothing decided', () => {
+    const uidl = buildProject({}, { orphan: component('orphan') })
+
+    expect(readersOf(uidl, 'orphan')).toBe(CLOSED_COMPONENT_EXPOSURE)
+    expect(readersOf(uidl, 'unknown')).toBe(CLOSED_COMPONENT_EXPOSURE)
+    expect(componentExposureFor(undefined, 'orphan')).toBe(CLOSED_COMPONENT_EXPOSURE)
+    expect(componentExposureFor(resolveDataExposure(uidl), undefined)).toBe(
+      CLOSED_COMPONENT_EXPOSURE
+    )
+    expect(CLOSED_COMPONENT_EXPOSURE).toEqual({ public: false, pages: [], readsAsStore: false })
+  })
+
+  it('reads as the store only when every page that renders it does', () => {
+    const adminOnly = buildProject(
+      { 'admin/orders': [placed('totals')] },
+      { totals: component('totals') }
+    )
+    expect(readersOf(adminOnly, 'totals')).toEqual({
+      public: false,
+      pages: [{ allowedRoles: ['admin'] }],
+      readsAsStore: true,
+    })
+
+    const alsoForMembers = buildProject(
+      { 'admin/orders': [placed('totals')], account: [placed('totals')] },
+      { totals: component('totals') }
+    )
+    expect(readersOf(alsoForMembers, 'totals').readsAsStore).toBe(false)
+  })
+
+  it('is public for every component of a project without authentication', () => {
+    const uidl = buildProject({ staff: [placed('rota')] }, { rota: component('rota') }) as any
+    delete uidl.authentication
+
+    expect(readersOf(uidl, 'rota')).toEqual({ public: true, pages: [], readsAsStore: false })
+  })
+
+  // THE DEFECT: the project generator resolves the local dependencies before the
+  // exposure is read, and writes the component's CLASS name over the element's
+  // `semanticType` (`product-card` → `ProductCard`). The walk looked the element
+  // up among the component KEYS only, so a component named as every real
+  // project names them was taken for one no page renders: a table bound only
+  // inside it was closed, and a visitor of a public page was refused its rows.
+  describe('once the project generator resolved the local dependencies', () => {
+    const resolved = (className: string, path: string) => ({
+      type: 'element',
+      content: {
+        elementType: 'component',
+        semanticType: className,
+        dependency: { type: 'local', path },
+      },
+    })
+    const withClassName = (name: string, className: string, children: unknown[] = []) => ({
+      ...component(name, children),
+      outputOptions: { componentClassName: className, fileName: name },
+    })
+
+    it('THE DEFECT: still finds a component named by its class, and the tables it binds', () => {
+      const uidl = buildProject(
+        { home: [resolved('ProductCard', '../components/product-card')] },
+        { 'product-card': withClassName('product-card', 'ProductCard', [tableList('reviews')]) }
+      )
+      const exposure = resolveDataExposure(uidl)
+
+      expect(exposure.tables['ds:reviews']).toMatchObject({ public: true })
+      expect(componentExposureFor(exposure, 'product-card').public).toBe(true)
+    })
+
+    it('keeps a component behind its protected page', () => {
+      const uidl = buildProject(
+        { staff: [resolved('StaffRota', '../components/staff-rota')] },
+        { 'staff-rota': withClassName('staff-rota', 'StaffRota', [tableList('staff_rotas')]) }
+      )
+      const exposure = resolveDataExposure(uidl)
+
+      expect(exposure.tables['ds:staff_rotas']).toMatchObject({
+        public: false,
+        anySession: false,
+        roles: ['staff'],
+      })
+      expect(componentExposureFor(exposure, 'staff-rota').pages).toEqual([
+        { allowedRoles: ['staff'] },
+      ])
+    })
+
+    it('never takes a class name for the key another component has', () => {
+      // `Card` is one component's key and — resolved — the other one's class.
+      const components = {
+        Card: withClassName('Card', 'Card1', [tableList('staff_rotas')]),
+        card: withClassName('card', 'Card', [tableList('reviews')]),
+      }
+      const exposure = resolveDataExposure(
+        buildProject({ home: [resolved('Card', '../components/card')] }, components)
+      )
+
+      expect(componentExposureFor(exposure, 'card').public).toBe(true)
+      expect(componentExposureFor(exposure, 'Card')).toBe(CLOSED_COMPONENT_EXPOSURE)
+      expect(exposure.tables['ds:reviews']).toMatchObject({ public: true })
+      expect(exposure.tables['ds:staff_rotas']).toBeUndefined()
+
+      // Unresolved, the same name is the key.
+      const unresolved = resolveDataExposure(buildProject({ home: [placed('Card')] }, components))
+      expect(componentExposureFor(unresolved, 'Card').public).toBe(true)
+      expect(componentExposureFor(unresolved, 'card')).toBe(CLOSED_COMPONENT_EXPOSURE)
+    })
   })
 })

@@ -85,6 +85,8 @@ ${kindLiterals}
 }
 const MAX_ITEMS = ${config.maxItems}
 const MAX_IDS = ${MAX_IDS}
+const PRICE_SYMBOL_SIDE = ${toJsLiteral(config.priceSymbolSide)}
+const BOOKING_PRICE = ${toJsLiteral(config.bookingPrice)}
 
 function text(value) {
   if (value === undefined || value === null) return ''
@@ -110,11 +112,18 @@ function list(value) {
   return raw.split(',').map((item) => item.trim()).filter(Boolean)
 }
 
-function priceCell(row) {
-  const amount = number(row.price)
+// The price a visitor is quoted on the item's card: the default variant's, else
+// the item's own, discounted and with the store's tax. Booking items carry only
+// their stored price, and no currency: theirs is the bookings' (BOOKING_PRICE).
+function priceCell(row, kind) {
+  const amount = number(text(row.defaultVariantDisplayPrice) || text(row.displayPrice) || row.price)
   if (amount === null) return null
-  const symbol = text(row.currency_symbol || row.currencySymbol) || text(row.currency) || ''
-  return { text: symbol + amount.toFixed(2), number: amount }
+  const rowSymbol = text(row.currency_symbol || row.currencySymbol) || text(row.currency)
+  const bookings = !rowSymbol && kind === 'bookingItems' ? BOOKING_PRICE : null
+  const symbol = bookings ? bookings.symbol : rowSymbol
+  const side = bookings ? bookings.side : PRICE_SYMBOL_SIDE
+  const parts = side === 'after' ? [amount.toFixed(2), symbol] : [symbol, amount.toFixed(2)]
+  return { text: parts.filter(Boolean).join(' '), number: amount }
 }
 
 function minutes(value) {
@@ -133,7 +142,7 @@ function cell(kind, key, row) {
   switch (kind + ':' + key) {
     case 'products:price':
     case 'bookingItems:price':
-      return priceCell(row)
+      return priceCell(row, kind)
     case 'products:rating': {
       const rating = number(row.average_rating || row.averageRating || row.rating)
       return rating === null ? null : { text: rating.toFixed(1) + ' / 5', number: rating }

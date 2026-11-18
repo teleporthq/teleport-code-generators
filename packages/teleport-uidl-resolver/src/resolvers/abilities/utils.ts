@@ -495,25 +495,26 @@ export const insertLinks = (
       return becomeTheLink(node, abilities.link, options)
     }
 
-    /* A plain <div> that is a flex or grid ITEM becomes the anchor itself.
-       Its wrapper would have to be `display: contents` (see below), and Chrome
-       cannot focus a box-less link: Tab skips it and focus() fails (measured on
-       Chrome 151 and 153), so a keyboard visitor could not reach any linked
-       card in a row or a grid. A flex or grid item is laid out as a block
-       whatever its tag, and at a width where the parent stops being a row or
-       a grid the reset keeps it one (LINKED_BOX_ATTR); its id, classes and
-       runtime attributes stay where the stylesheet and the scene runtime look
-       for them; and the tree is the one the canvas draws, which adds no link
-       element either. Measured on a generated store, 216 links on 8 pages:
-       each renders the same as its wrapped twin. Everything else keeps the
-       wrapper: an element with a meaning of its own (heading, list item,
-       section, image), one that listens to events, and one whose parent is not
-       known to lay out its children as items. */
-    if (
-      parentNode !== undefined &&
-      parentIsFlexOrGridContainer(parentNode, options) &&
-      isPlainContainer(node)
-    ) {
+    /* A plain <div> whose parent is known becomes the anchor itself, with its
+       id, classes and runtime attributes: the tree is then the one the canvas
+       draws, which adds no link element either, so a rule written against the
+       canvas (`.parent > .card`, `.parent > a:is(.card, .tile)`) matches the
+       generated page too. Wrapped, the class sat on a <div> inside the <a> and
+       neither rule reached it.
+       As a flex or grid item the wrapper would also have to be
+       `display: contents` (see below), and Chrome cannot focus a box-less
+       link: Tab skips it and focus() fails (measured on Chrome 151 and 153),
+       so a keyboard visitor could not reach any linked card in a row or a
+       grid. Measured on a generated store, 216 links on 8 pages: each renders
+       the same as its wrapped twin.
+       A flex or grid item is laid out as a block whatever its tag; anywhere
+       else the reset keeps the anchor one at zero weight (LINKED_BOX_ATTR), so
+       any rule of the page's own still decides.
+       Everything else keeps the wrapper: an element with a meaning of its own
+       (heading, list item, section, image), one that listens to events, one
+       carrying an attribute an anchor may not, and one whose parent is not
+       known. */
+    if (parentNode !== undefined && isPlainContainer(node)) {
       return becomeTheLink(node, abilities.link, options)
     }
 

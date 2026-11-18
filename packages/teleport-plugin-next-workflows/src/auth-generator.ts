@@ -730,13 +730,15 @@ export const PASSWORD_RESETS_TABLE = 'teleport_password_resets'
 const PG_PASSWORD_RESET_FUNCTIONS = `
 // Password-reset links (pages/api/auth/forgot-password + reset-password). Only
 // the SHA-256 of a link's token is stored, bound to the account id, with its
-// expiry; the table is created on first use. The earlier password_reset_tokens
-// table and its rows are never read.
+// expiry. The editor makes the table with the other account tables, and a site's
+// database role may read and write it without being allowed to create one
+// (CREATE ... IF NOT EXISTS asks for that permission even when the table is
+// there), so a create is attempted only for a table that really is missing. The
+// earlier password_reset_tokens table and its rows are never read.
 var PASSWORD_RESETS_TABLE = '${PASSWORD_RESETS_TABLE}';
-var __passwordResetsTableReady = false;
+var UNDEFINED_TABLE_CODE = '42P01';
 
-async function ensurePasswordResetsTable(client) {
-  if (__passwordResetsTableReady) return;
+async function createPasswordResetsTable(client) {
   await client.query('BEGIN');
   try {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [PASSWORD_RESETS_TABLE]);
@@ -748,28 +750,53 @@ async function ensurePasswordResetsTable(client) {
     await client.query('COMMIT');
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (_e) {}
-    throw err;
+    throw new Error('[password-reset] the table ' + PASSWORD_RESETS_TABLE + ' is missing and could not be created: ' + (err && err.message ? err.message : String(err)));
   }
-  __passwordResetsTableReady = true;
+}
+
+// Throws when a link could not be kept. Asked for every address, with an account
+// or without, so a table that cannot be used refuses them all alike.
+async function ensurePasswordResetsUsable() {
+  const client = getClient();
+  try {
+    await client.connect();
+    try {
+      await client.query('SELECT 1 FROM ' + PASSWORD_RESETS_TABLE + ' LIMIT 1');
+    } catch (err) {
+      if (!err || err.code !== UNDEFINED_TABLE_CODE) throw err;
+      await createPasswordResetsTable(client);
+    }
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
 }
 
 // One live link per account: a new one ends the ones sent before it.
+async function writePasswordReset(client, userId, tokenHash, ttlSeconds) {
+  await client.query(
+    'UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+    [String(userId)]
+  );
+  await client.query(
+    'INSERT INTO ' + PASSWORD_RESETS_TABLE + " (token_hash, user_id, expires_at) VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 second'))",
+    [tokenHash, String(userId), ttlSeconds]
+  );
+  await client.query(
+    'DELETE FROM ' + PASSWORD_RESETS_TABLE + " WHERE expires_at < NOW() - INTERVAL '1 day'"
+  );
+}
+
 async function storePasswordReset(userId, tokenHash, ttlSeconds) {
   const client = getClient();
   try {
     await client.connect();
-    await ensurePasswordResetsTable(client);
-    await client.query(
-      'UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
-      [String(userId)]
-    );
-    await client.query(
-      'INSERT INTO ' + PASSWORD_RESETS_TABLE + " (token_hash, user_id, expires_at) VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 second'))",
-      [tokenHash, String(userId), ttlSeconds]
-    );
-    await client.query(
-      'DELETE FROM ' + PASSWORD_RESETS_TABLE + " WHERE expires_at < NOW() - INTERVAL '1 day'"
-    );
+    try {
+      await writePasswordReset(client, userId, tokenHash, ttlSeconds);
+    } catch (err) {
+      if (!err || err.code !== UNDEFINED_TABLE_CODE) throw err;
+      await createPasswordResetsTable(client);
+      await writePasswordReset(client, userId, tokenHash, ttlSeconds);
+    }
   } finally {
     try { await client.end(); } catch (_e) {}
   }
@@ -825,6 +852,7 @@ const PASSWORD_RESET_SUPPORTED = true;`
 const UNSUPPORTED_PASSWORD_RESET_FUNCTIONS = `
 // Password-reset links need a Postgres database; this project's user store is
 // not one, so the reset routes answer without ever sending a link.
+async function ensurePasswordResetsUsable() { throw new Error('Password reset needs a Postgres database'); }
 async function storePasswordReset() { throw new Error('Password reset needs a Postgres database'); }
 async function consumePasswordReset() { return null; }
 async function passwordResetIsLive() { return false; }
@@ -1349,6 +1377,7 @@ ${
 module.exports.checkSignInAllowed = checkSignInAllowed;
 module.exports.countSignInFailure = countSignInFailure;
 module.exports.SIGN_IN_VISITOR_HEADER = SIGN_IN_VISITOR_HEADER;
+module.exports.ensurePasswordResetsUsable = ensurePasswordResetsUsable;
 module.exports.storePasswordReset = storePasswordReset;
 module.exports.consumePasswordReset = consumePasswordReset;
 module.exports.passwordResetIsLive = passwordResetIsLive;

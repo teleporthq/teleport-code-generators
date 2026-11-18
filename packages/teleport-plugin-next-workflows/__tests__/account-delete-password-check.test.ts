@@ -86,6 +86,45 @@ describe('deleting an account with a password', () => {
     expect(withoutPepper.status).toBe(403)
   })
 
+  it('checks with the project’s own pepper first, and still with the old one, as sign-in does', async () => {
+    const env = { AUTH_PEPPER: 'pepper-1', AUTH_PEPPER_SECRET: 'secret-1' }
+    // Signed up, or signed in (rehashed), after the deploy provisioned the secret.
+    const current = await runAccountDeleteRoute({
+      userRow: userRow(storedHashOf(PASSWORD, 'secret-1')),
+      tables: TABLES,
+      requestBody: { password: PASSWORD },
+      env,
+    })
+    expect(current.status).toBe(200)
+
+    // Not signed in since: the hash is still on the old pepper.
+    const earlier = await runAccountDeleteRoute({
+      userRow: userRow(storedHashOf(PASSWORD, 'pepper-1')),
+      tables: TABLES,
+      requestBody: { password: PASSWORD },
+      env,
+    })
+    expect(earlier.status).toBe(200)
+
+    const wrong = await runAccountDeleteRoute({
+      userRow: userRow(storedHashOf(PASSWORD, 'secret-1')),
+      tables: TABLES,
+      requestBody: { password: 'not it' },
+      env,
+    })
+    expect(wrong.status).toBe(403)
+  })
+
+  it('takes an unresolved secret placeholder for no secret', async () => {
+    const run = await runAccountDeleteRoute({
+      userRow: userRow(storedHashOf(PASSWORD, 'pepper-1')),
+      tables: TABLES,
+      requestBody: { password: PASSWORD },
+      env: { AUTH_PEPPER: 'pepper-1', AUTH_PEPPER_SECRET: 'teleporthq.secrets.AUTH_PEPPER_SECRET' },
+    })
+    expect(run.status).toBe(200)
+  })
+
   it('refuses any password for an account that has none stored (a social sign-in)', async () => {
     const run = await runAccountDeleteRoute({
       userRow: userRow(null),

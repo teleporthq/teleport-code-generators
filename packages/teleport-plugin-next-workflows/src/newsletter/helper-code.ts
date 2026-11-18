@@ -530,8 +530,8 @@ function canSendNewsletterEmail() {
 
 // A link to one of the site's pages carries the token in its fragment: a
 // fragment never reaches a server, a CDN log or a Referer (the page's first
-// head script keeps it). The site's own unsubscribe route reads it on the
-// server, so a link to it carries it in the query.
+// head script keeps it). The site's own confirm and unsubscribe routes read it
+// on the server, so a link to one of them carries it in the query.
 function pageLink(path, token) {
   return path + (path.indexOf('/api/') === 0 ? '?t=' : '#t=') + encodeURIComponent(token);
 }

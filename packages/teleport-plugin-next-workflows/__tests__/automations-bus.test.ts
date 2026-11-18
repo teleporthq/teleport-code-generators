@@ -359,6 +359,10 @@ class FakeDatabase {
   signedRequests = new Map<string, number>()
   /** Fails every statement on the signed-request table. */
   signedRequestsDown = false
+  /** The editor did not make the signed-request table. */
+  signedRequestsMissing = false
+  /** As the site's role connects: it may read and write tables, and create none, whether or not one exists. */
+  mayCreateTables = false
   private serial = 0
 
   query(sql: string, values: unknown[] = []): { rows: Row[]; rowCount?: number } {
@@ -381,7 +385,16 @@ class FakeDatabase {
         text ===
           'CREATE INDEX IF NOT EXISTS teleport_automation_requests_expires_at ON teleport_automation_requests (expires_at)'
       ) {
+        if (!this.mayCreateTables) {
+          throw Object.assign(new Error('permission denied for schema public'), { code: '42501' })
+        }
+        this.signedRequestsMissing = false
         return { rows: [] }
+      }
+      if (this.signedRequestsMissing) {
+        throw Object.assign(new Error('relation "teleport_automation_requests" does not exist'), {
+          code: '42P01',
+        })
       }
       if (
         text ===
@@ -2874,6 +2887,360 @@ describe('in-app event bus — the mail automations send', () => {
   })
 })
 
+describe('in-app event bus — a run that sent nothing', () => {
+  const mail = (id: string, to: unknown, label: string, stepNumber: number, extra: Row = {}) => ({
+    id,
+    type: 'email-resend',
+    config: {
+      apiKey: 'k',
+      from: 'shop@example.com',
+      to,
+      subject: 'Order paid',
+      body: '<p>Order paid</p>',
+      ...extra,
+    },
+    stepNumber,
+    label,
+  })
+  const gate = (stepNumber: number, left: unknown, rightValue: string) => ({
+    id: 'gate',
+    type: 'general-if-statement',
+    config: { leftValue: left, operator: 'equals', rightValue },
+    stepNumber,
+    label: 'Check',
+  })
+  const OWNER = 'owner@shop.test'
+  const orderNumber = ref('t', ['order', 'number'])
+  const userEmail = ref('t', ['user', 'email'])
+  const onPaid = (id: string, nodes: Row[], edges: Row[]) => ({
+    id,
+    name: id,
+    trigger: trigger('order-paid'),
+    nodes,
+    edges,
+  })
+  const toGate = { id: 'e1', source: 't', target: 'gate' }
+  const whenTrue = { id: 'e2', source: 'gate', target: 'send', sourceHandle: 'true' }
+  const guarded = (id: string, rightValue: string) =>
+    onPaid(
+      id,
+      [gate(1, orderNumber, rightValue), mail('send', OWNER, 'Send Email to Owner', 2)],
+      [toGate, whenTrue]
+    )
+  const afterPost = { id: 'e0', source: 't', target: 'hold' }
+  const holdToGate = { id: 'e1', source: 'hold', target: 'gate' }
+  const parks = {
+    id: 'wait',
+    type: 'general-wait',
+    config: { amount: 1, unit: 'days' },
+    label: 'Wait a day',
+  }
+  const WORKFLOWS: Record<string, Row> = {
+    'wf-skipped': guarded('wf-skipped', 'NOT-THIS-ORDER'),
+    'wf-sent': guarded('wf-sent', 'ORD-1042'),
+    'wf-no-recipient': onPaid(
+      'wf-no-recipient',
+      [mail('send', ref('t', ['order', 'nobody']), 'Send', 1)],
+      [{ id: 'e1', source: 't', target: 'send' }]
+    ),
+    'wf-failed-and-went-on': onPaid(
+      'wf-failed-and-went-on',
+      [mail('send', ref('t', ['order', 'nobody']), 'Send', 1, { continueOnError: true })],
+      [{ id: 'e1', source: 't', target: 'send' }]
+    ),
+    'wf-one-of-two': onPaid(
+      'wf-one-of-two',
+      [
+        gate(1, orderNumber, 'NOT-THIS-ORDER'),
+        mail('send', OWNER, 'Skipped', 2),
+        mail('other', OWNER, 'Sent', 3),
+      ],
+      [toGate, whenTrue, { id: 'e3', source: 'gate', target: 'other', sourceHandle: 'false' }]
+    ),
+    'wf-slow-skipped': onPaid(
+      'wf-slow-skipped',
+      [
+        post('hold', '/hold', 1),
+        gate(2, orderNumber, 'NOT-THIS-ORDER'),
+        mail('send', OWNER, 'Send Email to Owner', 3),
+      ],
+      [afterPost, holdToGate, whenTrue]
+    ),
+    'wf-wait-then-skipped': {
+      id: 'wf-wait-then-skipped',
+      name: 'wf-wait-then-skipped',
+      trigger: trigger('user-signed-up'),
+      nodes: [
+        { ...parks, stepNumber: 1 },
+        post('hold', '/hold', 2),
+        gate(3, userEmail, 'nobody@example.com'),
+        mail('send', OWNER, 'Send Email to Owner', 4),
+      ],
+      edges: [
+        { id: 'e0', source: 't', target: 'wait' },
+        { id: 'e1', source: 'wait', target: 'hold' },
+        holdToGate,
+        whenTrue,
+      ],
+    },
+    'wf-mail-then-wait': {
+      id: 'wf-mail-then-wait',
+      name: 'wf-mail-then-wait',
+      trigger: trigger('user-signed-up'),
+      nodes: [
+        mail('send', OWNER, 'Welcome', 1),
+        { ...parks, stepNumber: 2 },
+        post('after', '/after', 3),
+      ],
+      edges: [
+        { id: 'e0', source: 't', target: 'send' },
+        { id: 'e1', source: 'send', target: 'wait' },
+        { id: 'e2', source: 'wait', target: 'after' },
+      ],
+    },
+  }
+  const NOTE = JSON.stringify({ sentNothing: ['Send Email to Owner'] })
+  let files: Map<string, string>
+
+  beforeAll(async () => {
+    files = sources(await generate(WORKFLOWS))
+  })
+
+  const paidOrder = (workflowId: string) => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+    db.automations = [automationRow(workflowId, 'order-paid')]
+    return db
+  }
+  const signup = (workflowId: string) => {
+    const db = new FakeDatabase()
+    db.users.push({ id: 'user-1', email: 'noah@example.com', name: 'Noah', created_at: ago(1000) })
+    db.automations = [automationRow(workflowId, 'user-signed-up')]
+    db.events.push(
+      eventRow({
+        id: 'evt-signup',
+        event_type: 'user-signed-up',
+        entity_type: 'user',
+        entity_id: 'user-1',
+        actor: 'noah@example.com',
+        actor_type: 'customer',
+      })
+    )
+    return db
+  }
+  const dispatch = (db: FakeDatabase) =>
+    withEcho(() =>
+      silenced(() => (createApp(files, db)('lib/automations/event-bus.js') as Bus).dispatch({}))
+    )
+  /** A dispatch waiting 20 ms for a handler held at its first fetch, released afterwards. */
+  const dispatchHeldOpen = async (db: FakeDatabase) => {
+    const held: Array<() => void> = []
+    const scope = globalThis as Record<string, unknown>
+    const previousFetch = scope.fetch
+    scope.fetch = () =>
+      new Promise((resolve) => {
+        held.push(() =>
+          resolve({
+            ok: true,
+            status: 200,
+            headers: new Map([['content-type', 'application/json']]),
+            json: async () => ({}),
+            text: async () => '{}',
+          })
+        )
+      })
+    try {
+      await withEnv(ENV, () =>
+        silenced(async () => {
+          await (createApp(files, db)('lib/automations/event-bus.js') as Bus).dispatch({
+            handlerTimeoutMs: 20,
+          })
+          expect(held).toHaveLength(1)
+          held[0]()
+          await new Promise((resolve) => setTimeout(resolve, 10))
+        })
+      )
+    } finally {
+      scope.fetch = previousFetch
+    }
+  }
+
+  it('records the send steps a condition skipped, and the run stays delivered', async () => {
+    const db = paidOrder('wf-skipped')
+
+    const result = await dispatch(db)
+
+    expect(result).toEqual({ claimed: 1, delivered: 1, failed: 0, resumed: 0 })
+    expect(db.mailSent).toEqual([])
+    expect(db.delivery('wf-skipped')).toMatchObject({ status: 'delivered', error: NOTE })
+    expect(db.events[0]).toMatchObject({ status: 'delivered', attempts: 1 })
+  })
+
+  it('records nothing when a send step sent, or when the automation has none', async () => {
+    const sent = paidOrder('wf-sent')
+    await dispatch(sent)
+    expect(sent.mailSent).toHaveLength(1)
+    expect(sent.delivery('wf-sent')).toMatchObject({ status: 'delivered', error: null })
+
+    const oneOfTwo = paidOrder('wf-one-of-two')
+    await dispatch(oneOfTwo)
+    expect(oneOfTwo.mailSent).toHaveLength(1)
+    expect(oneOfTwo.delivery('wf-one-of-two')).toMatchObject({ status: 'delivered', error: null })
+  })
+
+  it('counts a send that failed and went on as unsent', async () => {
+    const db = paidOrder('wf-failed-and-went-on')
+    await dispatch(db)
+    expect(db.delivery('wf-failed-and-went-on')).toMatchObject({
+      status: 'delivered',
+      error: JSON.stringify({ sentNothing: ['Send'] }),
+    })
+  })
+
+  it('leaves a send that stops the run failing as before, with its own error', async () => {
+    const db = paidOrder('wf-no-recipient')
+    const result = await dispatch(db)
+    expect(result).toEqual({ claimed: 1, delivered: 0, failed: 1, resumed: 0 })
+    expect(db.mailSent).toEqual([])
+    expect(db.delivery('wf-no-recipient')).toMatchObject({
+      status: 'failed',
+      error: 'No recipient',
+    })
+  })
+
+  it('records it for a run that ends after the dispatcher stopped waiting', async () => {
+    const db = paidOrder('wf-slow-skipped')
+    await dispatchHeldOpen(db)
+    expect(db.delivery('wf-slow-skipped')).toMatchObject({ status: 'delivered', error: NOTE })
+  })
+
+  it('records it for a run resumed after its Wait', async () => {
+    const db = signup('wf-wait-then-skipped')
+    await dispatch(db)
+    expect(db.delivery('wf-wait-then-skipped')).toMatchObject({ status: 'waiting', error: null })
+
+    db.waits[0].run_at = ago(1000)
+    await dispatch(db)
+
+    expect(db.delivery('wf-wait-then-skipped')).toMatchObject({
+      status: 'delivered',
+      error: NOTE,
+    })
+  })
+
+  it('records it for a resume that ends after the dispatcher stopped waiting', async () => {
+    const db = signup('wf-wait-then-skipped')
+    await dispatch(db)
+    db.waits[0].run_at = ago(1000)
+    await dispatchHeldOpen(db)
+    expect(db.delivery('wf-wait-then-skipped')).toMatchObject({
+      status: 'delivered',
+      error: NOTE,
+    })
+  })
+
+  it('counts a mail sent before the Wait when the run resumes after it', async () => {
+    const db = signup('wf-mail-then-wait')
+    await dispatch(db)
+    db.waits[0].run_at = ago(1000)
+    await dispatch(db)
+    expect(db.mailSent).toHaveLength(1)
+    expect(db.delivery('wf-mail-then-wait')).toMatchObject({ status: 'delivered', error: null })
+  })
+
+  it('records it for a test event, whose row stays a test', async () => {
+    const db = paidOrder('wf-skipped')
+    db.events = []
+
+    const result = await withEcho(() =>
+      silenced(() => {
+        const { runTest } = createApp(files, db)('lib/automations/dispatcher.js') as {
+          runTest(input: Row, options: Row): Promise<Totals>
+        }
+        return runTest(
+          {
+            workflowId: 'wf-skipped',
+            event: { order: { number: 'ORD-TEST', customer: { email: 'test@example.com' } } },
+          },
+          {}
+        )
+      })
+    )
+
+    expect(result).toEqual({ claimed: 1, delivered: 1, failed: 0, resumed: 0 })
+    expect(db.delivery('wf-skipped')).toMatchObject({ status: 'test', error: NOTE })
+  })
+
+  describe('which steps a run can report', () => {
+    const sendStepsOf = async (workflow: Row): Promise<Row[]> => {
+      const { generateHandlerFunction } = await import('../src/api-route-generator')
+      const source = generateHandlerFunction(JSON.parse(JSON.stringify(workflow)))
+      return JSON.parse(/var SEND_STEPS = (.*);/.exec(source)![1])
+    }
+    const sms = {
+      id: 'text',
+      type: 'sms-twilio',
+      config: { to: '+15550142', message: 'Paid' },
+      stepNumber: 3,
+      label: 'Text the owner',
+    }
+    const email = mail('send', OWNER, 'Send Email to Owner', 2)
+    const steps = [
+      { id: 'send', label: 'Send Email to Owner' },
+      { id: 'text', label: 'Text the owner' },
+    ]
+
+    it('lists the email and SMS steps, and nothing else', async () => {
+      expect(await sendStepsOf(onPaid('w', [post('p', '/p', 1), email, sms], []))).toEqual(steps)
+      expect(await sendStepsOf(onPaid('w', [post('p', '/p', 1)], []))).toEqual([])
+    })
+
+    it('leaves out the steps of the error branch, which a run that ends well never reaches', async () => {
+      const onError = mail('alarm', OWNER, 'Tell me it broke', 4)
+      const workflow = {
+        ...onPaid(
+          'w',
+          [
+            email,
+            { id: 'err', type: 'event-workflow-error', config: {}, stepNumber: 3, label: 'Error' },
+            onError,
+          ],
+          [{ id: 'e1', source: 'err', target: 'alarm' }]
+        ),
+        errorHandler: { nodeId: 'err' },
+      }
+      expect(await sendStepsOf(workflow)).toEqual([{ id: 'send', label: 'Send Email to Owner' }])
+    })
+
+    it('reports nothing when a step it cannot see may have sent', async () => {
+      const customNode = {
+        id: 'custom',
+        type: 'general-custom-node',
+        config: {},
+        stepNumber: 1,
+        label: 'Custom',
+      }
+      const parallel = (config: Row) => ({
+        id: 'both',
+        type: 'general-parallel',
+        config,
+        stepNumber: 1,
+        label: 'Both',
+      })
+      expect(await sendStepsOf(onPaid('w', [customNode, email], []))).toEqual([])
+      expect(await sendStepsOf(onPaid('w', [parallel({ waitForAll: false }), email], []))).toEqual(
+        []
+      )
+      expect(await sendStepsOf(onPaid('w', [parallel({ waitForAll: true }), email], []))).toEqual([
+        { id: 'send', label: 'Send Email to Owner' },
+      ])
+      expect(await sendStepsOf(onPaid('w', [parallel({}), email], []))).toEqual([
+        { id: 'send', label: 'Send Email to Owner' },
+      ])
+    })
+  })
+})
+
 describe('in-app event bus — emitting and the dispatch route', () => {
   let files: Map<string, string>
 
@@ -3055,7 +3422,12 @@ describe('in-app event bus — emitting and the dispatch route', () => {
   })
 
   // A request sent exactly as it was captured: the same headers, the same body.
-  const resend = async (db: FakeDatabase, headers: Record<string, string>, rawBody: string) => {
+  const resend = async (
+    db: FakeDatabase,
+    headers: Record<string, string>,
+    rawBody: string,
+    logging: typeof silenced = silenced
+  ) => {
     const reply = { status: 0, body: null as unknown }
     const res = {
       setHeader: () => undefined,
@@ -3082,7 +3454,7 @@ describe('in-app event bus — emitting and the dispatch route', () => {
     const calls = await withEcho(
       async (recorded) => {
         const handler = createApp(files, db)('pages/api/automations/dispatch.js') as RouteHandler
-        await silenced(() => handler(req, res))
+        await logging(() => handler(req, res))
         return recorded
       },
       { TELEPORT_CRON_SECRET: CRON_KEY }
@@ -3143,6 +3515,71 @@ describe('in-app event bus — emitting and the dispatch route', () => {
     })
     expect(refused.calls).toEqual([])
     expect(down.deliveries).toEqual([])
+  })
+
+  const asksToCreate = (db: FakeDatabase) =>
+    db.statements.filter((statement) => /\bCREATE\b|pg_advisory_xact_lock/.test(statement))
+
+  it('takes a signed request in the table the editor made, never asking to create it', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+
+    const { reply } = await resend(db, signedHeaders('{}', false), '{}')
+
+    expect(reply.status).toBe(200)
+    expect(db.signedRequests.size).toBe(1)
+    expect(asksToCreate(db)).toEqual([])
+  })
+
+  it('creates the table only when it is really missing, then takes the request in it', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+    db.signedRequestsMissing = true
+    db.mayCreateTables = true
+    const headers = signedHeaders('{}', false)
+
+    expect((await resend(db, headers, '{}')).reply.status).toBe(200)
+    expect(asksToCreate(db)).toEqual([
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'CREATE TABLE IF NOT EXISTS teleport_automation_requests (request_key TEXT PRIMARY KEY, expires_at BIGINT NOT NULL)',
+      'CREATE INDEX IF NOT EXISTS teleport_automation_requests_expires_at ON teleport_automation_requests (expires_at)',
+    ])
+    expect(db.signedRequests.size).toBe(1)
+
+    // Replays are still refused, and the table is not asked for again.
+    db.statements.length = 0
+    expect((await resend(db, headers, '{}')).reply.status).toBe(409)
+    expect(asksToCreate(db)).toEqual([])
+  })
+
+  it('refuses a request when its table is missing and cannot be made, naming the table in the log', async () => {
+    const db = new FakeDatabase()
+    seedOrderPaid(db)
+    db.signedRequestsMissing = true
+    const logged: unknown[][] = []
+    const capturingErrors = async <T>(run: () => Promise<T>): Promise<T> => {
+      const sink = jest.spyOn(console, 'error').mockImplementation((...args) => {
+        logged.push(args)
+      })
+      try {
+        return await run()
+      } finally {
+        sink.mockRestore()
+      }
+    }
+
+    const { reply } = await resend(db, signedHeaders('{}', false), '{}', capturingErrors)
+
+    expect(reply).toEqual({
+      status: 503,
+      body: { error: 'The request could not be checked. Try again.' },
+    })
+    expect(db.deliveries).toEqual([])
+    expect(db.signedRequests.size).toBe(0)
+    expect(db.statements).toContain('ROLLBACK')
+    const said = logged.map((args) => args.map(String).join(' ')).join('\n')
+    expect(said).toContain('teleport_automation_requests')
+    expect(said).toContain('permission denied for schema public')
   })
 
   it('refuses a caller without the app secret or a cron signature', async () => {

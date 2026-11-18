@@ -18,7 +18,10 @@ import {
 import { ReactStyleVariation, FileType, ProjectPlugin } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
-import { createStateDataSourcePlugin } from './state-data-source-plugin'
+import {
+  createComponentStateDataSourcePlugin,
+  createStateDataSourcePlugin,
+} from './state-data-source-plugin'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextInternationalizationPlugin } from './internationalization/locale-mapper-component'
@@ -46,6 +49,7 @@ import { NextNavActiveLinkProjectPlugin } from './nav-active-link/project-plugin
 import { NextCollapsibleTextProjectPlugin } from './collapsible-text/project-plugin'
 import { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 import { NextBlogProjectPlugin } from './blog/project-plugin'
+import { NextCodeCopyProjectPlugin } from './blog/code-copy-project-plugin'
 import { NextForumProjectPlugin } from './forum/project-plugin'
 import { NextBookingProjectPlugin } from './bookings/project-plugin'
 import { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'
@@ -112,6 +116,7 @@ export const createNextProjectPlugins = (): ProjectPlugin[] => [
   new NextWorkflowProjectPlugin(),
   new NextEcommerceProjectPlugin(),
   new NextBlogProjectPlugin(),
+  new NextCodeCopyProjectPlugin(),
   // The forum's read side: its data module, routes and per-request pages.
   // After the blog (the same site-index pattern), before Instant search, which
   // reads the forum's section through the same tables.
@@ -172,6 +177,7 @@ const createNextProjectGenerator = () => {
   const nextComponentDataSourcePlugin = createNextComponentDataSourcePlugin()
   const nextPagesDataSourcePlugin = createNextPagesDataSourcePlugin()
   const stateDataSourcePlugin = createStateDataSourcePlugin()
+  const componentStateDataSourcePlugin = createComponentStateDataSourcePlugin()
   const nextInternationalizationPlugin = createNextInternationalizationPlugin()
   const aiChatSessionPersistencePlugin = createAIChatSessionPersistencePlugin({
     basePath: ['components'],
@@ -210,6 +216,7 @@ const createNextProjectGenerator = () => {
         nextImagePlugin,
         nextComponentInlineFetchPlugin,
         nextComponentDataSourcePlugin,
+        componentStateDataSourcePlugin,
         nextInternationalizationPlugin,
         // Chat-only: keeps the transcript alive across client-side
         // navigation. MUST run before the welcome plugin, so a restored
@@ -327,10 +334,12 @@ export { NextAccessRulesProjectPlugin } from './access-rules/project-plugin'
 export { NextInstantSearchProjectPlugin } from './instant-search/project-plugin'
 export { NextItemComparisonProjectPlugin } from './item-comparison/project-plugin'
 export { NextPopupsProjectPlugin } from './popups/project-plugin'
+export { StaticExportProjectPlugin } from './static-export/project-plugin'
 export { NextPasswordWallProjectPlugin } from './password-wall/project-plugin'
 export { buildStandaloneWallMiddleware, wrapMiddlewareWithWall } from './password-wall/gate-source'
 export { NextEcommerceProjectPlugin } from './ecommerce/project-plugin'
 export { NextBlogProjectPlugin } from './blog/project-plugin'
+export { NextCodeCopyProjectPlugin } from './blog/code-copy-project-plugin'
 export { NextForumProjectPlugin } from './forum/project-plugin'
 export { NextBookingProjectPlugin } from './bookings/project-plugin'
 export { NextDashboardLayoutPlugin } from './dashboard-layout-plugin'

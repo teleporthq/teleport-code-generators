@@ -195,6 +195,7 @@ function syncConsentIdentity() {
   if (consented === (visitorId !== null)) {
     return
   }
+  syncPurchaseLedgerConsent()
 
   if (!consented) {
     sessionId = uuid()
@@ -362,10 +363,14 @@ function enqueue(event) {
 // saw would dilute the result, so the stamp is only experiments whose element
 // is on this page, plus ones they saw earlier — a checkout page still carries
 // the arm of the hero that led there. "id:a,id2:b", tests on this page first.
+// Like the visitor id, the arms seen are stored only with consent; until then
+// they are held in memory, which client-side navigation keeps, and a map an
+// earlier build stored is removed. Accepting stores what is held.
 const EXPERIMENT_SEEN_KEY = 'tq_exp_seen'
 const EXPERIMENT_ID_PATTERN = /^[a-z0-9_-]{1,32}$/
+let heldSeenExperiments = {}
 
-function readSeenExperiments() {
+function readStoredSeenExperiments() {
   try {
     const raw = window.localStorage.getItem(EXPERIMENT_SEEN_KEY)
     const parsed = raw ? JSON.parse(raw) : null
@@ -376,6 +381,27 @@ function readSeenExperiments() {
   } catch (e) {
     return {}
   }
+}
+
+function removeStoredSeenExperiments() {
+  try {
+    window.localStorage.removeItem(EXPERIMENT_SEEN_KEY)
+  } catch (e) {
+    /* no storage access: nothing is stored either */
+  }
+}
+
+function sameSeenExperiments(left, right) {
+  const keys = Object.keys(left)
+  if (keys.length !== Object.keys(right).length) {
+    return false
+  }
+  for (let i = 0; i < keys.length; i++) {
+    if (left[keys[i]] !== right[keys[i]]) {
+      return false
+    }
+  }
+  return true
 }
 
 function experimentIsOnPage(id) {
@@ -392,12 +418,16 @@ function experimentStamp() {
     if (!assigned || typeof assigned !== 'object') {
       return ''
     }
-    const seen = readSeenExperiments()
+    const consented = hasConsent()
+    const stored = consented ? readStoredSeenExperiments() : {}
+    if (!consented) {
+      removeStoredSeenExperiments()
+    }
+    const seen = Object.assign({}, heldSeenExperiments, stored)
     const ids = Object.keys(assigned).sort()
     const onPage = []
     const earlier = []
     const nextSeen = {}
-    let changed = false
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i]
       if (!EXPERIMENT_ID_PATTERN.test(id)) {
@@ -409,16 +439,14 @@ function experimentStamp() {
       }
       if (experimentIsOnPage(id)) {
         nextSeen[id] = arm
-        if (seen[id] !== arm) {
-          changed = true
-        }
         onPage.push(id + ':' + arm)
       } else if (seen[id] === 'a' || seen[id] === 'b') {
         nextSeen[id] = seen[id]
         earlier.push(id + ':' + seen[id])
       }
     }
-    if (changed || Object.keys(seen).length !== Object.keys(nextSeen).length) {
+    heldSeenExperiments = nextSeen
+    if (consented && !sameSeenExperiments(stored, nextSeen)) {
       try {
         window.localStorage.setItem(EXPERIMENT_SEEN_KEY, JSON.stringify(nextSeen))
       } catch (e) {
@@ -1246,7 +1274,9 @@ function trackOutcome(name, detail) {
 // The ids a workflow stamps on its trigger context, so a server segment that
 // reports an order can attribute it to this very visit.
 function analyticsIds() {
-  if (!initialized || !isTrackingPossible()) {
+  // No pageLoadId: a page kept out of analytics, like the store's admin. Its
+  // visitor is the merchant, who must never be credited with the sale.
+  if (!initialized || !isTrackingPossible() || !pageLoadId) {
     return null
   }
   syncConsentIdentity()
@@ -1696,6 +1726,7 @@ export function initTeleportAnalytics(options) {
   }
 
   setupIdentity()
+  syncPurchaseLedgerConsent()
   utm = parseUtm()
   observeVitals()
   startMutationObserver()
@@ -1815,11 +1846,15 @@ const COMMERCE_EVENTS = [
 // Orders already counted, so a shopper refreshing the confirmation page (or
 // coming back to it from their history) cannot inflate the conversion number.
 // Kept in localStorage because the whole point is to survive a reload; capped
-// so a busy device cannot grow it without bound.
+// so a busy device cannot grow it without bound. Like the visitor id, it is
+// stored only with consent: until then the order ids are held in memory, which
+// client-side navigation keeps, and a ledger an earlier build stored is
+// removed. Accepting stores what is held.
 const PURCHASE_LEDGER_KEY = 'tp_purchases'
 const PURCHASE_LEDGER_MAX = 50
+let heldPurchases = []
 
-function readPurchaseLedger() {
+function readStoredPurchaseLedger() {
   try {
     const raw = window.localStorage.getItem(PURCHASE_LEDGER_KEY)
     const parsed = raw ? JSON.parse(raw) : []
@@ -1832,6 +1867,38 @@ function readPurchaseLedger() {
   }
 }
 
+function storeHeldPurchases() {
+  if (!hasConsent()) {
+    return
+  }
+  const stored = readStoredPurchaseLedger()
+  const added = heldPurchases.filter((orderId) => stored.indexOf(orderId) === -1)
+  if (added.length === 0) {
+    return
+  }
+  try {
+    window.localStorage.setItem(
+      PURCHASE_LEDGER_KEY,
+      JSON.stringify(stored.concat(added).slice(-PURCHASE_LEDGER_MAX))
+    )
+  } catch (e) {
+    /* the held copy still dedupes this page load */
+  }
+}
+
+// Called at boot and whenever the consent answer changes.
+function syncPurchaseLedgerConsent() {
+  if (hasConsent()) {
+    storeHeldPurchases()
+    return
+  }
+  try {
+    window.localStorage.removeItem(PURCHASE_LEDGER_KEY)
+  } catch (e) {
+    /* no storage access: nothing is stored either */
+  }
+}
+
 // True when this order has been counted before. Recording and checking are one
 // function so no caller can test without also marking.
 function claimPurchase(orderId) {
@@ -1841,19 +1908,12 @@ function claimPurchase(orderId) {
     // than the occasional refresh over-reports.
     return true
   }
-  const ledger = readPurchaseLedger()
-  if (ledger.indexOf(orderId) !== -1) {
+  const stored = hasConsent() ? readStoredPurchaseLedger() : []
+  if (heldPurchases.indexOf(orderId) !== -1 || stored.indexOf(orderId) !== -1) {
     return false
   }
-  ledger.push(orderId)
-  try {
-    window.localStorage.setItem(
-      PURCHASE_LEDGER_KEY,
-      JSON.stringify(ledger.slice(-PURCHASE_LEDGER_MAX))
-    )
-  } catch (e) {
-    /* the event still goes out; only the dedupe is lost */
-  }
+  heldPurchases = heldPurchases.concat([orderId]).slice(-PURCHASE_LEDGER_MAX)
+  storeHeldPurchases()
   return true
 }
 
@@ -1909,6 +1969,11 @@ export function trackCommerceEvent(name, detail) {
     if (COMMERCE_EVENTS.indexOf(name) === -1) {
       return
     }
+    // An order already counted is not mirrored again: a refreshed confirmation
+    // page must not report a second sale to the merchant's Google tags.
+    if (name === 'purchase' && !claimPurchase(detail && detail.orderId)) {
+      return
+    }
     // The dataLayer mirror runs even when our own tracker is off: the merchant's
     // GA4 property is theirs, and it should not depend on our analytics being
     // enabled.
@@ -1920,9 +1985,7 @@ export function trackCommerceEvent(name, detail) {
     }
     if (name === 'purchase') {
       // Money is reported by the site's server (analytics-track-outcome in the
-      // checkout workflow), never by the browser. The ledger still runs so a
-      // refreshed confirmation page cannot re-push to the merchant's dataLayer.
-      claimPurchase(detail && detail.orderId)
+      // checkout workflow), never by the browser.
       return
     }
 
@@ -1959,48 +2022,141 @@ export function trackCommerceEvent(name, detail) {
 //
 // Declarative on purpose: a builder that adds a new page type gets analytics by
 // naming the step, with no analytics code to write and nothing to keep in sync.
+//
+// The editor leaves an optional attribute OUT when the page has nothing to put
+// there. One that is present but EMPTY is bound to data that has not arrived:
+// the order page is painted with an empty order before it fetches the real
+// one. Such a marker is not ready, and a purchase without its order number
+// could be neither deduped nor matched to the sale.
 const COMMERCE_VIEW_ATTR = 'data-tq-commerce-view'
+const COMMERCE_ID_ATTR = 'data-tq-commerce-id'
+const COMMERCE_VIEW_SELECTOR = '[' + COMMERCE_VIEW_ATTR + ']'
 
 // One report per PAGE LOAD, so a re-render (a variant click, a filter change)
 // cannot re-count the same view. Reset by the route-change hook below.
 let reportedViewKey = null
 
+// A page whose content waits for its data declares its step only once the data
+// is there, which can be long after the tracker first looks: the order page
+// shows its order, and the purchase marker on it, once the order has been
+// fetched. So a page whose step is not ready yet is watched until it is, and
+// for no longer than that page: the watch ends with the report, with the next
+// route change, or as soon as the address changes. The router changes the
+// address and paints the next page before it announces the navigation, and
+// without that last check the next page's step would be reported as this one's.
+let commerceViewWatcher = null
+
 function readCommerceViewElement() {
   try {
-    return document.querySelector('[' + COMMERCE_VIEW_ATTR + ']')
+    return document.querySelector(COMMERCE_VIEW_SELECTOR)
   } catch (e) {
     return null
   }
 }
 
+// Reports this page's step when its marker is ready. True once the step has
+// been reported on this page load, now or earlier.
+function reportCommerceView() {
+  const element = readCommerceViewElement()
+  if (!element) {
+    return false
+  }
+  const name = element.getAttribute(COMMERCE_VIEW_ATTR)
+  if (COMMERCE_EVENTS.indexOf(name) === -1) {
+    return false
+  }
+  const id = element.getAttribute(COMMERCE_ID_ATTR)
+  if (id === '') {
+    return false
+  }
+  // The path alone is not enough: a details page keeps its route while the
+  // shopper switches variant, and two different products share one route
+  // template. The id is what makes a second view a genuinely different one.
+  const key = name + '|' + (id || currentPath || '')
+  if (reportedViewKey === key) {
+    return true
+  }
+  reportedViewKey = key
+
+  const rawValue = element.getAttribute('data-tq-commerce-value')
+  const value = rawValue != null && rawValue !== '' ? Number(rawValue) : null
+  trackCommerceEvent(name, {
+    orderId: name === 'purchase' ? id : null,
+    recordId: name === 'purchase' ? null : id,
+    currency: element.getAttribute('data-tq-commerce-currency') || null,
+    value: value != null && isFinite(value) ? value : null,
+  })
+  return true
+}
+
+// Only a change that can make a marker ready is worth a look: a node that is or
+// holds a marker, or one of the watched attributes changing. The rest of the
+// page's mutations (an animation, a ticking counter) never query the document.
+function mayHaveReadiedCommerceView(records) {
+  for (let i = 0; i < records.length; i++) {
+    if (records[i].type === 'attributes') {
+      return true
+    }
+    const added = records[i].addedNodes || []
+    for (let j = 0; j < added.length; j++) {
+      const node = added[j]
+      if (
+        node.nodeType === 1 &&
+        (node.matches(COMMERCE_VIEW_SELECTOR) || node.querySelector(COMMERCE_VIEW_SELECTOR))
+      ) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function stopWatchingCommerceView() {
+  if (commerceViewWatcher) {
+    commerceViewWatcher.disconnect()
+    commerceViewWatcher = null
+  }
+}
+
+function watchCommerceView() {
+  const root = document.body || document.documentElement
+  if (typeof MutationObserver === 'undefined' || !root) {
+    return
+  }
+  const watchedPath = window.location.pathname
+  const watcher = new MutationObserver((records) => {
+    try {
+      if (watcher !== commerceViewWatcher) {
+        return
+      }
+      if (window.location.pathname !== watchedPath) {
+        stopWatchingCommerceView()
+        return
+      }
+      if (mayHaveReadiedCommerceView(records) && reportCommerceView()) {
+        stopWatchingCommerceView()
+      }
+    } catch (e) {
+      /* never break the host page */
+    }
+  })
+  commerceViewWatcher = watcher
+  watcher.observe(root, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: [COMMERCE_VIEW_ATTR, COMMERCE_ID_ATTR],
+  })
+}
+
+// Called by the tracker component once a page has painted: reports the page's
+// step now, or as soon as its marker is ready.
 export function trackCommerceView() {
   try {
-    const element = readCommerceViewElement()
-    if (!element) {
-      return
+    stopWatchingCommerceView()
+    if (!reportCommerceView()) {
+      watchCommerceView()
     }
-    const name = element.getAttribute(COMMERCE_VIEW_ATTR)
-    if (COMMERCE_EVENTS.indexOf(name) === -1) {
-      return
-    }
-    const id = element.getAttribute('data-tq-commerce-id') || null
-    // The path alone is not enough: a details page keeps its route while the
-    // shopper switches variant, and two different products share one route
-    // template. The id is what makes a second view a genuinely different one.
-    const key = name + '|' + (id || currentPath || '')
-    if (reportedViewKey === key) {
-      return
-    }
-    reportedViewKey = key
-
-    const rawValue = element.getAttribute('data-tq-commerce-value')
-    const value = rawValue != null && rawValue !== '' ? Number(rawValue) : null
-    trackCommerceEvent(name, {
-      orderId: name === 'purchase' ? id : null,
-      recordId: name === 'purchase' ? null : id,
-      currency: element.getAttribute('data-tq-commerce-currency') || null,
-      value: value != null && isFinite(value) ? value : null,
-    })
   } catch (e) {
     /* never break the host page */
   }
@@ -2009,6 +2165,7 @@ export function trackCommerceView() {
 // Called by the tracker component after a client-side navigation. The marker
 // element only exists once the new page has painted, so the caller defers it.
 export function resetCommerceView() {
+  stopWatchingCommerceView()
   reportedViewKey = null
 }
 `

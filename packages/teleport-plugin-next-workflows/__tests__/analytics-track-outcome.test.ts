@@ -88,7 +88,7 @@ describe('analytics-track-outcome node', () => {
         value: '49.90',
         currency: 'EUR',
         outcomeId: 'ord-1',
-        attribution: { utm_source: 'facebook', visitor_id: 'aid-1' },
+        attribution: { utm_source: 'facebook', utm_content: 'hero', visitor_id: 'stale-aid' },
       },
       { __tpa: { sessionId: 'sid-1', visitorId: null, path: '/checkout' } }
     )
@@ -102,9 +102,133 @@ describe('analytics-track-outcome node', () => {
       currency: 'EUR',
       outcomeId: 'ord-1',
       sessionId: 'sid-1',
-      visitorId: 'aid-1',
+      visitorId: null,
       path: '/checkout',
-      attribution: { utmSource: 'facebook' },
+      attribution: { utmSource: 'facebook', utmContent: 'hero' },
+    })
+  })
+
+  describe('server: an order read back outside the visit that placed it', () => {
+    const configured = (calls: Array<{ body: string }>) =>
+      evalHandler(generator.generateServerHandler?.() ?? '', {
+        globalThis: {
+          process: {
+            env: {
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
+              TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+            },
+          },
+        },
+        fetch: (_url: string, init: { body: string }) => {
+          calls.push(init)
+          return Promise.resolve({ status: 202 })
+        },
+        AbortController: undefined,
+      })
+
+    it('credits the visit the order names, with no ids on the context', async () => {
+      const calls: Array<{ body: string }> = []
+      await configured(calls)(
+        {
+          name: 'purchase',
+          value: '20.00',
+          currency: 'EUR',
+          outcomeId: 'ord-2',
+          attribution: {
+            session_id: 'sid-shopper',
+            visitor_id: 'aid-shopper',
+            exp: 'hero:b',
+            landing_path: '/sale',
+          },
+        },
+        {}
+      )
+      expect(JSON.parse(calls[0].body).outcomes[0]).toMatchObject({
+        outcomeId: 'ord-2',
+        sessionId: 'sid-shopper',
+        visitorId: 'aid-shopper',
+        exp: 'hero:b',
+        attribution: { landingPath: '/sale' },
+      })
+    })
+
+    it('never credits the visit of whoever runs the step', async () => {
+      const calls: Array<{ body: string }> = []
+      await configured(calls)(
+        { name: 'purchase', outcomeId: 'ord-3', attribution: { session_id: 'sid-shopper' } },
+        { __tpa: { sessionId: 'sid-merchant', visitorId: 'aid-merchant', exp: 'hero:a' } }
+      )
+      expect(JSON.parse(calls[0].body).outcomes[0]).toMatchObject({
+        sessionId: 'sid-shopper',
+        visitorId: null,
+        exp: null,
+      })
+    })
+
+    it('sends nothing for an order that resolved to no id', async () => {
+      const calls: Array<{ body: string }> = []
+      expect(await configured(calls)({ name: 'purchase', value: '20.00' }, {})).toEqual({
+        sent: false,
+        reason: 'no-outcome-id',
+      })
+      expect(calls).toEqual([])
+    })
+  })
+
+  describe('server: an outcome the analytics service takes only from a browser', () => {
+    // The service's server endpoint counts `purchase` and `booking_made` alone;
+    // a lead, sign-up, newsletter, search or custom outcome comes from the page.
+    const configured = (calls: Array<{ body: string }>) =>
+      evalHandler(generator.generateServerHandler?.() ?? '', {
+        globalThis: {
+          process: {
+            env: {
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_URL: 'https://analytics.example',
+              NEXT_PUBLIC_TELEPORT_ANALYTICS_KEY: 'tpa_key',
+              TELEPORT_ANALYTICS_SERVER_KEY: 'tpas_secret',
+            },
+          },
+        },
+        fetch: (_url: string, init: { body: string }) => {
+          calls.push(init)
+          return Promise.resolve({ status: 202 })
+        },
+        AbortController: undefined,
+      })
+
+    let warn: jest.SpyInstance
+    beforeEach(() => {
+      warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    })
+    afterEach(() => warn.mockRestore())
+
+    it('is refused as browser-only, with the reason in the logs, and never sent', async () => {
+      const calls: Array<{ body: string }> = []
+      const report = configured(calls)
+      for (const name of ['lead', 'signup', 'newsletter', 'search', 'custom:demo_booked']) {
+        expect(await report({ name }, {})).toEqual({ sent: false, reason: 'browser-only' })
+        expect(await report({ name, outcomeId: 'row-1' }, {})).toEqual({
+          sent: false,
+          reason: 'browser-only',
+        })
+      }
+      expect(calls).toEqual([])
+      expect(warn).toHaveBeenCalledWith(
+        '[analytics] the "lead" outcome was not reported: only a visitor\'s browser can report it, never a server step'
+      )
+    })
+
+    it('says so in the logs when a money outcome has no id to report', async () => {
+      const calls: Array<{ body: string }> = []
+      expect(await configured(calls)({ name: 'booking_made', value: '40' }, {})).toEqual({
+        sent: false,
+        reason: 'no-outcome-id',
+      })
+      expect(calls).toEqual([])
+      expect(warn).toHaveBeenCalledWith(
+        '[analytics] the "booking_made" outcome was not reported: it has no order or booking id'
+      )
     })
   })
 

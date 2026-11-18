@@ -14,7 +14,12 @@ import { isCostBearingNodeType } from './nodes/cost-bearing-node-types'
 import { nodeRegistry } from './nodes'
 import { NodeHandlerGenerator, ServerHandlerOptions, resolveHandlerEntryName } from './nodes/types'
 import { generalWait } from './nodes/general/general-wait'
-import { needsVisitorRequest, VISITOR_REQUEST_INJECTION } from './nodes/general/visitor-request'
+import {
+  isOutboundMessageNodeType,
+  needsVisitorRequest,
+  VISITOR_REQUEST_INJECTION,
+} from './nodes/general/visitor-request'
+import { stepNameOf } from './nodes/email/message-trust'
 import {
   markVisitorBoundMessageNodes,
   markWebhookMessageNodes,
@@ -438,6 +443,8 @@ module.exports = async function handler(req, res) {
       // the caller as if that branch had run (a custom node answers the output
       // of the last node it ran).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
+      // A node of a loop body ran inside its loop, an if-statement included.
+      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
       const resolved = resolveNodeConfig(node, context);
       // Every data node lives in a SERVER segment, so this guard — which turns an
       // unresolved {{…}} into a validation error instead of letting the literal
@@ -453,118 +460,34 @@ module.exports = async function handler(req, res) {
       if (node.type === 'general-if-statement') {
         const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
-        var skipHandle = condResult ? 'false' : 'true';
-        var segEdgesIf = SEGMENT_CONFIG.edges || [];
-        var skipEdge = segEdgesIf.find(function(e) { return e.source === node.id && e.sourceHandle === skipHandle; });
-        if (skipEdge) {
-          // BFS to collect all nodes in the non-taken branch
-          var skipIds = {};
-          var skipQueue = [skipEdge.target];
-          while (skipQueue.length > 0) {
-            var sid = skipQueue.shift();
-            if (skipIds[sid] || sid === node.id) continue;
-            skipIds[sid] = true;
-            segEdgesIf.forEach(function(e) {
-              if (e.source === sid && !skipIds[e.target] && e.target !== node.id) skipQueue.push(e.target);
-            });
-          }
-          if (!context.__skippedNodes) context.__skippedNodes = {};
-          Object.assign(context.__skippedNodes, skipIds);
-        }
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, node.id, condResult));
         continue;
       }
 
-      // Loop nodes must be handled specially: iterate over the collection,
-      // execute loop body nodes for each item, then continue after the loop.
+      // A loop runs its body once per pass of its type, a loop inside the body
+      // included (see runServerLoop in the server runtime).
       if (node.type === 'general-loop') {
-        const loopEdges = SEGMENT_CONFIG.edges.filter(function(e) { return e.source === node.id; });
-        const loopBodyEdge = loopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
-        const exitEdge = loopEdges.find(function(e) { return e.sourceHandle === 'exit'; });
-
-        // Collect loop body node IDs by following loop-body edges
-        const bodyNodeIds = {};
-        if (loopBodyEdge) {
-          const queue = [loopBodyEdge.target];
-          while (queue.length > 0) {
-            const nid = queue.shift();
-            if (bodyNodeIds[nid] || nid === node.id) continue;
-            bodyNodeIds[nid] = true;
-            SEGMENT_CONFIG.edges.forEach(function(e) {
-              if (e.source === nid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) queue.push(e.target);
-              }
-            });
+        const bodyNodeIds = await utils.runServerLoop(node, resolved, sortedNodes, SEGMENT_CONFIG.edges, context, async function(bNode, bResolved) {
+          var bHandler = nodeHandlers[bNode.type];
+          if (!bHandler) return;
+          if (utils.isFireAndForgetNode(bNode)) {
+            utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
+            context[bNode.id] = null;
+            return;
           }
-        }
-        const bodyNodes = sortedNodes.filter(function(n) { return bodyNodeIds[n.id]; });
-        // For loopType=map, the schema (general-loop in node-context-schemas.json)
-        // defines results as the array of last body node outputs (same as
-        // Array.prototype.map). Pick the last body node so downstream nodes
-        // (e.g. state-update-global-state) consume the transformed value
-        // instead of the per-iteration scaffolding object.
-        const __loopType = resolved.loopType || 'forEach';
-        const __lastBodyNode = bodyNodes[bodyNodes.length - 1];
-
-        // Resolve the collection to iterate over. unwrapWorkflowCollection
-        // handles the common envelope shape that helper nodes return —
-        // transform-array { result, ... }, integration-airtable { records, ... },
-        // utility-semantic-search { matches, ... } — by unwrapping a single
-        // array property when the upstream binding pointed at the parent node
-        // instead of the inner field. See runtime-utils for the full rules.
-        var collection = utils.unwrapWorkflowCollection(resolved.collection);
-        var loopResults = [];
-
-        // Track this loop's body scope so general-custom-js (and any handler
-        // that consults the scope stack) can build the params / innerParams
-        // arrays the workflow editor advertises: params = nodes BEFORE the
-        // outermost loop, innerParamsN = nodes inside the loop at depth N.
-        if (!context.__loopScopeStack) context.__loopScopeStack = [];
-        context.__loopScopeStack.push({ loopNodeId: node.id, bodyNodeIds: bodyNodeIds });
-        // Persistent registry of every loop scaffold node we've entered, so
-        // a sibling that runs AFTER an inner loop completes still recognises
-        // that inner loop id as scaffolding (not as a regular workflow node).
-        if (!context.__loopNodeIds) context.__loopNodeIds = {};
-        context.__loopNodeIds[node.id] = true;
-
-        for (var li = 0; li < collection.length; li++) {
-          context[node.id] = utils.loopIterationContext(collection, li);
-          for (var bi = 0; bi < bodyNodes.length; bi++) {
-            var bNode = bodyNodes[bi];
-            var bResolved = resolveNodeConfig(bNode, context);
-            bResolved.__nodeId = bNode.id;
-            if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
-              continue;
-            }
-            var bHandler = nodeHandlers[bNode.type];
-            if (!bHandler) continue;
-            if (utils.isFireAndForgetNode(bNode)) {
-              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
-              context[bNode.id] = null;
-              continue;
-            }
-            var bResult = await bHandler(bResolved, context);
-            if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
-              throw new Error(bResult.error || 'Loop body node execution failed');
-            }
-            context[bNode.id] = bResult;
+          var bResult = await bHandler(bResolved, context);
+          if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
+            throw new Error(bResult.error || 'Loop body node execution failed');
           }
-          if (__loopType === 'map') {
-            loopResults.push(__lastBodyNode ? context[__lastBodyNode.id] : context[node.id]);
-          }
-        }
-
-        context.__loopScopeStack.pop();
-
-        context[node.id] = { completed: true, iterations: collection.length, results: loopResults };
-        // Store body node IDs so the outer loop can skip them
+          context[bNode.id] = bResult;
+        });
+        // The walk below must not run a body node again.
         if (!context.__loopBodyNodeIds) context.__loopBodyNodeIds = {};
         Object.assign(context.__loopBodyNodeIds, bodyNodeIds);
         continue;
       }
 
-      // Skip nodes that were part of a loop body (already executed inside the loop)
-      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
 
       // Switch nodes evaluate a value, match a case, execute that branch, skip all others
       if (node.type === 'general-switch') {
@@ -860,6 +783,8 @@ module.exports = async function handler(req, res) {
     for (let i = 0; i < sortedNodes.length; i++) {
       const node = sortedNodes[i];
       if (executed[node.id]) continue;
+      // The branch an if-statement or a switch did not take never runs.
+      if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
       const resolved = resolveNodeConfig(node, context);
       // See the non-streaming segment above — without this the unresolved-token
       // guard never runs on the server, which is where every data node executes.
@@ -872,71 +797,27 @@ module.exports = async function handler(req, res) {
         const condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
         executed[node.id] = true;
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(SEGMENT_CONFIG.edges, node.id, condResult));
         if (streamStarted) {
           __streamNodeResult(res, node.id, context[node.id]);
         }
         continue;
       }
 
-      // Loop nodes in streaming segments
+      // Loop nodes in streaming segments: same runner as the regular-segment
+      // loop above, a loop inside the body included.
       if (node.type === 'general-loop') {
-        var ssLoopEdges = SEGMENT_CONFIG.edges.filter(function(e) { return e.source === node.id; });
-        var ssLoopBodyEdge = ssLoopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
-        var ssBodyNodeIds = {};
-        if (ssLoopBodyEdge) {
-          var sslq = [ssLoopBodyEdge.target];
-          while (sslq.length > 0) {
-            var sslnid = sslq.shift();
-            if (ssBodyNodeIds[sslnid] || sslnid === node.id) continue;
-            ssBodyNodeIds[sslnid] = true;
-            SEGMENT_CONFIG.edges.forEach(function(e) {
-              if (e.source === sslnid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) sslq.push(e.target);
-              }
-            });
+        var ssBodyNodeIds = await utils.runServerLoop(node, resolved, sortedNodes, SEGMENT_CONFIG.edges, context, async function(ssbNode, ssbRes) {
+          var ssbHandler = nodeHandlers[ssbNode.type];
+          if (!ssbHandler) return;
+          if (utils.isFireAndForgetNode(ssbNode)) {
+            utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(ssbNode, ssbHandler, ssbRes, context));
+            context[ssbNode.id] = null;
+            return;
           }
-        }
-        var ssBodyNodes = sortedNodes.filter(function(n) { return ssBodyNodeIds[n.id]; });
-        // See the regular-segment loop above: loopType=map must publish the
-        // last body node output as results[i] so the schema contract holds.
-        var ssLoopType = resolved.loopType || 'forEach';
-        var ssLastBodyNode = ssBodyNodes[ssBodyNodes.length - 1];
-        // Same envelope unwrap as the regular-segment loop above.
-        var ssLoopCollection = utils.unwrapWorkflowCollection(resolved.collection);
-        var ssLoopResults = [];
-        // Same loop-scope tracking as the regular-segment loop above. Custom-js
-        // bodies can read context.__loopScopeStack to recover the params /
-        // innerParams contract documented in workflow-utils.ts.
-        if (!context.__loopScopeStack) context.__loopScopeStack = [];
-        context.__loopScopeStack.push({ loopNodeId: node.id, bodyNodeIds: ssBodyNodeIds });
-        if (!context.__loopNodeIds) context.__loopNodeIds = {};
-        context.__loopNodeIds[node.id] = true;
-        for (var ssli = 0; ssli < ssLoopCollection.length; ssli++) {
-          context[node.id] = utils.loopIterationContext(ssLoopCollection, ssli);
-          for (var ssbi = 0; ssbi < ssBodyNodes.length; ssbi++) {
-            var ssbNode = ssBodyNodes[ssbi];
-            var ssbRes = resolveNodeConfig(ssbNode, context);
-            ssbRes.__nodeId = ssbNode.id;
-            if (ssbNode.type === 'general-if-statement') {
-              context[ssbNode.id] = { result: utils.evaluateCondition(ssbRes, context, ssbNode.config) };
-              continue;
-            }
-            var ssbHandler = nodeHandlers[ssbNode.type];
-            if (!ssbHandler) continue;
-            if (utils.isFireAndForgetNode(ssbNode)) {
-              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(ssbNode, ssbHandler, ssbRes, context));
-              context[ssbNode.id] = null;
-              continue;
-            }
-            var ssbResult = await ssbHandler(ssbRes, context);
-            context[ssbNode.id] = ssbResult;
-          }
-          if (ssLoopType === 'map') {
-            ssLoopResults.push(ssLastBodyNode ? context[ssLastBodyNode.id] : context[node.id]);
-          }
-        }
-        context.__loopScopeStack.pop();
-        context[node.id] = { completed: true, iterations: ssLoopCollection.length, results: ssLoopResults };
+          context[ssbNode.id] = await ssbHandler(ssbRes, context);
+        });
         Object.keys(ssBodyNodeIds).forEach(function(k) { executed[k] = true; });
         executed[node.id] = true;
         if (streamStarted) {
@@ -1663,11 +1544,11 @@ const generateNodeExecutionLoop = (
   // top-level one does: its handler only hands back the marker.
   const loopBodyCustomNodeBlock = options?.hasCustomNodes
     ? `
-            if (bResult && bResult.__customNode) {
-              var bcnFn = typeof __customNodes !== 'undefined' ? __customNodes[bResult.customNodeId] : null;
-              context[bNode.id] = bcnFn ? await bcnFn(context, bResult.parameters, nodeHandlers) : null;
-              continue;
-            }`
+          if (bResult && bResult.__customNode) {
+            var bcnFn = typeof __customNodes !== 'undefined' ? __customNodes[bResult.customNodeId] : null;
+            context[bNode.id] = bcnFn ? await bcnFn(context, bResult.parameters, nodeHandlers) : null;
+            return;
+          }`
     : ''
 
   return `    var sortedNodes = ${configVar}.nodes.slice().sort(function(a, b) { return a.stepNumber - b.stepNumber; });
@@ -1677,6 +1558,8 @@ ${resumeBlock}
       // Never resolved nor run on a non-taken branch, an if-statement included
       // (see the segment executor above).
       if (context.__skippedNodes && context.__skippedNodes[node.id]) continue;
+      // A node of a loop body ran inside its loop, an if-statement included.
+      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
       var resolved = resolveNodeConfig(node, context);
       // See the other segment executors — the unresolved-token guard must run
       // wherever data nodes execute, and they all execute on the server.
@@ -1687,101 +1570,32 @@ ${resumeBlock}
       if (node.type === 'general-if-statement') {
         var condResult = utils.evaluateCondition(resolved, context, node.config);
         context[node.id] = { result: condResult };
-        var skipHandle = condResult ? 'false' : 'true';
-        var cfgEdges = ${configVar}.edges || [];
-        var skipEdge = cfgEdges.find(function(e) { return e.source === node.id && e.sourceHandle === skipHandle; });
-        if (skipEdge) {
-          var skipIds = {};
-          var skipQueue = [skipEdge.target];
-          while (skipQueue.length > 0) {
-            var sid = skipQueue.shift();
-            if (skipIds[sid] || sid === node.id) continue;
-            skipIds[sid] = true;
-            cfgEdges.forEach(function(e) {
-              if (e.source === sid && !skipIds[e.target] && e.target !== node.id) skipQueue.push(e.target);
-            });
-          }
-          if (!context.__skippedNodes) context.__skippedNodes = {};
-          Object.assign(context.__skippedNodes, skipIds);
-        }
+        if (!context.__skippedNodes) context.__skippedNodes = {};
+        Object.assign(context.__skippedNodes, utils.nonTakenBranchNodeIds(${configVar}.edges, node.id, condResult));
         continue;
       }
 
+      // Same runner as the segment routes, a loop inside the body included
+      // (see runServerLoop in the server runtime).
       if (node.type === 'general-loop') {
-        var loopEdges = ${configVar}.edges.filter(function(e) { return e.source === node.id; });
-        var loopBodyEdge = loopEdges.find(function(e) { return e.sourceHandle === 'loop'; });
-
-        var bodyNodeIds = {};
-        if (loopBodyEdge) {
-          var lQueue = [loopBodyEdge.target];
-          while (lQueue.length > 0) {
-            var nid = lQueue.shift();
-            if (bodyNodeIds[nid] || nid === node.id) continue;
-            bodyNodeIds[nid] = true;
-            ${configVar}.edges.forEach(function(e) {
-              if (e.source === nid && (e.sourceHandle === 'loop-body-out' || !e.sourceHandle)) {
-                if (e.target !== node.id) lQueue.push(e.target);
-              }
-            });
+        var bodyNodeIds = await utils.runServerLoop(node, resolved, sortedNodes, ${configVar}.edges, context, async function(bNode, bResolved) {
+          var bHandler = nodeHandlers[bNode.type];
+          if (!bHandler) return;
+          if (utils.isFireAndForgetNode(bNode)) {
+            utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
+            context[bNode.id] = null;
+            return;
           }
-        }
-        var bodyNodes = sortedNodes.filter(function(n) { return bodyNodeIds[n.id]; });
-        // For loopType=map, the schema (general-loop in node-context-schemas.json)
-        // defines results as the array of last body node outputs (same as
-        // Array.prototype.map). Pick the last body node so downstream nodes
-        // (e.g. state-update-global-state) consume the transformed value.
-        var __wfLoopType = resolved.loopType || 'forEach';
-        var __wfLastBodyNode = bodyNodes[bodyNodes.length - 1];
-
-        // Same envelope unwrap as the regular-segment loop above.
-        var collection = utils.unwrapWorkflowCollection(resolved.collection);
-        var loopResults = [];
-
-        // Same loop-scope tracking as the regular-segment loop above so
-        // general-custom-js inside the loop body sees the right params /
-        // innerParams. Required for webhook + cron routes.
-        if (!context.__loopScopeStack) context.__loopScopeStack = [];
-        context.__loopScopeStack.push({ loopNodeId: node.id, bodyNodeIds: bodyNodeIds });
-        if (!context.__loopNodeIds) context.__loopNodeIds = {};
-        context.__loopNodeIds[node.id] = true;
-
-        for (var li = 0; li < collection.length; li++) {
-          context[node.id] = utils.loopIterationContext(collection, li);
-          for (var bi = 0; bi < bodyNodes.length; bi++) {
-            var bNode = bodyNodes[bi];
-            var bResolved = resolveNodeConfig(bNode, context);
-            bResolved.__nodeId = bNode.id;
-            if (bNode.type === 'general-if-statement') {
-              context[bNode.id] = { result: utils.evaluateCondition(bResolved, context, bNode.config) };
-              continue;
-            }
-            var bHandler = nodeHandlers[bNode.type];
-            if (!bHandler) continue;
-            if (utils.isFireAndForgetNode(bNode)) {
-              utils.registerPendingNodePromise(context, utils.startFireAndForgetNode(bNode, bHandler, bResolved, context));
-              context[bNode.id] = null;
-              continue;
-            }
-            var bResult = await bHandler(bResolved, context);${loopBodyCustomNodeBlock}
-            if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
-              throw new Error(bResult.error || 'Loop body node execution failed');
-            }
-            context[bNode.id] = bResult;
+          var bResult = await bHandler(bResolved, context);${loopBodyCustomNodeBlock}
+          if (bResult && (bResult.success === false || (typeof bResult.error === 'string' && bResult.error))) {
+            throw new Error(bResult.error || 'Loop body node execution failed');
           }
-          if (__wfLoopType === 'map') {
-            loopResults.push(__wfLastBodyNode ? context[__wfLastBodyNode.id] : context[node.id]);
-          }
-        }
-
-        context.__loopScopeStack.pop();
-
-        context[node.id] = { completed: true, iterations: collection.length, results: loopResults };
+          context[bNode.id] = bResult;
+        });
         if (!context.__loopBodyNodeIds) context.__loopBodyNodeIds = {};
         Object.assign(context.__loopBodyNodeIds, bodyNodeIds);
         continue;
       }
-
-      if (context.__loopBodyNodeIds && context.__loopBodyNodeIds[node.id]) continue;
 
       if (node.type === 'general-switch') {
         // Only an authored case expression is compiled (see matchSwitchCase).
@@ -2181,6 +1995,33 @@ const generateErrorHandlerRunBlock = (
     }`
 
 /**
+ * The email and SMS steps a run of this automation can report as not having
+ * sent. None when it could not tell: a custom node may send by itself, and a
+ * parallel branch the run does not wait for has no result when the run ends.
+ * Steps on the error branch do not count: a run that ends well never reaches them.
+ */
+const reportableSendSteps = (
+  workflow: UIDLWorkflow,
+  errorHandlerNodes: Array<{ id: string }> | null
+): Array<{ id: string; label: string }> => {
+  const nodes = workflow.nodes || []
+  const couldNotTell = nodes.some(
+    (node) =>
+      node.type === 'general-custom-node' ||
+      (node.type === 'general-parallel' &&
+        node.config?.waitForAll !== undefined &&
+        node.config.waitForAll !== true)
+  )
+  if (couldNotTell) {
+    return []
+  }
+  const errorBranch = new Set((errorHandlerNodes || []).map((node) => node.id))
+  return nodes
+    .filter((node) => isOutboundMessageNodeType(node.type) && !errorBranch.has(node.id))
+    .map((node) => ({ id: node.id, label: stepNameOf(node) }))
+}
+
+/**
  * An automation's handler module (`lib/automations/handlers/<file>.js`, see
  * automations/handler-module-generator.ts): the webhook route's node loop as
  * an importable function, `module.exports.run = async (event, context,
@@ -2199,6 +2040,8 @@ const generateErrorHandlerRunBlock = (
  * nothing and resolves `{ waiting: true, wouldWait }`; a Wait with no step
  * after it stores nothing and the run ends there). A run that fails rejects,
  * after the error-handler branch ran, so the dispatcher records the failure.
+ * A run that ends with its email and SMS steps all unsent resolves with their
+ * names under `sentNothing`, so the History can say so instead of Done.
  */
 export const generateHandlerFunction = (
   workflow: UIDLWorkflow,
@@ -2277,6 +2120,8 @@ const WORKFLOW_CONFIG = ${workflowConfig};
 
 var ERROR_HANDLER_NODES = ${errorHandlerNodesJson};
 
+var SEND_STEPS = ${JSON.stringify(reportableSendSteps(workflow, errorHandlerNodes))};
+
 const nodeHandlers = {
 ${nodeHandlersEntries}
 };
@@ -2318,6 +2163,17 @@ ${executionLoop}
     return { waiting: false };
 }
 
+// The names of the send steps when the run has some and none of them sent: a
+// step a condition skipped has no result, one that failed and went on says so.
+function unsentSendSteps(context) {
+  if (SEND_STEPS.length === 0) return null;
+  var sent = SEND_STEPS.some(function(step) {
+    var result = context[step.id];
+    return !!result && !utils.isFatalNodeResult(result);
+  });
+  return sent ? null : SEND_STEPS.map(function(step) { return step.label; });
+}
+
 async function run(event, context, resumeFrom) {
   context = context && typeof context === 'object' ? context : {};
   // Shared fire-and-forget queue — drained before the run settles.
@@ -2350,13 +2206,16 @@ async function run(event, context, resumeFrom) {
     sourceRef: WORKFLOW_ID,
     orderId: trigger.order && trigger.order.id ? String(trigger.order.id) : null,
   };
+  var outcome;
   try {
-    return await runNodes(context, resumeFrom || null);
+    outcome = await runNodes(context, resumeFrom || null);
   } catch (error) {
 ${generateErrorHandlerRunBlock('Automation error handler failed:')}
     await utils.settlePendingNodePromises(context);
     throw error;
   }
+  var unsent = outcome.waiting ? null : unsentSendSteps(context);
+  return unsent ? Object.assign({}, outcome, { sentNothing: unsent }) : outcome;
 }
 
 module.exports.run = run;

@@ -208,8 +208,10 @@ describe('a step that declares a per-visitor limit', () => {
       )
     )
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
-    const realNow = Date.now
-    let now = realNow()
+    // The limit counts in windows aligned to the clock, here the hour: from the
+    // real time, the minute that passes below reached a new hour, and a fresh
+    // budget, whenever the suite ran in the last 61 seconds of one.
+    let now = Date.UTC(2026, 0, 1, 12, 30, 0)
     const clock = jest.spyOn(Date, 'now').mockImplementation(() => now)
     try {
       await call(handler)

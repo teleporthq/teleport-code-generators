@@ -161,6 +161,81 @@ function loopIterationContext(collection, index) {
   };
 }
 
+// How every loop type steps, for the client executor and for each server
+// route alike. next(context) hands back what one pass publishes before its
+// body runs ({ key, value }, stored as context[key]), or null once the loop is
+// over. A collection is walked under the loop's own id; a counted or a
+// conditional loop publishes its counter under "<loopId>_iter". A while / until
+// condition is tested before every pass, against the context of that pass.
+var DEFAULT_LOOP_MAX_ITERATIONS = 1000;
+
+function createLoopSteps(loopNode, config, context, collection) {
+  var loopType = config.loopType || 'forEach';
+  var iterKey = loopNode.id + '_iter';
+  var passes = 0;
+  var next;
+  if (loopType === 'forEach' || loopType === 'map') {
+    next = function() {
+      return passes < collection.length
+        ? { key: loopNode.id, value: loopIterationContext(collection, passes) }
+        : null;
+    };
+  } else if (loopType === 'for') {
+    var cursor = Number(resolveValue(config.startIndex, context)) || 0;
+    var end = Number(resolveValue(config.endIndex, context)) || 0;
+    var step = Number(resolveValue(config.step, context)) || 1;
+    next = function() {
+      if (!(step > 0 ? cursor < end : cursor > end)) return null;
+      var index = cursor;
+      cursor += step;
+      return { key: iterKey, value: { index: index } };
+    };
+  } else {
+    var maxIterations = Number(resolveValue(config.maxIterations, context)) || DEFAULT_LOOP_MAX_ITERATIONS;
+    var authoredCondition = loopNode.config && loopNode.config.condition;
+    next = function(passContext) {
+      if (passes >= maxIterations) return null;
+      var scaffold = { iteration: passes };
+      var testContext = Object.assign({}, passContext);
+      testContext[iterKey] = scaffold;
+      var condition = resolveValue(config.condition, testContext);
+      // Only the authored condition is compiled (see runExpression).
+      var holds = runExpression(authoredCondition, condition, ['context'], [testContext], testContext);
+      if (loopType === 'until' ? holds : !holds) return null;
+      return { key: iterKey, value: scaffold };
+    };
+  }
+  return {
+    next: function(passContext) {
+      var pass = next(passContext || context);
+      if (pass) passes++;
+      return pass;
+    },
+    iterations: function() { return passes; }
+  };
+}
+
+// The nodes of the branch an if-statement did NOT take: everything reachable
+// from that branch's edge, never walking back through the if itself nor past
+// stopAtId (the loop a body belongs to, whose loop-back edge leads out of it).
+function nonTakenBranchNodeIds(edges, ifNodeId, conditionHeld, stopAtId) {
+  var skipHandle = conditionHeld ? 'false' : 'true';
+  var all = edges || [];
+  var skipEdge = all.find(function(e) { return e.source === ifNodeId && e.sourceHandle === skipHandle; });
+  var skipIds = {};
+  if (!skipEdge) return skipIds;
+  var queue = [skipEdge.target];
+  while (queue.length > 0) {
+    var id = queue.shift();
+    if (skipIds[id] || id === ifNodeId || id === stopAtId) continue;
+    skipIds[id] = true;
+    all.forEach(function(e) {
+      if (e.source === id && !skipIds[e.target]) queue.push(e.target);
+    });
+  }
+  return skipIds;
+}
+
 function resolveCtxRef(ref, context) {
   var elem = context.triggerElement;
   if (!elem || typeof elem.getAttribute !== 'function') return undefined;
@@ -1008,6 +1083,9 @@ async function executeWorkflow(workflowConfig, triggerContext, nodeHandlers, opt
   if (triggerContext && triggerContext.__dynamicRouteParam) {
     context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
   }
+  if (triggerContext && triggerContext.__tpa) {
+    context.__tpa = triggerContext.__tpa;
+  }
   if (triggerContext && triggerContext.triggerElement) {
     context.triggerElement = triggerContext.triggerElement;
   }
@@ -1493,35 +1571,15 @@ async function executeLoop(loopNode, config, allNodes, edges, context, nodeHandl
     context[loopNode.id] = loopType === 'map'
       ? { results: results, iterations: collection.length }
       : { completed: true, iterations: collection.length };
-  } else if (loopType === 'for') {
-    const start = resolveValue(config.startIndex, context) || 0;
-    const end = resolveValue(config.endIndex, context) || 0;
-    const step = resolveValue(config.step, context) || 1;
-    let count = 0;
-    for (let fi = start; step > 0 ? fi < end : fi > end; fi += step) {
-      const forCtx = Object.assign({}, context);
-      forCtx[loopNode.id + '_iter'] = { index: fi };
-      await executeNodes(bodyNodes, edges, forCtx, nodeHandlers, workflowConfig, callServerSegment, executionId);
-      Object.assign(context, forCtx);
-      count++;
-    }
-    context[loopNode.id] = { completed: true, iterations: count };
   } else {
-    const maxIter = resolveValue(config.maxIterations, context) || 1000;
-    let iter = 0;
-    while (iter < maxIter) {
-      const whileCtx = Object.assign({}, context);
-      whileCtx[loopNode.id + '_iter'] = { iteration: iter };
-      const condStr = resolveValue(config.condition, whileCtx);
-      // Only the authored condition is compiled (see runExpression).
-      const condResult = runExpression(loopNode.config && loopNode.config.condition, condStr, ['context'], [whileCtx], whileCtx);
-      if (loopType === 'while' && !condResult) break;
-      if (loopType === 'until' && condResult) break;
-      await executeNodes(bodyNodes, edges, whileCtx, nodeHandlers, workflowConfig, callServerSegment, executionId);
-      Object.assign(context, whileCtx);
-      iter++;
+    const steps = createLoopSteps(loopNode, config, context);
+    for (let pass = steps.next(context); pass; pass = steps.next(context)) {
+      const passCtx = Object.assign({}, context);
+      passCtx[pass.key] = pass.value;
+      await executeNodes(bodyNodes, edges, passCtx, nodeHandlers, workflowConfig, callServerSegment, executionId);
+      Object.assign(context, passCtx);
     }
-    context[loopNode.id] = { completed: true, iterations: iter };
+    context[loopNode.id] = { completed: true, iterations: steps.iterations() };
   }
   } finally {
     context.__loopScopeStack.pop();
@@ -1817,6 +1875,8 @@ module.exports = {
   resolveRichTextContext,
   unwrapWorkflowCollection,
   loopIterationContext,
+  createLoopSteps,
+  nonTakenBranchNodeIds,
   snapshotIncomingContext,
   segmentReply,
   withoutCredentialColumns,
@@ -2151,6 +2211,7 @@ function buildContext(workflowConfig, triggerContext) {
     if (triggerContext.__stateValues) context.__stateValues = triggerContext.__stateValues;
     if (triggerContext.__routeParams) context.__routeParams = triggerContext.__routeParams;
     if (triggerContext.__dynamicRouteParam) context.__dynamicRouteParam = triggerContext.__dynamicRouteParam;
+    if (triggerContext.__tpa) context.__tpa = triggerContext.__tpa;
     if (triggerContext.triggerElement) context.triggerElement = triggerContext.triggerElement;
   }
   // See executeWorkflow: the page's language travels with the run.

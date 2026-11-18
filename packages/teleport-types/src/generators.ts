@@ -25,6 +25,7 @@ import {
   UIDLEcommerceSettings,
   UIDLInvoiceSettings,
   UIDLAIAssistantChat,
+  UIDLLanguageDetails,
 } from './uidl'
 import type { JSXAttribute, JSXElement } from '@babel/types'
 
@@ -179,6 +180,7 @@ export interface GeneratorOptions {
     languages: Record<string, string>
     translations?: Record<string, Record<string, UIDLElementNode | UIDLStaticValue>>
     targetLocale?: string
+    languageDetails?: Record<string, UIDLLanguageDetails>
   }
   projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
@@ -298,6 +300,32 @@ export interface DataReadExposure {
   maxLimit: number
 }
 
+/**
+ * Who may read what a COMPONENT fetches for itself (a state filled by a
+ * statement of its own): whoever may open a page that renders the component.
+ * A component is not a page — its route has no protection of its own, so it
+ * takes the protection of the pages it is placed on.
+ */
+export interface ComponentReadExposure {
+  /** A page every visitor may open renders it, or the layout every page shares. */
+  public: boolean
+  /**
+   * Otherwise, what each page that renders it demands of a session: one of
+   * them has to admit the caller. Empty when no page renders the component —
+   * no browser reads it then.
+   */
+  pages: Array<{
+    allowedRoles: string[]
+    requiresSubscription?: boolean
+    subscriptionProductIds?: string[]
+  }>
+  /**
+   * Every page that renders it reads its own data as the store rather than as a
+   * visitor (`TableAccess.pageReadsAsStore`): the component does too.
+   */
+  readsAsStore: boolean
+}
+
 export interface ProjectDataExposure {
   /**
    * By `<data source id>:<bare, lower-case table name>` (`*:<table>` for a
@@ -306,6 +334,8 @@ export interface ProjectDataExposure {
   tables: Record<string, DataReadExposure>
   /** By data source id — for the sources without tables (REST, CSV, JavaScript, sheets). */
   dataSources: Record<string, DataReadExposure>
+  /** By component name — see `DataExposure.componentExposureFor`. */
+  components?: Record<string, ComponentReadExposure>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

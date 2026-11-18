@@ -1,5 +1,6 @@
 import { DataExposure, GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+import { applyFontFallbacks } from './font-fallbacks'
 import {
   GeneratorOptions,
   GeneratedFolder,
@@ -39,8 +40,9 @@ import {
   createPageModule,
   createEnvFiles,
   createGitIgnoreFile,
+  createMaintenanceNoteFile,
 } from './file-handlers'
-import { DEFAULT_TEMPLATE } from './constants'
+import { DEFAULT_TEMPLATE, MAINTENANCE_NOTE_FILE_NAME } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 import { join } from 'path'
 import { resourceGenerator } from './resource'
@@ -181,6 +183,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
+
+    applyFontFallbacks(uidl)
 
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
@@ -811,6 +815,13 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
+
+    const projectBringsItsOwnMaintenanceNote = rootFolder.files.some(
+      (file) => file.name === MAINTENANCE_NOTE_FILE_NAME
+    )
+    if (!projectBringsItsOwnMaintenanceNote) {
+      rootFolder.files.push(createMaintenanceNoteFile(uidl.name))
+    }
 
     reportUnresolvedLocalImports(rootFolder)
 

@@ -14,6 +14,18 @@ import { NodeHandlerGenerator } from '../types'
  * carries the ids the trigger stamped on the context (`__tpa`, set by every
  * generated trigger) plus whatever first-touch snapshot the caller binds in
  * `attribution` (the checkout stamps `utm_*`, `referrer_host`, `landing_path`).
+ * A snapshot naming a `session_id` is the visit that placed an order, read back
+ * by a run outside that visit (a payment webhook, a cron, an admin page): its
+ * `session_id`, `visitor_id` and `exp` stand in for the trigger's ids. Otherwise
+ * the visitor id is the tracker's alone: a browser may still hold a persistent
+ * id from before its consent was withdrawn.
+ *
+ * The service takes exactly the money outcomes from a server, each with the
+ * order or booking id it dedupes a retried report on, and every other outcome
+ * from a browser only. So on the server any other name is refused as
+ * `browser-only` (an automation, a webhook or a cron has no visitor's page to
+ * report it from), and a money outcome without an id as `no-outcome-id`: an id
+ * made up here would count a retried report twice. Both say why in the logs.
  *
  * Never throws: an outcome that cannot be reported answers `{ sent: false }`
  * and the workflow continues — analytics must never cost a sale.
@@ -52,6 +64,10 @@ const SERVER_BODY = `async function analytics_track_outcome(config, context) {
   if (!name) {
     return { sent: false, reason: 'no-name' };
   }
+  if (${JSON.stringify(SERVER_ONLY_OUTCOMES)}.indexOf(name) === -1) {
+    console.warn('[analytics] the "' + name + '" outcome was not reported: only a visitor\\'s browser can report it, never a server step');
+    return { sent: false, reason: 'browser-only' };
+  }
   // \`globalThis.process\` (member access): webpack rewrites a bare \`process\`.
   var env = globalThis.process && globalThis.process.env;
   var baseUrl = (env && env.NEXT_PUBLIC_TELEPORT_ANALYTICS_URL) || '';
@@ -60,22 +76,31 @@ const SERVER_BODY = `async function analytics_track_outcome(config, context) {
   if (baseUrl.indexOf('http') !== 0 || !publicKey || !serverKey) {
     return { sent: false, reason: 'not-configured' };
   }
+  // The service dedupes on this id and drops an outcome without one.
+  if (config.outcomeId == null || config.outcomeId === '') {
+    console.warn('[analytics] the "' + name + '" outcome was not reported: it has no order or booking id');
+    return { sent: false, reason: 'no-outcome-id' };
+  }
   var ids = context && context.__tpa && typeof context.__tpa === 'object' ? context.__tpa : {};
   var attribution = config.attribution && typeof config.attribution === 'object' ? config.attribution : {};
+  var visit = attribution.session_id
+    ? { sessionId: attribution.session_id, visitorId: attribution.visitor_id, exp: attribution.exp }
+    : ids;
   var outcome = {
     name: name,
     value: config.value == null || config.value === '' ? null : Number(config.value),
     currency: config.currency == null ? null : String(config.currency),
     outcomeId: config.outcomeId == null ? null : String(config.outcomeId),
     recordId: config.recordId == null ? null : String(config.recordId),
-    sessionId: ids.sessionId || null,
-    visitorId: ids.visitorId || attribution.visitor_id || null,
-    path: ids.path || null,
-    exp: ids.exp || null,
+    sessionId: visit.sessionId || null,
+    visitorId: visit.visitorId || null,
+    path: visit.path || null,
+    exp: visit.exp || null,
     attribution: {
       utmSource: attribution.utm_source || attribution.utmSource || null,
       utmMedium: attribution.utm_medium || attribution.utmMedium || null,
       utmCampaign: attribution.utm_campaign || attribution.utmCampaign || null,
+      utmContent: attribution.utm_content || attribution.utmContent || null,
       referrerHost: attribution.referrer_host || attribution.referrerHost || null,
       landingPath: attribution.landing_path || attribution.landingPath || null
     }
