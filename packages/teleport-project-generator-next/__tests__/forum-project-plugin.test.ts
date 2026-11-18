@@ -521,6 +521,39 @@ describe('NextForumProjectPlugin', () => {
     expect(result.seededStates).toEqual(['viewer', 'topicDetails', 'replies', 'score', 'replySort'])
   })
 
+  it('keeps the locale’s messages of a project with internationalization', () => {
+    const rewrite = {
+      kind: 'topic' as const,
+      column: 'slug',
+      exposeAs: 'topic',
+      rootPrefix: '../../../',
+      dataModulePath: 'utils/forum-page-data',
+      pageArrivalPath: 'utils/page-arrival',
+    }
+    // What the locale fetcher leaves in the page's getStaticProps.
+    const localizedPage = TOPIC_PAGE.replace(
+      'const { params = {} } = context',
+      "const messages = (await import('/locales/' + context.locale + '.json')).default\n  const { params = {} } = context"
+    ).replace(
+      'return { props: { ...context?.params,',
+      'return { props: { messages, ...context?.params,'
+    )
+    const localized = rewriteForumPage(localizedPage, rewrite)!
+    expect(() => parses(localized.content)).not.toThrow()
+    const body = localized.content.slice(
+      localized.content.indexOf('export async function getServerSideProps')
+    )
+    expect(body).toContain("(await import('/locales/' + context.locale + '.json')).default")
+    expect(body).toMatch(/props: \{\s*\.\.\.params,\s*messages,/)
+    // The messages are read only for a page that renders: never before a refusal.
+    expect(body.indexOf('/locales/')).toBeGreaterThan(body.indexOf('notFound: true'))
+
+    // A project without internationalization has no messages file to read.
+    const plain = rewriteForumPage(TOPIC_PAGE, rewrite)!
+    expect(plain.content).not.toContain('/locales/')
+    expect(plain.content).not.toMatch(/\bmessages\b/)
+  })
+
   it('keeps what the module seeded: no copy of the record over a seeded state on mount', () => {
     // What the workflows plugin adds to a details page: the record copied into its first object state.
     const recordCopy = (statements: string[]): string =>

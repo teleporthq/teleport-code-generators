@@ -178,7 +178,26 @@ const dropUnusedImports = (program: types.Program, alsoUsedBy: types.Node[]): vo
   })
 }
 
-const dataFunctionSource = (rewrite: ForumPageRewrite): string => {
+/**
+ * The locale's messages of a project with internationalization: the locale
+ * fetcher put them in the page's `getStaticProps`, which this rewrite takes
+ * away. Without them `next-intl` has nothing to translate with, and every
+ * word of the page — its navigation and footer too — shows its key.
+ */
+const LOCALE_MESSAGES_PATH = '/locales/'
+
+/** Whether one of the data functions this rewrite takes away loaded the locale's messages. */
+const loadsLocaleMessages = (statements: types.Statement[]): boolean => {
+  let found = false
+  walk(statements, (node) => {
+    if (node.type === 'StringLiteral' && node.value === LOCALE_MESSAGES_PATH) {
+      found = true
+    }
+  })
+  return found
+}
+
+const dataFunctionSource = (rewrite: ForumPageRewrite, localized: boolean): string => {
   const source = FORUM_PAGE_SOURCES[rewrite.kind]
   const slug =
     'column' in rewrite
@@ -209,10 +228,15 @@ export async function getServerSideProps(context) {
     res.setHeader('Cache-Control', 'no-store')
     return { notFound: true }
   }
-  res.setHeader('Cache-Control', ${cache})
+  res.setHeader('Cache-Control', ${cache})${
+    localized
+      ? `
+  const messages = (await import('${LOCALE_MESSAGES_PATH}' + context.locale + '.json')).default`
+      : ''
+  }
   return {
     props: {
-      ...params,
+      ...params,${localized ? '\n      messages,' : ''}
       ${record}${seeded},
       ${FORUM_PAGE_PROP}: ${source.extra},
     },
@@ -497,6 +521,7 @@ export const rewriteForumPage = (
   // A protected page's guard (`access-rules/page-access-guard-plugin.ts`) opens
   // its data function; it opens the new one too.
   const guard: types.Statement[] = []
+  const removed: types.Statement[] = []
   program.body = program.body.filter((statement) => {
     const name = exportedFunctionName(statement)
     if (name === 'getServerSideProps') {
@@ -504,11 +529,17 @@ export const rewriteForumPage = (
         .declaration as types.FunctionDeclaration
       guard.push(...body.body.body.filter((inner) => mentions(inner, ACCESS_DENIED)))
     }
-    return !(name && DATA_FUNCTIONS.includes(name))
+    const isDataFunction = !!name && DATA_FUNCTIONS.includes(name)
+    if (isDataFunction) {
+      removed.push(statement)
+    }
+    return !isDataFunction
   })
   dropUnusedImports(program, guard)
 
-  const dataFunction = parse(dataFunctionSource(rewrite), { sourceType: 'module' }).program.body
+  const dataFunction = parse(dataFunctionSource(rewrite, loadsLocaleMessages(removed)), {
+    sourceType: 'module',
+  }).program.body
   const declaration = (dataFunction[0] as types.ExportNamedDeclaration)
     .declaration as types.FunctionDeclaration
   declaration.body.body.splice(1, 0, ...guard)
