@@ -16,6 +16,7 @@ import {
   UIDLConditionalNode,
   ElementsLookup,
   UIDLStyleSetDefinition,
+  UIDLStyleValue,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -258,6 +259,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
   }
 
+  if (originalElement.elementType === 'img') {
+    applyImageDimensionAttributes(originalElement)
+  }
+
   if (originalElement.attrs && attributesMapping) {
     const attrsKeys = Object.keys(originalElement.attrs)
 
@@ -340,6 +345,47 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       originalElement.events = {}
     }
   }
+}
+
+const PIXEL_VALUE_REGEX = /^\d+(\.\d+)?(px)?$/
+
+const getPixelValue = (value: UIDLStyleValue | undefined): string | undefined => {
+  if (!value || value.type !== 'static') {
+    return undefined
+  }
+
+  const { content } = value
+  if (typeof content === 'number') {
+    return Number.isFinite(content) && content >= 0 ? String(content) : undefined
+  }
+
+  if (typeof content === 'string') {
+    const trimmed = content.trim()
+    return PIXEL_VALUE_REGEX.test(trimmed) ? trimmed.replace(/px$/, '') : undefined
+  }
+
+  return undefined
+}
+
+/**
+ * Mirrors a fixed pixel `width` / `height` from the style of an `<img>` onto the
+ * matching HTML attributes (without the unit). Browsers use them to reserve the
+ * space of the image before it loads, which avoids layout shifts. Attributes that
+ * are already set on the element are never overridden.
+ */
+const applyImageDimensionAttributes = (element: UIDLElement) => {
+  ;(['width', 'height'] as const).forEach((dimension) => {
+    if (element.attrs?.[dimension]) {
+      return
+    }
+
+    const pixels = getPixelValue(element.style?.[dimension])
+    if (pixels === undefined) {
+      return
+    }
+
+    element.attrs = { ...element.attrs, [dimension]: { type: 'static', content: pixels } }
+  })
 }
 
 export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {
