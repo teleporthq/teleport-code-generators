@@ -5,6 +5,7 @@ import {
   ProjectUIDL,
 } from '@teleporthq/teleport-types'
 import { DataCache, PageRevalidate } from '@teleporthq/teleport-shared'
+import { resolveAppLocales } from '../pwa/locales'
 
 const PAGE_REVALIDATE_NODE_TYPE = 'page-revalidate'
 
@@ -59,7 +60,10 @@ export class NextPageRevalidatePlugin implements ProjectPlugin {
         {
           name: PageRevalidate.REVALIDATE_ROUTE,
           fileType: FileType.JS,
-          content: PageRevalidate.generatePageRevalidateRoute(),
+          // Every language's copy of a page is rebuilt, not the default one's alone.
+          content: PageRevalidate.generatePageRevalidateRoute({
+            locales: uidl.internationalization ? resolveAppLocales(uidl).locales : [],
+          }),
         },
       ],
     })

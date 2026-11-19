@@ -59,31 +59,38 @@ describe('the code-copy script ships with a content site', () => {
   })
 
   const itInBrowser = jsdom ? it : it.skip
-  itInBrowser('copies the block without the button label and says Copied for a moment', async () => {
-    const dom = new jsdom.JSDOM(
-      `<!doctype html><html><head><script>${CODE_COPY_RUNTIME_SOURCE}</script></head><body>` +
-        `<pre><button type="button" class="${CODE_COPY_BUTTON_CLASS}" data-copy-label="Copy" data-copied-label="Copied">Copy</button>` +
-        `<code>npm install\nnpm run dev\n</code></pre></body></html>`,
-      { runScripts: 'dangerously' }
-    )
-    const { window } = dom
-    const written: string[] = []
-    Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: (text: string) => {
-          written.push(text)
-          return Promise.resolve()
+  itInBrowser(
+    'copies the block without the button label and says Copied for a moment',
+    async () => {
+      const dom = new jsdom.JSDOM(
+        `<!doctype html><html><head><script>${CODE_COPY_RUNTIME_SOURCE}</script></head><body>` +
+          `<pre><button type="button" class="${CODE_COPY_BUTTON_CLASS}" data-copy-label="Copy" data-copied-label="Copied">Copy</button>` +
+          `<code>npm install\nnpm run dev\n</code></pre></body></html>`,
+        { runScripts: 'dangerously' }
+      )
+      const { window } = dom
+      const written: string[] = []
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {
+          writeText: (text: string) => {
+            written.push(text)
+            return Promise.resolve()
+          },
         },
-      },
-    })
+      })
 
-    const button = window.document.querySelector(`.${CODE_COPY_BUTTON_CLASS}`) as HTMLButtonElement
-    button.click()
-    await new Promise((done) => setTimeout(done, 0))
+      const button = window.document.querySelector(
+        `.${CODE_COPY_BUTTON_CLASS}`
+      ) as HTMLButtonElement
+      button.click()
+      await new Promise((done) => setTimeout(done, 0))
 
-    expect(written).toEqual(['npm install\nnpm run dev'])
-    expect(button.getAttribute('data-copied')).toBe('true')
-    expect(button.textContent).toBe('Copied')
-    expect(window.document.querySelector('pre')!.textContent).toBe('Copiednpm install\nnpm run dev\n')
-  })
+      expect(written).toEqual(['npm install\nnpm run dev'])
+      expect(button.getAttribute('data-copied')).toBe('true')
+      expect(button.textContent).toBe('Copied')
+      expect(window.document.querySelector('pre')!.textContent).toBe(
+        'Copiednpm install\nnpm run dev\n'
+      )
+    }
+  )
 })

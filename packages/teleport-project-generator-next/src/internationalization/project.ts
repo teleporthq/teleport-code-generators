@@ -12,6 +12,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { companyGlobalObject } from './company-global'
 import { localeStateSource } from './locale-state'
+import { addI18nRuntime } from './app-i18n-runtime'
 import { RouteUtils } from '@teleporthq/teleport-plugin-common'
 
 const findFileInBuild = (
@@ -416,6 +417,12 @@ export class NextProjectPlugini18nConfig implements ProjectPlugin {
           ],
         })
       }
+    }
+
+    // The page's language for its dates and its workflow scripts: a site with
+    // internationalization only, so one without it is generated as before.
+    if (uidl.internationalization) {
+      addI18nRuntime(structure, Object.keys(languages), main.locale)
     }
 
     const authEnabled = !!uidl.authentication?.enabled

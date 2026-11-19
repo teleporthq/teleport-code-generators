@@ -16,6 +16,7 @@ export const SEARCH_SECTION_KEYS = [
   'posts',
   'articles',
   'bookingItems',
+  'topics',
 ] as const
 export type SearchSectionKey = (typeof SEARCH_SECTION_KEYS)[number]
 
@@ -25,6 +26,7 @@ export const SEARCH_SECTION_LABELS: Record<SearchSectionKey, string> = {
   posts: 'Blog posts',
   articles: 'Help articles',
   bookingItems: 'Bookable items',
+  topics: 'Forum topics',
 }
 
 export interface InstantSearchSettings {

@@ -17,6 +17,7 @@ import { generateSharedTransformationCode } from './shared-utils'
 import { generateBlogPostTransformationCode } from './blog-post'
 import { generateCustomPageTransformationCode } from './custom-page'
 import { generateBookingItemTransformationCode } from './booking-item'
+import { generateForumFeedTransformationCode, isForumFeedTable } from './forum-feed'
 import {
   generateEcommerceProductTransformationCode,
   type EcommerceProductTransformOptions,
@@ -220,6 +221,7 @@ export type TransformationType =
   | 'ecommerce-product'
   | 'custom-page'
   | 'booking-item'
+  | 'forum-feed'
   | null
 
 /**
@@ -263,6 +265,9 @@ export const detectTransformationType = (tableName: string): TransformationType 
   }
   if (bare === 'teleport_booking_items') {
     return 'booking-item'
+  }
+  if (isForumFeedTable(bare)) {
+    return 'forum-feed'
   }
   return null
 }
@@ -309,6 +314,8 @@ export const getTransformationCode = (
       return (
         shared + generateBookingItemTransformationCode({ categories: options.bookingCategories })
       )
+    case 'forum-feed':
+      return shared + generateForumFeedTransformationCode()
     default:
       return ''
   }
@@ -446,6 +453,8 @@ export const getTransformWrapperCode = (
       ? 'transformCustomPages'
       : type === 'booking-item'
       ? 'transformBookingItems'
+      : type === 'forum-feed'
+      ? 'transformForumFeed'
       : 'transformEcommerceProducts'
 
   // Products additionally get their purchasable variant combinations attached in

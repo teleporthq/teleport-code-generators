@@ -1,4 +1,5 @@
 import { ProjectUIDL } from '@teleporthq/teleport-types'
+import { ContentTables } from '@teleporthq/teleport-shared'
 import {
   resolveCustomProductPageRoutes,
   resolveProductDetailsRoute,
@@ -172,6 +173,25 @@ const BLUEPRINTS: SectionBlueprint[] = [
     descriptionColumns: ['description', 'location'],
     imageColumns: ['image_url', 'imageUrl'],
     activeColumn: 'is_active',
+  },
+  {
+    // The forum's topics: the read route serves a visitor only published
+    // topics of communities that are not private (the visitor row policy),
+    // so no active column is needed.
+    key: 'topics',
+    tableName: ContentTables.FORUM_TABLES.topics,
+    present: (uidl) => !!uidl.plugins?.forum,
+    route: (uidl) =>
+      resolveDetailsRouteForTable(uidl, ContentTables.FORUM_TABLES.topics) ??
+      toDetailsRoute(
+        String(uidl.plugins?.forum?.pages?.topic || '').replace(/\/\[[^\]]*\]$/, ''),
+        'slug'
+      ),
+    searchColumns: ['title', 'body_text', 'tags'],
+    titleColumns: ['title'],
+    descriptionColumns: ['body_text'],
+    imageColumns: [],
+    activeColumn: null,
   },
 ]
 

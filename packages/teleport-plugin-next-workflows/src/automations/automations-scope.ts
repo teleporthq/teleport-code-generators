@@ -155,7 +155,22 @@ const ENTITY_BY_PREFIX: Array<[string, string]> = [
   ['waitlist-', 'waitlist'],
 ]
 
+/**
+ * The Forum plugin's events (teleport-gui `features/forum/constants/forum-markers.ts`
+ * FORUM_BUSINESS_EVENTS): one prefix, five records.
+ */
+const FORUM_ENTITY_BY_EVENT: Record<string, string> = {
+  'forum-topic-created': 'topic',
+  'forum-reply-posted': 'reply',
+  'forum-community-created': 'community',
+  'forum-member-joined': 'membership',
+  'forum-item-reported': 'report',
+}
+
 export const automationEntityOf = (eventType: string): string | null => {
+  if (Object.prototype.hasOwnProperty.call(FORUM_ENTITY_BY_EVENT, eventType)) {
+    return FORUM_ENTITY_BY_EVENT[eventType]
+  }
   if (eventType === 'gift-card-issued') {
     return 'giftCards'
   }

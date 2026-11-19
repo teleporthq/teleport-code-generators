@@ -95,6 +95,66 @@ export const CONTENT_POSTS_VISITOR_ROW_POLICY: VisitorRowPolicy = {
  * (teleport-plugin-next-workflows) — so no reader can disagree about what a
  * visitor sees.
  */
+/* ------------------------------------------------------------------------ */
+/* The Forum plugin's tables                                                 */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * The Forum plugin's tables (the editor creates them at activation:
+ * `features/forum/constants/forum-tables.ts` there). The four a page binds
+ * are read under a row policy; the rest are one member's private records
+ * (`TableAccess.CUSTOMER_RECORD_TABLES`), read only in server segments.
+ */
+export const FORUM_TABLES = {
+  communities: 'teleport_forum_communities',
+  memberships: 'teleport_forum_memberships',
+  topics: 'teleport_forum_topics',
+  replies: 'teleport_forum_replies',
+  votes: 'teleport_forum_votes',
+  reactions: 'teleport_forum_reactions',
+  reports: 'teleport_forum_reports',
+  subscriptions: 'teleport_forum_subscriptions',
+  profiles: 'teleport_forum_profiles',
+  notifications: 'teleport_forum_notifications',
+  topicViews: 'teleport_forum_topic_views',
+} as const
+
+/** The forum tables whose rows name their owner in `user_id`: never listed by a browser. */
+export const FORUM_PRIVATE_TABLES: ReadonlyArray<string> = [
+  FORUM_TABLES.memberships,
+  FORUM_TABLES.votes,
+  FORUM_TABLES.reactions,
+  FORUM_TABLES.reports,
+  FORUM_TABLES.subscriptions,
+  FORUM_TABLES.notifications,
+  FORUM_TABLES.topicViews,
+]
+
+/**
+ * What a browser is served of the forum tables a page binds: live communities
+ * that are not private and the published topics of those (a private
+ * community's rows reach a member only through the forum data module, which
+ * checks the membership; an archived community's topics, or those of one still
+ * waiting for approval, are listed nowhere), published replies, and the
+ * profiles of members who are not banned.
+ *
+ * Each predicate is appended unqualified to a statement over its own table
+ * (alone, or as `AS __brp_rows` in a narrowed raw statement's WITH entry), so a
+ * subquery qualifies its own columns and leaves the outer ones bare.
+ */
+export const FORUM_VISITOR_ROW_POLICIES: Readonly<Record<string, VisitorRowPolicy>> = {
+  [FORUM_TABLES.communities]: {
+    predicate: "status = 'active' AND visibility <> 'private'",
+    hiddenColumns: [],
+  },
+  [FORUM_TABLES.topics]: {
+    predicate: `status = 'published' AND community_visibility <> 'private' AND community_id IN (SELECT fc.id FROM ${FORUM_TABLES.communities} fc WHERE fc.status = 'active')`,
+    hiddenColumns: [],
+  },
+  [FORUM_TABLES.replies]: { predicate: "status = 'published'", hiddenColumns: [] },
+  [FORUM_TABLES.profiles]: { predicate: "role <> 'banned'", hiddenColumns: [] },
+}
+
 export const VISITOR_ROW_POLICIES: Readonly<Record<string, VisitorRowPolicy>> = {
   ...Object.fromEntries(
     CONTENT_POSTS_TABLES.map((table) => [table, CONTENT_POSTS_VISITOR_ROW_POLICY])
@@ -105,6 +165,7 @@ export const VISITOR_ROW_POLICIES: Readonly<Record<string, VisitorRowPolicy>> = 
     predicate: "LOWER(TRIM(status)) = 'active'",
     hiddenColumns: [],
   },
+  ...FORUM_VISITOR_ROW_POLICIES,
 }
 
 /* ------------------------------------------------------------------------ */

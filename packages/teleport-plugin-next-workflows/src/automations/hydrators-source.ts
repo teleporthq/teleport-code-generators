@@ -622,7 +622,194 @@ async function hydrate(client, row, payload, context) {
 module.exports = { hydrate: hydrate };
 `
 
+// The Forum plugin's tables (teleport-shared `ContentTables.FORUM_TABLES`).
+const FORUM = {
+  communities: 'teleport_forum_communities',
+  memberships: 'teleport_forum_memberships',
+  topics: 'teleport_forum_topics',
+  replies: 'teleport_forum_replies',
+  reports: 'teleport_forum_reports',
+}
+
+/** The account's address and name for a forum row's user id: never its credentials. */
+const forumAccount = (
+  options: HydratorOptions
+): string => `async function accountOf(client, userId) {
+  if (!userId) return { email: null, name: null };
+  var user = await store.firstRow(client, ${sql(
+    `SELECT email, name FROM ${quoteIdentifier(options.usersTable)} WHERE id = $1 LIMIT 1`
+  )}, [String(userId)]);
+  return { email: user ? text(user.email) : null, name: user ? text(user.name) : null };
+}
+
+function excerptOf(value) {
+  var words = text(value) || '';
+  words = words.replace(/\s+/g, ' ').trim();
+  return words.length > 240 ? words.slice(0, 240).replace(/\s+\S*$/, '') + '…' : words;
+}
+`
+
+const forumTopicHydrator = (options: HydratorOptions): string => `${HEADER('forum topic')}
+${forumAccount(options)}
+async function hydrate(client, row) {
+  if (!row.entity_id) return {};
+  var topic = await store.firstRow(client, ${sql(
+    `SELECT id, community_id, community_slug, author_id, author_handle, author_name, title, slug, body_text, tags, status, is_pinned, score, reply_count, created_at FROM ${FORUM.topics} WHERE id = $1 LIMIT 1`
+  )}, [String(row.entity_id)]);
+  if (!topic) return {};
+  var account = await accountOf(client, topic.author_id);
+  return {
+    topic: {
+      id: String(topic.id),
+      title: text(topic.title),
+      slug: text(topic.slug),
+      excerpt: excerptOf(topic.body_text),
+      tags: store.parseJson(topic.tags) || [],
+      status: text(topic.status),
+      score: num(topic.score) || 0,
+      replyCount: num(topic.reply_count) || 0,
+      communityId: text(topic.community_id),
+      communitySlug: text(topic.community_slug),
+      authorId: text(topic.author_id),
+      authorHandle: text(topic.author_handle),
+      authorName: text(topic.author_name) || account.name,
+      authorEmail: account.email,
+      createdAt: iso(topic.created_at),
+    },
+  };
+}
+
+module.exports = { hydrate: hydrate };
+`
+
+const forumReplyHydrator = (options: HydratorOptions): string => `${HEADER('forum reply')}
+${forumAccount(options)}
+async function hydrate(client, row) {
+  if (!row.entity_id) return {};
+  var reply = await store.firstRow(client, ${sql(
+    `SELECT r.id, r.topic_id, r.community_id, r.parent_id, r.depth, r.author_id, r.author_handle, r.author_name, r.body_text, r.status, r.is_accepted, r.created_at, t.title AS topic_title, t.slug AS topic_slug FROM ${FORUM.replies} r LEFT JOIN ${FORUM.topics} t ON t.id = r.topic_id WHERE r.id = $1 LIMIT 1`
+  )}, [String(row.entity_id)]);
+  if (!reply) return {};
+  var account = await accountOf(client, reply.author_id);
+  return {
+    reply: {
+      id: String(reply.id),
+      topicId: text(reply.topic_id),
+      topicTitle: text(reply.topic_title),
+      topicSlug: text(reply.topic_slug),
+      communityId: text(reply.community_id),
+      parentId: text(reply.parent_id),
+      depth: num(reply.depth) || 0,
+      excerpt: excerptOf(reply.body_text),
+      status: text(reply.status),
+      isAccepted: reply.is_accepted === true,
+      authorId: text(reply.author_id),
+      authorHandle: text(reply.author_handle),
+      authorName: text(reply.author_name) || account.name,
+      authorEmail: account.email,
+      createdAt: iso(reply.created_at),
+    },
+  };
+}
+
+module.exports = { hydrate: hydrate };
+`
+
+const forumCommunityHydrator = (options: HydratorOptions): string => `${HEADER('forum community')}
+${forumAccount(options)}
+async function hydrate(client, row) {
+  if (!row.entity_id) return {};
+  var community = await store.firstRow(client, ${sql(
+    `SELECT id, slug, name, description, kind, visibility, posting, status, created_by, member_count, topic_count, created_at FROM ${FORUM.communities} WHERE id = $1 LIMIT 1`
+  )}, [String(row.entity_id)]);
+  if (!community) return {};
+  var account = await accountOf(client, community.created_by);
+  return {
+    community: {
+      id: String(community.id),
+      slug: text(community.slug),
+      name: text(community.name),
+      description: excerptOf(community.description),
+      kind: text(community.kind),
+      visibility: text(community.visibility),
+      posting: text(community.posting),
+      status: text(community.status),
+      memberCount: num(community.member_count) || 0,
+      topicCount: num(community.topic_count) || 0,
+      createdBy: text(community.created_by),
+      email: account.email,
+      creatorName: account.name,
+      createdAt: iso(community.created_at),
+    },
+  };
+}
+
+module.exports = { hydrate: hydrate };
+`
+
+const forumMembershipHydrator = (options: HydratorOptions): string => `${HEADER('forum membership')}
+${forumAccount(options)}
+async function hydrate(client, row) {
+  if (!row.entity_id) return {};
+  var membership = await store.firstRow(client, ${sql(
+    `SELECT m.id, m.community_id, m.user_id, m.role, m.status, m.joined_at, c.slug AS community_slug, c.name AS community_name FROM ${FORUM.memberships} m LEFT JOIN ${FORUM.communities} c ON c.id = m.community_id WHERE m.id = $1 LIMIT 1`
+  )}, [String(row.entity_id)]);
+  if (!membership) return {};
+  var account = await accountOf(client, membership.user_id);
+  return {
+    membership: {
+      id: String(membership.id),
+      communityId: text(membership.community_id),
+      communitySlug: text(membership.community_slug),
+      communityName: text(membership.community_name),
+      userId: text(membership.user_id),
+      role: text(membership.role),
+      status: text(membership.status),
+      email: account.email,
+      name: account.name,
+      joinedAt: iso(membership.joined_at),
+    },
+  };
+}
+
+module.exports = { hydrate: hydrate };
+`
+
+const forumReportHydrator = (options: HydratorOptions): string => `${HEADER('forum report')}
+${forumAccount(options)}
+async function hydrate(client, row) {
+  if (!row.entity_id) return {};
+  var report = await store.firstRow(client, ${sql(
+    `SELECT id, reporter_id, community_id, target_kind, target_id, reason, details, status, created_at FROM ${FORUM.reports} WHERE id = $1 LIMIT 1`
+  )}, [String(row.entity_id)]);
+  if (!report) return {};
+  var account = await accountOf(client, report.reporter_id);
+  return {
+    report: {
+      id: String(report.id),
+      targetKind: text(report.target_kind),
+      targetId: text(report.target_id),
+      reason: text(report.reason),
+      details: excerptOf(report.details),
+      status: text(report.status),
+      communityId: text(report.community_id),
+      reporterId: text(report.reporter_id),
+      email: account.email,
+      name: account.name,
+      createdAt: iso(report.created_at),
+    },
+  };
+}
+
+module.exports = { hydrate: hydrate };
+`
+
 const HYDRATORS: Record<string, (options: HydratorOptions) => string> = {
+  topic: forumTopicHydrator,
+  reply: forumReplyHydrator,
+  community: forumCommunityHydrator,
+  membership: forumMembershipHydrator,
+  report: forumReportHydrator,
   order: orderHydrator,
   subscription: subscriptionHydrator,
   giftCards: giftCardsHydrator,

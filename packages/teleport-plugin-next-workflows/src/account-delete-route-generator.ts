@@ -102,7 +102,20 @@ const DELETE_TABLES = [
   '${PASSWORD_RESETS_TABLE}',
   // A push subscription is the capability to notify the user's device.
   'teleport_push_subscriptions',
+  // A forum member's own rows: what they voted, reacted to, follow, were told
+  // and joined, and their forum profile.
+  'teleport_forum_votes',
+  'teleport_forum_reactions',
+  'teleport_forum_subscriptions',
+  'teleport_forum_notifications',
+  'teleport_forum_memberships',
+  'teleport_forum_profiles',
 ];
+// A forum member's topics and replies stay, so the threads under them still
+// read, under an anonymous author: the author columns are cleared and the id
+// replaced by a marker no session can hold.
+const FORUM_AUTHOR_TABLES = ['teleport_forum_topics', 'teleport_forum_replies'];
+const FORUM_DELETED_AUTHOR = { id: 'deleted', handle: 'deleted', name: 'Deleted member' };
 // Business / legal records that must survive: the user link is nulled and any
 // stored personal email is replaced with a synthetic, self-describing address.
 const ANONYMIZE_TABLES = [
@@ -162,6 +175,17 @@ async function anonymizeUserRows(client, table, userId, syntheticEmail) {
     if (cols.indexOf(cleared[c]) !== -1) { sets.push(cleared[c] + ' = NULL'); }
   }
   await client.query('UPDATE ' + table + ' SET ' + sets.join(', ') + ' WHERE user_id = $1', params);
+}
+
+async function anonymizeForumAuthorRows(client, table, userId) {
+  var cols = await tableColumns(client, table);
+  if (cols.indexOf('author_id') === -1) { return; }
+  var sets = ['author_id = $2'];
+  var params = [userId, FORUM_DELETED_AUTHOR.id];
+  if (cols.indexOf('author_handle') !== -1) { params.push(FORUM_DELETED_AUTHOR.handle); sets.push('author_handle = $' + params.length); }
+  if (cols.indexOf('author_name') !== -1) { params.push(FORUM_DELETED_AUTHOR.name); sets.push('author_name = $' + params.length); }
+  if (cols.indexOf('author_avatar') !== -1) { sets.push('author_avatar = NULL'); }
+  await client.query('UPDATE ' + table + ' SET ' + sets.join(', ') + ' WHERE author_id = $1', params);
 }
 
 async function deleteUserRows(client, table, userId) {
@@ -448,6 +472,9 @@ ${recordsDeletion ? '      deletedUser = userRes.rows[0];\n' : ''}
       try {
         for (var a = 0; a < ANONYMIZE_TABLES.length; a++) {
           await anonymizeUserRows(client, ANONYMIZE_TABLES[a], userId, syntheticEmail);
+        }
+        for (var f = 0; f < FORUM_AUTHOR_TABLES.length; f++) {
+          await anonymizeForumAuthorRows(client, FORUM_AUTHOR_TABLES[f], userId);
         }
         for (var d = 0; d < DELETE_TABLES.length; d++) {
           await deleteUserRows(client, DELETE_TABLES[d], userId);

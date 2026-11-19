@@ -88,6 +88,15 @@ import { generateInvoiceFiles, resolveInvoiceDataSource } from './invoice'
 import { ensureSentEmailLogModule, hasEmailSendingNodeType } from './sent-email-log'
 import { ensureWebhookDeliveryLeaseModule } from './webhook-delivery-lease'
 import { ensureSecurityRuntimeModule } from './security-runtime'
+import {
+  generateAccountProfilePhotoRoute,
+  PROFILE_PHOTO_UPLOAD_FOLDER,
+  workflowsUploadIntoFolder,
+} from './account-profile-photo-route-generator'
+import {
+  generateProductOptionFilesRoute,
+  PRODUCT_OPTION_UPLOAD_FOLDER,
+} from './product-option-files-route-generator'
 import { declareVercelFunctionsWhereRequired } from './vercel-functions'
 import { ensureEmailLocaleModule, resolveEmailLocaleConfig } from './email-locale'
 import { workflowUtilsImportLine, workflowUtilsRequireLine } from './workflow-utils-alias'
@@ -1074,6 +1083,42 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       if (Object.keys(providerDeps).length > 0) {
         ensureSentEmailLogModule(structure)
       }
+    }
+
+    // The account form files new profile photos in their own storage folder;
+    // this route deletes the photo a saved change replaced, when no account
+    // still shows it.
+    if (
+      uidl.authentication?.enabled &&
+      workflowsUploadIntoFolder(uidl.workflows, PROFILE_PHOTO_UPLOAD_FOLDER)
+    ) {
+      files.set('account-profile-photo-route', {
+        path: ['pages', 'api', 'account'],
+        files: [
+          {
+            name: 'profile-photo',
+            fileType: FileType.JS,
+            content: generateAccountProfilePhotoRoute({
+              authUsersTableName: resolveAuthUsersTableName(uidl.authentication),
+            }),
+          },
+        ],
+      })
+    }
+
+    // A shopper's option files are uploaded by the add to cart into their own
+    // folder; this route deletes those the cart did not take.
+    if (workflowsUploadIntoFolder(uidl.workflows, PRODUCT_OPTION_UPLOAD_FOLDER)) {
+      files.set('product-option-files-route', {
+        path: ['pages', 'api', 'ecommerce'],
+        files: [
+          {
+            name: 'option-files',
+            fileType: FileType.JS,
+            content: generateProductOptionFilesRoute(),
+          },
+        ],
+      })
     }
 
     if (needsRuntimeStorageRoute(usedNodeTypes)) {

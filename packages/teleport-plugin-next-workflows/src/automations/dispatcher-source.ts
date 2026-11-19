@@ -213,6 +213,8 @@ const ENTITY_LABELS: Record<string, string> = {
   giftCard: 'order',
   cart: 'abandoned cart',
   waitlist: 'waitlist entry',
+  membership: 'community membership',
+  report: 'forum report',
 }
 
 const STATEMENTS: Array<[string, string]> = [

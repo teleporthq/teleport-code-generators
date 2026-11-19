@@ -26,6 +26,12 @@ interface StyledJSXConfig {
   componentChunkName: string
 }
 
+/**
+ * Components the generator ships itself and that hand the className they are
+ * given to their own root element: the `Tq…` widgets and the rich text editor.
+ */
+const SHIPPED_COMPONENT_TYPE = /^(Tq[A-Z]|RichTextEditor$)/
+
 const transformStyle = (style: Record<string, UIDLStyleValue>, propsPrefix: string) =>
   UIDLUtils.transformDynamicStyles(style, (styleValue) => {
     switch (styleValue.content.referenceType) {
@@ -76,9 +82,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     > = {}
     const classMap: string[] = []
     // styled-jsx stamps its scope hash only on host DOM elements, never on
-    // React components — a widget's className reaches its internal root DOM
-    // untouched, so scoped rules like `.page-widget.jsx-123` can never match.
-    // Classes on widget elements are collected here and emitted as
+    // React components — a shipped component's className reaches its internal
+    // root DOM untouched, so scoped rules like `.page-widget.jsx-123` can never
+    // match. Classes on those elements are collected here and emitted as
     // `:global(...)` (names are already page-prefixed, so global is safe).
     const globalScopedClassNames: Set<string> = new Set()
 
@@ -104,8 +110,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       }
 
       const className = StringUtils.camelCaseToDashCase(key)
-      const rendersAsWidgetComponent = dependency?.type === 'local' && /^Tq[A-Z]/.test(elementType)
-      if (rendersAsWidgetComponent) {
+      const rendersAsShippedComponent =
+        dependency?.type === 'local' && SHIPPED_COMPONENT_TYPE.test(elementType)
+      if (rendersAsShippedComponent) {
         globalScopedClassNames.add(className)
       }
       const root = jsxNodesLookup[key]
