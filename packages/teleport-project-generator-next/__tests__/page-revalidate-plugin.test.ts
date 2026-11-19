@@ -1,4 +1,6 @@
+import * as crypto from 'crypto'
 import { InMemoryFileRecord, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { PageRevalidate } from '@teleporthq/teleport-shared'
 import { NextPageRevalidatePlugin } from '../src/page-revalidate/project-plugin'
 
 const buildStructure = (options: {
@@ -6,10 +8,15 @@ const buildStructure = (options: {
   workflowNodes?: any[]
   // tslint:disable-next-line:no-any
   customNodeNodes?: any[]
+  // tslint:disable-next-line:no-any
+  internationalization?: any
 }): ProjectPluginStructure =>
   ({
     uidl: {
       name: 'Store',
+      ...(options.internationalization
+        ? { internationalization: options.internationalization }
+        : {}),
       globals: { settings: {}, meta: [], assets: [], env: {} },
       root: { name: 'App', node: { type: 'element', content: { elementType: 'container' } } },
       components: {},
@@ -120,5 +127,109 @@ describe('NextPageRevalidatePlugin', () => {
 
     expect(route).toContain('const MAX_PATHS = 20')
     expect(route).toContain('.slice(0, MAX_PATHS)')
+  })
+
+  describe('on a site in several languages', () => {
+    const SECRET = 'a-real-secret'
+    const spanish = {
+      main: { name: 'English', locale: 'en' },
+      languages: { en: 'English', es: 'Spanish', fr: 'French' },
+      translations: { en: {}, es: {}, fr: {} },
+    }
+
+    /** The paths the route rebuilds for one request asking for `paths`. */
+    const rebuilds = async (route: string, paths: string[]) => {
+      const commonJs = route
+        .replace(/^import crypto from 'crypto'$/m, "const crypto = require('crypto')")
+        .replace('export default async function handler', 'module.exports = async function handler')
+      const module = { exports: null as any }
+      // tslint:disable-next-line:function-constructor
+      new Function('module', 'require', 'process', commonJs)(module, () => crypto, {
+        env: { TQ_CACHE_SECRET: SECRET },
+      })
+      const rebuilt: string[] = []
+      let sent: any = null
+      const res = {
+        status: () => res,
+        json: (body: unknown) => {
+          sent = body
+          return res
+        },
+        revalidate: async (path: string) => {
+          rebuilt.push(path)
+          if (path.endsWith('/gone')) {
+            throw new Error('never generated')
+          }
+        },
+      }
+      await module.exports(
+        { method: 'POST', headers: { 'x-tq-cache-secret': SECRET }, body: { paths } },
+        res
+      )
+      return { rebuilt, sent }
+    }
+
+    /**
+     * Next keeps a copy of a static page per language, and
+     * `res.revalidate('/forum')` rebuilds the default language's alone: the
+     * visitor on `/es/forum` kept the old copy until its own window ran out.
+     */
+    it('rebuilds every language’s copy of each path, the default one first', async () => {
+      const route = routeOf(
+        await run(
+          buildStructure({
+            workflowNodes: [{ type: 'page-revalidate' }],
+            internationalization: spanish,
+          })
+        )
+      )
+
+      const { rebuilt, sent } = await rebuilds(route, ['/forum', '/', 'forum/t/gone'])
+      expect(rebuilt).toEqual([
+        '/forum',
+        '/es/forum',
+        '/fr/forum',
+        '/',
+        '/es',
+        '/fr',
+        '/forum/t/gone',
+        '/es/forum/t/gone',
+        '/fr/forum/t/gone',
+      ])
+      expect(sent.failed).toEqual(['/forum/t/gone', '/es/forum/t/gone', '/fr/forum/t/gone'])
+    })
+
+    it('rebuilds a path that already names a language as it is, once', async () => {
+      const route = routeOf(
+        await run(
+          buildStructure({
+            workflowNodes: [{ type: 'page-revalidate' }],
+            internationalization: spanish,
+          })
+        )
+      )
+
+      const { rebuilt } = await rebuilds(route, ['/es/forum', '/en/forum', '/forum', '/es'])
+      expect(rebuilt).toEqual(['/es/forum', '/en/forum', '/forum', '/fr/forum', '/es'])
+    })
+
+    it('leaves the route of a site in one language as it always was', async () => {
+      const plain = routeOf(
+        await run(buildStructure({ workflowNodes: [{ type: 'page-revalidate' }] }))
+      )
+      const oneLanguage = routeOf(
+        await run(
+          buildStructure({
+            workflowNodes: [{ type: 'page-revalidate' }],
+            internationalization: { ...spanish, languages: { en: 'English' } },
+          })
+        )
+      )
+
+      expect(plain).toBe(PageRevalidate.generatePageRevalidateRoute())
+      expect(oneLanguage).toBe(plain)
+      expect(plain).not.toContain('LOCALES')
+      expect((await rebuilds(plain, ['/forum'])).rebuilt).toEqual(['/forum'])
+    })
   })
 })

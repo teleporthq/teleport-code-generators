@@ -76,6 +76,45 @@ function topicJsonLd(topic, community, replies, url) {
 }
 `
 
+const SINGLE_LANGUAGE_ENTRIES_SOURCE = `  var base = origin(context.req)
+  var lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+  var entry = function (path, at) {
+    lines.push('  <url>')
+    lines.push('    <loc>' + xmlText(base + path) + '</loc>')
+    if (at) lines.push('    <lastmod>' + xmlText(at) + '</lastmod>')
+    lines.push('  </url>')
+  }
+`
+
+/**
+ * A site in several languages: each page once per language (the default
+ * unprefixed, the others under `/<locale>`), each naming every language's
+ * address and the default one as `x-default` — as the editor's static
+ * sitemap and the content presets' live one write theirs.
+ */
+const MULTILINGUAL_ENTRIES_SOURCE = `  var base = origin(context.req)
+  var main = context.defaultLocale || null
+  var locales = [main].concat((Array.isArray(context.locales) ? context.locales : []).filter(function (locale) {
+    return locale && locale !== main
+  }))
+  var lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">']
+  var entry = function (path, at) {
+    var addresses = locales.map(function (locale) {
+      return { lang: locale, url: base + (locale && locale !== main ? '/' + locale : '') + path }
+    })
+    var alternates = addresses.length > 1 ? addresses.concat([{ lang: 'x-default', url: base + path }]) : []
+    addresses.forEach(function (address) {
+      lines.push('  <url>')
+      lines.push('    <loc>' + xmlText(address.url) + '</loc>')
+      if (at) lines.push('    <lastmod>' + xmlText(at) + '</lastmod>')
+      alternates.forEach(function (alternate) {
+        lines.push('    <xhtml:link rel="alternate" hreflang="' + xmlText(alternate.lang) + '" href="' + xmlText(alternate.url) + '" />')
+      })
+      lines.push('  </url>')
+    })
+  }
+`
+
 /** Source only a forum with communities gets: one without them names, links and lists none. */
 const withCommunities = (config: ForumConfig, source: string): string =>
   config.settings.structure === 'communities' ? source : ''
@@ -95,7 +134,10 @@ const communityBaseSource = (config: ForumConfig): string =>
  * presets' posts and is written by the blog plugin alone. A forum without
  * communities lists its topics only.
  */
-export const buildForumSitemapPageSource = (config: ForumConfig): string => {
+export const buildForumSitemapPageSource = (
+  config: ForumConfig,
+  options: { multilingual?: boolean } = {}
+): string => {
   const topicBase = config.routes.topic?.staticBase ?? '/forum/t'
   const communityEntries = withCommunities(
     config,
@@ -133,15 +175,9 @@ export async function getServerSideProps(context) {
     res.end('This file is unavailable right now. Try again in a few minutes.')
     return { props: {} }
   }
-  var base = origin(context.req)
-  var lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-  var entry = function (path, at) {
-    lines.push('  <url>')
-    lines.push('    <loc>' + xmlText(base + path) + '</loc>')
-    if (at) lines.push('    <lastmod>' + xmlText(at) + '</lastmod>')
-    lines.push('  </url>')
-  }
-${communityEntries}  index.topics.forEach(function (row) { entry(TOPIC_BASE + '/' + encodeURIComponent(row.slug), row.updated_at) })
+${
+  options.multilingual ? MULTILINGUAL_ENTRIES_SOURCE : SINGLE_LANGUAGE_ENTRIES_SOURCE
+}${communityEntries}  index.topics.forEach(function (row) { entry(TOPIC_BASE + '/' + encodeURIComponent(row.slug), row.updated_at) })
   lines.push('</urlset>')
   res.statusCode = 200
   res.setHeader('Content-Type', 'application/xml; charset=utf-8')

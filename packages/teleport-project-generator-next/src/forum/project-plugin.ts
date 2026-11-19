@@ -12,6 +12,7 @@ import {
   getDatabaseDriverDependencies,
 } from '@teleporthq/teleport-plugin-next-workflows'
 import { DetailsRoute } from '../instant-search/sections'
+import { resolveAppLocales } from '../pwa/locales'
 import {
   ForumConfig,
   ForumDetailsPage,
@@ -260,7 +261,10 @@ export class NextForumProjectPlugin implements ProjectPlugin {
       FORUM_FILE_KEYS.sitemap,
       ['pages'],
       FORUM_SITEMAP_PATH.slice(1),
-      buildForumSitemapPageSource(config)
+      buildForumSitemapPageSource(config, {
+        multilingual:
+          Boolean(uidl.internationalization) && resolveAppLocales(uidl).locales.length > 1,
+      })
     )
     setJsFile(
       structure,

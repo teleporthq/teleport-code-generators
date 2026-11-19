@@ -293,7 +293,11 @@ const sqlOf = (loaded: Loaded) => loaded.statements.map((statement) => statement
  * What an index page (`/sitemap-forum.xml`, `/llms-forum.txt`) sends for a
  * request to `site.example`, its `listPublicIndex` being the module's own.
  */
-const sendIndexPage = async (source: string, loaded: Loaded): Promise<string> => {
+const sendIndexPage = async (
+  source: string,
+  loaded: Loaded,
+  context: Record<string, unknown> = {}
+): Promise<string> => {
   const body = source
     .replace(/^import \{ listPublicIndex \} from .*$/m, '')
     .replace('export async function getServerSideProps', 'async function getServerSideProps')
@@ -310,7 +314,7 @@ const sendIndexPage = async (source: string, loaded: Loaded): Promise<string> =>
       sent = text
     },
   }
-  await getServerSideProps({ req: { headers: { host: 'site.example' } }, res })
+  await getServerSideProps({ req: { headers: { host: 'site.example' } }, res, ...context })
   expect(res.statusCode).toBe(200)
   return sent
 }
@@ -1267,6 +1271,59 @@ describe('the forum data module', () => {
           '- [General](https://site.example/forum/c/main): Everything that has no community of its own.\n' +
           `\n## Topics\n\n- [How do I start?](${TOPIC_URL}): Hello world\n`
       )
+    })
+
+    /**
+     * A site in several languages serves every forum page under each language's
+     * prefix too: the sitemap lists each address with the others as alternates
+     * and the default one as `x-default`, as the editor's static sitemap does.
+     */
+    it('lists each page in every language of a site in several languages', async () => {
+      const named = configOf()
+      const languages = { locales: ['en', 'es'], defaultLocale: 'en', locale: 'en' }
+      const sitemap = await sendIndexPage(
+        buildForumSitemapPageSource(named, { multilingual: true }),
+        withCommunities(),
+        languages
+      )
+      const community = 'https://site.example/forum/c/main'
+      const spanishCommunity = 'https://site.example/es/forum/c/main'
+      const spanishTopic = `https://site.example/es/forum/t/${TOPIC.slug}`
+
+      expect(sitemap).toContain(
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+      )
+      expect(sitemap.match(/<loc>[^<]*<\/loc>/g)).toEqual([
+        `<loc>${community}</loc>`,
+        `<loc>${spanishCommunity}</loc>`,
+        `<loc>${TOPIC_URL}</loc>`,
+        `<loc>${spanishTopic}</loc>`,
+      ])
+      const topicEntries = sitemap.split('<url>').filter((entry) => entry.includes('/forum/t/'))
+      expect(topicEntries).toHaveLength(2)
+      topicEntries.forEach((entry) => {
+        expect(entry.match(/<xhtml:link [^>]*\/>/g)).toEqual([
+          `<xhtml:link rel="alternate" hreflang="en" href="${TOPIC_URL}" />`,
+          `<xhtml:link rel="alternate" hreflang="es" href="${spanishTopic}" />`,
+          `<xhtml:link rel="alternate" hreflang="x-default" href="${TOPIC_URL}" />`,
+        ])
+        expect(entry).toContain('<lastmod>2026-10-01T12:00:00.000Z</lastmod>')
+      })
+
+      // A site in one language reads exactly as the single-language sitemap.
+      const alone = await sendIndexPage(
+        buildForumSitemapPageSource(named, { multilingual: true }),
+        withCommunities(),
+        { locales: ['en'], defaultLocale: 'en', locale: 'en' }
+      )
+      expect(alone.replace(' xmlns:xhtml="http://www.w3.org/1999/xhtml"', '')).toBe(
+        await sendIndexPage(buildForumSitemapPageSource(named), withCommunities())
+      )
+      // Without languages the page is generated as it always was.
+      expect(buildForumSitemapPageSource(named, { multilingual: false })).toBe(
+        buildForumSitemapPageSource(named)
+      )
+      expect(buildForumSitemapPageSource(named)).not.toContain('xhtml')
     })
   })
 })
