@@ -140,12 +140,13 @@ describe('handleRawQuery — wires the auto-fire correctly', () => {
     expect(code).toContain('async function handleRawQuery(client, body, req)')
   })
 
-  it('only fires the alert under the three required guards', () => {
+  it('only fires the alert under the four required guards', () => {
     // Guard 1: LOW_STOCK_ALERTS_ENABLED at codegen time
-    // Guard 2: rows.length > 0 at request time
-    // Guard 3: looksLikeLowStockProductSelect at request time
+    // Guard 2: the statement is the server's own, not one run for a visitor
+    // Guard 3: rows.length > 0 at request time
+    // Guard 4: looksLikeLowStockProductSelect at request time
     expect(code).toContain(
-      'if (LOW_STOCK_ALERTS_ENABLED && rows.length > 0 && looksLikeLowStockProductSelect(query))'
+      'if (LOW_STOCK_ALERTS_ENABLED && !forVisitor && rows.length > 0 && looksLikeLowStockProductSelect(query))'
     )
   })
 
@@ -260,7 +261,7 @@ describe('handleRawQuery — wires the auto-fire correctly', () => {
     // short-circuit is a no-op at runtime — what matters is that
     // the flag wins.
     expect(noopCode).toContain(
-      'if (LOW_STOCK_ALERTS_ENABLED && rows.length > 0 && looksLikeLowStockProductSelect(query))'
+      'if (LOW_STOCK_ALERTS_ENABLED && !forVisitor && rows.length > 0 && looksLikeLowStockProductSelect(query))'
     )
   })
 })

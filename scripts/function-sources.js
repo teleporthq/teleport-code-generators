@@ -113,12 +113,7 @@ const MANIFEST = [
     sources: [
       {
         file: 'packages/teleport-plugin-next-workflows/src/nodes/ai/ai-sql-select-guard.ts',
-        names: [
-          '__aisql_stripLiteralsAndComments',
-          '__aisql_validateSelectQuery',
-          '__aisql_enforceLimit',
-          '__aisql_buildSystemPrompt',
-        ],
+        names: ['__aisql_validateSelectQuery', '__aisql_enforceLimit', '__aisql_buildSystemPrompt'],
       },
     ],
   },
