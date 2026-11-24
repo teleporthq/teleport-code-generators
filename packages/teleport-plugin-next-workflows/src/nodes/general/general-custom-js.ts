@@ -150,19 +150,26 @@ async function general_custom_js(config: any, context: Record<string, unknown>) 
       }
       list.push((context as any)[id])
     }
+    // The call's parameters are names. A key that is a position (`"0"`,
+    // `"12"`), the array's `length` or its prototype is never written, so the
+    // step results stay exactly the ones the steps produced.
+    const isParameterName = (key: unknown): boolean =>
+      typeof key === 'string' && !/^\d+$/.test(key) && key !== 'length' && key !== '__proto__'
     const customParams = (context as any).__customParams
     if (customParams) {
       if (Array.isArray(customParams)) {
         for (let cp = 0; cp < customParams.length; cp++) {
           const entry = customParams[cp]
-          if (entry && entry.key !== undefined) {
+          if (entry && isParameterName(entry.key)) {
             ;(list as any)[entry.key] = entry.value
           }
         }
       } else if (typeof customParams === 'object') {
         const cpKeys = Object.keys(customParams)
         for (let cp = 0; cp < cpKeys.length; cp++) {
-          ;(list as any)[cpKeys[cp]] = customParams[cpKeys[cp]]
+          if (isParameterName(cpKeys[cp])) {
+            ;(list as any)[cpKeys[cp]] = customParams[cpKeys[cp]]
+          }
         }
       }
     }
