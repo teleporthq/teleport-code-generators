@@ -3,9 +3,11 @@
  * workflow node: `pages/api/account/delete-current.js`.
  *
  * The client node calls this route, which:
- *   1. resolves the current user from the NextAuth session (never trusting a
- *      client-supplied id) and, when the request carries a password, goes on
- *      only if it is the account's own,
+ *   1. takes the request only from the site's own pages, resolves the current
+ *      user from the NextAuth session (never trusting a client-supplied id),
+ *      and goes on only when the request carries the account's own password
+ *      or, without one, the session signed in within the last
+ *      `RECENT_SIGN_IN_MINUTES`,
  *   2. runs a single DB transaction that detaches + anonymises business/legal
  *      records (orders, withdrawal requests, bookings, downloads, gift cards
  *      the user bought or received) so tracking survives, takes the user's
@@ -36,7 +38,19 @@ import {
   generateEmailLocaleRequire,
   generateLocalizedEmailCopyFn,
 } from './transactional-email-code'
-import { generateAccountEventRecorder, PASSWORD_RESETS_TABLE } from './auth-generator'
+import {
+  generateAccountEventRecorder,
+  PASSWORD_RESETS_TABLE,
+  SIGNED_IN_AT_KEY,
+} from './auth-generator'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
+
+/** How recent a sign-in deletes the account without its password being typed. */
+export const RECENT_SIGN_IN_MINUTES = 15
+
+/** The answer to a deletion with no password from an older sign-in. */
+export const ACCOUNT_DELETE_SIGN_IN_AGAIN_MESSAGE =
+  'For your security, sign out and sign in again, then delete your account.'
 
 export interface AccountDeleteRouteOptions {
   // The auth identity table (resolved by the plugin). Defaults to `users`.
@@ -345,9 +359,10 @@ async function deleteOwnedRows(client, userId) {
 }
 
 // The password a request confirms the deletion with, or null when it names
-// none. A request without one deletes as before; one with a password deletes
-// only when it is the account's own (the editor's delete-account form asks for
-// it).
+// none. One with a password deletes only when it is the account's own (the
+// editor's delete-account form asks for it); one without deletes only for a
+// session signed in within the last ${RECENT_SIGN_IN_MINUTES} minutes (the account settings'
+// Delete Account button, an account with no password).
 function readRequestPassword(req) {
   var body = req.body;
   if (typeof body === 'string') {
@@ -359,6 +374,17 @@ function readRequestPassword(req) {
   return String(body.password);
 }
 
+var SIGNED_IN_AT_KEY = ${JSON.stringify(SIGNED_IN_AT_KEY)};
+var RECENT_SIGN_IN_MS = ${RECENT_SIGN_IN_MINUTES} * 60 * 1000;
+var SIGN_IN_AGAIN_MESSAGE = ${JSON.stringify(ACCOUNT_DELETE_SIGN_IN_AGAIN_MESSAGE)};
+
+function signedInRecently(token) {
+  var signedInAt = token ? Number(token[SIGNED_IN_AT_KEY]) : NaN;
+  var elapsed = Date.now() - signedInAt;
+  return isFinite(elapsed) && elapsed >= 0 && elapsed < RECENT_SIGN_IN_MS;
+}
+
+${SAME_ORIGIN_REQUEST_SOURCE}
 // The sign-in check (utils/auth/hash-password.js checkPassword): bcrypt over
 // the SHA-256 of the password and a pepper, the project's own
 // (AUTH_PEPPER_SECRET) first, then the one every earlier hash used
@@ -424,6 +450,9 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   // Identify the user from the session — never trust a client-supplied id.
   var token = null;
@@ -438,6 +467,9 @@ module.exports = async function handler(req, res) {
   }
 
   var requestPassword = readRequestPassword(req);
+  if (requestPassword === null && !signedInRecently(token)) {
+    return res.status(403).json({ error: SIGN_IN_AGAIN_MESSAGE });
+  }
   var client = getClient();
   var userEmail = '';
   var userName = '';

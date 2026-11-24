@@ -24,6 +24,7 @@ import { AUTOMATIONS_PATH } from './automations/automations-scope'
 import { APP_EVENTS_FILE_NAME, APP_EVENTS_PATH } from './automations/app-events-source'
 import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
 import { generateSelfCallHeadersCode } from './self-call-headers'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 export const DATA_NODE_TYPES: ReadonlySet<string> = new Set([
   'data-select',
@@ -2014,9 +2015,13 @@ async function assertSessionOwnsUsersRow(req, operation, body) {
   }
 }
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 ${withAutomations ? '  kickDueAutomations(req);\n' : ''}
   var params = req.query.params;

@@ -1,5 +1,5 @@
 import type { UIDLAuthentication, UIDLWorkflow, UIDLWorkflows } from '@teleporthq/teleport-types'
-import { generateSignupRouteFile } from '../src/auth-generator'
+import { generateSignupRouteFile, SIGNED_IN_AT_KEY } from '../src/auth-generator'
 import { generateAccountDeleteRoute } from '../src/account-delete-route-generator'
 import { hasAutomationEventBus } from '../src/automations/automations-scope'
 import { accountSignup } from '../src/nodes/account/account-signup'
@@ -336,7 +336,9 @@ describe('account-deletion route — user-deleted', () => {
     }
     const modules: Record<string, unknown> = {
       pg: { Client: FakeClient },
-      'next-auth/jwt': { getToken: async () => ({ id: 'u1', iat: 1 }) },
+      'next-auth/jwt': {
+        getToken: async () => ({ id: 'u1', iat: 1, [SIGNED_IN_AT_KEY]: Date.now() }),
+      },
       '../../../utils/email/email-locale': LOCALE,
     }
     if (options.bus !== undefined) {

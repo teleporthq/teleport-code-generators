@@ -18,9 +18,9 @@ import { generatePgClientCode } from './pg-client-code'
 import { securityRuntimeSpecifier } from './security-runtime'
 import {
   FILE_ID_PATTERN,
-  UPLOAD_RELEASE_SAME_ORIGIN_SOURCE,
   UPLOAD_RELEASE_STORAGE_SOURCE,
 } from './account-profile-photo-route-generator'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 /** ⛔ PAIRED with `PRODUCT_OPTION_FILES_ROUTE` in teleport-gui `product-options-add-to-cart-uploads.ts`. */
 export const PRODUCT_OPTION_FILES_ROUTE = '/api/ecommerce/option-files'
@@ -50,7 +50,7 @@ var STORAGE_URL = process.env.RUNTIME_STORAGE_URL;
 var STORAGE_KEY = process.env.RUNTIME_STORAGE_API_KEY;
 var STORAGE_PROJECT = process.env.RUNTIME_STORAGE_PROJECT_ID;
 
-${UPLOAD_RELEASE_SAME_ORIGIN_SOURCE}
+${SAME_ORIGIN_REQUEST_SOURCE}
 ${UPLOAD_RELEASE_STORAGE_SOURCE}
 // The named files the add to cart uploaded: the ones storage lists in the option folder.
 async function optionFilesAmong(ids) {
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
   if (!(await security.rateLimitRequest(req, res, RATE_LIMIT))) {
     return;
   }
-  if (!isSameOrigin(req)) {
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
     return res.status(403).json({ success: false, error: 'Forbidden' });
   }
   var body = req.body && typeof req.body === 'object' ? req.body : {};
