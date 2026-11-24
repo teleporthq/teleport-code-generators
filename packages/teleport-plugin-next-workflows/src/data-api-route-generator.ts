@@ -535,9 +535,17 @@ function refuseUnscopedWrite(field) {
   return err;
 }
 
+function refuseUnfilteredWrite() {
+  var err = new Error('Refused: no filter limits this write, so it would change every row.');
+  err.status = 400;
+  return err;
+}
+
 // \`strict\` (every UPDATE and DELETE): a filter that lost its value, or names no
 // column, REFUSES the write instead of being left out — leaving it out widens
-// the write to every row of the table. An empty list matches no row.
+// the write to every row of the table. So does a write with no filter, or one
+// whose every filter adds no condition: it always names the rows it changes.
+// An empty list matches no row.
 function buildWhereClause(filters, queryParams, startIndex, options) {
   var conditions = [];
   var paramIndex = startIndex;
@@ -550,6 +558,7 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   var visitorScoped = !!ownerScope && __dataReadIsBoundToVisitor(ownerScope, filters);
 
   if (!filters || !Array.isArray(filters) || filters.length === 0) {
+    if (strict) throw refuseUnfilteredWrite();
     return { clause: '', paramIndex: paramIndex };
   }
 
@@ -647,6 +656,8 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
       paramIndex++;
     }
   }
+
+  if (strict && conditions.length === 0) throw refuseUnfilteredWrite();
 
   return {
     clause: conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '',
