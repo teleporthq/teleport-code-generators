@@ -1,6 +1,7 @@
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import { ROLE_OF_TOKEN_CODE } from './workflow-auth-generator'
 import { securityRuntimeSpecifier } from './security-runtime'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 const FILE_STORAGE_NODE_TYPES = new Set([
   'file-storage-upload',
@@ -485,9 +486,14 @@ async function visitorMayStore(req, res, parts) {
   return true;
 }
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 

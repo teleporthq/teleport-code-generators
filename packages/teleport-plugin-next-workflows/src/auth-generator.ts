@@ -25,6 +25,7 @@ import { generateSessionTokenResolverCode } from './session-cookie-resolver'
 import { AUTOMATIONS_PATH } from './automations/automations-scope'
 import { SESSION_REVOCATION_FILE_NAME, SESSION_STAMP_KEY } from './session-revocation-generator'
 import { securityRuntimeSpecifier } from './security-runtime/security-runtime-code'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 /**
  * Credentials sign-in throttle: a visitor's next sign-in for an email is
@@ -44,6 +45,12 @@ export const SIGN_UP_LIMIT = 10
  */
 export const EXISTING_ACCOUNT_EMAIL_LIMIT = 3
 export const SIGN_UP_WINDOW_SECONDS = 3600
+
+/**
+ * The token claim holding when the session's sign-in happened (ms since the
+ * epoch). Never copied onto `session.user`.
+ */
+export const SIGNED_IN_AT_KEY = '__signedInAt'
 
 // GUI provider id → the actual next-auth v4 provider MODULE name, for the few
 // cases where they differ. Everything else uses the id as the module name.
@@ -802,6 +809,25 @@ async function storePasswordReset(userId, tokenHash, ttlSeconds) {
   }
 }
 
+// The link was mailed to the account's address, so opening it proves the
+// mailbox: the account's email_verified is set too, where the users table has
+// that column as a timestamp (42703: no such column; 42804: another type).
+var RESET_PROVES_EMAIL = ', email_verified = COALESCE(users.email_verified, NOW())';
+var EMAIL_PROOF_NOT_KEPT_CODES = ['42703', '42804'];
+
+function consumePasswordResetStatement(extraSet) {
+  return (
+    'WITH consumed AS (' +
+    ' UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW()' +
+    ' WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()' +
+    ' RETURNING user_id' +
+    '), changed AS (' +
+    ' UPDATE users SET password = $2' + extraSet + ' FROM consumed WHERE users.id::text = consumed.user_id' +
+    ' RETURNING users.id, users.email' +
+    ') SELECT id, email FROM changed'
+  );
+}
+
 // Spends the link and sets the password in ONE statement: the link must be
 // unspent and unexpired, and is spent by this call alone (a second call with the
 // same token finds it used). Returns the account it was for, or null.
@@ -809,17 +835,13 @@ async function consumePasswordReset(tokenHash, passwordHash) {
   const client = getClient();
   try {
     await client.connect();
-    const result = await client.query(
-      'WITH consumed AS (' +
-        ' UPDATE ' + PASSWORD_RESETS_TABLE + ' SET used_at = NOW()' +
-        ' WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()' +
-        ' RETURNING user_id' +
-        '), changed AS (' +
-        ' UPDATE users SET password = $2 FROM consumed WHERE users.id::text = consumed.user_id' +
-        ' RETURNING users.id, users.email' +
-        ') SELECT id, email FROM changed',
-      [tokenHash, passwordHash]
-    );
+    let result;
+    try {
+      result = await client.query(consumePasswordResetStatement(RESET_PROVES_EMAIL), [tokenHash, passwordHash]);
+    } catch (err) {
+      if (!err || EMAIL_PROOF_NOT_KEPT_CODES.indexOf(err.code) === -1) throw err;
+      result = await client.query(consumePasswordResetStatement(''), [tokenHash, passwordHash]);
+    }
     return result.rows && result.rows.length > 0 ? result.rows[0] : null;
   } catch (err) {
     // 42P01: no link was ever sent, so the table is not there yet.
@@ -861,8 +883,11 @@ const PASSWORD_RESET_SUPPORTED = false;`
 /**
  * `updateUserPasswordHash(user, newHash, oldHash)` — the sign-in moving a hash
  * onto the project's own pepper. It writes only over the hash it verified, so a
- * reset that landed in between is never undone. Plus the password-reset link
- * store (Postgres family only).
+ * reset that landed in between is never undone. `markEmailProven(user)` —
+ * the account's address proven (its `email_verified` set, its password
+ * removed) unless it already was; `clearUserPassword(user)` — the password
+ * removed; both answer the account as stored now (see `claimProvenEmail`).
+ * Plus the password-reset link store (Postgres family only).
  */
 const generatePasswordStoreFunctions = (dataSourceType: DataSourceType | null): string => {
   switch (dataSourceType) {
@@ -896,6 +921,28 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
     try { await client.end(); } catch (_e) {}
   }
 }
+
+async function markEmailProven(user) {
+  const client = getClient();
+  try {
+    await client.connect();
+    await client.query('UPDATE users SET password = NULL, email_verified = NOW() WHERE id = $1 AND email_verified IS NULL', [user.id]);
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  const client = getClient();
+  try {
+    await client.connect();
+    await client.query('UPDATE users SET password = NULL WHERE id = $1', [user.id]);
+  } finally {
+    try { await client.end(); } catch (_e) {}
+  }
+  return findUserById(user.id);
+}
 ${PG_PASSWORD_RESET_FUNCTIONS}`
     case 'supabase':
       return `async function findUserById(id) {
@@ -909,6 +956,20 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
   const client = getSupabaseClient();
   const result = await client.from('users').update({ password: newHash }).eq('id', user.id).eq('password', oldHash).select('id');
   return !!(result.data && result.data.length > 0);
+}
+
+async function markEmailProven(user) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').update({ password: null, email_verified: new Date().toISOString() }).eq('id', user.id).is('email_verified', null).select('id');
+  if (result.error) throw new Error(result.error.message || 'users update failed');
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  const client = getSupabaseClient();
+  const result = await client.from('users').update({ password: null }).eq('id', user.id).select('id');
+  if (result.error) throw new Error(result.error.message || 'users update failed');
+  return findUserById(user.id);
 }
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     case 'mysql':
@@ -933,6 +994,26 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
     try { await conn.end(); } catch (_e) {}
   }
 }
+
+async function markEmailProven(user) {
+  const conn = await getConnection();
+  try {
+    await conn.execute('UPDATE users SET password = NULL, email_verified = NOW() WHERE id = ? AND email_verified IS NULL', [user.id]);
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  const conn = await getConnection();
+  try {
+    await conn.execute('UPDATE users SET password = NULL WHERE id = ?', [user.id]);
+  } finally {
+    try { await conn.end(); } catch (_e) {}
+  }
+  return findUserById(user.id);
+}
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     case 'mongodb':
       return `async function findUserById(id) {
@@ -948,6 +1029,23 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
   const db = client.db();
   const result = await db.collection('users').updateOne({ _id: user._id, password: oldHash }, { $set: { password: newHash } });
   return !!(result && result.modifiedCount > 0);
+}
+
+async function markEmailProven(user) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  await db.collection('users').updateOne(
+    { _id: user._id, emailVerified: null, email_verified: null },
+    { $set: { password: null, emailVerified: new Date() } }
+  );
+  return db.collection('users').findOne({ _id: user._id });
+}
+
+async function clearUserPassword(user) {
+  const client = await _mongoClientPromise;
+  const db = client.db();
+  await db.collection('users').updateOne({ _id: user._id }, { $set: { password: null } });
+  return db.collection('users').findOne({ _id: user._id });
 }
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     case 'firestore':
@@ -965,6 +1063,23 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
     return true;
   });
 }
+
+async function markEmailProven(user) {
+  const ref = firestoreDb.collection('users').doc(String(user.id));
+  await firestoreDb.runTransaction(async function (tx) {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() : null;
+    if (data && data.emailVerified == null && data.email_verified == null) {
+      tx.update(ref, { password: null, emailVerified: new Date() });
+    }
+  });
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  await firestoreDb.collection('users').doc(String(user.id)).update({ password: null });
+  return findUserById(user.id);
+}
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     case 'turso':
       return `async function findUserById(id) {
@@ -975,6 +1090,16 @@ ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
 async function updateUserPasswordHash(user, newHash, oldHash) {
   const result = await tursoClient.execute({ sql: 'UPDATE users SET password = ? WHERE id = ? AND password = ?', args: [newHash, user.id, oldHash] });
   return !!(result && result.rowsAffected > 0);
+}
+
+async function markEmailProven(user) {
+  await tursoClient.execute({ sql: 'UPDATE users SET password = NULL, email_verified = CURRENT_TIMESTAMP WHERE id = ? AND email_verified IS NULL', args: [user.id] });
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  await tursoClient.execute({ sql: 'UPDATE users SET password = NULL WHERE id = ?', args: [user.id] });
+  return findUserById(user.id);
 }
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     case 'airtable':
@@ -996,10 +1121,28 @@ async function updateUserPasswordHash(user, newHash, oldHash) {
   });
   return true;
 }
+
+function updateAirtableUser(user, fields) {
+  return new Promise(function(resolve, reject) {
+    airtableBase('users').update(String(user.id), fields, function(err) { if (err) { reject(err); } else { resolve(); } });
+  });
+}
+
+async function markEmailProven(user) {
+  await updateAirtableUser(user, { password: null, email_verified: new Date().toISOString() });
+  return findUserById(user.id);
+}
+
+async function clearUserPassword(user) {
+  await updateAirtableUser(user, { password: null });
+  return findUserById(user.id);
+}
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
     default:
       return `async function findUserById() { return null; }
 async function updateUserPasswordHash() { return false; }
+async function markEmailProven() { return null; }
+async function clearUserPassword() { return null; }
 ${UNSUPPORTED_PASSWORD_RESET_FUNCTIONS}`
   }
 }
@@ -1213,6 +1356,10 @@ const TOKEN_REFRESH_STAMP = '__userRefreshedAt';
 // stamp above never copied onto \`session.user\`.
 const TOKEN_PASSWORD_FINGERPRINT = '__passwordFingerprint';
 
+// When the session's sign-in happened. Deleting the account without typing its
+// password asks for a recent one (pages/api/account/delete-current).
+const TOKEN_SIGNED_IN_AT = '${SIGNED_IN_AT_KEY}';
+
 function passwordFingerprint(storedHash) {
   return require('crypto')
     .createHmac('sha256', String(process.env.NEXTAUTH_SECRET || ''))
@@ -1236,6 +1383,7 @@ const authOptions = {
         for (let i = 0; i < keys.length; i++) {
           token[keys[i]] = user[keys[i]];
         }
+        token[TOKEN_SIGNED_IN_AT] = Date.now();
 ${
   withOAuthBinding
     ? `        // An OAuth sign-in becomes the local account with its email only when
@@ -1322,6 +1470,7 @@ ${
         const skip = { iat: 1, exp: 1, jti: 1, sub: 1 };
         skip[TOKEN_REFRESH_STAMP] = 1;
         skip[TOKEN_PASSWORD_FINGERPRINT] = 1;
+        skip[TOKEN_SIGNED_IN_AT] = 1;
 ${withPassword ? `        skip['${SESSION_STAMP_KEY}'] = 1;\n` : ''}${
     withOAuthBinding ? '        skip[OAUTH_UNVERIFIED] = 1;\n' : ''
   }        const keys = Object.keys(token);
@@ -1405,7 +1554,8 @@ const PLAIN_REFRESH_CODE = `      try {
 // With password sign-in: a stamped session follows its account BY ID (the key
 // every consumer acts on), so a deleted account or a changed password ends it
 // even after an email change; an unstamped one (an OAuth sign-in, a token from
-// before stamps) adopts the local account by its email.
+// before stamps) adopts the local account by its email, a provider's sign-in
+// only once that account's address is proven (claimProvenEmail).
 const PASSWORD_REFRESH_CODE = `      let revoked = false;
       try {
         const stamped = !!token && typeof token['${SESSION_STAMP_KEY}'] === 'string';
@@ -1418,6 +1568,11 @@ const PASSWORD_REFRESH_CODE = `      let revoked = false;
         } else if (token && token.email && typeof findUserByEmail === 'function') {
           fresh = await findUserByEmail(String(token.email));
           looked = true;
+          // A session of another id takes an account with a password only once
+          // the account's address is proven (claimProvenEmail).
+          if (fresh && fresh.password && takesAccountByEmail(token, fresh) && !emailIsProven(fresh)) {
+            fresh = await claimProvenEmail(fresh);
+          }
         }
         if (looked) {
           // The account's password (or session_version) changed since this
@@ -1572,6 +1727,41 @@ function sessionStampCheck(token, row) {
     }
   }
   return verdict;
+}
+
+// Whether the account's mailbox was proven: the site owner made the account,
+// its owner opened a reset link, or a provider vouched for the address. A
+// sign-up alone proves nothing.
+function emailIsProven(row) {
+  var value = row.email_verified !== undefined ? row.email_verified : row.emailVerified;
+  return value != null && value !== false && value !== 0 && value !== '' && value !== 'false';
+}
+
+// A session issued for another id (a provider's sign-in) that is about to take
+// this account by its email. A session of the account's own id is not.
+function takesAccountByEmail(token, row) {
+  var tokenId = token.id != null ? token.id : token.sub;
+  var rowId = row.id != null ? row.id : row._id;
+  return tokenId == null || rowId == null || String(tokenId) !== String(rowId);
+}
+
+// A provider vouched for the address of the account a session takes by its
+// email. The account is marked proven, and a password it was given before its
+// mailbox was proven is removed: every session that password opened ends (the
+// session stamp), and the owner sets a password again through a reset link.
+// Where the mark cannot be kept (no email_verified column, or one of another
+// type) the password is removed all the same. Returns the account as stored now.
+async function claimProvenEmail(user) {
+  var row = null;
+  try {
+    row = await markEmailProven(user);
+  } catch (err) {
+    console.error('[auth] Could not mark the address proven:', err && err.message ? err.message : err);
+  }
+  if (!row || (row.password && !emailIsProven(row))) {
+    row = await clearUserPassword(user);
+  }
+  return row;
 }`
 
 /**
@@ -2680,9 +2870,14 @@ const __security = require('${securityRuntimeSpecifier('../../..')}');
 ${dbImport}
 ${welcomeHelpers}
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 

@@ -13,6 +13,7 @@ import {
   resolveSignupFields,
   SIGN_IN_FAILURE_LIMIT,
   SIGN_IN_VISITOR_FAILURE_LIMIT,
+  SIGNED_IN_AT_KEY,
 } from '../src/auth-generator'
 import {
   FORGOT_PASSWORD_ANSWER,
@@ -82,6 +83,13 @@ class FakePostgres {
   statements: string[] = []
   // The account store cannot be read (a connection refused) for lookups by id.
   failLookups = false
+  /**
+   * The users table's email_verified column: a timestamp (as the editor makes
+   * it), missing (42703), or a column of another type (42804).
+   */
+  emailProofColumn: 'timestamp' | 'missing' | 'boolean' = 'timestamp'
+  /** Fails every statement that removes a password. */
+  failPasswordClears = false
 
   query(sql: string, values: any[] = []): { rows: Row[]; rowCount?: number } {
     this.statements.push(sql)
@@ -136,6 +144,31 @@ class FakePostgres {
       }
       return { rows: [], rowCount: user ? 1 : 0 }
     }
+    if (
+      sql ===
+      'UPDATE users SET password = NULL, email_verified = NOW() WHERE id = $1 AND email_verified IS NULL'
+    ) {
+      this.refuseEmailProofWrite()
+      if (this.failPasswordClears) {
+        throw Object.assign(new Error('Connection terminated unexpectedly'), { code: '57P01' })
+      }
+      const user = this.users.find((u) => u.id === values[0] && u.email_verified == null)
+      if (user) {
+        user.password = null
+        user.email_verified = this.now
+      }
+      return { rows: [], rowCount: user ? 1 : 0 }
+    }
+    if (sql === 'UPDATE users SET password = NULL WHERE id = $1') {
+      if (this.failPasswordClears) {
+        throw Object.assign(new Error('Connection terminated unexpectedly'), { code: '57P01' })
+      }
+      const user = this.users.find((u) => u.id === values[0])
+      if (user) {
+        user.password = null
+      }
+      return { rows: [], rowCount: user ? 1 : 0 }
+    }
     if (!this.resetsTableExists && sql.includes('teleport_password_resets')) {
       throw Object.assign(new Error('relation "teleport_password_resets" does not exist'), {
         code: '42P01',
@@ -168,6 +201,10 @@ class FakePostgres {
       return { rows: [] }
     }
     if (sql.startsWith('WITH consumed AS ( UPDATE teleport_password_resets SET used_at = NOW()')) {
+      const provesEmail = sql.includes('email_verified')
+      if (provesEmail) {
+        this.refuseEmailProofWrite()
+      }
       const reset = this.live(values[0])
       if (!reset) {
         return { rows: [] }
@@ -178,6 +215,9 @@ class FakePostgres {
         return { rows: [] }
       }
       user.password = values[1]
+      if (provesEmail && user.email_verified == null) {
+        user.email_verified = this.now
+      }
       return { rows: [{ id: user.id, email: user.email }] }
     }
     if (sql.startsWith('SELECT 1 FROM teleport_password_resets WHERE token_hash = $1')) {
@@ -190,6 +230,17 @@ class FakePostgres {
     return this.resets.find(
       (r) => r.token_hash === tokenHash && r.used_at === null && r.expires_at > this.now
     )
+  }
+
+  private refuseEmailProofWrite(): void {
+    if (this.emailProofColumn === 'missing') {
+      throw Object.assign(new Error('column "email_verified" does not exist'), { code: '42703' })
+    }
+    if (this.emailProofColumn === 'boolean') {
+      throw Object.assign(new Error('column "email_verified" is of type boolean'), {
+        code: '42804',
+      })
+    }
   }
 }
 
@@ -1121,7 +1172,13 @@ describe('A3-M1 / R16: a password change ends every session, in every check', ()
 
   // I2: the check lives in the shared reader (__tqSessionToken), so every
   // consumer refuses a revoked session — proven here through two of them.
-  const stamped = { id: VICTIM.id, email: VICTIM.email, role: 'admin', __sessionStamp: 'stamp-1' }
+  const stamped = {
+    id: VICTIM.id,
+    email: VICTIM.email,
+    role: 'admin',
+    __sessionStamp: 'stamp-1',
+    [SIGNED_IN_AT_KEY]: Date.now(),
+  }
   const revocationStub = (revokedStamp: boolean) => ({
     liveSessionToken: async (token: Row) =>
       revokedStamp && token.__sessionStamp === 'stamp-1' ? null : token,
@@ -2372,5 +2429,407 @@ describe('review fix round 3 (A11): the users id type the editor read from the d
 
   it('no recorded type namespaces it', async () => {
     expect(await signInId(withLiveIdType(''))).toBe('oauth:github:583231')
+  })
+})
+
+describe('a provider that vouches for an address proves its mailbox', () => {
+  const GOOGLE_AUTH = {
+    ...AUTH,
+    providers: [{ id: 'google', name: 'Google', credentials: {} }],
+  } as UIDLAuthentication
+  const OWNER_EMAIL = 'owner@site.test'
+  const SIGN_UP_PASSWORD = 'Typed#Pass1'
+  const CLEARING = 'UPDATE users SET password = NULL'
+
+  const clearingStatements = (db: FakePostgres) =>
+    db.statements.filter((sql) => sql.startsWith(CLEARING))
+
+  const signUp = async (app: ReturnType<typeof loadApp>) => {
+    const res = fakeResponse()
+    await app.load('signup')(
+      request({ email: OWNER_EMAIL, password: SIGN_UP_PASSWORD, name: 'Owner' }),
+      res
+    )
+    expect(res.statusCode).toBe(201)
+    return app.db.users.find((user) => user.email === OWNER_EMAIL)!
+  }
+
+  const passwordSignIn = async (app: ReturnType<typeof loadApp>, password: string) => {
+    const options = app.load('options')
+    const user = await options.providers[0].authorize(
+      { email: OWNER_EMAIL, password },
+      { headers: {} }
+    )
+    const token: Row = { email: OWNER_EMAIL, sub: user.id }
+    await options.callbacks.jwt({ token, user })
+    return token
+  }
+
+  const googleSignIn = async (app: ReturnType<typeof loadApp>, emailVerified = true) => {
+    const options = app.load('options')
+    const token: Row = { email: OWNER_EMAIL, sub: 'g-1' }
+    await options.callbacks.jwt({
+      token,
+      user: { id: 'g-1', email: OWNER_EMAIL, name: 'Owner' },
+      account: { provider: 'google', type: 'oauth', providerAccountId: 'g-1' },
+      profile: { email: OWNER_EMAIL, email_verified: emailVerified },
+    })
+    await options.callbacks.jwt({ token, trigger: 'update' })
+    return token
+  }
+
+  const resetPassword = async (app: ReturnType<typeof loadApp>, password: string) => {
+    app.sent.length = 0
+    await app.load('forgot')(request({ email: OWNER_EMAIL }), fakeResponse())
+    const res = fakeResponse()
+    await app.load('reset')(request({ token: tokenFromEmail(app.sent), password }), res)
+    expect(res.body).toEqual({ valid: true, changed: true })
+  }
+
+  it('takes the account a sign-up made for the address, and removes the password the sign-up set', async () => {
+    const app = loadApp({ auth: GOOGLE_AUTH })
+    const account = await signUp(app)
+    expect(account.email_verified ?? null).toBeNull()
+    const passwordSession = await passwordSignIn(app, SIGN_UP_PASSWORD)
+
+    const providerSession = await googleSignIn(app)
+
+    expect(providerSession).toMatchObject({ id: account.id, email: OWNER_EMAIL, role: 'user' })
+    expect(account.password).toBeNull()
+    expect(account.email_verified).toBe(app.db.now)
+    const options = app.load('options')
+    await expect(
+      options.callbacks.jwt({ token: passwordSession, trigger: 'update' })
+    ).rejects.toThrow('SessionRevoked')
+    const otherInstance = loadApp({ auth: GOOGLE_AUTH, db: app.db })
+    expect(await otherInstance.load('revocation').liveSessionToken(passwordSession)).toBeNull()
+    await expect(
+      options.providers[0].authorize(
+        { email: OWNER_EMAIL, password: SIGN_UP_PASSWORD },
+        { headers: {} }
+      )
+    ).rejects.toThrow('InvalidCredentials')
+    // The provider's session stays on the account.
+    await options.callbacks.jwt({ token: providerSession, trigger: 'update' })
+    expect(providerSession.id).toBe(account.id)
+    expect(await otherInstance.load('revocation').liveSessionToken(providerSession)).not.toBeNull()
+  })
+
+  it('lets the owner set a password again through the reset link, and keeps it on the next provider sign-in', async () => {
+    const app = loadApp({ auth: GOOGLE_AUTH })
+    const account = await signUp(app)
+    await googleSignIn(app)
+    expect(account.password).toBeNull()
+
+    await resetPassword(app, 'Chosen#Again2')
+    const withPassword = await passwordSignIn(app, 'Chosen#Again2')
+    expect(withPassword.id).toBe(account.id)
+
+    app.db.statements.length = 0
+    const later = await googleSignIn(app)
+    expect(later.id).toBe(account.id)
+    expect(account.password).toBe(pepperedHash('Chosen#Again2', ENV.AUTH_PEPPER_SECRET))
+    expect(clearingStatements(app.db)).toEqual([])
+  })
+
+  it('keeps a password set through a reset link before the first provider sign-in', async () => {
+    const app = loadApp({ auth: GOOGLE_AUTH })
+    const account = await signUp(app)
+    await resetPassword(app, 'Chosen#Before3')
+    expect(account.email_verified).toBe(app.db.now)
+
+    const providerSession = await googleSignIn(app)
+    expect(providerSession.id).toBe(account.id)
+    expect(account.password).toBe(pepperedHash('Chosen#Before3', ENV.AUTH_PEPPER_SECRET))
+    expect(clearingStatements(app.db)).toEqual([])
+  })
+
+  it('keeps the password of an account the site owner made', async () => {
+    const db = new FakePostgres()
+    const hash = pepperedHash(SIGN_UP_PASSWORD, ENV.AUTH_PEPPER_SECRET)
+    db.users.push({
+      id: 'u-made',
+      email: OWNER_EMAIL,
+      role: 'admin',
+      password: hash,
+      email_verified: '2026-10-01T09:00:00.000Z',
+    })
+    const app = loadApp({ auth: GOOGLE_AUTH, db })
+
+    expect(await googleSignIn(app)).toMatchObject({ id: 'u-made', role: 'admin' })
+    expect(db.users[0].password).toBe(hash)
+    expect(clearingStatements(db)).toEqual([])
+  })
+
+  it("never touches the password from the account's own sessions", async () => {
+    const app = loadApp({ auth: GOOGLE_AUTH })
+    const account = await signUp(app)
+    const passwordSession = await passwordSignIn(app, SIGN_UP_PASSWORD)
+    const options = app.load('options')
+
+    await options.callbacks.jwt({ token: passwordSession, trigger: 'update' })
+    // A session of the account's own id from before session stamps.
+    const unstamped: Row = { id: account.id, email: OWNER_EMAIL, role: 'user' }
+    await options.callbacks.jwt({ token: unstamped, trigger: 'update' })
+
+    expect(unstamped.id).toBe(account.id)
+    expect(account.password).toBe(pepperedHash(SIGN_UP_PASSWORD, ENV.AUTH_PEPPER_SECRET))
+    expect(clearingStatements(app.db)).toEqual([])
+  })
+
+  it('removes the password all the same where the users table cannot keep the mark', async () => {
+    for (const column of ['missing', 'boolean'] as const) {
+      const db = new FakePostgres()
+      db.emailProofColumn = column
+      db.users.push({
+        id: 'u-1',
+        email: OWNER_EMAIL,
+        role: 'user',
+        password: pepperedHash(SIGN_UP_PASSWORD, ENV.AUTH_PEPPER_SECRET),
+        ...(column === 'boolean' ? { email_verified: false } : {}),
+      })
+      const app = loadApp({ auth: GOOGLE_AUTH, db })
+
+      expect([column, (await googleSignIn(app)).id]).toEqual([column, 'u-1'])
+      expect([column, db.users[0].password]).toEqual([column, null])
+    }
+  })
+
+  it('leaves the session on its own id when the password could not be removed', async () => {
+    const db = new FakePostgres()
+    const hash = pepperedHash(SIGN_UP_PASSWORD, ENV.AUTH_PEPPER_SECRET)
+    db.users.push({ id: 'u-1', email: OWNER_EMAIL, role: 'admin', password: hash })
+    db.failPasswordClears = true
+    const app = loadApp({ auth: GOOGLE_AUTH, db })
+
+    const providerSession = await googleSignIn(app)
+    expect(providerSession.id).toBe('oauth:google:g-1')
+    expect(providerSession.role).toBeUndefined()
+    expect(db.users[0].password).toBe(hash)
+  })
+
+  it('changes nothing for an address the provider does not vouch for', async () => {
+    const app = loadApp({ auth: GOOGLE_AUTH })
+    const account = await signUp(app)
+
+    const providerSession = await googleSignIn(app, false)
+    expect(providerSession.id).toBe('oauth:google:g-1')
+    expect(account.password).toBe(pepperedHash(SIGN_UP_PASSWORD, ENV.AUTH_PEPPER_SECRET))
+    expect(clearingStatements(app.db)).toEqual([])
+  })
+})
+
+const MEMBER = { id: 'u-member', email: 'member@site.test', name: 'Member', role: 'admin' }
+
+describe("sign-up and the password routes take requests only from the site's own pages", () => {
+  const OWN_PAGE = {
+    host: 'shop.example',
+    origin: 'https://shop.example',
+    'sec-fetch-site': 'same-origin',
+  }
+  const OTHER_SITE_PAGE = {
+    host: 'shop.example',
+    origin: 'https://other-shop.example',
+    'sec-fetch-site': 'same-site',
+  }
+  // A browser that sends no Sec-Fetch-Site: the Origin is compared with the host.
+  const OLDER_BROWSER_OTHER_SITE = { host: 'shop.example', origin: 'https://other-shop.example' }
+  const OLDER_BROWSER_OWN_PAGE = { host: 'shop.example', origin: 'https://shop.example' }
+
+  const from = (headers: Row, body: Row) => request(body, '203.0.113.7', { headers })
+
+  it('sign-up answers 403 to another page and makes no account', async () => {
+    for (const headers of [OTHER_SITE_PAGE, OLDER_BROWSER_OTHER_SITE]) {
+      const app = loadApp({ welcome: true })
+      const res = fakeResponse()
+      await app.load('signup')(
+        from(headers, { email: 'new@site.test', password: 'Typed#Pass1' }),
+        res
+      )
+      expect(res.statusCode).toBe(403)
+      expect(app.db.users).toEqual([])
+      expect(app.sent).toEqual([])
+    }
+    for (const headers of [OWN_PAGE, OLDER_BROWSER_OWN_PAGE]) {
+      const app = loadApp()
+      const res = fakeResponse()
+      await app.load('signup')(
+        from(headers, { email: 'new@site.test', password: 'Typed#Pass1' }),
+        res
+      )
+      expect(res.statusCode).toBe(201)
+      expect(app.db.users).toHaveLength(1)
+    }
+  })
+
+  it('forgot-password answers 403 to another page and stores or sends no link', async () => {
+    const db = new FakePostgres()
+    db.users.push({ ...MEMBER, password: 'x' })
+    const app = loadApp({ db })
+    const refused = fakeResponse()
+    await app.load('forgot')(from(OTHER_SITE_PAGE, { email: MEMBER.email }), refused)
+    expect(refused.statusCode).toBe(403)
+    expect(db.resets).toEqual([])
+    expect(app.sent).toEqual([])
+
+    const answered = fakeResponse()
+    await app.load('forgot')(from(OWN_PAGE, { email: MEMBER.email }), answered)
+    expect(answered.statusCode).toBe(200)
+    expect(tokenFromEmail(app.sent)).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('reset-password answers 403 to another page and leaves the link unspent', async () => {
+    const db = new FakePostgres()
+    db.users.push({ ...MEMBER, password: 'x' })
+    const app = loadApp({ db })
+    await app.load('forgot')(request({ email: MEMBER.email }), fakeResponse())
+    const token = tokenFromEmail(app.sent)
+
+    const refused = fakeResponse()
+    await app.load('reset')(from(OTHER_SITE_PAGE, { token, password: 'Other#Pass9' }), refused)
+    expect(refused.statusCode).toBe(403)
+    expect(db.users[0].password).toBe('x')
+
+    const changed = fakeResponse()
+    await app.load('reset')(from(OWN_PAGE, { token, password: 'Own#Page123' }), changed)
+    expect(changed.body).toEqual({ valid: true, changed: true })
+  })
+})
+
+describe('a session knows when it signed in', () => {
+  it('stamps the sign-in time on every sign-in, keeps it through refreshes, and never shows it on session.user', async () => {
+    const db = new FakePostgres()
+    db.users.push({ ...MEMBER, password: pepperedHash('Right#Pass1', ENV.AUTH_PEPPER_SECRET) })
+    const auth = {
+      ...AUTH,
+      providers: [{ id: 'google', name: 'Google', credentials: {} }],
+    } as UIDLAuthentication
+    const options = loadApp({ auth, db }).load('options')
+    const before = Date.now()
+
+    const user = await options.providers[0].authorize(
+      { email: MEMBER.email, password: 'Right#Pass1' },
+      { headers: {} }
+    )
+    const passwordSession: Row = { email: MEMBER.email, sub: MEMBER.id }
+    await options.callbacks.jwt({ token: passwordSession, user })
+    const providerSession: Row = { email: MEMBER.email, sub: 'g-1' }
+    await options.callbacks.jwt({
+      token: providerSession,
+      user: { id: 'g-1', email: MEMBER.email },
+      account: { provider: 'google', type: 'oauth', providerAccountId: 'g-1' },
+      profile: { email: MEMBER.email, email_verified: true },
+    })
+
+    for (const token of [passwordSession, providerSession]) {
+      const signedInAt = token[SIGNED_IN_AT_KEY]
+      expect(signedInAt).toBeGreaterThanOrEqual(before)
+      await options.callbacks.jwt({ token, trigger: 'update' })
+      expect(token[SIGNED_IN_AT_KEY]).toBe(signedInAt)
+      const session = await options.callbacks.session({ session: { user: {} }, token })
+      expect(session.user).not.toHaveProperty(SIGNED_IN_AT_KEY)
+    }
+  })
+})
+
+describe('every user store keeps an address proven before a provider takes its account', () => {
+  const GOOGLE_AUTH = {
+    ...AUTH,
+    providers: [{ id: 'google', name: 'Google', credentials: {} }],
+  } as UIDLAuthentication
+
+  it('emits the mark and the password removal for each store', () => {
+    for (const dataSourceType of [
+      'teleport',
+      'postgresql',
+      'cockroachdb',
+      'supabase',
+      'mysql',
+      'mongodb',
+      'firestore',
+      'turso',
+      'airtable',
+    ]) {
+      const code = generateAuthOptionsFile(
+        { ...GOOGLE_AUTH, dataSourceType } as UIDLAuthentication,
+        null
+      )
+      // eslint-disable-next-line no-new-func
+      expect(() => new Function('require', 'module', 'exports', 'process', code)).not.toThrow()
+      expect([dataSourceType, code.includes('async function markEmailProven(user)')]).toEqual([
+        dataSourceType,
+        true,
+      ])
+      expect([dataSourceType, code.includes('async function clearUserPassword(user)')]).toEqual([
+        dataSourceType,
+        true,
+      ])
+    }
+  })
+
+  it('a document store marks emailVerified and removes the password', async () => {
+    const OWNER_ID = 'a'.repeat(24)
+    const docs: Row[] = [
+      {
+        _id: OWNER_ID,
+        email: 'owner@site.test',
+        role: 'user',
+        password: pepperedHash('Typed#Pass1', ENV.AUTH_PEPPER_SECRET),
+      },
+    ]
+    const matches = (doc: Row, filter: Row) =>
+      Object.keys(filter).every((key) =>
+        key === '_id'
+          ? String(doc._id) === String(filter._id)
+          : filter[key] === null
+          ? doc[key] == null
+          : doc[key] === filter[key]
+      )
+    const collection = {
+      findOne: async (filter: Row) => docs.find((doc) => matches(doc, filter)) || null,
+      updateOne: async (filter: Row, update: Row) => {
+        const doc = docs.find((candidate) => matches(candidate, filter))
+        if (doc) {
+          Object.assign(doc, update.$set)
+        }
+        return { modifiedCount: doc ? 1 : 0 }
+      },
+    }
+    class ObjectId {
+      public static isValid(value: unknown): boolean {
+        return /^[0-9a-f]{24}$/.test(String(value))
+      }
+      constructor(private readonly value: string) {}
+      public toString(): string {
+        return this.value
+      }
+    }
+    const mongodb = {
+      MongoClient: class {
+        public connect(): Promise<unknown> {
+          return Promise.resolve(this)
+        }
+        public db(): Row {
+          return { collection: () => collection }
+        }
+      },
+      ObjectId,
+    }
+    const options = loadApp({
+      auth: { ...GOOGLE_AUTH, dataSourceType: 'mongodb' } as UIDLAuthentication,
+      externals: { mongodb },
+    }).load('options')
+    const token: Row = { email: 'owner@site.test', sub: 'g-1' }
+    await options.callbacks.jwt({
+      token,
+      user: { id: 'g-1', email: 'owner@site.test' },
+      account: { provider: 'google', type: 'oauth', providerAccountId: 'g-1' },
+      profile: { email: 'owner@site.test', email_verified: true },
+    })
+    await options.callbacks.jwt({ token, trigger: 'update' })
+
+    expect(String(token.id)).toBe(OWNER_ID)
+    expect(docs[0].password).toBeNull()
+    expect(docs[0].emailVerified).toBeInstanceOf(Date)
   })
 })

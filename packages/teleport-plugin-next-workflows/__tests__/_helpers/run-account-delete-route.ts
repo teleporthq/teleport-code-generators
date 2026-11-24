@@ -3,6 +3,7 @@ import {
   AccountDeleteRouteOptions,
   generateAccountDeleteRoute,
 } from '../../src/account-delete-route-generator'
+import { SIGNED_IN_AT_KEY } from '../../src/auth-generator'
 
 /**
  * Runs the generated `pages/api/account/delete-current.js` for a signed-in
@@ -26,6 +27,10 @@ export interface DeleteRouteSetup {
   options?: AccountDeleteRouteOptions
   /** Further modules the route may require, by the name it requires them with. */
   modules?: Record<string, unknown>
+  /** What the session cookie decodes to. Default: the account, signed in just now. */
+  session?: Record<string, unknown>
+  /** Request headers besides the session cookie (Origin, Sec-Fetch-Site, Host). */
+  headers?: Record<string, string>
 }
 
 // bcryptjs is not installed in this repository; this stand-in keeps bcrypt's
@@ -83,7 +88,8 @@ export const runAccountDeleteRoute = async (setup: DeleteRouteSetup): Promise<De
       return crypto
     }
     if (name === 'next-auth/jwt') {
-      return { getToken: async () => ({ id: setup.userRow.id }) }
+      const session = setup.session || { id: setup.userRow.id, [SIGNED_IN_AT_KEY]: Date.now() }
+      return { getToken: async () => session }
     }
     if (name.endsWith('/utils/email/email-locale')) {
       return { pickLocalizedTemplate: (base: unknown) => base, resolveRequestLocale: () => 'en' }
@@ -131,7 +137,7 @@ export const runAccountDeleteRoute = async (setup: DeleteRouteSetup): Promise<De
       method: 'POST',
       // No host: the request is local http, so the plain session cookie is the
       // one the reader accepts. getToken is stubbed and ignores its value.
-      headers: { cookie: 'next-auth.session-token=signed' },
+      headers: { cookie: 'next-auth.session-token=signed', ...(setup.headers || {}) },
       ...(setup.requestBody === undefined ? {} : { body: setup.requestBody }),
     },
     res

@@ -55,6 +55,7 @@ import {
   WEBHOOK_DELIVERY_RETRY_AFTER_SECONDS,
 } from './webhook-delivery-lease/webhook-delivery-lease-scope'
 import { generateCronRequestVerificationCode } from './cron-request-verification'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 // Workflow/segment names, cron schedules, and webhook paths are free-form
 // UIDL data — never guaranteed not to contain `*/`. Every generated route
@@ -385,6 +386,7 @@ ${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogP
     '../../..'
   )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
 ${SEGMENT_SECURITY_PREAMBLE}
+${SAME_ORIGIN_REQUEST_SOURCE}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -394,6 +396,10 @@ ${generateServerCustomNodeCallCode(segment, '../../..')}${generateSessionHandler
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
   // Kept outside the try so the catch below can still drain any fire-and-forget
@@ -688,6 +694,7 @@ ${generateCartPricingPreamble(usedNodeTypes, '../../..')}${generateSentEmailLogP
     '../../..'
   )}${generatePaymentDriversPreamble(usesPaymentDriverNode(usedNodeTypes), '../../..')}
 ${SEGMENT_SECURITY_PREAMBLE}
+${SAME_ORIGIN_REQUEST_SOURCE}
 const SEGMENT_CONFIG = ${segmentConfig};
 ${auth.policyConst}
 const nodeHandlers = {
@@ -730,6 +737,10 @@ function __collectSegBranchNodes(startId, excludeId) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 

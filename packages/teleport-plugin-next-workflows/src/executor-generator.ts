@@ -1690,7 +1690,9 @@ function collectBranchNodes(startId, allNodes, edges, excludeParentId) {
  * node a forged result and mark the node that really produces it as skipped.
  *
  * - Every result the request carries for one of this segment's nodes is
- *   dropped; the route computes it.
+ *   dropped; the route computes it. So is every result it carries for a node
+ *   that runs only after this segment (\`downstreamNodeIds\`, see
+ *   segment-trust.ts): none of them has run yet.
  * - The client may only skip a branch where it ENTERS the segment (a node with
  *   a predecessor outside it, or none at all), which is where a branch the
  *   client decided begins. The skip then covers everything that node reaches
@@ -1709,6 +1711,10 @@ function claimSegmentContext(segmentConfig, context) {
   for (var ni = 0; ni < nodes.length; ni++) {
     inSegment[nodes[ni].id] = true;
     delete context[nodes[ni].id];
+  }
+  var downstream = segmentConfig.downstreamNodeIds || [];
+  for (var di = 0; di < downstream.length; di++) {
+    delete context[downstream[di]];
   }
   if (context.__loopBodyNodeIds && typeof context.__loopBodyNodeIds === 'object') {
     var loopBodies = {};

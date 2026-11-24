@@ -16,6 +16,7 @@
 import { generatePgClientCode } from './pg-client-code'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import { securityRuntimeSpecifier } from './security-runtime'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 /** ⛔ PAIRED with `PROFILE_PHOTO_RELEASE_ROUTE` in teleport-gui `features/authentication/constants/profile-photo.ts`. */
 export const ACCOUNT_PROFILE_PHOTO_ROUTE = '/api/account/profile-photo'
@@ -29,24 +30,6 @@ export const PROFILE_PHOTO_UPLOAD_FOLDER = 'profile-photos'
 
 /** Storage file ids are UUIDs: anything else in the address is not one of its files. */
 export const FILE_ID_PATTERN = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-
-/** `isSameOrigin(req)`: a browser call from the site's own pages (no header: a server, allowed). */
-export const UPLOAD_RELEASE_SAME_ORIGIN_SOURCE = `function isSameOrigin(req) {
-  var site = req.headers['sec-fetch-site'];
-  if (site) {
-    return site === 'same-origin';
-  }
-  var origin = req.headers.origin;
-  if (!origin) {
-    return true;
-  }
-  try {
-    return new URL(origin).host === req.headers.host;
-  } catch (error) {
-    return false;
-  }
-}
-`
 
 /** `storage(path, method)`: a call of the storage worker for the site's project, with its key. */
 export const UPLOAD_RELEASE_STORAGE_SOURCE = `function storage(path, method) {
@@ -105,7 +88,7 @@ var STORAGE_URL = process.env.RUNTIME_STORAGE_URL;
 var STORAGE_KEY = process.env.RUNTIME_STORAGE_API_KEY;
 var STORAGE_PROJECT = process.env.RUNTIME_STORAGE_PROJECT_ID;
 
-${UPLOAD_RELEASE_SAME_ORIGIN_SOURCE}
+${SAME_ORIGIN_REQUEST_SOURCE}
 // A storage address is <bucket>/<project>/<file id>/<name>: the id is the
 // segment before the name. Anything else names no file of ours.
 function fileIdOf(address) {
@@ -161,7 +144,7 @@ export default async function handler(req, res) {
   if (!(await security.rateLimitRequest(req, res, RATE_LIMIT))) {
     return;
   }
-  if (!isSameOrigin(req)) {
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
     return res.status(403).json({ success: false, error: 'Forbidden' });
   }
   var session = null;

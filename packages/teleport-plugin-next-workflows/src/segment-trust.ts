@@ -24,6 +24,11 @@ import { isOutboundMessageNodeType } from './nodes/general/visitor-request'
  * - `previousFrom`: when the segment right before this one runs on the
  *   server, the node whose result the caller must hand on as
  *   `__previousNodeResult` (the runtime sets it from that node's signed result).
+ * - `downstreamNodeIds`: the nodes of later segments that this segment's nodes
+ *   lead to, a loop body or a node that also leads back here aside. None of
+ *   them has run when a request reaches this route, so the request holds no
+ *   result for them: a step result read by position (a custom node's
+ *   `params`) is always one a step produced.
  *
  * What a signature binds (see the server runtime): the workflow (`workflowId`),
  * the segment that produced the result (`signedBy`, and `segmentId` for this
@@ -67,6 +72,7 @@ export interface SegmentTrust {
   branchGates: SegmentBranchGate[]
   loopBodies: Record<string, string[]>
   previousFrom: { nodeId: string; fireAndForget: boolean } | null
+  downstreamNodeIds: string[]
   workflowId: string
   segmentId: string
   opensRun: boolean
@@ -263,6 +269,50 @@ const collectLoopBody = (loopId: string, edges: UIDLWorkflowEdge[]): string[] =>
   return Array.from(body)
 }
 
+/** Every node the edges lead to from `startIds` (forward) or back to them. */
+const reachableFrom = (
+  startIds: Set<string>,
+  edges: UIDLWorkflowEdge[],
+  direction: 'forward' | 'backward'
+): Set<string> => {
+  const reached = new Set<string>()
+  const queue = Array.from(startIds)
+  while (queue.length > 0) {
+    const current = queue.shift() as string
+    for (const edge of edges) {
+      const from = direction === 'forward' ? edge.source : edge.target
+      const to = direction === 'forward' ? edge.target : edge.source
+      if (from === current && !reached.has(to)) {
+        reached.add(to)
+        queue.push(to)
+      }
+    }
+  }
+  return reached
+}
+
+const collectDownstreamNodeIds = (
+  segment: WorkflowSegment,
+  graph: SegmentGraph,
+  loopBodies: Record<string, string[]>
+): string[] => {
+  const inSegment = new Set(segment.nodes.map((n) => n.id))
+  const index = graph.segments.findIndex((s) => s.id === segment.id)
+  const later = new Set<string>()
+  if (index >= 0) {
+    graph.segments.slice(index + 1).forEach((s) => s.nodes.forEach((n) => later.add(n.id)))
+  }
+  const after = reachableFrom(inSegment, graph.edges, 'forward')
+  const before = reachableFrom(inSegment, graph.edges, 'backward')
+  const inLoopBody = new Set<string>()
+  Object.keys(loopBodies).forEach((loopId) =>
+    loopBodies[loopId].forEach((id) => inLoopBody.add(id))
+  )
+  return Array.from(after).filter(
+    (id) => later.has(id) && !inSegment.has(id) && !before.has(id) && !inLoopBody.has(id)
+  )
+}
+
 const branchKey = (edge: UIDLWorkflowEdge, kind: 'if' | 'switch'): string | null => {
   if (kind === 'if') {
     return edge.sourceHandle === 'true' || edge.sourceHandle === 'false' ? edge.sourceHandle : null
@@ -356,6 +406,7 @@ export const buildSegmentTrust = (segment: WorkflowSegment, graph: SegmentGraph)
     branchGates,
     loopBodies,
     previousFrom,
+    downstreamNodeIds: collectDownstreamNodeIds(segment, graph, loopBodies),
     workflowId: graphIdOf(graph),
     segmentId: segment.id,
     opensRun: !firstServer || firstServer.id === segment.id,

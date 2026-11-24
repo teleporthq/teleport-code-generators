@@ -1,6 +1,7 @@
 import { UIDLWorkflows } from '@teleporthq/teleport-types'
 import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resolver'
 import { REALTIME_TRIGGER_TYPES } from './graph-utils'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 /**
  * Who a realtime request acts for, and what it may do.
@@ -268,6 +269,7 @@ async function realtimeServerFetch(path, options, identity) {
   return fetch(url, Object.assign({}, options || {}, { headers: headers }));
 }
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 // One proxied call: limits, identity, the worker's answer. The call names the
 // route's limit scope, the worker path (from the browser's body), the method,
 // the body sent upstream (only fields the route names) and whether the answer
@@ -276,6 +278,10 @@ async function realtimeServerFetch(path, options, identity) {
 async function relay(req, res, call) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
   if (!(await allow(req, res, call.scope))) return;

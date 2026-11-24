@@ -24,6 +24,7 @@ import { AUTOMATIONS_PATH } from './automations/automations-scope'
 import { APP_EVENTS_FILE_NAME, APP_EVENTS_PATH } from './automations/app-events-source'
 import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
 import { generateSelfCallHeadersCode } from './self-call-headers'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 
 export const DATA_NODE_TYPES: ReadonlySet<string> = new Set([
   'data-select',
@@ -535,9 +536,17 @@ function refuseUnscopedWrite(field) {
   return err;
 }
 
+function refuseUnfilteredWrite() {
+  var err = new Error('Refused: no filter limits this write, so it would change every row.');
+  err.status = 400;
+  return err;
+}
+
 // \`strict\` (every UPDATE and DELETE): a filter that lost its value, or names no
 // column, REFUSES the write instead of being left out — leaving it out widens
-// the write to every row of the table. An empty list matches no row.
+// the write to every row of the table. So does a write with no filter, or one
+// whose every filter adds no condition: it always names the rows it changes.
+// An empty list matches no row.
 function buildWhereClause(filters, queryParams, startIndex, options) {
   var conditions = [];
   var paramIndex = startIndex;
@@ -550,6 +559,7 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
   var visitorScoped = !!ownerScope && __dataReadIsBoundToVisitor(ownerScope, filters);
 
   if (!filters || !Array.isArray(filters) || filters.length === 0) {
+    if (strict) throw refuseUnfilteredWrite();
     return { clause: '', paramIndex: paramIndex };
   }
 
@@ -647,6 +657,8 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
       paramIndex++;
     }
   }
+
+  if (strict && conditions.length === 0) throw refuseUnfilteredWrite();
 
   return {
     clause: conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '',
@@ -1286,6 +1298,8 @@ ${
 
   // Validate the raw query for forbidden operations before execution
   assertQuerySafe(query);
+  var forVisitor = __dataReadsForVisitor(req);
+  if (forVisitor) query = __dataVisitorStatement(query);
 
   if (query.indexOf('vector') !== -1 || query.indexOf('::vector') !== -1 || query.indexOf('<=>' ) !== -1) {
     await ensurePgVector(client);
@@ -1299,13 +1313,15 @@ ${
   var rows = Array.isArray(result.rows) ? result.rows : [];
   var namedCredentials = __dataIsServerJob(req) || isAuthLayerCall(req) ? __taCredentialsNamedBy(query, rows) : [];
   rows = __taWithoutCredentials(rows, null, namedCredentials);
+  if (forVisitor) rows = __dataVisitorRows(query, rows);
 
   // Auto-fire the low-stock alert when the workflow runs the post-
   // stock-decrement SELECT and gets back a non-empty list. The
   // workflow's own email-payload-builder node (af26cd7e) returns
   // skip:true and never dispatches; this fire-and-forget covers
   // that gap without requiring the AI to wire an email-send node.
-  if (LOW_STOCK_ALERTS_ENABLED && rows.length > 0 && looksLikeLowStockProductSelect(query)) {
+  // A statement run for a visitor is a question about stock, not that SELECT.
+  if (LOW_STOCK_ALERTS_ENABLED && !forVisitor && rows.length > 0 && looksLikeLowStockProductSelect(query)) {
     fireAndForgetLowStockAlert(req, rows, extractThresholdFromQuery(query));
 ${
   recordsLowStock ? '    recordLowStockEvents(req, rows, extractThresholdFromQuery(query));\n' : ''
@@ -1741,6 +1757,76 @@ function __dataWithoutHidden(policy, rows) {
   });
 }
 
+// A statement a server step runs for a visitor from SQL it did not write (the
+// AI data step marks its call x-tq-restricted-sql) reads every table that has a
+// visitor policy as the visitor's browser is served it. The mark only ever
+// narrows a read, so it counts whoever sends it.
+function __dataReadsForVisitor(req) {
+  var mark = req && req.headers && req.headers['x-tq-restricted-sql'];
+  return (Array.isArray(mark) ? mark[0] : mark) === '1';
+}
+
+function __dataRefuseForVisitor(what) {
+  var err = new Error('Forbidden: ' + what + ' cannot be read for a visitor');
+  err.status = 403;
+  return err;
+}
+
+// The tables with a visitor policy that a statement's text (comments and
+// literals out, see __taCleanSql) names.
+function __dataPolicyTablesNamed(cleanedText) {
+  return Object.keys(BROWSER_ROW_POLICIES).filter(function(table) {
+    return new RegExp('(?:^|[^A-Za-z0-9_$])"?' + table + '"?(?![A-Za-z0-9_$])', 'i').test(cleanedText);
+  });
+}
+
+// The statement over the rows a visitor is served: each table with a visitor
+// policy that it reads becomes a WITH entry of the same name, ahead of the
+// statement's own entries, and its references resolve to that entry:
+//
+//   WITH "teleport_products" AS (SELECT * FROM "teleport_products" AS __dv_rows WHERE (<predicate>)) <statement>
+//
+// Inside its own definition the entry names the table itself (a WITH that is
+// not RECURSIVE does not see itself), and a hidden column reads NULL however
+// the statement spells it. A statement this cannot vouch for is refused:
+// unreadable or opaque, RECURSIVE (its entries would see themselves), or naming
+// a narrowed table through a schema, which reaches the table past the entry.
+// The per-table read routes narrow a page's own statement the same way
+// (teleport-plugin-next-data-source, browser-row-policy.ts).
+function __dataVisitorStatement(sql) {
+  var cleaned = __taCleanSql(sql);
+  if (!cleaned.ok || __TA_OPAQUE_SQL_RE.test(cleaned.text)) throw __dataRefuseForVisitor('this statement');
+  var tables = __dataPolicyTablesNamed(cleaned.text);
+  if (tables.length === 0) return sql;
+  var leading = /^\\s*with\\b(\\s+recursive\\b)?/i.exec(cleaned.text);
+  if (leading && leading[1]) throw __dataRefuseForVisitor('a recursive statement');
+  tables.forEach(function(table) {
+    if (new RegExp('\\\\.\\\\s*"?' + table + '"?(?![A-Za-z0-9_$])', 'i').test(cleaned.text)) throw __dataRefuseForVisitor(table);
+  });
+  var entries = tables.map(function(table) {
+    var policy = BROWSER_ROW_POLICIES[table];
+    var hidden = {};
+    policy.hiddenColumns.forEach(function(column) { hidden[column] = null; });
+    var columns = policy.hiddenColumns.length > 0
+      ? '(jsonb_populate_record(__dv_rows, ' + "'" + JSON.stringify(hidden) + "'" + '::jsonb)).*'
+      : '*';
+    return '"' + table + '" AS (SELECT ' + columns + ' FROM "' + table + '" AS __dv_rows WHERE (' + policy.predicate + '))';
+  });
+  var trimmed = String(sql).trim().replace(/;\\s*$/, '');
+  if (!leading) return 'WITH ' + entries.join(', ') + ' ' + trimmed;
+  var own = /^with\\b/i.exec(trimmed);
+  if (!own) throw __dataRefuseForVisitor('this statement');
+  return 'WITH ' + entries.join(', ') + ',' + trimmed.slice(own[0].length);
+}
+
+// The rows of a statement read for a visitor, without the hidden columns of the
+// tables it read.
+function __dataVisitorRows(sql, rows) {
+  return __dataPolicyTablesNamed(__taCleanSql(sql).text).reduce(function(current, table) {
+    return __dataWithoutHidden(BROWSER_ROW_POLICIES[table], current);
+  }, rows);
+}
+
 function __forbidBrowserOperation(what) {
   var err = new Error('Forbidden: ' + what + ' is only available to server-side workflow nodes');
   err.status = 403;
@@ -1929,9 +2015,13 @@ async function assertSessionOwnsUsersRow(req, operation, body) {
   }
 }
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 ${withAutomations ? '  kickDueAutomations(req);\n' : ''}
   var params = req.query.params;

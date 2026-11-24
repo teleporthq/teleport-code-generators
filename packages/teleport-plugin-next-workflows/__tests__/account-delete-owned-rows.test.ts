@@ -1,5 +1,6 @@
 import { OwnerColumns } from '@teleporthq/teleport-shared'
 import { generateAccountDeleteRoute } from '../src/account-delete-route-generator'
+import { SIGNED_IN_AT_KEY } from '../src/auth-generator'
 
 /**
  * A visitor closes their account. The generated delete route is EXECUTED here
@@ -146,7 +147,7 @@ const runRoute = async (schema: FixtureSchema, refuse: Refuse = () => null): Pro
       return { Client }
     }
     if (name === 'next-auth/jwt') {
-      return { getToken: async () => ({ id: USER_ID }) }
+      return { getToken: async () => ({ id: USER_ID, [SIGNED_IN_AT_KEY]: Date.now() }) }
     }
     if (name.endsWith('/utils/email/email-locale')) {
       return { pickLocalizedTemplate: (base: unknown) => base, resolveRequestLocale: () => 'en' }

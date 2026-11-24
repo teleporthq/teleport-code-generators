@@ -126,8 +126,9 @@ async function ai_select_database_data(config: any, context: any) {
       headers: {
         'Content-Type': 'application/json',
         // A server-side call, so it may run raw SQL at all — but the SQL is a
-        // model's answer to a visitor's question, so the route still keeps it
-        // off the money tables and the auth tables' roles.
+        // model's answer to a visitor's question, so the route keeps it off the
+        // protected tables and reads each table with a visitor policy as the
+        // visitor is served it (published rows only, no hidden column).
         'x-internal-data-secret': (__env && __env.NEXTAUTH_SECRET) || '',
         'x-tq-restricted-sql': '1',
         ...__internalHeaders,

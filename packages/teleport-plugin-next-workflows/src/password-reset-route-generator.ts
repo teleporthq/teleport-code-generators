@@ -35,6 +35,7 @@ import {
 } from './transactional-email-code'
 import { CONFIGURED_NEXTAUTH_URL_EXPRESSION } from './configured-nextauth-url'
 import { securityRuntimeSpecifier } from './security-runtime/security-runtime-code'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from './same-origin-request'
 import { ensureEmailLocaleModule } from './email-locale'
 import { ensureSentEmailLogModule } from './sent-email-log'
 
@@ -207,7 +208,9 @@ const READ_BODY_CODE = `function readBody(req) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
-}`
+}
+
+${SAME_ORIGIN_REQUEST_SOURCE}`
 
 export const generateForgotPasswordRoute = (options: ForgotPasswordRouteOptions = {}): string => {
   const provider =
@@ -320,6 +323,9 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   if (!(await __security.rateLimitRequest(req, res, { scope: 'auth-forgot-password', limit: ${FORGOT_PASSWORD_VISITOR_LIMIT}, windowSeconds: 3600 }))) {
     return;
   }
@@ -391,6 +397,9 @@ ${READ_BODY_CODE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
   if (!(await __security.rateLimitRequest(req, res, { scope: 'auth-reset-password', limit: ${RESET_PASSWORD_VISITOR_LIMIT}, windowSeconds: 900 }))) {
     return;

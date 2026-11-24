@@ -1,6 +1,7 @@
 import { UIDLInvoiceSettings } from '@teleporthq/teleport-types'
 import { generateCommonJsSessionTokenResolverCode } from '../session-cookie-resolver'
 import { ROLE_OF_TOKEN_CODE } from '../workflow-auth-generator'
+import { SAME_ORIGIN_REQUEST_FUNCTION, SAME_ORIGIN_REQUEST_SOURCE } from '../same-origin-request'
 
 /**
  * The roles that act on invoices from a browser: the ones every generated
@@ -232,9 +233,14 @@ async function hydrateOrderWhenSettled(orderId) {
   }
 }
 
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ success: false, error: 'Forbidden' });
     return;
   }
 
@@ -692,10 +698,15 @@ async function findInvoice(invoiceId) {
   }
 }
 ${emailEnabled ? generateFirstInvoiceEmailCode() : ''}
+${SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ success: false, error: 'Method not allowed' });
+    return;
+  }
+  if (!${SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    res.status(403).json({ success: false, error: 'Forbidden' });
     return;
   }
 
