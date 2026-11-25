@@ -1,4 +1,4 @@
-import { SessionCookieResolver, WebPush } from '@teleporthq/teleport-shared'
+import { SameOriginRequest, SessionCookieResolver, WebPush } from '@teleporthq/teleport-shared'
 import {
   CONFIGURED_NEXTAUTH_URL_EXPRESSION,
   generateProtectionBypassHeaderStatements,
@@ -42,22 +42,7 @@ var TAKEN = 'This push subscription is saved for another browser.';
 // from one client within the window is somebody filling the table.
 var RATE_LIMIT = { scope: 'push-subscriptions', limit: 30, windowSeconds: 600 };
 
-function isSameOrigin(req) {
-  var site = req.headers['sec-fetch-site'];
-  if (site) {
-    return site === 'same-origin';
-  }
-  var origin = req.headers.origin;
-  if (!origin) {
-    return true;
-  }
-  try {
-    return new URL(origin).host === req.headers.host;
-  } catch (error) {
-    return false;
-  }
-}
-
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 async function signedInUserId(req) {
   try {
     var token = await __tqSessionToken(req);
@@ -73,7 +58,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST, DELETE');
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (!isSameOrigin(req)) {
+  if (!${SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   // Answers the 429 itself (with Retry-After) past the limit.

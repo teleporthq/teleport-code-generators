@@ -4,7 +4,7 @@ import {
   AI_SITE_CALLS_PER_DAY as WORKFLOW_AI_SITE_CALLS_PER_DAY,
   securityRuntimeSpecifier,
 } from '@teleporthq/teleport-plugin-next-workflows'
-import { SessionCookieResolver } from '@teleporthq/teleport-shared'
+import { SameOriginRequest, SessionCookieResolver } from '@teleporthq/teleport-shared'
 import { collectUnknownInformationMessages } from './localized-messages'
 
 /**
@@ -30,6 +30,9 @@ import { collectUnknownInformationMessages } from './localized-messages'
  * - A conversation id is only ever used by its owner: a message to someone
  *   else's (or an unknown) conversation starts a new one, and reading,
  *   renaming or deleting someone else's is a 404.
+ * - Sending a message and starting, renaming or deleting a conversation
+ *   answer only the site's own pages and its server (`SameOriginRequest`);
+ *   any other page gets 403 before anything is counted, read or stored.
  */
 export const AI_CHAT_MAX_MESSAGE_CHARS = 4000
 export const AI_CHAT_MESSAGE_LIMITS: ReadonlyArray<[number, number]> = [
@@ -73,6 +76,14 @@ export interface ChatRouteOptions {
   /** The project has authentication: the session reader checks revocation. */
   withSessionRevocation?: boolean
 }
+
+/** Another page's request answers 403; with `changesOnly`, a `GET` (a read) is let through. */
+const sameOriginGuardCode = (changesOnly: boolean): string =>
+  `  if (${changesOnly ? "req.method !== 'GET' && " : ''}!${
+    SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION
+  }(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }`
 
 /** The read routes' per-visitor limit; a refusal has answered 429. */
 const readLimitCode = (): string =>
@@ -276,10 +287,12 @@ function parseEmbedding(raw) {
   return null;
 }
 
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+${sameOriginGuardCode(false)}
 ${visitorLimitsCode('ai-chat-message')}
 ${authGuard}
 
@@ -578,7 +591,9 @@ function generateConvId() {
   return _newId();
 }
 
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 export default async function handler(req, res) {
+${sameOriginGuardCode(true)}
 ${authGuard ? authGuard.replace(/^\n/, '') + '\n' : ''}
   if (req.method === 'GET') {
 ${readLimitCode()}
@@ -656,7 +671,9 @@ export function generateConversationByIdRouteCode(
 var db = require('../../../../lib/ai-chat/db');
 ${securityRequire('../../../..')}${sessionReaderCode(chat, '../../../..', options)}
 ${ownershipCode(chat)}${labelCode()}
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 export default async function handler(req, res) {
+${sameOriginGuardCode(true)}
 ${readLimitCode()}
 ${authGuard ? authGuard.replace(/^\n/, '') : ''}
   var id = req.query.id;

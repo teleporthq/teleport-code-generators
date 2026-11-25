@@ -1,4 +1,5 @@
 import { generateCommonJsSessionTokenResolverCode } from '@teleporthq/teleport-plugin-next-workflows'
+import { SameOriginRequest } from '@teleporthq/teleport-shared'
 import { generateDbImport, isPostgresCartDataSource } from './ecommerce-api-routes-generator'
 
 // Re-exported from `ecommerce-api-routes-generator`, which owns the
@@ -16,7 +17,9 @@ export { isPostgresCartDataSource }
  *   - mark-ordered: flip the active cart's status to 'ordered'
  *
  * Identity is resolved server-side: the NextAuth token's user id when logged
- * in, else a client-supplied guest `sessionId`. The cart is product-level
+ * in, else a client-supplied guest `sessionId`. Every operation answers only
+ * the site's own pages and its server (`SameOriginRequest`); any other page
+ * gets 403 before an identity is read. The cart is product-level
  * (the `teleport_cart_items` table has no variant column), so quantities are
  * summed per product. Every operation is wrapped so a DB failure returns HTTP
  * 200 `{ ok: false }` and NEVER throws — the UI keeps working from
@@ -608,7 +611,11 @@ async function handleMarkOrdered(req, res, body) {
   }
 }
 
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 module.exports = async function handler(req, res) {
+  if (!${SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
+    return res.status(403).json({ ok: false, error: 'Forbidden' })
+  }
   var op = req.query.op
   var body = {}
   try {

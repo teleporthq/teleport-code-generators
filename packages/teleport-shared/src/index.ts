@@ -22,6 +22,7 @@ import * as CartCurrency from './utils/cart-currency'
 import * as TableAccess from './utils/table-access'
 import * as ContentTables from './utils/content-tables'
 import * as SessionCookieResolver from './utils/session-cookie-resolver'
+import * as SameOriginRequest from './utils/same-origin-request'
 import * as AccountFields from './utils/account-fields'
 import * as SubscriptionAccess from './utils/subscription-access'
 import * as PageAccess from './utils/page-access'
@@ -69,6 +70,7 @@ export {
   TableAccess,
   ContentTables,
   SessionCookieResolver,
+  SameOriginRequest,
   AccountFields,
   SubscriptionAccess,
   PageAccess,

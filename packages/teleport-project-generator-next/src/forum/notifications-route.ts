@@ -1,4 +1,4 @@
-import { SessionCookieResolver } from '@teleporthq/teleport-shared'
+import { SameOriginRequest, SessionCookieResolver } from '@teleporthq/teleport-shared'
 import { securityRuntimeSpecifier } from '@teleporthq/teleport-plugin-next-workflows'
 import { toJsLiteral } from '../pwa/source-literals'
 import { FORUM_PAGE_DATA_MODULE_NAME, FORUM_PAGE_DATA_MODULE_PATH } from './page-data-source'
@@ -6,25 +6,6 @@ import { FORUM_ROUTE_ROOT } from './replies-route'
 
 export const FORUM_NOTIFICATIONS_ROUTE = '/api/plugins/forum/notifications'
 
-/**
- * `isSameOrigin(req)`: a write the forum's routes take only from the site's
- * own pages (the browser's `Sec-Fetch-Site`, else the `Origin` against the host).
- */
-export const FORUM_SAME_ORIGIN_SOURCE = `function isSameOrigin(req) {
-  var site = req.headers['sec-fetch-site'];
-  if (site) {
-    return site === 'same-origin';
-  }
-  var origin = req.headers.origin;
-  if (!origin) {
-    return true;
-  }
-  try {
-    return new URL(origin).host === req.headers.host;
-  } catch (error) {
-    return false;
-  }
-}`
 const DATA_MODULE_IMPORT = `${FORUM_ROUTE_ROOT}/${FORUM_PAGE_DATA_MODULE_PATH.join(
   '/'
 )}/${FORUM_PAGE_DATA_MODULE_NAME}`
@@ -47,8 +28,7 @@ ${SessionCookieResolver.generateCommonJsSessionTokenResolverCode(FORUM_ROUTE_ROO
 
 var RATE_LIMIT = { scope: 'forum-notifications', limit: 60, windowSeconds: 600 };
 
-${FORUM_SAME_ORIGIN_SOURCE}
-
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -73,7 +53,7 @@ export default async function handler(req, res) {
       var page = await forum.loadNotifications(session, { limit: limit });
       return res.status(200).json({ success: true, items: page.items, unreadCount: page.unreadCount });
     }
-    if (!isSameOrigin(req)) {
+    if (!${SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
     var body = req.body && typeof req.body === 'object' ? req.body : {};
