@@ -3,6 +3,7 @@ import { generateCommonJsSessionTokenResolverCode } from './session-cookie-resol
 import { ROLE_OF_TOKEN_CODE } from './workflow-auth-generator'
 import { SESSION_STAMP_KEY } from './session-revocation-generator'
 import { generateVercelFunctionsLoaderCode } from './vercel-functions'
+import { SEALED_FOR_RUN_KEY } from './sealed-results'
 
 /** How long a signed step result stays good: older ones are refused. */
 export const SIGNED_RESULT_MAX_AGE_MS = 10 * 60 * 1000
@@ -73,6 +74,11 @@ export const STEP_EXPIRED_MESSAGE = 'This took too long. Please start again.'
  * ever reading it, and a later segment's reply hands back the sealed form,
  * never the opened one.
  *
+ * A step marked \`sealResultOnServer\` (sealed-results.ts) makes the same trip
+ * sealed for its run: the seal binds the workflow, the run and the step, so
+ * it opens only as that step's result in the later segments of that run
+ * (\`sealForRun\`, \`openResultsSealedForRun\`).
+ *
  * The facts about the graph each route needs are baked into its
  * SEGMENT_CONFIG at generation time (see segment-trust.ts).
  */
@@ -119,18 +125,41 @@ var SEAL_TAG_BYTES = 16;
 
 var SEAL_AAD = Buffer.from('teleport-workflow-sealed-result:v1', 'utf8');
 
-// The sealed form of a credential result; undefined (the result is then not
-// replied at all) without an app secret, whose key anyone could derive.
-function sealResult(value) {
+// A value encrypted and authenticated under this app's key, bound to \`aad\`
+// (base64); undefined without an app secret, whose key anyone could derive.
+function sealText(value, aad) {
   if (!process.env.NEXTAUTH_SECRET) return undefined;
   var serialized;
   try { serialized = JSON.stringify(value); } catch (e) { return undefined; }
   if (serialized === undefined) return undefined;
   var iv = crypto.randomBytes(SEAL_IV_BYTES);
   var cipher = crypto.createCipheriv('aes-256-gcm', sealKey(), iv);
-  cipher.setAAD(SEAL_AAD);
+  cipher.setAAD(aad);
   var data = Buffer.concat([cipher.update(serialized, 'utf8'), cipher.final()]);
-  return { __sealed: Buffer.concat([iv, cipher.getAuthTag(), data]).toString('base64') };
+  return Buffer.concat([iv, cipher.getAuthTag(), data]).toString('base64');
+}
+
+// { value } when \`text\` opens under this app's key and \`aad\`, else null.
+function openText(text, aad) {
+  if (!process.env.NEXTAUTH_SECRET || typeof text !== 'string') return null;
+  try {
+    var raw = Buffer.from(text, 'base64');
+    if (raw.length <= SEAL_IV_BYTES + SEAL_TAG_BYTES) return null;
+    var decipher = crypto.createDecipheriv('aes-256-gcm', sealKey(), raw.subarray(0, SEAL_IV_BYTES));
+    decipher.setAAD(aad);
+    decipher.setAuthTag(raw.subarray(SEAL_IV_BYTES, SEAL_IV_BYTES + SEAL_TAG_BYTES));
+    var data = Buffer.concat([decipher.update(raw.subarray(SEAL_IV_BYTES + SEAL_TAG_BYTES)), decipher.final()]);
+    return { value: JSON.parse(data.toString('utf8')) };
+  } catch (e) {
+    return null;
+  }
+}
+
+// The sealed form of a credential result; undefined (the result is then not
+// replied at all) without an app secret.
+function sealResult(value) {
+  var text = sealText(value, SEAL_AAD);
+  return text === undefined ? undefined : { __sealed: text };
 }
 
 function isSealedResult(value) {
@@ -140,18 +169,29 @@ function isSealedResult(value) {
 
 // { value } when the sealed form opens under this app's key, else null.
 function openSealedResult(sealed) {
-  if (!process.env.NEXTAUTH_SECRET) return null;
-  try {
-    var raw = Buffer.from(sealed.__sealed, 'base64');
-    if (raw.length <= SEAL_IV_BYTES + SEAL_TAG_BYTES) return null;
-    var decipher = crypto.createDecipheriv('aes-256-gcm', sealKey(), raw.subarray(0, SEAL_IV_BYTES));
-    decipher.setAAD(SEAL_AAD);
-    decipher.setAuthTag(raw.subarray(SEAL_IV_BYTES, SEAL_IV_BYTES + SEAL_TAG_BYTES));
-    var data = Buffer.concat([decipher.update(raw.subarray(SEAL_IV_BYTES + SEAL_TAG_BYTES)), decipher.final()]);
-    return { value: JSON.parse(data.toString('utf8')) };
-  } catch (e) {
-    return null;
-  }
+  return openText(sealed.__sealed, SEAL_AAD);
+}
+
+// A step result sealed for its run (sealResultOnServer, see sealed-results.ts)
+// is bound to the workflow, the run and the step: it opens as that step's
+// result in that run of that workflow, and as nothing else.
+var SEALED_FOR_RUN_KEY = ${JSON.stringify(SEALED_FOR_RUN_KEY)};
+
+function runSealAad(workflowId, runId, nodeId) {
+  return Buffer.from(JSON.stringify(['sealed-step-result', 1, workflowId, runId, nodeId]), 'utf8');
+}
+
+function sealForRun(workflowId, runId, nodeId, value) {
+  var text = sealText(value, runSealAad(workflowId, runId, nodeId));
+  if (text === undefined) return undefined;
+  var sealed = {};
+  sealed[SEALED_FOR_RUN_KEY] = text;
+  return sealed;
+}
+
+function openSealedForRun(workflowId, runId, nodeId, sealed) {
+  if (!sealed || typeof sealed !== 'object' || Array.isArray(sealed) || Object.keys(sealed).length !== 1) return null;
+  return openText(sealed[SEALED_FOR_RUN_KEY], runSealAad(workflowId, runId, nodeId));
 }
 
 // Without an app secret every key here would derive from '' — a value anyone
@@ -682,13 +722,37 @@ var __claimedLinks = new WeakMap();
 // the sealed form it relayed (see resealRelayedResults).
 var __openedResults = new WeakMap();
 
+// Opens the results of the graph's other segments sealed for this run
+// (SEGMENT_CONFIG.sealedNodeIds), each as its own step's result: whatever else
+// the request holds under such a step's key is emptied, as a result whose
+// signature does not hold is.
+function openResultsSealedForRun(segmentConfig, run, context, opened) {
+  var ids = Array.isArray(segmentConfig.sealedNodeIds) ? segmentConfig.sealedNodeIds : [];
+  if (ids.length === 0) return;
+  var own = {};
+  (segmentConfig.nodes || []).forEach(function(node) { own[node.id] = true; });
+  var workflowId = workflowIdOf(segmentConfig);
+  for (var i = 0; i < ids.length; i++) {
+    var id = ids[i];
+    if (own[id] || !has(context, id) || context[id] === undefined) continue;
+    var result = openSealedForRun(workflowId, run.id, id, context[id]);
+    if (!result) {
+      context[id] = undefined;
+      continue;
+    }
+    opened.push({ sealed: context[id], value: result.value });
+    context[id] = result.value;
+  }
+}
+
 // Opens every sealed value the request hands this segment, so its nodes read
-// the credential itself: a relayed server result (whose signature
-// dropUnsignedResults checked first), or a value the browser holds from one
-// (a custom node's output, the previous result). Only this app's server
-// seals, so what opens is what it sealed.
-function openSealedResults(context) {
+// the value itself: the results sealed for this run, and every credential — a
+// relayed server result (whose signature dropUnsignedResults checked first),
+// or a value the browser holds from one (a custom node's output, the previous
+// result). Only this app's server seals, so what opens is what it sealed.
+function openSealedResults(segmentConfig, run, context) {
   var opened = [];
+  openResultsSealedForRun(segmentConfig, run, context, opened);
   Object.keys(context).forEach(function(key) {
     if (isControlKey(key) && key !== '__previousNodeResult') return;
     if (!isSealedResult(context[key])) return;
@@ -729,8 +793,8 @@ function claimSegmentContext(segmentConfig, context) {
   // The route's own (see VISITOR_REQUEST_INJECTION); a request never sets it.
   delete context.__request;
   keepUpstreamResults(segmentConfig, context);
-  // Sealed credentials open only after their signature held.
-  openSealedResults(context);
+  // Sealed results open only after their signature held.
+  openSealedResults(segmentConfig, run, context);
   stripForeignControlKeys(segmentConfig, context);
   clearSessionIdentity(context);
   utils.claimSegmentContext(segmentConfig, context);
@@ -780,6 +844,19 @@ function scrubValue(value, patterns, depth) {
   return copy || value;
 }
 
+// The segment's own results sealed for this run: replied sealed, signed below
+// like every other result (not at all without an app secret).
+function sealOwnResultsForRun(segmentConfig, context, reply, workflowId, run) {
+  var sealedIds = utils.sealedResultNodeIds(segmentConfig);
+  var nodes = segmentConfig.nodes || [];
+  for (var i = 0; i < nodes.length; i++) {
+    var id = nodes[i].id;
+    if (!sealedIds[id] || context[id] === undefined) continue;
+    var sealed = sealForRun(workflowId, run.id, id, context[id]);
+    if (sealed) reply[id] = sealed;
+  }
+}
+
 function segmentReply(segmentConfig, context, snapshot) {
   restoreStateBags(context);
   var reply = scrubSecretNames(segmentConfig, utils.segmentReply(segmentConfig, context, snapshot));
@@ -793,6 +870,7 @@ function segmentReply(segmentConfig, context, snapshot) {
   var workflowId = workflowIdOf(segmentConfig);
   var segmentId = segmentIdOf(segmentConfig);
   var run = __claimedRuns.get(context) || openRun(workflowId);
+  sealOwnResultsForRun(segmentConfig, context, reply, workflowId, run);
   var link = __claimedLinks.get(context) || { n: 0, accepted: {} };
   var at = Date.now();
   // What the next call may accept: the results this one accepted, and its own.

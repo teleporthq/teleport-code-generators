@@ -165,7 +165,17 @@ const collectSources = (value: unknown, into: ParameterSources): void => {
   }
 }
 
-const describeStep = (node: UIDLWorkflowNode | undefined, fallbackId: string): string => {
+/**
+ * The step results a value reads, as the runtime resolves them: its context
+ * references and the chips of its rich text.
+ */
+export const stepResultsReadBy = (value: unknown): string[] => {
+  const sources: ParameterSources = { nodeIds: [], pageValue: null }
+  collectSources(value, sources)
+  return sources.nodeIds
+}
+
+export const describeStep = (node: UIDLWorkflowNode | undefined, fallbackId: string): string => {
   const named = node && ((node as { name?: string }).name || node.label)
   return named ? `"${named}" (${fallbackId})` : `the step ${fallbackId}`
 }

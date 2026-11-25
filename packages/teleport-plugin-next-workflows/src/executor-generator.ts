@@ -13,6 +13,7 @@ import { escapeHtmlTextJs, escapeHtmlValueJs } from './nodes/email/html-escape-c
 import { generateProtectionBypassHeaderStatements } from './self-call-headers'
 import { generateCredentialColumnsCode } from './credential-columns-code'
 import { generateCredentialResultsCode } from './credential-results'
+import { SEALED_FOR_RUN_KEY } from './sealed-results'
 
 export interface SharedRuntimeUtilsOptions {
   /**
@@ -1786,8 +1787,20 @@ var SEGMENT_REPLY_PRIVATE_KEYS = {
 // A node whose result is a credential (a password hash) is left out here too,
 // whatever its config says: the server runtime replies it sealed, readable by
 // a later server segment only (see credential-results.ts).
+//
+// So is every result sealed for its run (\`sealResultOnServer\`), the segment's
+// own and the ones it was handed: the server runtime replies its own sealed,
+// and the caller still holds the sealed form of the others (see
+// sealed-results.ts).
 ${generateCredentialColumnsCode()}
 ${generateCredentialResultsCode()}
+function sealedResultNodeIds(segmentConfig) {
+  var ids = {};
+  var sealed = segmentConfig && Array.isArray(segmentConfig.sealedNodeIds) ? segmentConfig.sealedNodeIds : [];
+  for (var i = 0; i < sealed.length; i++) ids[sealed[i]] = true;
+  return ids;
+}
+
 // The nodes whose result the client branches on: never kept on the server.
 function isBranchingNodeType(type) {
   return type === 'general-if-statement' || type === 'general-switch';
@@ -1796,7 +1809,7 @@ function isBranchingNodeType(type) {
 function segmentReply(segmentConfig, context, snapshot) {
   var reply = {};
   var own = {};
-  var kept = credentialResultNodeIds(segmentConfig);
+  var kept = Object.assign(credentialResultNodeIds(segmentConfig), sealedResultNodeIds(segmentConfig));
   var nodes = (segmentConfig && segmentConfig.nodes) || [];
   for (var ni = 0; ni < nodes.length; ni++) {
     own[nodes[ni].id] = nodes[ni];
@@ -1882,6 +1895,7 @@ module.exports = {
   segmentReply,
   withoutCredentialColumns,
   credentialResultNodeIds,
+  sealedResultNodeIds,
   evaluateCondition,
   matchSwitchCase,
   evaluateSingleComparison,
@@ -2069,6 +2083,13 @@ function pruneContext(context, stateKeys) {
     // run they belong to must cross whole: a pruned signature no longer
     // matches, and the server then treats the result it covers as never produced.
     if (key === '__sig' || key === '__sigOrder' || key === '__sigRun') {
+      pruned[key] = val;
+      continue;
+    }
+    // So must a result sealed for its run (sealResultOnServer): sealing makes
+    // it longer than the value it holds, and a pruned one no longer opens.
+    if (typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 1 &&
+      typeof val[${JSON.stringify(SEALED_FOR_RUN_KEY)}] === 'string') {
       pruned[key] = val;
       continue;
     }

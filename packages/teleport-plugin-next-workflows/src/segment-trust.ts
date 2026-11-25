@@ -3,6 +3,7 @@ import { isFireAndForgetSegment } from './await-result'
 import { WorkflowSegment } from './types'
 import { collectMessageTrust, MessageTrust } from './nodes/email/message-trust'
 import { isOutboundMessageNodeType } from './nodes/general/visitor-request'
+import { asksForSealedResult } from './sealed-results'
 
 /**
  * What a server segment route may believe about the context a request hands
@@ -29,6 +30,10 @@ import { isOutboundMessageNodeType } from './nodes/general/visitor-request'
  *   They are the only step results a request reaching this route can hold, and
  *   custom JavaScript reads them in this order (`params`), whatever order a
  *   request sends them in.
+ * - `sealedNodeIds`: the server steps of the graph whose result travels sealed
+ *   (`sealResultOnServer`, see sealed-results.ts), and every map loop whose
+ *   results are such a step's results. The route seals those it runs and
+ *   opens the others. Absent when the graph seals nothing.
  *
  * What a signature binds (see the server runtime): the workflow (`workflowId`),
  * the segment that produced the result (`signedBy`, and `segmentId` for this
@@ -78,6 +83,7 @@ export interface SegmentTrust {
   workflowId: string
   segmentId: string
   opensRun: boolean
+  sealedNodeIds?: string[]
   session?: SegmentSessionNeeds
   /**
    * Only for a segment with an email/SMS node: the graph's node results the
@@ -301,6 +307,55 @@ const lastNodeByStep = (segment: WorkflowSegment): UIDLWorkflowNode | undefined 
     .sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
     .pop()
 
+// A map loop replies the result of its last body step for every pass, as the
+// route runs it (runServerLoop: the body in step order, an inner loop's own
+// body left to that loop).
+const lastLoopBodyNodeId = (
+  loopId: string,
+  graph: SegmentGraph,
+  loopBodies: Record<string, string[]>
+): string | undefined => {
+  const body = new Set(loopBodies[loopId] || [])
+  const innerBodies = new Set<string>()
+  body.forEach((id) => (loopBodies[id] || []).forEach((inner) => innerBodies.add(inner)))
+  const last = graph.nodes
+    .filter((n) => body.has(n.id) && !innerBodies.has(n.id))
+    .sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+    .pop()
+  return last && last.id
+}
+
+const collectSealedNodeIds = (
+  graph: SegmentGraph,
+  serverNodeIds: Set<string>,
+  loopBodies: Record<string, string[]>
+): string[] => {
+  const sealed = new Set(
+    graph.nodes.filter((n) => serverNodeIds.has(n.id) && asksForSealedResult(n)).map((n) => n.id)
+  )
+  const mapLoops = graph.nodes.filter(
+    (n) =>
+      n.type === 'general-loop' &&
+      serverNodeIds.has(n.id) &&
+      (n.config as { loopType?: unknown } | undefined)?.loopType === 'map'
+  )
+  let grew = sealed.size > 0
+  while (grew) {
+    grew = false
+    for (const loop of mapLoops) {
+      if (sealed.has(loop.id)) {
+        continue
+      }
+      const last = lastLoopBodyNodeId(loop.id, graph, loopBodies)
+      if (last && sealed.has(last)) {
+        sealed.add(loop.id)
+        grew = true
+      }
+    }
+  }
+  return graph.nodes.map((n) => n.id).filter((id) => sealed.has(id))
+}
+
 export const buildSegmentTrust = (segment: WorkflowSegment, graph: SegmentGraph): SegmentTrust => {
   const inSegment = new Set(segment.nodes.map((n) => n.id))
   const serverNodeIds = new Set<string>()
@@ -368,6 +423,7 @@ export const buildSegmentTrust = (segment: WorkflowSegment, graph: SegmentGraph)
 
   const firstServer = graph.segments.find((s) => s.env === 'server')
   const session = buildSessionNeeds(segment, graph)
+  const sealedNodeIds = collectSealedNodeIds(graph, serverNodeIds, loopBodies)
 
   return {
     signedNodeIds,
@@ -379,6 +435,7 @@ export const buildSegmentTrust = (segment: WorkflowSegment, graph: SegmentGraph)
     workflowId: graphIdOf(graph),
     segmentId: segment.id,
     opensRun: !firstServer || firstServer.id === segment.id,
+    ...(sealedNodeIds.length > 0 ? { sealedNodeIds } : {}),
     ...(session ? { session } : {}),
     ...(segment.nodes.some((n) => isOutboundMessageNodeType(n.type))
       ? {
