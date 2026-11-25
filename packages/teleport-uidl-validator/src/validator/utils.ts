@@ -552,6 +552,25 @@ export const checkRootComponent = (input: ProjectUIDL) => {
   return errors
 }
 
+// A project can have only a single fallback route. Generators write the fallback page to a
+// fixed location (eg: `pages/404.js` in Next), so any other fallback page would be lost.
+export const checkFallbackRoutes = (input: ProjectUIDL) => {
+  const errors: string[] = []
+  const fallbackRoutes = (input.root.stateDefinitions.route.values || [])
+    .filter((route) => route.pageOptions?.fallback)
+    .map((route) => `"${route.value}"`)
+
+  if (fallbackRoutes.length > 1) {
+    errors.push(
+      `\nA project can have only a single fallback route, found ${
+        fallbackRoutes.length
+      }: ${fallbackRoutes.join(', ')}.`
+    )
+  }
+
+  return errors
+}
+
 // The errors should be displayed in a human-readeable way
 export const formatErrors = (errors: Array<{ kind: string; at: string; message: string }>) => {
   const listOfErrors: string[] = []
