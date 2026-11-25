@@ -21,6 +21,11 @@ import { generateSearchSqlHelpersCode, PG_SEARCH_SQL } from '../search-relevance
 import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
+import {
+  generateRelatedNamesCode,
+  relatedNamesOf,
+  withRelatedNamesExpression,
+} from './utils/related-names'
 
 interface PostgreSQLConfig {
   connectionString?: string
@@ -48,6 +53,8 @@ export const generatePostgreSQLFetcher = (
 ): string => {
   const pgConfig = config as PostgreSQLConfig
   const schema = pgConfig.options?.schema
+  const relatedNames = relatedNamesOf(config, tableName)
+  const relatedNamesCode = generateRelatedNamesCode(relatedNames)
 
   const clientConfig = pgConfig.connectionString
     ? `{
@@ -185,7 +192,7 @@ ${generateRowOrderTiebreakHelper(rowIdentityColumn(config, tableName))}
 
 ${generateProductFilterClauseHelper(tableName)}
 
-export default async function handler(req, res) {
+${relatedNamesCode}export default async function handler(req, res) {
 ${generateReadGuardCall(tableName, null)}
   const client = getClient()
   
@@ -331,7 +338,10 @@ ${generateReadGuardCall(tableName, null)}
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
     )
-    const safeData = JSON.parse(JSON.stringify(plainRows, dateReplacer))
+    const safeData = ${withRelatedNamesExpression(
+      relatedNames,
+      'JSON.parse(JSON.stringify(plainRows, dateReplacer))'
+    )}
 
     return res.status(200).json({
       success: true,
