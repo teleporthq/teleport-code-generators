@@ -80,6 +80,7 @@ describe('data API — the WHERE clause of an UPDATE or DELETE', () => {
   const buildWhereClause = new Function(
     'validateFilters',
     [
+      pick('filterColumn'),
       pick('isMissingFilterValue'),
       pick('refuseUnscopedWrite'),
       pick('refuseUnfilteredWrite'),

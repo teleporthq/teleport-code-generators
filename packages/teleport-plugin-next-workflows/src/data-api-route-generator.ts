@@ -455,12 +455,22 @@ const getClient = () => {
 };
 
 /**
- * Validate all filter field names (source) to prevent identifier injection.
+ * The column a filter names, whichever key a data step writes it under. Read
+ * in the order the server runtime reads it when it binds a read to the visitor
+ * (scopedToIdentity), so every check here and the WHERE clause name the column
+ * that binding saw.
+ */
+function filterColumn(filter) {
+  return filter && typeof filter === 'object' ? filter.column || filter.source || filter.field : undefined;
+}
+
+/**
+ * Validate all filter column names to prevent identifier injection.
  */
 function validateFilters(filters) {
   if (!filters || !Array.isArray(filters)) return;
   for (var i = 0; i < filters.length; i++) {
-    var filterField = filters[i].source || filters[i].field;
+    var filterField = filterColumn(filters[i]);
     if (filterField) {
       assertIdentifierSafe(filterField, 'filter field');
     }
@@ -567,7 +577,7 @@ function buildWhereClause(filters, queryParams, startIndex, options) {
 
   for (var i = 0; i < filters.length; i++) {
     var f = filters[i];
-    var field = f.source || f.field;
+    var field = filterColumn(f);
     if (!field) {
       if (strict) throw refuseUnscopedWrite('');
       continue;
@@ -695,17 +705,17 @@ async function handleSelect(client, body, req) {
   // judgement, not the browser clock's, and nothing unlaunched is handed out.
   var feed = __taPublicFeed(req, tableName);
   if (feed) {
-    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+    __taAssertFeedFields(tableName, feed, filters.map(filterColumn));
     __taAssertFeedFields(tableName, feed, sorts.map(function(s) { return s && s.field; }));
   }
   // A browser never filters, sorts or selects by a credential column.
-  __dataAssertNoCredentialFields(req, tableName, filters.map(function(f) { return f && (f.source || f.field); })
+  __dataAssertNoCredentialFields(req, tableName, filters.map(filterColumn)
     .concat(sorts.map(function(s) { return s && s.field; }), selectedColumns));
   // A browser reads a published table's public rows, and never names a hidden
   // column — to read it, filter by it or sort by it.
   var rowPolicy = __dataRowPolicy(req, tableName);
   if (rowPolicy) {
-    __dataAssertVisibleFields(rowPolicy, filters.map(function(f) { return f && (f.source || f.field); }));
+    __dataAssertVisibleFields(rowPolicy, filters.map(filterColumn));
     __dataAssertVisibleFields(rowPolicy, sorts.map(function(s) { return s && s.field; }));
     __dataAssertVisibleFields(rowPolicy, selectedColumns);
   }
@@ -792,12 +802,12 @@ async function handleCount(client, body, req) {
 
   var feed = __taPublicFeed(req, tableName);
   if (feed) {
-    __taAssertFeedFields(tableName, feed, filters.map(function(f) { return f && (f.source || f.field); }));
+    __taAssertFeedFields(tableName, feed, filters.map(filterColumn));
   }
-  __dataAssertNoCredentialFields(req, tableName, filters.map(function(f) { return f && (f.source || f.field); }));
+  __dataAssertNoCredentialFields(req, tableName, filters.map(filterColumn));
   var rowPolicy = __dataRowPolicy(req, tableName);
   if (rowPolicy) {
-    __dataAssertVisibleFields(rowPolicy, filters.map(function(f) { return f && (f.source || f.field); }));
+    __dataAssertVisibleFields(rowPolicy, filters.map(filterColumn));
   }
   var ownerScope = await __dataOwnerScope(req, tableName);
   var queryParams = [];
@@ -1146,7 +1156,7 @@ async function handleDelete(client, body) {
   var deletedId = null;
   if (filters && filters.length > 0) {
     for (var fi = 0; fi < filters.length; fi++) {
-      var filterField = filters[fi].source || filters[fi].field;
+      var filterField = filterColumn(filters[fi]);
       if (filterField === 'id') {
         deletedId = filters[fi].destination !== undefined ? filters[fi].destination : filters[fi].value;
         break;
@@ -1603,7 +1613,7 @@ function __dataIsOwnerColumn(scope, field) {
 function __dataNamesGuestKey(filters) {
   for (var i = 0; i < filters.length; i++) {
     var f = filters[i] || {};
-    var column = __taNormalizeTable(f.source || f.field);
+    var column = __taNormalizeTable(filterColumn(f));
     var value = f.destination !== undefined ? f.destination : f.value;
     if (
       GUEST_KEY_COLUMNS.indexOf(column) !== -1 &&
@@ -1634,7 +1644,7 @@ function __dataReadIsBoundToVisitor(scope, filters) {
   if (!scope.signedIn) return __dataNamesGuestKey(filters);
   for (var i = 0; i < filters.length; i++) {
     var f = filters[i] || {};
-    var field = f.source || f.field;
+    var field = filterColumn(f);
     if (!field || !__dataIsOwnerColumn(scope, field)) continue;
     var value = f.destination !== undefined ? f.destination : f.value;
     if (__dataOwnerClause(scope, field, value, f.operand || f.operator || '=', f, filters) === null) return true;
@@ -2002,7 +2012,7 @@ async function assertSessionOwnsUsersRow(req, operation, body) {
   var filters = body.filters || [];
   var idFilter = null;
   for (var i = 0; i < filters.length; i++) {
-    var field = filters[i].source || filters[i].field;
+    var field = filterColumn(filters[i]);
     if (field === 'id') {
       idFilter = filters[i].destination !== undefined ? filters[i].destination : filters[i].value;
       break;
