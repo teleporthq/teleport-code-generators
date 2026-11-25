@@ -27,6 +27,11 @@ import { generateRequestSqlGuardsCode } from './utils/request-sql-guards'
 import { generateArrayOverlapSqlCode } from '../array-overlap-sql'
 import { generateSearchSqlHelpersCode, PG_SEARCH_SQL } from '../search-relevance'
 import { PG_CLIENT_IMPORT } from './pg-client-import'
+import {
+  generateRelatedNamesCode,
+  relatedNamesOf,
+  withRelatedNamesExpression,
+} from './utils/related-names'
 
 interface TeleportDBConfig {
   host?: string
@@ -79,6 +84,8 @@ export const generateTeleportFetcher = (
     .map((column) => column.name)
     .filter((name): name is string => typeof name === 'string')
   const localizedColumns = collectLocalizedColumns(columnNames, transformOptions.localization)
+  const relatedNames = relatedNamesOf(config, tableName)
+  const relatedNamesCode = generateRelatedNamesCode(relatedNames)
 
   const hostRef = resolveEnvReference(dbConfig.host, DEFAULT_ENV_KEYS.host)
   const portRef = resolveEnvReference(dbConfig.port, DEFAULT_ENV_KEYS.port)
@@ -276,7 +283,7 @@ ${generateProductFilterClauseHelper(tableName)}
 
 ${generateLocalizedColumnsHelper(localizedColumns)}
 
-// Matches DDL / dangerous statements the raw-query branch should refuse.
+${relatedNamesCode}// Matches DDL / dangerous statements the raw-query branch should refuse.
 // Keep this list conservative — anything destructive or schema-changing is
 // out of scope for a client-triggered fetch. SELECT and CTEs (WITH ...) are
 // the only shapes consumers legitimately need.
@@ -495,7 +502,10 @@ ${generateReadGuardCall(tableName, 'req.query && req.query.rawQuery')}
     const plainRows = rows.map((row) =>
       row && typeof row.toJSON === 'function' ? row.toJSON() : row
     )
-    const safeData = JSON.parse(JSON.stringify(plainRows, dateReplacer))
+    const safeData = ${withRelatedNamesExpression(
+      relatedNames,
+      'JSON.parse(JSON.stringify(plainRows, dateReplacer))'
+    )}
     ${
       getTransformExpression(tableName)
         ? `const transformedData = ${getTransformExpression(tableName)}`

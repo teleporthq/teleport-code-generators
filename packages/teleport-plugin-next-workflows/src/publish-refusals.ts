@@ -28,6 +28,10 @@ import {
   parameterizeWorkflowRawSqlInterpolations,
   WorkflowSqlInterpolationError,
 } from './raw-sql-param-binding'
+import {
+  assertNoBrowserReadsOfSealedResults,
+  findBrowserReadsOfSealedResults,
+} from './sealed-results'
 import { assertWorkflowsAreSecure, CodegenSecurityError } from './security-scanner'
 import { splitIntoSegments } from './segment-splitter'
 import { buildSegmentTrust, SegmentTrust } from './segment-trust'
@@ -52,7 +56,7 @@ import { WorkflowSegment } from './types'
  * - `refused`: the export stops (raw SQL a value cannot be bound into, custom
  *   code naming a platform secret, a push or stored-file step on a route
  *   callers it should not serve can start, a recorded event fed by a browser
- *   value);
+ *   value, a browser step reading a sealed result);
  * - `never-sends`: the export goes on, but an email or SMS step that sends only
  *   the visitor's input to an address the visitor supplies, or takes its sender
  *   from the visitor, is refused at run time (`outbound-message-guard.ts`).
@@ -280,6 +284,11 @@ const SEGMENT_ROUTE_GATES: SegmentRouteGate[] = [
     check: 'server-bound-calls',
     assert: assertServerBoundCallParameters,
     collect: findBrowserBoundCallParameters,
+  },
+  {
+    check: 'sealed-results',
+    assert: assertNoBrowserReadsOfSealedResults,
+    collect: findBrowserReadsOfSealedResults,
   },
 ]
 

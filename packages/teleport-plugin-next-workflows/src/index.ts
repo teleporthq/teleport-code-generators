@@ -18,6 +18,8 @@ export {
 } from './public-step-guards'
 export type { PublicStepRefusal, CustomNodeStepReach } from './public-step-guards'
 export { describeRefusedSend } from './nodes/email/outbound-message-guard'
+// The step config key that makes a server step's result travel sealed.
+export { SEAL_RESULT_ON_SERVER_KEY } from './sealed-results'
 export { collectSegmentStateKeys, ALL_STATE_KEYS } from './segment-context-needs'
 export type { SegmentStateKeys } from './segment-context-needs'
 export { collectSecrets } from './secret-collector'
