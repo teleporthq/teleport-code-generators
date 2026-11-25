@@ -870,6 +870,7 @@ export class NextWorkflowProjectPlugin implements ProjectPlugin {
       const serverSegments = segments.filter((s) => s.env === 'server')
       const workflowGraph = {
         id: workflow.id,
+        triggerNodeId: workflow.trigger?.nodeId,
         nodes: workflow.nodes || [],
         edges: workflow.edges || [],
         segments,

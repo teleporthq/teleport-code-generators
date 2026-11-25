@@ -57,12 +57,17 @@ function bootWorkflow(id: string, nodes: any[]) {
   const edges = nodes
     .slice(1)
     .map((node, i) => ({ id: `e${i}`, source: nodes[i].id, target: node.id }))
-  const workflow = { id, nodes, edges, trigger: { type: 'event-element-clicked' } } as any
+  const workflow = {
+    id,
+    nodes,
+    edges,
+    trigger: { type: 'event-element-clicked', nodeId: 'trigger' },
+  } as any
   const segments = splitIntoSegments(workflow)
   const routes: Record<string, (context: Context) => Promise<{ status: number; body: any }>> = {}
   for (const segment of segments.filter((s) => s.env === 'server') as WorkflowSegment[]) {
     const source = generateServerSegmentAPIRoute(segment, id, undefined, {
-      trust: buildSegmentTrust(segment, { id, nodes, edges, segments }),
+      trust: buildSegmentTrust(segment, { id, triggerNodeId: 'trigger', nodes, edges, segments }),
     })
     const routeModule: { exports: any } = { exports: {} }
     const requireStub = (name: string) => (name.endsWith('server-runtime') ? runtime : {})

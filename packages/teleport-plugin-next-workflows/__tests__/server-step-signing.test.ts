@@ -85,7 +85,7 @@ const workflow = {
     { id: 'e2', source: 'gate', target: 'ui', sourceHandle: 'true' },
     { id: 'e3', source: 'ui', target: 'write' },
   ],
-  trigger: { type: 'event-element-clicked' },
+  trigger: { type: 'event-element-clicked', nodeId: 'trigger' },
 } as any
 
 const segments = splitIntoSegments(workflow)
@@ -95,6 +95,7 @@ function bootRoute(segment: WorkflowSegment, graphId?: string) {
   const source = generateServerSegmentAPIRoute(segment, 'Signing', undefined, {
     trust: buildSegmentTrust(segment, {
       id: graphId,
+      triggerNodeId: workflow.trigger.nodeId,
       nodes: workflow.nodes,
       edges: workflow.edges,
       segments,
@@ -318,9 +319,9 @@ describe('claimSegmentContext — what a request cannot carry', () => {
     expect(context.__customParams).toBeUndefined()
   })
 
-  it('keeps only real loops and their real body nodes in the loop scope', () => {
+  it('starts outside every loop, and knows every loop of the graph as one', () => {
     const context: Context = {
-      __loopNodeIds: { loop: true, fake: true },
+      __loopNodeIds: { fake: true },
       __loopScopeStack: [
         { loopNodeId: 'loop', bodyNodeIds: { body: true, price: true } },
         { loopNodeId: 'fake', bodyNodeIds: { price: true } },
@@ -328,7 +329,17 @@ describe('claimSegmentContext — what a request cannot carry', () => {
     }
     runtime.claimSegmentContext({ ...plainConfig, loopBodies: { loop: ['body'] } }, context)
     expect(context.__loopNodeIds).toEqual({ loop: true })
-    expect(context.__loopScopeStack).toEqual([{ loopNodeId: 'loop', bodyNodeIds: { body: true } }])
+    expect(context.__loopScopeStack).toBeUndefined()
+  })
+
+  it('drops a server result the link does not list: it takes no position', () => {
+    const context: Context = {
+      trigger: { tag: 'trigger' },
+      before: { rows: [{ email: 'other@shop.test' }] },
+      note: { tag: 'note' },
+    }
+    runtime.claimSegmentContext({ ...plainConfig, signedNodeIds: ['before'] }, context)
+    expect(Object.keys(context).filter((key) => !key.startsWith('__'))).toEqual(['trigger', 'note'])
   })
 
   it('takes the previous result from the signed result of the server node that ran just before', () => {

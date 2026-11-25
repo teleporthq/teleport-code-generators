@@ -253,32 +253,44 @@ describe('a custom node segment: a step result is what that step produced in thi
   })
 })
 
-describe('buildSegmentTrust — the steps that run after a segment', () => {
-  const trustOf = (graph: Graph) => {
+describe('buildSegmentTrust — the steps that run before a segment', () => {
+  const trustOf = (graph: Graph, triggerNodeId?: string) => {
     const segments = splitIntoSegments({ ...graph, trigger: { type: 'manual' } } as any)
     const server = segments.find((s) => s.env === 'server') as WorkflowSegment
-    return buildSegmentTrust(server, { ...graph, segments })
+    return buildSegmentTrust(server, { ...graph, triggerNodeId, segments })
   }
 
-  it('names the later steps the segment leads to, never an earlier one', () => {
-    expect(trustOf(withBrowserSteps).downstreamNodeIds).toEqual(['report'])
-    expect(trustOf(serverOnly).downstreamNodeIds).toEqual([])
+  it('names the earlier steps in the order they run, never a later one', () => {
+    expect(trustOf(withBrowserSteps).upstreamNodeIds).toEqual(['extract'])
+    expect(trustOf(serverOnly).upstreamNodeIds).toEqual([])
   })
 
-  it('leaves out a step of a loop body', () => {
+  it("starts from a workflow's trigger", () => {
+    expect(trustOf(withBrowserSteps, 'trigger').upstreamNodeIds).toEqual(['trigger', 'extract'])
+  })
+
+  it('names a loop ahead of the segment and its body, in the order they run', () => {
     const looped: Graph = {
       id: 'cn-looped',
       nodes: [
-        ...withBrowserSteps.nodes,
-        step('loop', 'general-loop', 5, { collection: [] }),
-        step('each', 'general-custom-js', 6, { code: REPORT, context: 'client' }),
+        step('loop', 'general-loop', 1, { collection: [] }),
+        step('each', 'general-custom-js', 2, { code: REPORT, context: 'client' }),
+        step('after', 'general-custom-js', 3, { code: REPORT, context: 'client' }),
+        step('decide', 'general-custom-js', 4, { code: DECIDE, context: 'server' }),
       ],
       edges: [
-        ...withBrowserSteps.edges,
-        edge('report', 'loop'),
         { id: 'loop-each', source: 'loop', target: 'each', sourceHandle: 'loop' },
+        {
+          id: 'each-loop',
+          source: 'each',
+          target: 'loop',
+          sourceHandle: 'loop-body-out',
+          targetHandle: 'loop-back',
+        },
+        { id: 'loop-after', source: 'loop', target: 'after', sourceHandle: 'done' },
+        edge('after', 'decide'),
       ],
     }
-    expect(trustOf(looped).downstreamNodeIds).toEqual(['report', 'loop'])
+    expect(trustOf(looped).upstreamNodeIds).toEqual(['loop', 'each', 'after'])
   })
 })

@@ -1,8 +1,7 @@
-import { SessionCookieResolver } from '@teleporthq/teleport-shared'
+import { SameOriginRequest, SessionCookieResolver } from '@teleporthq/teleport-shared'
 import { securityRuntimeSpecifier } from '@teleporthq/teleport-plugin-next-workflows'
 import { toJsLiteral } from '../pwa/source-literals'
 import { FORUM_PAGE_DATA_MODULE_NAME, FORUM_PAGE_DATA_MODULE_PATH } from './page-data-source'
-import { FORUM_SAME_ORIGIN_SOURCE } from './notifications-route'
 import { FORUM_ROUTE_ROOT, UUID_PATTERN } from './replies-route'
 
 /** ⛔ PAIRED with `FORUM_FILES_ROUTE` in teleport-gui `features/forum/constants/forum-markers.ts`. */
@@ -53,8 +52,7 @@ var STORAGE_URL = process.env.RUNTIME_STORAGE_URL;
 var STORAGE_KEY = process.env.RUNTIME_STORAGE_API_KEY;
 var STORAGE_PROJECT = process.env.RUNTIME_STORAGE_PROJECT_ID;
 
-${FORUM_SAME_ORIGIN_SOURCE}
-
+${SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE}
 function storage(path, method) {
   return fetch(STORAGE_URL + '/project/' + encodeURIComponent(STORAGE_PROJECT) + path, {
     method: method,
@@ -87,7 +85,7 @@ export default async function handler(req, res) {
   if (!(await security.rateLimitRequest(req, res, RATE_LIMIT))) {
     return;
   }
-  if (!isSameOrigin(req)) {
+  if (!${SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION}(req)) {
     return res.status(403).json({ success: false, error: 'Forbidden' });
   }
   var session = null;

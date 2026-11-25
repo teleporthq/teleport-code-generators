@@ -6,6 +6,7 @@ import type {
   UIDLInvoiceSettings,
   UIDLWorkflows,
 } from '@teleporthq/teleport-types'
+import { SameOriginRequest } from '@teleporthq/teleport-shared'
 import {
   SAME_ORIGIN_REQUEST_FUNCTION,
   SAME_ORIGIN_REQUEST_SOURCE,
@@ -107,6 +108,11 @@ describe('which requests count as the site’s own', () => {
 
   it('reads a request without headers as the server’s', () => {
     expect(isSameOriginRequest({})).toBe(true)
+  })
+
+  it('is the check teleport-shared exports, which every package emits', () => {
+    expect(SAME_ORIGIN_REQUEST_FUNCTION).toBe(SameOriginRequest.SAME_ORIGIN_REQUEST_FUNCTION)
+    expect(SAME_ORIGIN_REQUEST_SOURCE).toBe(SameOriginRequest.SAME_ORIGIN_REQUEST_SOURCE)
   })
 })
 

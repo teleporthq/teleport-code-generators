@@ -32,19 +32,23 @@ export const STEP_EXPIRED_MESSAGE = 'This took too long. Please start again.'
  * - `segmentReply` signs every result its segment produced (`__sig`, an HMAC
  *   keyed from NEXTAUTH_SECRET over the workflow, the producing segment, the
  *   run, the time of signing, the node id and the JSON value), and one link of
- *   the run's chain (`__sigOrder`): the order of the context's keys as the
- *   caller will hold them (`params` in custom JavaScript are read by
- *   position), the call's number in the run, and the signature of every result
- *   the caller may hand on, bound to the same workflow, run and time.
- * - `claimSegmentContext` puts the keys back in that signed order (a key the
- *   request left out keeps its slot, empty), empties every server result whose
- *   signature does not hold — another workflow's, another run's, one older
- *   than ten minutes, one the link does not list with that very signature (a
- *   result of another call of the same segment: a run is one chain) — drops
- *   custom-node and loop bookkeeping a request cannot legitimately carry,
- *   skips every node a server if / switch upstream did not choose (or whose
- *   decision is missing), and takes `__previousNodeResult` from the signed
- *   result of the server node that ran just before.
+ *   the run's chain (`__sigOrder`): the keys of the step results the caller
+ *   will hold, in order, the call's number in the run, and the signature of
+ *   every result the caller may hand on, bound to the same workflow, run and
+ *   time.
+ * - `claimSegmentContext` keeps a slot, empty, for every key the link lists
+ *   and the request left out (leaving out a result moves none of the others),
+ *   drops every server result the link does not list and empties every one
+ *   whose signature does not hold — another workflow's, another run's, one
+ *   older than ten minutes, one the link does not list with that very
+ *   signature (a result of another call of the same segment: a run is one
+ *   chain) — keeps only the results of the steps that run before the segment,
+ *   in the order the workflow runs them, which is the order custom JavaScript
+ *   reads them in (`keepUpstreamResults`), drops custom-node and loop
+ *   bookkeeping a request cannot legitimately carry, skips every node a server
+ *   if / switch upstream did not choose (or whose decision is missing), and
+ *   takes `__previousNodeResult` from the signed result of the server node
+ *   that ran just before.
  *
  * WHO THE VISITOR IS comes from the session cookie, never from the request
  * body. `claimSegmentContext` drops whatever the request says about it and
@@ -301,8 +305,9 @@ function restoreOrder(context, keys) {
   }
 }
 
-// Empties every relayed result whose signature does not hold — checked against
-// the signature the link the request continues lists for it, never one the
+// Drops every relayed result the link the request continues does not list (the
+// caller never held it), empties every listed one whose signature does not
+// hold — checked against the signature that link lists for it, never one the
 // request supplies alongside — and returns { accepted, expired }: the
 // signatures of the results it kept, and whether one of them was signed in this
 // run but has expired.
@@ -318,7 +323,9 @@ function dropUnsignedResults(segmentConfig, run, context, order, now) {
     var signature = has(order.sigs, id) ? order.sigs[id] : null;
     var verdict = signature ? signatureVerdict(segmentConfig, run, id, context[id], signature, now) : 'invalid';
     if (verdict === 'expired') expired = true;
-    if (!listed[id] || verdict !== 'valid') {
+    if (!listed[id]) {
+      delete context[id];
+    } else if (verdict !== 'valid') {
       context[id] = undefined;
     } else {
       accepted[id] = signature;
@@ -343,28 +350,46 @@ function stripForeignControlKeys(segmentConfig, context) {
     delete context.__customNodeIds;
     delete context.__customParams;
   }
-  var bodies = segmentConfig.loopBodies || {};
-  if (context.__loopNodeIds && typeof context.__loopNodeIds === 'object') {
-    var keptLoops = {};
-    Object.keys(context.__loopNodeIds).forEach(function(id) {
-      if (has(bodies, id) && context.__loopNodeIds[id]) keptLoops[id] = true;
-    });
-    context.__loopNodeIds = keptLoops;
-  } else {
+  // A route runs between the segments of its graph, never inside one of its
+  // loops (a loop and its body share a segment): no loop scope is open when a
+  // request arrives, and every loop of the graph is scaffolding, never a step
+  // result custom JavaScript reads by position.
+  delete context.__loopScopeStack;
+  var loopIds = Object.keys(segmentConfig.loopBodies || {});
+  if (loopIds.length === 0) {
     delete context.__loopNodeIds;
+    return;
   }
-  if (Array.isArray(context.__loopScopeStack)) {
-    context.__loopScopeStack = context.__loopScopeStack
-      .filter(function(scope) { return scope && typeof scope.loopNodeId === 'string' && has(bodies, scope.loopNodeId); })
-      .map(function(scope) {
-        var claimed = scope.bodyNodeIds && typeof scope.bodyNodeIds === 'object' ? scope.bodyNodeIds : {};
-        var body = {};
-        bodies[scope.loopNodeId].forEach(function(id) { if (claimed[id]) body[id] = true; });
-        return { loopNodeId: scope.loopNodeId, bodyNodeIds: body };
-      });
-  } else {
-    delete context.__loopScopeStack;
+  context.__loopNodeIds = {};
+  loopIds.forEach(function(id) { context.__loopNodeIds[id] = true; });
+}
+
+// The step results a request may hand a route are those of the steps that run
+// before its segment (SEGMENT_CONFIG.upstreamNodeIds, see segment-trust.ts),
+// and custom JavaScript reads them by position (\`params\`). So the route keeps
+// exactly those, in the order the workflow runs them, whatever else a request
+// carries and in whatever order it sends them; beside them only the runtime's
+// own keys and the trigger's element. A custom node's segment runs in its
+// caller's context, which it keeps: of the custom node's own steps it keeps
+// those that ran before it.
+function keepUpstreamResults(segmentConfig, context) {
+  var upstream = segmentConfig.upstreamNodeIds;
+  if (!Array.isArray(upstream)) return;
+  if (segmentConfig.customNodeIds) {
+    segmentConfig.customNodeIds.forEach(function(id) {
+      if (upstream.indexOf(id) === -1) delete context[id];
+    });
+    return;
   }
+  var held = {};
+  Object.keys(context).forEach(function(key) {
+    if (isControlKey(key) || key === 'triggerElement') return;
+    held[key] = context[key];
+    delete context[key];
+  });
+  upstream.forEach(function(id) {
+    if (has(held, id)) context[id] = held[id];
+  });
 }
 
 function gateTook(gate, when, decision) {
@@ -644,9 +669,9 @@ function bindSessionHandlers(segmentConfig, nodeHandlers) {
 // Claiming a request, replying to it
 // ---------------------------------------------------------------------------
 
-// The keys the caller holds, in order, before this segment's own results were
-// dropped — segmentReply appends what the run adds, exactly as the caller's
-// merge will. And the run each claimed context belongs to.
+// The step results the caller holds that this segment kept, in order (never one
+// of the segment's own) — segmentReply appends what the run adds, exactly as
+// the caller's merge will. And the run each claimed context belongs to.
 var __incomingOrders = new WeakMap();
 var __claimedRuns = new WeakMap();
 // The link each claimed context continues: its call number and the relayed
@@ -703,12 +728,13 @@ function claimSegmentContext(segmentConfig, context) {
   context.__sigRun = { id: run.id, mac: run.mac };
   // The route's own (see VISITOR_REQUEST_INJECTION); a request never sets it.
   delete context.__request;
+  keepUpstreamResults(segmentConfig, context);
   // Sealed credentials open only after their signature held.
   openSealedResults(context);
   stripForeignControlKeys(segmentConfig, context);
   clearSessionIdentity(context);
-  __incomingOrders.set(context, Object.keys(context).filter(function(k) { return !isControlKey(k); }));
   utils.claimSegmentContext(segmentConfig, context);
+  __incomingOrders.set(context, Object.keys(context).filter(function(k) { return !isControlKey(k); }));
   enforceBranchGates(segmentConfig, context);
   resetPreviousResult(segmentConfig, context);
 }
