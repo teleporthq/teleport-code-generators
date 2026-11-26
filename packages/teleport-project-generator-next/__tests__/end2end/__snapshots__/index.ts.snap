@@ -159,6 +159,7 @@ const Hero = (props) => {
           decoding=\\"async\\"
           alt={props.imageAlt}
           src={props.imageSrc}
+          width=\\"400\\"
           className=\\"hero-image\\"
         />
       </div>
